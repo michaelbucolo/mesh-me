@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+dist/
+build/
+.env
+.venv/
+meshme.db
+.DS_Store
+Thumbs.db
