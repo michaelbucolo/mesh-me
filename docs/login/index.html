@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - mesh.me</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a, #0f172a);
+            color: #ffffff;
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(0,0,0,0.2);
+        }
+        nav a {
+            color: #ffffff;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        .auth {
+            max-width: 400px;
+            margin: 4rem auto;
+            background-color: rgba(4,13,33,0.6);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .auth h1 {
+            text-align: center;
+            margin-top: 0;
+        }
+        .auth label {
+            display: block;
+            margin-bottom: 1rem;
+        }
+        .mesh-field {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #3b82f6;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">mesh.me</a>
+        <div class="nav-links">
+            <a href="/login.html">Login</a>
+            <a href="/signup.html">Sign Up</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy.html">Privacy</a>
+        </div>
+    </nav>
+    <div class="auth">
+        <h1>Login</h1>
+        <form>
+            <label>
+                <span>Username or email</span>
+                <input class="mesh-field" type="text" placeholder="username or email" required />
+            </label>
+            <label>
+                <span>Password</span>
+                <input class="mesh-field" type="password" placeholder="password" required />
+            </label>
+            <button type="submit" class="btn-primary">Login</button>
+        </form>
+    </div>
+</body>
+</html>
