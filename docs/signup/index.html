@@ -74,13 +74,19 @@
 </head>
 <body>
     <nav>
-           <a href="/mesh-me/">mesh.me</a>
+        <!-- Use absolute paths rooted at /mesh-me/ so links work from any directory -->
+        <a href="/mesh-me/">mesh.me</a>
         <div class="nav-links">
-          <a href="/mesh-me/login/">Login</a>
-          <a href="/mesh-me/signup/">Sign Up</a>
-          <a href="/mesh-me/terms/">Terms</a>
-          <a href="/mesh-me/privacy/">Privacy</a>
+            <a href="/mesh-me/features/">Features</a>
+            <a href="/mesh-me/feed/">Feed</a>
+            <a href="/mesh-me/graph/">Graph</a>
+            <a href="/mesh-me/connectors/">Connectors</a>
+            <a href="/mesh-me/settings/">Settings</a>
+            <a href="/mesh-me/terms/">Terms</a>
+            <a href="/mesh-me/privacy/">Privacy</a>
         </div>
+    </nav>
+    <div class="auth">
         <h1>Create your mesh</h1>
         <form>
             <label>
@@ -97,7 +103,7 @@
             </label>
             <div class="check">
                 <input type="checkbox" required />
-                <small>I agree to the <a href="/terms.html">terms</a> and <a href="/privacy.html">privacy</a> policies.</small>
+                <small>I agree to the <a href="/mesh-me/terms/">terms</a> and <a href="/mesh-me/privacy/">privacy</a> policies.</small>
             </div>
             <button type="submit" class="btn-primary">Create Mesh</button>
         </form>
