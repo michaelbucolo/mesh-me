@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Privacy · mesh.me</title>
+  <style>
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #1e3a8a, #0f172a);
+        color: #ffffff;
+        line-height: 1.5;
+    }
+    nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        background: rgba(0,0,0,0.2);
+    }
+    nav a {
+        color: #ffffff;
+        text-decoration: none;
+        margin-left: 1rem;
+    }
+    .nav-links a:hover {
+        text-decoration: underline;
+    }
+    .container {
+        max-width: 800px;
+        margin: 4rem auto;
+        background: rgba(0,0,0,0.3);
+        padding: 2rem;
+        border-radius: 8px;
+    }
+    h1 {
+        margin-top: 0;
+    }
+    h2 {
+        margin-top: 1.5rem;
+    }
+    p, ul {
+        margin-bottom: 1rem;
+    }
+    .muted {
+        color: #a1a1aa;
+        font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">mesh.me</a>
+    <div class="nav-links">
+      <a href="/login.html">Login</a>
+      <a href="/signup.html">Sign Up</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/privacy.html">Privacy</a>
+    </div>
+  </nav>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="muted">Last updated: January 5, 2026</p>
+
+    <h2>1. Data we store</h2>
+    <ul>
+      <li><strong>Account data</strong> (username, email, password hash).</li>
+      <li><strong>Connections</strong> (which services you connect and the access tokens required to call their APIs).</li>
+      <li><strong>Cached feed items</strong> to make your feed fast.</li>
+      <li><strong>Notification rules</strong> and notification events.</li>
+      <li><strong>Device tokens</strong> if you enable push notifications.</li>
+    </ul>
+
+    <h2>2. How we use your data</h2>
+    <p>We use your data to provide the MeshMe experience: fetching feeds, rendering your mesh, and delivering notifications you configure.</p>
+
+    <h2>3. Tokens</h2>
+    <p>OAuth tokens allow MeshMe to read and act on your behalf when you click actions. Keep your instance secure. In this open-source demo build, tokens are stored in the database. For production you should encrypt tokens at rest.</p>
+
+    <h2>4. Third parties</h2>
+    <p>Connected Services have their own policies. When MeshMe calls their APIs, it sends requests that may include identifiers required by those services.</p>
+
+    <h2>5. Deleting your data</h2>
+    <p>You can disconnect services and delete your account (feature can be added) to remove stored data.</p>
+  </div>
+</body>
+</html>
