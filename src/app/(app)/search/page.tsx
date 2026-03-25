@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import { searchAll } from "@/lib/queries";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Search as SearchIcon, Users, FileText, Hash } from "lucide-react";
+import { Search as SearchIcon, Users, FileText, Hash, Clock, X, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -14,24 +15,51 @@ type SearchResults = {
   communities: Array<{ id: string; name: string; slug: string; description: string | null; _count: { members: number } }>;
 };
 
+const SUGGESTED_SEARCHES = ["music", "gaming", "art", "tech", "photography", "design", "fitness", "travel"];
+
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<"all" | "people" | "posts" | "communities">("all");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mesh_recent_searches");
+      if (saved) setRecentSearches(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const saveSearch = useCallback((q: string) => {
+    const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 8);
+    setRecentSearches(updated);
+    try { localStorage.setItem("mesh_recent_searches", JSON.stringify(updated)); } catch {}
+  }, [recentSearches]);
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    try { localStorage.removeItem("mesh_recent_searches"); } catch {}
+  };
 
   const handleSearch = (value: string) => {
     setQuery(value);
-    if (value.trim().length < 2) {
-      setResults(null);
-      return;
-    }
+    if (value.trim().length < 2) { setResults(null); return; }
     startTransition(async () => {
       const data = await searchAll(value);
       setResults(data as SearchResults);
+      saveSearch(value.trim());
     });
   };
 
   const hasResults = results && (results.users.length > 0 || results.posts.length > 0 || results.communities.length > 0);
+  const totalResults = results ? results.users.length + results.posts.length + results.communities.length : 0;
+
+  const filteredResults = results ? {
+    users: activeTab === "all" || activeTab === "people" ? results.users : [],
+    posts: activeTab === "all" || activeTab === "posts" ? results.posts : [],
+    communities: activeTab === "all" || activeTab === "communities" ? results.communities : [],
+  } : null;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
@@ -42,12 +70,33 @@ export default function SearchPage() {
           <input
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search people, posts, communities..."
-            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl pl-12 pr-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+            placeholder="Search people, posts, communities, tags..."
+            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl pl-12 pr-10 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
             autoFocus
           />
+          {query && (
+            <button onClick={() => { setQuery(""); setResults(null); }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Filter tabs */}
+      {results && hasResults && (
+        <div className="flex items-center gap-1 mb-6 p-1 rounded-xl bg-zinc-800/50">
+          {([
+            { id: "all" as const, label: "All", count: totalResults },
+            { id: "people" as const, label: "People", count: results.users.length },
+            { id: "posts" as const, label: "Posts", count: results.posts.length },
+            { id: "communities" as const, label: "Communities", count: results.communities.length },
+          ]).map((tab) => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? "bg-zinc-700 text-zinc-100" : "text-zinc-400 hover:text-zinc-200"}`}>
+              {tab.label} {tab.count > 0 && <span className="ml-1 text-xs text-zinc-500">({tab.count})</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {isPending && (
         <div className="flex items-center justify-center py-12">
@@ -55,26 +104,25 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!isPending && results && hasResults && (
+      {!isPending && filteredResults && hasResults && (
         <div className="space-y-8">
-          {/* People */}
-          {results.users.length > 0 && (
+          {filteredResults.users.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Users className="h-4 w-4 text-indigo-400" />
                 <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">People</h2>
               </div>
               <div className="space-y-1">
-                {results.users.map((user) => (
-                  <Link
-                    key={user.id}
-                    href={`/profile/${user.username}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/50 transition-colors"
-                  >
-                    <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
+                {filteredResults.users.map((user) => (
+                  <Link key={user.id} href={`/profile/${user.username}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/50 transition-colors">
+                    <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-semibold text-zinc-100">{user.displayName}</h3>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-sm font-semibold text-zinc-100">{user.displayName}</h3>
+                        {user.isVerified && <svg className="h-3.5 w-3.5 text-indigo-400" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                      </div>
                       <p className="text-xs text-zinc-500">@{user.username}</p>
+                      {user.bio && <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">{user.bio}</p>}
                     </div>
                     <span className="text-xs text-zinc-500">{user._count.followers} followers</span>
                   </Link>
@@ -83,28 +131,19 @@ export default function SearchPage() {
             </div>
           )}
 
-          {/* Communities */}
-          {results.communities.length > 0 && (
+          {filteredResults.communities.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Hash className="h-4 w-4 text-indigo-400" />
                 <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">Communities</h2>
               </div>
               <div className="space-y-1">
-                {results.communities.map((community) => (
-                  <Link
-                    key={community.id}
-                    href={`/communities/${community.slug}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/50 transition-colors"
-                  >
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                      {community.name[0]}
-                    </div>
+                {filteredResults.communities.map((community) => (
+                  <Link key={community.id} href={`/communities/${community.slug}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/50 transition-colors">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{community.name[0]}</div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-zinc-100">{community.name}</h3>
-                      {community.description && (
-                        <p className="text-xs text-zinc-500 truncate">{community.description}</p>
-                      )}
+                      {community.description && <p className="text-xs text-zinc-500 truncate">{community.description}</p>}
                     </div>
                     <span className="text-xs text-zinc-500">{community._count.members} members</span>
                   </Link>
@@ -113,26 +152,25 @@ export default function SearchPage() {
             </div>
           )}
 
-          {/* Posts */}
-          {results.posts.length > 0 && (
+          {filteredResults.posts.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="h-4 w-4 text-indigo-400" />
                 <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">Posts</h2>
               </div>
               <div className="space-y-1">
-                {results.posts.map((post) => (
-                  <Link
-                    key={post.id}
-                    href={`/feed/${post.id}`}
-                    className="block p-3 rounded-xl hover:bg-zinc-800/50 transition-colors"
-                  >
+                {filteredResults.posts.map((post) => (
+                  <Link key={post.id} href={`/feed/${post.id}`} className="block p-3 rounded-xl hover:bg-zinc-800/50 transition-colors">
                     <div className="flex items-center gap-2 mb-1">
                       <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size="xs" />
                       <span className="text-xs font-medium text-zinc-300">{post.author.displayName}</span>
                       <span className="text-xs text-zinc-600">{formatRelativeTime(post.createdAt)}</span>
                     </div>
                     <p className="text-sm text-zinc-400 line-clamp-2">{post.content}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-zinc-600">
+                      <span>{post._count.reactions} likes</span>
+                      <span>{post._count.comments} comments</span>
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -142,17 +180,45 @@ export default function SearchPage() {
       )}
 
       {!isPending && results && !hasResults && (
-        <EmptyState
-          icon={SearchIcon}
-          title="No results found"
-          description={`Nothing matched "${query}". Try a different search.`}
-        />
+        <EmptyState icon={SearchIcon} title="No results found" description="Nothing matched your search. Try a different term." />
       )}
 
+      {/* Initial state */}
       {!results && !isPending && (
-        <div className="text-center py-16">
-          <SearchIcon className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
-          <p className="text-zinc-500">Search for people, posts, and communities</p>
+        <div className="space-y-8">
+          {recentSearches.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-zinc-500" />
+                  <h2 className="text-sm font-medium text-zinc-400">Recent searches</h2>
+                </div>
+                <button onClick={clearRecentSearches} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Clear all</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {recentSearches.map((search) => (
+                  <button key={search} onClick={() => handleSearch(search)} className="px-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-sm text-zinc-300 hover:bg-zinc-700/50 hover:border-zinc-600 transition-colors">{search}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-4 w-4 text-indigo-400" />
+              <h2 className="text-sm font-medium text-zinc-400">Suggested searches</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTED_SEARCHES.map((tag) => (
+                <button key={tag} onClick={() => handleSearch(tag)} className="px-3 py-1.5 rounded-lg bg-zinc-800/30 border border-zinc-800 text-sm text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 hover:border-zinc-700 transition-colors">
+                  <Hash className="h-3 w-3 inline mr-1" />{tag}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="text-center pt-8">
+            <SearchIcon className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
+            <p className="text-zinc-600 text-sm">Search for people, posts, communities, and tags</p>
+          </div>
         </div>
       )}
     </div>

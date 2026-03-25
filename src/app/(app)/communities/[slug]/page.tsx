@@ -1,12 +1,12 @@
 import { getCurrentUser } from "@/lib/auth";
-import { getCommunityBySlug, getCommunityPosts } from "@/lib/queries";
+import { getCommunityBySlug, getCommunityPosts, getCommunityMembers } from "@/lib/queries";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Users, FileText, Shield } from "lucide-react";
+import { ArrowLeft, Users, FileText, Shield, Crown, Star, Settings, Pin } from "lucide-react";
 import Link from "next/link";
 import { JoinButton } from "./join-button";
 
@@ -17,74 +17,106 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
 
   if (!community) notFound();
 
-  const posts = await getCommunityPosts(community.id);
+  const [posts, members] = await Promise.all([
+    getCommunityPosts(community.id),
+    getCommunityMembers(community.id),
+  ]);
+
+  const admins = members.filter((m: { role: string; user: { id: string; username: string; displayName: string; avatarUrl: string | null } }) => m.role === "admin" || m.role === "moderator");
+  const isAdmin = community.userRole === "admin";
+  const isMod = community.userRole === "moderator" || isAdmin;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       {/* Banner */}
-      <div className="h-40 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 relative">
+      <div className="h-48 bg-gradient-to-br from-indigo-600/30 to-purple-600/30 relative rounded-b-2xl overflow-hidden">
         {community.bannerUrl && (
           <img src={community.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent" />
-        <Link href="/communities" className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-zinc-300 hover:text-white bg-zinc-950/50 rounded-lg px-3 py-1.5 transition-colors">
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/30 to-transparent" />
+        <Link href="/communities" className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-zinc-300 hover:text-white bg-zinc-950/50 backdrop-blur-sm rounded-lg px-3 py-1.5 transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Link>
       </div>
 
       {/* Community header */}
-      <div className="px-6 -mt-8 relative">
+      <div className="px-6 -mt-10 relative">
         <div className="flex items-end justify-between mb-4">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center ring-4 ring-zinc-950 text-white font-bold text-xl">
+          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center ring-4 ring-zinc-950 text-white font-bold text-2xl shadow-xl">
             {community.iconUrl ? (
               <img src={community.iconUrl} alt={community.name} className="w-full h-full rounded-2xl object-cover" />
             ) : (
               community.name[0]
             )}
           </div>
-          {user && <JoinButton communityId={community.id} isMember={community.isMember} />}
+          <div className="flex items-center gap-2">
+            {isMod && (
+              <Link href={`/communities/${slug}`} className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+                <Settings className="h-5 w-5" />
+              </Link>
+            )}
+            {user && <JoinButton communityId={community.id} isMember={community.isMember} />}
+          </div>
         </div>
 
-        <h1 className="text-xl font-bold text-zinc-100 mb-1">{community.name}</h1>
-        {community.category && <Badge variant="secondary" className="mb-2">{community.category}</Badge>}
+        <h1 className="text-2xl font-bold text-zinc-100 mb-1">{community.name}</h1>
+        <div className="flex items-center gap-3 mb-3">
+          {community.category && <Badge variant="secondary">{community.category}</Badge>}
+          {isAdmin && <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Admin</Badge>}
+        </div>
         {community.description && (
-          <p className="text-sm text-zinc-400 leading-relaxed mb-3">{community.description}</p>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-4">{community.description}</p>
         )}
 
-        <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
-          <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
-            {community._count.members} members
+        <div className="flex items-center gap-6 text-sm text-zinc-500 mb-4">
+          <span className="flex items-center gap-1.5">
+            <Users className="h-4 w-4" />
+            <strong className="text-zinc-300">{community._count.members}</strong> members
           </span>
-          <span className="flex items-center gap-1">
-            <FileText className="h-3.5 w-3.5" />
-            {community._count.posts} posts
+          <span className="flex items-center gap-1.5">
+            <FileText className="h-4 w-4" />
+            <strong className="text-zinc-300">{community._count.posts}</strong> posts
           </span>
         </div>
+
+        {/* Moderators */}
+        {admins.length > 0 && (
+          <div className="flex items-center gap-3 mb-4 py-3 border-t border-zinc-800">
+            <span className="text-xs text-zinc-500 flex items-center gap-1"><Crown className="h-3 w-3" /> Moderators:</span>
+            <div className="flex items-center gap-2">
+              {admins.slice(0, 5).map((m: { role: string; user: { id: string; username: string; displayName: string; avatarUrl: string | null } }) => (
+                <Link key={m.user.id} href={`/profile/${m.user.username}`} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
+                  <Avatar src={m.user.avatarUrl} alt={m.user.displayName} size="xs" />
+                  <span>{m.user.displayName}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Members preview */}
         {community.members.length > 0 && (
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-3 mb-4">
             <div className="flex -space-x-2">
-              {community.members.slice(0, 5).map((member) => (
+              {community.members.slice(0, 8).map((member: { user: { id: string; username: string; displayName: string; avatarUrl: string | null } }) => (
                 <Avatar key={member.user.id} src={member.user.avatarUrl} alt={member.user.displayName} size="xs" />
               ))}
             </div>
-            {community._count.members > 5 && (
-              <span className="text-xs text-zinc-500">+{community._count.members - 5} more</span>
+            {community._count.members > 8 && (
+              <span className="text-xs text-zinc-500">+{community._count.members - 8} more</span>
             )}
           </div>
         )}
 
         {/* Rules */}
         {community.rules && (
-          <details className="mb-4">
-            <summary className="text-sm font-medium text-zinc-400 cursor-pointer flex items-center gap-1.5 hover:text-zinc-300">
-              <Shield className="h-3.5 w-3.5" />
+          <details className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+            <summary className="text-sm font-medium text-zinc-400 cursor-pointer flex items-center gap-2 p-3 hover:bg-zinc-800/50 transition-colors">
+              <Shield className="h-4 w-4 text-indigo-400" />
               Community rules
             </summary>
-            <p className="text-sm text-zinc-500 mt-2 pl-5 whitespace-pre-wrap">{community.rules}</p>
+            <div className="px-3 pb-3 text-sm text-zinc-500 whitespace-pre-wrap border-t border-zinc-800 pt-3">{community.rules}</div>
           </details>
         )}
       </div>
