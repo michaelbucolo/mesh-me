@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mesh.me — unified feed and notifications</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #eef4f8;
+      overflow-x: hidden;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+    }
+    .brand a {
+      color: #69b1e8;
+      text-decoration: none;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .tagline {
+      margin-left: 0.5rem;
+      font-size: 1rem;
+      color: #899bbd;
+    }
+    nav a {
+      margin-left: 1rem;
+      color: #89a7d7;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    nav a:hover {
+      color: #b0c7e8;
+    }
+    .hero {
+      text-align: center;
+      padding: 5rem 2rem;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      color: #9ca3af;
+    }
+    .buttons .btn {
+      display: inline-block;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      font-weight: bold;
+      text-decoration: none;
+      margin: 0 0.5rem;
+    }
+    .btn.primary {
+      background-color: #337ab7;
+      color: white;
+    }
+    .btn.secondary {
+      background-color: #4a5568;
+      color: white;
+    }
+    footer {
+      padding: 20px;
+      text-align: center;
+      color: #6d7a8d;
+      font-size: 0.8em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <a href="/mesh-me/">mesh.me</a>
+      <span class="tagline">Your internet footprint, unified.</span>
+    </div>
+    <nav>
+      <!-- Use absolute paths rooted at /mesh-me/ so links work from any directory -->
+      <a href="/mesh-me/features/">Features</a>
+      <a href="/mesh-me/feed/">Feed</a>
+      <a href="/mesh-me/graph/">Graph</a>
+      <a href="/mesh-me/connectors/">Connectors</a>
+      <a href="/mesh-me/settings/">Settings</a>
+      <a href="/mesh-me/terms/">Terms</a>
+      <a href="/mesh-me/privacy/">Privacy</a>
+    </nav>
+  </header>
+  <section class="hero">
+    <h1>All your feeds. One mesh.</h1>
+    <p>MeshMe unifies your internet footprint into a single personalized feed and notification system.
+      Connect services like YouTube and Twitch, choose what you care about, and interact from one place.</p>
+    <div class="buttons">
+      <a class="btn primary" href="/mesh-me/signup/">Create account</a>
+      <a class="btn secondary" href="/mesh-me/login/">Login</a>
+    </div>
+  </section>
+  <footer>
+    &copy; 2026 mesh.me — unified feed and notifications.
+  </footer>
+</body>
+</html>

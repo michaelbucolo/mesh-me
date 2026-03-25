@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# mesh.me
+
+A next-generation social identity platform built with Next.js, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
+npx prisma generate
+npx prisma db push
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **The Mesh** — Interactive constellation network visualization of your social graph
+- **Custom Feed** — Universal scrolling feed with layout modes (Instagram/Twitter/TikTok/YouTube)
+- **MeChat** — Unified messaging across platforms
+- **Connected Accounts** — Link 16+ social platforms
+- **Communities** — Create, join, and moderate community spaces
+- **AI Notifications** — Smart notification summaries
+- **Expressive Profiles** — Rich identity with accent colors, interest tags, and customization
+- **Admin Panel** — Moderation queue, user management, analytics
+- **Security** — Rate limiting, account lockout, input sanitization, XSS prevention
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Database:** PostgreSQL / SQLite (dev)
+- **ORM:** Prisma
+- **Animation:** Framer Motion, HTML5 Canvas
+- **UI:** Custom design system with glass morphism effects
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/app/` — Next.js App Router pages and API routes
+- `src/components/` — Reusable UI components
+- `src/lib/` — Server actions, queries, auth, utilities
+- `prisma/` — Database schema and migrations
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The easiest way to deploy is via [Vercel](https://vercel.com).
