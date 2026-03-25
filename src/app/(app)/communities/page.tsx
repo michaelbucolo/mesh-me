@@ -1,0 +1,52 @@
+import { getCurrentUser } from "@/lib/auth";
+import { getCommunities } from "@/lib/queries";
+import { CommunityCard } from "@/components/shared/community-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Users, Plus } from "lucide-react";
+import Link from "next/link";
+
+export default async function CommunitiesPage() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const communities = await getCommunities();
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-100">Communities</h1>
+          <p className="text-sm text-zinc-400 mt-1">Find your people, join the conversation</p>
+        </div>
+        <Link
+          href="/communities/create"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+        >
+          <Plus className="h-4 w-4" />
+          Create community
+        </Link>
+      </div>
+
+      {communities.length > 0 ? (
+        <div className="grid md:grid-cols-2 gap-4">
+          {communities.map((community) => (
+            <CommunityCard key={community.id} community={community} currentUserId={user.id} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={Users}
+          title="No communities yet"
+          description="Be the first to create a community and bring people together."
+        >
+          <Link
+            href="/communities/create"
+            className="inline-flex bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+          >
+            Create the first community
+          </Link>
+        </EmptyState>
+      )}
+    </div>
+  );
+}
