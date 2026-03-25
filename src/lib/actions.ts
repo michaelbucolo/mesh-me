@@ -589,3 +589,323 @@ export async function adminResolveReport(reportId: string, status: string) {
   revalidatePath("/admin");
   return { success: true };
 }
+
+export async function adminDeletePost(postId: string) {
+  const user = await getCurrentUser();
+  if (!user?.isAdmin) return { error: "Unauthorized" };
+
+  const post = await prisma.post.findUnique({ where: { id: postId } });
+  if (!post) return { error: "Post not found" };
+
+  await prisma.post.delete({ where: { id: postId } });
+
+  await prisma.adminLog.create({
+    data: {
+      action: "delete_post",
+      details: `Post: ${postId}`,
+      adminId: user.id,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/feed");
+  return { success: true };
+}
+
+// ─── Mute Actions ───────────────────────────────────────────
+
+export async function toggleMute(targetUserId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const existing = await prisma.mute.findUnique({
+    where: { muterId_mutedId: { muterId: user.id, mutedId: targetUserId } },
+  });
+
+  if (existing) {
+    await prisma.mute.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.mute.create({
+      data: { muterId: user.id, mutedId: targetUserId },
+    });
+  }
+
+  revalidatePath("/settings");
+  return { success: true, muted: !existing };
+}
+
+// ─── Repost Actions ─────────────────────────────────────────
+
+export async function repost(postId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const original = await prisma.post.findUnique({ where: { id: postId } });
+  if (!original) return { error: "Post not found" };
+
+  // Check if already reposted
+  const existing = await prisma.post.findFirst({
+    where: { authorId: user.id, repostId: postId, isRepost: true },
+  });
+
+  if (existing) {
+    await prisma.post.delete({ where: { id: existing.id } });
+    revalidatePath("/feed");
+    return { success: true, reposted: false };
+  }
+
+  await prisma.post.create({
+    data: {
+      content: original.content,
+      authorId: user.id,
+      isRepost: true,
+      repostId: postId,
+      communityId: original.communityId,
+    },
+  });
+
+  if (original.authorId !== user.id) {
+    await prisma.notification.create({
+      data: {
+        type: "repost",
+        recipientId: original.authorId,
+        actorId: user.id,
+        postId,
+        message: `${user.displayName} reposted your post`,
+      },
+    });
+  }
+
+  revalidatePath("/feed");
+  return { success: true, reposted: true };
+}
+
+// ─── Pin Post Actions ───────────────────────────────────────
+
+export async function togglePinPost(postId: string, communityId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const membership = await prisma.communityMember.findUnique({
+    where: { userId_communityId: { userId: user.id, communityId } },
+  });
+
+  if (!membership || (membership.role !== "admin" && membership.role !== "moderator")) {
+    return { error: "Only moderators can pin posts" };
+  }
+
+  const post = await prisma.post.findUnique({ where: { id: postId } });
+  if (!post) return { error: "Post not found" };
+
+  await prisma.post.update({
+    where: { id: postId },
+    data: { isPinned: !post.isPinned },
+  });
+
+  revalidatePath(`/communities/${communityId}`);
+  return { success: true, pinned: !post.isPinned };
+}
+
+// ─── Password Actions ───────────────────────────────────────
+
+export async function changePassword(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const currentPassword = formData.get("currentPassword") as string;
+  const newPassword = formData.get("newPassword") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return { error: "All fields are required" };
+  }
+
+  if (newPassword.length < 8) {
+    return { error: "New password must be at least 8 characters" };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { error: "Passwords do not match" };
+  }
+
+  const valid = await verifyPassword(currentPassword, user.passwordHash);
+  if (!valid) {
+    return { error: "Current password is incorrect" };
+  }
+
+  const newHash = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: newHash },
+  });
+
+  return { success: true };
+}
+
+// ─── Account Actions ────────────────────────────────────────
+
+export async function deleteAccount() {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.user.delete({ where: { id: user.id } });
+  await destroySession();
+  redirect("/");
+}
+
+// ─── Privacy Actions ────────────────────────────────────────
+
+export async function updatePrivacy(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const isPublic = formData.get("isPublic") === "true";
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { isPublic },
+  });
+
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+// ─── Community Moderation ───────────────────────────────────
+
+export async function updateCommunity(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const communityId = formData.get("communityId") as string;
+  const description = formData.get("description") as string;
+  const rules = formData.get("rules") as string;
+  const category = formData.get("category") as string;
+
+  const membership = await prisma.communityMember.findUnique({
+    where: { userId_communityId: { userId: user.id, communityId } },
+  });
+
+  if (!membership || membership.role !== "admin") {
+    return { error: "Only admins can edit community settings" };
+  }
+
+  await prisma.community.update({
+    where: { id: communityId },
+    data: {
+      description: description ?? undefined,
+      rules: rules ?? undefined,
+      category: category ?? undefined,
+    },
+  });
+
+  revalidatePath("/communities");
+  return { success: true };
+}
+
+export async function promoteMember(userId: string, communityId: string, role: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const membership = await prisma.communityMember.findUnique({
+    where: { userId_communityId: { userId: user.id, communityId } },
+  });
+
+  if (!membership || membership.role !== "admin") {
+    return { error: "Only admins can change roles" };
+  }
+
+  await prisma.communityMember.update({
+    where: { userId_communityId: { userId, communityId } },
+    data: { role },
+  });
+
+  revalidatePath(`/communities/${communityId}`);
+  return { success: true };
+}
+
+export async function removeMember(userId: string, communityId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const membership = await prisma.communityMember.findUnique({
+    where: { userId_communityId: { userId: user.id, communityId } },
+  });
+
+  if (!membership || (membership.role !== "admin" && membership.role !== "moderator")) {
+    return { error: "Only moderators can remove members" };
+  }
+
+  const target = await prisma.communityMember.findUnique({
+    where: { userId_communityId: { userId, communityId } },
+  });
+
+  if (target?.role === "admin") {
+    return { error: "Cannot remove admins" };
+  }
+
+  await prisma.communityMember.delete({
+    where: { userId_communityId: { userId, communityId } },
+  });
+
+  revalidatePath(`/communities/${communityId}`);
+  return { success: true };
+}
+
+// ─── Delete Comment ─────────────────────────────────────────
+
+export async function deleteComment(commentId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+  if (!comment) return { error: "Comment not found" };
+  if (comment.authorId !== user.id && !user.isAdmin) return { error: "Unauthorized" };
+
+  await prisma.comment.delete({ where: { id: commentId } });
+  revalidatePath("/feed");
+  return { success: true };
+}
+
+// ─── User Links Actions ─────────────────────────────────────
+
+export async function updateUserLinks(links: { label: string; url: string }[]) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  // Remove existing links
+  await prisma.userLink.deleteMany({ where: { userId: user.id } });
+
+  // Create new links
+  if (links.length > 0) {
+    await prisma.userLink.createMany({
+      data: links.map((link) => ({
+        userId: user.id,
+        label: link.label,
+        url: link.url,
+      })),
+    });
+  }
+
+  revalidatePath(`/profile/${user.username}`);
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+// ─── User Interests Actions ─────────────────────────────────
+
+export async function updateUserInterests(interests: string[]) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.userInterest.deleteMany({ where: { userId: user.id } });
+
+  if (interests.length > 0) {
+    await prisma.userInterest.createMany({
+      data: interests.map((tag) => ({ userId: user.id, tag })),
+    });
+  }
+
+  revalidatePath(`/profile/${user.username}`);
+  revalidatePath("/settings");
+  return { success: true };
+}

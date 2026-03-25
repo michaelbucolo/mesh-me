@@ -1,12 +1,12 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getNotifications } from "@/lib/queries";
-import { markNotificationsRead } from "@/lib/actions";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Bell, Heart, MessageCircle, UserPlus, Repeat, AtSign } from "lucide-react";
+import { Bell, Heart, MessageCircle, UserPlus, Repeat, AtSign, Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { MarkReadButton } from "./mark-read-button";
+import { NotificationsClient } from "./notifications-client";
 
 const NOTIFICATION_ICONS: Record<string, typeof Heart> = {
   like: Heart,
@@ -17,74 +17,58 @@ const NOTIFICATION_ICONS: Record<string, typeof Heart> = {
   message: MessageCircle,
 };
 
+type NotificationType = "like" | "comment" | "follow" | "repost" | "mention" | "message";
+
+function generateAISummary(notifications: Array<{ type: string; message: string; actor: { displayName: string } | null }>) {
+  const grouped: Record<string, number> = {};
+  notifications.forEach((n) => {
+    grouped[n.type] = (grouped[n.type] || 0) + 1;
+  });
+
+  const parts: string[] = [];
+  if (grouped.like) parts.push(`${grouped.like} new like${grouped.like > 1 ? "s" : ""} on your posts`);
+  if (grouped.comment) parts.push(`${grouped.comment} new comment${grouped.comment > 1 ? "s" : ""}`);
+  if (grouped.follow) parts.push(`${grouped.follow} new follower${grouped.follow > 1 ? "s" : ""}`);
+  if (grouped.repost) parts.push(`${grouped.repost} repost${grouped.repost > 1 ? "s" : ""}`);
+  if (grouped.mention) parts.push(`${grouped.mention} mention${grouped.mention > 1 ? "s" : ""}`);
+  if (grouped.message) parts.push(`${grouped.message} new message${grouped.message > 1 ? "s" : ""}`);
+
+  if (parts.length === 0) return null;
+  return parts.join(", ") + " since your last visit.";
+}
+
 export default async function NotificationsPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
   const { notifications, unreadCount } = await getNotifications();
 
+  const unreadNotifications = notifications.filter((n) => !n.read);
+  const aiSummary = unreadNotifications.length > 2
+    ? generateAISummary(unreadNotifications.map((n) => ({ type: n.type, message: n.message || "", actor: n.actor })))
+    : null;
+
+  const categorized = {
+    all: notifications,
+    likes: notifications.filter((n) => n.type === "like"),
+    comments: notifications.filter((n) => n.type === "comment"),
+    follows: notifications.filter((n) => n.type === "follow"),
+    messages: notifications.filter((n) => n.type === "message"),
+    reposts: notifications.filter((n) => n.type === "repost" || n.type === "mention"),
+  };
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Notifications</h1>
-          {unreadCount > 0 && (
-            <p className="text-sm text-zinc-400 mt-1">{unreadCount} unread</p>
-          )}
-        </div>
-        {unreadCount > 0 && <MarkReadButton />}
-      </div>
-
-      {notifications.length > 0 ? (
-        <div className="space-y-1">
-          {notifications.map((notification) => {
-            const Icon = NOTIFICATION_ICONS[notification.type] || Bell;
-            const href = notification.postId
-              ? `/feed/${notification.postId}`
-              : notification.actor
-              ? `/profile/${notification.actor.username}`
-              : "#";
-
-            return (
-              <Link
-                key={notification.id}
-                href={href}
-                className={`flex items-start gap-3 p-4 rounded-xl transition-colors ${
-                  notification.read ? "hover:bg-zinc-800/30" : "bg-indigo-500/5 hover:bg-indigo-500/10"
-                }`}
-              >
-                <div className="relative">
-                  {notification.actor ? (
-                    <Avatar src={notification.actor.avatarUrl} alt={notification.actor.displayName} size="sm" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                      <Bell className="h-4 w-4 text-zinc-400" />
-                    </div>
-                  )}
-                  <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-zinc-900 flex items-center justify-center">
-                    <Icon className="h-3 w-3 text-indigo-400" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-zinc-200">{notification.message}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    {formatRelativeTime(notification.createdAt)}
-                  </p>
-                </div>
-                {!notification.read && (
-                  <div className="h-2 w-2 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyState
-          icon={Bell}
-          title="No notifications"
-          description="When someone interacts with you, you'll see it here."
-        />
-      )}
-    </div>
+    <NotificationsClient
+      categorized={{
+        all: categorized.all.map((n) => ({ ...n, createdAt: String(n.createdAt) })),
+        likes: categorized.likes.map((n) => ({ ...n, createdAt: String(n.createdAt) })),
+        comments: categorized.comments.map((n) => ({ ...n, createdAt: String(n.createdAt) })),
+        follows: categorized.follows.map((n) => ({ ...n, createdAt: String(n.createdAt) })),
+        messages: categorized.messages.map((n) => ({ ...n, createdAt: String(n.createdAt) })),
+        reposts: categorized.reposts.map((n) => ({ ...n, createdAt: String(n.createdAt) })),
+      }}
+      unreadCount={unreadCount}
+      aiSummary={aiSummary}
+    />
   );
 }

@@ -6,10 +6,12 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { notFound } from "next/navigation";
-import { MapPin, Link as LinkIcon, Calendar, FileText, MessageCircle, UserPlus, MoreHorizontal } from "lucide-react";
+import { MapPin, Link as LinkIcon, Calendar, FileText, MessageCircle, MoreHorizontal, Image, Info, Users, Link2 } from "lucide-react";
 import Link from "next/link";
 import { FollowButton } from "./follow-button";
 import { formatCount } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+import { ProfileTabs } from "./profile-tabs";
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -19,6 +21,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (!profile) notFound();
 
   const posts = await getUserPosts(username);
+
+  // Get connected accounts for profile display
+  const connectedAccounts = await prisma.connectedAccount.findMany({
+    where: { userId: profile.id, isActive: true },
+    select: { platform: true, platformUsername: true },
+  });
+
+  // Get user communities
+  const communities = await prisma.communityMember.findMany({
+    where: { userId: profile.id },
+    include: {
+      community: { select: { id: true, name: true, slug: true, _count: { select: { members: true } } } },
+    },
+    take: 10,
+  });
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -113,6 +130,22 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </div>
         )}
 
+        {/* Connected Accounts on Profile */}
+        {connectedAccounts.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {connectedAccounts.map((account) => (
+              <span
+                key={account.platform}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800/50 border border-zinc-700/50 text-xs text-zinc-300"
+              >
+                <Link2 className="h-3 w-3 text-indigo-400" />
+                {account.platform}
+                {account.platformUsername && <span className="text-zinc-500">@{account.platformUsername}</span>}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Mutual followers */}
         {!profile.isOwnProfile && profile.mutualFollowers.length > 0 && (
           <div className="flex items-center gap-2 mb-4 text-xs text-zinc-500">
@@ -147,23 +180,28 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         )}
       </div>
 
-      {/* Posts */}
-      <div className="px-4 py-6 border-t border-zinc-800">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-4">Posts</h2>
-        <div className="space-y-4">
-          {posts.length > 0 ? (
-            posts.map((post) => (
-              <PostCard key={post.id} post={post} currentUserId={currentUser?.id} />
-            ))
-          ) : (
-            <EmptyState
-              icon={FileText}
-              title="No posts yet"
-              description={profile.isOwnProfile ? "Share your first post!" : `${profile.displayName} hasn't posted yet.`}
-            />
-          )}
-        </div>
-      </div>
+      {/* Profile Tabs */}
+      <ProfileTabs
+        posts={posts.map((p) => ({ ...p, createdAt: String(p.createdAt) }))}
+        communities={communities.map((cm) => ({
+          id: cm.community.id,
+          name: cm.community.name,
+          slug: cm.community.slug,
+          memberCount: cm.community._count.members,
+          role: cm.role,
+        }))}
+        connectedAccounts={connectedAccounts}
+        profile={{
+          bio: profile.bio,
+          location: profile.location,
+          website: profile.website,
+          createdAt: String(profile.createdAt),
+          interests: profile.interests.map((i) => i.tag),
+        }}
+        currentUserId={currentUser?.id}
+        isOwnProfile={profile.isOwnProfile}
+        displayName={profile.displayName}
+      />
     </div>
   );
 }

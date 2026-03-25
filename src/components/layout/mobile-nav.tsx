@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Compass, PenSquare, Bell, User } from "lucide-react";
+import { Home, Compass, PenSquare, Bell, User, Waypoints, MessageCircle } from "lucide-react";
 
 interface MobileNavProps {
   username: string;
@@ -15,10 +15,10 @@ export function MobileNav({ username, unreadNotifications = 0 }: MobileNavProps)
 
   const items = [
     { href: "/feed", icon: Home, label: "Home" },
-    { href: "/explore", icon: Compass, label: "Explore" },
+    { href: "/mesh", icon: Waypoints, label: "Mesh" },
     { href: "/feed?compose=true", icon: PenSquare, label: "Post", isAction: true },
+    { href: "/messages", icon: MessageCircle, label: "MeChat" },
     { href: "/notifications", icon: Bell, label: "Alerts", badge: unreadNotifications },
-    { href: `/profile/${username}`, icon: User, label: "Profile" },
   ];
 
   return (

@@ -47,6 +47,8 @@ model User {
   links          UserLink[]
   adminLogs      AdminLog[]
   savedPosts     SavedPost[]
+  connectedAccounts ConnectedAccount[]
+  feedPreference FeedPreference?
 }
 
 model UserInterest {
@@ -307,4 +309,34 @@ model AdminLog {
   admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+}
+
+model ConnectedAccount {
+  id           String   @id @default(cuid())
+  userId       String
+  platform     String
+  platformUsername String?
+  platformId   String?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@index([platform])
+}
+
+model FeedPreference {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  layout    String   @default("cards")
+  sources   String   @default("all")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

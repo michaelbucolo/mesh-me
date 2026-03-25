@@ -15,6 +15,9 @@ import {
   Settings,
   LogOut,
   Shield,
+  Waypoints,
+  LayoutGrid,
+  Link2,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 
@@ -31,11 +34,14 @@ interface SidebarProps {
 
 const navItems = [
   { href: "/feed", icon: Home, label: "Home" },
+  { href: "/mesh", icon: Waypoints, label: "The Mesh" },
+  { href: "/custom-feed", icon: LayoutGrid, label: "Custom Feed" },
   { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/search", icon: Search, label: "Search" },
-  { href: "/messages", icon: MessageCircle, label: "Messages" },
+  { href: "/messages", icon: MessageCircle, label: "MeChat" },
   { href: "/communities", icon: Users, label: "Communities" },
   { href: "/notifications", icon: Bell, label: "Notifications" },
+  { href: "/connected-accounts", icon: Link2, label: "Connected" },
 ];
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {

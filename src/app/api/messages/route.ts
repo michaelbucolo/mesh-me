@@ -1,10 +1,12 @@
+import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getMessageThreads } from "@/lib/queries";
-import { MeChatClient } from "./mechat-client";
 
-export default async function MessagesPage() {
+export async function GET() {
   const user = await getCurrentUser();
-  if (!user) return null;
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
 
   const threads = await getMessageThreads();
 
@@ -14,9 +16,9 @@ export default async function MessagesPage() {
     lastMessage: t.lastMessage
       ? { content: t.lastMessage.content, senderId: t.lastMessage.senderId, createdAt: String(t.lastMessage.createdAt) }
       : null,
-    platform: "mesh" as const,
+    platform: "mesh",
     unread: 0,
   }));
 
-  return <MeChatClient threads={serializedThreads} currentUserId={user.id} />;
+  return NextResponse.json({ threads: serializedThreads, currentUserId: user.id });
 }
