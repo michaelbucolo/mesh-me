@@ -61,7 +61,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   twitter: "#1DA1F2",
   twitch: "#9146FF",
   spotify: "#1DB954",
-  mesh: "#6366f1",
+  mesh: "#3b82f6",
 };
 
 export default function CustomFeedPage() {
@@ -93,7 +93,7 @@ export default function CustomFeedPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="w-12 h-12 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        <div className="w-12 h-12 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -113,7 +113,7 @@ export default function CustomFeedPage() {
               onClick={() => setShowLayoutPicker(!showLayoutPicker)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-zinc-300 hover:border-zinc-700 transition-colors"
             >
-              {currentLayout && <currentLayout.icon className="h-4 w-4 text-indigo-400" />}
+              {currentLayout && <currentLayout.icon className="h-4 w-4 text-blue-400" />}
               {currentLayout?.label}
               <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
             </button>
@@ -130,7 +130,7 @@ export default function CustomFeedPage() {
                     key={opt.id}
                     onClick={() => { setLayout(opt.id); setShowLayoutPicker(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                      layout === opt.id ? "bg-indigo-600/10 text-indigo-400" : "text-zinc-300 hover:bg-zinc-800"
+                      layout === opt.id ? "bg-blue-600/10 text-blue-400" : "text-zinc-300 hover:bg-zinc-800"
                     }`}
                   >
                     <opt.icon className="h-5 w-5" />
@@ -155,7 +155,7 @@ export default function CustomFeedPage() {
                 key={s.id}
                 onClick={() => setFeedSource(s.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  feedSource === s.id ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-200"
+                  feedSource === s.id ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 {s.label}
@@ -253,7 +253,7 @@ function CardPost({ post }: { post: FeedPost }) {
           </div>
 
           {post.community && (
-            <Link href={`/communities/${post.community.slug}`} className="text-xs text-indigo-400 hover:underline">
+            <Link href={`/communities/${post.community.slug}`} className="text-xs text-blue-400 hover:underline">
               in {post.community.name}
             </Link>
           )}
@@ -273,7 +273,7 @@ function CardPost({ post }: { post: FeedPost }) {
           {post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {post.tags.map((t) => (
-                <span key={t.tag} className="text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer">#{t.tag}</span>
+                <span key={t.tag} className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">#{t.tag}</span>
               ))}
             </div>
           )}

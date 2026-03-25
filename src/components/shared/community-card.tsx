@@ -35,11 +35,11 @@ export function CommunityCard({ community, currentUserId }: CommunityCardProps) 
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5 hover:border-zinc-700 transition-all duration-200">
       <div className="flex items-start gap-3">
-        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
+        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600/20 to-blue-500/20 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
           {community.iconUrl ? (
             <img src={community.iconUrl} alt={community.name} className="h-12 w-12 rounded-xl object-cover" />
           ) : (
-            <Users className="h-5 w-5 text-indigo-400" />
+            <Users className="h-5 w-5 text-blue-400" />
           )}
         </div>
         <div className="flex-1 min-w-0">

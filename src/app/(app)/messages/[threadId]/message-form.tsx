@@ -33,7 +33,7 @@ export function MessageForm({ threadId }: MessageFormProps) {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Type a message..."
-        className="flex-1 bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+        className="flex-1 bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
       />
       <Button type="submit" variant="default" size="icon-sm" disabled={isPending || !content.trim()}>
         <Send className="h-4 w-4" />

@@ -36,7 +36,7 @@ interface Thread {
 }
 
 const PLATFORM_ICONS: Record<string, { color: string; label: string }> = {
-  mesh: { color: "#6366f1", label: "mesh.me" },
+  mesh: { color: "#3b82f6", label: "mesh.me" },
   instagram: { color: "#E4405F", label: "Instagram" },
   twitter: { color: "#1DA1F2", label: "X / Twitter" },
   youtube: { color: "#FF0000", label: "YouTube" },
@@ -88,7 +88,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
               <MessageCircle className="h-4 w-4 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-zinc-100">MeChat</h1>
@@ -104,7 +104,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
           </button>
           <button
             onClick={() => setShowNewChat(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
           >
             <Plus className="h-4 w-4" />
             New Chat
@@ -153,7 +153,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search conversations..."
-          className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 transition-colors"
         />
       </div>
 
@@ -162,7 +162,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
         <Wifi className="h-3.5 w-3.5 text-green-500" />
         <span className="text-xs text-zinc-500">Connected to mesh.me</span>
         <span className="text-xs text-zinc-600">&middot;</span>
-        <Link href="/settings" className="text-xs text-indigo-400 hover:text-indigo-300">
+        <Link href="/settings" className="text-xs text-blue-400 hover:text-blue-300">
           Connect more platforms
         </Link>
       </div>
@@ -205,7 +205,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                         </span>
                       )}
                       {thread.unread > 0 && (
-                        <span className="h-5 min-w-5 px-1.5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">
+                        <span className="h-5 min-w-5 px-1.5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
                           {thread.unread}
                         </span>
                       )}
@@ -300,7 +300,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     value={newChatSearch}
                     onChange={(e) => handleNewChatSearch(e.target.value)}
                     placeholder="Search for a person..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50"
+                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50"
                     autoFocus
                   />
                 </div>

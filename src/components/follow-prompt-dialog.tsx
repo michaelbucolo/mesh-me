@@ -100,9 +100,9 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
               <button
                 onClick={() => handleChoice("everywhere")}
                 disabled={loading}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 hover:border-indigo-500/40 transition-all text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-blue-600/10 to-blue-500/10 border border-blue-500/20 hover:border-blue-500/40 transition-all text-left"
               >
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center flex-shrink-0">
                   <Globe className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1">
@@ -139,8 +139,8 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
                 disabled={loading}
                 className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/50 hover:border-zinc-600 transition-all text-left"
               >
-                <div className="h-10 w-10 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                  <UserPlus className="h-5 w-5 text-indigo-400" />
+                <div className="h-10 w-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="h-5 w-5 text-blue-400" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-zinc-100">Follow on mesh.me only</p>

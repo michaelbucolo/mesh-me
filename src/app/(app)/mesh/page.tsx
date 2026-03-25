@@ -41,8 +41,8 @@ interface MeshEdge {
 }
 
 const NODE_COLORS: Record<string, string> = {
-  self: "#6366f1",
-  user: "#8b5cf6",
+  self: "#3b82f6",
+  user: "#60a5fa",
   community: "#ec4899",
   tag: "#06b6d4",
   post: "#22c55e",
@@ -221,7 +221,7 @@ export default function MeshPage() {
         ctx.beginPath();
         ctx.moveTo(source.x, source.y);
         ctx.lineTo(target.x, target.y);
-        ctx.strokeStyle = `rgba(99, 102, 241, ${0.1 + edge.strength * 0.15})`;
+        ctx.strokeStyle = `rgba(59, 130, 246, ${0.1 + edge.strength * 0.15})`;
         ctx.lineWidth = 1 + edge.strength;
         ctx.stroke();
       }
@@ -322,7 +322,7 @@ export default function MeshPage() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mx-auto mb-4" />
+          <div className="w-16 h-16 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mx-auto mb-4" />
           <p className="text-zinc-400 text-sm">Building your mesh...</p>
         </div>
       </div>
@@ -339,7 +339,7 @@ export default function MeshPage() {
         <div className="flex gap-1 bg-zinc-900/80 backdrop-blur-xl rounded-xl p-1 border border-zinc-800">
           {filters.map((f) => (
             <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filter === f.id ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-200"}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filter === f.id ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-zinc-200"}`}>
               <f.icon className="h-3.5 w-3.5" />{f.label}
             </button>
           ))}

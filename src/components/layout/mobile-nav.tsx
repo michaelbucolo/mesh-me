@@ -36,7 +36,7 @@ export function MobileNav({ username, unreadNotifications = 0 }: MobileNavProps)
                 href={item.href}
                 className="flex flex-col items-center justify-center p-2 -mt-4"
               >
-                <div className="h-12 w-12 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
                   <item.icon className="h-5 w-5 text-white" />
                 </div>
               </Link>
@@ -49,13 +49,13 @@ export function MobileNav({ username, unreadNotifications = 0 }: MobileNavProps)
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center p-2 min-w-[60px] relative",
-                isActive ? "text-indigo-400" : "text-zinc-500"
+                isActive ? "text-blue-400" : "text-zinc-500"
               )}
             >
               <item.icon className="h-5 w-5" />
               <span className="text-[10px] mt-1">{item.label}</span>
               {item.badge && item.badge > 0 && (
-                <span className="absolute top-1 right-2 bg-indigo-600 text-white text-[9px] rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+                <span className="absolute top-1 right-2 bg-blue-600 text-white text-[9px] rounded-full h-4 min-w-4 flex items-center justify-center px-1">
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
               )}

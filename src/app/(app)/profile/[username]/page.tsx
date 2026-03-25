@@ -38,9 +38,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   });
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto animate-page-enter">
       {/* Banner */}
-      <div className="h-48 bg-gradient-to-br from-indigo-600/30 to-purple-600/30 relative">
+      <div className="h-48 bg-gradient-to-br from-blue-600/30 to-blue-500/30 relative">
         {profile.bannerUrl && (
           <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
@@ -81,7 +81,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-zinc-100">{profile.displayName}</h1>
             {profile.isVerified && (
-              <svg className="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             )}
@@ -101,7 +101,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </span>
           )}
           {profile.website && (
-            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300">
+            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-400 hover:text-blue-300">
               <LinkIcon className="h-3.5 w-3.5" />
               {profile.website.replace(/^https?:\/\//, "")}
             </a>
@@ -138,7 +138,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 key={account.platform}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800/50 border border-zinc-700/50 text-xs text-zinc-300"
               >
-                <Link2 className="h-3 w-3 text-indigo-400" />
+                <Link2 className="h-3 w-3 text-blue-400" />
                 {account.platform}
                 {account.platformUsername && <span className="text-zinc-500">@{account.platformUsername}</span>}
               </span>

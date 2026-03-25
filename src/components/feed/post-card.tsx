@@ -90,11 +90,11 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   return (
     <article className={cn(
       "rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-sm hover:border-zinc-700 transition-all duration-200 group",
-      post.isPinned && "ring-1 ring-indigo-500/30"
+      post.isPinned && "ring-1 ring-blue-500/30"
     )}>
       <div className={cn("p-5", compact && "p-3")}>
         {post.isPinned && (
-          <div className="flex items-center gap-1.5 text-xs text-indigo-400 mb-2">
+          <div className="flex items-center gap-1.5 text-xs text-blue-400 mb-2">
             <Pin className="h-3 w-3" />
             <span>Pinned post</span>
           </div>
@@ -112,7 +112,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                   {post.author.displayName}
                 </Link>
                 {post.author.isVerified && (
-                  <svg className="h-4 w-4 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 )}
@@ -126,7 +126,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 {post.community && (
                   <>
                     <span>&middot;</span>
-                    <Link href={`/communities/${post.community.slug}`} className="text-indigo-400 hover:text-indigo-300">
+                    <Link href={`/communities/${post.community.slug}`} className="text-blue-400 hover:text-blue-300">
                       {post.community.name}
                     </Link>
                   </>
@@ -226,7 +226,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 </div>
               )}
             </div>
-            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200", saved ? "text-indigo-400 hover:text-indigo-300" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50")}>
+            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200", saved ? "text-blue-400 hover:text-blue-300" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50")}>
               <Bookmark className={cn("h-4 w-4 transition-transform", saved && "fill-current scale-110")} />
             </button>
           </div>
