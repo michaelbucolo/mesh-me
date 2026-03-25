@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Sparkles, Users, MessageCircle, Palette, Compass, Shield } from "lucide-react";
+import { Sparkles, Users, MessageCircle, Palette, Compass, Shield, Waypoints, LayoutGrid, Link2, Zap, Globe } from "lucide-react";
 
 export default async function LandingPage() {
   const user = await getCurrentUser();
@@ -75,8 +75,69 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Platform Highlights */}
       <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-100 mb-4">Three powerful ways to connect</h2>
+            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">mesh.me reimagines how you interact with the social web through three groundbreaking experiences.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 mb-16">
+            {[
+              { icon: Waypoints, title: "The Mesh", desc: "Explore your social universe through an interactive, dynamic network graph. See how your connections, communities, tags, and posts all weave together in real time.", gradient: "from-indigo-500 to-cyan-500" },
+              { icon: LayoutGrid, title: "Custom Feed", desc: "Your feed, your rules. Switch between Instagram Reels, Twitter/X, TikTok, or YouTube Shorts layouts. Aggregate content from every platform you follow.", gradient: "from-purple-500 to-pink-500" },
+              { icon: MessageCircle, title: "MeChat", desc: "All your conversations in one place. Merge messages from Instagram, X, Discord, and more into a single unified inbox with native mesh.me messaging.", gradient: "from-amber-500 to-orange-500" },
+            ].map((feature) => (
+              <div key={feature.title} className="group rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 hover:border-zinc-700 hover:bg-zinc-900 transition-all duration-300">
+                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 shadow-lg`}>
+                  <feature.icon className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-zinc-100 mb-2">{feature.title}</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Cross-Platform Section */}
+      <section className="py-24 px-6 border-t border-zinc-800/50">
+        <div className="max-w-5xl mx-auto text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-zinc-100 mb-4">One account. Every platform.</h2>
+          <p className="text-zinc-400 text-lg max-w-2xl mx-auto">Connect all your social accounts. Interact with content natively across platforms without ever leaving mesh.me.</p>
+        </div>
+        <div className="max-w-4xl mx-auto grid grid-cols-4 md:grid-cols-8 gap-4 mb-12">
+          {[
+            { name: "Instagram", color: "#E4405F" }, { name: "YouTube", color: "#FF0000" },
+            { name: "TikTok", color: "#69C9D0" }, { name: "X", color: "#1DA1F2" },
+            { name: "Twitch", color: "#9146FF" }, { name: "Spotify", color: "#1DB954" },
+            { name: "Discord", color: "#5865F2" }, { name: "GitHub", color: "#888" },
+          ].map((platform) => (
+            <div key={platform.name} className="flex flex-col items-center gap-2">
+              <div className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-xs border border-zinc-700" style={{ backgroundColor: platform.color + "20", color: platform.color }}>
+                {platform.name.slice(0, 2).toUpperCase()}
+              </div>
+              <span className="text-[10px] text-zinc-500">{platform.name}</span>
+            </div>
+          ))}
+        </div>
+        <div className="max-w-3xl mx-auto grid md:grid-cols-3 gap-4">
+          {[
+            { icon: Link2, title: "Connect Accounts", desc: "Link 16+ social platforms to your mesh.me profile" },
+            { icon: Globe, title: "Cross-Interact", desc: "Like, comment, and follow on any platform natively" },
+            { icon: Zap, title: "AI Summaries", desc: "Smart notifications digest across all your platforms" },
+          ].map((f) => (
+            <div key={f.title} className="text-center p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+              <f.icon className="h-5 w-5 text-indigo-400 mx-auto mb-2" />
+              <h4 className="text-sm font-semibold text-zinc-200 mb-1">{f.title}</h4>
+              <p className="text-xs text-zinc-500">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24 px-6 border-t border-zinc-800/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-zinc-100 mb-4">Built different, on purpose</h2>

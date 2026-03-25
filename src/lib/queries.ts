@@ -542,14 +542,14 @@ export async function getTrendingCommunities() {
 // ─── Admin Queries ───────────────────────────────────────────
 
 export async function getAdminStats() {
-  const [userCount, postCount, communityCount, reportCount, recentUsers, recentReports] = await Promise.all([
+  const [userCount, postCount, communityCount, reportCount, recentUsers, recentReports, adminLogs] = await Promise.all([
     prisma.user.count(),
     prisma.post.count(),
     prisma.community.count(),
     prisma.report.count({ where: { status: "pending" } }),
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 20,
       select: {
         id: true,
         username: true,
@@ -558,6 +558,7 @@ export async function getAdminStats() {
         avatarUrl: true,
         isAdmin: true,
         isSuspended: true,
+        isVerified: true,
         createdAt: true,
         _count: { select: { posts: true, followers: true } },
       },
@@ -568,11 +569,207 @@ export async function getAdminStats() {
         reporter: { select: { username: true, displayName: true } },
         reportedUser: { select: { username: true, displayName: true } },
         reportedPost: { select: { id: true, content: true } },
+        reportedComment: { select: { id: true, content: true } },
       },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    prisma.adminLog.findMany({
+      include: { admin: { select: { username: true, displayName: true } } },
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
   ]);
 
-  return { userCount, postCount, communityCount, reportCount, recentUsers, recentReports };
+  // Get signup stats for last 7 days
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentSignups = await prisma.user.count({
+    where: { createdAt: { gte: sevenDaysAgo } },
+  });
+
+  const recentPostCount = await prisma.post.count({
+    where: { createdAt: { gte: sevenDaysAgo } },
+  });
+
+  return { userCount, postCount, communityCount, reportCount, recentUsers, recentReports, adminLogs, recentSignups, recentPostCount };
+}
+
+// ─── Additional Queries ─────────────────────────────────────
+
+export async function getUserCommunities(username: string) {
+  const user = await prisma.user.findUnique({ where: { username } });
+  if (!user) return [];
+
+  return prisma.communityMember.findMany({
+    where: { userId: user.id },
+    include: {
+      community: {
+        include: {
+          _count: { select: { members: true, posts: true } },
+        },
+      },
+    },
+    orderBy: { joinedAt: "desc" },
+  });
+}
+
+export async function getSavedPosts(page = 1, limit = 20) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const saved = await prisma.savedPost.findMany({
+    where: { userId: user.id },
+    include: {
+      post: {
+        include: {
+          author: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+          community: { select: { id: true, name: true, slug: true } },
+          media: true,
+          tags: true,
+          _count: { select: { comments: true, reactions: true, reposts: true } },
+          reactions: { where: { userId: user.id }, select: { id: true } },
+          savedBy: { where: { userId: user.id }, select: { id: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+
+  return saved.map((s) => s.post);
+}
+
+export async function getBlockedUsers() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  return prisma.block.findMany({
+    where: { blockerId: user.id },
+    include: {
+      blocked: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getMutedUsers() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  return prisma.mute.findMany({
+    where: { muterId: user.id },
+    include: {
+      muted: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getTrendingTags() {
+  const tags = await prisma.postTag.groupBy({
+    by: ["tag"],
+    _count: { tag: true },
+    orderBy: { _count: { tag: "desc" } },
+    take: 20,
+  });
+
+  return tags.map((t) => ({ tag: t.tag, count: t._count.tag }));
+}
+
+export async function getPopularPosts(limit = 10) {
+  const user = await getCurrentUser();
+
+  return prisma.post.findMany({
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          isVerified: true,
+        },
+      },
+      community: { select: { id: true, name: true, slug: true } },
+      media: true,
+      tags: true,
+      _count: { select: { comments: true, reactions: true, reposts: true } },
+      reactions: user ? { where: { userId: user.id }, select: { id: true } } : false,
+      savedBy: user ? { where: { userId: user.id }, select: { id: true } } : false,
+    },
+    orderBy: [{ reactions: { _count: "desc" } }, { comments: { _count: "desc" } }, { createdAt: "desc" }],
+    take: limit,
+  });
+}
+
+export async function getUserSettings() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    email: (await prisma.user.findUnique({ where: { id: user.id }, select: { email: true } }))?.email,
+    username: user.username,
+    displayName: user.displayName,
+    bio: user.bio,
+    location: user.location,
+    website: user.website,
+    avatarUrl: user.avatarUrl,
+    bannerUrl: user.bannerUrl,
+    accentColor: user.accentColor,
+    isPublic: user.isPublic,
+    interests: user.interests,
+    links: user.links,
+  };
+}
+
+export async function getCommunityMembers(communityId: string) {
+  return prisma.communityMember.findMany({
+    where: { communityId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          isVerified: true,
+          bio: true,
+        },
+      },
+    },
+    orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
+  });
+}
+
+export async function getUnreadNotificationCount() {
+  const user = await getCurrentUser();
+  if (!user) return 0;
+
+  return prisma.notification.count({
+    where: { recipientId: user.id, read: false },
+  });
 }
