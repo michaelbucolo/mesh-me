@@ -79,7 +79,7 @@ export default function CreateCommunityPage() {
                 onClick={() => setCategory(cat)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                   category === cat
-                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                    ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
                     : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
                 }`}
               >

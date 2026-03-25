@@ -6,10 +6,10 @@ export default function PrivacyPage() {
       <header className="border-b border-zinc-800/50 glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
               <span className="text-white font-bold text-sm">m</span>
             </div>
-            <span className="text-xl font-bold text-zinc-100">mesh<span className="text-indigo-400">.me</span></span>
+            <span className="text-xl font-bold text-zinc-100">mesh<span className="text-blue-400">.me</span></span>
           </Link>
         </div>
       </header>

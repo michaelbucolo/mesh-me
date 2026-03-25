@@ -19,14 +19,14 @@ export default function FeaturesPage() {
       <header className="border-b border-zinc-800/50 glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
               <span className="text-white font-bold text-sm">m</span>
             </div>
-            <span className="text-xl font-bold text-zinc-100">mesh<span className="text-indigo-400">.me</span></span>
+            <span className="text-xl font-bold text-zinc-100">mesh<span className="text-blue-400">.me</span></span>
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-4 py-2">Sign in</Link>
-            <Link href="/signup" className="text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all font-medium">Join mesh.me</Link>
+            <Link href="/signup" className="text-sm bg-gradient-to-r from-blue-600 to-blue-500 text-white px-5 py-2 rounded-xl hover:from-blue-500 hover:to-blue-400 transition-all font-medium">Join mesh.me</Link>
           </div>
         </div>
       </header>
@@ -40,8 +40,8 @@ export default function FeaturesPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
             <div key={feature.title} className="group rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 hover:border-zinc-700 hover:bg-zinc-900 transition-all duration-300">
-              <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 transition-colors">
-                <feature.icon className="h-6 w-6 text-indigo-400" />
+              <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                <feature.icon className="h-6 w-6 text-blue-400" />
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">{feature.title}</h3>
               <p className="text-sm text-zinc-400 leading-relaxed">{feature.desc}</p>
@@ -50,7 +50,7 @@ export default function FeaturesPage() {
         </div>
 
         <div className="text-center mt-16">
-          <Link href="/signup" className="inline-flex bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3.5 rounded-xl text-base font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25">
+          <Link href="/signup" className="inline-flex bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-3.5 rounded-xl text-base font-medium hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25">
             Get started for free
           </Link>
         </div>

@@ -52,11 +52,11 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
       {/* Logo */}
       <div className="p-6">
         <Link href="/feed" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
             <span className="text-white font-bold text-sm">m</span>
           </div>
           <span className="text-xl font-bold text-zinc-100">
-            mesh<span className="text-indigo-400">.me</span>
+            mesh<span className="text-blue-400">.me</span>
           </span>
         </Link>
       </div>
@@ -72,14 +72,14 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-indigo-500/10 text-indigo-400"
+                  ? "bg-blue-500/10 text-blue-400"
                   : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
               )}
             >
               <item.icon className="h-5 w-5" />
               <span>{item.label}</span>
               {item.href === "/notifications" && unreadNotifications > 0 && (
-                <span className="ml-auto bg-indigo-600 text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
+                <span className="ml-auto bg-blue-600 text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}
                 </span>
               )}
@@ -92,7 +92,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           className={cn(
             "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
             pathname.includes(`/profile/${user.username}`)
-              ? "bg-indigo-500/10 text-indigo-400"
+              ? "bg-blue-500/10 text-blue-400"
               : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
           )}
         >
@@ -106,7 +106,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
             className={cn(
               "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
               pathname.startsWith("/admin")
-                ? "bg-indigo-500/10 text-indigo-400"
+                ? "bg-blue-500/10 text-blue-400"
                 : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
             )}
           >
@@ -119,7 +119,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         <div className="pt-4">
           <Link
             href="/feed?compose=true"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium text-sm hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg shadow-indigo-500/20"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all duration-200 shadow-lg shadow-blue-500/20"
           >
             <PenSquare className="h-4 w-4" />
             <span>Create Post</span>

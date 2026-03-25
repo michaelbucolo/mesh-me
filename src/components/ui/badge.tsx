@@ -7,7 +7,7 @@ interface BadgeProps {
 }
 
 const variantStyles = {
-  default: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+  default: "bg-blue-500/20 text-blue-300 border-blue-500/30",
   secondary: "bg-zinc-700/50 text-zinc-300 border-zinc-600",
   outline: "bg-transparent text-zinc-400 border-zinc-600",
   success: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",

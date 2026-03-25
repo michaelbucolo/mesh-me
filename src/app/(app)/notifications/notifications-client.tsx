@@ -78,15 +78,15 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-4"
           >
-            <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-4">
+            <div className="bg-gradient-to-r from-blue-500/10 to-blue-400/10 border border-blue-500/20 rounded-2xl p-4">
               <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center flex-shrink-0">
                   <Sparkles className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-zinc-100">AI Summary</h3>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-medium">Smart Digest</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium">Smart Digest</span>
                   </div>
                   <p className="text-sm text-zinc-300">{aiSummary}</p>
                 </div>
@@ -112,7 +112,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-blue-600 text-white"
                   : "text-zinc-400 bg-zinc-900 border border-zinc-800 hover:border-zinc-700"
               }`}
             >
@@ -120,7 +120,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               {tab.label}
               {count > 0 && (
                 <span className={`h-4 min-w-4 px-1 rounded-full text-[10px] flex items-center justify-center ${
-                  activeTab === tab.id ? "bg-white/20 text-white" : "bg-indigo-500/20 text-indigo-400"
+                  activeTab === tab.id ? "bg-white/20 text-white" : "bg-blue-500/20 text-blue-400"
                 }`}>
                   {count}
                 </span>
@@ -146,7 +146,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                 key={notification.id}
                 href={href}
                 className={`flex items-start gap-3 p-4 rounded-xl transition-colors ${
-                  notification.read ? "hover:bg-zinc-800/30" : "bg-indigo-500/5 hover:bg-indigo-500/10"
+                  notification.read ? "hover:bg-zinc-800/30" : "bg-blue-500/5 hover:bg-blue-500/10"
                 }`}
               >
                 <div className="relative">
@@ -158,7 +158,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                     </div>
                   )}
                   <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-zinc-900 flex items-center justify-center">
-                    <Icon className="h-3 w-3 text-indigo-400" />
+                    <Icon className="h-3 w-3 text-blue-400" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -168,7 +168,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                   </p>
                 </div>
                 {!notification.read && (
-                  <div className="h-2 w-2 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
+                  <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
                 )}
               </Link>
             );

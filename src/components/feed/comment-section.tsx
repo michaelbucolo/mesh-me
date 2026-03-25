@@ -55,7 +55,7 @@ export function CommentSection({ postId, comments, currentUser }: CommentSection
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-500 focus:outline-none transition-colors"
+              className="flex-1 bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

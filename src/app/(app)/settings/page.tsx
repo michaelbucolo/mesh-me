@@ -70,7 +70,7 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [website, setWebsite] = useState("");
-  const [accentColor, setAccentColor] = useState("#6366f1");
+  const [accentColor, setAccentColor] = useState("#3b82f6");
 
   // Links
   const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
@@ -109,7 +109,7 @@ export default function SettingsPage() {
           setBio(data.settings.bio || "");
           setLocation(data.settings.location || "");
           setWebsite(data.settings.website || "");
-          setAccentColor(data.settings.accentColor || "#6366f1");
+          setAccentColor(data.settings.accentColor || "#3b82f6");
           setIsPublic(data.settings.isPublic !== false);
           setSelectedInterests(data.settings.interests?.map((i: { tag: string }) => i.tag) || []);
           setLinks(data.settings.links?.map((l: { label: string; url: string }) => ({ label: l.label, url: l.url })) || []);
@@ -260,7 +260,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       <div className="flex items-center gap-3 mb-8">
-        <Settings className="h-6 w-6 text-indigo-400" />
+        <Settings className="h-6 w-6 text-blue-400" />
         <h1 className="text-2xl font-bold text-zinc-100">Settings</h1>
       </div>
 
@@ -396,7 +396,7 @@ export default function SettingsPage() {
                       onClick={() => toggleInterest(tag)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                         selectedInterests.includes(tag)
-                          ? "bg-indigo-600 text-white"
+                          ? "bg-blue-600 text-white"
                           : "bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
                       }`}
                     >
@@ -409,7 +409,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold text-zinc-100">Social links</h2>
-                  <button type="button" onClick={addLink} className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300">
+                  <button type="button" onClick={addLink} className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300">
                     <Plus className="h-4 w-4" /> Add link
                   </button>
                 </div>
@@ -458,7 +458,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => item.setter(!item.state)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${item.state ? "bg-indigo-600" : "bg-zinc-700"}`}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${item.state ? "bg-blue-600" : "bg-zinc-700"}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${item.state ? "right-0.5" : "left-0.5"}`} />
                     </button>
@@ -481,7 +481,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleTogglePrivacy(!isPublic)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-indigo-600" : "bg-zinc-700"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-blue-600" : "bg-zinc-700"}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${isPublic ? "right-0.5" : "left-0.5"}`} />
                   </button>
@@ -491,14 +491,14 @@ export default function SettingsPage() {
                     <span className="text-sm text-zinc-200 block font-medium">Who can message you</span>
                     <span className="text-xs text-zinc-500">Control who can send you direct messages</span>
                   </div>
-                  <span className="text-sm text-indigo-400 font-medium">Everyone</span>
+                  <span className="text-sm text-blue-400 font-medium">Everyone</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
                   <div>
                     <span className="text-sm text-zinc-200 block font-medium">Show in discovery</span>
                     <span className="text-xs text-zinc-500">Allow others to find you through explore</span>
                   </div>
-                  <button type="button" className="relative w-11 h-6 bg-indigo-600 rounded-full transition-colors">
+                  <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>

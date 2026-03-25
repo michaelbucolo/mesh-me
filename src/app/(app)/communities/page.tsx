@@ -12,7 +12,7 @@ export default async function CommunitiesPage() {
   const communities = await getCommunities();
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 animate-page-enter">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-zinc-100">Communities</h1>
@@ -20,7 +20,7 @@ export default async function CommunitiesPage() {
         </div>
         <Link
           href="/communities/create"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
         >
           <Plus className="h-4 w-4" />
           Create community
@@ -41,7 +41,7 @@ export default async function CommunitiesPage() {
         >
           <Link
             href="/communities/create"
-            className="inline-flex bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+            className="inline-flex bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
           >
             Create the first community
           </Link>

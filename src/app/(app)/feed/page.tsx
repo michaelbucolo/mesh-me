@@ -18,7 +18,7 @@ export default async function FeedPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-zinc-100">Home</h1>
@@ -48,7 +48,7 @@ export default async function FeedPage() {
           >
             <Link
               href="/explore"
-              className="inline-flex bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all"
+              className="inline-flex bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
             >
               Explore mesh.me
             </Link>

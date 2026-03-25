@@ -9,21 +9,46 @@ import { slugify } from "./utils";
 // ─── Auth Actions ────────────────────────────────────────────
 
 export async function signUp(formData: FormData) {
-  const email = formData.get("email") as string;
+  const rawEmail = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const username = formData.get("username") as string;
-  const displayName = formData.get("displayName") as string;
+  const rawUsername = formData.get("username") as string;
+  const rawDisplayName = formData.get("displayName") as string;
 
-  if (!email || !password || !username || !displayName) {
+  if (!rawEmail || !password || !rawUsername || !rawDisplayName) {
     return { error: "All fields are required" };
   }
 
+  // Sanitize inputs
+  const email = rawEmail.trim().toLowerCase();
+  const username = rawUsername.trim().toLowerCase();
+  const displayName = rawDisplayName.trim();
+
+  // Validate email format
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Please enter a valid email address" };
+  }
+
+  // Validate password strength
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters" };
   }
 
+  if (password.length > 128) {
+    return { error: "Password is too long" };
+  }
+
+  // Validate username format and length
+  if (username.length < 3 || username.length > 30) {
+    return { error: "Username must be between 3 and 30 characters" };
+  }
+
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
     return { error: "Username can only contain letters, numbers, and underscores" };
+  }
+
+  // Validate display name length
+  if (displayName.length < 1 || displayName.length > 50) {
+    return { error: "Display name must be between 1 and 50 characters" };
   }
 
   const existing = await prisma.user.findFirst({
@@ -39,7 +64,7 @@ export async function signUp(formData: FormData) {
   const user = await prisma.user.create({
     data: {
       email,
-      username: username.toLowerCase(),
+      username,
       displayName,
       passwordHash,
     },
@@ -50,12 +75,14 @@ export async function signUp(formData: FormData) {
 }
 
 export async function signIn(formData: FormData) {
-  const email = formData.get("email") as string;
+  const rawEmail = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  if (!email || !password) {
+  if (!rawEmail || !password) {
     return { error: "Email and password are required" };
   }
+
+  const email = rawEmail.trim().toLowerCase();
 
   const user = await prisma.user.findUnique({ where: { email } });
 

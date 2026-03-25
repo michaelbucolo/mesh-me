@@ -29,7 +29,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
   return (
     <div className="max-w-3xl mx-auto">
       {/* Banner */}
-      <div className="h-48 bg-gradient-to-br from-indigo-600/30 to-purple-600/30 relative rounded-b-2xl overflow-hidden">
+      <div className="h-48 bg-gradient-to-br from-blue-600/30 to-blue-500/30 relative rounded-b-2xl overflow-hidden">
         {community.bannerUrl && (
           <img src={community.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
@@ -43,7 +43,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
       {/* Community header */}
       <div className="px-6 -mt-10 relative">
         <div className="flex items-end justify-between mb-4">
-          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center ring-4 ring-zinc-950 text-white font-bold text-2xl shadow-xl">
+          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center ring-4 ring-zinc-950 text-white font-bold text-2xl shadow-xl">
             {community.iconUrl ? (
               <img src={community.iconUrl} alt={community.name} className="w-full h-full rounded-2xl object-cover" />
             ) : (
@@ -63,7 +63,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
         <h1 className="text-2xl font-bold text-zinc-100 mb-1">{community.name}</h1>
         <div className="flex items-center gap-3 mb-3">
           {community.category && <Badge variant="secondary">{community.category}</Badge>}
-          {isAdmin && <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Admin</Badge>}
+          {isAdmin && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Admin</Badge>}
         </div>
         {community.description && (
           <p className="text-sm text-zinc-400 leading-relaxed mb-4">{community.description}</p>
@@ -113,7 +113,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
         {community.rules && (
           <details className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
             <summary className="text-sm font-medium text-zinc-400 cursor-pointer flex items-center gap-2 p-3 hover:bg-zinc-800/50 transition-colors">
-              <Shield className="h-4 w-4 text-indigo-400" />
+              <Shield className="h-4 w-4 text-blue-400" />
               Community rules
             </summary>
             <div className="px-3 pb-3 text-sm text-zinc-500 whitespace-pre-wrap border-t border-zinc-800 pt-3">{community.rules}</div>

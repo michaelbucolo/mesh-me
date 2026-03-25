@@ -13,10 +13,10 @@ export default async function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/50 glass">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
               <span className="text-white font-bold text-sm">m</span>
             </div>
-            <span className="text-xl font-bold text-zinc-100">mesh<span className="text-indigo-400">.me</span></span>
+            <span className="text-xl font-bold text-zinc-100">mesh<span className="text-blue-400">.me</span></span>
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/about" className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors">About</Link>
@@ -24,7 +24,7 @@ export default async function LandingPage() {
           </nav>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-4 py-2">Sign in</Link>
-            <Link href="/signup" className="text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 font-medium">Join mesh.me</Link>
+            <Link href="/signup" className="text-sm bg-gradient-to-r from-blue-600 to-blue-500 text-white px-5 py-2 rounded-xl hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20 font-medium">Join mesh.me</Link>
           </div>
         </div>
       </header>
@@ -32,12 +32,12 @@ export default async function LandingPage() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-6">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl" />
         </div>
         <div className="max-w-5xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/50 text-sm text-zinc-400 mb-8">
-            <Sparkles className="h-4 w-4 text-indigo-400" />
+            <Sparkles className="h-4 w-4 text-blue-400" />
             <span>A new kind of social platform</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
@@ -51,7 +51,7 @@ export default async function LandingPage() {
             mesh.me is a social platform where identity matters. Express who you are, discover people you genuinely connect with, and build communities around shared creativity and energy.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/signup" className="w-full sm:w-auto text-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3.5 rounded-xl text-base font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40">
+            <Link href="/signup" className="w-full sm:w-auto text-center bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-3.5 rounded-xl text-base font-medium hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40">
               Join mesh.me
             </Link>
             <Link href="/about" className="w-full sm:w-auto text-center border border-zinc-700 text-zinc-300 px-8 py-3.5 rounded-xl text-base font-medium hover:bg-zinc-800 hover:text-zinc-100 transition-all">
@@ -67,7 +67,7 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 text-sm text-zinc-500">
             {["Identity-first", "Built for real connection", "Creator-friendly", "Community-powered", "Expressive by design"].map((phrase) => (
               <span key={phrase} className="flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 {phrase}
               </span>
             ))}
@@ -84,8 +84,8 @@ export default async function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-6 mb-16">
             {[
-              { icon: Waypoints, title: "The Mesh", desc: "Explore your social universe through an interactive, dynamic network graph. See how your connections, communities, tags, and posts all weave together in real time.", gradient: "from-indigo-500 to-cyan-500" },
-              { icon: LayoutGrid, title: "Custom Feed", desc: "Your feed, your rules. Switch between Instagram Reels, Twitter/X, TikTok, or YouTube Shorts layouts. Aggregate content from every platform you follow.", gradient: "from-purple-500 to-pink-500" },
+              { icon: Waypoints, title: "The Mesh", desc: "Explore your social universe through an interactive, dynamic network graph. See how your connections, communities, tags, and posts all weave together in real time.", gradient: "from-blue-500 to-cyan-500" },
+              { icon: LayoutGrid, title: "Custom Feed", desc: "Your feed, your rules. Switch between Instagram Reels, Twitter/X, TikTok, or YouTube Shorts layouts. Aggregate content from every platform you follow.", gradient: "from-blue-400 to-pink-500" },
               { icon: MessageCircle, title: "MeChat", desc: "All your conversations in one place. Merge messages from Instagram, X, Discord, and more into a single unified inbox with native mesh.me messaging.", gradient: "from-amber-500 to-orange-500" },
             ].map((feature) => (
               <div key={feature.title} className="group rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 hover:border-zinc-700 hover:bg-zinc-900 transition-all duration-300">
@@ -128,7 +128,7 @@ export default async function LandingPage() {
             { icon: Zap, title: "AI Summaries", desc: "Smart notifications digest across all your platforms" },
           ].map((f) => (
             <div key={f.title} className="text-center p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
-              <f.icon className="h-5 w-5 text-indigo-400 mx-auto mb-2" />
+              <f.icon className="h-5 w-5 text-blue-400 mx-auto mb-2" />
               <h4 className="text-sm font-semibold text-zinc-200 mb-1">{f.title}</h4>
               <p className="text-xs text-zinc-500">{f.desc}</p>
             </div>
@@ -153,8 +153,8 @@ export default async function LandingPage() {
               { icon: Shield, title: "Privacy & Safety", desc: "Control who sees your content, who can message you, and how you appear. Your space, your rules. Safety is built in, not bolted on." },
             ].map((feature) => (
               <div key={feature.title} className="group rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 hover:border-zinc-700 hover:bg-zinc-900 transition-all duration-300">
-                <div className="h-12 w-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 transition-colors">
-                  <feature.icon className="h-6 w-6 text-indigo-400" />
+                <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                  <feature.icon className="h-6 w-6 text-blue-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-100 mb-2">{feature.title}</h3>
                 <p className="text-sm text-zinc-400 leading-relaxed">{feature.desc}</p>
@@ -188,7 +188,7 @@ export default async function LandingPage() {
             <span className="gradient-text">Build your presence.</span>
           </h2>
           <p className="text-zinc-400 text-lg mb-8">Mesh for real.</p>
-          <Link href="/signup" className="inline-flex bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3.5 rounded-xl text-base font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25">
+          <Link href="/signup" className="inline-flex bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-3.5 rounded-xl text-base font-medium hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25">
             Get started
           </Link>
         </div>
@@ -198,7 +198,7 @@ export default async function LandingPage() {
       <footer className="border-t border-zinc-800/50 py-12 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="h-6 w-6 rounded-md bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
               <span className="text-white font-bold text-xs">m</span>
             </div>
             <span className="text-sm font-semibold text-zinc-400">mesh.me</span>
