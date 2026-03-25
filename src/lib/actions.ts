@@ -5,6 +5,7 @@ import { getCurrentUser, hashPassword, createSession, destroySession, verifyPass
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
+import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePostContent } from "./security";
 
 // ─── Auth Actions ────────────────────────────────────────────
 
@@ -16,6 +17,12 @@ export async function signUp(formData: FormData) {
 
   if (!rawEmail || !password || !rawUsername || !rawDisplayName) {
     return { error: "All fields are required" };
+  }
+
+  // Rate limit signups
+  const rl = rateLimit(`signup:${rawEmail.trim().toLowerCase()}`, 5, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many signup attempts. Please try again later." };
   }
 
   // Sanitize inputs
@@ -84,9 +91,23 @@ export async function signIn(formData: FormData) {
 
   const email = rawEmail.trim().toLowerCase();
 
+  // Rate limit login attempts
+  const rl = rateLimit(`login:${email}`, 10, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many login attempts. Please try again later." };
+  }
+
+  // Check account lockout
+  const lockout = checkAccountLockout(email);
+  if (lockout.locked) {
+    const minutes = Math.ceil(lockout.lockedUntilMs / 60000);
+    return { error: `Account temporarily locked. Try again in ${minutes} minutes.` };
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
+    recordFailedLogin(email);
     return { error: "Invalid email or password" };
   }
 
@@ -96,9 +117,11 @@ export async function signIn(formData: FormData) {
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
+    recordFailedLogin(email);
     return { error: "Invalid email or password" };
   }
 
+  clearFailedLogins(email);
   await createSession(user.id);
 
   if (!user.onboarded) {
@@ -151,13 +174,17 @@ export async function createPost(formData: FormData) {
   const communityId = formData.get("communityId") as string | null;
   const tags = formData.get("tags") as string;
 
-  if (!content?.trim()) {
-    return { error: "Post content is required" };
+  // Validate and sanitize post content
+  const validation = validatePostContent(content);
+  if (!validation.valid) {
+    return { error: validation.error };
   }
+
+  const sanitizedContent = sanitizeForDisplay(content.trim());
 
   const post = await prisma.post.create({
     data: {
-      content: content.trim(),
+      content: sanitizedContent,
       authorId: user.id,
       communityId: communityId || undefined,
     },
@@ -242,9 +269,11 @@ export async function createComment(formData: FormData) {
     return { error: "Comment content is required" };
   }
 
+  const sanitizedComment = sanitizeForDisplay(content.trim());
+
   await prisma.comment.create({
     data: {
-      content: content.trim(),
+      content: sanitizedComment,
       authorId: user.id,
       postId,
       parentId: parentId || undefined,
@@ -412,6 +441,12 @@ export async function sendMessage(formData: FormData) {
   const recipientId = formData.get("recipientId") as string;
 
   if (!content?.trim()) return { error: "Message is required" };
+
+  // Rate limit messages
+  const rl = rateLimit(`msg:${user.id}`, 30, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Sending too fast. Please slow down." };
+  }
 
   let finalThreadId = threadId;
 

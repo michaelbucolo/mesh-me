@@ -48,7 +48,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-zinc-800 bg-zinc-950/50 backdrop-blur-xl">
+    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-zinc-800/30 bg-zinc-950/80 backdrop-blur-2xl">
       {/* Logo */}
       <div className="p-6">
         <Link href="/feed" className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
               <item.icon className="h-5 w-5" />
               <span>{item.label}</span>
               {item.href === "/notifications" && unreadNotifications > 0 && (
-                <span className="ml-auto bg-blue-600 text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
+                <span className="ml-auto bg-blue-600 text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5 notif-dot">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}
                 </span>
               )}
@@ -119,7 +119,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         <div className="pt-4">
           <Link
             href="/feed?compose=true"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all duration-200 shadow-lg shadow-blue-500/20"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all duration-200 shadow-lg shadow-blue-500/20 btn-magnetic"
           >
             <PenSquare className="h-4 w-4" />
             <span>Create Post</span>
@@ -128,7 +128,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
       </nav>
 
       {/* User section */}
-      <div className="p-3 border-t border-zinc-800">
+      <div className="p-3 border-t border-zinc-800/30">
         <div className="flex items-center gap-3 px-3 py-2">
           <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
           <div className="flex-1 min-w-0">
