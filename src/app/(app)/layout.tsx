@@ -2,12 +2,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { MeshBackground } from "@/components/mesh-background";
 import { prisma } from "@/lib/prisma";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/");
   if (!user.onboarded) redirect("/onboarding");
 
   const unreadCount = await prisma.notification.count({
@@ -15,8 +16,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <div className="min-h-screen bg-zinc-950 mesh-bg">
-      <div className="flex">
+    <div className="relative min-h-screen bg-zinc-950">
+      {/* Subtle constellation mesh behind entire app */}
+      <MeshBackground interactive={false} density={30} className="opacity-40" />
+      <div className="relative z-10 flex">
         <Sidebar
           user={{
             id: user.id,
