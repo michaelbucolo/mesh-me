@@ -8,6 +8,8 @@
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
+    {# The ``minimal`` flag disables the top bar on certain pages such as
+       the landing and signup screens. #}
     {% set is_minimal = minimal if minimal is defined else False %}
     {% if not is_minimal %}
       <header class="topbar"><a class="brand" href="/">mesh.me</a></header>
