@@ -13,11 +13,11 @@
     <div class="mm-alert">{{ error }}</div>
   {% endif %}
 
-  <form class="mm-form" action="#" method="post" autocomplete="on">
+  <form class="mm-form" action="/signup" method="post" autocomplete="on">
     <input class="mm-input mesh-field" name="username" placeholder="username" maxlength="24" required />
     <input class="mm-input mesh-field" type="email" name="email" placeholder="email" required />
-    <input class="mm-input mesh-field" type="password" name="password" placeholder="password (10+ chars)" required />
-    <button class="mm-btn mm-primary" type="button">Create Mesh</button>
+    <input class="mm-input mesh-field" type="password" name="password" placeholder="password (10+ chars)" required minlength="10" />
+    <button class="mm-btn mm-primary" type="submit">Create Mesh</button>
   </form>
 
   <div class="mm-divider"></div>
