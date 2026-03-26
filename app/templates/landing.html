@@ -11,10 +11,15 @@
 <div class="mm-card">
   <div class="mm-label">enter your mesh</div>
 
-  <form class="mm-form" action="#" method="post" autocomplete="on">
-    <input class="mm-input mesh-field" name="identifier" placeholder="username or email" autocomplete="username" />
-    <input class="mm-input mesh-field" name="password" type="password" placeholder="password" autocomplete="current-password" />
-    <button class="mm-btn mm-primary" type="button">Enter Mesh</button>
+  {# Display an error if provided by the server #}
+  {% if error %}
+    <div class="mm-alert">{{ error }}</div>
+  {% endif %}
+
+  <form class="mm-form" action="/login" method="post" autocomplete="on">
+    <input class="mm-input mesh-field" name="identifier" placeholder="username or email" autocomplete="username" required />
+    <input class="mm-input mesh-field" name="password" type="password" placeholder="password" autocomplete="current-password" required />
+    <button class="mm-btn mm-primary" type="submit">Enter Mesh</button>
   </form>
 
   <div class="mm-divider"></div>
