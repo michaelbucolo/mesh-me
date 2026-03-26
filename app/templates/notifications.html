@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Notifications — mesh.me{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px;">
+  <h1 style="margin-top:0;">Notifications</h1>
+  {% if summary and summary|length > 0 %}
+  <div class="notification-summary" style="margin-bottom:24px;">
+    <h2 style="margin-top:0;">Summary</h2>
+    <ul style="list-style:none; padding-left:0;">
+      {% for item in summary %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  <h2 style="margin-top:0;">All Notifications</h2>
+  {% if notifications and notifications|length > 0 %}
+  <ul class="notifications-list" style="list-style:none; padding-left:0;">
+    {% for notif in notifications %}
+    <li style="border-bottom:1px solid #333; padding:12px 0;">
+      <strong>{{ notif.platform|capitalize }}</strong>: {{ notif.content }}
+      <span style="color:#888; font-size:0.8em;">({{ notif.timestamp }})</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No notifications yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
