@@ -21,12 +21,13 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, Request, Form, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
 import json
 from pathlib import Path
+from datetime import datetime
 
 from .config import get_settings
 from .auth import (
@@ -50,16 +51,31 @@ def create_app() -> FastAPI:
     templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
     # Path to the JSON file that stores users.  Each entry is a dict with
-    # ``id``, ``username``, ``email`` and ``hashed_password`` keys.
+    # ``id``, ``username``, ``email`` and ``hashed_password`` keys, plus
+    # optional preferences, messages, notifications and following lists.
     user_file = Path(__file__).resolve().parent / "users.json"
 
-    def ensure_user_defaults(u: dict) -> dict:
-        """Ensure a loaded user dict has all expected keys for preferences, messages and notifications.
+    # Path to the JSON file that stores posts.  Each post record contains an
+    # ``id``, ``user_id``, ``title``, ``content``, ``timestamp``, ``likes``
+    # (list of user IDs) and ``comments`` (list of comment objects).
+    posts_file = Path(__file__).resolve().parent / "posts.json"
 
-        This helper augments legacy user records created before additional features were added.  It
-        populates sensible defaults for preferences (feed layout, notification toggles, connected
-        platforms and read receipts) as well as message and notification lists.  Without these
-        defaults, template rendering may fail when accessing missing keys."""
+    def ensure_user_defaults(u: dict) -> dict:
+        """Ensure a loaded user dict has all expected keys for preferences and social data.
+
+        Over time new features have been added to MeshMe.  To preserve backwards
+        compatibility with older ``users.json`` records, this helper fills in
+        missing fields for preferences, messaging, notifications and following
+        information.  If a key already exists it is left untouched.  Without
+        these defaults the Jinja templates and route handlers may crash when
+        attempting to access missing keys.
+
+        The preferences block controls UI customisation (feed layout), whether
+        notifications and summaries are enabled, which external platforms are
+        connected and whether read receipts are shown in MeChat.  Messages and
+        notifications store internal data for unified messaging and alerts.  The
+        ``following`` list tracks the IDs of accounts that a user follows.
+        """
         prefs = u.setdefault(
             "preferences",
             {
@@ -70,14 +86,18 @@ def create_app() -> FastAPI:
                 "read_receipts": True,
             },
         )
-        # Ensure each expected preference exists (to future‑proof against missing keys)
+        # Ensure each expected preference key exists (future‑proofing)
         prefs.setdefault("feed_layout", "instagram")
         prefs.setdefault("notifications_enabled", True)
         prefs.setdefault("summary_enabled", False)
         prefs.setdefault("connected_platforms", [])
         prefs.setdefault("read_receipts", True)
+        # Messaging: list of message dicts (sender_id, receiver_id, message, platform, timestamp)
         u.setdefault("messages", [])
+        # Notifications: list of notification dicts (platform, content, timestamp)
         u.setdefault("notifications", [])
+        # Following: list of user IDs this account follows
+        u.setdefault("following", [])
         return u
 
     def load_users() -> list[dict]:
@@ -95,6 +115,31 @@ def create_app() -> FastAPI:
             except Exception:
                 return []
         return []
+
+    def load_posts() -> list[dict]:
+        """Load the list of posts from disk.
+
+        Returns an empty list if the posts file does not exist or cannot be
+        decoded.  Each post is a dictionary containing the keys described in
+        ``posts_file`` above.  If older posts are missing expected keys, this
+        function initialises defaults to preserve backwards compatibility."""
+        if posts_file.exists():
+            try:
+                with posts_file.open("r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    # ensure defaults for each post record
+                    for p in data:
+                        p.setdefault("likes", [])
+                        p.setdefault("comments", [])
+                    return data
+            except Exception:
+                return []
+        return []
+
+    def save_posts(posts: list[dict]) -> None:
+        """Persist the list of posts to disk."""
+        with posts_file.open("w", encoding="utf-8") as f:
+            json.dump(posts, f)
 
     def save_users(users: list[dict]) -> None:
         with user_file.open("w", encoding="utf-8") as f:
@@ -342,12 +387,28 @@ def create_app() -> FastAPI:
         """Display a unified message view across connected platforms (MeChat)."""
         if not user:
             return RedirectResponse(url="/", status_code=303)
-        messages = user.get("messages", [])
-        # Sort messages chronologically by timestamp if available; fallback to insertion order
-        def msg_time_key(m):
-            return m.get("timestamp", "")
-
-        messages_sorted = sorted(messages, key=msg_time_key)
+        # Retrieve the user's message history.  Messages may come from various
+        # platforms and are stored as dictionaries.  To support both legacy
+        # messages (with ``sender`` and ``platform`` keys) and newer records
+        # (with ``sender_id`` and ``receiver_id``), normalise each entry.
+        raw_messages = user.get("messages", [])
+        users = load_users()
+        id_to_user: dict[int, dict] = {u["id"]: u for u in users}
+        normalised: list[dict] = []
+        for m in raw_messages:
+            m_copy = m.copy()
+            # Determine sender name and platform
+            sender_name = m_copy.get("sender")
+            platform = m_copy.get("platform", "mesh")
+            if sender_name is None and "sender_id" in m_copy:
+                sender_name = id_to_user.get(m_copy.get("sender_id"), {}).get("username", "Unknown")
+            if platform is None:
+                platform = "mesh"
+            m_copy["sender"] = sender_name
+            m_copy["platform"] = platform
+            normalised.append(m_copy)
+        # Sort messages chronologically by timestamp (ISO strings compare lexicographically)
+        messages_sorted = sorted(normalised, key=lambda m: m.get("timestamp", ""))
         return templates.TemplateResponse(
             "messages.html",
             {
@@ -446,6 +507,426 @@ def create_app() -> FastAPI:
                 break
         save_users(users)
         return RedirectResponse(url="/settings", status_code=303)
+
+    # ----------------------------------------------------------------------
+    # Posts and social interactions
+    #
+    # The following endpoints implement a simple social feed for MeshMe.  Users
+    # can create posts, view a feed composed of their own posts and those of
+    # accounts they follow, like or unlike posts, comment on posts and manage
+    # follow relationships.  Posts are stored in the ``posts.json`` file and
+    # notifications are delivered to post authors when their posts are liked
+    # or commented upon.  A profile page allows browsing another user's
+    # posts and following or unfollowing them.
+
+    @app.get("/posts", response_class=HTMLResponse)
+    async def posts_view(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+        layout: str | None = None,
+    ):
+        """Display a feed of posts for the current user.
+
+        The feed includes posts authored by the logged‑in user as well as
+        accounts they follow.  Posts are sorted in reverse chronological
+        order.  Each post record is annotated with display metadata
+        (author username, like count, whether the current user has liked
+        the post, and comment author names) before rendering.  A query
+        parameter ``layout`` can override the feed layout defined in
+        user preferences (e.g. instagram, youtube, tiktok, twitter).
+        """
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        # Load posts and users
+        all_posts = load_posts()
+        all_users = load_users()
+        id_to_user: dict[int, dict] = {u["id"]: u for u in all_users}
+        # Determine which author IDs should appear in the feed
+        author_ids: list[int] = [user["id"]] + user.get("following", [])
+        visible_posts = [p for p in all_posts if p.get("user_id") in author_ids]
+        # Sort posts newest first (lexicographically works for ISO timestamps)
+        visible_posts.sort(key=lambda p: p.get("timestamp", ""), reverse=True)
+        # Annotate each post
+        annotated_posts = []
+        for p in visible_posts:
+            annotated = p.copy()
+            author = id_to_user.get(p.get("user_id"))
+            annotated["author"] = author.get("username") if author else "Unknown"
+            likes = p.get("likes", [])
+            annotated["like_count"] = len(likes)
+            annotated["liked"] = user["id"] in likes
+            # Annotate comments with author names
+            comments: list[dict] = p.get("comments", [])
+            comments_annotated = []
+            for c in comments:
+                commenter = id_to_user.get(c.get("user_id"))
+                comments_annotated.append(
+                    {
+                        "id": c.get("id"),
+                        "user_id": c.get("user_id"),
+                        "author": commenter.get("username") if commenter else "Unknown",
+                        "content": c.get("content"),
+                        "timestamp": c.get("timestamp"),
+                    }
+                )
+            annotated["comments_annotated"] = comments_annotated
+            annotated_posts.append(annotated)
+        # Determine layout
+        default_layout = user.get("preferences", {}).get("feed_layout", "instagram")
+        query_layout = request.query_params.get("layout") or layout or default_layout
+        return templates.TemplateResponse(
+            "posts.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+                "layout": query_layout,
+                "posts": annotated_posts,
+            },
+        )
+
+    @app.get("/post/new", response_class=HTMLResponse)
+    async def new_post_get(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Render a form for creating a new post."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        return templates.TemplateResponse(
+            "create_post.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+            },
+        )
+
+    @app.post("/post/new", response_class=HTMLResponse)
+    async def new_post_post(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+        title: str = Form(...),
+        content: str = Form(...),
+    ):
+        """Create a new post for the current user and persist it."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        title = title.strip()
+        content = content.strip()
+        if not title or not content:
+            return templates.TemplateResponse(
+                "create_post.html",
+                {
+                    "request": request,
+                    "minimal": False,
+                    "user": user,
+                    "error": "Title and content are required",
+                },
+            )
+        posts = load_posts()
+        # Determine next post ID
+        next_id = max((p.get("id", 0) for p in posts), default=0) + 1
+        timestamp = datetime.utcnow().isoformat()
+        new_post_record = {
+            "id": next_id,
+            "user_id": user["id"],
+            "title": title,
+            "content": content,
+            "timestamp": timestamp,
+            "likes": [],
+            "comments": [],
+        }
+        posts.append(new_post_record)
+        save_posts(posts)
+        return RedirectResponse(url="/posts", status_code=303)
+
+    @app.post("/posts/{post_id}/like", response_class=HTMLResponse)
+    async def like_post(
+        request: Request,
+        post_id: int,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Toggle the current user's like on a post and notify the author."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        posts = load_posts()
+        updated = False
+        for p in posts:
+            if p.get("id") == post_id:
+                likes: list[int] = p.setdefault("likes", [])
+                if user["id"] in likes:
+                    likes.remove(user["id"])
+                else:
+                    likes.append(user["id"])
+                    # Create a notification for the post author (if not self)
+                    if user["id"] != p.get("user_id"):
+                        author_id = p.get("user_id")
+                        users = load_users()
+                        for u in users:
+                            if u.get("id") == author_id:
+                                notif = {
+                                    "platform": "mesh",
+                                    "content": f"{user['username']} liked your post \"{p['title']}\"",
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                }
+                                u.setdefault("notifications", []).append(notif)
+                                break
+                        save_users(users)
+                updated = True
+                break
+        if updated:
+            save_posts(posts)
+        return RedirectResponse(url="/posts", status_code=303)
+
+    @app.post("/posts/{post_id}/comment", response_class=HTMLResponse)
+    async def comment_post(
+        request: Request,
+        post_id: int,
+        user: Optional[dict] = Depends(current_user_dep),
+        comment: str = Form(...),
+    ):
+        """Add a comment to a post and notify the author."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        text = comment.strip()
+        if not text:
+            return RedirectResponse(url=f"/posts", status_code=303)
+        posts = load_posts()
+        for p in posts:
+            if p.get("id") == post_id:
+                comments: list[dict] = p.setdefault("comments", [])
+                new_comment_id = max((c.get("id", 0) for c in comments), default=0) + 1
+                comments.append(
+                    {
+                        "id": new_comment_id,
+                        "user_id": user["id"],
+                        "content": text,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                )
+                # Notification for author if commenter is not the same person
+                if user["id"] != p.get("user_id"):
+                    author_id = p.get("user_id")
+                    users = load_users()
+                    for u in users:
+                        if u.get("id") == author_id:
+                            notif = {
+                                "platform": "mesh",
+                                "content": f"{user['username']} commented on your post \"{p['title']}\"",
+                                "timestamp": datetime.utcnow().isoformat(),
+                            }
+                            u.setdefault("notifications", []).append(notif)
+                            break
+                    save_users(users)
+                break
+        save_posts(posts)
+        return RedirectResponse(url="/posts", status_code=303)
+
+    @app.get("/user/{username}", response_class=HTMLResponse)
+    async def profile_view(
+        request: Request,
+        username: str,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Display another user's profile, their posts and follow/unfollow options."""
+        # Load users and find the target by username
+        users = load_users()
+        target: Optional[dict] = None
+        for u in users:
+            if u.get("username") == username:
+                target = u
+                break
+        if target is None:
+            return Response(content="User not found", status_code=404)
+        # Prepare posts by target
+        posts = [p for p in load_posts() if p.get("user_id") == target.get("id")]
+        posts.sort(key=lambda p: p.get("timestamp", ""), reverse=True)
+        id_to_user: dict[int, dict] = {u["id"]: u for u in users}
+        annotated_posts = []
+        for p in posts:
+            annotated = p.copy()
+            annotated["author"] = target.get("username")
+            annotated["like_count"] = len(p.get("likes", []))
+            annotated["liked"] = user and user.get("id") in p.get("likes", [])
+            comments = p.get("comments", [])
+            comments_annotated = []
+            for c in comments:
+                commenter = id_to_user.get(c.get("user_id"))
+                comments_annotated.append(
+                    {
+                        "id": c.get("id"),
+                        "user_id": c.get("user_id"),
+                        "author": commenter.get("username") if commenter else "Unknown",
+                        "content": c.get("content"),
+                        "timestamp": c.get("timestamp"),
+                    }
+                )
+            annotated["comments_annotated"] = comments_annotated
+            annotated_posts.append(annotated)
+        # Determine following state and follower count
+        is_following = False
+        follower_count = 0
+        for u in users:
+            flist = u.get("following", [])
+            if target.get("id") in flist:
+                follower_count += 1
+                if user and u.get("id") == user.get("id"):
+                    is_following = True
+        return templates.TemplateResponse(
+            "profile.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+                "profile": target,
+                "posts": annotated_posts,
+                "is_following": is_following,
+                "follower_count": follower_count,
+            },
+        )
+
+    @app.post("/user/{username}/follow", response_class=HTMLResponse)
+    async def follow_user(
+        request: Request,
+        username: str,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Follow another user (if not already) and notify them."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        users = load_users()
+        target: Optional[dict] = None
+        for u in users:
+            if u.get("username") == username:
+                target = u
+                break
+        if not target:
+            return Response(content="User not found", status_code=404)
+        if user.get("id") == target.get("id"):
+            return RedirectResponse(url=f"/user/{username}", status_code=303)
+        # Update following list
+        updated = False
+        for u in users:
+            if u.get("id") == user.get("id"):
+                flist = u.setdefault("following", [])
+                if target.get("id") not in flist:
+                    flist.append(target.get("id"))
+                    user["following"] = flist
+                    updated = True
+                break
+        if updated:
+            save_users(users)
+            # Notification for target
+            notif = {
+                "platform": "mesh",
+                "content": f"{user['username']} followed you",
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            for u in users:
+                if u.get("id") == target.get("id"):
+                    u.setdefault("notifications", []).append(notif)
+                    break
+            save_users(users)
+        return RedirectResponse(url=f"/user/{username}", status_code=303)
+
+    @app.post("/user/{username}/unfollow", response_class=HTMLResponse)
+    async def unfollow_user(
+        request: Request,
+        username: str,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Unfollow another user if currently followed."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        users = load_users()
+        target: Optional[dict] = None
+        for u in users:
+            if u.get("username") == username:
+                target = u
+                break
+        if not target:
+            return Response(content="User not found", status_code=404)
+        if user.get("id") == target.get("id"):
+            return RedirectResponse(url=f"/user/{username}", status_code=303)
+        # Remove from following list
+        updated = False
+        for u in users:
+            if u.get("id") == user.get("id"):
+                flist = u.setdefault("following", [])
+                if target.get("id") in flist:
+                    flist.remove(target.get("id"))
+                    user["following"] = flist
+                    updated = True
+                break
+        if updated:
+            save_users(users)
+        return RedirectResponse(url=f"/user/{username}", status_code=303)
+
+    @app.get("/messages/send", response_class=HTMLResponse)
+    async def message_send_get(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Render a form to send a message to another user."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        users = load_users()
+        recipients = [u for u in users if u.get("id") != user.get("id")]
+        return templates.TemplateResponse(
+            "message_send.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+                "recipients": recipients,
+            },
+        )
+
+    @app.post("/messages/send", response_class=HTMLResponse)
+    async def message_send_post(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+        recipient_id: int = Form(...),
+        message: str = Form(...),
+    ):
+        """Send a message to a recipient and deliver notifications."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        text = message.strip()
+        if not text:
+            return RedirectResponse(url="/messages/send", status_code=303)
+        users = load_users()
+        recipient: Optional[dict] = None
+        for u in users:
+            if u.get("id") == int(recipient_id):
+                recipient = u
+                break
+        if not recipient:
+            return Response(content="Recipient not found", status_code=404)
+        timestamp = datetime.utcnow().isoformat()
+        msg_obj = {
+            "sender_id": user.get("id"),
+            "receiver_id": recipient.get("id"),
+            "message": text,
+            "platform": "mesh",
+            "timestamp": timestamp,
+        }
+        # Append the message to both sender and recipient histories
+        for u in users:
+            if u.get("id") == user.get("id") or u.get("id") == recipient.get("id"):
+                u.setdefault("messages", []).append(msg_obj)
+        # Notification for recipient
+        if user.get("id") != recipient.get("id"):
+            notif = {
+                "platform": "mesh",
+                "content": f"{user['username']} sent you a message",
+                "timestamp": timestamp,
+            }
+            recipient.setdefault("notifications", []).append(notif)
+        save_users(users)
+        return RedirectResponse(url="/messages", status_code=303)
+
 
     return app
 
