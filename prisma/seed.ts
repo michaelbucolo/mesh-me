@@ -1,8 +1,10 @@
 // Seed script - run with: npx tsx prisma/seed.ts
 import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaLibSql({ url: "file:./dev.db" });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("Seeding database...");

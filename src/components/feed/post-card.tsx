@@ -68,8 +68,12 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
   const handleRepost = () => {
     if (!currentUserId) return;
-    setRepostCount((prev) => prev + 1);
-    startTransition(async () => { await repost(post.id); });
+    startTransition(async () => {
+      const result = await repost(post.id);
+      if (result && 'reposted' in result) {
+        setRepostCount((prev) => result.reposted ? prev + 1 : prev - 1);
+      }
+    });
   };
 
   const handleDelete = () => {

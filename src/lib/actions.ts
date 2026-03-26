@@ -635,6 +635,11 @@ export async function adminResolveReport(reportId: string, status: string) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) return { error: "Unauthorized" };
 
+  const validStatuses = ["resolved", "dismissed"];
+  if (!validStatuses.includes(status)) {
+    return { error: "Invalid status" };
+  }
+
   await prisma.report.update({
     where: { id: reportId },
     data: { status },
