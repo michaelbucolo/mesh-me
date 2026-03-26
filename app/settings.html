@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Account Settings — mesh.me{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px;">
+  <h1 style="margin-top:0;">Account Settings</h1>
+  <form method="post" style="margin-top:16px; display:flex; flex-direction:column; gap:16px; max-width:400px;">
+    <div>
+      <label for="feed_layout">Feed Layout:</label>
+      <select name="feed_layout" id="feed_layout" class="mm-select" style="margin-left:8px;">
+        {% for opt in ["instagram", "youtube", "tiktok", "twitter"] %}
+        <option value="{{ opt }}" {% if user.preferences.feed_layout == opt %}selected{% endif %}>{{ opt|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <input type="checkbox" id="notifications_enabled" name="notifications_enabled" value="on" {% if user.preferences.notifications_enabled %}checked{% endif %}>
+      <label for="notifications_enabled">Enable notifications</label>
+    </div>
+    <div>
+      <input type="checkbox" id="summary_enabled" name="summary_enabled" value="on" {% if user.preferences.summary_enabled %}checked{% endif %}>
+      <label for="summary_enabled">Summarize notifications</label>
+    </div>
+    <div>
+      <input type="checkbox" id="read_receipts" name="read_receipts" value="on" {% if user.preferences.read_receipts %}checked{% endif %}>
+      <label for="read_receipts">Enable read receipts in MeChat</label>
+    </div>
+    <button class="mm-btn mm-primary" type="submit">Save Settings</button>
+  </form>
+</div>
+{% endblock %}

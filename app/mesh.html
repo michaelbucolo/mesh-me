@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Mesh — mesh.me{% endblock %}
+{% block content %}
+<div class="mesh-page" style="width:100%;max-width:900px;margin:0 auto;padding:24px;">
+  <h1>Your Mesh</h1>
+  <p>Welcome to your Mesh.  This page will eventually display a dynamic graph of your posts, follows, tags and interactions across all connected platforms.</p>
+  <div id="mesh-graph" style="width:100%;height:450px;background:var(--panel);border:1px solid var(--line);border-radius:12px;position:relative;"></div>
+  <p style="margin-top:16px;">The mesh graph above is currently a placeholder.  In the future, interactive nodes and edges will allow you to explore your online presence visually and jump directly to posts, profiles and tags.  Stay tuned!</p>
+</div>
+<script>
+// Simple placeholder network: generate some circles and connecting lines
+(function(){
+  const container = document.getElementById('mesh-graph');
+  if (!container) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const nodes = [];
+  const edges = [];
+  const n = 15;
+  for (let i = 0; i < n; i++) {
+    nodes.push({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+    });
+  }
+  for (let i = 0; i < n; i++) {
+    const target = Math.floor(Math.random()*n);
+    if (target !== i) edges.push([i, target]);
+  }
+  ctx.strokeStyle = 'rgba(110,207,255,0.4)';
+  ctx.fillStyle = 'rgba(110,207,255,0.8)';
+  ctx.lineWidth = 1.2;
+  edges.forEach(([a,b]) => {
+    ctx.beginPath();
+    ctx.moveTo(nodes[a].x, nodes[a].y);
+    ctx.lineTo(nodes[b].x, nodes[b].y);
+    ctx.stroke();
+  });
+  nodes.forEach(n => {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 6, 0, Math.PI*2);
+    ctx.fill();
+  });
+})();
+</script>
+{% endblock %}
