@@ -480,6 +480,12 @@ export async function sendMessage(formData: FormData) {
 
   if (!finalThreadId) return { error: "No thread specified" };
 
+  // Verify the user is a member of this thread
+  const membership = await prisma.threadMember.findFirst({
+    where: { threadId: finalThreadId, userId: user.id },
+  });
+  if (!membership) return { error: "Not a member of this thread" };
+
   await prisma.message.create({
     data: {
       content: content.trim(),
@@ -610,6 +616,8 @@ export async function toggleSavePost(postId: string) {
 export async function adminSuspendUser(targetUserId: string) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) return { error: "Unauthorized" };
+
+  if (user.id === targetUserId) return { error: "Cannot suspend yourself" };
 
   const target = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!target) return { error: "User not found" };

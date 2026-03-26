@@ -14,9 +14,17 @@ export function JoinButton({ communityId, isMember: initialMember }: JoinButtonP
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
+    const previous = isMember;
     setIsMember(!isMember);
     startTransition(async () => {
-      await toggleCommunityMembership(communityId);
+      try {
+        const result = await toggleCommunityMembership(communityId);
+        if (result && 'error' in result) {
+          setIsMember(previous);
+        }
+      } catch {
+        setIsMember(previous);
+      }
     });
   };
 
