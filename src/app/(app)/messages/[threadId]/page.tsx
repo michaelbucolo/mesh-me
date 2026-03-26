@@ -28,6 +28,10 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ t
 
   if (!thread) notFound();
 
+  // Verify current user is a member of this thread
+  const isMember = thread.members.some((m) => m.userId === user.id);
+  if (!isMember) notFound();
+
   const otherUser = thread.members.find((m) => m.userId !== user.id)?.user;
   const messages = await getThreadMessages(threadId);
 

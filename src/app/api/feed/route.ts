@@ -33,7 +33,6 @@ export async function GET(request: Request) {
       OR: [
         { authorId: { in: [...followingIds, user.id] } },
         { communityId: { in: communityIds } },
-        {},
       ],
     };
   }
