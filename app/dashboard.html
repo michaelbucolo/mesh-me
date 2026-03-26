@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — mesh.me{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px; text-align:center;">
+  <h1 style="margin-top:0;">Welcome, {{ user.username }}!</h1>
+  <p>Your email: {{ user.email }}</p>
+  <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+    <a class="mm-btn mm-primary" href="/posts">Posts Feed</a>
+    <a class="mm-btn mm-primary" href="/post/new">Create Post</a>
+    <a class="mm-btn mm-primary" href="/mesh">Open Mesh View</a>
+    <a class="mm-btn mm-primary" href="/feed">Open Custom Feed</a>
+    <a class="mm-btn mm-primary" href="/notifications">Notifications</a>
+    <a class="mm-btn mm-primary" href="/messages">MeChat</a>
+    <a class="mm-btn mm-primary" href="/messages/send">Send Message</a>
+    <a class="mm-btn mm-primary" href="/connect">Manage Connections</a>
+    <a class="mm-btn mm-primary" href="/settings">Account Settings</a>
+    <a class="mm-btn" href="/logout" style="margin-top:12px;">Log out</a>
+  </div>
+</div>
+{% endblock %}

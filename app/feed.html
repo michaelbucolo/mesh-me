@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Custom Feed — mesh.me{% endblock %}
+{% block content %}
+<div class="feed-page" style="width:100%;max-width:900px;margin:0 auto;padding:24px;">
+  <h1>Your Custom Feed</h1>
+  <p>Customize how your feed appears by selecting a layout below.  In a full implementation, this feed will merge content from all of your connected social accounts into one continuous scrolling experience.</p>
+  <form method="get" action="/feed" style="margin-bottom:16px;">
+    <label for="layout-select">Choose layout:</label>
+    <select id="layout-select" name="layout" class="mm-input" style="max-width:200px;">
+      <option value="instagram"{% if layout == 'instagram' %} selected{% endif %}>Instagram</option>
+      <option value="youtube"{% if layout == 'youtube' %} selected{% endif %}>YouTube Shorts</option>
+      <option value="tiktok"{% if layout == 'tiktok' %} selected{% endif %}>TikTok</option>
+      <option value="twitter"{% if layout == 'twitter' %} selected{% endif %}>Twitter</option>
+    </select>
+    <button class="mm-btn mm-primary" type="submit" style="margin-left:8px;">Update</button>
+  </form>
+  <div class="feed-list layout-{{ layout }}">
+    {% for post in posts %}
+      <div class="post">
+        <h3>{{ post.title }}</h3>
+        <p>{{ post.content }}</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+<style>
+  .feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .feed-list.layout-instagram .post {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 16px;
+  }
+  .feed-list.layout-youtube .post {
+    border-left: 4px solid var(--cyan);
+    background: var(--panel);
+    padding: 16px 16px 16px 12px;
+  }
+  .feed-list.layout-tiktok .post {
+    border: 1px dashed var(--line);
+    padding: 16px;
+    background: rgba(255,255,255,0.04);
+  }
+  .feed-list.layout-twitter .post {
+    border-bottom: 1px solid var(--line);
+    padding: 16px 0;
+  }
+  .post h3 {
+    margin: 0 0 8px;
+  }
+  .post p {
+    margin: 0;
+  }
+</style>
+{% endblock %}
