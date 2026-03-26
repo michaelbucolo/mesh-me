@@ -15,9 +15,17 @@ export function FollowButton({ userId, isFollowing: initialFollowing }: FollowBu
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
+    const previous = isFollowing;
     setIsFollowing(!isFollowing);
     startTransition(async () => {
-      await toggleFollow(userId);
+      try {
+        const result = await toggleFollow(userId);
+        if (result && 'error' in result) {
+          setIsFollowing(previous);
+        }
+      } catch {
+        setIsFollowing(previous);
+      }
     });
   };
 

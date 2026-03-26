@@ -8,6 +8,9 @@ export function rateLimit(
   maxAttempts: number = 5,
   windowMs: number = 15 * 60 * 1000 // 15 minutes
 ): { allowed: boolean; remainingAttempts: number; resetIn: number } {
+  // Lazily clean up expired entries on each call
+  cleanupExpiredEntries();
+
   const now = Date.now();
   const entry = rateLimitStore.get(key);
 
@@ -24,15 +27,15 @@ export function rateLimit(
   return { allowed: true, remainingAttempts: maxAttempts - entry.count, resetIn: entry.resetAt - now };
 }
 
-// Clean up expired entries periodically
-setInterval(() => {
+// Clean up expired entries lazily during rate limit checks
+function cleanupExpiredEntries() {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore.entries()) {
     if (now > entry.resetAt) {
       rateLimitStore.delete(key);
     }
   }
-}, 60 * 1000); // Clean every minute
+}
 
 // ─── Account Lockout ────────────────────────────────────────
 const loginAttempts = new Map<string, { count: number; lockedUntil: number | null }>();
