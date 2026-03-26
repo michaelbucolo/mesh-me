@@ -53,11 +53,45 @@ def create_app() -> FastAPI:
     # ``id``, ``username``, ``email`` and ``hashed_password`` keys.
     user_file = Path(__file__).resolve().parent / "users.json"
 
+    def ensure_user_defaults(u: dict) -> dict:
+        """Ensure a loaded user dict has all expected keys for preferences, messages and notifications.
+
+        This helper augments legacy user records created before additional features were added.  It
+        populates sensible defaults for preferences (feed layout, notification toggles, connected
+        platforms and read receipts) as well as message and notification lists.  Without these
+        defaults, template rendering may fail when accessing missing keys."""
+        prefs = u.setdefault(
+            "preferences",
+            {
+                "feed_layout": "instagram",
+                "notifications_enabled": True,
+                "summary_enabled": False,
+                "connected_platforms": [],
+                "read_receipts": True,
+            },
+        )
+        # Ensure each expected preference exists (to future‑proof against missing keys)
+        prefs.setdefault("feed_layout", "instagram")
+        prefs.setdefault("notifications_enabled", True)
+        prefs.setdefault("summary_enabled", False)
+        prefs.setdefault("connected_platforms", [])
+        prefs.setdefault("read_receipts", True)
+        u.setdefault("messages", [])
+        u.setdefault("notifications", [])
+        return u
+
     def load_users() -> list[dict]:
+        """Load the user list from disk, inserting default keys for new features as needed.
+
+        Legacy installations may have been created before new preferences or message fields
+        existed.  To maintain backward compatibility, each user record is passed through
+        ``ensure_user_defaults`` before being returned."""
         if user_file.exists():
             try:
                 with user_file.open("r", encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    # ensure defaults for each user
+                    return [ensure_user_defaults(u) for u in data]
             except Exception:
                 return []
         return []
@@ -163,7 +197,24 @@ def create_app() -> FastAPI:
         # Determine next user ID
         next_id = max((u.get("id", 0) for u in users), default=0) + 1
         hashed_password = get_password_hash(password)
-        new_user = {"id": next_id, "username": username, "email": email, "hashed_password": hashed_password}
+        # Populate new accounts with default preferences, messages and notifications so that
+        # they can immediately customise their experience.  Preferences control feed layout,
+        # whether notifications are delivered or summarised, and which platforms are connected.
+        new_user = {
+            "id": next_id,
+            "username": username,
+            "email": email,
+            "hashed_password": hashed_password,
+            "preferences": {
+                "feed_layout": "instagram",
+                "notifications_enabled": True,
+                "summary_enabled": False,
+                "connected_platforms": [],
+                "read_receipts": True,
+            },
+            "messages": [],
+            "notifications": [],
+        }
         users.append(new_user)
         save_users(users)
         # Create session token and set cookie
@@ -223,8 +274,9 @@ def create_app() -> FastAPI:
         """
         if not user:
             return RedirectResponse(url="/", status_code=303)
-        # Determine layout from query parameter or default
-        query_layout = request.query_params.get("layout") or layout or "instagram"
+        # Determine layout from query parameter or user preferences; fall back to a sensible default.
+        default_layout = user.get("preferences", {}).get("feed_layout", "instagram") if user else "instagram"
+        query_layout = request.query_params.get("layout") or layout or default_layout
         # Provide some dummy posts as placeholders
         sample_posts = [
             {"title": "Sample post 1", "content": "This is a placeholder for your unified feed."},
@@ -241,6 +293,159 @@ def create_app() -> FastAPI:
                 "posts": sample_posts,
             },
         )
+
+    def summarize_notifications(notifications: list[dict]) -> list[str]:
+        """Produce a simple summary of notification counts by platform/type.
+
+        When notifications are numerous, a concise overview helps users prioritise their attention.
+        This function groups notifications by platform name and returns sentences describing the
+        number of unread notifications per platform."""
+        counts: dict[str, int] = {}
+        for n in notifications:
+            plat = n.get("platform", "other")
+            counts[plat] = counts.get(plat, 0) + 1
+        summary = []
+        for plat, count in counts.items():
+            name = plat.capitalize()
+            summary.append(f"{count} new {name} notification{'s' if count != 1 else ''}")
+        return summary
+
+    @app.get("/notifications", response_class=HTMLResponse)
+    async def notifications_view(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Display the user's notifications and (optionally) a summary."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        notifications = user.get("notifications", [])
+        summary: list[str] = []
+        # Only compute a summary if the user has enabled summaries in preferences
+        if user.get("preferences", {}).get("summary_enabled", False) and notifications:
+            summary = summarize_notifications(notifications)
+        return templates.TemplateResponse(
+            "notifications.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+                "notifications": notifications,
+                "summary": summary,
+            },
+        )
+
+    @app.get("/messages", response_class=HTMLResponse)
+    async def messages_view(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Display a unified message view across connected platforms (MeChat)."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        messages = user.get("messages", [])
+        # Sort messages chronologically by timestamp if available; fallback to insertion order
+        def msg_time_key(m):
+            return m.get("timestamp", "")
+
+        messages_sorted = sorted(messages, key=msg_time_key)
+        return templates.TemplateResponse(
+            "messages.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+                "messages": messages_sorted,
+            },
+        )
+
+    @app.get("/connect", response_class=HTMLResponse)
+    async def connect_get(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Render a form for the user to select which social platforms to connect."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        # In a future implementation these would be dynamically discovered from available connectors
+        supported_platforms = ["instagram", "youtube", "tiktok", "twitter", "facebook", "reddit"]
+        return templates.TemplateResponse(
+            "connect.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+                "supported_platforms": supported_platforms,
+            },
+        )
+
+    @app.post("/connect", response_class=HTMLResponse)
+    async def connect_post(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+        platforms: list[str] = Form(None),
+    ):
+        """Handle submission of the connection form, updating user preferences."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        # Normalise platforms to a list
+        chosen = platforms if isinstance(platforms, list) else ([] if platforms is None else [platforms])
+        users = load_users()
+        # Update the current user's record in the loaded users list
+        for u in users:
+            if u.get("id") == user.get("id"):
+                u["preferences"]["connected_platforms"] = chosen
+                # refresh the user variable to reflect changes
+                user["preferences"]["connected_platforms"] = chosen
+                break
+        save_users(users)
+        return RedirectResponse(url="/connect", status_code=303)
+
+    @app.get("/settings", response_class=HTMLResponse)
+    async def settings_get(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+    ):
+        """Display account settings for feed layout and notification preferences."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        return templates.TemplateResponse(
+            "settings.html",
+            {
+                "request": request,
+                "minimal": False,
+                "user": user,
+            },
+        )
+
+    @app.post("/settings", response_class=HTMLResponse)
+    async def settings_post(
+        request: Request,
+        user: Optional[dict] = Depends(current_user_dep),
+        feed_layout: str = Form(...),
+        notifications_enabled: Optional[str] = Form(None),
+        summary_enabled: Optional[str] = Form(None),
+        read_receipts: Optional[str] = Form(None),
+    ):
+        """Persist user preference changes from the settings page."""
+        if not user:
+            return RedirectResponse(url="/", status_code=303)
+        # Convert checkbox values ("on" or None) to booleans
+        notif_on = notifications_enabled is not None
+        summary_on = summary_enabled is not None
+        read_on = read_receipts is not None
+        users = load_users()
+        for u in users:
+            if u.get("id") == user.get("id"):
+                prefs = u.setdefault("preferences", {})
+                prefs["feed_layout"] = feed_layout
+                prefs["notifications_enabled"] = notif_on
+                prefs["summary_enabled"] = summary_on
+                prefs["read_receipts"] = read_on
+                # update current user context
+                user["preferences"] = prefs
+                break
+        save_users(users)
+        return RedirectResponse(url="/settings", status_code=303)
 
     return app
 
