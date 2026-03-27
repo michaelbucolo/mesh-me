@@ -388,6 +388,10 @@ export async function createCommunity(formData: FormData) {
 
   const slug = slugify(name.trim());
 
+  if (!slug) {
+    return { error: "Community name must contain at least one letter or number" };
+  }
+
   const existing = await prisma.community.findFirst({
     where: { OR: [{ name: name.trim() }, { slug }] },
   });
@@ -750,7 +754,6 @@ export async function repost(postId: string) {
       authorId: user.id,
       isRepost: true,
       repostId: postId,
-      communityId: original.communityId,
     },
   });
 
