@@ -376,10 +376,10 @@ export async function createCommunity(formData: FormData) {
     return { error: "Community name is required" };
   }
 
-  const slug = slugify(name);
+  const slug = slugify(name.trim());
 
   const existing = await prisma.community.findFirst({
-    where: { OR: [{ name }, { slug }] },
+    where: { OR: [{ name: name.trim() }, { slug }] },
   });
 
   if (existing) {
@@ -625,6 +625,7 @@ export async function adminSuspendUser(targetUserId: string) {
 
   const target = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!target) return { error: "User not found" };
+  if (target.isAdmin) return { error: "Cannot suspend other admin users" };
 
   await prisma.user.update({
     where: { id: targetUserId },

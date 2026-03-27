@@ -399,6 +399,15 @@ export async function getMessageThreads() {
 }
 
 export async function getThreadMessages(threadId: string) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  // Verify the user is a member of this thread
+  const membership = await prisma.threadMember.findFirst({
+    where: { threadId, userId: user.id },
+  });
+  if (!membership) return [];
+
   return prisma.message.findMany({
     where: { threadId },
     include: {
