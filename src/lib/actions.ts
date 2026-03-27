@@ -361,7 +361,7 @@ export async function updateProfile(formData: FormData) {
       displayName: displayName || user.displayName,
       bio: bio ?? user.bio,
       location: location ?? user.location,
-      website: website ?? user.website,
+      website: website?.trim() ? ((await import("./security")).validateUrl(website.trim()) ? website.trim() : user.website) : user.website,
       accentColor: accentColor || user.accentColor,
     },
   });
