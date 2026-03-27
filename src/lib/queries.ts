@@ -454,6 +454,9 @@ export async function getNotifications(page = 1, limit = 30) {
 }
 
 export async function searchAll(query: string) {
+  const user = await getCurrentUser();
+  if (!user) return { users: [], posts: [], communities: [] };
+
   if (!query?.trim()) return { users: [], posts: [], communities: [] };
 
   const q = query.trim();

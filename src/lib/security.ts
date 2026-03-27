@@ -88,7 +88,7 @@ export function sanitizeForDisplay(input: string): string {
   // Strip potential XSS vectors but keep text readable
   return input
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/on\w+\s*=\s*(?:["'][^"']*["']|\S+)/gi, "")
+    .replace(/\bon\w+\s*=\s*(?:["'][^"']*["']|\S+)/gi, "")
     .replace(/javascript:/gi, "")
     .replace(/data:text\/html/gi, "")
     .trim();
