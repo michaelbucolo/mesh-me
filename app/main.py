@@ -301,6 +301,16 @@ def create_app() -> FastAPI:
         """Trim and bound free-form input text."""
         return " ".join((value or "").strip().split())[:max_len]
 
+    def clean_external_url(value: str, max_len: int = 1000) -> str:
+        """Allow only safe absolute HTTP(S) URLs for user-supplied links."""
+        candidate = (value or "").strip()[:max_len]
+        if not candidate:
+            return ""
+        lowered = candidate.lower()
+        if lowered.startswith("http://") or lowered.startswith("https://"):
+            return candidate
+        return ""
+
     def is_rate_limited(bucket: deque, max_events: int, window_seconds: int) -> bool:
         """Return True when events in bucket exceed allowed threshold in sliding window."""
         now = datetime.utcnow()
@@ -1569,7 +1579,7 @@ def create_app() -> FastAPI:
             "read_at": None,
             "reactions": [],
             "reply_to_id": reply_to_id if reply_to_id > 0 else None,
-            "attachment_url": clean_text(attachment_url, 1000),
+            "attachment_url": clean_external_url(attachment_url),
             "edited_at": None,
             "deleted": False,
         }
@@ -1903,7 +1913,7 @@ def create_app() -> FastAPI:
             "comments": [],
             "source_platform": source_platform.lower(),
             "external_post_id": external_post_id.strip() or None,
-            "external_url": external_url.strip(),
+            "external_url": clean_external_url(external_url),
             "tags": cleaned_tags[:12],
         }
         posts.append(new_post_record)

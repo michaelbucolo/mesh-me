@@ -60,7 +60,9 @@ class PrivacyAndSafetyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.user_file = Path("app/users.json")
+        cls.posts_file = Path("app/posts.json")
         cls.backup = cls.user_file.read_text(encoding="utf-8") if cls.user_file.exists() else None
+        cls.posts_backup = cls.posts_file.read_text(encoding="utf-8") if cls.posts_file.exists() else None
 
     @classmethod
     def tearDownClass(cls):
@@ -69,10 +71,14 @@ class PrivacyAndSafetyTests(unittest.TestCase):
                 cls.user_file.unlink()
         else:
             cls.user_file.write_text(cls.backup, encoding="utf-8")
+        if cls.posts_backup is not None:
+            cls.posts_file.write_text(cls.posts_backup, encoding="utf-8")
 
     def setUp(self):
         if self.user_file.exists():
             self.user_file.unlink()
+        if self.posts_backup is not None:
+            self.posts_file.write_text(self.posts_backup, encoding="utf-8")
         self.client_alice = TestClient(create_app(), base_url="https://testserver")
         self.client_bob = TestClient(create_app(), base_url="https://testserver")
 
@@ -154,6 +160,27 @@ class PrivacyAndSafetyTests(unittest.TestCase):
         )
         self.assertEqual(blocked.status_code, 429)
         self.assertIn("too many messages", blocked.text.lower())
+
+    def test_post_external_url_sanitization(self):
+        self._signup(self.client_alice, "alice", "alice@example.com")
+        alice_csrf = self.client_alice.cookies.get("meshme_csrf")
+        response = self.client_alice.post(
+            "/post/new",
+            data={
+                "title": "Security test",
+                "content": "checking url sanitizer",
+                "source_platform": "mesh",
+                "external_post_id": "",
+                "external_url": "javascript:alert(1)",
+                "tags": "security,test",
+                "csrf_token": alice_csrf,
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303)
+        posts = json.loads(self.posts_file.read_text(encoding="utf-8"))
+        created = max(posts, key=lambda p: p.get("id", 0))
+        self.assertEqual(created.get("external_url"), "")
 
 
 if __name__ == "__main__":
