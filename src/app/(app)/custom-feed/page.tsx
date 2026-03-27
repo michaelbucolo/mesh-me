@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
+import { toggleReaction, toggleSavePost, repost } from "@/lib/actions";
 
 type FeedLayout = "cards" | "grid" | "reels" | "video";
 
@@ -224,6 +225,8 @@ function CardPost({ post }: { post: FeedPost }) {
   const [liked, setLiked] = useState(post.reactions.length > 0);
   const [saved, setSaved] = useState(post.savedBy.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
+  const [reposted, setReposted] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const platform = post.platform || "mesh";
 
   return (
@@ -279,20 +282,21 @@ function CardPost({ post }: { post: FeedPost }) {
           )}
 
           <div className="flex items-center gap-6 mt-3 pt-3 border-t border-zinc-800/50">
-            <button onClick={() => { setLiked(!liked); setLikeCount(liked ? likeCount - 1 : likeCount + 1); }}
+            <button onClick={() => { setLiked(!liked); setLikeCount(liked ? likeCount - 1 : likeCount + 1); startTransition(async () => { await toggleReaction(post.id); }); }}
               className={`flex items-center gap-1.5 text-xs transition-colors ${liked ? "text-pink-500" : "text-zinc-500 hover:text-pink-400"}`}>
               <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />{likeCount > 0 && likeCount}
             </button>
             <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-400 transition-colors">
               <MessageCircle className="h-4 w-4" />{post._count.comments > 0 && post._count.comments}
             </Link>
-            <button className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-green-400 transition-colors">
+            <button onClick={() => { setReposted(!reposted); startTransition(async () => { await repost(post.id); }); }}
+              className={`flex items-center gap-1.5 text-xs transition-colors ${reposted ? "text-green-500" : "text-zinc-500 hover:text-green-400"}`}>
               <Repeat2 className="h-4 w-4" />{post._count.reposts > 0 && post._count.reposts}
             </button>
             <button className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
               <Share2 className="h-4 w-4" />
             </button>
-            <button onClick={() => setSaved(!saved)}
+            <button onClick={() => { setSaved(!saved); startTransition(async () => { await toggleSavePost(post.id); }); }}
               className={`flex items-center gap-1.5 text-xs ml-auto transition-colors ${saved ? "text-yellow-500" : "text-zinc-500 hover:text-yellow-400"}`}>
               <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} />
             </button>
@@ -335,6 +339,7 @@ function GridPost({ post }: { post: FeedPost }) {
 
 function ReelPost({ post }: { post: FeedPost }) {
   const [liked, setLiked] = useState(post.reactions.length > 0);
+  const [isPending, startTransition] = useTransition();
   return (
     <div className="relative aspect-[9/16] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
       <div className="absolute inset-0 flex items-center justify-center">
@@ -352,7 +357,7 @@ function ReelPost({ post }: { post: FeedPost }) {
         <p className="text-xs text-zinc-300 line-clamp-2">{post.content}</p>
       </div>
       <div className="absolute right-3 bottom-20 flex flex-col items-center gap-4">
-        <button onClick={() => setLiked(!liked)} className="flex flex-col items-center gap-1">
+        <button onClick={() => { setLiked(!liked); startTransition(async () => { await toggleReaction(post.id); }); }} className="flex flex-col items-center gap-1">
           <Heart className={`h-7 w-7 ${liked ? "text-pink-500 fill-current" : "text-white"}`} />
           <span className="text-xs text-white">{post._count.reactions}</span>
         </button>
