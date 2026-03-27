@@ -31,48 +31,48 @@
   canvas.height = container.clientHeight;
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d');
-  const nodeCount = Math.max(14, {{ mesh_stats.nodes }});
-  const nodes = [];
-  for (let i = 0; i < nodeCount; i++) {
-    nodes.push({
-      x: 40 + Math.random() * (canvas.width - 80),
-      y: 40 + Math.random() * (canvas.height - 80),
-      vx: (Math.random() - 0.5) * 0.45,
-      vy: (Math.random() - 0.5) * 0.45,
-      r: 3 + Math.random() * 4,
-    });
-  }
-  function draw(){
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = 'rgba(110,207,255,0.24)';
-    for(let i=0;i<nodes.length;i++){
-      for(let j=i+1;j<nodes.length;j++){
-        const dx = nodes[i].x - nodes[j].x;
-        const dy = nodes[i].y - nodes[j].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < 140) {
-          ctx.globalAlpha = 1 - (dist / 140);
+  const typeColor = { user: '#6ecfff', post: '#bba1ff', tag: '#6ff3c7' };
+  fetch('/api/mesh/graph')
+    .then((r) => r.json())
+    .then((graph) => {
+      const nodes = (graph.nodes || []).map((n) => ({
+        ...n,
+        x: 40 + Math.random() * (canvas.width - 80),
+        y: 40 + Math.random() * (canvas.height - 80),
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        r: Math.min(14, Math.max(4, Number(n.weight || 3))),
+      }));
+      const index = new Map(nodes.map((n) => [n.id, n]));
+      const edges = (graph.edges || []).map((e) => ({
+        source: index.get(e.source),
+        target: index.get(e.target),
+      })).filter((e) => e.source && e.target);
+
+      function draw(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'rgba(110,207,255,0.2)';
+        edges.forEach((e) => {
           ctx.beginPath();
-          ctx.moveTo(nodes[i].x, nodes[i].y);
-          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.moveTo(e.source.x, e.source.y);
+          ctx.lineTo(e.target.x, e.target.y);
           ctx.stroke();
-        }
+        });
+        nodes.forEach((n) => {
+          n.x += n.vx;
+          n.y += n.vy;
+          if (n.x < n.r || n.x > canvas.width - n.r) n.vx *= -1;
+          if (n.y < n.r || n.y > canvas.height - n.r) n.vy *= -1;
+          ctx.beginPath();
+          ctx.fillStyle = typeColor[n.type] || '#6ecfff';
+          ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        requestAnimationFrame(draw);
       }
-    }
-    ctx.globalAlpha = 1;
-    nodes.forEach((n) => {
-      n.x += n.vx;
-      n.y += n.vy;
-      if (n.x < 8 || n.x > canvas.width - 8) n.vx *= -1;
-      if (n.y < 8 || n.y > canvas.height - 8) n.vy *= -1;
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(110,207,255,0.95)';
-      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
+      draw();
+    })
+    .catch(() => {});
 })();
 </script>
 {% endblock %}

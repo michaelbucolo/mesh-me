@@ -1109,6 +1109,7 @@ def create_app() -> FastAPI:
         user: Optional[dict] = Depends(current_user_dep),
         layout: str | None = None,
         platform: str | None = None,
+        mode: str | None = None,
     ):
         """Display the user's custom feed.
 
@@ -1121,9 +1122,26 @@ def create_app() -> FastAPI:
         query_layout = request.query_params.get("layout") or layout or default_layout
         all_posts = load_posts()
         all_users = load_users()
+        mode_value = (request.query_params.get("mode") or mode or "following").lower()
         author_ids: list[int] = [user["id"]] + user.get("following", [])
+        if mode_value == "fyp":
+            suggested_ids = [u.get("id") for u in suggested_accounts(user, all_users, all_posts, limit=24)]
+            author_ids = list(dict.fromkeys(author_ids + [sid for sid in suggested_ids if sid]))
         group_ids = set(user.get("preferences", {}).get("group_ids", []))
         feed_posts = annotate_posts_for_user(user, all_posts, all_users, author_ids, group_ids=group_ids)
+        if mode_value == "fyp":
+            now = datetime.utcnow()
+            def score_post(post: dict) -> float:
+                likes = int(post.get("like_count", 0))
+                comments = len(post.get("comments_annotated", []))
+                freshness = 0.0
+                try:
+                    age_hours = max(0.0, (now - datetime.fromisoformat(post.get("timestamp", ""))).total_seconds() / 3600.0)
+                    freshness = max(0.0, 48.0 - age_hours)
+                except Exception:
+                    freshness = 0.0
+                return (likes * 2.0) + (comments * 3.0) + freshness
+            feed_posts.sort(key=score_post, reverse=True)
         platform_filter = (request.query_params.get("platform") or platform or "all").lower()
         if platform_filter != "all":
             feed_posts = [p for p in feed_posts if p.get("source_platform", "mesh").lower() == platform_filter]
@@ -1134,6 +1152,7 @@ def create_app() -> FastAPI:
                 "minimal": False,
                 "user": user,
                 "layout": query_layout,
+                "mode": mode_value,
                 "platform_filter": platform_filter,
                 "posts": feed_posts,
                 "connected_platforms": user.get("preferences", {}).get("connected_platforms", []),
@@ -1146,12 +1165,14 @@ def create_app() -> FastAPI:
         user: Optional[dict] = Depends(current_user_dep),
         layout: str = Form(...),
         platform: str = Form("all"),
+        mode: str = Form("following"),
         name: str = Form(""),
     ):
         """Save a reusable custom-feed preset for the current user."""
         if not user:
             return RedirectResponse(url="/", status_code=303)
         preset_name = (name or "").strip() or f"{layout.capitalize()} · {platform.capitalize()}"
+        mode_value = mode if mode in {"following", "fyp"} else "following"
         users = load_users()
         for u in users:
             if u.get("id") == user.get("id"):
@@ -1162,6 +1183,7 @@ def create_app() -> FastAPI:
                         "name": preset_name[:50],
                         "layout": layout.lower(),
                         "platform": platform.lower(),
+                        "mode": mode_value,
                         "created_at": datetime.utcnow().isoformat(),
                     }
                 )
@@ -1169,7 +1191,7 @@ def create_app() -> FastAPI:
                 user["preferences"]["feed_presets"] = prefs["feed_presets"]
                 break
         save_users(users)
-        return RedirectResponse(url=f"/feed?layout={layout}&platform={platform}", status_code=303)
+        return RedirectResponse(url=f"/feed?layout={layout}&platform={platform}&mode={mode_value}", status_code=303)
 
     def summarize_notifications(notifications: list[dict]) -> list[str]:
         """Produce a simple summary of notification counts by platform/type.
@@ -2611,20 +2633,28 @@ def create_app() -> FastAPI:
         posts = load_posts()
         author_ids = [user["id"]] + user.get("following", [])
         visible_posts = [p for p in posts if p.get("user_id") in author_ids]
-        nodes = [{"id": f"user:{user['id']}", "type": "user", "label": user.get("username")}]
+        follower_count = sum(1 for u in users if user.get("id") in u.get("following", []))
+        nodes = [{"id": f"user:{user['id']}", "type": "user", "label": user.get("username"), "weight": max(3, follower_count + 1)}]
         edges = []
         for fid in user.get("following", []):
             target = find_user_by_id(fid, users)
             if target:
-                nodes.append({"id": f"user:{fid}", "type": "user", "label": target.get("username")})
+                target_followers = sum(1 for u in users if fid in u.get("following", []))
+                nodes.append({"id": f"user:{fid}", "type": "user", "label": target.get("username"), "weight": max(3, target_followers + 1)})
                 edges.append({"source": f"user:{user['id']}", "target": f"user:{fid}", "type": "follows"})
         for p in visible_posts:
-            post_node = {"id": f"post:{p.get('id')}", "type": "post", "label": p.get("title", "post")}
+            post_node = {
+                "id": f"post:{p.get('id')}",
+                "type": "post",
+                "label": p.get("title", "post"),
+                "platform": p.get("source_platform", "mesh"),
+                "weight": max(2, len(p.get("likes", [])) + len(p.get("comments", [])) + 1),
+            }
             nodes.append(post_node)
             edges.append({"source": f"user:{p.get('user_id')}", "target": post_node["id"], "type": "authored"})
             for tag in p.get("tags", []):
                 tag_id = f"tag:{tag}"
-                nodes.append({"id": tag_id, "type": "tag", "label": tag})
+                nodes.append({"id": tag_id, "type": "tag", "label": tag, "weight": 2})
                 edges.append({"source": post_node["id"], "target": tag_id, "type": "tagged"})
         # Dedupe nodes by id
         dedup_nodes = {n["id"]: n for n in nodes}

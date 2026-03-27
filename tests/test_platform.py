@@ -182,6 +182,20 @@ class PrivacyAndSafetyTests(unittest.TestCase):
         created = max(posts, key=lambda p: p.get("id", 0))
         self.assertEqual(created.get("external_url"), "")
 
+    def test_feed_fyp_mode_renders_for_authenticated_user(self):
+        self._signup(self.client_alice, "alice", "alice@example.com")
+        response = self.client_alice.get("/feed?mode=fyp&layout=instagram", follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("AI FYP Blend", response.text)
+
+    def test_mesh_graph_api_contains_weighted_nodes(self):
+        self._signup(self.client_alice, "alice", "alice@example.com")
+        response = self.client_alice.get("/api/mesh/graph")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("nodes", payload)
+        self.assertTrue(any("weight" in n for n in payload["nodes"]))
+
 
 if __name__ == "__main__":
     unittest.main()

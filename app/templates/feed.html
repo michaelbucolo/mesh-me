@@ -6,6 +6,11 @@
   <p class="muted">Universal scrolling feed. Keep the content source, change only the experience.</p>
 
   <form method="get" action="/feed" class="layout-form">
+    <label for="mode-select">Feed mode</label>
+    <select id="mode-select" name="mode" class="mm-input" style="max-width:220px;">
+      <option value="following"{% if mode == 'following' %} selected{% endif %}>Following Graph</option>
+      <option value="fyp"{% if mode == 'fyp' %} selected{% endif %}>AI FYP Blend</option>
+    </select>
     <label for="layout-select">Visual style</label>
     <select id="layout-select" name="layout" class="mm-input" style="max-width:220px;">
       <option value="instagram"{% if layout == 'instagram' %} selected{% endif %}>Instagram Reels</option>
@@ -27,6 +32,7 @@
   <form method="post" action="/feed/preset/save" class="layout-form">
     <input type="hidden" name="layout" value="{{ layout }}">
     <input type="hidden" name="platform" value="{{ platform_filter }}">
+    <input type="hidden" name="mode" value="{{ mode }}">
     <label for="preset-name">Save as preset</label>
     <input id="preset-name" class="mm-input" type="text" name="name" placeholder="My Reels + Shorts Mix" style="max-width:320px;">
     <button class="mm-btn" type="submit">Save Preset</button>
@@ -36,7 +42,7 @@
   {% if feed_presets and feed_presets|length > 0 %}
   <div class="tag-cloud">
     {% for preset in feed_presets %}
-      <a class="mm-btn" href="/feed?layout={{ preset.layout }}&platform={{ preset.platform }}">{{ preset.name }}</a>
+      <a class="mm-btn" href="/feed?layout={{ preset.layout }}&platform={{ preset.platform }}&mode={{ preset.mode|default('following') }}">{{ preset.name }}</a>
     {% endfor %}
   </div>
   {% endif %}
@@ -46,7 +52,7 @@
       <article class="post-card">
         <header>
           <strong><a href="/user/{{ post.author }}">{{ post.author }}</a></strong>
-          <span>{{ post.source_platform|default('mesh')|capitalize }} · {{ post.timestamp }}</span>
+          <span>{{ post.source_platform|default('mesh')|capitalize }} · {{ post.timestamp }} · {{ mode|upper }}</span>
         </header>
         <h3>{{ post.title }}</h3>
         <p>{{ post.content }}</p>
