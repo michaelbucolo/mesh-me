@@ -82,8 +82,9 @@ export function MeshBackground({
     };
 
     if (interactive) {
-      canvas.addEventListener("mousemove", handleMouse);
-      canvas.addEventListener("mouseleave", handleMouseLeave);
+      // Listen on document since canvas has pointer-events: none to allow clicks through
+      document.addEventListener("mousemove", handleMouse);
+      document.addEventListener("mouseleave", handleMouseLeave);
     }
 
     // Listen for typing activity from MeshEntry
@@ -210,8 +211,8 @@ export function MeshBackground({
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mesh-activity", handleActivity);
-      canvas.removeEventListener("mousemove", handleMouse);
-      canvas.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("mousemove", handleMouse);
+      document.removeEventListener("mouseleave", handleMouseLeave);
       cancelAnimationFrame(animFrameRef.current);
     };
   }, [interactive, density, mouseInfluence, initNodes]);
@@ -220,7 +221,7 @@ export function MeshBackground({
     <canvas
       ref={canvasRef}
       className={`absolute inset-0 w-full h-full ${className}`}
-      style={{ pointerEvents: interactive ? "auto" : "none" }}
+      style={{ pointerEvents: "none" }}
     />
   );
 }
