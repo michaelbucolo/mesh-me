@@ -1200,13 +1200,23 @@ def create_app() -> FastAPI:
         This function groups notifications by platform name and returns sentences describing the
         number of unread notifications per platform."""
         counts: dict[str, int] = {}
+        priority_counts: dict[str, int] = {"high": 0, "normal": 0}
         for n in notifications:
             plat = n.get("platform", "other")
             counts[plat] = counts.get(plat, 0) + 1
+            priority = str(n.get("priority", "normal")).lower()
+            if priority in {"high", "critical"}:
+                priority_counts["high"] += 1
+            else:
+                priority_counts["normal"] += 1
         summary = []
+        if priority_counts["high"] > 0:
+            summary.append(f"{priority_counts['high']} high-priority updates need attention")
         for plat, count in counts.items():
             name = plat.capitalize()
             summary.append(f"{count} new {name} notification{'s' if count != 1 else ''}")
+        if priority_counts["normal"] > 0:
+            summary.append(f"{priority_counts['normal']} routine updates batched for later")
         return summary
 
     @app.get("/notifications", response_class=HTMLResponse)
@@ -2357,6 +2367,7 @@ def create_app() -> FastAPI:
         recipient_id: int = Form(...),
         message: str = Form(...),
         platform: str = Form("mesh"),
+        platform_targets: list[str] = Form(None),
     ):
         """Send a message to a recipient and deliver notifications."""
         if not user:
@@ -2378,12 +2389,17 @@ def create_app() -> FastAPI:
         if users_are_blocked(user.get("id"), recipient.get("id"), users):
             return Response(content="Cannot message this user due to privacy settings.", status_code=403)
         timestamp = datetime.utcnow().isoformat()
+        selected_platforms = [p.strip().lower() for p in (platform_targets or []) if p and p.strip()]
+        if not selected_platforms:
+            selected_platforms = [platform.lower() if platform else "mesh"]
+        selected_platforms = list(dict.fromkeys([p for p in selected_platforms if p]))
         msg_obj = {
             "id": next_message_id(users),
             "sender_id": user.get("id"),
             "receiver_id": recipient.get("id"),
             "message": text,
-            "platform": platform.lower(),
+            "platform": selected_platforms[0],
+            "platform_targets": selected_platforms,
             "timestamp": timestamp,
             "delivered_at": timestamp,
             "read_by_receiver": False,
@@ -2401,19 +2417,20 @@ def create_app() -> FastAPI:
         # Notification for recipient
         if user.get("id") != recipient.get("id"):
             notif = {
-                "platform": platform.lower(),
-                "content": f"{user['username']} sent you a message via {platform.lower()}",
+                "platform": selected_platforms[0],
+                "content": f"{user['username']} sent you a message via {', '.join(selected_platforms)}",
                 "timestamp": timestamp,
             }
             recipient.setdefault("notifications", []).append(notif)
-        record_sync_event(users, user["id"], platform.lower(), "message", f"to {recipient.get('username')}")
-        enqueue_sync_job(
-            actor_id=user["id"],
-            platform=platform.lower(),
-            action="message",
-            reference=f"to {recipient.get('username')}",
-            target_id=recipient.get("id"),
-        )
+        for target_platform in selected_platforms:
+            record_sync_event(users, user["id"], target_platform, "message", f"to {recipient.get('username')}")
+            enqueue_sync_job(
+                actor_id=user["id"],
+                platform=target_platform,
+                action="message",
+                reference=f"to {recipient.get('username')}",
+                target_id=recipient.get("id"),
+            )
         save_users(users)
         return RedirectResponse(url="/messages", status_code=303)
 

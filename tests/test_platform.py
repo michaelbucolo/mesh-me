@@ -196,6 +196,28 @@ class PrivacyAndSafetyTests(unittest.TestCase):
         self.assertIn("nodes", payload)
         self.assertTrue(any("weight" in n for n in payload["nodes"]))
 
+    def test_message_send_supports_multiple_platform_targets(self):
+        self._signup(self.client_alice, "alice", "alice@example.com")
+        self._signup(self.client_bob, "bob", "bob@example.com")
+        alice_csrf = self.client_alice.cookies.get("meshme_csrf")
+        response = self.client_alice.post(
+            "/messages/send",
+            data={
+                "recipient_id": 2,
+                "message": "multi platform ping",
+                "platform": "mesh",
+                "platform_targets": ["mesh", "youtube"],
+                "csrf_token": alice_csrf,
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303)
+        users = json.loads(self.user_file.read_text(encoding="utf-8"))
+        alice = next(u for u in users if u.get("username") == "alice")
+        self.assertTrue(any(e.get("platform") == "mesh" and e.get("action") == "message" for e in alice.get("sync_events", [])))
+        self.assertTrue(any(e.get("platform") == "youtube" and e.get("action") == "message" for e in alice.get("sync_events", [])))
+        self.assertTrue(any("youtube" in (m.get("platform_targets") or []) for m in alice.get("messages", [])))
+
 
 if __name__ == "__main__":
     unittest.main()

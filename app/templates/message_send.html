@@ -24,6 +24,17 @@
     </div>
 
     <div>
+      <label for="platform_targets">Also deliver natively to (optional multi-select)</label>
+      <select class="mm-input" id="platform_targets" name="platform_targets" multiple size="4">
+        <option value="mesh">Mesh</option>
+        {% for p in platforms %}
+          <option value="{{ p }}">{{ p|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <p class="muted" style="margin-top:6px;">Tip: Hold Ctrl/Cmd to select multiple destinations for one send.</p>
+    </div>
+
+    <div>
       <label for="message">Message</label>
       <textarea class="mm-input" id="message" name="message" rows="5" required></textarea>
     </div>
