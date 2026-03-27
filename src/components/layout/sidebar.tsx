@@ -20,6 +20,7 @@ import {
   Link2,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { signOut } from "@/lib/actions";
 
 interface SidebarProps {
   user: {
@@ -144,7 +145,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
             <Settings className="h-3.5 w-3.5" />
             Settings
           </Link>
-          <form action="/api/auth/signout" method="POST">
+          <form action={signOut}>
             <button
               type="submit"
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-red-400 hover:bg-zinc-800/50 transition-colors"

@@ -6,8 +6,10 @@ import { v4 as uuidv4 } from "uuid";
 const SESSION_COOKIE = "mesh_session";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-// In-memory session store (in production, use Redis or DB)
-const sessions = new Map<string, { userId: string; expiresAt: Date }>();
+// In-memory session store with globalThis to survive HMR (in production, use Redis or DB)
+const globalForSessions = globalThis as unknown as { meshSessions: Map<string, { userId: string; expiresAt: Date }> | undefined };
+const sessions = globalForSessions.meshSessions ?? new Map<string, { userId: string; expiresAt: Date }>();
+if (process.env.NODE_ENV !== "production") globalForSessions.meshSessions = sessions;
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
