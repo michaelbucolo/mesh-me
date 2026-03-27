@@ -789,6 +789,7 @@ export async function togglePinPost(postId: string, communityId: string) {
 
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post) return { error: "Post not found" };
+  if (post.communityId !== communityId) return { error: "Post does not belong to this community" };
 
   await prisma.post.update({
     where: { id: postId },
@@ -939,7 +940,11 @@ export async function removeMember(userId: string, communityId: string) {
     where: { userId_communityId: { userId, communityId } },
   });
 
-  if (target?.role === "admin") {
+  if (!target) {
+    return { error: "User is not a member of this community" };
+  }
+
+  if (target.role === "admin") {
     return { error: "Cannot remove admins" };
   }
 
