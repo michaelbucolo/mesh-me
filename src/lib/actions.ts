@@ -182,6 +182,16 @@ export async function createPost(formData: FormData) {
 
   const sanitizedContent = sanitizeForDisplay(content.trim());
 
+  // Verify community membership if posting to a community
+  if (communityId) {
+    const membership = await prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: user.id, communityId } },
+    });
+    if (!membership) {
+      return { error: "You must be a member of this community to post" };
+    }
+  }
+
   const post = await prisma.post.create({
     data: {
       content: sanitizedContent,
