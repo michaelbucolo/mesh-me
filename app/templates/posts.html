@@ -13,6 +13,14 @@
         <option value="tiktok"{% if layout == 'tiktok' %} selected{% endif %}>TikTok</option>
         <option value="twitter"{% if layout == 'twitter' %} selected{% endif %}>Twitter</option>
       </select>
+      <select id="platform-select" name="platform" class="mm-input" style="max-width:160px;">
+        <option value="all"{% if platform_filter == 'all' %} selected{% endif %}>All Platforms</option>
+        <option value="mesh"{% if platform_filter == 'mesh' %} selected{% endif %}>Mesh</option>
+        <option value="instagram"{% if platform_filter == 'instagram' %} selected{% endif %}>Instagram</option>
+        <option value="youtube"{% if platform_filter == 'youtube' %} selected{% endif %}>YouTube</option>
+        <option value="tiktok"{% if platform_filter == 'tiktok' %} selected{% endif %}>TikTok</option>
+        <option value="twitter"{% if platform_filter == 'twitter' %} selected{% endif %}>Twitter</option>
+      </select>
       <button class="mm-btn mm-primary" type="submit" style="margin-left:8px;">Apply</button>
     </form>
   </div>
@@ -22,7 +30,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <div>
             <strong><a href="/user/{{ post.author }}">{{ post.author }}</a></strong>
-            <span style="color:#888; font-size:0.8em; margin-left:8px;">{{ post.timestamp }}</span>
+            <span style="color:#888; font-size:0.8em; margin-left:8px;">{{ post.source_platform|default('mesh')|capitalize }} · {{ post.timestamp }}</span>
           </div>
         </div>
         <h3 style="margin:0 0 8px 0;">{{ post.title }}</h3>
@@ -32,6 +40,10 @@
             <button class="mm-btn" type="submit">{{ 'Unlike' if post.liked else 'Like' }}</button>
           </form>
           <span>({{ post.like_count }})</span>
+          <form method="post" action="/posts/{{ post.id }}/report" style="display:inline; margin-left:auto;">
+            <input type="hidden" name="reason" value="User submitted report from posts feed">
+            <button class="mm-btn" type="submit">Report</button>
+          </form>
         </div>
         <div class="post-comments" style="margin-top:16px;">
           {% for comment in post.comments_annotated %}

@@ -1,59 +1,81 @@
 {% extends "base.html" %}
 {% block title %}Custom Feed — mesh.me{% endblock %}
 {% block content %}
-<div class="feed-page" style="width:100%;max-width:900px;margin:0 auto;padding:24px;">
-  <h1>Your Custom Feed</h1>
-  <p>Customize how your feed appears by selecting a layout below.  In a full implementation, this feed will merge content from all of your connected social accounts into one continuous scrolling experience.</p>
-  <form method="get" action="/feed" style="margin-bottom:16px;">
-    <label for="layout-select">Choose layout:</label>
-    <select id="layout-select" name="layout" class="mm-input" style="max-width:200px;">
-      <option value="instagram"{% if layout == 'instagram' %} selected{% endif %}>Instagram</option>
+<div class="feed-page">
+  <h1>Custom Feed</h1>
+  <p class="muted">Universal scrolling feed. Keep the content source, change only the experience.</p>
+
+  <form method="get" action="/feed" class="layout-form">
+    <label for="layout-select">Visual style</label>
+    <select id="layout-select" name="layout" class="mm-input" style="max-width:220px;">
+      <option value="instagram"{% if layout == 'instagram' %} selected{% endif %}>Instagram Reels</option>
       <option value="youtube"{% if layout == 'youtube' %} selected{% endif %}>YouTube Shorts</option>
       <option value="tiktok"{% if layout == 'tiktok' %} selected{% endif %}>TikTok</option>
-      <option value="twitter"{% if layout == 'twitter' %} selected{% endif %}>Twitter</option>
+      <option value="twitter"{% if layout == 'twitter' %} selected{% endif %}>X / Twitter</option>
     </select>
-    <button class="mm-btn mm-primary" type="submit" style="margin-left:8px;">Update</button>
+    <label for="platform-select">Platform</label>
+    <select id="platform-select" name="platform" class="mm-input" style="max-width:220px;">
+      <option value="all"{% if platform_filter == 'all' %} selected{% endif %}>All Platforms</option>
+      <option value="mesh"{% if platform_filter == 'mesh' %} selected{% endif %}>Mesh</option>
+      {% for p in connected_platforms %}
+      <option value="{{ p }}"{% if platform_filter == p %} selected{% endif %}>{{ p|capitalize }}</option>
+      {% endfor %}
+    </select>
+    <button class="mm-btn mm-primary" type="submit">Apply Layout</button>
   </form>
-  <div class="feed-list layout-{{ layout }}">
-    {% for post in posts %}
-      <div class="post">
-        <h3>{{ post.title }}</h3>
-        <p>{{ post.content }}</p>
-      </div>
+
+  <form method="post" action="/feed/preset/save" class="layout-form">
+    <input type="hidden" name="layout" value="{{ layout }}">
+    <input type="hidden" name="platform" value="{{ platform_filter }}">
+    <label for="preset-name">Save as preset</label>
+    <input id="preset-name" class="mm-input" type="text" name="name" placeholder="My Reels + Shorts Mix" style="max-width:320px;">
+    <button class="mm-btn" type="submit">Save Preset</button>
+  </form>
+
+  <p class="muted" style="margin-top:8px;">Connected: {% if connected_platforms|length > 0 %}{{ connected_platforms|join(', ') }}{% else %}mesh only{% endif %}</p>
+  {% if feed_presets and feed_presets|length > 0 %}
+  <div class="tag-cloud">
+    {% for preset in feed_presets %}
+      <a class="mm-btn" href="/feed?layout={{ preset.layout }}&platform={{ preset.platform }}">{{ preset.name }}</a>
     {% endfor %}
   </div>
+  {% endif %}
+
+  <div class="feed-list layout-{{ layout }}">
+    {% for post in posts %}
+      <article class="post-card">
+        <header>
+          <strong><a href="/user/{{ post.author }}">{{ post.author }}</a></strong>
+          <span>{{ post.source_platform|default('mesh')|capitalize }} · {{ post.timestamp }}</span>
+        </header>
+        <h3>{{ post.title }}</h3>
+        <p>{{ post.content }}</p>
+
+        <div class="actions">
+          <form method="post" action="/posts/{{ post.id }}/like">
+            <button class="mm-btn" type="submit">{{ 'Unlike' if post.liked else 'Like' }} ({{ post.like_count }})</button>
+          </form>
+          <form method="post" action="/posts/{{ post.id }}/report">
+            <input type="hidden" name="reason" value="User submitted report from custom feed">
+            <button class="mm-btn" type="submit">Report</button>
+          </form>
+        </div>
+
+        <div class="comments">
+          {% for comment in post.comments_annotated %}
+            <div class="comment"><strong>{{ comment.author }}</strong>: {{ comment.content }}</div>
+          {% endfor %}
+          <form method="post" action="/posts/{{ post.id }}/comment" class="comment-form">
+            <input class="mm-input" type="text" name="comment" placeholder="Comment and sync natively" required>
+            <button class="mm-btn" type="submit">Send</button>
+          </form>
+        </div>
+      </article>
+    {% endfor %}
+
+    {% if posts|length == 0 %}
+      <p>No content yet. Create a post or follow accounts to populate your universal feed.</p>
+    {% endif %}
+  </div>
 </div>
-<style>
-  .feed-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .feed-list.layout-instagram .post {
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: var(--panel);
-    padding: 16px;
-  }
-  .feed-list.layout-youtube .post {
-    border-left: 4px solid var(--cyan);
-    background: var(--panel);
-    padding: 16px 16px 16px 12px;
-  }
-  .feed-list.layout-tiktok .post {
-    border: 1px dashed var(--line);
-    padding: 16px;
-    background: rgba(255,255,255,0.04);
-  }
-  .feed-list.layout-twitter .post {
-    border-bottom: 1px solid var(--line);
-    padding: 16px 0;
-  }
-  .post h3 {
-    margin: 0 0 8px;
-  }
-  .post p {
-    margin: 0;
-  }
-</style>
 {% endblock %}

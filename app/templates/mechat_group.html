@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}MeChat Group — {{ group.name }}{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px; width:min(920px,96vw);">
+  <h1 style="margin-top:0;">Group Chat · {{ group.name }}</h1>
+  <div style="display:flex; gap:8px; margin-bottom:12px;">
+    <a class="mm-btn" href="/messages">Back to MeChat</a>
+    <a class="mm-btn" href="/groups/{{ group.id }}">Open Group</a>
+  </div>
+
+  <div style="border:1px solid var(--line); border-radius:12px; padding:12px; max-height:420px; overflow:auto; margin-bottom:12px;">
+    {% for msg in messages %}
+    <div style="margin-bottom:10px;">
+      <strong>{{ msg.sender_name }}</strong>
+      <span style="font-size:0.75em; color:#999;">{{ msg.timestamp }}</span>
+      <div style="white-space:pre-wrap;">{{ msg.message }}</div>
+    </div>
+    {% else %}
+    <p>No group messages yet.</p>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/messages/group/{{ group.id }}" style="display:grid; gap:10px;">
+    <select class="mm-input" name="platform" style="max-width:220px;">
+      <option value="mesh">Mesh</option>
+      {% for p in platforms %}<option value="{{ p }}">{{ p|capitalize }}</option>{% endfor %}
+    </select>
+    <textarea class="mm-input" name="message" rows="4" placeholder="Message group" required></textarea>
+    <button class="mm-btn mm-primary" type="submit">Send</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Groups — mesh.me{% endblock %}
+{% block content %}
+<div class="feed-page">
+  <h1>Groups</h1>
+  <p class="muted">Create or join communities that blend posts from your connected social world.</p>
+
+  <article class="feed-panel">
+    <h2>Create Group</h2>
+    <form method="post" action="/groups/create" style="display:grid; gap:10px; max-width:620px;">
+      <input class="mm-input" type="text" name="name" placeholder="Group name" required>
+      <textarea class="mm-input" name="description" placeholder="What is this group about?" rows="3"></textarea>
+      <input class="mm-input" type="text" name="tags" placeholder="Tags, comma separated">
+      <button class="mm-btn mm-primary" type="submit">Create</button>
+    </form>
+  </article>
+
+  <div class="main-feed-grid">
+    {% for g in groups %}
+    <article class="feed-panel">
+      <h3 style="margin:0;"><a href="/groups/{{ g.id }}">{{ g.name }}</a></h3>
+      <p class="muted">{{ g.description }}</p>
+      <p>{{ g.members|length }} members</p>
+      <div style="display:flex; gap:8px;">
+        {% if g.id in my_group_ids %}
+        <form method="post" action="/groups/{{ g.id }}/leave"><button class="mm-btn" type="submit">Leave</button></form>
+        {% else %}
+        <form method="post" action="/groups/{{ g.id }}/join"><button class="mm-btn mm-primary" type="submit">Join</button></form>
+        {% endif %}
+        <a class="mm-btn" href="/groups/{{ g.id }}">Open</a>
+      </div>
+    </article>
+    {% else %}
+    <p>No groups yet. Create the first one.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Discover — mesh.me{% endblock %}
+{% block content %}
+<div class="feed-page">
+  <h1>Discover</h1>
+  <p class="muted">Explore people, tags, and platform clusters from your unified social graph.</p>
+
+  <div class="main-feed-grid">
+    <article class="feed-panel">
+      <h2>Suggested Creators</h2>
+      {% if creators and creators|length > 0 %}
+      <ul style="margin:0; padding-left:18px;">
+        {% for creator in creators %}
+        <li><a href="/user/{{ creator.username }}">{{ creator.username }}</a> · score {{ creator.score }} · {{ creator.followers }} followers</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>No suggestions yet.</p>
+      {% endif %}
+    </article>
+
+    <article class="feed-panel">
+      <h2>Trending Tags</h2>
+      {% if trending_tags and trending_tags|length > 0 %}
+      <div class="tag-cloud">
+        {% for item in trending_tags %}
+          <span>#{{ item.tag }} ({{ item.count }})</span>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No tags yet.</p>
+      {% endif %}
+    </article>
+  </div>
+
+  <article class="feed-panel">
+    <h2>Platform Clusters</h2>
+    {% if groups and groups|length > 0 %}
+    <ul style="margin:0; padding-left:18px;">
+      {% for platform, count in groups %}
+      <li>{{ platform|capitalize }} · {{ count }} posts</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No platform activity yet.</p>
+    {% endif %}
+  </article>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}MeChat with {{ peer.username }} — mesh.me{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px; width:min(920px,96vw);">
+  <h1 style="margin-top:0;">MeChat · {{ peer.username }}</h1>
+  <div style="display:flex; gap:8px; margin-bottom:12px;">
+    <a class="mm-btn" href="/messages">Back to MeChat</a>
+    <form method="post" action="/messages/{{ peer.id }}/read"><button class="mm-btn" type="submit">Mark thread read</button></form>
+    <form method="post" action="/messages/thread/{{ peer.username }}/typing"><button class="mm-btn" type="submit">I'm typing…</button></form>
+  </div>
+  {% if peer_typing %}<p style="color:var(--cyan); margin-top:-4px;">{{ peer.username }} is typing…</p>{% endif %}
+
+  <div style="border:1px solid var(--line); border-radius:12px; padding:12px; max-height:420px; overflow:auto; margin-bottom:12px;">
+    {% for msg in messages %}
+    <div style="margin-bottom:10px; text-align:{{ 'right' if msg.is_mine else 'left' }};">
+      <div style="display:inline-block; max-width:76%; padding:8px 10px; border-radius:10px; background:{{ 'rgba(110,207,255,0.22)' if msg.is_mine else 'rgba(255,255,255,0.06)' }};">
+        <div style="white-space:pre-wrap;">{{ msg.message }}</div>
+        {% if msg.reply_to_id %}<div style="font-size:0.75em; color:#999;">Reply to #{{ msg.reply_to_id }}</div>{% endif %}
+        {% if msg.attachment_url %}<div style="font-size:0.8em;"><a href="{{ msg.attachment_url }}" target="_blank">Attachment</a></div>{% endif %}
+        {% if msg.edited_at %}<div style="font-size:0.75em; color:#999;">Edited</div>{% endif %}
+        <div style="font-size:0.75em; color:#999; margin-top:4px;">{{ msg.platform|capitalize }} · {{ msg.timestamp }}</div>
+      </div>
+      <div style="display:flex; gap:4px; justify-content:{{ 'flex-end' if msg.is_mine else 'flex-start' }}; margin-top:4px;">
+        <form method="post" action="/messages/{{ msg.id }}/react"><input type="hidden" name="emoji" value="❤️"><button class="mm-btn" type="submit">❤️</button></form>
+        <form method="post" action="/messages/{{ msg.id }}/react"><input type="hidden" name="emoji" value="😂"><button class="mm-btn" type="submit">😂</button></form>
+        {% if msg.is_mine %}
+        <form method="post" action="/messages/{{ msg.id }}/unsend"><button class="mm-btn" type="submit">Unsend</button></form>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <p>No messages yet.</p>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/messages/thread/{{ peer.username }}" style="display:grid; gap:10px;">
+    <select class="mm-input" name="platform" style="max-width:220px;">
+      <option value="mesh">Mesh</option>
+      {% for p in platforms %}<option value="{{ p }}">{{ p|capitalize }}</option>{% endfor %}
+    </select>
+    <input class="mm-input" type="number" name="reply_to_id" min="0" placeholder="Reply to message ID (optional)">
+    <input class="mm-input" type="url" name="attachment_url" placeholder="Attachment URL (optional)">
+    <textarea class="mm-input" name="message" rows="4" placeholder="Type your message" required></textarea>
+    <button class="mm-btn mm-primary" type="submit">Send</button>
+  </form>
+</div>
+{% endblock %}

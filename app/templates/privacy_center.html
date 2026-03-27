@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Privacy Center — mesh.me{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px; width:min(820px,96vw);">
+  <h1 style="margin-top:0;">Privacy Center</h1>
+  <p class="muted">Manage export/deletion requests and your data transparency workflow.</p>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+    <a class="mm-btn" href="/privacy/export">Download Data Export (JSON)</a>
+    <form method="post" action="/privacy/request">
+      <input type="hidden" name="request_type" value="export_data">
+      <button class="mm-btn" type="submit">Queue Export Request</button>
+    </form>
+    <form method="post" action="/privacy/request">
+      <input type="hidden" name="request_type" value="delete_data">
+      <button class="mm-btn" type="submit">Queue Delete Request</button>
+    </form>
+  </div>
+
+  <h2 style="margin:0 0 10px;">Request Timeline</h2>
+  {% if requests and requests|length > 0 %}
+  <ul style="list-style:none; padding-left:0; margin:0;">
+    {% for req in requests %}
+    <li style="border-bottom:1px solid #333; padding:10px 0;">
+      <strong>{{ req.type }}</strong> · {{ req.status }}
+      <span style="color:#888; font-size:0.85em;">({{ req.timestamp }})</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No privacy requests yet.</p>
+  {% endif %}
+
+  <h2 style="margin:16px 0 10px;">Danger Zone</h2>
+  <p class="muted">Type <strong>DELETE</strong> and your password to permanently remove your account and content.</p>
+  <form method="post" action="/privacy/delete/confirm" style="display:grid; gap:8px; max-width:420px;">
+    <input class="mm-input" type="text" name="confirmation_text" placeholder="Type DELETE to confirm" required>
+    <input class="mm-input" type="password" name="password" placeholder="Current password" required>
+    <button class="mm-btn" type="submit">Delete my account permanently</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,29 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Account Settings — mesh.me{% endblock %}
 {% block content %}
-<div class="mm-card" style="padding:32px;">
-  <h1 style="margin-top:0;">Account Settings</h1>
-  <form method="post" style="margin-top:16px; display:flex; flex-direction:column; gap:16px; max-width:400px;">
+<div class="mm-card" style="padding:32px; width:min(720px, 96vw);">
+  <h1 style="margin-top:0;">Privacy, Security & Feed Settings</h1>
+  <form method="post" style="margin-top:16px; display:flex; flex-direction:column; gap:16px; max-width:520px;">
     <div>
-      <label for="feed_layout">Feed Layout:</label>
-      <select name="feed_layout" id="feed_layout" class="mm-select" style="margin-left:8px;">
+      <label for="feed_layout">Default Custom Feed Layout</label>
+      <select name="feed_layout" id="feed_layout" class="mm-input">
         {% for opt in ["instagram", "youtube", "tiktok", "twitter"] %}
         <option value="{{ opt }}" {% if user.preferences.feed_layout == opt %}selected{% endif %}>{{ opt|capitalize }}</option>
         {% endfor %}
       </select>
     </div>
+
+    <label><input type="checkbox" id="notifications_enabled" name="notifications_enabled" value="on" {% if user.preferences.notifications_enabled %}checked{% endif %}> Enable mesh.me notifications</label>
+    <label><input type="checkbox" id="native_notifications_muted" name="native_notifications_muted" value="on" {% if user.preferences.native_notifications_muted %}checked{% endif %}> Mute native app notifications when possible</label>
+    <label><input type="checkbox" id="summary_enabled" name="summary_enabled" value="on" {% if user.preferences.summary_enabled %}checked{% endif %}> AI summarize notifications</label>
+    <label><input type="checkbox" id="read_receipts" name="read_receipts" value="on" {% if user.preferences.read_receipts %}checked{% endif %}> Enable read receipts in MeChat</label>
+
     <div>
-      <input type="checkbox" id="notifications_enabled" name="notifications_enabled" value="on" {% if user.preferences.notifications_enabled %}checked{% endif %}>
-      <label for="notifications_enabled">Enable notifications</label>
+      <label for="privacy_mode">Privacy Mode</label>
+      <select name="privacy_mode" id="privacy_mode" class="mm-input">
+        <option value="private" {% if user.preferences.privacy_mode == 'private' %}selected{% endif %}>Private first</option>
+        <option value="balanced" {% if user.preferences.privacy_mode == 'balanced' %}selected{% endif %}>Balanced</option>
+        <option value="open" {% if user.preferences.privacy_mode == 'open' %}selected{% endif %}>Open discovery</option>
+      </select>
     </div>
     <div>
-      <input type="checkbox" id="summary_enabled" name="summary_enabled" value="on" {% if user.preferences.summary_enabled %}checked{% endif %}>
-      <label for="summary_enabled">Summarize notifications</label>
+      <label for="profile_visibility">Profile Visibility</label>
+      <select name="profile_visibility" id="profile_visibility" class="mm-input">
+        <option value="public" {% if user.preferences.profile_visibility == 'public' %}selected{% endif %}>Public</option>
+        <option value="private" {% if user.preferences.profile_visibility == 'private' %}selected{% endif %}>Private</option>
+      </select>
     </div>
-    <div>
-      <input type="checkbox" id="read_receipts" name="read_receipts" value="on" {% if user.preferences.read_receipts %}checked{% endif %}>
-      <label for="read_receipts">Enable read receipts in MeChat</label>
-    </div>
+
     <button class="mm-btn mm-primary" type="submit">Save Settings</button>
   </form>
 </div>

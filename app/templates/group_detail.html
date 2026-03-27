@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} — Groups — mesh.me{% endblock %}
+{% block content %}
+<div class="feed-page">
+  <h1>{{ group.name }}</h1>
+  <p class="muted">{{ group.description }}</p>
+  <p>{{ group.members|length }} members</p>
+
+  <div style="display:flex; gap:8px; margin-bottom:14px;">
+    {% if is_member %}
+    <form method="post" action="/groups/{{ group.id }}/leave"><button class="mm-btn" type="submit">Leave Group</button></form>
+    {% else %}
+    <form method="post" action="/groups/{{ group.id }}/join"><button class="mm-btn mm-primary" type="submit">Join Group</button></form>
+    {% endif %}
+    <a class="mm-btn" href="/groups">Back to Groups</a>
+  </div>
+
+  {% if is_member %}
+  <article class="feed-panel">
+    <h2>Post to Group</h2>
+    <form method="post" action="/groups/{{ group.id }}/post" style="display:grid; gap:10px;">
+      <input class="mm-input" type="text" name="title" placeholder="Post title" required>
+      <textarea class="mm-input" name="content" rows="4" placeholder="Share an update with your group" required></textarea>
+      <button class="mm-btn mm-primary" type="submit">Publish to Group</button>
+    </form>
+  </article>
+  {% endif %}
+
+  <h2>Group Feed</h2>
+  {% for post in posts %}
+  <article class="post-card">
+    <header>
+      <strong><a href="/user/{{ post.author }}">{{ post.author }}</a></strong>
+      <span>{{ post.timestamp }}</span>
+    </header>
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+  </article>
+  {% else %}
+  <p>No posts in this group yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -4,18 +4,48 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{% block title %}mesh.me{% endblock %}</title>
-    <link rel="stylesheet" href="/static/styles.css?v=1" />
+    <link rel="stylesheet" href="/static/styles.css?v=2" />
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    {# The ``minimal`` flag disables the top bar on certain pages such as
-       the landing and signup screens. #}
     {% set is_minimal = minimal if minimal is defined else False %}
     {% if not is_minimal %}
-      <header class="topbar"><a class="brand" href="/">mesh.me</a></header>
+      <header class="topbar">
+        <a class="brand" href="/dashboard">mesh.me</a>
+        <nav class="topnav">
+          <a href="/mesh">Mesh</a>
+          <a href="/feed">Custom Feed</a>
+          <a href="/discover">Discover</a>
+          <a href="/groups">Groups</a>
+          <a href="/messages">MeChat</a>
+          <a href="/sync-center">Sync</a>
+          <a href="/notifications">Notifications</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/security-center">Security</a>
+          <a href="/settings">Settings</a>
+        </nav>
+      </header>
     {% endif %}
     <main class="page {% if is_minimal %}page-minimal{% endif %}">
       {% block content %}{% endblock %}
     </main>
+    <script>
+      (function () {
+        function getCookie(name) {
+          const match = document.cookie.match(new RegExp("(^|; )" + name + "=([^;]*)"));
+          return match ? decodeURIComponent(match[2]) : "";
+        }
+        const csrf = getCookie("meshme_csrf");
+        if (!csrf) return;
+        document.querySelectorAll("form[method='post'], form[method='POST']").forEach((form) => {
+          if (form.querySelector("input[name='csrf_token']")) return;
+          const hidden = document.createElement("input");
+          hidden.type = "hidden";
+          hidden.name = "csrf_token";
+          hidden.value = csrf;
+          form.appendChild(hidden);
+        });
+      })();
+    </script>
   </body>
 </html>

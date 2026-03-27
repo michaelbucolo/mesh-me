@@ -1,21 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Create Post — mesh.me{% endblock %}
 {% block content %}
-<div class="mm-card" style="padding:32px; max-width:600px; margin:0 auto;">
-  <h1 style="margin-top:0;">Create New Post</h1>
-  {% if error %}
-    <div class="mm-alert" style="margin-bottom:12px;">{{ error }}</div>
-  {% endif %}
-  <form method="post" style="display:flex; flex-direction:column; gap:16px;">
+<div class="mm-card" style="padding:32px; max-width:720px; margin:0 auto; width:100%;">
+  <h1 style="margin-top:0;">Create a Cross-Platform Post</h1>
+  {% if error %}<div class="mm-alert">{{ error }}</div>{% endif %}
+
+  <form method="post" style="display:grid; gap:14px;">
     <div>
-      <label for="title">Title:</label><br>
-      <input class="mm-input" type="text" id="title" name="title" required style="width:100%;">
+      <label for="title">Title</label>
+      <input class="mm-input" type="text" id="title" name="title" required>
     </div>
+
     <div>
-      <label for="content">Content:</label><br>
-      <textarea class="mm-input" id="content" name="content" rows="5" required style="width:100%;"></textarea>
+      <label for="content">Content</label>
+      <textarea class="mm-input" id="content" name="content" rows="5" required></textarea>
     </div>
-    <button class="mm-btn mm-primary" type="submit">Post</button>
+
+    <div>
+      <label for="source_platform">Source Platform</label>
+      <select class="mm-input" id="source_platform" name="source_platform">
+        <option value="mesh">Mesh Native</option>
+        <option value="instagram">Instagram</option>
+        <option value="youtube">YouTube</option>
+        <option value="tiktok">TikTok</option>
+        <option value="twitter">X / Twitter</option>
+        <option value="reddit">Reddit</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="external_post_id">External Post ID (optional)</label>
+      <input class="mm-input" type="text" id="external_post_id" name="external_post_id" placeholder="Native platform post id">
+    </div>
+
+    <div>
+      <label for="external_url">External URL (optional)</label>
+      <input class="mm-input" type="url" id="external_url" name="external_url" placeholder="https://...">
+    </div>
+
+    <div>
+      <label for="tags">Tags (comma separated)</label>
+      <input class="mm-input" type="text" id="tags" name="tags" placeholder="creator, shorts, tech">
+    </div>
+
+    <button class="mm-btn mm-primary" type="submit">Publish</button>
   </form>
 </div>
 {% endblock %}

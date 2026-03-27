@@ -3,12 +3,90 @@
 {% block content %}
 <div class="mm-card" style="padding:32px;">
   <h1 style="margin-top:0;">MeChat</h1>
+  <form method="get" action="/messages" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+    <input class="mm-input" type="text" name="q" value="{{ search }}" placeholder="Search sender or message" style="max-width:280px;">
+    <select class="mm-input" name="platform" style="max-width:220px;">
+      <option value="all"{% if platform_filter == 'all' %} selected{% endif %}>All platforms</option>
+      <option value="mesh"{% if platform_filter == 'mesh' %} selected{% endif %}>Mesh</option>
+      {% for p in platforms %}
+      <option value="{{ p }}"{% if platform_filter == p %} selected{% endif %}>{{ p|capitalize }}</option>
+      {% endfor %}
+    </select>
+    <button class="mm-btn" type="submit">Filter</button>
+  </form>
+  {% if threads and threads|length > 0 %}
+  <h2 style="margin:0 0 12px;">Conversations</h2>
+  <ul style="list-style:none; padding-left:0; margin:0 0 18px;">
+    {% for thread in threads %}
+    <li style="border-bottom:1px solid #333; padding:10px 0; display:flex; justify-content:space-between; gap:8px; align-items:center;">
+      <div>
+        <strong><a href="/messages/thread/{{ thread.peer_name }}">{{ thread.peer_name }}</a></strong>
+        <div style="color:#888; font-size:0.85em;">{{ thread.last_platform|capitalize }} · {{ thread.last_timestamp }}</div>
+        <div style="font-size:0.92em;">{{ thread.last_message }}</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        {% if thread.unread_count > 0 %}<span class="badge">{{ thread.unread_count }} new</span>{% endif %}
+        <form method="post" action="/messages/{{ thread.peer_id }}/{{ 'unpin' if thread.pinned else 'pin' }}">
+          <button class="mm-btn" type="submit">{{ 'Unpin' if thread.pinned else 'Pin' }}</button>
+        </form>
+        <form method="post" action="/messages/{{ thread.peer_id }}/read">
+          <button class="mm-btn" type="submit">Mark read</button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if group_threads and group_threads|length > 0 %}
+  <h2 style="margin:0 0 12px;">Group Chats</h2>
+  <ul style="list-style:none; padding-left:0; margin:0 0 18px;">
+    {% for thread in group_threads %}
+    <li style="border-bottom:1px solid #333; padding:10px 0;">
+      <strong><a href="/messages/group/{{ thread.group_id }}">{{ thread.group_name }}</a></strong>
+      <div style="color:#888; font-size:0.85em;">{{ thread.last_platform|capitalize }} · {{ thread.last_timestamp }}</div>
+      <div style="font-size:0.92em;">{{ thread.last_message }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
   {% if messages and messages|length > 0 %}
+  <h2 style="margin:0 0 8px;">Timeline</h2>
   <ul class="messages-list" style="list-style:none; padding-left:0;">
     {% for msg in messages %}
     <li style="border-bottom:1px solid #333; padding:12px 0;">
       <div><strong>{{ msg.sender }}</strong> <span style="color:#888; font-size:0.8em;">via {{ msg.platform|capitalize }} at {{ msg.timestamp }}</span></div>
       <div>{{ msg.message }}</div>
+      {% if msg.attachment_url %}<div><a href="{{ msg.attachment_url }}" target="_blank">Attachment</a></div>{% endif %}
+      {% if msg.edited_at %}<div style="font-size:0.75em; color:#999;">Edited · {{ msg.edited_at }}</div>{% endif %}
+      {% if msg.delivered_at %}<div style="font-size:0.75em; color:#999;">Delivered · {{ msg.delivered_at }}</div>{% endif %}
+      {% if msg.reactions and msg.reactions|length > 0 %}
+      <div style="font-size:0.85em; margin-top:4px;">
+        {% for reaction in msg.reactions %}{{ reaction.emoji }} {% endfor %}
+      </div>
+      {% endif %}
+      <div style="display:flex; gap:8px; margin-top:6px;">
+        <form method="post" action="/messages/{{ msg.id }}/react">
+          <input type="hidden" name="emoji" value="👍">
+          <button class="mm-btn" type="submit">👍</button>
+        </form>
+        <form method="post" action="/messages/{{ msg.id }}/react">
+          <input type="hidden" name="emoji" value="🔥">
+          <button class="mm-btn" type="submit">🔥</button>
+        </form>
+        <form method="post" action="/messages/{{ msg.id }}/delete">
+          <button class="mm-btn" type="submit">Delete</button>
+        </form>
+        <form method="post" action="/messages/{{ msg.id }}/unsend">
+          <button class="mm-btn" type="submit">Unsend</button>
+        </form>
+      </div>
+      <form method="post" action="/messages/{{ msg.id }}/edit" style="display:flex; gap:6px; margin-top:6px;">
+        <input class="mm-input" type="text" name="message" placeholder="Edit message" style="max-width:280px;">
+        <button class="mm-btn" type="submit">Edit</button>
+      </form>
+      {% if msg.read_by_receiver %}<div style="font-size:0.8em; color:#8eb9ff;">Read at {{ msg.read_at }}</div>{% endif %}
     </li>
     {% endfor %}
   </ul>

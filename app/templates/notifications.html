@@ -1,30 +1,52 @@
 {% extends "base.html" %}
 {% block title %}Notifications — mesh.me{% endblock %}
 {% block content %}
-<div class="mm-card" style="padding:32px;">
+<div class="mm-card" style="padding:32px; width:min(820px,96vw);">
   <h1 style="margin-top:0;">Notifications</h1>
+  <p style="color:var(--muted); margin-top:-4px;">Unread: {{ unread_count }}</p>
+  <div style="display:flex; gap:8px; margin-bottom:14px;">
+    <form method="post" action="/notifications/mark-read">
+      <button class="mm-btn" type="submit">Mark all read</button>
+    </form>
+    <form method="post" action="/notifications/digest">
+      <button class="mm-btn mm-primary" type="submit">Generate digest</button>
+    </form>
+  </div>
   {% if summary and summary|length > 0 %}
-  <div class="notification-summary" style="margin-bottom:24px;">
-    <h2 style="margin-top:0;">Summary</h2>
-    <ul style="list-style:none; padding-left:0;">
-      {% for item in summary %}
-      <li>{{ item }}</li>
-      {% endfor %}
+  <div style="margin-bottom:20px;">
+    <h2 style="margin:0 0 8px;">AI Summary</h2>
+    <ul style="padding-left:18px; margin:0;">
+      {% for item in summary %}<li>{{ item }}</li>{% endfor %}
     </ul>
   </div>
   {% endif %}
-  <h2 style="margin-top:0;">All Notifications</h2>
+
+  <h2 style="margin:0 0 10px;">Unified Inbox</h2>
   {% if notifications and notifications|length > 0 %}
-  <ul class="notifications-list" style="list-style:none; padding-left:0;">
-    {% for notif in notifications %}
-    <li style="border-bottom:1px solid #333; padding:12px 0;">
-      <strong>{{ notif.platform|capitalize }}</strong>: {{ notif.content }}
-      <span style="color:#888; font-size:0.8em;">({{ notif.timestamp }})</span>
-    </li>
-    {% endfor %}
-  </ul>
+    <ul style="list-style:none; padding-left:0; margin:0 0 18px;">
+      {% for notif in notifications %}
+      <li style="border-bottom:1px solid #333; padding:10px 0;">
+        <strong>{{ notif.platform|capitalize }}</strong>: {{ notif.content }} {% if not notif.read %}<em style="color:var(--cyan);">• new</em>{% endif %}
+        <span style="color:#888; font-size:0.8em;">({{ notif.timestamp }})</span>
+      </li>
+      {% endfor %}
+    </ul>
   {% else %}
-  <p>No notifications yet.</p>
+    <p>No notifications yet.</p>
+  {% endif %}
+
+  <h2 style="margin:0 0 10px;">Native Sync Log</h2>
+  {% if sync_events and sync_events|length > 0 %}
+    <ul style="list-style:none; padding-left:0; margin:0;">
+      {% for event in sync_events %}
+      <li style="border-bottom:1px solid #333; padding:10px 0;">
+        Synced <strong>{{ event.action }}</strong> on {{ event.platform|capitalize }} — {{ event.reference }}
+        <span style="color:#888; font-size:0.8em;">({{ event.timestamp }})</span>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No sync events yet.</p>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Sync Center — mesh.me{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px; width:min(980px,96vw);">
+  <h1 style="margin-top:0;">Sync Center</h1>
+  <p class="muted">Track and retry actions mirrored to native platforms.</p>
+
+  {% if jobs and jobs|length > 0 %}
+  <ul style="list-style:none; padding-left:0; margin:0;">
+    {% for job in jobs %}
+    <li style="border-bottom:1px solid #333; padding:10px 0; display:flex; justify-content:space-between; gap:10px; align-items:center;">
+      <div>
+        <strong>{{ job.action }}</strong> on {{ job.platform|capitalize }} — {{ job.reference }}
+        <div style="font-size:0.82em; color:#888;">status: {{ job.status }} · attempts: {{ job.attempts }} · {{ job.timestamp }}</div>
+      </div>
+      {% if job.status != 'completed' %}
+      <form method="post" action="/sync-center/{{ job.id }}/retry">
+        <button class="mm-btn" type="submit">Retry</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No sync jobs yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

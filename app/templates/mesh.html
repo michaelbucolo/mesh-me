@@ -1,14 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Mesh — mesh.me{% endblock %}
 {% block content %}
-<div class="mesh-page" style="width:100%;max-width:900px;margin:0 auto;padding:24px;">
-  <h1>Your Mesh</h1>
-  <p>Welcome to your Mesh.  This page will eventually display a dynamic graph of your posts, follows, tags and interactions across all connected platforms.</p>
-  <div id="mesh-graph" style="width:100%;height:450px;background:var(--panel);border:1px solid var(--line);border-radius:12px;position:relative;"></div>
-  <p style="margin-top:16px;">The mesh graph above is currently a placeholder.  In the future, interactive nodes and edges will allow you to explore your online presence visually and jump directly to posts, profiles and tags.  Stay tuned!</p>
+<div class="mesh-page">
+  <h1>The Mesh</h1>
+  <p class="muted">A dynamic map of your presence across people, posts, tags, and platforms.</p>
+
+  <div class="mesh-stats">
+    <div><strong>{{ mesh_stats.nodes }}</strong><span>Nodes</span></div>
+    <div><strong>{{ mesh_stats.connections }}</strong><span>Connections</span></div>
+    <div><strong>{{ mesh_stats.posts }}</strong><span>Posts</span></div>
+    <div><strong>{{ mesh_stats.platforms }}</strong><span>Linked Platforms</span></div>
+  </div>
+
+  <div id="mesh-graph" class="mesh-graph"></div>
+
+  {% if mesh_tags and mesh_tags|length > 0 %}
+  <div class="tag-cloud">
+    {% for tag in mesh_tags %}
+      <span>#{{ tag }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
 <script>
-// Simple placeholder network: generate some circles and connecting lines
 (function(){
   const container = document.getElementById('mesh-graph');
   if (!container) return;
@@ -17,33 +31,48 @@
   canvas.height = container.clientHeight;
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d');
+  const nodeCount = Math.max(14, {{ mesh_stats.nodes }});
   const nodes = [];
-  const edges = [];
-  const n = 15;
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < nodeCount; i++) {
     nodes.push({
-      x: Math.random()*canvas.width,
-      y: Math.random()*canvas.height,
+      x: 40 + Math.random() * (canvas.width - 80),
+      y: 40 + Math.random() * (canvas.height - 80),
+      vx: (Math.random() - 0.5) * 0.45,
+      vy: (Math.random() - 0.5) * 0.45,
+      r: 3 + Math.random() * 4,
     });
   }
-  for (let i = 0; i < n; i++) {
-    const target = Math.floor(Math.random()*n);
-    if (target !== i) edges.push([i, target]);
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(110,207,255,0.24)';
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 140) {
+          ctx.globalAlpha = 1 - (dist / 140);
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+    nodes.forEach((n) => {
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < 8 || n.x > canvas.width - 8) n.vx *= -1;
+      if (n.y < 8 || n.y > canvas.height - 8) n.vy *= -1;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(110,207,255,0.95)';
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
   }
-  ctx.strokeStyle = 'rgba(110,207,255,0.4)';
-  ctx.fillStyle = 'rgba(110,207,255,0.8)';
-  ctx.lineWidth = 1.2;
-  edges.forEach(([a,b]) => {
-    ctx.beginPath();
-    ctx.moveTo(nodes[a].x, nodes[a].y);
-    ctx.lineTo(nodes[b].x, nodes[b].y);
-    ctx.stroke();
-  });
-  nodes.forEach(n => {
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, 6, 0, Math.PI*2);
-    ctx.fill();
-  });
+  draw();
 })();
 </script>
 {% endblock %}

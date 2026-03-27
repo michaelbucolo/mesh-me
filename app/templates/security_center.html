@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Security Center — mesh.me{% endblock %}
+{% block content %}
+<div class="mm-card" style="padding:32px; width:min(980px,96vw);">
+  <h1 style="margin-top:0;">Security Center</h1>
+  <p class="muted">Recent account security and integrity events.</p>
+  <form method="post" action="/security/sessions/revoke-all" style="margin-bottom:14px;">
+    <button class="mm-btn" type="submit">Revoke all other sessions</button>
+  </form>
+
+  <h2 style="margin:0 0 8px;">Active Sessions</h2>
+  {% if sessions and sessions|length > 0 %}
+  <ul style="list-style:none; padding-left:0; margin:0 0 14px;">
+    {% for session in sessions %}
+    <li style="border-bottom:1px solid #333; padding:10px 0; display:flex; justify-content:space-between; gap:10px;">
+      <div>
+        <div style="font-size:0.9em;">{{ session.ip }} · {{ session.user_agent }}</div>
+        <div style="font-size:0.75em; color:#888;">Created {{ session.created_at }} · Last seen {{ session.last_seen_at }}</div>
+      </div>
+      <form method="post" action="/security/sessions/revoke/{{ session.sid }}">
+        <button class="mm-btn" type="submit">Revoke</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No active sessions recorded.</p>
+  {% endif %}
+
+  {% if events and events|length > 0 %}
+  <ul style="list-style:none; padding-left:0; margin:0;">
+    {% for event in events %}
+    <li style="border-bottom:1px solid #333; padding:10px 0;">
+      <strong>{{ event.action }}</strong> — {{ event.detail }}
+      <span style="color:#888; font-size:0.82em;">{{ event.severity }} · {{ event.timestamp }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No security events yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

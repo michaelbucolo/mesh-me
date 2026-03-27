@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Manage Connections — mesh.me{% endblock %}
 {% block content %}
-<div class="mm-card" style="padding:32px;">
-  <h1 style="margin-top:0;">Manage Connections</h1>
+<div class="mm-card" style="padding:32px; width:min(680px,96vw);">
+  <h1 style="margin-top:0;">Link Major Platforms</h1>
+  <p style="color:var(--muted);">Connect your social accounts so Mesh + Custom Feed can combine content and interactions.</p>
   <form method="post">
-    <p>Select the platforms you'd like to connect:</p>
     {% for platform in supported_platforms %}
     <div style="margin-bottom:8px;">
       <input type="checkbox" name="platforms" value="{{ platform }}" id="plat-{{ platform }}" {% if platform in user.preferences.connected_platforms %}checked{% endif %}>

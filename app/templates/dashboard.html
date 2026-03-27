@@ -1,20 +1,79 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — mesh.me{% endblock %}
 {% block content %}
-<div class="mm-card" style="padding:32px; text-align:center;">
-  <h1 style="margin-top:0;">Welcome, {{ user.username }}!</h1>
-  <p>Your email: {{ user.email }}</p>
-  <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px; align-items:center;">
-    <a class="mm-btn mm-primary" href="/posts">Posts Feed</a>
-    <a class="mm-btn mm-primary" href="/post/new">Create Post</a>
-    <a class="mm-btn mm-primary" href="/mesh">Open Mesh View</a>
-    <a class="mm-btn mm-primary" href="/feed">Open Custom Feed</a>
-    <a class="mm-btn mm-primary" href="/notifications">Notifications</a>
-    <a class="mm-btn mm-primary" href="/messages">MeChat</a>
-    <a class="mm-btn mm-primary" href="/messages/send">Send Message</a>
-    <a class="mm-btn mm-primary" href="/connect">Manage Connections</a>
-    <a class="mm-btn mm-primary" href="/settings">Account Settings</a>
-    <a class="mm-btn" href="/logout" style="margin-top:12px;">Log out</a>
-  </div>
+<div class="dashboard-shell">
+  <section class="hero-card">
+    <p class="badge">Premium Social OS</p>
+    <h1>Welcome back, {{ user.username }}.</h1>
+    <p>Mesh.me has two primary views: the Mesh and your Custom Feed. Everything else supports those core experiences.</p>
+  </section>
+
+  <section class="main-feed-grid">
+    <article class="feed-panel">
+      <h2>1) Mesh</h2>
+      <p>A literal social graph of your people, posts, follows, tags, and platform touchpoints.</p>
+      <a class="mm-btn mm-primary" href="/mesh">Open Mesh</a>
+    </article>
+
+    <article class="feed-panel">
+      <h2>2) Custom Feed</h2>
+      <p>One universal scroll feed with a layout that can feel like your favorite app.</p>
+      <a class="mm-btn mm-primary" href="/feed">Open Custom Feed</a>
+    </article>
+  </section>
+
+  <section class="main-feed-grid">
+    <article class="feed-panel">
+      <h2>Account Health</h2>
+      <p>{{ metrics.followers_count }} followers · {{ metrics.following_count }} following</p>
+      <p>{{ metrics.post_count }} posts · {{ metrics.interactions }} total interactions · {{ metrics.group_count }} groups</p>
+    </article>
+    <article class="feed-panel">
+      <h2>Attention Queue</h2>
+      <p>{{ metrics.unread_notifications }} unread notifications</p>
+      <p>{{ metrics.unread_messages }} unread MeChat messages</p>
+    </article>
+  </section>
+
+  <section class="tools-row">
+    <a class="mm-btn" href="/posts">Posts</a>
+    <a class="mm-btn" href="/post/new">New Post</a>
+    <a class="mm-btn" href="/connect">Platform Linking</a>
+    <a class="mm-btn" href="/messages">MeChat</a>
+    <a class="mm-btn" href="/groups">Groups</a>
+    <a class="mm-btn" href="/sync-center">Sync Center</a>
+    <a class="mm-btn" href="/messages/send">Send Message</a>
+    <a class="mm-btn" href="/notifications">Notifications</a>
+    <a class="mm-btn" href="/security-center">Security Center</a>
+    <a class="mm-btn" href="/settings">Privacy & Settings</a>
+    <a class="mm-btn" href="/logout">Log out</a>
+  </section>
+
+  <section class="main-feed-grid">
+    <article class="feed-panel">
+      <h2>Suggested Creators</h2>
+      {% if suggestions and suggestions|length > 0 %}
+        <ul style="margin:0; padding-left:18px;">
+          {% for s in suggestions %}
+            <li><a href="/user/{{ s.username }}">{{ s.username }}</a> · {{ s.followers }} followers</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No suggestions yet.</p>
+      {% endif %}
+    </article>
+    <article class="feed-panel">
+      <h2>Trending Tags</h2>
+      {% if trending and trending|length > 0 %}
+        <ul style="margin:0; padding-left:18px;">
+          {% for t in trending %}
+            <li>#{{ t.tag }} ({{ t.count }})</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No trending tags yet.</p>
+      {% endif %}
+    </article>
+  </section>
 </div>
 {% endblock %}

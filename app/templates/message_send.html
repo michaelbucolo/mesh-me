@@ -1,20 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Send Message — mesh.me{% endblock %}
 {% block content %}
-<div class="mm-card" style="padding:32px; max-width:600px; margin:0 auto;">
-  <h1 style="margin-top:0;">Send Message</h1>
+<div class="mm-card" style="padding:32px; max-width:600px; margin:0 auto; width:100%;">
+  <h1 style="margin-top:0;">Send via MeChat</h1>
   <form method="post" style="display:flex; flex-direction:column; gap:16px;">
     <div>
-      <label for="recipient_id">Recipient:</label><br>
-      <select class="mm-input" id="recipient_id" name="recipient_id" required style="width:100%;">
+      <label for="recipient_id">Recipient</label>
+      <select class="mm-input" id="recipient_id" name="recipient_id" required>
         {% for r in recipients %}
           <option value="{{ r.id }}">{{ r.username }}</option>
         {% endfor %}
       </select>
     </div>
+
     <div>
-      <label for="message">Message:</label><br>
-      <textarea class="mm-input" id="message" name="message" rows="5" required style="width:100%;"></textarea>
+      <label for="platform">Send through platform</label>
+      <select class="mm-input" id="platform" name="platform">
+        <option value="mesh">Mesh</option>
+        {% for p in platforms %}
+          <option value="{{ p }}">{{ p|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="message">Message</label>
+      <textarea class="mm-input" id="message" name="message" rows="5" required></textarea>
     </div>
     <button class="mm-btn mm-primary" type="submit">Send</button>
   </form>
