@@ -963,13 +963,15 @@ export async function updateUserLinks(links: { label: string; url: string }[]) {
   // Remove existing links
   await prisma.userLink.deleteMany({ where: { userId: user.id } });
 
-  // Create new links
-  if (links.length > 0) {
+  // Create new links with URL validation
+  const { validateUrl } = await import("./security");
+  const validLinks = links.filter((link) => link.label.trim() && link.url.trim() && validateUrl(link.url));
+  if (validLinks.length > 0) {
     await prisma.userLink.createMany({
-      data: links.map((link) => ({
+      data: validLinks.map((link) => ({
         userId: user.id,
-        label: link.label,
-        url: link.url,
+        label: link.label.trim(),
+        url: link.url.trim(),
       })),
     });
   }
