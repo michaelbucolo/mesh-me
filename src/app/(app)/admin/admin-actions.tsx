@@ -17,7 +17,7 @@ export function AdminActions({ type, id, isSuspended }: AdminActionsProps) {
   if (type === "user") {
     return (
       <Button
-        onClick={() => startTransition(() => { adminSuspendUser(id); })}
+        onClick={() => startTransition(async () => { await adminSuspendUser(id); })}
         disabled={isPending}
         variant={isSuspended ? "secondary" : "danger"}
         size="sm"
@@ -32,7 +32,7 @@ export function AdminActions({ type, id, isSuspended }: AdminActionsProps) {
   return (
     <div className="flex items-center gap-1">
       <Button
-        onClick={() => startTransition(() => { adminResolveReport(id, "resolved"); })}
+        onClick={() => startTransition(async () => { await adminResolveReport(id, "resolved"); })}
         disabled={isPending}
         variant="success"
         size="icon-sm"
@@ -40,7 +40,7 @@ export function AdminActions({ type, id, isSuspended }: AdminActionsProps) {
         <Check className="h-3 w-3" />
       </Button>
       <Button
-        onClick={() => startTransition(() => { adminResolveReport(id, "dismissed"); })}
+        onClick={() => startTransition(async () => { await adminResolveReport(id, "dismissed"); })}
         disabled={isPending}
         variant="ghost"
         size="icon-sm"

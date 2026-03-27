@@ -201,7 +201,10 @@ export async function createPost(formData: FormData) {
 
   revalidatePath("/feed");
   revalidatePath(`/profile/${user.username}`);
-  if (communityId) revalidatePath(`/communities/${communityId}`);
+  if (communityId) {
+    const community = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
+    if (community) revalidatePath(`/communities/${community.slug}`);
+  }
 
   return { success: true, postId: post.id };
 }
@@ -426,7 +429,8 @@ export async function toggleCommunityMembership(communityId: string) {
   }
 
   revalidatePath("/communities");
-  revalidatePath(`/communities/${communityId}`);
+  const communityForSlug = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
+  if (communityForSlug) revalidatePath(`/communities/${communityForSlug.slug}`);
   return { success: true, joined: !existing };
 }
 
@@ -777,7 +781,8 @@ export async function togglePinPost(postId: string, communityId: string) {
     data: { isPinned: !post.isPinned },
   });
 
-  revalidatePath(`/communities/${communityId}`);
+  const pinCommunity = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
+  if (pinCommunity) revalidatePath(`/communities/${pinCommunity.slug}`);
   return { success: true, pinned: !post.isPinned };
 }
 
@@ -881,6 +886,11 @@ export async function promoteMember(userId: string, communityId: string, role: s
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
+  const validRoles = ["member", "moderator"];
+  if (!validRoles.includes(role)) {
+    return { error: "Invalid role" };
+  }
+
   const membership = await prisma.communityMember.findUnique({
     where: { userId_communityId: { userId: user.id, communityId } },
   });
@@ -894,7 +904,8 @@ export async function promoteMember(userId: string, communityId: string, role: s
     data: { role },
   });
 
-  revalidatePath(`/communities/${communityId}`);
+  const community = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
+  if (community) revalidatePath(`/communities/${community.slug}`);
   return { success: true };
 }
 
@@ -922,7 +933,8 @@ export async function removeMember(userId: string, communityId: string) {
     where: { userId_communityId: { userId, communityId } },
   });
 
-  revalidatePath(`/communities/${communityId}`);
+  const removeCommunity = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
+  if (removeCommunity) revalidatePath(`/communities/${removeCommunity.slug}`);
   return { success: true };
 }
 

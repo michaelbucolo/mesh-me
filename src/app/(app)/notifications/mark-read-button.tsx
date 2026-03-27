@@ -10,7 +10,7 @@ export function MarkReadButton() {
 
   return (
     <Button
-      onClick={() => startTransition(() => { markNotificationsRead(); })}
+      onClick={() => startTransition(async () => { await markNotificationsRead(); })}
       disabled={isPending}
       variant="ghost"
       size="sm"
