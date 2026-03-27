@@ -361,7 +361,7 @@ export async function updateProfile(formData: FormData) {
       displayName: displayName || user.displayName,
       bio: bio ?? user.bio,
       location: location ?? user.location,
-      website: website?.trim() ? ((await import("./security")).validateUrl(website.trim()) ? website.trim() : user.website) : user.website,
+      website: website !== null && website !== undefined ? (website.trim() ? ((await import("./security")).validateUrl(website.trim()) ? website.trim() : user.website) : null) : user.website,
       accentColor: accentColor || user.accentColor,
     },
   });
@@ -944,8 +944,8 @@ export async function removeMember(userId: string, communityId: string) {
     return { error: "User is not a member of this community" };
   }
 
-  if (target.role === "admin") {
-    return { error: "Cannot remove admins" };
+  if (target.role === "admin" || (target.role === "moderator" && membership.role !== "admin")) {
+    return { error: "Only admins can remove moderators" };
   }
 
   await prisma.communityMember.delete({
