@@ -486,6 +486,7 @@ export async function sendMessage(formData: FormData) {
   let finalThreadId = threadId;
 
   if (!finalThreadId && recipientId) {
+    if (recipientId === user.id) return { error: "Cannot message yourself" };
     // Find or create thread
     const existingThread = await prisma.messageThread.findFirst({
       where: {

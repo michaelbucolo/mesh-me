@@ -357,6 +357,10 @@ export async function getCommunityPosts(communityId: string, page = 1, limit = 2
         where: { userId: user.id },
         select: { id: true },
       } : false,
+      savedBy: user ? {
+        where: { userId: user.id },
+        select: { id: true },
+      } : false,
     },
     orderBy: { createdAt: "desc" },
     skip: (page - 1) * limit,
