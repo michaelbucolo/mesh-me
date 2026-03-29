@@ -37,6 +37,22 @@ import {
   Globe,
   Paintbrush,
   Layout,
+  Fingerprint,
+  Search,
+  FileText,
+  Video,
+  MessageSquare,
+  ExternalLink,
+  Mail,
+  Phone,
+  UserCheck,
+  ShieldCheck,
+  Activity,
+  BarChart3,
+  TrendingUp,
+  Users,
+  Heart,
+  Scan,
 } from "lucide-react";
 import { INTEREST_TAGS } from "@/lib/utils";
 
@@ -172,6 +188,8 @@ export default function SettingsPage() {
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "privacy", label: "Privacy & Safety", icon: Shield },
     { id: "security", label: "Security", icon: Lock },
+    { id: "security-hub", label: "Security Hub", icon: ShieldCheck },
+    { id: "footprint", label: "Digital Footprint", icon: Fingerprint },
     { id: "blocked", label: "Blocked Users", icon: UserX },
     { id: "meshpro", label: "MeshPro", icon: Crown },
   ];
@@ -764,6 +782,177 @@ export default function SettingsPage() {
             </motion.div>
           )}
 
+          {/* Security Hub Tab */}
+          {activeTab === "security-hub" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="h-5 w-5 text-blue-400" />
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Security Hub</h2>
+                </div>
+                <p className="text-sm text-[var(--text-muted)]">
+                  Manage and remove your content across all connected platforms from one place.
+                </p>
+              </div>
+
+              {/* Cross-platform content management */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-blue-400" /> Content Management
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mb-4">
+                  Delete posts, comments, videos, or entire channels across your connected platforms directly from mesh.me.
+                </p>
+                <div className="space-y-3">
+                  {[
+                    { icon: FileText, label: "Posts & Photos", desc: "Review and delete posts across platforms", count: 0 },
+                    { icon: Video, label: "Videos", desc: "Manage uploaded videos on YouTube, TikTok, etc.", count: 0 },
+                    { icon: MessageSquare, label: "Comments & Replies", desc: "Find and remove your comments anywhere", count: 0 },
+                  ].map((item) => (
+                    <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-xl glass-surface hover:border-[var(--glass-border)] transition-all text-left group">
+                      <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                        <item.icon className="h-4 w-4 text-blue-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-[var(--text-primary)] block">{item.label}</span>
+                        <span className="text-xs text-[var(--text-muted)]">{item.desc}</span>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active sessions */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-400" /> Active Sessions
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-xl glass-surface">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <div>
+                        <span className="text-sm text-[var(--text-primary)] block">Current session</span>
+                        <span className="text-xs text-[var(--text-muted)]">This device &middot; Active now</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-emerald-400 font-medium">Current</span>
+                  </div>
+                </div>
+                <Button variant="secondary" size="sm" className="mt-3 w-full">
+                  Sign out all other sessions
+                </Button>
+              </div>
+
+              {/* Data export */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
+                  <Scan className="h-4 w-4 text-blue-400" /> Data Export
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mb-3">
+                  Download a complete copy of all your mesh.me data including posts, messages, and account info.
+                </p>
+                <Button variant="secondary" size="sm">Request data export</Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Digital Footprint Tab */}
+          {activeTab === "footprint" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Fingerprint className="h-5 w-5 text-blue-400" />
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Digital Footprint</h2>
+                  <span className="text-[9px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-1.5 py-0.5 rounded-full">PRO</span>
+                </div>
+                <p className="text-sm text-[var(--text-muted)]">
+                  See your entire digital presence &mdash; the known and unknown. Find every account, mention, and trace linked to your identity.
+                </p>
+              </div>
+
+              {/* Scanner */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <Search className="h-4 w-4 text-blue-400" /> Identity Scanner
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mb-4">
+                  Scan the web for accounts and data associated with your email, phone number, name, and usernames. Similar to services like Incogni but more comprehensive.
+                </p>
+                <div className="space-y-3 mb-4">
+                  {[
+                    { icon: Mail, label: "Email addresses", desc: "Find accounts registered with your emails", status: "Not scanned" },
+                    { icon: Phone, label: "Phone numbers", desc: "Discover accounts linked to your phone", status: "Not scanned" },
+                    { icon: UserCheck, label: "Usernames & names", desc: "Search for your name and aliases across platforms", status: "Not scanned" },
+                    { icon: Globe, label: "Data brokers", desc: "Check if your info appears on data broker sites", status: "Not scanned" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl glass-surface">
+                      <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                        <item.icon className="h-4 w-4 text-blue-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-[var(--text-primary)] block">{item.label}</span>
+                        <span className="text-xs text-[var(--text-muted)]">{item.desc}</span>
+                      </div>
+                      <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">{item.status}</span>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="gradient" className="w-full">
+                  <Scan className="h-4 w-4 mr-2" /> Run Full Scan
+                </Button>
+              </div>
+
+              {/* Footprint overview (placeholder for Pro) */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-blue-400" /> Footprint Overview
+                </h3>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {[
+                    { label: "Known accounts", value: "--", icon: Users, color: "text-blue-400" },
+                    { label: "Data exposures", value: "--", icon: AlertTriangle, color: "text-amber-400" },
+                    { label: "Privacy score", value: "--", icon: Shield, color: "text-emerald-400" },
+                    { label: "Risk level", value: "--", icon: Activity, color: "text-cyan-400" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="p-3 rounded-xl glass-surface text-center">
+                      <stat.icon className={`h-5 w-5 mx-auto mb-1 ${stat.color}`} />
+                      <span className="text-lg font-bold text-[var(--text-primary)] block">{stat.value}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">{stat.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-[var(--text-muted)] text-center">
+                  Run a scan to populate your footprint overview
+                </p>
+              </div>
+
+              {/* Cross-platform analytics */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-400" /> Cross-Platform Analytics
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mb-3">
+                  In-depth stats on your digital presence across all connected platforms &mdash; engagement trends, follower growth, content performance, and audience demographics.
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { label: "Total reach across platforms", value: "--" },
+                    { label: "Engagement rate (avg)", value: "--" },
+                    { label: "Content published (30 days)", value: "--" },
+                    { label: "Follower growth (30 days)", value: "--" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between py-2 border-b border-[var(--border-primary)] last:border-0">
+                      <span className="text-xs text-[var(--text-secondary)]">{item.label}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* MeshPro Tab */}
           {activeTab === "meshpro" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -773,7 +962,17 @@ export default function SettingsPage() {
                 </div>
                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">MeshPro</h2>
                 <p className="text-sm text-[var(--text-tertiary)] max-w-sm mx-auto">
-                  Unlock the full mesh.me experience with premium features and customization
+                  Go deeper into your digital world with premium insights, security, and customization
+                </p>
+              </div>
+
+              {/* What's free callout */}
+              <div className="mb-6 bg-emerald-500/5 border border-emerald-500/15 rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-emerald-400 mb-2 flex items-center gap-2">
+                  <Check className="h-4 w-4" /> Nearly everything is free
+                </h3>
+                <p className="text-xs text-[var(--text-muted)]">
+                  The Mesh, Custom Feed, MeChat, communities, search, notifications, connected accounts, profile customization, and all core features are 100% free forever. MeshPro just gives you extra tools to go deeper.
                 </p>
               </div>
 
@@ -782,7 +981,7 @@ export default function SettingsPage() {
                 <div className="glass-card rounded-2xl p-6">
                   <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Monthly</h3>
                   <div className="flex items-baseline gap-1 mb-4">
-                    <span className="text-3xl font-bold text-[var(--text-primary)]">$9.99</span>
+                    <span className="text-3xl font-bold text-[var(--text-primary)]">$4.99</span>
                     <span className="text-sm text-[var(--text-muted)]">/month</span>
                   </div>
                   <Button variant="secondary" className="w-full">Subscribe</Button>
@@ -793,26 +992,26 @@ export default function SettingsPage() {
                   </div>
                   <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Yearly</h3>
                   <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-3xl font-bold text-[var(--text-primary)]">$79.99</span>
+                    <span className="text-3xl font-bold text-[var(--text-primary)]">$39.99</span>
                     <span className="text-sm text-[var(--text-muted)]">/year</span>
                   </div>
-                  <p className="text-xs text-emerald-400 mb-4">Save 33% - that&apos;s $6.67/month</p>
+                  <p className="text-xs text-emerald-400 mb-4">Save 33% &mdash; that&apos;s $3.33/month</p>
                   <Button variant="gradient" className="w-full">Subscribe</Button>
                 </div>
               </div>
 
               {/* Features */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">What you get</h3>
+                <h3 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">What you get with Pro</h3>
                 {[
-                  { icon: Sparkles, title: "Custom themes & colors", desc: "Full color and theme customization beyond defaults" },
+                  { icon: Fingerprint, title: "Digital Footprint Scanner", desc: "Find every account, data broker listing, and trace linked to your identity across the entire web" },
+                  { icon: BarChart3, title: "Cross-platform analytics", desc: "In-depth stats on your digital presence &mdash; engagement, reach, follower growth, content performance" },
+                  { icon: TrendingUp, title: "Audience insights", desc: "Understand who engages with your content across all platforms" },
+                  { icon: ShieldCheck, title: "Advanced Security Hub", desc: "Manage and mass-delete content across connected platforms, monitor active sessions" },
                   { icon: Crown, title: "Verified badge", desc: "Stand out with a verified profile badge" },
-                  { icon: Eye, title: "Profile analytics", desc: "See who views your profile and post insights" },
-                  { icon: Zap, title: "Priority in discovery", desc: "Appear higher in search and explore results" },
-                  { icon: Layout, title: "Advanced feed layouts", desc: "Unlock additional feed layout customizations" },
-                  { icon: Globe, title: "Extended platform connections", desc: "Connect unlimited social platforms" },
-                  { icon: Shield, title: "Enhanced privacy controls", desc: "Advanced privacy settings and controls" },
-                  { icon: Bell, title: "Advanced AI notifications", desc: "More detailed and personalized AI notification summaries" },
+                  { icon: Eye, title: "Profile analytics", desc: "See who views your profile and detailed post insights" },
+                  { icon: Sparkles, title: "Advanced AI summaries", desc: "More detailed and personalized AI notification digests" },
+                  { icon: Layout, title: "Extra feed layouts", desc: "Unlock additional feed layout options and customizations" },
                 ].map((feature) => (
                   <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl glass-surface">
                     <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
@@ -830,7 +1029,7 @@ export default function SettingsPage() {
               <div className="mt-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 border border-blue-500/10 rounded-2xl p-6 text-center">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2">Zero ads. Ever.</h3>
                 <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-                  mesh.me will never show advertisements. MeshPro subscriptions are the only way we fund the platform.
+                  mesh.me will never show advertisements or sell your data. MeshPro subscriptions are the only way we fund the platform.
                   Your experience, your data, your space &mdash; always clean, always private.
                 </p>
               </div>
