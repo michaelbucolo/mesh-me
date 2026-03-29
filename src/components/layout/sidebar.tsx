@@ -17,8 +17,6 @@ import {
   Shield,
   Waypoints,
   LayoutGrid,
-  Link2,
-  Crown,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -41,11 +39,9 @@ const navItems = [
   { href: "/mesh", icon: Waypoints, label: "The Mesh" },
   { href: "/custom-feed", icon: LayoutGrid, label: "Custom Feed" },
   { href: "/explore", icon: Compass, label: "Explore" },
-  { href: "/search", icon: Search, label: "Search" },
   { href: "/messages", icon: MessageCircle, label: "MeChat" },
   { href: "/communities", icon: Users, label: "Communities" },
   { href: "/notifications", icon: Bell, label: "Notifications" },
-  { href: "/connected-accounts", icon: Link2, label: "Connected" },
 ];
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
@@ -130,11 +126,11 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
             <span>Create Post</span>
           </Link>
           <Link
-            href="/settings?tab=meshpro"
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 text-blue-300 font-medium text-xs hover:from-blue-500/10 hover:to-cyan-500/10 hover:border-blue-500/30 transition-all duration-200"
+            href="/settings"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[var(--text-secondary)] text-xs hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
           >
-            <Crown className="h-3.5 w-3.5" />
-            <span>Upgrade to MeshPro</span>
+            <Settings className="h-3.5 w-3.5" />
+            <span>Settings</span>
           </Link>
         </div>
       </nav>
