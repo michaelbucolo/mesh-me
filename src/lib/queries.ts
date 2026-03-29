@@ -67,6 +67,7 @@ export async function getExplorePosts(page = 1, limit = 20) {
   const user = await getCurrentUser();
 
   const posts = await prisma.post.findMany({
+    where: { author: { isSuspended: false } },
     include: {
       author: {
         select: {
