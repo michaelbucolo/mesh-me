@@ -68,17 +68,24 @@ export async function signUp(formData: FormData) {
 
   const passwordHash = await hashPassword(password);
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      username,
-      displayName,
-      passwordHash,
-    },
-  });
+  try {
+    const user = await prisma.user.create({
+      data: {
+        email,
+        username,
+        displayName,
+        passwordHash,
+      },
+    });
 
-  await createSession(user.id);
-  redirect("/onboarding");
+    await createSession(user.id);
+    redirect("/onboarding");
+  } catch (e: unknown) {
+    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
+      return { error: "Email or username already taken" };
+    }
+    throw e;
+  }
 }
 
 export async function signIn(formData: FormData) {
