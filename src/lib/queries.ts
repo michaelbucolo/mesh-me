@@ -558,6 +558,9 @@ export async function getTrendingCommunities() {
 // ─── Admin Queries ───────────────────────────────────────────
 
 export async function getAdminStats() {
+  const user = await getCurrentUser();
+  if (!user?.isAdmin) return { userCount: 0, postCount: 0, communityCount: 0, reportCount: 0, recentUsers: [], recentReports: [], adminLogs: [], recentSignups: 0, recentPostCount: 0 };
+
   const [userCount, postCount, communityCount, reportCount, recentUsers, recentReports, adminLogs] = await Promise.all([
     prisma.user.count(),
     prisma.post.count(),
