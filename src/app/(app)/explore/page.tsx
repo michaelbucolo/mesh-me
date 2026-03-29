@@ -63,7 +63,7 @@ export default async function ExplorePage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {suggestedUsers.slice(0, 8).map((suggestedUser: { id: string; username: string; displayName: string; avatarUrl: string | null; interests: { id: string; tag: string }[]; _count: { followers: number } }) => (
-              <Link key={suggestedUser.id} href={`/profile/${suggestedUser.username}`} className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4 hover:border-[var(--border-primary)] transition-all text-center group">
+              <Link key={suggestedUser.id} href={`/profile/${suggestedUser.username}`} className="rounded-2xl glass-card p-4 hover:border-[var(--border-primary)] transition-all text-center group">
                 <Avatar src={suggestedUser.avatarUrl} alt={suggestedUser.displayName} size="lg" className="mx-auto mb-3" />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-blue-400 transition-colors truncate">{suggestedUser.displayName}</h3>
                 <p className="text-xs text-[var(--text-muted)] mb-2">@{suggestedUser.username}</p>
@@ -108,7 +108,7 @@ export default async function ExplorePage() {
         <div className="space-y-6">
           {/* Rising Communities */}
           {trendingCommunities.length > 0 && (
-            <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+            <div className="rounded-2xl glass-card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Star className="h-5 w-5 text-blue-400" />
                 <h3 className="font-semibold text-[var(--text-primary)]">Rising communities</h3>

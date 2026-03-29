@@ -98,7 +98,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowPlatformFilter(!showPlatformFilter)}
-            className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors"
+            className="p-2 rounded-xl glass-surface text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors"
           >
             <Filter className="h-4 w-4" />
           </button>
@@ -131,7 +131,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       platformFilter === p
                         ? "text-white shadow-lg"
-                        : "text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:border-[var(--border-primary)]"
+                        : "text-[var(--text-tertiary)] glass-surface hover:border-[var(--glass-border)]"
                     }`}
                     style={platformFilter === p ? { backgroundColor: info.color } : undefined}
                   >
@@ -153,7 +153,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search conversations..."
-          className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 glass-input rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
         />
       </div>
 
@@ -265,7 +265,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl w-full max-w-md shadow-2xl"
+              className="glass-dropdown rounded-2xl w-full max-w-md shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)]">
@@ -300,7 +300,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     value={newChatSearch}
                     onChange={(e) => handleNewChatSearch(e.target.value)}
                     placeholder="Search for a person..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50"
+                    className="w-full pl-10 pr-4 py-2.5 glass-surface rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50"
                     autoFocus
                   />
                 </div>

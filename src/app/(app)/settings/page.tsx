@@ -279,8 +279,8 @@ export default function SettingsPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-[var(--bg-tertiary)] rounded w-48" />
-          <div className="h-64 bg-[var(--bg-tertiary)] rounded-2xl" />
+          <div className="h-8 glass-surface rounded w-48" />
+          <div className="h-64 glass-surface rounded-2xl" />
         </div>
       </div>
     );
@@ -323,8 +323,8 @@ export default function SettingsPage() {
                   activeTab === tab.id
                     ? tab.id === "meshpro"
                       ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/10 text-blue-300 font-medium"
-                      : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-medium"
-                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                      : "glass-surface text-[var(--text-primary)] font-medium"
+                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                 }`}
               >
                 <tab.icon className={`h-4 w-4 ${tab.id === "meshpro" ? "text-blue-400" : ""}`} />
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                   activeTab === tab.id
-                    ? "bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
+                    ? "glass-surface text-[var(--text-primary)]"
                     : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                 }`}
               >
@@ -504,7 +504,7 @@ export default function SettingsPage() {
                       className={`p-4 rounded-xl border-2 transition-all text-left ${
                         selectedTheme === theme.id
                           ? "border-blue-500 bg-[var(--bg-tertiary)]"
-                          : "border-[var(--border-primary)] hover:border-[var(--border-primary)] bg-[var(--bg-secondary)]/30"
+                          : "glass-surface hover:border-[var(--glass-border)]"
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -530,7 +530,7 @@ export default function SettingsPage() {
                       className={`p-3 rounded-xl border-2 transition-all text-left ${
                         selectedLayout === layout.id
                           ? "border-blue-500 bg-[var(--bg-tertiary)]"
-                          : "border-[var(--border-primary)] hover:border-[var(--border-primary)] bg-[var(--bg-secondary)]/30"
+                          : "glass-surface hover:border-[var(--glass-border)]"
                       }`}
                     >
                       <span className="text-sm font-medium text-[var(--text-primary)] block">{layout.label}</span>
@@ -741,7 +741,7 @@ export default function SettingsPage() {
               {blockedUsers.length > 0 ? (
                 <div className="space-y-2">
                   {blockedUsers.map((block) => (
-                    <div key={block.id} className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--border-primary)]">
+                    <div key={block.id} className="flex items-center justify-between p-3 rounded-xl glass-surface">
                       <div className="flex items-center gap-3">
                         <Avatar src={block.blocked.avatarUrl} alt={block.blocked.displayName} size="sm" />
                         <div>
@@ -779,7 +779,7 @@ export default function SettingsPage() {
 
               {/* Pricing */}
               <div className="grid md:grid-cols-2 gap-4 mb-8">
-                <div className="border border-[var(--border-primary)] rounded-2xl p-6 bg-[var(--bg-secondary)]/30">
+                <div className="glass-card rounded-2xl p-6">
                   <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Monthly</h3>
                   <div className="flex items-baseline gap-1 mb-4">
                     <span className="text-3xl font-bold text-[var(--text-primary)]">$9.99</span>
@@ -814,7 +814,7 @@ export default function SettingsPage() {
                   { icon: Shield, title: "Enhanced privacy controls", desc: "Advanced privacy settings and controls" },
                   { icon: Bell, title: "Advanced AI notifications", desc: "More detailed and personalized AI notification summaries" },
                 ].map((feature) => (
-                  <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]/30 border border-[var(--border-primary)]">
+                  <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl glass-surface">
                     <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                       <feature.icon className="h-4 w-4 text-blue-400" />
                     </div>

@@ -24,7 +24,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
       <PostCard post={post} currentUserId={user?.id} />
 
-      <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+      <div className="mt-6 rounded-2xl glass-card p-5">
         <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-4">
           Comments ({post._count.comments})
         </h3>

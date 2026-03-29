@@ -111,7 +111,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
 
         {/* Rules */}
         {community.rules && (
-          <details className="mb-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 overflow-hidden">
+          <details className="mb-4 rounded-xl glass-card/50 overflow-hidden">
             <summary className="text-sm font-medium text-[var(--text-tertiary)] cursor-pointer flex items-center gap-2 p-3 hover:bg-[var(--bg-tertiary)] transition-colors">
               <Shield className="h-4 w-4 text-blue-400" />
               Community rules

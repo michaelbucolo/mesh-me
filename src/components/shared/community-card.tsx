@@ -33,7 +33,7 @@ export function CommunityCard({ community, currentUserId }: CommunityCardProps) 
   };
 
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5 hover:border-[var(--border-primary)] transition-all duration-200">
+    <div className="rounded-2xl glass-card p-5 hover:border-[var(--border-primary)] transition-all duration-200">
       <div className="flex items-start gap-3">
         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600/20 to-blue-500/20 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
           {community.iconUrl ? (

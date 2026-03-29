@@ -111,7 +111,7 @@ export default function CustomFeedPage() {
           <div className="relative">
             <button
               onClick={() => setShowLayoutPicker(!showLayoutPicker)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-sm text-[var(--text-secondary)] hover:border-[var(--border-primary)] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl glass-surface text-sm text-[var(--text-secondary)] hover:border-[var(--glass-border)] transition-colors"
             >
               {currentLayout && <currentLayout.icon className="h-4 w-4 text-blue-400" />}
               {currentLayout?.label}
@@ -122,7 +122,7 @@ export default function CustomFeedPage() {
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute right-0 top-full mt-2 w-64 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-2 shadow-2xl z-20"
+                className="absolute right-0 top-full mt-2 w-64 glass-dropdown rounded-xl p-2 shadow-2xl z-20"
               >
                 <p className="text-xs text-[var(--text-muted)] px-2 py-1 mb-1">Choose your feed layout</p>
                 {LAYOUT_OPTIONS.map((opt) => (
@@ -145,7 +145,7 @@ export default function CustomFeedPage() {
           </div>
 
           {/* Feed source tabs */}
-          <div className="flex gap-1 bg-[var(--bg-secondary)] rounded-xl p-1 border border-[var(--border-primary)]">
+          <div className="flex gap-1 glass-surface rounded-xl p-1">
             {[
               { id: "all", label: "All" },
               { id: "following", label: "Following" },
@@ -233,7 +233,7 @@ function CardPost({ post }: { post: FeedPost }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-[var(--bg-secondary)]/50 border border-[var(--border-primary)] rounded-2xl p-4 hover:border-[var(--border-primary)]/50 transition-all"
+      className="glass-card rounded-2xl p-4 transition-all"
     >
       <div className="flex items-start gap-3">
         <Link href={`/profile/${post.author.username}`}>
@@ -315,7 +315,7 @@ function CardPost({ post }: { post: FeedPost }) {
 function GridPost({ post }: { post: FeedPost }) {
   return (
     <Link href={`/feed/${post.id}`}>
-      <div className="aspect-square bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-sm overflow-hidden relative group cursor-pointer">
+      <div className="aspect-square glass-surface rounded-sm overflow-hidden relative group cursor-pointer">
         {post.media.length > 0 ? (
           <div className="w-full h-full bg-[var(--bg-tertiary)] flex items-center justify-center">
             <span className="text-xs text-[var(--text-muted)]">Media</span>
@@ -341,7 +341,7 @@ function ReelPost({ post }: { post: FeedPost }) {
   const [liked, setLiked] = useState(post.reactions.length > 0);
   const [, startTransition] = useTransition();
   return (
-    <div className="relative aspect-[9/16] bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl overflow-hidden">
+    <div className="relative aspect-[9/16] glass-card rounded-2xl overflow-hidden">
       <div className="absolute inset-0 flex items-center justify-center">
         {post.media.length > 0 ? (
           <span className="text-[var(--text-muted)]">Video Content</span>

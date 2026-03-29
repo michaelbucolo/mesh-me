@@ -159,8 +159,8 @@ export default function ConnectedAccountsPage() {
               transition={{ delay: index * 0.03 }}
               className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
                 connected
-                  ? "bg-[var(--bg-secondary)]/50 border-[var(--border-primary)]/50"
-                  : "bg-[var(--bg-secondary)]/30 border-[var(--border-primary)] hover:border-[var(--border-primary)]/50"
+                  ? "glass-card"
+                  : "glass-surface hover:border-[var(--glass-border)]"
               }`}
             >
               <div
@@ -226,7 +226,7 @@ export default function ConnectedAccountsPage() {
           { title: "MeChat", desc: "Send and receive messages across all connected platforms", icon: "💬" },
           { title: "Cross-Interact", desc: "Like, comment, and follow on any platform from mesh.me", icon: "🔗" },
         ].map((feature) => (
-          <div key={feature.title} className="bg-[var(--bg-secondary)]/30 border border-[var(--border-primary)] rounded-xl p-4 text-center">
+          <div key={feature.title} className="glass-surface rounded-xl p-4 text-center">
             <span className="text-2xl mb-2 block">{feature.icon}</span>
             <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-1">{feature.title}</h4>
             <p className="text-xs text-[var(--text-muted)]">{feature.desc}</p>

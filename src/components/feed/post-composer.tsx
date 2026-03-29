@@ -38,7 +38,7 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] backdrop-blur-sm p-5">
+    <div className="rounded-2xl glass-card p-5">
       <div className="flex gap-3">
         <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
         <div className="flex-1">

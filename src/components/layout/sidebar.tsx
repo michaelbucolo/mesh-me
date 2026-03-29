@@ -53,7 +53,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const { mode, setMode } = useTheme();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 backdrop-blur-2xl" style={{ borderRight: "1px solid var(--border-primary)", background: "var(--bg-elevated)" }}>
+    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
       {/* Logo */}
       <div className="p-6">
         <Link href="/feed" className="flex items-center gap-2">

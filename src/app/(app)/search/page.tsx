@@ -72,7 +72,7 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search people, posts, communities, tags..."
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl pl-12 pr-10 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+            className="w-full glass-surface rounded-xl pl-12 pr-10 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
             autoFocus
           />
           {query && (
@@ -85,7 +85,7 @@ export default function SearchPage() {
 
       {/* Filter tabs */}
       {results && hasResults && (
-        <div className="flex items-center gap-1 mb-6 p-1 rounded-xl bg-[var(--bg-tertiary)]">
+        <div className="flex items-center gap-1 mb-6 p-1 rounded-xl glass-surface">
           {([
             { id: "all" as const, label: "All", count: totalResults },
             { id: "people" as const, label: "People", count: results.users.length },
@@ -198,7 +198,7 @@ export default function SearchPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {recentSearches.map((search) => (
-                  <button key={search} onClick={() => handleSearch(search)} className="px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-secondary)] transition-colors">{search}</button>
+                  <button key={search} onClick={() => handleSearch(search)} className="px-3 py-1.5 rounded-lg glass-surface text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-secondary)] transition-colors">{search}</button>
                 ))}
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function SearchPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {SUGGESTED_SEARCHES.map((tag) => (
-                <button key={tag} onClick={() => handleSearch(tag)} className="px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors">
+                <button key={tag} onClick={() => handleSearch(tag)} className="px-3 py-1.5 rounded-lg glass-surface text-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors">
                   <Hash className="h-3 w-3 inline mr-1" />{tag}
                 </button>
               ))}

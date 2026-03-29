@@ -94,7 +94,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   return (
     <article className={cn(
       "rounded-2xl border backdrop-blur-sm transition-all duration-200 group",
-      "border-[var(--border-primary)] bg-[var(--bg-card)] hover:border-[var(--border-secondary)]",
+      "glass-card rounded-2xl",
       post.isPinned && "ring-1 ring-blue-500/30"
     )}>
       <div className={cn("p-5", compact && "p-3")}>
@@ -146,7 +146,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-8 w-48 rounded-xl border shadow-xl z-20 py-1" style={{ borderColor: "var(--border-primary)", background: "var(--bg-elevated)" }}>
+              <div className="absolute right-0 top-8 w-48 rounded-xl shadow-xl z-20 py-1 glass-dropdown">
                 <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
@@ -224,7 +224,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 <Share2 className="h-4 w-4" />
               </button>
               {showShareMenu && (
-                <div className="absolute right-0 bottom-8 w-44 rounded-xl border shadow-xl z-20 py-1" style={{ borderColor: "var(--border-primary)", background: "var(--bg-elevated)" }}>
+                <div className="absolute right-0 bottom-8 w-44 rounded-xl shadow-xl z-20 py-1 glass-dropdown">
                   <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                     <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
                   </button>

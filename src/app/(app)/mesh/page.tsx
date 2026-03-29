@@ -837,7 +837,7 @@ export default function MeshPage() {
           </div>
 
           {/* Filters */}
-          <div className="flex gap-1 bg-[var(--bg-card)] backdrop-blur-xl rounded-xl p-1 border border-[var(--border-primary)]/60 shadow-xl">
+          <div className="flex gap-1 glass-panel rounded-xl p-1 shadow-xl">
             {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
               const IconComp = fItem.icon;
               return (
@@ -866,12 +866,12 @@ export default function MeshPage() {
 
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
-        <button onClick={() => handleZoom(0.3)} className="p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
-        <button onClick={() => handleZoom(-0.3)} className="p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
-        <button onClick={resetView} className="p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
+        <button onClick={() => handleZoom(0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
+        <button onClick={() => handleZoom(-0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
+        <button onClick={resetView} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
         <div className="h-px bg-[var(--bg-tertiary)] my-0.5" />
-        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] transition-all " + (showLabels ? "text-blue-400" : "text-[var(--text-muted)]")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
-        <button onClick={() => setShowStats(!showStats)} className={"p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] transition-all " + (showStats ? "text-blue-400" : "text-[var(--text-muted)]")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
+        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 glass-surface rounded-lg transition-all " + (showLabels ? "text-blue-400" : "text-[var(--text-muted)]")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
+        <button onClick={() => setShowStats(!showStats)} className={"p-2 glass-surface rounded-lg transition-all " + (showStats ? "text-blue-400" : "text-[var(--text-muted)]")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
       </div>
 
       {/* Stats bar */}
@@ -890,11 +890,11 @@ export default function MeshPage() {
               { label: "posts", count: nodes.filter((n) => n.type === "post").length, color: "text-emerald-400" },
               { label: "platforms", count: nodes.filter((n) => n.type === "platform").length, color: "text-amber-400" },
             ].filter((s) => s.count > 0).map((s) => (
-              <div key={s.label} className="bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)]/60 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] shadow-lg">
+              <div key={s.label} className="glass-surface rounded-lg/60 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] shadow-lg">
                 <span className={"font-semibold " + s.color}>{s.count}</span> {s.label}
               </div>
             ))}
-            <div className="bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)]/60 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)]">
+            <div className="glass-surface rounded-lg/60 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)]">
               {Math.round(zoom * 100)}% zoom
             </div>
           </motion.div>
@@ -903,7 +903,7 @@ export default function MeshPage() {
 
       {/* Hint */}
       {nodes.length > 0 && !selectedNode && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-[var(--bg-secondary)]/60 backdrop-blur-xl rounded-lg border border-[var(--border-primary)]/40 px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 glass-surface rounded-lg px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none">
           Click a node to inspect &middot; Double-click to navigate &middot; Scroll to zoom &middot; Drag to pan
         </div>
       )}
@@ -933,7 +933,7 @@ export default function MeshPage() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute top-16 right-4 z-20 w-80 bg-[var(--bg-secondary)]/95 backdrop-blur-xl rounded-2xl border border-[var(--border-primary)]/60 shadow-2xl overflow-hidden"
+            className="absolute top-16 right-4 z-20 w-80 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
           >
             <div className="h-2 w-full" style={{ background: "linear-gradient(90deg, " + selectedNode.color + ", " + selectedNode.color + "80, transparent)" }} />
             <div className="p-4">
