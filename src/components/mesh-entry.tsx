@@ -301,7 +301,7 @@ export function MeshEntry() {
                     onFocus={() => setActiveField("username")}
                     onBlur={() => setActiveField(null)}
                     onChange={(e) => {
-                      const val = isLogin ? e.target.value : e.target.value.toLowerCase().replace(/[^a-z0-9_@.]/g, "");
+                      const val = isLogin ? e.target.value : e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
                       setUsername(val);
                     }}
                   />
