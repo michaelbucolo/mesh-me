@@ -70,7 +70,7 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl w-full max-w-sm shadow-2xl"
+            className="glass-dropdown rounded-2xl w-full max-w-sm shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -103,7 +103,7 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
                 <button
                   onClick={() => handleChoice("platform")}
                   disabled={loading}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-all text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl glass-surface border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-all text-left"
                 >
                   <div
                     className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
@@ -123,7 +123,7 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
               <button
                 onClick={() => handleChoice("mesh-only")}
                 disabled={loading}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-all text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl glass-surface border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-all text-left"
               >
                 <div className="h-10 w-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                   <UserPlus className="h-5 w-5 text-blue-400" />

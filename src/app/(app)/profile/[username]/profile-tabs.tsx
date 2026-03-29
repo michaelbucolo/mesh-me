@@ -124,7 +124,7 @@ export function ProfileTabs({ posts, communities, connectedAccounts, profile, cu
             <div className="grid grid-cols-3 gap-1">
               {mediaPosts.map((post) => (
                 <Link key={post.id} href={`/feed/${post.id}`}>
-                  <div className="aspect-square bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-sm overflow-hidden relative group cursor-pointer">
+                  <div className="aspect-square glass-surface rounded-sm overflow-hidden relative group cursor-pointer">
                     <div className="w-full h-full bg-[var(--bg-tertiary)] flex items-center justify-center">
                       <ImageIcon className="h-6 w-6 text-[var(--text-muted)]" />
                     </div>
@@ -195,7 +195,7 @@ export function ProfileTabs({ posts, communities, connectedAccounts, profile, cu
                   {connectedAccounts.map((account) => (
                     <div
                       key={account.platform}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--border-primary)]"
+                      className="flex items-center gap-3 p-3 rounded-xl glass-surface"
                     >
                       <div
                         className="h-8 w-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"

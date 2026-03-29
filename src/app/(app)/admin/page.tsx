@@ -44,7 +44,7 @@ export default async function AdminPage() {
 
       {/* Quick analytics row */}
       <div className="grid lg:grid-cols-3 gap-4 mb-8">
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+        <div className="rounded-2xl glass-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-emerald-400" />
             <h3 className="text-sm font-medium text-[var(--text-secondary)]">Growth (7d)</h3>
@@ -67,7 +67,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+        <div className="rounded-2xl glass-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="h-4 w-4 text-blue-400" />
             <h3 className="text-sm font-medium text-[var(--text-secondary)]">Platform Health</h3>
@@ -90,7 +90,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+        <div className="rounded-2xl glass-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <Clock className="h-4 w-4 text-amber-400" />
             <h3 className="text-sm font-medium text-[var(--text-secondary)]">Recent Admin Actions</h3>
@@ -115,7 +115,7 @@ export default async function AdminPage() {
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* User management */}
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+        <div className="rounded-2xl glass-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">User Management</h2>
             <span className="text-xs text-[var(--text-muted)]">{stats.recentUsers.length} shown</span>
@@ -150,7 +150,7 @@ export default async function AdminPage() {
         </div>
 
         {/* Moderation queue */}
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+        <div className="rounded-2xl glass-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Moderation Queue</h2>
             {stats.reportCount > 0 && (
@@ -169,12 +169,12 @@ export default async function AdminPage() {
                         {report.reportedUser && <> about <span className="text-[var(--text-tertiary)]">@{report.reportedUser.username}</span></>}
                       </p>
                       {report.reportedPost && (
-                        <div className="mt-2 p-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50">
+                        <div className="mt-2 p-2 rounded-lg glass-surface/50">
                           <p className="text-xs text-[var(--text-tertiary)] line-clamp-2">{report.reportedPost.content}</p>
                         </div>
                       )}
                       {report.reportedComment && (
-                        <div className="mt-2 p-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50">
+                        <div className="mt-2 p-2 rounded-lg glass-surface/50">
                           <p className="text-xs text-[var(--text-tertiary)] line-clamp-2">Comment: {report.reportedComment.content}</p>
                         </div>
                       )}

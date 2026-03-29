@@ -21,7 +21,7 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl safe-area-bottom" style={{ borderTop: "1px solid var(--border-primary)", background: "var(--bg-elevated)" }}>
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-panel safe-area-bottom" style={{ borderTop: "1px solid var(--glass-border)", borderLeft: "none", borderRight: "none", borderBottom: "none" }}>
       <div className="flex items-center justify-around px-2 py-1">
         {items.map((item) => {
           const isActive = item.href === "/feed"

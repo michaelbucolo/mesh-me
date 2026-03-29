@@ -39,7 +39,7 @@ export default function FeaturesPage() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
-            <div key={feature.title} className="group rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 p-6 hover:border-[var(--border-primary)] hover:bg-[var(--bg-secondary)] transition-all duration-300">
+            <div key={feature.title} className="group rounded-2xl glass-card p-6 transition-all duration-300">
               <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
                 <feature.icon className="h-6 w-6 text-blue-400" />
               </div>

@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               "flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm animate-in slide-in-from-right duration-300",
               toast.type === "success" && "bg-emerald-950/90 border-emerald-800 text-emerald-200",
               toast.type === "error" && "bg-red-950/90 border-red-800 text-red-200",
-              toast.type === "info" && "bg-[var(--bg-elevated)] border-[var(--border-primary)] text-[var(--text-primary)]"
+              toast.type === "info" && "glass-dropdown border-[var(--border-primary)] text-[var(--text-primary)]"
             )}
           >
             {toast.type === "success" ? (

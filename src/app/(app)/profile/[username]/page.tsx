@@ -134,7 +134,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             {connectedAccounts.map((account) => (
               <span
                 key={account.platform}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50 text-xs text-[var(--text-secondary)]"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg glass-surface/50 text-xs text-[var(--text-secondary)]"
               >
                 <Link2 className="h-3 w-3 text-blue-400" />
                 {account.platform}
@@ -168,7 +168,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-surface text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
               >
                 <LinkIcon className="h-3 w-3" />
                 {link.label}

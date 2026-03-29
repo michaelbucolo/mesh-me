@@ -56,7 +56,7 @@ export function UserCard({ user, currentUserId, isFollowing: initialFollowing = 
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5 hover:border-[var(--border-primary)] transition-all duration-200">
+    <div className="rounded-2xl glass-card p-5 hover:border-[var(--border-primary)] transition-all duration-200">
       <div className="flex items-start gap-3">
         <Link href={`/profile/${user.username}`}>
           <Avatar src={user.avatarUrl} alt={user.displayName} size="lg" />

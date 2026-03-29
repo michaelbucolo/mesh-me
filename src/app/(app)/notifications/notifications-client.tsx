@@ -113,7 +113,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                 activeTab === tab.id
                   ? "bg-blue-600 text-white"
-                  : "text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:border-[var(--border-primary)]"
+                  : "text-[var(--text-tertiary)] glass-surface hover:border-[var(--glass-border)]"
               }`}
             >
               <tab.icon className="h-3.5 w-3.5" />
@@ -157,7 +157,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                       <Bell className="h-4 w-4 text-[var(--text-tertiary)]" />
                     </div>
                   )}
-                  <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">
+                  <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full glass-surface flex items-center justify-center">
                     <Icon className="h-3 w-3 text-blue-400" />
                   </div>
                 </div>
