@@ -317,3 +317,39 @@ CREATE UNIQUE INDEX "SavedPost_userId_postId_key" ON "SavedPost"("userId", "post
 
 -- CreateIndex
 CREATE INDEX "AdminLog_createdAt_idx" ON "AdminLog"("createdAt");
+
+-- CreateTable
+CREATE TABLE "ConnectedAccount" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "platform" TEXT NOT NULL,
+    "platformUsername" TEXT,
+    "platformId" TEXT,
+    "accessToken" TEXT,
+    "refreshToken" TEXT,
+    "expiresAt" DATETIME,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "ConnectedAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "FeedPreference" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "layout" TEXT NOT NULL DEFAULT 'cards',
+    "sources" TEXT NOT NULL DEFAULT 'all',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "FeedPreference_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE INDEX "ConnectedAccount_platform_idx" ON "ConnectedAccount"("platform");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConnectedAccount_userId_platform_key" ON "ConnectedAccount"("userId", "platform");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FeedPreference_userId_key" ON "FeedPreference"("userId");
