@@ -15,6 +15,7 @@ import {
   updateUserInterests,
 } from "@/lib/actions";
 import { useState, useTransition, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings,
   User,
@@ -29,13 +30,34 @@ import {
   AlertTriangle,
   Check,
   UserX,
+  Crown,
+  Sparkles,
+  Zap,
+  Eye,
+  Globe,
+  Paintbrush,
+  Layout,
 } from "lucide-react";
 import { INTEREST_TAGS } from "@/lib/utils";
 
 const ACCENT_COLORS = [
-  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
-  "#f97316", "#eab308", "#22c55e", "#14b8a6", "#06b6d4",
-  "#3b82f6", "#6d28d9",
+  "#3b82f6", "#2563eb", "#1d4ed8", "#06b6d4", "#0891b2",
+  "#8b5cf6", "#7c3aed", "#a855f7", "#ec4899", "#f43f5e",
+  "#f97316", "#eab308", "#22c55e", "#14b8a6", "#6d28d9",
+];
+
+const FEED_LAYOUTS = [
+  { id: "card", label: "Card", desc: "Twitter/X style" },
+  { id: "grid", label: "Grid", desc: "Instagram style" },
+  { id: "vertical", label: "Vertical", desc: "TikTok/Reels style" },
+  { id: "compact", label: "Compact", desc: "Reddit style" },
+];
+
+const THEME_OPTIONS = [
+  { id: "midnight", label: "Midnight", bg: "#09090b", accent: "#3b82f6" },
+  { id: "deep-ocean", label: "Deep Ocean", bg: "#0c1222", accent: "#06b6d4" },
+  { id: "dark-violet", label: "Dark Violet", bg: "#0f0720", accent: "#8b5cf6" },
+  { id: "charcoal", label: "Charcoal", bg: "#171717", accent: "#3b82f6" },
 ];
 
 interface SettingsData {
@@ -91,6 +113,11 @@ export default function SettingsPage() {
   const [notifComments, setNotifComments] = useState(true);
   const [notifMessages, setNotifMessages] = useState(true);
   const [notifCommunity, setNotifCommunity] = useState(true);
+  const [notifAISummary, setNotifAISummary] = useState(true);
+
+  // Customization
+  const [selectedTheme, setSelectedTheme] = useState("midnight");
+  const [selectedLayout, setSelectedLayout] = useState("card");
 
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -141,10 +168,12 @@ export default function SettingsPage() {
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "interests", label: "Interests & Links", icon: Palette },
+    { id: "customize", label: "Customize", icon: Paintbrush },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "privacy", label: "Privacy & Safety", icon: Shield },
     { id: "security", label: "Security", icon: Lock },
     { id: "blocked", label: "Blocked Users", icon: UserX },
+    { id: "meshpro", label: "MeshPro", icon: Crown },
   ];
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -264,16 +293,23 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold text-zinc-100">Settings</h1>
       </div>
 
-      {(success || error) && (
-        <div className={`mb-6 text-sm rounded-xl px-4 py-3 flex items-center gap-2 ${
-          success
-            ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-            : "bg-red-500/10 border border-red-500/20 text-red-400"
-        }`}>
-          {success ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-          {success || error}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {(success || error) && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={`mb-6 text-sm rounded-xl px-4 py-3 flex items-center gap-2 ${
+              success
+                ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                : "bg-red-500/10 border border-red-500/20 text-red-400"
+            }`}
+          >
+            {success ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+            {success || error}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex gap-8">
         {/* Sidebar */}
@@ -283,14 +319,19 @@ export default function SettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
                   activeTab === tab.id
-                    ? "bg-zinc-800 text-zinc-100 font-medium"
+                    ? tab.id === "meshpro"
+                      ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/10 text-blue-300 font-medium"
+                      : "bg-zinc-800 text-zinc-100 font-medium"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
                 }`}
               >
-                <tab.icon className="h-4 w-4" />
+                <tab.icon className={`h-4 w-4 ${tab.id === "meshpro" ? "text-blue-400" : ""}`} />
                 {tab.label}
+                {tab.id === "meshpro" && (
+                  <span className="ml-auto text-[9px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-1.5 py-0.5 rounded-full">PRO</span>
+                )}
               </button>
             ))}
             <div className="pt-3 mt-3 border-t border-zinc-800">
@@ -327,7 +368,12 @@ export default function SettingsPage() {
 
           {/* Profile Tab */}
           {activeTab === "profile" && (
-            <form onSubmit={handleSaveProfile} className="space-y-5">
+            <motion.form
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleSaveProfile}
+              className="space-y-5"
+            >
               <h2 className="text-lg font-semibold text-zinc-100 mb-4">Edit profile</h2>
 
               <div className="flex items-center gap-4 mb-4">
@@ -368,7 +414,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => setAccentColor(color)}
                       className={`w-8 h-8 rounded-full border-2 transition-all ${
-                        accentColor === color ? "border-white scale-110" : "border-transparent"
+                        accentColor === color ? "border-white scale-110" : "border-transparent hover:scale-105"
                       }`}
                       style={{ backgroundColor: color }}
                     />
@@ -379,12 +425,12 @@ export default function SettingsPage() {
               <Button type="submit" variant="gradient" disabled={isPending}>
                 {isPending ? "Saving..." : "Save changes"}
               </Button>
-            </form>
+            </motion.form>
           )}
 
           {/* Interests & Links Tab */}
           {activeTab === "interests" && (
-            <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-100 mb-2">Interests</h2>
                 <p className="text-sm text-zinc-500 mb-4">Select topics you&apos;re interested in to personalize your experience</p>
@@ -434,12 +480,100 @@ export default function SettingsPage() {
               <Button onClick={handleSaveInterests} variant="gradient" disabled={isPending}>
                 {isPending ? "Saving..." : "Save interests & links"}
               </Button>
-            </div>
+            </motion.div>
+          )}
+
+          {/* Customize Tab */}
+          {activeTab === "customize" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-100 mb-2">Customize your experience</h2>
+                <p className="text-sm text-zinc-500 mb-6">Make mesh.me feel like yours</p>
+              </div>
+
+              {/* Theme selection */}
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+                  <Paintbrush className="h-4 w-4 text-blue-400" /> Theme
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {THEME_OPTIONS.map((theme) => (
+                    <button
+                      key={theme.id}
+                      onClick={() => setSelectedTheme(theme.id)}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        selectedTheme === theme.id
+                          ? "border-blue-500 bg-zinc-800/50"
+                          : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.bg, border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.accent }} />
+                      </div>
+                      <span className="text-sm font-medium text-zinc-200">{theme.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Feed layout preference */}
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+                  <Layout className="h-4 w-4 text-blue-400" /> Default feed layout
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {FEED_LAYOUTS.map((layout) => (
+                    <button
+                      key={layout.id}
+                      onClick={() => setSelectedLayout(layout.id)}
+                      className={`p-3 rounded-xl border-2 transition-all text-left ${
+                        selectedLayout === layout.id
+                          ? "border-blue-500 bg-zinc-800/50"
+                          : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/30"
+                      }`}
+                    >
+                      <span className="text-sm font-medium text-zinc-200 block">{layout.label}</span>
+                      <span className="text-xs text-zinc-500">{layout.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mesh density */}
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-blue-400" /> Background mesh
+                </h3>
+                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                  <div>
+                    <span className="text-sm text-zinc-200 block font-medium">Show constellation mesh</span>
+                    <span className="text-xs text-zinc-500">Animated node background across the app</span>
+                  </div>
+                  <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
+                    <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                  <div>
+                    <span className="text-sm text-zinc-200 block font-medium">Reduced motion</span>
+                    <span className="text-xs text-zinc-500">Minimize animations for accessibility</span>
+                  </div>
+                  <button type="button" className="relative w-11 h-6 bg-zinc-700 rounded-full transition-colors">
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                  </button>
+                </div>
+              </div>
+
+              <Button variant="gradient" disabled={isPending}>
+                {isPending ? "Saving..." : "Save preferences"}
+              </Button>
+            </motion.div>
           )}
 
           {/* Notifications Tab */}
           {activeTab === "notifications" && (
-            <div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <h2 className="text-lg font-semibold text-zinc-100 mb-4">Notification preferences</h2>
               <p className="text-sm text-zinc-500 mb-6">Choose what notifications you want to receive</p>
               <div className="space-y-1">
@@ -465,12 +599,34 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
-            </div>
+
+              {/* AI Smart Notifications */}
+              <div className="mt-6 border border-blue-500/20 bg-blue-500/5 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-blue-400" />
+                  <h3 className="text-sm font-semibold text-zinc-200">AI Smart Notifications</h3>
+                </div>
+                <p className="text-xs text-zinc-500 mb-3">
+                  Intelligently summarize and batch your notifications instead of individual alerts.
+                  mesh.me AI will condense 47 notifications into one clean summary.
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-300">Enable AI summaries</span>
+                  <button
+                    type="button"
+                    onClick={() => setNotifAISummary(!notifAISummary)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${notifAISummary ? "bg-blue-600" : "bg-zinc-700"}`}
+                  >
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${notifAISummary ? "right-0.5" : "left-0.5"}`} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           )}
 
           {/* Privacy Tab */}
           {activeTab === "privacy" && (
-            <div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <h2 className="text-lg font-semibold text-zinc-100 mb-4">Privacy & Safety</h2>
               <div className="space-y-1">
                 <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
@@ -502,6 +658,24 @@ export default function SettingsPage() {
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
+                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                  <div>
+                    <span className="text-sm text-zinc-200 block font-medium">Hide activity status</span>
+                    <span className="text-xs text-zinc-500">Others won&apos;t see when you&apos;re online</span>
+                  </div>
+                  <button type="button" className="relative w-11 h-6 bg-zinc-700 rounded-full transition-colors">
+                    <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                  <div>
+                    <span className="text-sm text-zinc-200 block font-medium">Read receipts</span>
+                    <span className="text-xs text-zinc-500">Show when you&apos;ve read messages</span>
+                  </div>
+                  <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
+                    <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                  </button>
+                </div>
               </div>
 
               <div className="mt-8 pt-6 border-t border-zinc-800">
@@ -526,12 +700,17 @@ export default function SettingsPage() {
                   </Button>
                 )}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Security Tab */}
           {activeTab === "security" && (
-            <form onSubmit={handleChangePassword} className="space-y-5">
+            <motion.form
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleChangePassword}
+              className="space-y-5"
+            >
               <h2 className="text-lg font-semibold text-zinc-100 mb-4">Change password</h2>
               <p className="text-sm text-zinc-500 mb-4">Choose a strong password with at least 8 characters</p>
 
@@ -551,12 +730,12 @@ export default function SettingsPage() {
               <Button type="submit" variant="gradient" disabled={isPending}>
                 {isPending ? "Changing..." : "Change password"}
               </Button>
-            </form>
+            </motion.form>
           )}
 
           {/* Blocked Users Tab */}
           {activeTab === "blocked" && (
-            <div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <h2 className="text-lg font-semibold text-zinc-100 mb-4">Blocked users</h2>
               <p className="text-sm text-zinc-500 mb-6">Blocked users cannot see your profile, posts, or message you.</p>
               {blockedUsers.length > 0 ? (
@@ -582,7 +761,80 @@ export default function SettingsPage() {
                   <p className="text-sm text-zinc-500">No blocked users</p>
                 </div>
               )}
-            </div>
+            </motion.div>
+          )}
+
+          {/* MeshPro Tab */}
+          {activeTab === "meshpro" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 mb-4 shadow-xl shadow-blue-500/20">
+                  <Crown className="h-8 w-8 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-zinc-100 mb-2">MeshPro</h2>
+                <p className="text-sm text-zinc-400 max-w-sm mx-auto">
+                  Unlock the full mesh.me experience with premium features and customization
+                </p>
+              </div>
+
+              {/* Pricing */}
+              <div className="grid md:grid-cols-2 gap-4 mb-8">
+                <div className="border border-zinc-800 rounded-2xl p-6 bg-zinc-900/30">
+                  <h3 className="text-lg font-bold text-zinc-200 mb-1">Monthly</h3>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-3xl font-bold text-zinc-100">$9.99</span>
+                    <span className="text-sm text-zinc-500">/month</span>
+                  </div>
+                  <Button variant="secondary" className="w-full">Subscribe</Button>
+                </div>
+                <div className="border-2 border-blue-500/40 rounded-2xl p-6 bg-blue-500/5 relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    BEST VALUE
+                  </div>
+                  <h3 className="text-lg font-bold text-zinc-200 mb-1">Yearly</h3>
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-3xl font-bold text-zinc-100">$79.99</span>
+                    <span className="text-sm text-zinc-500">/year</span>
+                  </div>
+                  <p className="text-xs text-emerald-400 mb-4">Save 33% - that&apos;s $6.67/month</p>
+                  <Button variant="gradient" className="w-full">Subscribe</Button>
+                </div>
+              </div>
+
+              {/* Features */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-4">What you get</h3>
+                {[
+                  { icon: Sparkles, title: "Custom themes & colors", desc: "Full color and theme customization beyond defaults" },
+                  { icon: Crown, title: "Verified badge", desc: "Stand out with a verified profile badge" },
+                  { icon: Eye, title: "Profile analytics", desc: "See who views your profile and post insights" },
+                  { icon: Zap, title: "Priority in discovery", desc: "Appear higher in search and explore results" },
+                  { icon: Layout, title: "Advanced feed layouts", desc: "Unlock additional feed layout customizations" },
+                  { icon: Globe, title: "Extended platform connections", desc: "Connect unlimited social platforms" },
+                  { icon: Shield, title: "Enhanced privacy controls", desc: "Advanced privacy settings and controls" },
+                  { icon: Bell, title: "Advanced AI notifications", desc: "More detailed and personalized AI notification summaries" },
+                ].map((feature) => (
+                  <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+                    <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                      <feature.icon className="h-4 w-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-zinc-200">{feature.title}</h4>
+                      <p className="text-xs text-zinc-500">{feature.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* No ads promise */}
+              <div className="mt-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 border border-blue-500/10 rounded-2xl p-6 text-center">
+                <h3 className="text-sm font-bold text-zinc-200 mb-2">Zero ads. Ever.</h3>
+                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                  mesh.me will never show advertisements. MeshPro subscriptions are the only way we fund the platform.
+                  Your experience, your data, your space &mdash; always clean, always private.
+                </p>
+              </div>
+            </motion.div>
           )}
 
           {/* Mobile sign out */}
