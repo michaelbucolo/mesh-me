@@ -35,6 +35,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Platform is required" }, { status: 400 });
   }
 
+  const VALID_PLATFORMS = [
+    "instagram", "youtube", "tiktok", "twitter", "twitch", "spotify",
+    "soundcloud", "linkedin", "github", "discord", "snapchat",
+    "pinterest", "reddit", "facebook", "threads", "bluesky",
+  ];
+
+  if (!VALID_PLATFORMS.includes(platform)) {
+    return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
+  }
+
   // Check if already connected
   const existing = await prisma.connectedAccount.findUnique({
     where: { userId_platform: { userId: user.id, platform } },
