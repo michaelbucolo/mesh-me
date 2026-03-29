@@ -135,7 +135,6 @@ export async function signIn(formData: FormData) {
   }
 
   if (user.isSuspended) {
-    clearFailedLogins(user.id);
     return { error: "Invalid email or password" };
   }
 
