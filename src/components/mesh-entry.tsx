@@ -43,7 +43,7 @@ const DATA_TRANSPARENCY = [
     title: "What we store",
     items: [
       "Your username, display name & email (to identify your account)",
-      "Your password (encrypted with bcrypt \u2014 we can never see it)",
+      "Your password (encrypted with bcrypt — we can never see it)",
       "Your bio, interests & avatar (so others can find you)",
       "Posts, messages & interactions you create on mesh.me",
     ],
@@ -52,8 +52,8 @@ const DATA_TRANSPARENCY = [
     icon: Shield,
     title: "What we never do",
     items: [
-      "Sell your data to advertisers \u2014 ever",
-      "Show you ads \u2014 mesh.me is 100% ad-free",
+      "Sell your data to advertisers — ever",
+      "Show you ads — mesh.me is 100% ad-free",
       "Share your information with third parties",
       "Track you across other websites",
     ],
@@ -355,9 +355,9 @@ export function MeshEntry() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
               className="mt-6 flex items-center justify-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
               <a href="/terms" className="hover:opacity-80 transition-opacity">Terms</a>
-              <span>\u00b7</span>
+              <span>·</span>
               <a href="/privacy" className="hover:opacity-80 transition-opacity">Privacy</a>
-              <span>\u00b7</span>
+              <span>·</span>
               <span>Community-powered</span>
             </motion.div>
           </motion.div>
@@ -376,7 +376,7 @@ export function MeshEntry() {
                 {isLogin ? "Welcome back" : "Choose your identity"}
               </h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-                {isLogin ? "Enter your username or email" : "Pick a unique username \u2014 this is you on the mesh"}
+                {isLogin ? "Enter your username or email" : "Pick a unique username — this is you on the mesh"}
               </p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
@@ -455,7 +455,7 @@ export function MeshEntry() {
             <div className="mb-8">
               <p className="text-xs text-blue-500 mb-2">@{username}</p>
               <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>What should we call you?</h2>
-              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Your display name \u2014 visible to everyone</p>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Your display name — visible to everyone</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
@@ -479,9 +479,9 @@ export function MeshEntry() {
         {step === "signup-email" && (
           <motion.div key="signup-email" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <p className="text-xs text-blue-500 mb-2">@{username} \u00b7 {displayName}</p>
+              <p className="text-xs text-blue-500 mb-2">@{username} · {displayName}</p>
               <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Your email</h2>
-              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Used for account recovery only \u2014 we never spam</p>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Used for account recovery only — we never spam</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
@@ -527,7 +527,7 @@ export function MeshEntry() {
                     <ul className="space-y-1.5 pl-6">
                       {section.items.map((item) => (
                         <li key={item} className="text-xs leading-relaxed flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
-                          <span className="text-blue-400 mt-0.5 flex-shrink-0">\u2022</span>
+                          <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
                           {item}
                         </li>
                       ))}
@@ -555,9 +555,9 @@ export function MeshEntry() {
         {step === "signup-password" && (
           <motion.div key="signup-password" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <p className="text-xs text-blue-500 mb-2">@{username} \u00b7 {displayName}</p>
+              <p className="text-xs text-blue-500 mb-2">@{username} · {displayName}</p>
               <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Secure your mesh</h2>
-              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Choose a strong password \u2014 encrypted and never visible to us</p>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Choose a strong password — encrypted and never visible to us</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
@@ -594,7 +594,7 @@ export function MeshEntry() {
                 <Phone className="h-6 w-6 text-blue-400" />
               </div>
               <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Verify your number</h2>
-              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>For account security and recovery \u2014 never shared</p>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>For account security and recovery — never shared</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <form onSubmit={handleSignupPhoneSubmit} className="space-y-4">
@@ -654,7 +654,7 @@ export function MeshEntry() {
 
               <div className="p-3 rounded-lg mb-4 text-xs text-left" style={{ background: "var(--accent-subtle)", color: "var(--text-secondary)" }}>
                 <Shield className="h-3.5 w-3.5 text-blue-400 inline mr-1" />
-                We only store connection tokens \u2014 never your passwords. You can disconnect any platform at any time.
+                We only store connection tokens — never your passwords. You can disconnect any platform at any time.
               </div>
 
               {connectedPlatforms.length > 0 && (
