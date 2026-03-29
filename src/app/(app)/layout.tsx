@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <MobileNav username={user.username} unreadNotifications={unreadCount} />
+      <MobileNav unreadNotifications={unreadCount} />
     </div>
   );
 }

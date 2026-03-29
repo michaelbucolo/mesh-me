@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Compass, PenSquare, Bell, User, Waypoints, MessageCircle } from "lucide-react";
+import { Home, PenSquare, Bell, Waypoints, MessageCircle } from "lucide-react";
 
 interface MobileNavProps {
-  username: string;
   unreadNotifications?: number;
 }
 
-export function MobileNav({ username, unreadNotifications = 0 }: MobileNavProps) {
+export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
   const pathname = usePathname();
 
   const items = [

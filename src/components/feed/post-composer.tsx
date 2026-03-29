@@ -4,7 +4,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { createPost } from "@/lib/actions";
-import { Image, Hash, Globe, X } from "lucide-react";
+import { Image as ImageIcon, Hash, Globe, X } from "lucide-react";
 
 interface PostComposerProps {
   user: {
@@ -68,7 +68,7 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-800/50">
             <div className="flex items-center gap-1">
               <button className="p-2 rounded-lg text-zinc-500 hover:text-blue-400 hover:bg-zinc-800/50 transition-colors">
-                <Image className="h-4 w-4" />
+                <ImageIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setShowTags(!showTags)}

@@ -208,10 +208,10 @@ export async function getUserProfile(username: string) {
           followerId: {
             in: (
               await prisma.follow.findMany({
-                where: { followingId: currentUser.id },
-                select: { followerId: true },
+                where: { followerId: currentUser.id },
+                select: { followingId: true },
               })
-            ).map((f) => f.followerId),
+            ).map((f) => f.followingId),
           },
         },
         include: {

@@ -3,7 +3,6 @@
 import { useState, useTransition, useCallback } from "react";
 import { searchAll } from "@/lib/queries";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search as SearchIcon, Users, FileText, Hash, Clock, X, TrendingUp } from "lucide-react";
 import Link from "next/link";

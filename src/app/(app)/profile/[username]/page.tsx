@@ -1,12 +1,10 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getUserProfile, getUserPosts } from "@/lib/queries";
-import { PostCard } from "@/components/feed/post-card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { notFound } from "next/navigation";
-import { MapPin, Link as LinkIcon, Calendar, FileText, MessageCircle, MoreHorizontal, Image, Info, Users, Link2 } from "lucide-react";
+import { MapPin, Link as LinkIcon, Calendar, MessageCircle, MoreHorizontal, Link2 } from "lucide-react";
 import Link from "next/link";
 import { FollowButton } from "./follow-button";
 import { formatCount } from "@/lib/utils";

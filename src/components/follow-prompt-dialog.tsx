@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { UserPlus, Globe, Check, X, ChevronRight } from "lucide-react";
+import { UserPlus, Globe, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface FollowPromptDialogProps {
@@ -39,20 +38,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform, onFollowChoice }: FollowPromptDialogProps) {
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
-
-  const togglePlatform = (platform: string) => {
-    setSelectedPlatforms((prev) => {
-      const next = new Set(prev);
-      if (next.has(platform)) {
-        next.delete(platform);
-      } else {
-        next.add(platform);
-      }
-      return next;
-    });
-  };
 
   const handleChoice = async (choice: "everywhere" | "platform" | "mesh-only") => {
     setLoading(true);

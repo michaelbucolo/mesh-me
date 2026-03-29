@@ -1,23 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getNotifications } from "@/lib/queries";
-import { Avatar } from "@/components/ui/avatar";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Bell, Heart, MessageCircle, UserPlus, Repeat, AtSign, Sparkles, Zap } from "lucide-react";
-import Link from "next/link";
-import { formatRelativeTime } from "@/lib/utils";
-import { MarkReadButton } from "./mark-read-button";
 import { NotificationsClient } from "./notifications-client";
-
-const NOTIFICATION_ICONS: Record<string, typeof Heart> = {
-  like: Heart,
-  comment: MessageCircle,
-  follow: UserPlus,
-  repost: Repeat,
-  mention: AtSign,
-  message: MessageCircle,
-};
-
-type NotificationType = "like" | "comment" | "follow" | "repost" | "mention" | "message";
 
 function generateAISummary(notifications: Array<{ type: string; message: string; actor: { displayName: string } | null }>) {
   const grouped: Record<string, number> = {};

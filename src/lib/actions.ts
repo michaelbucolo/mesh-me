@@ -104,7 +104,14 @@ export async function signIn(formData: FormData) {
     return { error: `Account temporarily locked. Try again in ${minutes} minutes.` };
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email },
+        { username: email },
+      ],
+    },
+  });
 
   if (!user) {
     recordFailedLogin(email);
