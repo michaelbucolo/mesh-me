@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <div className="relative min-h-screen bg-zinc-950">
+    <div className="relative min-h-screen" style={{ background: "var(--bg-primary)" }}>
       {/* Subtle constellation mesh behind entire app */}
       <MeshBackground interactive={false} density={30} className="opacity-40" />
       <div className="relative z-10 flex">

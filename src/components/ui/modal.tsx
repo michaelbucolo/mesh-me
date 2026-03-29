@@ -31,16 +31,16 @@ export function Modal({ open, onClose, children, className, title }: ModalProps)
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/50 animate-in fade-in zoom-in-95 duration-200",
+          "relative z-10 w-full max-w-lg rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-2xl shadow-black/50 animate-in fade-in zoom-in-95 duration-200",
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-            <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-primary)]">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+              className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -49,7 +49,7 @@ export function Modal({ open, onClose, children, className, title }: ModalProps)
         {!title && (
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors z-10"
+            className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors z-10"
           >
             <X className="h-5 w-5" />
           </button>

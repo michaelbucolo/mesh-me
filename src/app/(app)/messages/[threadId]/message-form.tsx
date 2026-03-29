@@ -28,12 +28,12 @@ export function MessageForm({ threadId }: MessageFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3 border-t border-zinc-800">
+    <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3 border-t border-[var(--border-primary)]">
       <input
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Type a message..."
-        className="flex-1 bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+        className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
       />
       <Button type="submit" variant="default" size="icon-sm" disabled={isPending || !content.trim()}>
         <Send className="h-4 w-4" />

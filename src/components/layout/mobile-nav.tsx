@@ -21,7 +21,7 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-xl safe-area-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl safe-area-bottom" style={{ borderTop: "1px solid var(--border-primary)", background: "var(--bg-elevated)" }}>
       <div className="flex items-center justify-around px-2 py-1">
         {items.map((item) => {
           const isActive = item.href === "/feed"
@@ -48,11 +48,11 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center p-2 min-w-[60px] relative",
-                isActive ? "text-blue-400" : "text-zinc-500"
+                isActive ? "text-blue-400" : ""
               )}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="text-[10px] mt-1">{item.label}</span>
+              <item.icon className="h-5 w-5" style={!isActive ? { color: "var(--text-muted)" } : undefined} />
+              <span className="text-[10px] mt-1" style={!isActive ? { color: "var(--text-muted)" } : undefined}>{item.label}</span>
               {item.badge && item.badge > 0 && (
                 <span className="absolute top-1 right-2 bg-blue-600 text-white text-[9px] rounded-full h-4 min-w-4 flex items-center justify-center px-1">
                   {item.badge > 99 ? "99+" : item.badge}

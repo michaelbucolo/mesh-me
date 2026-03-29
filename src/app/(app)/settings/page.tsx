@@ -279,8 +279,8 @@ export default function SettingsPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-zinc-800 rounded w-48" />
-          <div className="h-64 bg-zinc-800/50 rounded-2xl" />
+          <div className="h-8 bg-[var(--bg-tertiary)] rounded w-48" />
+          <div className="h-64 bg-[var(--bg-tertiary)] rounded-2xl" />
         </div>
       </div>
     );
@@ -290,7 +290,7 @@ export default function SettingsPage() {
     <div className="max-w-3xl mx-auto px-4 py-6">
       <div className="flex items-center gap-3 mb-8">
         <Settings className="h-6 w-6 text-blue-400" />
-        <h1 className="text-2xl font-bold text-zinc-100">Settings</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Settings</h1>
       </div>
 
       <AnimatePresence mode="wait">
@@ -323,8 +323,8 @@ export default function SettingsPage() {
                   activeTab === tab.id
                     ? tab.id === "meshpro"
                       ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/10 text-blue-300 font-medium"
-                      : "bg-zinc-800 text-zinc-100 font-medium"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                      : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-medium"
+                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                 }`}
               >
                 <tab.icon className={`h-4 w-4 ${tab.id === "meshpro" ? "text-blue-400" : ""}`} />
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                 )}
               </button>
             ))}
-            <div className="pt-3 mt-3 border-t border-zinc-800">
+            <div className="pt-3 mt-3 border-t border-[var(--border-primary)]">
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
@@ -356,8 +356,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                   activeTab === tab.id
-                    ? "bg-zinc-800 text-zinc-100"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
+                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 <tab.icon className="h-3.5 w-3.5" />
@@ -374,39 +374,39 @@ export default function SettingsPage() {
               onSubmit={handleSaveProfile}
               className="space-y-5"
             >
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Edit profile</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Edit profile</h2>
 
               <div className="flex items-center gap-4 mb-4">
                 <Avatar src={settings?.avatarUrl} alt={displayName} size="lg" />
                 <div>
-                  <p className="text-sm text-zinc-300 font-medium">@{settings?.username}</p>
-                  <p className="text-xs text-zinc-500">{settings?.email}</p>
+                  <p className="text-sm text-[var(--text-secondary)] font-medium">@{settings?.username}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{settings?.email}</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Display name</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Display name</label>
                 <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Bio</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Bio</label>
                 <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell people about yourself" rows={3} maxLength={160} />
-                <p className="text-xs text-zinc-500 mt-1">{bio.length}/160</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">{bio.length}/160</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Location</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Location</label>
                 <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, Country" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Website</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Website</label>
                 <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yoursite.com" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Accent color</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Accent color</label>
                 <div className="flex flex-wrap gap-2">
                   {ACCENT_COLORS.map((color) => (
                     <button
@@ -432,8 +432,8 @@ export default function SettingsPage() {
           {activeTab === "interests" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold text-zinc-100 mb-2">Interests</h2>
-                <p className="text-sm text-zinc-500 mb-4">Select topics you&apos;re interested in to personalize your experience</p>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Interests</h2>
+                <p className="text-sm text-[var(--text-muted)] mb-4">Select topics you&apos;re interested in to personalize your experience</p>
                 <div className="flex flex-wrap gap-2">
                   {INTEREST_TAGS.map((tag) => (
                     <button
@@ -443,7 +443,7 @@ export default function SettingsPage() {
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                         selectedInterests.includes(tag)
                           ? "bg-blue-600 text-white"
-                          : "bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                          : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                       }`}
                     >
                       {tag}
@@ -454,7 +454,7 @@ export default function SettingsPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold text-zinc-100">Social links</h2>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Social links</h2>
                   <button type="button" onClick={addLink} className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300">
                     <Plus className="h-4 w-4" /> Add link
                   </button>
@@ -466,13 +466,13 @@ export default function SettingsPage() {
                         <Input value={link.label} onChange={(e) => updateLinkField(i, "label", e.target.value)} placeholder="Label (e.g. YouTube)" className="w-1/3" />
                         <Input value={link.url} onChange={(e) => updateLinkField(i, "url", e.target.value)} placeholder="https://..." className="flex-1" />
                       </div>
-                      <button type="button" onClick={() => removeLink(i)} className="p-2 text-zinc-500 hover:text-red-400 transition-colors">
+                      <button type="button" onClick={() => removeLink(i)} className="p-2 text-[var(--text-muted)] hover:text-red-400 transition-colors">
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                   ))}
                   {links.length === 0 && (
-                    <p className="text-sm text-zinc-500">No links added yet. Add your social profiles, website, or other links.</p>
+                    <p className="text-sm text-[var(--text-muted)]">No links added yet. Add your social profiles, website, or other links.</p>
                   )}
                 </div>
               </div>
@@ -487,13 +487,13 @@ export default function SettingsPage() {
           {activeTab === "customize" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h2 className="text-lg font-semibold text-zinc-100 mb-2">Customize your experience</h2>
-                <p className="text-sm text-zinc-500 mb-6">Make mesh.me feel like yours</p>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Customize your experience</h2>
+                <p className="text-sm text-[var(--text-muted)] mb-6">Make mesh.me feel like yours</p>
               </div>
 
               {/* Theme selection */}
               <div>
-                <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
                   <Paintbrush className="h-4 w-4 text-blue-400" /> Theme
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -503,15 +503,15 @@ export default function SettingsPage() {
                       onClick={() => setSelectedTheme(theme.id)}
                       className={`p-4 rounded-xl border-2 transition-all text-left ${
                         selectedTheme === theme.id
-                          ? "border-blue-500 bg-zinc-800/50"
-                          : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/30"
+                          ? "border-blue-500 bg-[var(--bg-tertiary)]"
+                          : "border-[var(--border-primary)] hover:border-[var(--border-primary)] bg-[var(--bg-secondary)]/30"
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.bg, border: "1px solid rgba(255,255,255,0.1)" }} />
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.accent }} />
                       </div>
-                      <span className="text-sm font-medium text-zinc-200">{theme.label}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{theme.label}</span>
                     </button>
                   ))}
                 </div>
@@ -519,7 +519,7 @@ export default function SettingsPage() {
 
               {/* Feed layout preference */}
               <div>
-                <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
                   <Layout className="h-4 w-4 text-blue-400" /> Default feed layout
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -529,12 +529,12 @@ export default function SettingsPage() {
                       onClick={() => setSelectedLayout(layout.id)}
                       className={`p-3 rounded-xl border-2 transition-all text-left ${
                         selectedLayout === layout.id
-                          ? "border-blue-500 bg-zinc-800/50"
-                          : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/30"
+                          ? "border-blue-500 bg-[var(--bg-tertiary)]"
+                          : "border-[var(--border-primary)] hover:border-[var(--border-primary)] bg-[var(--bg-secondary)]/30"
                       }`}
                     >
-                      <span className="text-sm font-medium text-zinc-200 block">{layout.label}</span>
-                      <span className="text-xs text-zinc-500">{layout.desc}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)] block">{layout.label}</span>
+                      <span className="text-xs text-[var(--text-muted)]">{layout.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -542,24 +542,24 @@ export default function SettingsPage() {
 
               {/* Mesh density */}
               <div>
-                <h3 className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
                   <Globe className="h-4 w-4 text-blue-400" /> Background mesh
                 </h3>
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
-                    <span className="text-sm text-zinc-200 block font-medium">Show constellation mesh</span>
-                    <span className="text-xs text-zinc-500">Animated node background across the app</span>
+                    <span className="text-sm text-[var(--text-primary)] block font-medium">Show constellation mesh</span>
+                    <span className="text-xs text-[var(--text-muted)]">Animated node background across the app</span>
                   </div>
                   <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
-                    <span className="text-sm text-zinc-200 block font-medium">Reduced motion</span>
-                    <span className="text-xs text-zinc-500">Minimize animations for accessibility</span>
+                    <span className="text-sm text-[var(--text-primary)] block font-medium">Reduced motion</span>
+                    <span className="text-xs text-[var(--text-muted)]">Minimize animations for accessibility</span>
                   </div>
-                  <button type="button" className="relative w-11 h-6 bg-zinc-700 rounded-full transition-colors">
+                  <button type="button" className="relative w-11 h-6 bg-[var(--bg-hover)] rounded-full transition-colors">
                     <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
@@ -574,8 +574,8 @@ export default function SettingsPage() {
           {/* Notifications Tab */}
           {activeTab === "notifications" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Notification preferences</h2>
-              <p className="text-sm text-zinc-500 mb-6">Choose what notifications you want to receive</p>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Notification preferences</h2>
+              <p className="text-sm text-[var(--text-muted)] mb-6">Choose what notifications you want to receive</p>
               <div className="space-y-1">
                 {[
                   { label: "New followers", desc: "When someone follows you", state: notifFollowers, setter: setNotifFollowers },
@@ -584,15 +584,15 @@ export default function SettingsPage() {
                   { label: "Direct messages", desc: "When you receive a new message", state: notifMessages, setter: setNotifMessages },
                   { label: "Community activity", desc: "Updates from your communities", state: notifCommunity, setter: setNotifCommunity },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                  <div key={item.label} className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                     <div>
-                      <span className="text-sm text-zinc-200 block font-medium">{item.label}</span>
-                      <span className="text-xs text-zinc-500">{item.desc}</span>
+                      <span className="text-sm text-[var(--text-primary)] block font-medium">{item.label}</span>
+                      <span className="text-xs text-[var(--text-muted)]">{item.desc}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => item.setter(!item.state)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${item.state ? "bg-blue-600" : "bg-zinc-700"}`}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${item.state ? "bg-blue-600" : "bg-[var(--bg-hover)]"}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${item.state ? "right-0.5" : "left-0.5"}`} />
                     </button>
@@ -604,18 +604,18 @@ export default function SettingsPage() {
               <div className="mt-6 border border-blue-500/20 bg-blue-500/5 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-4 w-4 text-blue-400" />
-                  <h3 className="text-sm font-semibold text-zinc-200">AI Smart Notifications</h3>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">AI Smart Notifications</h3>
                 </div>
-                <p className="text-xs text-zinc-500 mb-3">
+                <p className="text-xs text-[var(--text-muted)] mb-3">
                   Intelligently summarize and batch your notifications instead of individual alerts.
                   mesh.me AI will condense 47 notifications into one clean summary.
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-300">Enable AI summaries</span>
+                  <span className="text-sm text-[var(--text-secondary)]">Enable AI summaries</span>
                   <button
                     type="button"
                     onClick={() => setNotifAISummary(!notifAISummary)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${notifAISummary ? "bg-blue-600" : "bg-zinc-700"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${notifAISummary ? "bg-blue-600" : "bg-[var(--bg-hover)]"}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${notifAISummary ? "right-0.5" : "left-0.5"}`} />
                   </button>
@@ -627,50 +627,50 @@ export default function SettingsPage() {
           {/* Privacy Tab */}
           {activeTab === "privacy" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Privacy & Safety</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Privacy & Safety</h2>
               <div className="space-y-1">
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
-                    <span className="text-sm text-zinc-200 block font-medium">Public account</span>
-                    <span className="text-xs text-zinc-500">Anyone can see your posts and profile</span>
+                    <span className="text-sm text-[var(--text-primary)] block font-medium">Public account</span>
+                    <span className="text-xs text-[var(--text-muted)]">Anyone can see your posts and profile</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleTogglePrivacy(!isPublic)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-blue-600" : "bg-zinc-700"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-blue-600" : "bg-[var(--bg-hover)]"}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${isPublic ? "right-0.5" : "left-0.5"}`} />
                   </button>
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
-                    <span className="text-sm text-zinc-200 block font-medium">Who can message you</span>
-                    <span className="text-xs text-zinc-500">Control who can send you direct messages</span>
+                    <span className="text-sm text-[var(--text-primary)] block font-medium">Who can message you</span>
+                    <span className="text-xs text-[var(--text-muted)]">Control who can send you direct messages</span>
                   </div>
                   <span className="text-sm text-blue-400 font-medium">Everyone</span>
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
-                    <span className="text-sm text-zinc-200 block font-medium">Show in discovery</span>
-                    <span className="text-xs text-zinc-500">Allow others to find you through explore</span>
+                    <span className="text-sm text-[var(--text-primary)] block font-medium">Show in discovery</span>
+                    <span className="text-xs text-[var(--text-muted)]">Allow others to find you through explore</span>
                   </div>
                   <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
-                    <span className="text-sm text-zinc-200 block font-medium">Hide activity status</span>
-                    <span className="text-xs text-zinc-500">Others won&apos;t see when you&apos;re online</span>
+                    <span className="text-sm text-[var(--text-primary)] block font-medium">Hide activity status</span>
+                    <span className="text-xs text-[var(--text-muted)]">Others won&apos;t see when you&apos;re online</span>
                   </div>
-                  <button type="button" className="relative w-11 h-6 bg-zinc-700 rounded-full transition-colors">
+                  <button type="button" className="relative w-11 h-6 bg-[var(--bg-hover)] rounded-full transition-colors">
                     <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800/50">
+                <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
-                    <span className="text-sm text-zinc-200 block font-medium">Read receipts</span>
-                    <span className="text-xs text-zinc-500">Show when you&apos;ve read messages</span>
+                    <span className="text-sm text-[var(--text-primary)] block font-medium">Read receipts</span>
+                    <span className="text-xs text-[var(--text-muted)]">Show when you&apos;ve read messages</span>
                   </div>
                   <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
@@ -678,11 +678,11 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-zinc-800">
+              <div className="mt-8 pt-6 border-t border-[var(--border-primary)]">
                 <h3 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" /> Danger zone
                 </h3>
-                <p className="text-xs text-zinc-500 mb-4">These actions are irreversible. Please be certain.</p>
+                <p className="text-xs text-[var(--text-muted)] mb-4">These actions are irreversible. Please be certain.</p>
                 {deleteConfirm ? (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
                     <p className="text-sm text-red-300 mb-3">Are you sure? This will permanently delete your account, posts, messages, and all associated data.</p>
@@ -711,19 +711,19 @@ export default function SettingsPage() {
               onSubmit={handleChangePassword}
               className="space-y-5"
             >
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Change password</h2>
-              <p className="text-sm text-zinc-500 mb-4">Choose a strong password with at least 8 characters</p>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Change password</h2>
+              <p className="text-sm text-[var(--text-muted)] mb-4">Choose a strong password with at least 8 characters</p>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Current password</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Current password</label>
                 <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Enter current password" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">New password</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">New password</label>
                 <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Confirm new password</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Confirm new password</label>
                 <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" />
               </div>
 
@@ -736,17 +736,17 @@ export default function SettingsPage() {
           {/* Blocked Users Tab */}
           {activeTab === "blocked" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Blocked users</h2>
-              <p className="text-sm text-zinc-500 mb-6">Blocked users cannot see your profile, posts, or message you.</p>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Blocked users</h2>
+              <p className="text-sm text-[var(--text-muted)] mb-6">Blocked users cannot see your profile, posts, or message you.</p>
               {blockedUsers.length > 0 ? (
                 <div className="space-y-2">
                   {blockedUsers.map((block) => (
-                    <div key={block.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+                    <div key={block.id} className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--border-primary)]">
                       <div className="flex items-center gap-3">
                         <Avatar src={block.blocked.avatarUrl} alt={block.blocked.displayName} size="sm" />
                         <div>
-                          <span className="text-sm font-medium text-zinc-200">{block.blocked.displayName}</span>
-                          <span className="text-xs text-zinc-500 block">@{block.blocked.username}</span>
+                          <span className="text-sm font-medium text-[var(--text-primary)]">{block.blocked.displayName}</span>
+                          <span className="text-xs text-[var(--text-muted)] block">@{block.blocked.username}</span>
                         </div>
                       </div>
                       <Button variant="secondary" size="sm" onClick={() => handleUnblock(block.blocked.id)} disabled={isPending}>
@@ -757,8 +757,8 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <UserX className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-                  <p className="text-sm text-zinc-500">No blocked users</p>
+                  <UserX className="h-10 w-10 text-[var(--text-muted)] mx-auto mb-3" />
+                  <p className="text-sm text-[var(--text-muted)]">No blocked users</p>
                 </div>
               )}
             </motion.div>
@@ -771,19 +771,19 @@ export default function SettingsPage() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 mb-4 shadow-xl shadow-blue-500/20">
                   <Crown className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-zinc-100 mb-2">MeshPro</h2>
-                <p className="text-sm text-zinc-400 max-w-sm mx-auto">
+                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">MeshPro</h2>
+                <p className="text-sm text-[var(--text-tertiary)] max-w-sm mx-auto">
                   Unlock the full mesh.me experience with premium features and customization
                 </p>
               </div>
 
               {/* Pricing */}
               <div className="grid md:grid-cols-2 gap-4 mb-8">
-                <div className="border border-zinc-800 rounded-2xl p-6 bg-zinc-900/30">
-                  <h3 className="text-lg font-bold text-zinc-200 mb-1">Monthly</h3>
+                <div className="border border-[var(--border-primary)] rounded-2xl p-6 bg-[var(--bg-secondary)]/30">
+                  <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Monthly</h3>
                   <div className="flex items-baseline gap-1 mb-4">
-                    <span className="text-3xl font-bold text-zinc-100">$9.99</span>
-                    <span className="text-sm text-zinc-500">/month</span>
+                    <span className="text-3xl font-bold text-[var(--text-primary)]">$9.99</span>
+                    <span className="text-sm text-[var(--text-muted)]">/month</span>
                   </div>
                   <Button variant="secondary" className="w-full">Subscribe</Button>
                 </div>
@@ -791,10 +791,10 @@ export default function SettingsPage() {
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs font-bold px-3 py-1 rounded-full">
                     BEST VALUE
                   </div>
-                  <h3 className="text-lg font-bold text-zinc-200 mb-1">Yearly</h3>
+                  <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Yearly</h3>
                   <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-3xl font-bold text-zinc-100">$79.99</span>
-                    <span className="text-sm text-zinc-500">/year</span>
+                    <span className="text-3xl font-bold text-[var(--text-primary)]">$79.99</span>
+                    <span className="text-sm text-[var(--text-muted)]">/year</span>
                   </div>
                   <p className="text-xs text-emerald-400 mb-4">Save 33% - that&apos;s $6.67/month</p>
                   <Button variant="gradient" className="w-full">Subscribe</Button>
@@ -803,7 +803,7 @@ export default function SettingsPage() {
 
               {/* Features */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-4">What you get</h3>
+                <h3 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">What you get</h3>
                 {[
                   { icon: Sparkles, title: "Custom themes & colors", desc: "Full color and theme customization beyond defaults" },
                   { icon: Crown, title: "Verified badge", desc: "Stand out with a verified profile badge" },
@@ -814,13 +814,13 @@ export default function SettingsPage() {
                   { icon: Shield, title: "Enhanced privacy controls", desc: "Advanced privacy settings and controls" },
                   { icon: Bell, title: "Advanced AI notifications", desc: "More detailed and personalized AI notification summaries" },
                 ].map((feature) => (
-                  <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+                  <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]/30 border border-[var(--border-primary)]">
                     <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                       <feature.icon className="h-4 w-4 text-blue-400" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-zinc-200">{feature.title}</h4>
-                      <p className="text-xs text-zinc-500">{feature.desc}</p>
+                      <h4 className="text-sm font-medium text-[var(--text-primary)]">{feature.title}</h4>
+                      <p className="text-xs text-[var(--text-muted)]">{feature.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -828,8 +828,8 @@ export default function SettingsPage() {
 
               {/* No ads promise */}
               <div className="mt-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 border border-blue-500/10 rounded-2xl p-6 text-center">
-                <h3 className="text-sm font-bold text-zinc-200 mb-2">Zero ads. Ever.</h3>
-                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2">Zero ads. Ever.</h3>
+                <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
                   mesh.me will never show advertisements. MeshPro subscriptions are the only way we fund the platform.
                   Your experience, your data, your space &mdash; always clean, always private.
                 </p>
@@ -838,7 +838,7 @@ export default function SettingsPage() {
           )}
 
           {/* Mobile sign out */}
-          <div className="mt-8 pt-4 border-t border-zinc-800 md:hidden">
+          <div className="mt-8 pt-4 border-t border-[var(--border-primary)] md:hidden">
             <button onClick={handleSignOut} className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors">
               <LogOut className="h-4 w-4" /> Sign out
             </button>

@@ -91,14 +91,14 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
               <MessageCircle className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-zinc-100">MeChat</h1>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">MeChat</h1>
           </div>
-          <p className="text-sm text-zinc-500 mt-1">All your conversations, one place</p>
+          <p className="text-sm text-[var(--text-muted)] mt-1">All your conversations, one place</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowPlatformFilter(!showPlatformFilter)}
-            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
+            className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors"
           >
             <Filter className="h-4 w-4" />
           </button>
@@ -131,7 +131,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       platformFilter === p
                         ? "text-white shadow-lg"
-                        : "text-zinc-400 bg-zinc-900 border border-zinc-800 hover:border-zinc-700"
+                        : "text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:border-[var(--border-primary)]"
                     }`}
                     style={platformFilter === p ? { backgroundColor: info.color } : undefined}
                   >
@@ -147,21 +147,21 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search conversations..."
-          className="w-full pl-10 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
         />
       </div>
 
       {/* Connected platforms indicator */}
       <div className="flex items-center gap-2 mb-4 px-2">
         <Wifi className="h-3.5 w-3.5 text-green-500" />
-        <span className="text-xs text-zinc-500">Connected to mesh.me</span>
-        <span className="text-xs text-zinc-600">&middot;</span>
+        <span className="text-xs text-[var(--text-muted)]">Connected to mesh.me</span>
+        <span className="text-xs text-[var(--text-muted)]">&middot;</span>
         <Link href="/settings" className="text-xs text-blue-400 hover:text-blue-300">
           Connect more platforms
         </Link>
@@ -178,7 +178,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
               <Link
                 key={thread.id}
                 href={`/messages/${thread.id}`}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/50 transition-colors group"
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors group"
               >
                 <div className="relative">
                   <Avatar
@@ -195,12 +195,12 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-zinc-100 truncate">
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate">
                       {thread.otherUser?.displayName || "Unknown"}
                     </h3>
                     <div className="flex items-center gap-2">
                       {thread.lastMessage && (
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-xs text-[var(--text-muted)]">
                           {formatRelativeTime(thread.lastMessage.createdAt)}
                         </span>
                       )}
@@ -212,11 +212,11 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-zinc-600">{platformInfo.label}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{platformInfo.label}</span>
                     {thread.lastMessage && (
                       <>
-                        <span className="text-zinc-700">&middot;</span>
-                        <p className="text-sm text-zinc-400 truncate">
+                        <span className="text-[var(--text-muted)]">&middot;</span>
+                        <p className="text-sm text-[var(--text-tertiary)] truncate">
                           {thread.lastMessage.senderId === currentUserId ? "You: " : ""}
                           {thread.lastMessage.content}
                         </p>
@@ -224,20 +224,20 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     )}
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <ChevronRight className="h-4 w-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
               </Link>
             );
           })}
         </div>
       ) : (
         <div className="text-center py-16">
-          <div className="w-16 h-16 bg-zinc-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="h-8 w-8 text-zinc-600" />
+          <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="h-8 w-8 text-[var(--text-muted)]" />
           </div>
-          <h3 className="text-lg font-semibold text-zinc-300 mb-2">
+          <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-2">
             {searchQuery || platformFilter !== "all" ? "No matching conversations" : "No messages yet"}
           </h3>
-          <p className="text-sm text-zinc-500 mb-4">
+          <p className="text-sm text-[var(--text-muted)] mb-4">
             {searchQuery || platformFilter !== "all"
               ? "Try a different search or filter"
               : "Start a conversation by visiting someone's profile or clicking New Chat"
@@ -265,12 +265,12 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl"
+              className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl w-full max-w-md shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-                <h2 className="text-lg font-semibold text-zinc-100">New Conversation</h2>
-                <button onClick={() => setShowNewChat(false)} className="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800">
+              <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)]">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">New Conversation</h2>
+                <button onClick={() => setShowNewChat(false)} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -278,12 +278,12 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
               <div className="p-4">
                 {/* Platform selector */}
                 <div className="mb-4">
-                  <p className="text-xs text-zinc-500 mb-2">Send via</p>
+                  <p className="text-xs text-[var(--text-muted)] mb-2">Send via</p>
                   <div className="flex gap-2 flex-wrap">
                     {Object.entries(PLATFORM_ICONS).map(([key, info]) => (
                       <button
                         key={key}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:border-[var(--border-secondary)] transition-colors"
                       >
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: info.color }} />
                         {info.label}
@@ -294,13 +294,13 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
 
                 {/* User search */}
                 <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
                   <input
                     type="text"
                     value={newChatSearch}
                     onChange={(e) => handleNewChatSearch(e.target.value)}
                     placeholder="Search for a person..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50"
+                    className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50"
                     autoFocus
                   />
                 </div>
@@ -313,20 +313,20 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                         key={u.id}
                         href={`/messages/${u.id}?new=true`}
                         onClick={() => setShowNewChat(false)}
-                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-800 transition-colors"
+                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors"
                       >
                         <Avatar src={u.avatarUrl} alt={u.displayName} size="sm" />
                         <div>
-                          <p className="text-sm font-medium text-zinc-200">{u.displayName}</p>
-                          <p className="text-xs text-zinc-500">@{u.username}</p>
+                          <p className="text-sm font-medium text-[var(--text-primary)]">{u.displayName}</p>
+                          <p className="text-xs text-[var(--text-muted)]">@{u.username}</p>
                         </div>
-                        <Send className="h-4 w-4 text-zinc-500 ml-auto" />
+                        <Send className="h-4 w-4 text-[var(--text-muted)] ml-auto" />
                       </Link>
                     ))
                   ) : newChatSearch.trim() ? (
-                    <p className="text-center text-sm text-zinc-500 py-8">No users found</p>
+                    <p className="text-center text-sm text-[var(--text-muted)] py-8">No users found</p>
                   ) : (
-                    <p className="text-center text-sm text-zinc-500 py-8">Type a name to search</p>
+                    <p className="text-center text-sm text-[var(--text-muted)] py-8">Type a name to search</p>
                   )}
                 </div>
               </div>

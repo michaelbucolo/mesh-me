@@ -61,9 +61,9 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Notifications</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Notifications</h1>
           {unreadCount > 0 && (
-            <p className="text-sm text-zinc-400 mt-1">{unreadCount} unread</p>
+            <p className="text-sm text-[var(--text-tertiary)] mt-1">{unreadCount} unread</p>
           )}
         </div>
         {unreadCount > 0 && <MarkReadButton />}
@@ -85,14 +85,14 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-zinc-100">AI Summary</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">AI Summary</h3>
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium">Smart Digest</span>
                   </div>
-                  <p className="text-sm text-zinc-300">{aiSummary}</p>
+                  <p className="text-sm text-[var(--text-secondary)]">{aiSummary}</p>
                 </div>
                 <button
                   onClick={() => setShowAISummary(false)}
-                  className="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors"
+                  className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -113,7 +113,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                 activeTab === tab.id
                   ? "bg-blue-600 text-white"
-                  : "text-zinc-400 bg-zinc-900 border border-zinc-800 hover:border-zinc-700"
+                  : "text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:border-[var(--border-primary)]"
               }`}
             >
               <tab.icon className="h-3.5 w-3.5" />
@@ -146,24 +146,24 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                 key={notification.id}
                 href={href}
                 className={`flex items-start gap-3 p-4 rounded-xl transition-colors ${
-                  notification.read ? "hover:bg-zinc-800/30" : "bg-blue-500/5 hover:bg-blue-500/10"
+                  notification.read ? "hover:bg-[var(--bg-tertiary)]" : "bg-blue-500/5 hover:bg-blue-500/10"
                 }`}
               >
                 <div className="relative">
                   {notification.actor ? (
                     <Avatar src={notification.actor.avatarUrl} alt={notification.actor.displayName} size="sm" />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                      <Bell className="h-4 w-4 text-zinc-400" />
+                    <div className="h-8 w-8 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
+                      <Bell className="h-4 w-4 text-[var(--text-tertiary)]" />
                     </div>
                   )}
-                  <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-zinc-900 flex items-center justify-center">
+                  <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">
                     <Icon className="h-3 w-3 text-blue-400" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-zinc-200">{notification.message}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
+                  <p className="text-sm text-[var(--text-primary)]">{notification.message}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
                     {formatRelativeTime(notification.createdAt)}
                   </p>
                 </div>

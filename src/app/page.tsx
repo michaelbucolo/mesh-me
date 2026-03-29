@@ -8,7 +8,7 @@ export default async function LandingPage() {
   if (user?.onboarded) redirect("/feed");
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 overflow-hidden">
+    <div className="relative min-h-screen bg-[var(--bg-primary)] overflow-hidden">
       {/* Constellation mesh background */}
       <MeshBackground interactive density={80} mouseInfluence={180} />
 

@@ -108,8 +108,8 @@ export default function ConnectedAccountsPage() {
             <Link2 className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100">Connected Accounts</h1>
-            <p className="text-sm text-zinc-500">Link your platforms to mesh.me</p>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Connected Accounts</h1>
+            <p className="text-sm text-[var(--text-muted)]">Link your platforms to mesh.me</p>
           </div>
         </div>
       </div>
@@ -118,14 +118,14 @@ export default function ConnectedAccountsPage() {
       <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-4 mb-6 flex items-start gap-3">
         <Shield className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm text-zinc-300">
+          <p className="text-sm text-[var(--text-secondary)]">
             Connecting your accounts lets you view content from all platforms in your Custom Feed,
             send messages through MeChat, and interact with posts across platforms directly from mesh.me.
           </p>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-[var(--text-muted)] mt-1">
             mesh.me connects through each platform&apos;s official OAuth API. Your credentials are encrypted and you can disconnect at any time. Cross-platform features are subject to each platform&apos;s API availability and terms.
           </p>
-          <p className="text-xs text-zinc-600 mt-1">
+          <p className="text-xs text-[var(--text-muted)] mt-1">
             mesh.me is not affiliated with, endorsed by, or sponsored by any third-party platform. All platform names and trademarks belong to their respective owners.
           </p>
         </div>
@@ -133,11 +133,11 @@ export default function ConnectedAccountsPage() {
 
       {/* Connected count */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-zinc-400">
-          <span className="text-zinc-200 font-semibold">{accounts.length}</span> of {PLATFORMS.length} platforms connected
+        <p className="text-sm text-[var(--text-tertiary)]">
+          <span className="text-[var(--text-primary)] font-semibold">{accounts.length}</span> of {PLATFORMS.length} platforms connected
         </p>
         {accounts.length > 0 && (
-          <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+          <button className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] flex items-center gap-1 transition-colors">
             <RefreshCw className="h-3 w-3" />
             Sync all
           </button>
@@ -159,8 +159,8 @@ export default function ConnectedAccountsPage() {
               transition={{ delay: index * 0.03 }}
               className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
                 connected
-                  ? "bg-zinc-900/50 border-zinc-700/50"
-                  : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700/50"
+                  ? "bg-[var(--bg-secondary)]/50 border-[var(--border-primary)]/50"
+                  : "bg-[var(--bg-secondary)]/30 border-[var(--border-primary)] hover:border-[var(--border-primary)]/50"
               }`}
             >
               <div
@@ -171,14 +171,14 @@ export default function ConnectedAccountsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-zinc-100">{platform.name}</h3>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">{platform.name}</h3>
                   {connected && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-500/10 text-green-400 border-green-500/20">
                       Connected
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--text-muted)]">
                   {connected && account?.platformUsername
                     ? `@${account.platformUsername}`
                     : platform.description}
@@ -187,7 +187,7 @@ export default function ConnectedAccountsPage() {
               <div className="flex items-center gap-2">
                 {connected ? (
                   <>
-                    <button className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+                    <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
                       <Settings2 className="h-4 w-4" />
                     </button>
                     <button
@@ -226,10 +226,10 @@ export default function ConnectedAccountsPage() {
           { title: "MeChat", desc: "Send and receive messages across all connected platforms", icon: "💬" },
           { title: "Cross-Interact", desc: "Like, comment, and follow on any platform from mesh.me", icon: "🔗" },
         ].map((feature) => (
-          <div key={feature.title} className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-4 text-center">
+          <div key={feature.title} className="bg-[var(--bg-secondary)]/30 border border-[var(--border-primary)] rounded-xl p-4 text-center">
             <span className="text-2xl mb-2 block">{feature.icon}</span>
-            <h4 className="text-sm font-semibold text-zinc-200 mb-1">{feature.title}</h4>
-            <p className="text-xs text-zinc-500">{feature.desc}</p>
+            <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-1">{feature.title}</h4>
+            <p className="text-xs text-[var(--text-muted)]">{feature.desc}</p>
           </div>
         ))}
       </div>
