@@ -91,17 +91,10 @@ export async function signIn(formData: FormData) {
 
   const email = rawEmail.trim().toLowerCase();
 
-  // Rate limit login attempts
+  // Rate limit login attempts by raw input (pre-lookup, prevents DB spam)
   const rl = rateLimit(`login:${email}`, 10, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many login attempts. Please try again later." };
-  }
-
-  // Check account lockout
-  const lockout = checkAccountLockout(email);
-  if (lockout.locked) {
-    const minutes = Math.ceil(lockout.lockedUntilMs / 60000);
-    return { error: `Account temporarily locked. Try again in ${minutes} minutes.` };
   }
 
   const user = await prisma.user.findFirst({
@@ -112,6 +105,16 @@ export async function signIn(formData: FormData) {
       ],
     },
   });
+
+  // Key lockout by resolved user ID to prevent bypass via alternative identifiers
+  const lockoutKey = user ? user.id : email;
+
+  // Check account lockout
+  const lockout = checkAccountLockout(lockoutKey);
+  if (lockout.locked) {
+    const minutes = Math.ceil(lockout.lockedUntilMs / 60000);
+    return { error: `Account temporarily locked. Try again in ${minutes} minutes.` };
+  }
 
   if (!user) {
     recordFailedLogin(email);
@@ -124,11 +127,11 @@ export async function signIn(formData: FormData) {
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
-    recordFailedLogin(email);
+    recordFailedLogin(user.id);
     return { error: "Invalid email or password" };
   }
 
-  clearFailedLogins(email);
+  clearFailedLogins(user.id);
   await createSession(user.id);
 
   if (!user.onboarded) {
