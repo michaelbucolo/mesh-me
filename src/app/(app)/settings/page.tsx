@@ -696,6 +696,38 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* Zero-Knowledge Privacy Commitment */}
+              <div className="mt-8 bg-gradient-to-r from-emerald-500/5 to-blue-500/5 border border-emerald-500/10 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center">
+                    <Shield className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Our Privacy Commitment to You</h3>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { title: "Zero-knowledge architecture", desc: "mesh.me is designed so we cannot read your private messages or access data you haven't explicitly shared. Your content is yours." },
+                    { title: "No behavioral tracking", desc: "We don't track what you click, how long you scroll, or build profiles of your habits. No analytics on your behavior, ever." },
+                    { title: "No data selling", desc: "Your data is never sold, shared with advertisers, or used to train AI models. mesh.me makes money only through MeshPro subscriptions." },
+                    { title: "Minimal data storage", desc: "We store only what's necessary to run the platform. Nothing more. You can see exactly what we store in our transparency report." },
+                    { title: "True deletion", desc: "When you delete something, it's gone. No soft-deletes that linger in our database. No 30-day retention periods on your content." },
+                    { title: "Full data export", desc: "You own your data. Export everything at any time in a standard format. Your digital life should never be held hostage." },
+                    { title: "End-to-end encrypted messaging", desc: "MeChat conversations are designed for E2E encryption. Not even mesh.me can read your messages in transit or at rest." },
+                    { title: "Open transparency", desc: "We publish what data we collect, why we collect it, and how long we keep it. No buried terms, no legal tricks." },
+                  ].map((item) => (
+                    <div key={item.title} className="flex items-start gap-2.5">
+                      <div className="h-4 w-4 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Lock className="h-2.5 w-2.5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-[var(--text-primary)]">{item.title}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-8 pt-6 border-t border-[var(--border-primary)]">
                 <h3 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" /> Danger zone
@@ -868,7 +900,7 @@ export default function SettingsPage() {
                   <span className="text-[9px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-1.5 py-0.5 rounded-full">PRO</span>
                 </div>
                 <p className="text-sm text-[var(--text-muted)]">
-                  See your entire digital presence &mdash; the known and unknown. Find every account, mention, and trace linked to your identity.
+                  See your entire digital presence — the known and unknown. Find every account, mention, and trace linked to your identity.
                 </p>
               </div>
 
@@ -934,7 +966,7 @@ export default function SettingsPage() {
                   <TrendingUp className="h-4 w-4 text-blue-400" /> Cross-Platform Analytics
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mb-3">
-                  In-depth stats on your digital presence across all connected platforms &mdash; engagement trends, follower growth, content performance, and audience demographics.
+                  In-depth stats on your digital presence across all connected platforms — engagement trends, follower growth, content performance, and audience demographics.
                 </p>
                 <div className="space-y-2">
                   {[
@@ -995,7 +1027,7 @@ export default function SettingsPage() {
                     <span className="text-3xl font-bold text-[var(--text-primary)]">$39.99</span>
                     <span className="text-sm text-[var(--text-muted)]">/year</span>
                   </div>
-                  <p className="text-xs text-emerald-400 mb-4">Save 33% &mdash; that&apos;s $3.33/month</p>
+                  <p className="text-xs text-emerald-400 mb-4">Save 33% — that&apos;s $3.33/month</p>
                   <Button variant="gradient" className="w-full">Subscribe</Button>
                 </div>
               </div>
@@ -1005,7 +1037,7 @@ export default function SettingsPage() {
                 <h3 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">What you get with Pro</h3>
                 {[
                   { icon: Fingerprint, title: "Digital Footprint Scanner", desc: "Find every account, data broker listing, and trace linked to your identity across the entire web" },
-                  { icon: BarChart3, title: "Cross-platform analytics", desc: "In-depth stats on your digital presence &mdash; engagement, reach, follower growth, content performance" },
+                  { icon: BarChart3, title: "Cross-platform analytics", desc: "In-depth stats on your digital presence \u2014 engagement, reach, follower growth, content performance" },
                   { icon: TrendingUp, title: "Audience insights", desc: "Understand who engages with your content across all platforms" },
                   { icon: ShieldCheck, title: "Advanced Security Hub", desc: "Manage and mass-delete content across connected platforms, monitor active sessions" },
                   { icon: Crown, title: "Verified badge", desc: "Stand out with a verified profile badge" },
@@ -1030,7 +1062,7 @@ export default function SettingsPage() {
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2">Zero ads. Ever.</h3>
                 <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
                   mesh.me will never show advertisements or sell your data. MeshPro subscriptions are the only way we fund the platform.
-                  Your experience, your data, your space &mdash; always clean, always private.
+                  Your experience, your data, your space \u2014 always clean, always private.
                 </p>
               </div>
             </motion.div>

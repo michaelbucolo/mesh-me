@@ -24,8 +24,20 @@ import {
   EyeOff,
   Info,
   Layers,
+  UserPlus,
+  UserMinus,
+  Send,
+  Trash2,
+  Shield,
+  Lock,
+  Fingerprint,
+  ExternalLink,
+  PenSquare,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toggleFollow, deletePost } from "@/lib/actions";
 
 // --- Types ---
 
@@ -132,6 +144,16 @@ export default function MeshPage() {
   const [showLabels, setShowLabels] = useState(true);
   const [showStats, setShowStats] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFootprint, setShowFootprint] = useState(false);
+  const [meshStats, setMeshStats] = useState<{
+    followingCount: number; followerCount: number; mutualCount: number;
+    communityCount: number; postCount: number; interestCount: number;
+    connectedPlatformCount: number;
+  } | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [commandSearch, setCommandSearch] = useState("");
+  const router = useRouter();
 
   // Refs for animation loop (avoid stale closures)
   const nodesRef = useRef<MeshNode[]>([]);
@@ -150,6 +172,18 @@ export default function MeshPage() {
   useEffect(() => { showLabelsRef.current = showLabels; }, [showLabels]);
   useEffect(() => { hoveredNodeRef.current = hoveredNode; }, [hoveredNode]);
   useEffect(() => { selectedNodeRef.current = selectedNode; }, [selectedNode]);
+
+  // Keyboard shortcut: Cmd/Ctrl+K for command palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // --- Load mesh data ---
 
@@ -339,6 +373,7 @@ export default function MeshPage() {
         setEdges(meshEdges);
         nodesRef.current = meshNodes;
         edgesRef.current = meshEdges;
+        setMeshStats(data.stats || null);
       } catch {
         setError("Failed to load your mesh. Please try again.");
       } finally {
@@ -821,46 +856,71 @@ export default function MeshPage() {
 
   return (
     <div className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
+      {/* Keyboard shortcut handled in useEffect below */}
+
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-10 p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Layers className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-[var(--text-primary)]">The Mesh</h1>
-                <p className="text-[11px] text-[var(--text-muted)]">Your digital universe</p>
-              </div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Layers className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-[var(--text-primary)]">The Mesh</h1>
+              <p className="text-[11px] text-[var(--text-muted)]">Your digital universe</p>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-1 glass-panel rounded-xl p-1 shadow-xl">
-            {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
-              const IconComp = fItem.icon;
-              return (
-                <button
-                  key={fItem.id}
-                  onClick={() => setFilter(fItem.id)}
-                  className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all " + (
-                    filter === fItem.id
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                      : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-                  )}
-                >
-                  <IconComp className="h-3 w-3" />
-                  <span className="hidden lg:inline">{fItem.label}</span>
-                  {fItem.count > 0 && fItem.id !== "all" && (
-                    <span className={"text-[9px] px-1 rounded-full " + (filter === fItem.id ? "bg-white/20" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]")}>
-                      {fItem.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            {/* Quick search / command */}
+            <button
+              onClick={() => setShowCommandPalette(true)}
+              className="flex items-center gap-2 px-3 py-1.5 glass-panel rounded-xl text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all shadow-lg"
+            >
+              <Search className="h-3 w-3" />
+              <span className="hidden md:inline">Search mesh...</span>
+              <kbd className="hidden md:inline text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-mono">⌘K</kbd>
+            </button>
+
+            {/* Footprint Dashboard toggle */}
+            <button
+              onClick={() => setShowFootprint(!showFootprint)}
+              className={"flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium transition-all shadow-lg " + (
+                showFootprint
+                  ? "bg-blue-600 text-white shadow-blue-500/20"
+                  : "glass-panel text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              )}
+            >
+              <Fingerprint className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Footprint</span>
+            </button>
           </div>
+        </div>
+
+        {/* Filters row */}
+        <div className="flex gap-1 glass-panel rounded-xl p-1 shadow-xl mt-3 w-fit">
+          {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
+            const IconComp = fItem.icon;
+            return (
+              <button
+                key={fItem.id}
+                onClick={() => setFilter(fItem.id)}
+                className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all " + (
+                  filter === fItem.id
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                )}
+              >
+                <IconComp className="h-3 w-3" />
+                <span className="hidden lg:inline">{fItem.label}</span>
+                {fItem.count > 0 && fItem.id !== "all" && (
+                  <span className={"text-[9px] px-1 rounded-full " + (filter === fItem.id ? "bg-white/20" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]")}>
+                    {fItem.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -925,7 +985,7 @@ export default function MeshPage() {
         onTouchEnd={handleTouchEnd}
       />
 
-      {/* Selected node detail panel */}
+      {/* Selected node detail panel with quick actions */}
       <AnimatePresence>
         {selectedNode && (
           <motion.div
@@ -933,10 +993,11 @@ export default function MeshPage() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute top-16 right-4 z-20 w-80 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute top-20 right-4 z-20 w-80 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
           >
-            <div className="h-2 w-full" style={{ background: "linear-gradient(90deg, " + selectedNode.color + ", " + selectedNode.color + "80, transparent)" }} />
+            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, " + selectedNode.color + ", " + selectedNode.color + "60, transparent)" }} />
             <div className="p-4">
+              {/* Header */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   {selectedNode.avatarUrl ? (
@@ -958,24 +1019,33 @@ export default function MeshPage() {
                 <button onClick={() => setSelectedNode(null)} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"><X className="h-4 w-4" /></button>
               </div>
 
+              {/* Type badges */}
               <div className="flex items-center gap-2 mb-3">
                 <Badge variant="secondary" className="text-[10px] capitalize">{selectedNode.type === "self" ? "You" : selectedNode.type}</Badge>
                 {selectedNode.isMutual && <Badge className="text-[10px]">Mutual</Badge>}
                 {selectedNode.category && <Badge variant="secondary" className="text-[10px]">{selectedNode.category}</Badge>}
+                {selectedNode.type === "post" && (
+                  <Badge variant="secondary" className="text-[10px] flex items-center gap-0.5">
+                    <Lock className="h-2.5 w-2.5" /> Your post
+                  </Badge>
+                )}
               </div>
 
+              {/* Content preview */}
               {selectedNode.content && <p className="text-xs text-[var(--text-tertiary)] leading-relaxed mb-3 line-clamp-3">{selectedNode.content}</p>}
 
+              {/* Stats */}
               {(selectedNode.followerCount !== undefined || selectedNode.postCount !== undefined || selectedNode.memberCount !== undefined || selectedNode.likeCount !== undefined) && (
                 <div className="flex items-center gap-3 mb-3 py-2 border-y border-[var(--border-primary)]">
-                  {selectedNode.followerCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Users className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.followerCount}</span> followers</div>}
-                  {selectedNode.postCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><FileText className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.postCount}</span> posts</div>}
-                  {selectedNode.memberCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Users className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.memberCount}</span> members</div>}
+                  {selectedNode.followerCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Users className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.followerCount}</span></div>}
+                  {selectedNode.postCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><FileText className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.postCount}</span></div>}
+                  {selectedNode.memberCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Users className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.memberCount}</span></div>}
                   {selectedNode.likeCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Heart className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.likeCount}</span></div>}
                   {selectedNode.commentCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><MessageCircle className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.commentCount}</span></div>}
                 </div>
               )}
 
+              {/* Shared interests */}
               {selectedNode.sharedInterests && selectedNode.sharedInterests.length > 0 && (
                 <div className="mb-3">
                   <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1.5">Shared interests</p>
@@ -987,27 +1057,364 @@ export default function MeshPage() {
                 </div>
               )}
 
+              {/* Connection count */}
               <div className="mb-3">
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
                   {edges.filter((e) => e.source === selectedNode.id || e.target === selectedNode.id).length} connections in mesh
                 </p>
               </div>
 
-              {selectedNode.href && (
-                <Link href={selectedNode.href}>
-                  <Button variant="gradient" size="sm" className="w-full">
-                    {selectedNode.type === "user" || selectedNode.type === "self" ? "View Profile" :
-                     selectedNode.type === "community" ? "Visit Community" :
-                     selectedNode.type === "post" ? "View Post" :
-                     selectedNode.type === "tag" ? "Search Tag" : "View"}
-                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                  </Button>
-                </Link>
-              )}
+              {/* ── QUICK ACTIONS ── */}
+              <div className="space-y-2">
+                {/* User quick actions: Message, Follow/Unfollow, View Profile */}
+                {(selectedNode.type === "user") && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push("/messages?to=" + selectedNode.id)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                    >
+                      <Send className="h-3 w-3" /> Message
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setActionLoading("follow-" + selectedNode.id);
+                        await toggleFollow(selectedNode.id.replace("follower-", ""));
+                        setActionLoading(null);
+                      }}
+                      disabled={actionLoading === "follow-" + selectedNode.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95"
+                    >
+                      {actionLoading === "follow-" + selectedNode.id ? (
+                        <div className="h-3 w-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      ) : selectedNode.isMutual ? (
+                        <><UserMinus className="h-3 w-3" /> Unfollow</>
+                      ) : (
+                        <><UserPlus className="h-3 w-3" /> Follow</>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* Post quick actions: View, Delete (own posts) */}
+                {selectedNode.type === "post" && (
+                  <div className="flex gap-2">
+                    {selectedNode.href && (
+                      <Link href={selectedNode.href} className="flex-1">
+                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+                          <Eye className="h-3 w-3" /> View Post
+                        </button>
+                      </Link>
+                    )}
+                    <button
+                      onClick={async () => {
+                        const postId = selectedNode.id.replace("post-", "");
+                        setActionLoading("delete-" + postId);
+                        await deletePost(postId);
+                        setSelectedNode(null);
+                        setActionLoading(null);
+                        window.location.reload();
+                      }}
+                      disabled={actionLoading?.startsWith("delete-")}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 glass-surface hover:bg-red-500/10 transition-all active:scale-95"
+                    >
+                      {actionLoading?.startsWith("delete-") ? (
+                        <div className="h-3 w-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <><Trash2 className="h-3 w-3" /> Delete</>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* Platform quick actions */}
+                {selectedNode.type === "platform" && (
+                  <div className="flex gap-2">
+                    <Link href="/connected-accounts" className="flex-1">
+                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+                        <Shield className="h-3 w-3" /> Manage
+                      </button>
+                    </Link>
+                    <Link href="/settings" className="flex-1">
+                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95">
+                        <ExternalLink className="h-3 w-3" /> Settings
+                      </button>
+                    </Link>
+                  </div>
+                )}
+
+                {/* Community quick actions */}
+                {selectedNode.type === "community" && selectedNode.href && (
+                  <Link href={selectedNode.href}>
+                    <Button variant="gradient" size="sm" className="w-full">
+                      Visit Community <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </Link>
+                )}
+
+                {/* Tag quick actions */}
+                {selectedNode.type === "tag" && selectedNode.href && (
+                  <Link href={selectedNode.href}>
+                    <Button variant="gradient" size="sm" className="w-full">
+                      <Search className="h-3.5 w-3.5 mr-1" /> Search Tag
+                    </Button>
+                  </Link>
+                )}
+
+                {/* Self quick actions */}
+                {selectedNode.type === "self" && (
+                  <div className="flex gap-2">
+                    <Link href="/feed?compose=true" className="flex-1">
+                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+                        <PenSquare className="h-3 w-3" /> New Post
+                      </button>
+                    </Link>
+                    <Link href={selectedNode.href || "/settings"} className="flex-1">
+                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95">
+                        <Eye className="h-3 w-3" /> Profile
+                      </button>
+                    </Link>
+                  </div>
+                )}
+
+                {/* Generic view button for types without specific actions */}
+                {selectedNode.href && !["user", "post", "platform", "community", "tag", "self"].includes(selectedNode.type) && (
+                  <Link href={selectedNode.href}>
+                    <Button variant="gradient" size="sm" className="w-full">
+                      View <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── FOOTPRINT DASHBOARD ── */}
+      <AnimatePresence>
+        {showFootprint && meshStats && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="absolute bottom-16 left-4 right-4 md:left-auto md:right-4 md:bottom-4 md:w-96 z-20 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+          >
+            <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-400" />
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
+                    <Fingerprint className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Digital Footprint</h3>
+                    <p className="text-[10px] text-[var(--text-muted)]">Everything in your mesh at a glance</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowFootprint(false)} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { label: "Following", value: meshStats.followingCount, color: "text-blue-400", icon: Users },
+                  { label: "Followers", value: meshStats.followerCount, color: "text-indigo-400", icon: Users },
+                  { label: "Mutuals", value: meshStats.mutualCount, color: "text-purple-400", icon: Heart },
+                  { label: "Posts", value: meshStats.postCount, color: "text-emerald-400", icon: FileText },
+                  { label: "Communities", value: meshStats.communityCount, color: "text-pink-400", icon: Users },
+                  { label: "Platforms", value: meshStats.connectedPlatformCount, color: "text-amber-400", icon: Link2 },
+                ].map((stat) => (
+                  <div key={stat.label} className="glass-surface rounded-xl p-2.5 text-center">
+                    <stat.icon className={"h-3.5 w-3.5 mx-auto mb-1 " + stat.color} />
+                    <p className={"text-lg font-bold " + stat.color}>{stat.value}</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Privacy summary */}
+              <div className="glass-surface rounded-xl p-3 mb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-3.5 w-3.5 text-emerald-400" />
+                  <p className="text-xs font-semibold text-[var(--text-primary)]">Privacy Status</p>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-[var(--text-muted)]">Profile visibility</span>
+                    <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> You control</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-[var(--text-muted)]">Data shared with mesh.me</span>
+                    <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1"><Shield className="h-2.5 w-2.5" /> Minimal</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-[var(--text-muted)]">Third-party access</span>
+                    <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> None</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick manage links */}
+              <div className="flex gap-2">
+                <Link href="/settings" className="flex-1">
+                  <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95">
+                    <Shield className="h-3 w-3" /> Security Hub
+                  </button>
+                </Link>
+                <Link href="/connected-accounts" className="flex-1">
+                  <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95">
+                    <Link2 className="h-3 w-3" /> Accounts
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── COMMAND PALETTE ── */}
+      <AnimatePresence>
+        {showCommandPalette && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-start justify-center pt-24 bg-black/40 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowCommandPalette(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 400 }}
+              className="w-full max-w-md glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-3 border-b border-[var(--border-primary)]">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-[var(--text-muted)]" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={commandSearch}
+                    onChange={(e) => setCommandSearch(e.target.value)}
+                    placeholder="Search your mesh... people, posts, communities"
+                    className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
+                    onKeyDown={(e) => { if (e.key === "Escape") setShowCommandPalette(false); }}
+                  />
+                  <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-mono">ESC</kbd>
+                </div>
+              </div>
+              <div className="max-h-80 overflow-y-auto p-2">
+                {/* Filter nodes by search */}
+                {nodes
+                  .filter((n) => n.type !== "self" && (
+                    n.label.toLowerCase().includes(commandSearch.toLowerCase()) ||
+                    (n.sublabel && n.sublabel.toLowerCase().includes(commandSearch.toLowerCase())) ||
+                    (n.content && n.content.toLowerCase().includes(commandSearch.toLowerCase()))
+                  ))
+                  .slice(0, 10)
+                  .map((node) => (
+                    <button
+                      key={node.id}
+                      onClick={() => {
+                        setSelectedNode(node);
+                        setShowCommandPalette(false);
+                        setCommandSearch("");
+                        // Pan to node
+                        const canvas = canvasRef.current;
+                        if (canvas) {
+                          const newPan = {
+                            x: -(node.x - centerRef.current.x) * zoomRef.current,
+                            y: -(node.y - centerRef.current.y) * zoomRef.current,
+                          };
+                          setPan(newPan);
+                          panRef.current = newPan;
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-[var(--bg-tertiary)] transition-all group"
+                    >
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: node.color }}>
+                        {node.avatarUrl ? (
+                          <Avatar src={node.avatarUrl} alt={node.label} size="sm" />
+                        ) : (
+                          node.type === "community" ? <Users className="h-4 w-4" /> :
+                          node.type === "tag" ? <Hash className="h-4 w-4" /> :
+                          node.type === "post" ? <FileText className="h-4 w-4" /> :
+                          node.type === "platform" ? <Link2 className="h-4 w-4" /> :
+                          node.label[0]
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">{node.label}</p>
+                        {node.sublabel && <p className="text-[10px] text-[var(--text-muted)] truncate">{node.sublabel}</p>}
+                      </div>
+                      <Badge variant="secondary" className="text-[9px] capitalize flex-shrink-0">{node.type}</Badge>
+                    </button>
+                  ))}
+                {commandSearch && nodes.filter((n) => n.type !== "self" && n.label.toLowerCase().includes(commandSearch.toLowerCase())).length === 0 && (
+                  <div className="text-center py-6">
+                    <p className="text-xs text-[var(--text-muted)]">No results found in your mesh</p>
+                  </div>
+                )}
+                {!commandSearch && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider px-3 pt-2 pb-1">Quick Actions</p>
+                    {[
+                      { label: "Create new post", icon: PenSquare, href: "/feed?compose=true" },
+                      { label: "Explore mesh.me", icon: Globe, href: "/explore" },
+                      { label: "Open MeChat", icon: MessageCircle, href: "/messages" },
+                      { label: "Security Hub", icon: Shield, href: "/settings" },
+                      { label: "Connected Accounts", icon: Link2, href: "/connected-accounts" },
+                      { label: "View your footprint", icon: Fingerprint, action: () => { setShowFootprint(true); setShowCommandPalette(false); } },
+                    ].map((action) => (
+                      <button
+                        key={action.label}
+                        onClick={() => {
+                          if (action.action) {
+                            action.action();
+                          } else if (action.href) {
+                            router.push(action.href);
+                            setShowCommandPalette(false);
+                          }
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-[var(--bg-tertiary)] transition-all"
+                      >
+                        <action.icon className="h-4 w-4 text-[var(--text-muted)]" />
+                        <span className="text-sm text-[var(--text-secondary)]">{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick action bar (bottom left) - always visible */}
+      <div className="absolute bottom-4 left-4 z-10 flex gap-2">
+        <Link href="/feed?compose=true">
+          <button className="flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95 shadow-lg">
+            <PenSquare className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Post</span>
+          </button>
+        </Link>
+        <Link href="/messages">
+          <button className="flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95 shadow-lg">
+            <MessageCircle className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">MeChat</span>
+          </button>
+        </Link>
+        <Link href="/explore">
+          <button className="flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95 shadow-lg">
+            <Globe className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Explore</span>
+          </button>
+        </Link>
+      </div>
 
       {/* Empty state */}
       {nodes.length <= 1 && !loading && (

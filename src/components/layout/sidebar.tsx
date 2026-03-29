@@ -35,8 +35,8 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { href: "/feed", icon: Home, label: "Home" },
   { href: "/mesh", icon: Waypoints, label: "The Mesh" },
+  { href: "/feed", icon: Home, label: "Feed" },
   { href: "/custom-feed", icon: LayoutGrid, label: "Custom Feed" },
   { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/messages", icon: MessageCircle, label: "MeChat" },
@@ -52,7 +52,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
     <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
       {/* Logo */}
       <div className="p-6">
-        <Link href="/feed" className="flex items-center gap-2">
+        <Link href="/mesh" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
             <span className="text-white font-bold text-sm">m</span>
           </div>

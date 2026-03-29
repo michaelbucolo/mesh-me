@@ -146,7 +146,7 @@ export async function signIn(formData: FormData) {
     redirect("/onboarding");
   }
 
-  redirect("/feed");
+  redirect("/mesh");
 }
 
 export async function signOut() {
@@ -179,7 +179,7 @@ export async function completeOnboarding(formData: FormData) {
     });
   }
 
-  redirect("/feed");
+  redirect("/mesh");
 }
 
 // ─── Post Actions ────────────────────────────────────────────
@@ -336,6 +336,17 @@ export async function toggleFollow(targetUserId: string) {
   if (!user) return { error: "Not authenticated" };
   if (user.id === targetUserId) return { error: "Cannot follow yourself" };
 
+  // Check if either user has blocked the other
+  const blockExists = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: user.id, blockedId: targetUserId },
+        { blockerId: targetUserId, blockedId: user.id },
+      ],
+    },
+  });
+  if (blockExists) return { error: "Cannot follow this user" };
+
   const existing = await prisma.follow.findUnique({
     where: { followerId_followingId: { followerId: user.id, followingId: targetUserId } },
   });
@@ -488,6 +499,18 @@ export async function sendMessage(formData: FormData) {
 
   if (!finalThreadId && recipientId) {
     if (recipientId === user.id) return { error: "Cannot message yourself" };
+
+    // Check if either user has blocked the other
+    const blockExists = await prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: user.id, blockedId: recipientId },
+          { blockerId: recipientId, blockedId: user.id },
+        ],
+      },
+    });
+    if (blockExists) return { error: "Cannot send message to this user" };
+
     // Find or create thread
     const existingThread = await prisma.messageThread.findFirst({
       where: {
@@ -522,6 +545,22 @@ export async function sendMessage(formData: FormData) {
     where: { threadId: finalThreadId, userId: user.id },
   });
   if (!membership) return { error: "Not a member of this thread" };
+
+  // Check if user is blocked by or has blocked any other thread member
+  const otherMembers = await prisma.threadMember.findMany({
+    where: { threadId: finalThreadId, userId: { not: user.id } },
+  });
+  for (const member of otherMembers) {
+    const threadBlockExists = await prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: user.id, blockedId: member.userId },
+          { blockerId: member.userId, blockedId: user.id },
+        ],
+      },
+    });
+    if (threadBlockExists) return { error: "Cannot send message to this user" };
+  }
 
   await prisma.message.create({
     data: {
