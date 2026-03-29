@@ -85,13 +85,10 @@ export function sanitizeInput(input: string): string {
 }
 
 export function sanitizeForDisplay(input: string): string {
-  // Strip potential XSS vectors but keep text readable
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/\bon\w+\s*=\s*(?:["'][^"']*["']|\S+)/gi, "")
-    .replace(/javascript:/gi, "")
-    .replace(/data:text\/html/gi, "")
-    .trim();
+  // React auto-escapes JSX output, so aggressive regex sanitization is unnecessary
+  // and would corrupt legitimate user content (e.g. "one = two", "javascript:" discussions).
+  // We only trim whitespace here. XSS prevention is handled by React's rendering layer.
+  return input.trim();
 }
 
 // ─── Content Validation ─────────────────────────────────────
