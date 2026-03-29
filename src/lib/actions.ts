@@ -995,21 +995,22 @@ export async function updateUserLinks(links: { label: string; url: string }[]) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  // Remove existing links
-  await prisma.userLink.deleteMany({ where: { userId: user.id } });
-
-  // Create new links with URL validation
+  // Remove existing links and create new ones atomically
   const { validateUrl } = await import("./security");
   const validLinks = links.filter((link) => link.label.trim() && link.url.trim() && validateUrl(link.url));
-  if (validLinks.length > 0) {
-    await prisma.userLink.createMany({
-      data: validLinks.map((link) => ({
-        userId: user.id,
-        label: link.label.trim(),
-        url: link.url.trim(),
-      })),
-    });
-  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userLink.deleteMany({ where: { userId: user.id } });
+    if (validLinks.length > 0) {
+      await tx.userLink.createMany({
+        data: validLinks.map((link) => ({
+          userId: user.id,
+          label: link.label.trim(),
+          url: link.url.trim(),
+        })),
+      });
+    }
+  });
 
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/settings");
@@ -1022,13 +1023,16 @@ export async function updateUserInterests(interests: string[]) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  await prisma.userInterest.deleteMany({ where: { userId: user.id } });
+  const uniqueInterests = [...new Set(interests)];
 
-  if (interests.length > 0) {
-    await prisma.userInterest.createMany({
-      data: interests.map((tag) => ({ userId: user.id, tag })),
-    });
-  }
+  await prisma.$transaction(async (tx) => {
+    await tx.userInterest.deleteMany({ where: { userId: user.id } });
+    if (uniqueInterests.length > 0) {
+      await tx.userInterest.createMany({
+        data: uniqueInterests.map((tag) => ({ userId: user.id, tag })),
+      });
+    }
+  });
 
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/settings");
