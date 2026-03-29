@@ -61,7 +61,7 @@ export default async function ExplorePage() {
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">People you might mesh with</h2>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 stagger-children">
             {suggestedUsers.slice(0, 8).map((suggestedUser: { id: string; username: string; displayName: string; avatarUrl: string | null; interests: { id: string; tag: string }[]; _count: { followers: number } }) => (
               <Link key={suggestedUser.id} href={`/profile/${suggestedUser.username}`} className="rounded-2xl glass-card p-4 hover:border-[var(--border-primary)] transition-all text-center group">
                 <Avatar src={suggestedUser.avatarUrl} alt={suggestedUser.displayName} size="lg" className="mx-auto mb-3" />

@@ -142,6 +142,52 @@ body {
 .animate-slide-up { animation: slideUp 0.4s ease-out; }
 .animate-slide-in { animation: slideIn 0.3s ease-out; }
 
+/* ─── Satisfying Press Feedback ─── */
+.press-scale {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+}
+.press-scale:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ─── Heart Bounce ─── */
+@keyframes heartBounce {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.3); }
+  50% { transform: scale(0.9); }
+  75% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.animate-heart-bounce {
+  animation: heartBounce 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Bookmark Pop ─── */
+@keyframes bookmarkPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.animate-bookmark-pop {
+  animation: bookmarkPop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Smooth Reveal ─── */
+@keyframes smoothReveal {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-smooth-reveal {
+  animation: smoothReveal 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Tooltip fade ─── */
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-tooltip { animation: tooltipIn 0.15s ease-out; }
+
 /* ─── Glass ─── */
 .glass {
   background: var(--glass-bg);
@@ -240,10 +286,17 @@ body {
 
 /* ─── Page Enter ─── */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-page-enter { animation: pageEnter 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+.animate-page-enter { animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ─── Content Fade (lighter variant for sections) ─── */
+@keyframes contentFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-content-fade { animation: contentFade 0.3s ease-out; }
 
 /* ─── Stagger Children ─── */
 @keyframes staggerIn {
@@ -267,11 +320,14 @@ body {
 
 /* ─── Hover Lift ─── */
 .hover-lift {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .hover-lift:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+}
+.hover-lift:active {
+  transform: translateY(0);
 }
 
 /* ─── Card Shine ─── */
@@ -313,6 +369,30 @@ body {
   border-radius: 0 3px 3px 0;
   background: linear-gradient(180deg, #3b82f6, #60a5fa);
   box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  animation: pillSlide 0.2s ease-out;
+}
+@keyframes pillSlide {
+  from { height: 0%; opacity: 0; }
+  to { height: 55%; opacity: 1; }
+}
+
+/* ─── Success Check Animation ─── */
+@keyframes checkPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-check-pop { animation: checkPop 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ─── Action Icon Hover ─── */
+.action-icon {
+  transition: color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+.action-icon:hover {
+  transform: scale(1.08);
+}
+.action-icon:active {
+  transform: scale(0.95);
 }
 
 /* ─── Notification Dot ─── */
@@ -366,6 +446,19 @@ body {
 .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ─── Focus Visible Ring (keyboard only) ─── */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
+}
+
+/* ─── Smooth Section Dividers ─── */
+.section-divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-primary) 20%, var(--border-primary) 80%, transparent);
+}
 
 /* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {

@@ -47,7 +47,7 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center p-2 min-w-[60px] relative",
+                "flex flex-col items-center justify-center p-2 min-w-[60px] relative transition-all duration-200 active:scale-90",
                 isActive ? "text-blue-400" : ""
               )}
             >
