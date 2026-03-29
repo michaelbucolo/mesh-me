@@ -13,8 +13,8 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
   const pathname = usePathname();
 
   const items = [
-    { href: "/feed", icon: Home, label: "Home" },
     { href: "/mesh", icon: Waypoints, label: "Mesh" },
+    { href: "/feed", icon: Home, label: "Feed" },
     { href: "/feed?compose=true", icon: PenSquare, label: "Post", isAction: true },
     { href: "/messages", icon: MessageCircle, label: "MeChat" },
     { href: "/notifications", icon: Bell, label: "Alerts", badge: unreadNotifications },
@@ -26,6 +26,8 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
         {items.map((item) => {
           const isActive = item.href === "/feed"
             ? pathname === "/feed"
+            : item.href === "/mesh"
+            ? pathname === "/mesh"
             : pathname.startsWith(item.href.split("?")[0]);
 
           if (item.isAction) {
