@@ -34,7 +34,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
           <img src={community.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/30 to-transparent" />
-        <Link href="/communities" className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-zinc-300 hover:text-white bg-zinc-950/50 backdrop-blur-sm rounded-lg px-3 py-1.5 transition-colors">
+        <Link href="/communities" className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-white bg-[var(--bg-primary)]/50 backdrop-blur-sm rounded-lg px-3 py-1.5 transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Link>
@@ -52,7 +52,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
           </div>
           <div className="flex items-center gap-2">
             {isMod && (
-              <Link href={`/communities/${slug}`} className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+              <Link href={`/communities/${slug}`} className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors">
                 <Settings className="h-5 w-5" />
               </Link>
             )}
@@ -60,33 +60,33 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-zinc-100 mb-1">{community.name}</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">{community.name}</h1>
         <div className="flex items-center gap-3 mb-3">
           {community.category && <Badge variant="secondary">{community.category}</Badge>}
           {isAdmin && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Admin</Badge>}
         </div>
         {community.description && (
-          <p className="text-sm text-zinc-400 leading-relaxed mb-4">{community.description}</p>
+          <p className="text-sm text-[var(--text-tertiary)] leading-relaxed mb-4">{community.description}</p>
         )}
 
-        <div className="flex items-center gap-6 text-sm text-zinc-500 mb-4">
+        <div className="flex items-center gap-6 text-sm text-[var(--text-muted)] mb-4">
           <span className="flex items-center gap-1.5">
             <Users className="h-4 w-4" />
-            <strong className="text-zinc-300">{community._count.members}</strong> members
+            <strong className="text-[var(--text-secondary)]">{community._count.members}</strong> members
           </span>
           <span className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" />
-            <strong className="text-zinc-300">{community._count.posts}</strong> posts
+            <strong className="text-[var(--text-secondary)]">{community._count.posts}</strong> posts
           </span>
         </div>
 
         {/* Moderators */}
         {admins.length > 0 && (
-          <div className="flex items-center gap-3 mb-4 py-3 border-t border-zinc-800">
-            <span className="text-xs text-zinc-500 flex items-center gap-1"><Crown className="h-3 w-3" /> Moderators:</span>
+          <div className="flex items-center gap-3 mb-4 py-3 border-t border-[var(--border-primary)]">
+            <span className="text-xs text-[var(--text-muted)] flex items-center gap-1"><Crown className="h-3 w-3" /> Moderators:</span>
             <div className="flex items-center gap-2">
               {admins.slice(0, 5).map((m: { role: string; user: { id: string; username: string; displayName: string; avatarUrl: string | null } }) => (
-                <Link key={m.user.id} href={`/profile/${m.user.username}`} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
+                <Link key={m.user.id} href={`/profile/${m.user.username}`} className="flex items-center gap-1.5 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
                   <Avatar src={m.user.avatarUrl} alt={m.user.displayName} size="xs" />
                   <span>{m.user.displayName}</span>
                 </Link>
@@ -104,25 +104,25 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
               ))}
             </div>
             {community._count.members > 8 && (
-              <span className="text-xs text-zinc-500">+{community._count.members - 8} more</span>
+              <span className="text-xs text-[var(--text-muted)]">+{community._count.members - 8} more</span>
             )}
           </div>
         )}
 
         {/* Rules */}
         {community.rules && (
-          <details className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
-            <summary className="text-sm font-medium text-zinc-400 cursor-pointer flex items-center gap-2 p-3 hover:bg-zinc-800/50 transition-colors">
+          <details className="mb-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 overflow-hidden">
+            <summary className="text-sm font-medium text-[var(--text-tertiary)] cursor-pointer flex items-center gap-2 p-3 hover:bg-[var(--bg-tertiary)] transition-colors">
               <Shield className="h-4 w-4 text-blue-400" />
               Community rules
             </summary>
-            <div className="px-3 pb-3 text-sm text-zinc-500 whitespace-pre-wrap border-t border-zinc-800 pt-3">{community.rules}</div>
+            <div className="px-3 pb-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap border-t border-[var(--border-primary)] pt-3">{community.rules}</div>
           </details>
         )}
       </div>
 
       {/* Posts */}
-      <div className="px-4 py-6 border-t border-zinc-800">
+      <div className="px-4 py-6 border-t border-[var(--border-primary)]">
         {community.isMember && user && (
           <div className="mb-6">
             <PostComposer

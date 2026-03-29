@@ -15,8 +15,8 @@ export default async function CommunitiesPage() {
     <div className="max-w-4xl mx-auto px-4 py-6 animate-page-enter">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Communities</h1>
-          <p className="text-sm text-zinc-400 mt-1">Find your people, join the conversation</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Communities</h1>
+          <p className="text-sm text-[var(--text-tertiary)] mt-1">Find your people, join the conversation</p>
         </div>
         <Link
           href="/communities/create"

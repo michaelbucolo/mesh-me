@@ -33,7 +33,7 @@ export function CommunityCard({ community, currentUserId }: CommunityCardProps) 
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5 hover:border-zinc-700 transition-all duration-200">
+    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5 hover:border-[var(--border-primary)] transition-all duration-200">
       <div className="flex items-start gap-3">
         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600/20 to-blue-500/20 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
           {community.iconUrl ? (
@@ -43,18 +43,18 @@ export function CommunityCard({ community, currentUserId }: CommunityCardProps) 
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <Link href={`/communities/${community.slug}`} className="font-semibold text-zinc-100 hover:underline">
+          <Link href={`/communities/${community.slug}`} className="font-semibold text-[var(--text-primary)] hover:underline">
             {community.name}
           </Link>
           {community.category && (
             <Badge variant="secondary" className="ml-2 text-[10px]">{community.category}</Badge>
           )}
           {community.description && (
-            <p className="text-sm text-zinc-400 mt-1 line-clamp-2">{community.description}</p>
+            <p className="text-sm text-[var(--text-tertiary)] mt-1 line-clamp-2">{community.description}</p>
           )}
-          <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
-            <span><strong className="text-zinc-300">{community._count.members}</strong> members</span>
-            <span><strong className="text-zinc-300">{community._count.posts}</strong> posts</span>
+          <div className="flex items-center gap-3 mt-2 text-xs text-[var(--text-muted)]">
+            <span><strong className="text-[var(--text-secondary)]">{community._count.members}</strong> members</span>
+            <span><strong className="text-[var(--text-secondary)]">{community._count.posts}</strong> posts</span>
           </div>
         </div>
         {currentUserId && (

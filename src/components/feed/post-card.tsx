@@ -93,7 +93,8 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
   return (
     <article className={cn(
-      "rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-sm hover:border-zinc-700 transition-all duration-200 group",
+      "rounded-2xl border backdrop-blur-sm transition-all duration-200 group",
+      "border-[var(--border-primary)] bg-[var(--bg-card)] hover:border-[var(--border-secondary)]",
       post.isPinned && "ring-1 ring-blue-500/30"
     )}>
       <div className={cn("p-5", compact && "p-3")}>
@@ -112,7 +113,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
             </Link>
             <div>
               <div className="flex items-center gap-1.5">
-                <Link href={`/profile/${post.author.username}`} className="font-semibold text-zinc-100 hover:underline text-sm">
+                <Link href={`/profile/${post.author.username}`} className="font-semibold hover:underline text-sm" style={{ color: "var(--text-primary)" }}>
                   {post.author.displayName}
                 </Link>
                 {post.author.isVerified && (
@@ -121,8 +122,8 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                   </svg>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-                <Link href={`/profile/${post.author.username}`} className="hover:text-zinc-400">
+              <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                <Link href={`/profile/${post.author.username}`} className="hover:opacity-80">
                   @{post.author.username}
                 </Link>
                 <span>&middot;</span>
@@ -141,19 +142,19 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
           {/* More menu */}
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100">
+            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100" style={{ color: "var(--text-muted)" }}>
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-8 w-48 rounded-xl border border-zinc-700 bg-zinc-800 shadow-xl z-20 py-1">
-                <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors">
+              <div className="absolute right-0 top-8 w-48 rounded-xl border shadow-xl z-20 py-1" style={{ borderColor: "var(--border-primary)", background: "var(--bg-elevated)" }}>
+                <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
-                <Link href={`/feed/${post.id}`} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors">
+                <Link href={`/feed/${post.id}`} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <ExternalLink className="h-4 w-4" /> Open post
                 </Link>
                 {!isOwner && (
-                  <button className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors">
+                  <button className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                     <Flag className="h-4 w-4" /> Report post
                   </button>
                 )}
@@ -169,7 +170,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
         {/* Content */}
         <Link href={`/feed/${post.id}`}>
-          <p className={cn("text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap mb-3", compact && "line-clamp-3")}>{post.content}</p>
+          <p className={cn("text-sm leading-relaxed whitespace-pre-wrap mb-3", compact && "line-clamp-3")} style={{ color: "var(--text-secondary)" }}>{post.content}</p>
         </Link>
 
         {/* Media */}
@@ -202,35 +203,35 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-zinc-800/50">
+        <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid var(--border-primary)" }}>
           <div className="flex items-center gap-1">
-            <button onClick={handleLike} disabled={isPending} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200", liked ? "text-rose-400 hover:text-rose-300" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50")}>
+            <button onClick={handleLike} disabled={isPending} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200", liked ? "text-rose-400 hover:text-rose-300" : "hover:opacity-80")} style={!liked ? { color: "var(--text-muted)" } : undefined}>
               <Heart className={cn("h-4 w-4 transition-transform", liked && "fill-current scale-110")} />
               <span className="text-xs">{formatCount(likeCount)}</span>
             </button>
-            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors">
+            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-muted)" }}>
               <MessageCircle className="h-4 w-4" />
               <span className="text-xs">{formatCount(post._count.comments)}</span>
             </Link>
-            <button onClick={handleRepost} disabled={isPending} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-zinc-500 hover:text-emerald-400 hover:bg-zinc-800/50 transition-colors">
+            <button onClick={handleRepost} disabled={isPending} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:text-emerald-400 transition-colors" style={{ color: "var(--text-muted)" }}>
               <Repeat2 className="h-4 w-4" />
               <span className="text-xs">{formatCount(repostCount)}</span>
             </button>
           </div>
           <div className="flex items-center gap-1">
             <div className="relative" ref={shareRef}>
-              <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors">
+              <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-1.5 rounded-lg hover:opacity-80 transition-colors" style={{ color: "var(--text-muted)" }}>
                 <Share2 className="h-4 w-4" />
               </button>
               {showShareMenu && (
-                <div className="absolute right-0 bottom-8 w-44 rounded-xl border border-zinc-700 bg-zinc-800 shadow-xl z-20 py-1">
-                  <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors">
+                <div className="absolute right-0 bottom-8 w-44 rounded-xl border shadow-xl z-20 py-1" style={{ borderColor: "var(--border-primary)", background: "var(--bg-elevated)" }}>
+                  <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                     <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
                   </button>
                 </div>
               )}
             </div>
-            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200", saved ? "text-blue-400 hover:text-blue-300" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50")}>
+            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200", saved ? "text-blue-400 hover:text-blue-300" : "hover:opacity-80")} style={!saved ? { color: "var(--text-muted)" } : undefined}>
               <Bookmark className={cn("h-4 w-4 transition-transform", saved && "fill-current scale-110")} />
             </button>
           </div>

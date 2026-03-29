@@ -55,7 +55,7 @@ export function CommentSection({ postId, comments, currentUser }: CommentSection
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+              className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl px-4 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-blue-500 focus:outline-none transition-colors"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -87,14 +87,14 @@ function CommentItem({ comment }: { comment: Comment }) {
         <Avatar src={comment.author.avatarUrl} alt={comment.author.displayName} size="sm" />
       </Link>
       <div className="flex-1">
-        <div className="bg-zinc-800/50 rounded-xl px-4 py-3">
+        <div className="bg-[var(--bg-tertiary)] rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <Link href={`/profile/${comment.author.username}`} className="text-sm font-semibold text-zinc-200 hover:underline">
+            <Link href={`/profile/${comment.author.username}`} className="text-sm font-semibold text-[var(--text-primary)] hover:underline">
               {comment.author.displayName}
             </Link>
-            <span className="text-xs text-zinc-500">{formatRelativeTime(comment.createdAt)}</span>
+            <span className="text-xs text-[var(--text-muted)]">{formatRelativeTime(comment.createdAt)}</span>
           </div>
-          <p className="text-sm text-zinc-300 leading-relaxed">{comment.content}</p>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{comment.content}</p>
         </div>
 
         {/* Replies */}

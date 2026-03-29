@@ -70,14 +70,14 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-sm shadow-2xl"
+            className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl w-full max-w-sm shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="p-6 text-center border-b border-zinc-800">
+            <div className="p-6 text-center border-b border-[var(--border-primary)]">
               <Avatar src={targetUser.avatarUrl} alt={targetUser.displayName} size="lg" className="mx-auto mb-3" />
-              <h2 className="text-lg font-semibold text-zinc-100">Follow {targetUser.displayName}?</h2>
-              <p className="text-sm text-zinc-500 mt-1">@{targetUser.username} is on {targetUser.connectedPlatforms.length + 1} platforms</p>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Follow {targetUser.displayName}?</h2>
+              <p className="text-sm text-[var(--text-muted)] mt-1">@{targetUser.username} is on {targetUser.connectedPlatforms.length + 1} platforms</p>
             </div>
 
             {/* Options */}
@@ -92,10 +92,10 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
                   <Globe className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-zinc-100">Follow everywhere</p>
-                  <p className="text-xs text-zinc-500">Follow on mesh.me + all {targetUser.connectedPlatforms.length} connected platforms</p>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">Follow everywhere</p>
+                  <p className="text-xs text-[var(--text-muted)]">Follow on mesh.me + all {targetUser.connectedPlatforms.length} connected platforms</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-zinc-500" />
+                <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
               </button>
 
               {/* Follow on Source Platform Only */}
@@ -103,7 +103,7 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
                 <button
                   onClick={() => handleChoice("platform")}
                   disabled={loading}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/50 hover:border-zinc-600 transition-all text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-all text-left"
                 >
                   <div
                     className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
@@ -112,10 +112,10 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
                     {sourcePlatform.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-zinc-100 capitalize">Follow on {sourcePlatform}</p>
-                    <p className="text-xs text-zinc-500">Only follow on the platform this post is from</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)] capitalize">Follow on {sourcePlatform}</p>
+                    <p className="text-xs text-[var(--text-muted)]">Only follow on the platform this post is from</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-zinc-500" />
+                  <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
                 </button>
               )}
 
@@ -123,16 +123,16 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
               <button
                 onClick={() => handleChoice("mesh-only")}
                 disabled={loading}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/50 hover:border-zinc-600 transition-all text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-all text-left"
               >
                 <div className="h-10 w-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                   <UserPlus className="h-5 w-5 text-blue-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-zinc-100">Follow on mesh.me only</p>
-                  <p className="text-xs text-zinc-500">Just follow their mesh.me profile</p>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">Follow on mesh.me only</p>
+                  <p className="text-xs text-[var(--text-muted)]">Just follow their mesh.me profile</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-zinc-500" />
+                <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
               </button>
             </div>
 
@@ -140,7 +140,7 @@ export function FollowPromptDialog({ isOpen, onClose, targetUser, sourcePlatform
             <div className="p-4 pt-0">
               <button
                 onClick={onClose}
-                className="w-full py-2.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="w-full py-2.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
               >
                 Cancel
               </button>

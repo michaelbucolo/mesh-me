@@ -21,7 +21,7 @@ export default async function FeedPage() {
     <div className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-100">Home</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Home</h1>
       </div>
 
       {/* Composer */}

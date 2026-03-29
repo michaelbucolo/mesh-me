@@ -8,8 +8,8 @@ interface BadgeProps {
 
 const variantStyles = {
   default: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  secondary: "bg-zinc-700/50 text-zinc-300 border-zinc-600",
-  outline: "bg-transparent text-zinc-400 border-zinc-600",
+  secondary: "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]",
+  outline: "bg-transparent text-[var(--text-tertiary)] border-[var(--border-primary)]",
   success: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
   danger: "bg-red-500/20 text-red-300 border-red-500/30",
 };

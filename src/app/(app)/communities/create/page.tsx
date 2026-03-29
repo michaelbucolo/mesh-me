@@ -46,13 +46,13 @@ export default function CreateCommunityPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6">
-      <Link href="/communities" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors mb-6">
+      <Link href="/communities" className="inline-flex items-center gap-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors mb-6">
         <ArrowLeft className="h-4 w-4" />
         Back to communities
       </Link>
 
-      <h1 className="text-2xl font-bold text-zinc-100 mb-2">Create a community</h1>
-      <p className="text-sm text-zinc-400 mb-8">Build a space for people who share your interests</p>
+      <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Create a community</h1>
+      <p className="text-sm text-[var(--text-tertiary)] mb-8">Build a space for people who share your interests</p>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
@@ -60,17 +60,17 @@ export default function CreateCommunityPage() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Name</label>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Name</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Awesome Community" maxLength={50} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Description</label>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Description</label>
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this community about?" rows={3} maxLength={300} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Category</label>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Category</label>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => (
               <button
@@ -80,7 +80,7 @@ export default function CreateCommunityPage() {
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                   category === cat
                     ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
-                    : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                    : "bg-[var(--bg-tertiary)] border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-secondary)]"
                 }`}
               >
                 {cat}
@@ -90,7 +90,7 @@ export default function CreateCommunityPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Community rules (optional)</label>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Community rules (optional)</label>
           <Textarea value={rules} onChange={(e) => setRules(e.target.value)} placeholder="Be respectful, no spam..." rows={3} />
         </div>
 

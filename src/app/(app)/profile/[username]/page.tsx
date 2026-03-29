@@ -77,21 +77,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
         <div className="mb-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-zinc-100">{profile.displayName}</h1>
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">{profile.displayName}</h1>
             {profile.isVerified && (
               <svg className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             )}
           </div>
-          <p className="text-sm text-zinc-500">@{profile.username}</p>
+          <p className="text-sm text-[var(--text-muted)]">@{profile.username}</p>
         </div>
 
         {profile.bio && (
-          <p className="text-sm text-zinc-300 leading-relaxed mb-3">{profile.bio}</p>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-3">{profile.bio}</p>
         )}
 
-        <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-500 mb-3">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--text-muted)] mb-3">
           {profile.location && (
             <span className="flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5" />
@@ -111,11 +111,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         </div>
 
         <div className="flex items-center gap-4 text-sm mb-4">
-          <span className="text-zinc-400">
-            <strong className="text-zinc-200">{formatCount(profile._count.following)}</strong> following
+          <span className="text-[var(--text-tertiary)]">
+            <strong className="text-[var(--text-primary)]">{formatCount(profile._count.following)}</strong> following
           </span>
-          <span className="text-zinc-400">
-            <strong className="text-zinc-200">{formatCount(profile._count.followers)}</strong> followers
+          <span className="text-[var(--text-tertiary)]">
+            <strong className="text-[var(--text-primary)]">{formatCount(profile._count.followers)}</strong> followers
           </span>
         </div>
 
@@ -134,11 +134,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             {connectedAccounts.map((account) => (
               <span
                 key={account.platform}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800/50 border border-zinc-700/50 text-xs text-zinc-300"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)]/50 text-xs text-[var(--text-secondary)]"
               >
                 <Link2 className="h-3 w-3 text-blue-400" />
                 {account.platform}
-                {account.platformUsername && <span className="text-zinc-500">@{account.platformUsername}</span>}
+                {account.platformUsername && <span className="text-[var(--text-muted)]">@{account.platformUsername}</span>}
               </span>
             ))}
           </div>
@@ -146,7 +146,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
         {/* Mutual followers */}
         {!profile.isOwnProfile && profile.mutualFollowers.length > 0 && (
-          <div className="flex items-center gap-2 mb-4 text-xs text-zinc-500">
+          <div className="flex items-center gap-2 mb-4 text-xs text-[var(--text-muted)]">
             <div className="flex -space-x-2">
               {profile.mutualFollowers.slice(0, 3).map((mutual) => (
                 <Avatar key={mutual.id} src={mutual.avatarUrl} alt={mutual.displayName} size="xs" />
@@ -168,7 +168,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-800 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
               >
                 <LinkIcon className="h-3 w-3" />
                 {link.label}

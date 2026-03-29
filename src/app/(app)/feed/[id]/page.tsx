@@ -16,7 +16,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="mb-6">
-        <Link href="/feed" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors">
+        <Link href="/feed" className="inline-flex items-center gap-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back to feed
         </Link>
@@ -24,8 +24,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
       <PostCard post={post} currentUserId={user?.id} />
 
-      <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5">
-        <h3 className="text-sm font-semibold text-zinc-300 mb-4">
+      <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+        <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-4">
           Comments ({post._count.comments})
         </h3>
         <CommentSection

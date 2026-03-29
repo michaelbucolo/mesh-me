@@ -39,8 +39,8 @@ export default function OnboardingPage() {
       <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 mb-2">
         <Sparkles className="h-8 w-8 text-white" />
       </div>
-      <h1 className="text-3xl font-bold text-zinc-100">Welcome to mesh.me</h1>
-      <p className="text-zinc-400 text-lg max-w-md mx-auto">
+      <h1 className="text-3xl font-bold text-[var(--text-primary)]">Welcome to mesh.me</h1>
+      <p className="text-[var(--text-tertiary)] text-lg max-w-md mx-auto">
         Let&apos;s set up your space. This will help us personalize your experience and help others discover you.
       </p>
       <Button onClick={() => setStep(1)} variant="gradient" size="lg">
@@ -51,11 +51,11 @@ export default function OnboardingPage() {
     // Step 1: Bio & Location
     <div key="bio" className="space-y-6 animate-fade-in max-w-md mx-auto w-full">
       <div className="text-center mb-2">
-        <h2 className="text-2xl font-bold text-zinc-100 mb-2">Tell us about yourself</h2>
-        <p className="text-zinc-400">A short bio helps people know who you are</p>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Tell us about yourself</h2>
+        <p className="text-[var(--text-tertiary)]">A short bio helps people know who you are</p>
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-1.5">Bio</label>
+        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Bio</label>
         <Textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
@@ -63,10 +63,10 @@ export default function OnboardingPage() {
           rows={3}
           maxLength={160}
         />
-        <p className="text-xs text-zinc-500 mt-1">{bio.length}/160</p>
+        <p className="text-xs text-[var(--text-muted)] mt-1">{bio.length}/160</p>
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-1.5">Location (optional)</label>
+        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Location (optional)</label>
         <Input
           value={location}
           onChange={(e) => setLocation(e.target.value)}
@@ -84,8 +84,8 @@ export default function OnboardingPage() {
     // Step 2: Interests
     <div key="interests" className="space-y-6 animate-fade-in max-w-lg mx-auto w-full">
       <div className="text-center mb-2">
-        <h2 className="text-2xl font-bold text-zinc-100 mb-2">What are you into?</h2>
-        <p className="text-zinc-400">Pick at least 3 interests to personalize your experience</p>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">What are you into?</h2>
+        <p className="text-[var(--text-tertiary)]">Pick at least 3 interests to personalize your experience</p>
       </div>
       <div className="flex flex-wrap gap-2 justify-center">
         {INTEREST_TAGS.map((tag) => (
@@ -96,14 +96,14 @@ export default function OnboardingPage() {
               "px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200",
               selectedInterests.includes(tag)
                 ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
-                : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
+                : "bg-[var(--bg-tertiary)] border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-secondary)] hover:text-[var(--text-secondary)]"
             )}
           >
             {tag}
           </button>
         ))}
       </div>
-      <p className="text-center text-sm text-zinc-500">{selectedInterests.length} selected</p>
+      <p className="text-center text-sm text-[var(--text-muted)]">{selectedInterests.length} selected</p>
       <div className="flex gap-3 justify-end">
         <Button onClick={() => setStep(1)} variant="ghost">Back</Button>
         <Button
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 mesh-bg flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[var(--bg-primary)] mesh-bg flex items-center justify-center px-6">
       <div className="w-full max-w-xl">
         {/* Progress bar */}
         <div className="flex gap-2 mb-12 max-w-xs mx-auto">
@@ -127,7 +127,7 @@ export default function OnboardingPage() {
               key={i}
               className={cn(
                 "h-1 flex-1 rounded-full transition-all duration-300",
-                i <= step ? "bg-blue-500" : "bg-zinc-800"
+                i <= step ? "bg-blue-500" : "bg-[var(--bg-tertiary)]"
               )}
             />
           ))}

@@ -36,15 +36,15 @@ export function UserCard({ user, currentUserId, isFollowing: initialFollowing = 
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/50 transition-colors">
+      <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors">
         <Link href={`/profile/${user.username}`}>
           <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
         </Link>
         <div className="flex-1 min-w-0">
-          <Link href={`/profile/${user.username}`} className="font-medium text-sm text-zinc-200 hover:underline truncate block">
+          <Link href={`/profile/${user.username}`} className="font-medium text-sm text-[var(--text-primary)] hover:underline truncate block">
             {user.displayName}
           </Link>
-          <p className="text-xs text-zinc-500 truncate">@{user.username}</p>
+          <p className="text-xs text-[var(--text-muted)] truncate">@{user.username}</p>
         </div>
         {currentUserId && currentUserId !== user.id && (
           <Button size="sm" variant={initialFollowing ? "secondary" : "default"} onClick={handleFollow} disabled={isPending}>
@@ -56,14 +56,14 @@ export function UserCard({ user, currentUserId, isFollowing: initialFollowing = 
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5 hover:border-zinc-700 transition-all duration-200">
+    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5 hover:border-[var(--border-primary)] transition-all duration-200">
       <div className="flex items-start gap-3">
         <Link href={`/profile/${user.username}`}>
           <Avatar src={user.avatarUrl} alt={user.displayName} size="lg" />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <Link href={`/profile/${user.username}`} className="font-semibold text-zinc-100 hover:underline">
+            <Link href={`/profile/${user.username}`} className="font-semibold text-[var(--text-primary)] hover:underline">
               {user.displayName}
             </Link>
             {user.isVerified && (
@@ -72,9 +72,9 @@ export function UserCard({ user, currentUserId, isFollowing: initialFollowing = 
               </svg>
             )}
           </div>
-          <p className="text-sm text-zinc-500">@{user.username}</p>
+          <p className="text-sm text-[var(--text-muted)]">@{user.username}</p>
           {showBio && user.bio && (
-            <p className="text-sm text-zinc-400 mt-2 line-clamp-2">{user.bio}</p>
+            <p className="text-sm text-[var(--text-tertiary)] mt-2 line-clamp-2">{user.bio}</p>
           )}
           {user.interests && user.interests.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
@@ -86,9 +86,9 @@ export function UserCard({ user, currentUserId, isFollowing: initialFollowing = 
             </div>
           )}
           {user._count && (
-            <div className="flex gap-3 mt-2 text-xs text-zinc-500">
-              <span><strong className="text-zinc-300">{user._count.followers}</strong> followers</span>
-              <span><strong className="text-zinc-300">{user._count.posts}</strong> posts</span>
+            <div className="flex gap-3 mt-2 text-xs text-[var(--text-muted)]">
+              <span><strong className="text-[var(--text-secondary)]">{user._count.followers}</strong> followers</span>
+              <span><strong className="text-[var(--text-secondary)]">{user._count.posts}</strong> posts</span>
             </div>
           )}
         </div>

@@ -785,7 +785,7 @@ export default function MeshPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-zinc-950">
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
         <div className="text-center">
           <div className="relative w-24 h-24 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full border-2 border-blue-500/20 animate-ping" />
@@ -795,8 +795,8 @@ export default function MeshPage() {
               <Sparkles className="h-6 w-6 text-blue-400" />
             </div>
           </div>
-          <p className="text-zinc-300 font-medium mb-1">Building your mesh...</p>
-          <p className="text-zinc-600 text-sm">Mapping your digital universe</p>
+          <p className="text-[var(--text-secondary)] font-medium mb-1">Building your mesh...</p>
+          <p className="text-[var(--text-muted)] text-sm">Mapping your digital universe</p>
         </div>
       </div>
     );
@@ -804,12 +804,12 @@ export default function MeshPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-zinc-950">
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
             <X className="h-8 w-8 text-red-400" />
           </div>
-          <p className="text-zinc-300 font-medium mb-2">{error}</p>
+          <p className="text-[var(--text-secondary)] font-medium mb-2">{error}</p>
           <Button variant="secondary" onClick={() => window.location.reload()}>
             <RotateCcw className="h-4 w-4 mr-2" />
             Retry
@@ -820,7 +820,7 @@ export default function MeshPage() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] overflow-hidden bg-zinc-950">
+    <div className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-10 p-4">
         <div className="flex items-start justify-between">
@@ -830,14 +830,14 @@ export default function MeshPage() {
                 <Layers className="h-4 w-4 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-zinc-100">The Mesh</h1>
-                <p className="text-[11px] text-zinc-500">Your digital universe</p>
+                <h1 className="text-lg font-bold text-[var(--text-primary)]">The Mesh</h1>
+                <p className="text-[11px] text-[var(--text-muted)]">Your digital universe</p>
               </div>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="flex gap-1 bg-zinc-900/80 backdrop-blur-xl rounded-xl p-1 border border-zinc-800/60 shadow-xl">
+          <div className="flex gap-1 bg-[var(--bg-card)] backdrop-blur-xl rounded-xl p-1 border border-[var(--border-primary)]/60 shadow-xl">
             {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
               const IconComp = fItem.icon;
               return (
@@ -847,13 +847,13 @@ export default function MeshPage() {
                   className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all " + (
                     filter === fItem.id
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                      : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                   )}
                 >
                   <IconComp className="h-3 w-3" />
                   <span className="hidden lg:inline">{fItem.label}</span>
                   {fItem.count > 0 && fItem.id !== "all" && (
-                    <span className={"text-[9px] px-1 rounded-full " + (filter === fItem.id ? "bg-white/20" : "bg-zinc-800 text-zinc-500")}>
+                    <span className={"text-[9px] px-1 rounded-full " + (filter === fItem.id ? "bg-white/20" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]")}>
                       {fItem.count}
                     </span>
                   )}
@@ -866,12 +866,12 @@ export default function MeshPage() {
 
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
-        <button onClick={() => handleZoom(0.3)} className="p-2 bg-zinc-900/80 backdrop-blur-xl rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
-        <button onClick={() => handleZoom(-0.3)} className="p-2 bg-zinc-900/80 backdrop-blur-xl rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
-        <button onClick={resetView} className="p-2 bg-zinc-900/80 backdrop-blur-xl rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
-        <div className="h-px bg-zinc-800 my-0.5" />
-        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 bg-zinc-900/80 backdrop-blur-xl rounded-lg border border-zinc-800 transition-all " + (showLabels ? "text-blue-400" : "text-zinc-500")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
-        <button onClick={() => setShowStats(!showStats)} className={"p-2 bg-zinc-900/80 backdrop-blur-xl rounded-lg border border-zinc-800 transition-all " + (showStats ? "text-blue-400" : "text-zinc-500")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
+        <button onClick={() => handleZoom(0.3)} className="p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
+        <button onClick={() => handleZoom(-0.3)} className="p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
+        <button onClick={resetView} className="p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
+        <div className="h-px bg-[var(--bg-tertiary)] my-0.5" />
+        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] transition-all " + (showLabels ? "text-blue-400" : "text-[var(--text-muted)]")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
+        <button onClick={() => setShowStats(!showStats)} className={"p-2 bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)] transition-all " + (showStats ? "text-blue-400" : "text-[var(--text-muted)]")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
       </div>
 
       {/* Stats bar */}
@@ -890,11 +890,11 @@ export default function MeshPage() {
               { label: "posts", count: nodes.filter((n) => n.type === "post").length, color: "text-emerald-400" },
               { label: "platforms", count: nodes.filter((n) => n.type === "platform").length, color: "text-amber-400" },
             ].filter((s) => s.count > 0).map((s) => (
-              <div key={s.label} className="bg-zinc-900/80 backdrop-blur-xl rounded-lg border border-zinc-800/60 px-2.5 py-1.5 text-[11px] text-zinc-400 shadow-lg">
+              <div key={s.label} className="bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)]/60 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] shadow-lg">
                 <span className={"font-semibold " + s.color}>{s.count}</span> {s.label}
               </div>
             ))}
-            <div className="bg-zinc-900/80 backdrop-blur-xl rounded-lg border border-zinc-800/60 px-2.5 py-1.5 text-[11px] text-zinc-500">
+            <div className="bg-[var(--bg-card)] backdrop-blur-xl rounded-lg border border-[var(--border-primary)]/60 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)]">
               {Math.round(zoom * 100)}% zoom
             </div>
           </motion.div>
@@ -903,7 +903,7 @@ export default function MeshPage() {
 
       {/* Hint */}
       {nodes.length > 0 && !selectedNode && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-zinc-900/60 backdrop-blur-xl rounded-lg border border-zinc-800/40 px-3 py-1.5 text-[10px] text-zinc-500 pointer-events-none">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-[var(--bg-secondary)]/60 backdrop-blur-xl rounded-lg border border-[var(--border-primary)]/40 px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none">
           Click a node to inspect &middot; Double-click to navigate &middot; Scroll to zoom &middot; Drag to pan
         </div>
       )}
@@ -933,7 +933,7 @@ export default function MeshPage() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute top-16 right-4 z-20 w-80 bg-zinc-900/95 backdrop-blur-xl rounded-2xl border border-zinc-800/60 shadow-2xl overflow-hidden"
+            className="absolute top-16 right-4 z-20 w-80 bg-[var(--bg-secondary)]/95 backdrop-blur-xl rounded-2xl border border-[var(--border-primary)]/60 shadow-2xl overflow-hidden"
           >
             <div className="h-2 w-full" style={{ background: "linear-gradient(90deg, " + selectedNode.color + ", " + selectedNode.color + "80, transparent)" }} />
             <div className="p-4">
@@ -951,11 +951,11 @@ export default function MeshPage() {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-zinc-100 truncate">{selectedNode.label}</p>
-                    {selectedNode.sublabel && <p className="text-xs text-zinc-500 truncate">{selectedNode.sublabel}</p>}
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{selectedNode.label}</p>
+                    {selectedNode.sublabel && <p className="text-xs text-[var(--text-muted)] truncate">{selectedNode.sublabel}</p>}
                   </div>
                 </div>
-                <button onClick={() => setSelectedNode(null)} className="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"><X className="h-4 w-4" /></button>
+                <button onClick={() => setSelectedNode(null)} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"><X className="h-4 w-4" /></button>
               </div>
 
               <div className="flex items-center gap-2 mb-3">
@@ -964,21 +964,21 @@ export default function MeshPage() {
                 {selectedNode.category && <Badge variant="secondary" className="text-[10px]">{selectedNode.category}</Badge>}
               </div>
 
-              {selectedNode.content && <p className="text-xs text-zinc-400 leading-relaxed mb-3 line-clamp-3">{selectedNode.content}</p>}
+              {selectedNode.content && <p className="text-xs text-[var(--text-tertiary)] leading-relaxed mb-3 line-clamp-3">{selectedNode.content}</p>}
 
               {(selectedNode.followerCount !== undefined || selectedNode.postCount !== undefined || selectedNode.memberCount !== undefined || selectedNode.likeCount !== undefined) && (
-                <div className="flex items-center gap-3 mb-3 py-2 border-y border-zinc-800/50">
-                  {selectedNode.followerCount !== undefined && <div className="flex items-center gap-1 text-xs text-zinc-400"><Users className="h-3 w-3" /><span className="text-zinc-200 font-medium">{selectedNode.followerCount}</span> followers</div>}
-                  {selectedNode.postCount !== undefined && <div className="flex items-center gap-1 text-xs text-zinc-400"><FileText className="h-3 w-3" /><span className="text-zinc-200 font-medium">{selectedNode.postCount}</span> posts</div>}
-                  {selectedNode.memberCount !== undefined && <div className="flex items-center gap-1 text-xs text-zinc-400"><Users className="h-3 w-3" /><span className="text-zinc-200 font-medium">{selectedNode.memberCount}</span> members</div>}
-                  {selectedNode.likeCount !== undefined && <div className="flex items-center gap-1 text-xs text-zinc-400"><Heart className="h-3 w-3" /><span className="text-zinc-200 font-medium">{selectedNode.likeCount}</span></div>}
-                  {selectedNode.commentCount !== undefined && <div className="flex items-center gap-1 text-xs text-zinc-400"><MessageCircle className="h-3 w-3" /><span className="text-zinc-200 font-medium">{selectedNode.commentCount}</span></div>}
+                <div className="flex items-center gap-3 mb-3 py-2 border-y border-[var(--border-primary)]">
+                  {selectedNode.followerCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Users className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.followerCount}</span> followers</div>}
+                  {selectedNode.postCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><FileText className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.postCount}</span> posts</div>}
+                  {selectedNode.memberCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Users className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.memberCount}</span> members</div>}
+                  {selectedNode.likeCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Heart className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.likeCount}</span></div>}
+                  {selectedNode.commentCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><MessageCircle className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{selectedNode.commentCount}</span></div>}
                 </div>
               )}
 
               {selectedNode.sharedInterests && selectedNode.sharedInterests.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Shared interests</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1.5">Shared interests</p>
                   <div className="flex flex-wrap gap-1">
                     {selectedNode.sharedInterests.map((stag) => (
                       <span key={stag} className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">#{stag}</span>
@@ -988,7 +988,7 @@ export default function MeshPage() {
               )}
 
               <div className="mb-3">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   {edges.filter((e) => e.source === selectedNode.id || e.target === selectedNode.id).length} connections in mesh
                 </p>
               </div>
@@ -1013,11 +1013,11 @@ export default function MeshPage() {
       {nodes.length <= 1 && !loading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="text-center pointer-events-auto">
-            <div className="w-20 h-20 rounded-2xl bg-zinc-800/50 flex items-center justify-center mx-auto mb-4">
-              <Layers className="h-10 w-10 text-zinc-600" />
+            <div className="w-20 h-20 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4">
+              <Layers className="h-10 w-10 text-[var(--text-muted)]" />
             </div>
-            <h3 className="text-lg font-semibold text-zinc-300 mb-2">Your mesh is growing</h3>
-            <p className="text-sm text-zinc-500 mb-4 max-w-sm">
+            <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-2">Your mesh is growing</h3>
+            <p className="text-sm text-[var(--text-muted)] mb-4 max-w-sm">
               Follow people, join communities, add interests, and create posts to see your digital universe expand.
             </p>
             <div className="flex items-center justify-center gap-3">

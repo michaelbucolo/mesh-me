@@ -38,16 +38,16 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ t
   return (
     <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-2rem)]">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-zinc-800">
-        <Link href="/messages" className="text-zinc-400 hover:text-zinc-200 transition-colors">
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-[var(--border-primary)]">
+        <Link href="/messages" className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         {otherUser && (
           <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Avatar src={otherUser.avatarUrl} alt={otherUser.displayName} size="sm" />
             <div>
-              <h2 className="text-sm font-semibold text-zinc-100">{otherUser.displayName}</h2>
-              <p className="text-xs text-zinc-500">@{otherUser.username}</p>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">{otherUser.displayName}</h2>
+              <p className="text-xs text-[var(--text-muted)]">@{otherUser.username}</p>
             </div>
           </Link>
         )}
@@ -63,17 +63,17 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ t
                 {!isOwn && (
                   <div className="flex items-center gap-2 mb-1">
                     <Avatar src={message.sender.avatarUrl} alt={message.sender.displayName} size="xs" />
-                    <span className="text-xs text-zinc-500">{message.sender.displayName}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{message.sender.displayName}</span>
                   </div>
                 )}
                 <div className={`px-4 py-2.5 rounded-2xl text-sm ${
                   isOwn
                     ? "bg-blue-600 text-white rounded-br-md"
-                    : "bg-zinc-800 text-zinc-200 rounded-bl-md"
+                    : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-bl-md"
                 }`}>
                   {message.content}
                 </div>
-                <p className={`text-xs text-zinc-600 mt-1 ${isOwn ? "text-right" : ""}`}>
+                <p className={`text-xs text-[var(--text-muted)] mt-1 ${isOwn ? "text-right" : ""}`}>
                   {formatRelativeTime(message.createdAt)}
                 </p>
               </div>

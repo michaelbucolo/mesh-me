@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
+import { useTheme } from "@/components/theme-provider";
+import { Sun, Moon, Monitor } from "lucide-react";
 
 interface SidebarProps {
   user: {
@@ -48,17 +50,18 @@ const navItems = [
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const pathname = usePathname();
+  const { mode, setMode } = useTheme();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-zinc-800/30 bg-zinc-950/80 backdrop-blur-2xl">
+    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 backdrop-blur-2xl" style={{ borderRight: "1px solid var(--border-primary)", background: "var(--bg-elevated)" }}>
       {/* Logo */}
       <div className="p-6">
         <Link href="/feed" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
             <span className="text-white font-bold text-sm">m</span>
           </div>
-          <span className="text-xl font-bold text-zinc-100">
-            mesh<span className="text-blue-400">.me</span>
+          <span className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            mesh<span className="text-blue-500">.me</span>
           </span>
         </Link>
       </div>
@@ -75,11 +78,11 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
                 "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive
                   ? "bg-blue-500/10 text-blue-400"
-                  : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+                  : "hover:opacity-100"
               )}
             >
               <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <span style={!pathname.startsWith(item.href) ? { color: "var(--text-secondary)" } : undefined}>{item.label}</span>
               {item.href === "/notifications" && unreadNotifications > 0 && (
                 <span className="ml-auto bg-blue-600 text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5 notif-dot">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}
@@ -95,7 +98,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
             "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
             pathname.includes(`/profile/${user.username}`)
               ? "bg-blue-500/10 text-blue-400"
-              : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+              : "hover:opacity-100"
           )}
         >
           <User className="h-5 w-5" />
@@ -109,7 +112,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
               "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
               pathname.startsWith("/admin")
                 ? "bg-blue-500/10 text-blue-400"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+                : "hover:opacity-100"
             )}
           >
             <Shield className="h-5 w-5" />
@@ -136,19 +139,33 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         </div>
       </nav>
 
+      {/* Theme Toggle */}
+      <div className="px-3 pb-2">
+        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "var(--bg-tertiary)" }}>
+          {([{ v: "light" as const, icon: Sun, l: "Light" }, { v: "dark" as const, icon: Moon, l: "Dark" }, { v: "system" as const, icon: Monitor, l: "Auto" }]).map((m) => (
+            <button key={m.v} onClick={() => setMode(m.v)}
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${mode === m.v ? "shadow-sm" : "opacity-60 hover:opacity-100"}`}
+              style={mode === m.v ? { background: "var(--bg-elevated)", color: "var(--text-primary)" } : { color: "var(--text-secondary)" }}>
+              <m.icon className="h-3.5 w-3.5" />{m.l}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* User section */}
-      <div className="p-3 border-t border-zinc-800/30">
+      <div className="p-3" style={{ borderTop: "1px solid var(--border-primary)" }}>
         <div className="flex items-center gap-3 px-3 py-2">
           <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-zinc-200 truncate">{user.displayName}</p>
-            <p className="text-xs text-zinc-500 truncate">@{user.username}</p>
+            <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{user.displayName}</p>
+            <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>@{user.username}</p>
           </div>
         </div>
         <div className="flex gap-1 mt-1">
           <Link
             href="/settings"
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs transition-colors hover:opacity-80"
+            style={{ color: "var(--text-secondary)" }}
           >
             <Settings className="h-3.5 w-3.5" />
             Settings
@@ -156,7 +173,8 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           <form action={signOut}>
             <button
               type="submit"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-red-400 hover:bg-zinc-800/50 transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs hover:text-red-400 transition-colors"
+              style={{ color: "var(--text-secondary)" }}
             >
               <LogOut className="h-3.5 w-3.5" />
               Sign out

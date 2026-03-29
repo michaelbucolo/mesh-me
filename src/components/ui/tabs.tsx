@@ -27,7 +27,7 @@ export function Tabs({ tabs, defaultTab, onChange, children, className }: TabsPr
 
   return (
     <div className={className}>
-      <div className="flex border-b border-zinc-800 overflow-x-auto">
+      <div className="flex border-b border-[var(--border-primary)] overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -35,14 +35,14 @@ export function Tabs({ tabs, defaultTab, onChange, children, className }: TabsPr
             className={cn(
               "px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative",
               activeTab === tab.id
-                ? "text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "text-[var(--text-primary)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             )}
           >
             <span className="flex items-center gap-2">
               {tab.label}
               {tab.count !== undefined && (
-                <span className="text-xs text-zinc-500">{tab.count}</span>
+                <span className="text-xs text-[var(--text-muted)]">{tab.count}</span>
               )}
             </span>
             {activeTab === tab.id && (
