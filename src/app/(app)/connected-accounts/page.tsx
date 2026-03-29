@@ -123,7 +123,10 @@ export default function ConnectedAccountsPage() {
             send messages through MeChat, and interact with posts across platforms directly from mesh.me.
           </p>
           <p className="text-xs text-zinc-500 mt-1">
-            Your credentials are encrypted and you can disconnect at any time.
+            mesh.me connects through each platform&apos;s official OAuth API. Your credentials are encrypted and you can disconnect at any time. Cross-platform features are subject to each platform&apos;s API availability and terms.
+          </p>
+          <p className="text-xs text-zinc-600 mt-1">
+            mesh.me is not affiliated with, endorsed by, or sponsored by any third-party platform. All platform names and trademarks belong to their respective owners.
           </p>
         </div>
       </div>
