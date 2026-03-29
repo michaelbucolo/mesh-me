@@ -87,4 +87,15 @@ export async function destroySession() {
   }
 }
 
+export function invalidateAllUserSessions(userId: string): number {
+  let count = 0;
+  for (const [sessionId, session] of sessions.entries()) {
+    if (session.userId === userId) {
+      sessions.delete(sessionId);
+      count++;
+    }
+  }
+  return count;
+}
+
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
