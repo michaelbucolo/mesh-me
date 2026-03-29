@@ -823,11 +823,11 @@ export default function MeshPage() {
       <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
         <div className="text-center">
           <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-2 border-blue-500/20 animate-ping" />
-            <div className="absolute inset-2 rounded-full border-2 border-blue-500/30 animate-ping" style={{ animationDelay: "0.2s" }} />
-            <div className="absolute inset-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+            <div className="absolute inset-0 rounded-full border-2 animate-ping" style={{ borderColor: "var(--accent-muted)" }} />
+            <div className="absolute inset-2 rounded-full border-2 animate-ping" style={{ borderColor: "var(--accent-muted)", animationDelay: "0.2s" }} />
+            <div className="absolute inset-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)" }} />
             <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-blue-400" />
+              <Sparkles className="h-6 w-6" style={{ color: "var(--accent)" }} />
             </div>
           </div>
           <p className="text-[var(--text-secondary)] font-medium mb-1">Building your mesh...</p>
@@ -862,7 +862,7 @@ export default function MeshPage() {
       <div className="absolute top-0 left-0 right-0 z-10 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="brand-logo h-8 w-8 rounded-lg flex items-center justify-center shadow-lg" style={{ background: "var(--brand-gradient)" }}>
               <Layers className="h-4 w-4 text-white" />
             </div>
             <div>
@@ -887,7 +887,7 @@ export default function MeshPage() {
               onClick={() => setShowFootprint(!showFootprint)}
               className={"flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium transition-all shadow-lg " + (
                 showFootprint
-                  ? "bg-blue-600 text-white shadow-blue-500/20"
+                  ? "brand-button text-white shadow-lg"
                   : "glass-panel text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               )}
             >
@@ -907,7 +907,7 @@ export default function MeshPage() {
                 onClick={() => setFilter(fItem.id)}
                 className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all " + (
                   filter === fItem.id
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                    ? "brand-button text-white shadow-lg"
                     : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                 )}
               >
@@ -930,8 +930,8 @@ export default function MeshPage() {
         <button onClick={() => handleZoom(-0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
         <button onClick={resetView} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
         <div className="h-px bg-[var(--bg-tertiary)] my-0.5" />
-        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 glass-surface rounded-lg transition-all " + (showLabels ? "text-blue-400" : "text-[var(--text-muted)]")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
-        <button onClick={() => setShowStats(!showStats)} className={"p-2 glass-surface rounded-lg transition-all " + (showStats ? "text-blue-400" : "text-[var(--text-muted)]")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
+        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 glass-surface rounded-lg transition-all " + (showLabels ? "text-[var(--accent)]" : "text-[var(--text-muted)]")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
+        <button onClick={() => setShowStats(!showStats)} className={"p-2 glass-surface rounded-lg transition-all " + (showStats ? "text-[var(--accent)]" : "text-[var(--text-muted)]")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
       </div>
 
       {/* Stats bar */}
@@ -944,7 +944,7 @@ export default function MeshPage() {
             className="absolute bottom-4 left-4 z-10 flex gap-2 flex-wrap"
           >
             {[
-              { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-blue-400" },
+              { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-[var(--accent)]" },
               { label: "communities", count: nodes.filter((n) => n.type === "community").length, color: "text-pink-400" },
               { label: "interests", count: nodes.filter((n) => n.type === "tag").length, color: "text-cyan-400" },
               { label: "posts", count: nodes.filter((n) => n.type === "post").length, color: "text-emerald-400" },
@@ -1071,9 +1071,9 @@ export default function MeshPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => router.push("/messages?to=" + selectedNode.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-                    >
-                      <Send className="h-3 w-3" /> Message
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium                     brand-button text-white transition-all active:scale-95 shadow-lg"
+                                        >
+                                          <Send className="h-3 w-3" /> Message
                     </button>
                     <button
                       onClick={async () => {
@@ -1085,7 +1085,7 @@ export default function MeshPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95"
                     >
                       {actionLoading === "follow-" + selectedNode.id ? (
-                        <div className="h-3 w-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        <div className="h-3 w-3 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent)" }} />
                       ) : selectedNode.isMutual ? (
                         <><UserMinus className="h-3 w-3" /> Unfollow</>
                       ) : (
@@ -1100,7 +1100,7 @@ export default function MeshPage() {
                   <div className="flex gap-2">
                     {selectedNode.href && (
                       <Link href={selectedNode.href} className="flex-1">
-                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg">
                           <Eye className="h-3 w-3" /> View Post
                         </button>
                       </Link>
@@ -1130,7 +1130,7 @@ export default function MeshPage() {
                 {selectedNode.type === "platform" && (
                   <div className="flex gap-2">
                     <Link href="/connected-accounts" className="flex-1">
-                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg">
                         <Shield className="h-3 w-3" /> Manage
                       </button>
                     </Link>
@@ -1164,7 +1164,7 @@ export default function MeshPage() {
                 {selectedNode.type === "self" && (
                   <div className="flex gap-2">
                     <Link href="/feed?compose=true" className="flex-1">
-                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg">
                         <PenSquare className="h-3 w-3" /> New Post
                       </button>
                     </Link>
@@ -1200,11 +1200,11 @@ export default function MeshPage() {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="absolute bottom-16 left-4 right-4 md:left-auto md:right-4 md:bottom-4 md:w-96 z-20 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
           >
-            <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-400" />
+            <div className="h-1.5 w-full" style={{ background: "var(--brand-gradient)" }} />
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center">
+                  <div className="brand-logo h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
                     <Fingerprint className="h-3.5 w-3.5 text-white" />
                   </div>
                   <div>
@@ -1220,7 +1220,7 @@ export default function MeshPage() {
               {/* Stats grid */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
-                  { label: "Following", value: meshStats.followingCount, color: "text-blue-400", icon: Users },
+                  { label: "Following", value: meshStats.followingCount, color: "text-[var(--accent)]", icon: Users },
                   { label: "Followers", value: meshStats.followerCount, color: "text-indigo-400", icon: Users },
                   { label: "Mutuals", value: meshStats.mutualCount, color: "text-purple-400", icon: Heart },
                   { label: "Posts", value: meshStats.postCount, color: "text-emerald-400", icon: FileText },
@@ -1260,7 +1260,7 @@ export default function MeshPage() {
               {/* Quick manage links */}
               <div className="flex gap-2">
                 <Link href="/settings" className="flex-1">
-                  <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95">
+                  <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg">
                     <Shield className="h-3 w-3" /> Security Hub
                   </button>
                 </Link>

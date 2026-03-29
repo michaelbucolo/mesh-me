@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -9,10 +9,16 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 export const metadata: Metadata = {
-  title: "mesh.me — Your Digital Identity",
-  description: "A next-generation social identity platform. Express who you are, discover people you connect with, and build communities around shared creativity and energy.",
-  keywords: ["social platform", "digital identity", "community", "creator", "social network"],
+  title: "mesh.me",
+  description: "Your entire digital world, unified. One platform for every connection, conversation, and community.",
+  keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network"],
 };
 
 export default function RootLayout({
@@ -22,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`} style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
+      <body className={`${inter.variable} ${jakarta.variable} font-sans antialiased`} style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <ThemeProvider>
           <ToastProvider>
             {children}

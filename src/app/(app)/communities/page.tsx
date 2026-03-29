@@ -20,7 +20,7 @@ export default async function CommunitiesPage() {
         </div>
         <Link
           href="/communities/create"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
+          className="brand-button inline-flex items-center gap-2 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
         >
           <Plus className="h-4 w-4" />
           Create community
@@ -41,7 +41,7 @@ export default async function CommunitiesPage() {
         >
           <Link
             href="/communities/create"
-            className="inline-flex bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
+            className="brand-button inline-flex text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
           >
             Create the first community
           </Link>

@@ -107,11 +107,11 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
     <article className={cn(
       "rounded-2xl border backdrop-blur-sm transition-all duration-200 group",
       "glass-card rounded-2xl",
-      post.isPinned && "ring-1 ring-blue-500/30"
+      post.isPinned && "ring-1 ring-[var(--accent-muted)]"
     )}>
       <div className={cn("p-5", compact && "p-3")}>
         {post.isPinned && (
-          <div className="flex items-center gap-1.5 text-xs text-blue-400 mb-2">
+          <div className="flex items-center gap-1.5 text-xs mb-2" style={{ color: "var(--accent)" }}>
             <Pin className="h-3 w-3" />
             <span>Pinned post</span>
           </div>
@@ -129,9 +129,9 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                   {post.author.displayName}
                 </Link>
                 {post.author.isVerified && (
-                  <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent)" }}>
+                                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
@@ -143,7 +143,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 {post.community && (
                   <>
                     <span>&middot;</span>
-                    <Link href={`/communities/${post.community.slug}`} className="text-blue-400 hover:text-blue-300">
+                    <Link href={`/communities/${post.community.slug}`} className="hover:opacity-80" style={{ color: "var(--accent)" }}>
                       {post.community.name}
                     </Link>
                   </>
@@ -221,7 +221,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
               <Heart className={cn("h-4 w-4 transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
               <span className="text-xs">{formatCount(likeCount)}</span>
             </button>
-            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:text-blue-400/70 transition-colors action-icon" style={{ color: "var(--text-muted)" }}>
+            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors action-icon hover:opacity-70" style={{ color: "var(--text-muted)" }}>
               <MessageCircle className="h-4 w-4" />
               <span className="text-xs">{formatCount(post._count.comments)}</span>
             </Link>
@@ -243,7 +243,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 </div>
               )}
             </div>
-            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200 action-icon", saved ? "text-blue-400 hover:text-blue-300" : "hover:text-blue-400/70")} style={!saved ? { color: "var(--text-muted)" } : undefined}>
+            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200 action-icon", saved ? "hover:opacity-80" : "hover:opacity-70")} style={saved ? { color: "var(--accent)" } : { color: "var(--text-muted)" }}>
               <Bookmark className={cn("h-4 w-4 transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />
             </button>
           </div>

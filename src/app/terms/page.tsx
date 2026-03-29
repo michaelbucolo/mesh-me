@@ -6,10 +6,10 @@ export default function TermsPage() {
       <header className="border-b border-[var(--border-primary)] glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
               <span className="text-white font-bold text-sm">m</span>
             </div>
-            <span className="text-xl font-bold text-[var(--text-primary)]">mesh<span className="text-blue-400">.me</span></span>
+            <span className="text-xl font-bold text-[var(--text-primary)]">mesh<span style={{ color: "var(--accent)" }}>.me</span></span>
           </Link>
         </div>
       </header>
@@ -52,7 +52,7 @@ export default function TermsPage() {
           <p>mesh.me respects the intellectual property rights of others and expects users to do the same. If you believe that content on mesh.me infringes your copyright, you may submit a Digital Millennium Copyright Act (DMCA) takedown notice to our designated agent at copyright@mesh.me. Your notice must include: (a) identification of the copyrighted work; (b) identification of the infringing material and its location on the Service; (c) your contact information; (d) a statement of good faith belief that the use is not authorized; (e) a statement of accuracy under penalty of perjury; and (f) your physical or electronic signature. Repeat infringers may have their accounts terminated.</p>
 
           <h2 className="text-xl font-semibold text-[var(--text-primary)]">12. Privacy</h2>
-          <p>Your use of the Service is also governed by our <Link href="/privacy" className="text-blue-400 hover:text-blue-300 underline">Privacy Policy</Link>, which is incorporated into these Terms by reference.</p>
+          <p>Your use of the Service is also governed by our <Link href="/privacy" className="underline transition-colors" style={{ color: "var(--accent)" }}>Privacy Policy</Link>, which is incorporated into these Terms by reference.</p>
 
           <h2 className="text-xl font-semibold text-[var(--text-primary)]">13. Limitation of Liability</h2>
           <p>To the maximum extent permitted by applicable law, mesh.me and its officers, directors, employees, and agents shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from: (a) your access to or use of or inability to access or use the Service; (b) any conduct or content of any third party on the Service; (c) any content obtained from the Service; (d) unauthorized access, use, or alteration of your transmissions or content; (e) any interruption or cessation of the Service; (f) any bugs, viruses, or the like that may be transmitted to or through the Service by any third party.</p>

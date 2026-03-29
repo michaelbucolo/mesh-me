@@ -67,16 +67,16 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-primary)]">
             <div className="flex items-center gap-1">
-              <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-blue-400 hover:bg-[var(--bg-tertiary)] transition-colors">
+              <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors">
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setShowTags(!showTags)}
-                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-blue-400 hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors"
               >
                 <Hash className="h-4 w-4" />
               </button>
-              <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-blue-400 hover:bg-[var(--bg-tertiary)] transition-colors">
+              <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors">
                 <Globe className="h-4 w-4" />
               </button>
             </div>

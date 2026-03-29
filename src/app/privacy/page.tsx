@@ -6,15 +6,23 @@ export default function PrivacyPage() {
       <header className="border-b border-[var(--border-primary)] glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">m</span>
+            <div className="brand-logo h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/>
+                <circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/>
+                <circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/>
+                <circle cx="12" cy="12" r="2.5" fill="white"/>
+                <line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+                <line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+                <line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+              </svg>
             </div>
-            <span className="text-xl font-bold text-[var(--text-primary)]">mesh<span className="text-blue-400">.me</span></span>
+            <span className="brand-wordmark text-xl">mesh<span className="brand-wordmark-accent">.me</span></span>
           </Link>
         </div>
       </header>
       <main className="max-w-3xl mx-auto px-6 py-16">
-        <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Privacy Policy</h1>
+        <h1 className="font-display text-3xl font-bold text-[var(--text-primary)] mb-2">Privacy Policy</h1>
         <p className="text-sm text-[var(--text-muted)] mb-8">Last updated: March 2026</p>
         <div className="space-y-6 text-[var(--text-tertiary)] text-sm leading-relaxed">
 

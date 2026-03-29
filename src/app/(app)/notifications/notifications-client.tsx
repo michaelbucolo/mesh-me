@@ -78,15 +78,15 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-4"
           >
-            <div className="bg-gradient-to-r from-blue-500/10 to-blue-400/10 border border-blue-500/20 rounded-2xl p-4">
+            <div className="rounded-2xl p-4" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
               <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center flex-shrink-0">
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--brand-gradient)" }}>
                   <Sparkles className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">AI Summary</h3>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium">Smart Digest</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>Smart Digest</span>
                   </div>
                   <p className="text-sm text-[var(--text-secondary)]">{aiSummary}</p>
                 </div>
@@ -112,7 +112,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
                 activeTab === tab.id
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                  ? "brand-button text-white shadow-lg"
                   : "text-[var(--text-tertiary)] glass-surface hover:border-[var(--glass-border)]"
               }`}
             >
@@ -120,7 +120,8 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               {tab.label}
               {count > 0 && (
                 <span className={`h-4 min-w-4 px-1 rounded-full text-[10px] flex items-center justify-center ${
-                  activeTab === tab.id ? "bg-white/20 text-white" : "bg-blue-500/20 text-blue-400"
+                  activeTab === tab.id ? "bg-white/20 text-white" : ""
+                } style={activeTab !== tab.id ? { background: "var(--accent-muted)", color: "var(--accent)" } : undefined
                 }`}>
                   {count}
                 </span>
@@ -146,7 +147,8 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                 key={notification.id}
                 href={href}
                 className={`flex items-start gap-3 p-4 rounded-xl transition-all duration-200 ${
-                  notification.read ? "hover:bg-[var(--bg-tertiary)]" : "bg-blue-500/5 hover:bg-blue-500/10"
+                  notification.read ? "hover:bg-[var(--bg-tertiary)]" : "hover:bg-[var(--bg-tertiary)]"
+                } style={!notification.read ? { background: "var(--accent-subtle)" } : undefined
                 }`}
               >
                 <div className="relative">
@@ -158,7 +160,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                     </div>
                   )}
                   <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full glass-surface flex items-center justify-center">
-                    <Icon className="h-3 w-3 text-blue-400" />
+                    <Icon className="h-3 w-3" style={{ color: "var(--accent)" }} />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -168,7 +170,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                   </p>
                 </div>
                 {!notification.read && (
-                  <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
+                  <div className="h-2 w-2 rounded-full mt-2 flex-shrink-0" style={{ background: "var(--accent)" }} />
                 )}
               </Link>
             );

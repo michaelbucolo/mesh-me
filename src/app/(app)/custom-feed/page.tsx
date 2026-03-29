@@ -93,7 +93,7 @@ export default function CustomFeedPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="w-12 h-12 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+        <div className="w-12 h-12 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)" }} />
       </div>
     );
   }
@@ -113,7 +113,7 @@ export default function CustomFeedPage() {
               onClick={() => setShowLayoutPicker(!showLayoutPicker)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl glass-surface text-sm text-[var(--text-secondary)] hover:border-[var(--glass-border)] transition-colors"
             >
-              {currentLayout && <currentLayout.icon className="h-4 w-4 text-blue-400" />}
+              {currentLayout && <currentLayout.icon className="h-4 w-4" style={{ color: "var(--accent)" }} />}
               {currentLayout?.label}
               <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)]" />
             </button>
@@ -130,7 +130,7 @@ export default function CustomFeedPage() {
                     key={opt.id}
                     onClick={() => { setLayout(opt.id); setShowLayoutPicker(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                      layout === opt.id ? "bg-blue-600/10 text-blue-400" : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+                      layout === opt.id ? "bg-[var(--accent-subtle)] text-[var(--accent)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                     }`}
                   >
                     <opt.icon className="h-5 w-5" />
@@ -155,7 +155,7 @@ export default function CustomFeedPage() {
                 key={s.id}
                 onClick={() => setFeedSource(s.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  feedSource === s.id ? "bg-blue-600 text-white" : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                  feedSource === s.id ? "brand-button text-white" : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {s.label}
@@ -256,7 +256,7 @@ function CardPost({ post }: { post: FeedPost }) {
           </div>
 
           {post.community && (
-            <Link href={`/communities/${post.community.slug}`} className="text-xs text-blue-400 hover:underline">
+            <Link href={`/communities/${post.community.slug}`} className="text-xs transition-colors hover:underline" style={{ color: "var(--accent)" }}>
               in {post.community.name}
             </Link>
           )}
@@ -276,7 +276,7 @@ function CardPost({ post }: { post: FeedPost }) {
           {post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {post.tags.map((t) => (
-                <span key={t.tag} className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">#{t.tag}</span>
+                <span key={t.tag} className="text-xs cursor-pointer transition-colors" style={{ color: "var(--accent)" }}>#{t.tag}</span>
               ))}
             </div>
           )}
@@ -286,7 +286,7 @@ function CardPost({ post }: { post: FeedPost }) {
               className={`flex items-center gap-1.5 text-xs transition-colors ${liked ? "text-pink-500" : "text-[var(--text-muted)] hover:text-pink-400"}`}>
               <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />{likeCount > 0 && likeCount}
             </button>
-            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-blue-400 transition-colors">
+            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
               <MessageCircle className="h-4 w-4" />{post._count.comments > 0 && post._count.comments}
             </Link>
             <button onClick={() => { startTransition(async () => { const result = await repost(post.id); if (result && 'reposted' in result) { const didRepost = !!result.reposted; setReposted(didRepost); setRepostCount(prev => didRepost ? prev + 1 : prev - 1); } }); }}

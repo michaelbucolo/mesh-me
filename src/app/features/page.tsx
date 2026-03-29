@@ -19,29 +19,37 @@ export default function FeaturesPage() {
       <header className="border-b border-[var(--border-primary)] glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">m</span>
+            <div className="brand-logo h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/>
+                <circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/>
+                <circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/>
+                <circle cx="12" cy="12" r="2.5" fill="white"/>
+                <line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+                <line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+                <line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+              </svg>
             </div>
-            <span className="text-xl font-bold text-[var(--text-primary)]">mesh<span className="text-blue-400">.me</span></span>
+            <span className="brand-wordmark text-xl">mesh<span className="brand-wordmark-accent">.me</span></span>
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors px-4 py-2">Sign in</Link>
-            <Link href="/signup" className="text-sm bg-gradient-to-r from-blue-600 to-blue-500 text-white px-5 py-2 rounded-xl hover:from-blue-500 hover:to-blue-400 transition-all font-medium">Join mesh.me</Link>
+            <Link href="/signup" className="brand-button text-sm text-white px-5 py-2 rounded-xl font-medium">Join mesh.me</Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-24">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4">Everything you need</h1>
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4">Everything you need</h1>
           <p className="text-[var(--text-tertiary)] text-lg max-w-2xl mx-auto">A complete platform for expression, connection, and community.</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
             <div key={feature.title} className="group rounded-2xl glass-card p-6 transition-all duration-300">
-              <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
-                <feature.icon className="h-6 w-6 text-blue-400" />
+              <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 transition-colors" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
+                <feature.icon className="h-6 w-6" style={{ color: "var(--accent)" }} />
               </div>
               <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">{feature.title}</h3>
               <p className="text-sm text-[var(--text-tertiary)] leading-relaxed">{feature.desc}</p>
@@ -50,7 +58,7 @@ export default function FeaturesPage() {
         </div>
 
         <div className="text-center mt-16">
-          <Link href="/signup" className="inline-flex bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-3.5 rounded-xl text-base font-medium hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25">
+          <Link href="/signup" className="brand-button inline-flex text-white px-8 py-3.5 rounded-xl text-base font-medium shadow-lg">
             Get started for free
           </Link>
         </div>

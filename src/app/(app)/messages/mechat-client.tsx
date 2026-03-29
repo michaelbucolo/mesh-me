@@ -88,7 +88,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
+            <div className="brand-logo h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
               <MessageCircle className="h-4 w-4 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">MeChat</h1>
@@ -104,7 +104,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
           </button>
           <button
             onClick={() => setShowNewChat(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all active:scale-[0.97]"
+            className="brand-button flex items-center gap-2 px-3 py-2 rounded-xl text-white text-sm font-medium transition-all active:scale-[0.97]"
           >
             <Plus className="h-4 w-4" />
             New Chat
@@ -153,7 +153,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search conversations..."
-          className="w-full pl-10 pr-4 py-2.5 glass-input rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 glass-input rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none transition-colors"
         />
       </div>
 
@@ -162,7 +162,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
         <Wifi className="h-3.5 w-3.5 text-green-500" />
         <span className="text-xs text-[var(--text-muted)]">Connected to mesh.me</span>
         <span className="text-xs text-[var(--text-muted)]">&middot;</span>
-        <Link href="/settings" className="text-xs text-blue-400 hover:text-blue-300">
+        <Link href="/settings" className="text-xs hover:opacity-80" style={{ color: "var(--accent)" }}>
           Connect more platforms
         </Link>
       </div>
@@ -205,7 +205,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                         </span>
                       )}
                       {thread.unread > 0 && (
-                        <span className="h-5 min-w-5 px-1.5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+                        <span className="h-5 min-w-5 px-1.5 rounded-full text-white text-xs flex items-center justify-center" style={{ background: "var(--accent)" }}>
                           {thread.unread}
                         </span>
                       )}
@@ -300,7 +300,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     value={newChatSearch}
                     onChange={(e) => handleNewChatSearch(e.target.value)}
                     placeholder="Search for a person..."
-                    className="w-full pl-10 pr-4 py-2.5 glass-surface rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50"
+                    className="w-full pl-10 pr-4 py-2.5 glass-surface rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
                     autoFocus
                   />
                 </div>

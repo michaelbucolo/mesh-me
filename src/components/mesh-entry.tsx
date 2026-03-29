@@ -167,7 +167,7 @@ export function MeshEntry() {
   }, [step]);
 
   const inputClass =
-    "w-full bg-transparent rounded-xl px-4 py-3.5 text-base placeholder:opacity-40 focus:outline-none focus:ring-1 focus:ring-blue-500/30 transition-all duration-300 text-center";
+    "w-full bg-transparent rounded-xl px-4 py-3.5 text-base placeholder:opacity-40 focus:outline-none focus:ring-1 focus:ring-[var(--accent-muted)] transition-all duration-300 text-center";
 
   const cardClass = "rounded-2xl p-6 md:p-8 backdrop-blur-xl";
 
@@ -301,7 +301,7 @@ export function MeshEntry() {
       {/* Signup progress bar */}
       {!isLogin && currentStepIndex >= 0 && step !== "success" && (
         <div className="fixed top-0 left-0 right-0 z-30 h-1" style={{ background: "var(--bg-tertiary)" }}>
-          <motion.div className="h-full bg-gradient-to-r from-blue-600 to-blue-400"
+          <motion.div className="h-full" style={{ background: "var(--brand-gradient)" }}
             initial={{ width: 0 }} animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }} />
         </div>
@@ -311,36 +311,47 @@ export function MeshEntry() {
         {/* Welcome */}
         {step === "welcome" && (
           <motion.div key="welcome" {...pageMotion} className="text-center max-w-lg w-full">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
-              <div className="inline-flex items-center gap-2.5">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <span className="text-white font-bold text-lg">m</span>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">
+              <div className="inline-flex items-center gap-3">
+                <div className="brand-logo h-11 w-11 rounded-xl flex items-center justify-center shadow-lg" style={{ background: "var(--brand-gradient)" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/>
+                    <circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/>
+                    <circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/>
+                    <circle cx="12" cy="12" r="2.5" fill="white"/>
+                    <line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+                    <line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+                    <line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+                    <line x1="5" y1="19.5" x2="11" y2="5.5" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+                    <line x1="19" y1="19.5" x2="13" y2="5.5" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+                    <line x1="6" y1="20" x2="18" y2="20" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+                  </svg>
                 </div>
-                <span className="text-2xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
-                  mesh<span className="text-blue-500">.me</span>
+                <span className="brand-wordmark text-2xl" style={{ color: "var(--text-primary)" }}>
+                  mesh<span className="brand-wordmark-accent">.me</span>
                 </span>
               </div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.6 }} className="relative">
-              <div className="absolute inset-0 bg-blue-500/5 rounded-3xl blur-2xl" />
+              <div className="absolute inset-0 rounded-3xl blur-2xl" style={{ background: "var(--accent-subtle)" }} />
               <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                <h1 className="font-display text-4xl md:text-5xl font-extrabold tracking-tight mb-4" style={{ letterSpacing: "-0.035em" }}>
                   <span style={{ color: "var(--text-primary)" }}>Enter the</span>
                   <br />
                   <span className="gradient-text">Mesh</span>
                 </h1>
-                <p className="text-sm leading-relaxed mb-3 max-w-sm mx-auto" style={{ color: "var(--text-tertiary)" }}>
-                  Your identity. Your people. Your space.<br />One platform for everything.
+                <p className="text-sm leading-relaxed mb-4 max-w-xs mx-auto" style={{ color: "var(--text-tertiary)" }}>
+                  Your entire digital world, unified.
                 </p>
-                <div className="flex items-center justify-center gap-4 mb-8 text-xs" style={{ color: "var(--text-muted)" }}>
-                  <span className="flex items-center gap-1"><Shield className="h-3 w-3 text-blue-400" /> Privacy-first</span>
-                  <span className="flex items-center gap-1"><Lock className="h-3 w-3 text-blue-400" /> Zero ads</span>
-                  <span className="flex items-center gap-1"><Database className="h-3 w-3 text-blue-400" /> You own your data</span>
+                <div className="flex items-center justify-center gap-5 mb-8 text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+                  <span className="flex items-center gap-1.5"><Shield className="h-3 w-3" style={{ color: "var(--accent)" }} /> Privacy-first</span>
+                  <span className="flex items-center gap-1.5"><Lock className="h-3 w-3" style={{ color: "var(--accent)" }} /> Zero ads</span>
+                  <span className="flex items-center gap-1.5"><Database className="h-3 w-3" style={{ color: "var(--accent)" }} /> You own your data</span>
                 </div>
                 <div className="flex flex-col gap-3">
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={startSignup}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-shadow flex items-center justify-center gap-2">
+                    className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                     Create your space <ArrowRight className="h-4 w-4" />
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={startLogin}
@@ -368,11 +379,11 @@ export function MeshEntry() {
           <motion.div key="username" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 mb-6">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">m</span>
+                <div className="brand-logo h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/><circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/><circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/><circle cx="12" cy="12" r="2.5" fill="white"/><line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/><line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/><line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/></svg>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
                 {isLogin ? "Welcome back" : "Choose your identity"}
               </h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
@@ -396,7 +407,7 @@ export function MeshEntry() {
                     }} />
                 </div>
                 <motion.button whileTap={{ scale: 0.98 }} type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                   Continue <ArrowRight className="h-4 w-4" />
                 </motion.button>
               </form>
@@ -416,12 +427,12 @@ export function MeshEntry() {
           <motion.div key="password" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 mb-6">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">m</span>
+                <div className="brand-logo h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/><circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/><circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/><circle cx="12" cy="12" r="2.5" fill="white"/><line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/><line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/><line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/></svg>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Enter the Mesh</h2>
-              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Welcome back, <span className="text-blue-500">@{username}</span></p>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Enter the Mesh</h2>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Welcome back, <span style={{ color: "var(--accent)" }}>@{username}</span></p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
@@ -440,7 +451,7 @@ export function MeshEntry() {
                   </button>
                 </div>
                 <motion.button whileTap={{ scale: 0.98 }} type="submit" disabled={isPending}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Sign in</span><ArrowRight className="h-4 w-4" /></>}
                 </motion.button>
               </form>
@@ -453,8 +464,8 @@ export function MeshEntry() {
         {step === "signup-name" && (
           <motion.div key="signup-name" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <p className="text-xs text-blue-500 mb-2">@{username}</p>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>What should we call you?</h2>
+              <p className="text-xs mb-2" style={{ color: "var(--accent)" }}>@{username}</p>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>What should we call you?</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Your display name — visible to everyone</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
@@ -466,7 +477,7 @@ export function MeshEntry() {
                   onFocus={() => setActiveField("displayName")} onBlur={() => setActiveField(null)}
                   onChange={(e) => setDisplayName(e.target.value)} />
                 <motion.button whileTap={{ scale: 0.98 }} type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                   Continue <ArrowRight className="h-4 w-4" />
                 </motion.button>
               </form>
@@ -479,8 +490,8 @@ export function MeshEntry() {
         {step === "signup-email" && (
           <motion.div key="signup-email" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <p className="text-xs text-blue-500 mb-2">@{username} · {displayName}</p>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Your email</h2>
+              <p className="text-xs mb-2" style={{ color: "var(--accent)" }}>@{username} · {displayName}</p>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Your email</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Used for account recovery only — we never spam</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
@@ -492,7 +503,7 @@ export function MeshEntry() {
                   onFocus={() => setActiveField("email")} onBlur={() => setActiveField(null)}
                   onChange={(e) => setEmail(e.target.value)} />
                 <motion.button whileTap={{ scale: 0.98 }} type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                   Continue <ArrowRight className="h-4 w-4" />
                 </motion.button>
               </form>
@@ -505,10 +516,10 @@ export function MeshEntry() {
         {step === "signup-privacy" && (
           <motion.div key="signup-privacy" {...pageMotion} className="w-full max-w-md text-center">
             <div className="mb-6">
-              <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mx-auto mb-4" style={{ border: "1px solid var(--border-focus)" }}>
-                <Shield className="h-6 w-6 text-blue-400" />
+              <div className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-muted)", border: "1px solid var(--border-focus)" }}>
+                <Shield className="h-6 w-6" style={{ color: "var(--accent)" }} />
               </div>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Your privacy matters</h2>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Your privacy matters</h2>
               <p className="text-sm max-w-sm mx-auto" style={{ color: "var(--text-tertiary)" }}>
                 Before you continue, here is exactly what mesh.me does with your data. Full transparency, no surprises.
               </p>
@@ -521,13 +532,13 @@ export function MeshEntry() {
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * idx }}>
                     <div className="flex items-center gap-2 mb-2">
-                      <section.icon className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                      <section.icon className="h-4 w-4 flex-shrink-0" style={{ color: "var(--accent)" }} />
                       <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{section.title}</h3>
                     </div>
                     <ul className="space-y-1.5 pl-6">
                       {section.items.map((item) => (
                         <li key={item} className="text-xs leading-relaxed flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
-                          <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
+                          <span className="mt-0.5 flex-shrink-0" style={{ color: "var(--accent)" }}>•</span>
                           {item}
                         </li>
                       ))}
@@ -537,13 +548,13 @@ export function MeshEntry() {
               </div>
 
               <div className="p-3 rounded-xl mb-4 text-xs leading-relaxed" style={{ background: "var(--accent-subtle)", color: "var(--text-secondary)", border: "1px solid var(--border-focus)" }}>
-                <strong className="text-blue-400">mesh.me promise:</strong> We will never sell your data, never show you ads, and you can delete everything at any time. Read our full{" "}
-                <a href="/privacy" className="text-blue-400 underline hover:no-underline">Privacy Policy</a> and{" "}
-                <a href="/terms" className="text-blue-400 underline hover:no-underline">Terms of Service</a>.
+                <strong style={{ color: "var(--accent)" }}>mesh.me promise:</strong> We will never sell your data, never show you ads, and you can delete everything at any time. Read our full{" "}
+                <a href="/privacy" style={{ color: "var(--accent)" }} className="underline hover:no-underline">Privacy Policy</a> and{" "}
+                <a href="/terms" style={{ color: "var(--accent)" }} className="underline hover:no-underline">Terms of Service</a>.
               </div>
 
               <motion.button whileTap={{ scale: 0.98 }} onClick={() => setStep("signup-password")}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                 I understand, continue <ArrowRight className="h-4 w-4" />
               </motion.button>
             </div>
@@ -555,8 +566,8 @@ export function MeshEntry() {
         {step === "signup-password" && (
           <motion.div key="signup-password" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <p className="text-xs text-blue-500 mb-2">@{username} · {displayName}</p>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Secure your mesh</h2>
+              <p className="text-xs mb-2" style={{ color: "var(--accent)" }}>@{username} · {displayName}</p>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Secure your mesh</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Choose a strong password — encrypted and never visible to us</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
@@ -577,7 +588,7 @@ export function MeshEntry() {
                 </div>
                 {password && <PasswordStrength password={password} />}
                 <motion.button whileTap={{ scale: 0.98 }} type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                   Continue <ArrowRight className="h-4 w-4" />
                 </motion.button>
               </form>
@@ -590,10 +601,10 @@ export function MeshEntry() {
         {step === "signup-phone" && (
           <motion.div key="signup-phone" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mx-auto mb-4" style={{ border: "1px solid var(--border-focus)" }}>
-                <Phone className="h-6 w-6 text-blue-400" />
+              <div className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-muted)", border: "1px solid var(--border-focus)" }}>
+                <Phone className="h-6 w-6" style={{ color: "var(--accent)" }} />
               </div>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Verify your number</h2>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Verify your number</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>For account security and recovery — never shared</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
@@ -604,7 +615,7 @@ export function MeshEntry() {
                   onFocus={() => setActiveField("phone")} onBlur={() => setActiveField(null)}
                   onChange={(e) => setPhone(e.target.value)} />
                 <motion.button whileTap={{ scale: 0.98 }} type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                   {phone ? "Verify & Continue" : "Skip for now"} <ArrowRight className="h-4 w-4" />
                 </motion.button>
               </form>
@@ -618,10 +629,10 @@ export function MeshEntry() {
         {step === "signup-accounts" && (
           <motion.div key="signup-accounts" {...pageMotion} className="w-full max-w-md text-center">
             <div className="mb-6">
-              <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mx-auto mb-4" style={{ border: "1px solid var(--border-focus)" }}>
-                <Link2 className="h-6 w-6 text-blue-400" />
+              <div className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-muted)", border: "1px solid var(--border-focus)" }}>
+                <Link2 className="h-6 w-6" style={{ color: "var(--accent)" }} />
               </div>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Connect your world</h2>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Connect your world</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Link your social accounts for the full mesh experience</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
@@ -643,7 +654,7 @@ export function MeshEntry() {
                       </div>
                       <span className="text-[9px] truncate w-full" style={{ color: "var(--text-tertiary)" }}>{platform.name}</span>
                       {isConnected && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "var(--accent)" }}>
                           <Check className="h-2.5 w-2.5 text-white" />
                         </div>
                       )}
@@ -653,7 +664,7 @@ export function MeshEntry() {
               </div>
 
               <div className="p-3 rounded-lg mb-4 text-xs text-left" style={{ background: "var(--accent-subtle)", color: "var(--text-secondary)" }}>
-                <Shield className="h-3.5 w-3.5 text-blue-400 inline mr-1" />
+                <Shield className="h-3.5 w-3.5 inline mr-1" style={{ color: "var(--accent)" }} />
                 We only store connection tokens — never your passwords. You can disconnect any platform at any time.
               </div>
 
@@ -661,7 +672,7 @@ export function MeshEntry() {
                 <p className="text-xs mb-4" style={{ color: "var(--text-tertiary)" }}>{connectedPlatforms.length} platform{connectedPlatforms.length !== 1 ? "s" : ""} selected</p>
               )}
               <motion.button whileTap={{ scale: 0.98 }} onClick={handleSignupComplete} disabled={isPending}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>{connectedPlatforms.length > 0 ? "Enter the Mesh" : "Skip & Enter the Mesh"}</span><ArrowRight className="h-4 w-4" /></>}
               </motion.button>
               <p className="text-[10px] mt-3" style={{ color: "var(--text-muted)" }}>You can connect accounts anytime in settings</p>
@@ -676,17 +687,17 @@ export function MeshEntry() {
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }} className="text-center">
             <motion.div initial={{ scale: 0 }} animate={{ scale: [0, 1.2, 1] }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/30">
+              className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl" style={{ background: "var(--brand-gradient)" }}>
               <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }}>
                 <Check className="h-10 w-10 text-white" />
               </motion.div>
             </motion.div>
             <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-              className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Welcome to the Mesh</motion.h2>
+              className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Welcome to the Mesh</motion.h2>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }}
               className="text-sm" style={{ color: "var(--text-tertiary)" }}>Setting up your digital universe...</motion.p>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-              className="mt-4"><Loader2 className="h-5 w-5 animate-spin text-blue-400 mx-auto" /></motion.div>
+              className="mt-4"><Loader2 className="h-5 w-5 animate-spin mx-auto" style={{ color: "var(--accent)" }} /></motion.div>
           </motion.div>
         )}
       </AnimatePresence>

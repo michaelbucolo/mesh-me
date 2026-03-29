@@ -52,12 +52,23 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
     <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
       {/* Logo */}
       <div className="p-6">
-        <Link href="/mesh" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">m</span>
+        <Link href="/mesh" className="group flex items-center gap-2.5">
+          <div className="brand-logo h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/>
+              <circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/>
+              <circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/>
+              <circle cx="12" cy="12" r="2.5" fill="white"/>
+              <line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+              <line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+              <line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+              <line x1="5" y1="19.5" x2="11" y2="5.5" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+              <line x1="19" y1="19.5" x2="13" y2="5.5" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+              <line x1="6" y1="20" x2="18" y2="20" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+            </svg>
           </div>
-          <span className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            mesh<span className="text-blue-500">.me</span>
+          <span className="brand-wordmark text-xl" style={{ color: "var(--text-primary)" }}>
+            mesh<span className="brand-wordmark-accent">.me</span>
           </span>
         </Link>
       </div>
@@ -73,14 +84,14 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-blue-500/10 text-blue-400 nav-active"
+                  ? "bg-[var(--accent-muted)] nav-active"
                   : "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               )}
             >
               <item.icon className="h-5 w-5" />
               <span style={!pathname.startsWith(item.href) ? { color: "var(--text-secondary)" } : undefined}>{item.label}</span>
               {item.href === "/notifications" && unreadNotifications > 0 && (
-                <span className="ml-auto bg-blue-600 text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5 notif-dot">
+                <span className="ml-auto text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5 notif-dot" style={{ background: "var(--accent)" }}>
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}
                 </span>
               )}
@@ -93,7 +104,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           className={cn(
             "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
             pathname.includes(`/profile/${user.username}`)
-              ? "bg-blue-500/10 text-blue-400 nav-active"
+              ? "bg-[var(--accent-muted)] nav-active"
               : "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           )}
         >
@@ -107,7 +118,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
             className={cn(
               "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
               pathname.startsWith("/admin")
-                ? "bg-blue-500/10 text-blue-400 nav-active"
+                ? "bg-[var(--accent-muted)] nav-active"
                 : "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             )}
           >
@@ -120,7 +131,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         <div className="pt-4 space-y-2">
           <Link
             href="/feed?compose=true"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all duration-200 shadow-lg shadow-blue-500/20 active:scale-[0.97]"
+            className="brand-button flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white font-medium text-sm shadow-lg active:scale-[0.97]"
           >
             <PenSquare className="h-4 w-4" />
             <span>Create Post</span>

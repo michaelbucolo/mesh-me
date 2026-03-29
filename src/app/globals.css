@@ -4,6 +4,7 @@
   --color-background: var(--bg-primary);
   --color-foreground: var(--text-primary);
   --font-sans: var(--font-inter);
+  --font-display: var(--font-display);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -29,20 +30,23 @@
   --text-muted: #52525b;
   --text-inverse: #09090b;
 
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
-  --accent-muted: rgba(59, 130, 246, 0.15);
-  --accent-subtle: rgba(59, 130, 246, 0.08);
+  --accent: #2d7ff9;
+  --accent-hover: #5b9bff;
+  --accent-muted: rgba(45, 127, 249, 0.15);
+  --accent-subtle: rgba(45, 127, 249, 0.08);
+  --accent-glow: rgba(45, 127, 249, 0.35);
+  --brand-gradient: linear-gradient(135deg, #2d7ff9 0%, #00c6fb 100%);
+  --brand-gradient-vibrant: linear-gradient(135deg, #1a6dff 0%, #00c6fb 50%, #2d7ff9 100%);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+  --shadow-glow: 0 0 20px rgba(45, 127, 249, 0.15);
 
-  --ring-color: rgba(59, 130, 246, 0.3);
-  --scrollbar-thumb: linear-gradient(180deg, #3b82f6 0%, #18181b 100%);
-  --scrollbar-hover: linear-gradient(180deg, #60a5fa 0%, #27272a 100%);
-  --selection-bg: rgba(59, 130, 246, 0.3);
+  --ring-color: rgba(45, 127, 249, 0.3);
+  --scrollbar-thumb: linear-gradient(180deg, #2d7ff9 0%, #18181b 100%);
+  --scrollbar-hover: linear-gradient(180deg, #5b9bff 0%, #27272a 100%);
+  --selection-bg: rgba(45, 127, 249, 0.3);
 
   --shimmer-1: #18181b;
   --shimmer-2: #27272a;
@@ -83,20 +87,23 @@
   --text-muted: #a1a1aa;
   --text-inverse: #fafafa;
 
-  --accent: #2563eb;
-  --accent-hover: #3b82f6;
-  --accent-muted: rgba(37, 99, 235, 0.12);
-  --accent-subtle: rgba(37, 99, 235, 0.06);
+  --accent: #2d7ff9;
+  --accent-hover: #1a6dff;
+  --accent-muted: rgba(45, 127, 249, 0.12);
+  --accent-subtle: rgba(45, 127, 249, 0.06);
+  --accent-glow: rgba(45, 127, 249, 0.25);
+  --brand-gradient: linear-gradient(135deg, #2d7ff9 0%, #00c6fb 100%);
+  --brand-gradient-vibrant: linear-gradient(135deg, #1a6dff 0%, #00c6fb 50%, #2d7ff9 100%);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.1);
+  --shadow-glow: 0 0 20px rgba(45, 127, 249, 0.1);
 
-  --ring-color: rgba(59, 130, 246, 0.3);
+  --ring-color: rgba(45, 127, 249, 0.3);
   --scrollbar-thumb: linear-gradient(180deg, #93c5fd 0%, #e4e4e7 100%);
-  --scrollbar-hover: linear-gradient(180deg, #60a5fa 0%, #d4d4d8 100%);
-  --selection-bg: rgba(59, 130, 246, 0.2);
+  --scrollbar-hover: linear-gradient(180deg, #5b9bff 0%, #d4d4d8 100%);
+  --selection-bg: rgba(45, 127, 249, 0.2);
 
   --shimmer-1: #f4f4f5;
   --shimmer-2: #e4e4e7;
@@ -118,10 +125,50 @@
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
+  letter-spacing: -0.011em;
+}
+
+/* ─── Display Font for Headings ─── */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display), var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  letter-spacing: -0.025em;
+}
+
+/* ─── Brand Wordmark ─── */
+.brand-wordmark {
+  font-family: var(--font-display), var(--font-inter), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.brand-wordmark-accent {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Brand Logo Glow ─── */
+.brand-logo {
+  position: relative;
+}
+.brand-logo::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: var(--brand-gradient);
+  opacity: 0;
+  filter: blur(8px);
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+.brand-logo:hover::after {
+  opacity: 0.4;
 }
 
 /* ─── Scrollbar ─── */
@@ -251,12 +298,19 @@ body {
 
 /* ─── Animated Gradient Text ─── */
 .gradient-text {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa, #22d3ee, #3b82f6);
+  background: linear-gradient(135deg, #2d7ff9, #5b9bff, #00c6fb, #2d7ff9);
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: gradientShift 8s ease infinite;
+}
+
+.gradient-text-static {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 @keyframes gradientShift {
@@ -367,8 +421,8 @@ body {
   width: 3px;
   height: 55%;
   border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, #3b82f6, #60a5fa);
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  background: var(--brand-gradient);
+  box-shadow: 0 0 8px var(--accent-glow);
   animation: pillSlide 0.2s ease-out;
 }
 @keyframes pillSlide {
@@ -409,7 +463,17 @@ body {
 
 /* ─── Text Glow ─── */
 .text-glow {
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.25), 0 0 60px rgba(59, 130, 246, 0.08);
+  text-shadow: 0 0 20px rgba(45, 127, 249, 0.25), 0 0 60px rgba(45, 127, 249, 0.08);
+}
+
+/* ─── Brand Mesh Line Pattern ─── */
+.mesh-lines {
+  background-image:
+    linear-gradient(var(--accent-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--accent-subtle) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
 }
 
 /* ─── Theme-aware utilities ─── */
@@ -451,6 +515,35 @@ body {
 .focus-ring:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
+}
+
+/* ─── Brand Button ─── */
+.brand-button {
+  background: var(--brand-gradient);
+  color: white;
+  font-weight: 600;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.brand-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.brand-button:hover::before {
+  opacity: 1;
+}
+.brand-button:hover {
+  box-shadow: 0 8px 24px -4px var(--accent-glow), 0 0 0 1px rgba(255,255,255,0.1) inset;
+  transform: translateY(-1px);
+}
+.brand-button:active {
+  transform: translateY(0) scale(0.98);
 }
 
 /* ─── Smooth Section Dividers ─── */
