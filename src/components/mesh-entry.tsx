@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Loader2, ArrowRight, ArrowLeft, Check, Phone, Link2 } from "lucide-react";
 import { signUp, signIn } from "@/lib/actions";
@@ -92,20 +92,13 @@ export function MeshEntry() {
   const inputClass =
     "w-full bg-transparent border border-zinc-700/40 rounded-xl px-4 py-3.5 text-base text-zinc-100 placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all duration-300 text-center";
 
-  const handleLoginUsernameSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return;
-    setError("");
-    setStep("password");
-  };
-
   const handleLoginPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) return;
     setError("");
 
     const formData = new FormData();
-    formData.set("email", username.includes("@") ? username : username + "@mesh.me");
+    formData.set("email", username);
     formData.set("password", password);
 
     startTransition(async () => {

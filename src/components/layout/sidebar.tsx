@@ -18,6 +18,7 @@ import {
   Waypoints,
   LayoutGrid,
   Link2,
+  Crown,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -117,13 +118,20 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         )}
 
         {/* Create Post Button */}
-        <div className="pt-4">
+        <div className="pt-4 space-y-2">
           <Link
             href="/feed?compose=true"
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all duration-200 shadow-lg shadow-blue-500/20 btn-magnetic"
           >
             <PenSquare className="h-4 w-4" />
             <span>Create Post</span>
+          </Link>
+          <Link
+            href="/settings?tab=meshpro"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 text-blue-300 font-medium text-xs hover:from-blue-500/10 hover:to-cyan-500/10 hover:border-blue-500/30 transition-all duration-200"
+          >
+            <Crown className="h-3.5 w-3.5" />
+            <span>Upgrade to MeshPro</span>
           </Link>
         </div>
       </nav>

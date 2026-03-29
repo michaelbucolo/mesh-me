@@ -1,10 +1,9 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getAdminStats } from "@/lib/queries";
 import { redirect } from "next/navigation";
-import { Shield, Users, FileText, Flag, BarChart3, TrendingUp, Clock, Activity, Hash } from "lucide-react";
+import { Shield, Users, FileText, Flag, TrendingUp, Clock, Activity, Hash } from "lucide-react";
 import { AdminActions } from "./admin-actions";
 import { formatRelativeTime } from "@/lib/utils";
-import Link from "next/link";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();

@@ -10,15 +10,14 @@ import {
   LayoutList,
   Smartphone,
   Film,
-  Settings2,
   Heart,
   MessageCircle,
   Share2,
   Bookmark,
-  MoreHorizontal,
   Repeat2,
   ExternalLink,
   ChevronDown,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
@@ -226,7 +225,7 @@ function CardPost({ post }: { post: FeedPost }) {
   const [saved, setSaved] = useState(post.savedBy.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [reposted, setReposted] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const platform = post.platform || "mesh";
 
   return (
@@ -339,7 +338,7 @@ function GridPost({ post }: { post: FeedPost }) {
 
 function ReelPost({ post }: { post: FeedPost }) {
   const [liked, setLiked] = useState(post.reactions.length > 0);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   return (
     <div className="relative aspect-[9/16] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
       <div className="absolute inset-0 flex items-center justify-center">

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Image, Info, Users, Link2, MapPin, Calendar, Globe } from "lucide-react";
+import { FileText, Image as ImageIcon, Info, Users, MapPin, Calendar, Globe } from "lucide-react";
 import Link from "next/link";
 
 type TabId = "posts" | "media" | "about" | "communities";
@@ -50,7 +50,7 @@ interface ProfileTabsProps {
 
 const TABS: { id: TabId; label: string; icon: typeof FileText }[] = [
   { id: "posts", label: "Posts", icon: FileText },
-  { id: "media", label: "Media", icon: Image },
+  { id: "media", label: "Media", icon: ImageIcon },
   { id: "about", label: "About", icon: Info },
   { id: "communities", label: "Communities", icon: Users },
 ];
@@ -126,7 +126,7 @@ export function ProfileTabs({ posts, communities, connectedAccounts, profile, cu
                 <Link key={post.id} href={`/feed/${post.id}`}>
                   <div className="aspect-square bg-zinc-900 border border-zinc-800/50 rounded-sm overflow-hidden relative group cursor-pointer">
                     <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                      <Image className="h-6 w-6 text-zinc-600" />
+                      <ImageIcon className="h-6 w-6 text-zinc-600" />
                     </div>
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <span className="text-white text-xs">{post._count.reactions} likes</span>
@@ -137,7 +137,7 @@ export function ProfileTabs({ posts, communities, connectedAccounts, profile, cu
             </div>
           ) : (
             <EmptyState
-              icon={Image}
+              icon={ImageIcon}
               title="No media yet"
               description={isOwnProfile ? "Share a post with photos or videos!" : `${displayName} hasn't shared any media yet.`}
             />

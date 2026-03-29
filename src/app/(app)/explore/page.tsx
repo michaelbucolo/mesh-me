@@ -1,11 +1,9 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getExplorePosts, getDiscoverUsers, getTrendingCommunities, getTrendingTags } from "@/lib/queries";
 import { PostCard } from "@/components/feed/post-card";
-import { UserCard } from "@/components/shared/user-card";
-import { CommunityCard } from "@/components/shared/community-card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Compass, TrendingUp, Users, Sparkles, Hash, Star, ArrowRight } from "lucide-react";
+import { Compass, TrendingUp, Sparkles, Hash, Star, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default async function ExplorePage() {
@@ -41,7 +39,7 @@ export default async function ExplorePage() {
             <h2 className="text-lg font-semibold text-zinc-100">Trending tags</h2>
           </div>
           <div className="flex flex-wrap gap-2">
-            {trendingTags.map((tag: { tag: string; count: number }, i: number) => (
+            {trendingTags.map((tag: { tag: string; count: number }) => (
               <Link key={tag.tag} href={`/search?q=${encodeURIComponent(tag.tag)}`}>
                 <Badge variant="secondary" className="px-3 py-1.5 text-sm hover:bg-zinc-700 transition-colors cursor-pointer">
                   <Hash className="h-3 w-3 mr-1" />

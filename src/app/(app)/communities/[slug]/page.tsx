@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Users, FileText, Shield, Crown, Star, Settings, Pin } from "lucide-react";
+import { ArrowLeft, Users, FileText, Shield, Crown, Settings } from "lucide-react";
 import Link from "next/link";
 import { JoinButton } from "./join-button";
 

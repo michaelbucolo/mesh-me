@@ -2,16 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Link2,
-  ExternalLink,
-  Check,
-  X,
-  AlertCircle,
   Settings2,
-  ChevronRight,
   Shield,
   RefreshCw,
 } from "lucide-react";
