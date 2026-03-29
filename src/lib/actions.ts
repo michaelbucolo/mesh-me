@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "./prisma";
-import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword } from "./auth";
+import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
@@ -853,6 +853,10 @@ export async function changePassword(formData: FormData) {
     data: { passwordHash: newHash },
   });
 
+  // Invalidate all existing sessions and create a fresh one for the current user
+  invalidateAllUserSessions(user.id);
+  await createSession(user.id);
+
   return { success: true };
 }
 
@@ -861,6 +865,13 @@ export async function changePassword(formData: FormData) {
 export async function deleteAccount() {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+
+  if (user.isAdmin) {
+    const adminCount = await prisma.user.count({ where: { isAdmin: true } });
+    if (adminCount <= 1) {
+      return { error: "Cannot delete the last admin account. Transfer admin role first." };
+    }
+  }
 
   await prisma.user.delete({ where: { id: user.id } });
   await destroySession();
