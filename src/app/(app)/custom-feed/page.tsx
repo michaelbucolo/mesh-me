@@ -225,6 +225,7 @@ function CardPost({ post }: { post: FeedPost }) {
   const [saved, setSaved] = useState(post.savedBy.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [reposted, setReposted] = useState(false);
+  const [repostCount, setRepostCount] = useState(post._count.reposts);
   const [, startTransition] = useTransition();
   const platform = post.platform || "mesh";
 
@@ -288,9 +289,9 @@ function CardPost({ post }: { post: FeedPost }) {
             <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-blue-400 transition-colors">
               <MessageCircle className="h-4 w-4" />{post._count.comments > 0 && post._count.comments}
             </Link>
-            <button onClick={() => { setReposted(!reposted); startTransition(async () => { await repost(post.id); }); }}
+            <button onClick={() => { startTransition(async () => { const result = await repost(post.id); if (result && 'reposted' in result) { const didRepost = !!result.reposted; setReposted(didRepost); setRepostCount(prev => didRepost ? prev + 1 : prev - 1); } }); }}
               className={`flex items-center gap-1.5 text-xs transition-colors ${reposted ? "text-green-500" : "text-zinc-500 hover:text-green-400"}`}>
-              <Repeat2 className="h-4 w-4" />{post._count.reposts > 0 && post._count.reposts}
+              <Repeat2 className="h-4 w-4" />{repostCount > 0 && repostCount}
             </button>
             <button className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
               <Share2 className="h-4 w-4" />
