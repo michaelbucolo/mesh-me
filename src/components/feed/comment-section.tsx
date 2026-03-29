@@ -87,7 +87,7 @@ function CommentItem({ comment }: { comment: Comment }) {
         <Avatar src={comment.author.avatarUrl} alt={comment.author.displayName} size="sm" />
       </Link>
       <div className="flex-1">
-        <div className="bg-[var(--bg-tertiary)] rounded-xl px-4 py-3">
+        <div className="glass-surface rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
             <Link href={`/profile/${comment.author.username}`} className="text-sm font-semibold text-[var(--text-primary)] hover:underline">
               {comment.author.displayName}

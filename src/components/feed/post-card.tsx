@@ -40,6 +40,8 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [likeAnimating, setLikeAnimating] = useState(false);
+  const [saveAnimating, setSaveAnimating] = useState(false);
   const [isPending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
   const shareRef = useRef<HTMLDivElement>(null);
@@ -55,14 +57,24 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
   const handleLike = () => {
     if (!currentUserId) return;
-    setLiked(!liked);
+    const newLiked = !liked;
+    setLiked(newLiked);
     setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+    if (newLiked) {
+      setLikeAnimating(true);
+      setTimeout(() => setLikeAnimating(false), 400);
+    }
     startTransition(async () => { await toggleReaction(post.id); });
   };
 
   const handleSave = () => {
     if (!currentUserId) return;
-    setSaved(!saved);
+    const newSaved = !saved;
+    setSaved(newSaved);
+    if (newSaved) {
+      setSaveAnimating(true);
+      setTimeout(() => setSaveAnimating(false), 300);
+    }
     startTransition(async () => { await toggleSavePost(post.id); });
   };
 
@@ -146,7 +158,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-8 w-48 rounded-xl shadow-xl z-20 py-1 glass-dropdown">
+              <div className="absolute right-0 top-8 w-48 rounded-xl shadow-xl z-20 py-1 glass-dropdown animate-smooth-reveal">
                 <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
@@ -205,15 +217,15 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
         {/* Actions */}
         <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid var(--border-primary)" }}>
           <div className="flex items-center gap-1">
-            <button onClick={handleLike} disabled={isPending} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200", liked ? "text-rose-400 hover:text-rose-300" : "hover:opacity-80")} style={!liked ? { color: "var(--text-muted)" } : undefined}>
-              <Heart className={cn("h-4 w-4 transition-transform", liked && "fill-current scale-110")} />
+            <button onClick={handleLike} disabled={isPending} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 action-icon", liked ? "text-rose-400 hover:text-rose-300" : "hover:text-rose-400/70")} style={!liked ? { color: "var(--text-muted)" } : undefined}>
+              <Heart className={cn("h-4 w-4 transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
               <span className="text-xs">{formatCount(likeCount)}</span>
             </button>
-            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-muted)" }}>
+            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:text-blue-400/70 transition-colors action-icon" style={{ color: "var(--text-muted)" }}>
               <MessageCircle className="h-4 w-4" />
               <span className="text-xs">{formatCount(post._count.comments)}</span>
             </Link>
-            <button onClick={handleRepost} disabled={isPending} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:text-emerald-400 transition-colors" style={{ color: "var(--text-muted)" }}>
+            <button onClick={handleRepost} disabled={isPending} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:text-emerald-400 transition-colors action-icon" style={{ color: "var(--text-muted)" }}>
               <Repeat2 className="h-4 w-4" />
               <span className="text-xs">{formatCount(repostCount)}</span>
             </button>
@@ -224,15 +236,15 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 <Share2 className="h-4 w-4" />
               </button>
               {showShareMenu && (
-                <div className="absolute right-0 bottom-8 w-44 rounded-xl shadow-xl z-20 py-1 glass-dropdown">
+                <div className="absolute right-0 bottom-8 w-44 rounded-xl shadow-xl z-20 py-1 glass-dropdown animate-smooth-reveal">
                   <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                     <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
                   </button>
                 </div>
               )}
             </div>
-            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200", saved ? "text-blue-400 hover:text-blue-300" : "hover:opacity-80")} style={!saved ? { color: "var(--text-muted)" } : undefined}>
-              <Bookmark className={cn("h-4 w-4 transition-transform", saved && "fill-current scale-110")} />
+            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200 action-icon", saved ? "text-blue-400 hover:text-blue-300" : "hover:text-blue-400/70")} style={!saved ? { color: "var(--text-muted)" } : undefined}>
+              <Bookmark className={cn("h-4 w-4 transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />
             </button>
           </div>
         </div>

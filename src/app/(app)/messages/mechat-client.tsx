@@ -104,7 +104,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
           </button>
           <button
             onClick={() => setShowNewChat(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all active:scale-[0.97]"
           >
             <Plus className="h-4 w-4" />
             New Chat

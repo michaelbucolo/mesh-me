@@ -110,9 +110,9 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
                 activeTab === tab.id
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                   : "text-[var(--text-tertiary)] glass-surface hover:border-[var(--glass-border)]"
               }`}
             >
@@ -145,7 +145,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               <Link
                 key={notification.id}
                 href={href}
-                className={`flex items-start gap-3 p-4 rounded-xl transition-colors ${
+                className={`flex items-start gap-3 p-4 rounded-xl transition-all duration-200 ${
                   notification.read ? "hover:bg-[var(--bg-tertiary)]" : "bg-blue-500/5 hover:bg-blue-500/10"
                 }`}
               >

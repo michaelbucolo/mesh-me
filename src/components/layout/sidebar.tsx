@@ -77,8 +77,8 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-blue-500/10 text-blue-400"
-                  : "hover:opacity-100"
+                  ? "bg-blue-500/10 text-blue-400 nav-active"
+                  : "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -97,8 +97,8 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           className={cn(
             "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
             pathname.includes(`/profile/${user.username}`)
-              ? "bg-blue-500/10 text-blue-400"
-              : "hover:opacity-100"
+              ? "bg-blue-500/10 text-blue-400 nav-active"
+              : "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           )}
         >
           <User className="h-5 w-5" />
@@ -111,8 +111,8 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
             className={cn(
               "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
               pathname.startsWith("/admin")
-                ? "bg-blue-500/10 text-blue-400"
-                : "hover:opacity-100"
+                ? "bg-blue-500/10 text-blue-400 nav-active"
+                : "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             )}
           >
             <Shield className="h-5 w-5" />
@@ -124,7 +124,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         <div className="pt-4 space-y-2">
           <Link
             href="/feed?compose=true"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all duration-200 shadow-lg shadow-blue-500/20 btn-magnetic"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium text-sm hover:from-blue-500 hover:to-blue-400 transition-all duration-200 shadow-lg shadow-blue-500/20 active:scale-[0.97]"
           >
             <PenSquare className="h-4 w-4" />
             <span>Create Post</span>
