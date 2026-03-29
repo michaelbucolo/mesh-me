@@ -46,7 +46,7 @@ export function Tabs({ tabs, defaultTab, onChange, children, className }: TabsPr
               )}
             </span>
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: "var(--accent)" }} />
             )}
           </button>
         ))}

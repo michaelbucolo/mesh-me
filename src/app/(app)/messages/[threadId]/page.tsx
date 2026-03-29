@@ -68,9 +68,9 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ t
                 )}
                 <div className={`px-4 py-2.5 rounded-2xl text-sm ${
                   isOwn
-                    ? "bg-blue-600 text-white rounded-br-md"
+                    ? "text-white rounded-br-md"
                     : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-bl-md"
-                }`}>
+                }`} style={isOwn ? { background: "var(--accent)" } : undefined}>
                   {message.content}
                 </div>
                 <p className={`text-xs text-[var(--text-muted)] mt-1 ${isOwn ? "text-right" : ""}`}>

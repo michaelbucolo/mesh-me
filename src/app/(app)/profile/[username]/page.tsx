@@ -38,7 +38,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   return (
     <div className="max-w-2xl mx-auto animate-page-enter">
       {/* Banner */}
-      <div className="h-48 bg-gradient-to-br from-blue-600/30 to-blue-500/30 relative">
+      <div className="h-48 relative" style={{ background: "linear-gradient(135deg, rgba(45,127,249,0.3) 0%, rgba(0,198,251,0.3) 100%)" }}>
         {profile.bannerUrl && (
           <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
@@ -79,7 +79,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-[var(--text-primary)]">{profile.displayName}</h1>
             {profile.isVerified && (
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="h-5 w-5" style={{ color: "var(--accent)" }} viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             )}
@@ -99,7 +99,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </span>
           )}
           {profile.website && (
-            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-400 hover:text-blue-300">
+            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 transition-colors" style={{ color: "var(--accent)" }}>
               <LinkIcon className="h-3.5 w-3.5" />
               {profile.website.replace(/^https?:\/\//, "")}
             </a>
@@ -136,7 +136,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 key={account.platform}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg glass-surface/50 text-xs text-[var(--text-secondary)]"
               >
-                <Link2 className="h-3 w-3 text-blue-400" />
+                <Link2 className="h-3 w-3" style={{ color: "var(--accent)" }} />
                 {account.platform}
                 {account.platformUsername && <span className="text-[var(--text-muted)]">@{account.platformUsername}</span>}
               </span>

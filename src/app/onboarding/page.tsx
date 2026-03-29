@@ -36,10 +36,10 @@ export default function OnboardingPage() {
   const steps = [
     // Step 0: Welcome
     <div key="welcome" className="text-center space-y-6 animate-fade-in">
-      <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 mb-2">
+      <div className="brand-logo inline-flex items-center justify-center h-16 w-16 rounded-2xl mb-2" style={{ background: "var(--brand-gradient)" }}>
         <Sparkles className="h-8 w-8 text-white" />
       </div>
-      <h1 className="text-3xl font-bold text-[var(--text-primary)]">Welcome to mesh.me</h1>
+      <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Welcome to mesh.me</h1>
       <p className="text-[var(--text-tertiary)] text-lg max-w-md mx-auto">
         Let&apos;s set up your space. This will help us personalize your experience and help others discover you.
       </p>
@@ -95,7 +95,7 @@ export default function OnboardingPage() {
             className={cn(
               "px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200",
               selectedInterests.includes(tag)
-                ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
+                ? "bg-[var(--accent-muted)] border-[var(--accent)] text-[var(--accent)]"
                 : "bg-[var(--bg-tertiary)] border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-secondary)] hover:text-[var(--text-secondary)]"
             )}
           >
@@ -127,7 +127,7 @@ export default function OnboardingPage() {
               key={i}
               className={cn(
                 "h-1 flex-1 rounded-full transition-all duration-300",
-                i <= step ? "bg-blue-500" : "bg-[var(--bg-tertiary)]"
+                i <= step ? "bg-[var(--accent)]" : "bg-[var(--bg-tertiary)]"
               )}
             />
           ))}

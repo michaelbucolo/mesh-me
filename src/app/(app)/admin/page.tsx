@@ -14,7 +14,7 @@ export default async function AdminPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-center gap-3 mb-8">
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
+        <div className="brand-logo h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
           <Shield className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -26,8 +26,8 @@ export default async function AdminPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Total Users", value: stats.userCount, icon: Users, color: "text-blue-400", bg: "from-blue-500/10 to-blue-500/5", sub: `+${stats.recentSignups} this week` },
-          { label: "Total Posts", value: stats.postCount, icon: FileText, color: "text-blue-300", bg: "from-blue-400/10 to-blue-400/5", sub: `+${stats.recentPostCount} this week` },
+          { label: "Total Users", value: stats.userCount, icon: Users, color: "text-[var(--accent)]", bg: "from-[var(--accent-subtle)] to-transparent", sub: `+${stats.recentSignups} this week` },
+          { label: "Total Posts", value: stats.postCount, icon: FileText, color: "text-[var(--accent)]", bg: "from-[var(--accent-subtle)] to-transparent", sub: `+${stats.recentPostCount} this week` },
           { label: "Communities", value: stats.communityCount, icon: Hash, color: "text-cyan-400", bg: "from-cyan-500/10 to-cyan-500/5", sub: "active groups" },
           { label: "Pending Reports", value: stats.reportCount, icon: Flag, color: stats.reportCount > 0 ? "text-red-400" : "text-emerald-400", bg: stats.reportCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", sub: stats.reportCount > 0 ? "needs attention" : "all clear" },
         ].map((stat) => (
@@ -55,21 +55,21 @@ export default async function AdminPage() {
               <span className="text-sm font-medium text-[var(--text-primary)]">{stats.recentSignups}</span>
             </div>
             <div className="w-full h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style={{ width: `${Math.min(100, (stats.recentSignups / Math.max(stats.userCount, 1)) * 100 * 10)}%` }} />
+              <div className="h-full rounded-full" style={{ background: "var(--brand-gradient)", width: `${Math.min(100, (stats.recentSignups / Math.max(stats.userCount, 1)) * 100 * 10)}%` }} />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-[var(--text-muted)]">New posts</span>
               <span className="text-sm font-medium text-[var(--text-primary)]">{stats.recentPostCount}</span>
             </div>
             <div className="w-full h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-400 to-pink-500 rounded-full" style={{ width: `${Math.min(100, (stats.recentPostCount / Math.max(stats.postCount, 1)) * 100 * 10)}%` }} />
+              <div className="h-full rounded-full" style={{ background: "var(--brand-gradient)", width: `${Math.min(100, (stats.recentPostCount / Math.max(stats.postCount, 1)) * 100 * 10)}%` }} />
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl glass-card p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Activity className="h-4 w-4 text-blue-400" />
+            <Activity className="h-4 w-4" style={{ color: "var(--accent)" }} />
             <h3 className="text-sm font-medium text-[var(--text-secondary)]">Platform Health</h3>
           </div>
           <div className="space-y-3">
@@ -126,7 +126,7 @@ export default async function AdminPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-[var(--text-primary)]">{u.displayName}</p>
-                    {u.isVerified && <svg className="h-3 w-3 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                    {u.isVerified && <svg className="h-3 w-3" style={{ color: "var(--accent)" }} viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                   </div>
                   <p className="text-xs text-[var(--text-muted)]">@{u.username} &middot; {u.email}</p>
                   <div className="flex items-center gap-3 mt-1">
@@ -140,7 +140,7 @@ export default async function AdminPage() {
                     <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full">Suspended</span>
                   )}
                   {u.isAdmin && (
-                    <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">Admin</span>
+                    <span className="text-[10px] bg-[var(--accent-subtle)] px-2 py-0.5 rounded-full" style={{ color: "var(--accent)" }}>Admin</span>
                   )}
                   <AdminActions type="user" id={u.id} isSuspended={u.isSuspended} />
                 </div>

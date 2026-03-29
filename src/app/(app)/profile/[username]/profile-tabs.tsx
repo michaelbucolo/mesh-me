@@ -89,7 +89,7 @@ export function ProfileTabs({ posts, communities, connectedAccounts, profile, cu
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
               activeTab === tab.id
-                ? "text-blue-400 border-blue-400"
+                ? "text-[var(--accent)] border-[var(--accent)]"
                 : "text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]"
             }`}
           >
@@ -164,7 +164,7 @@ export function ProfileTabs({ posts, communities, connectedAccounts, profile, cu
               {profile.website && (
                 <div className="flex items-center gap-3 text-sm">
                   <Globe className="h-4 w-4 text-[var(--text-muted)]" />
-                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="transition-colors" style={{ color: "var(--accent)" }}>
                     {profile.website.replace(/^https?:\/\//, "")}
                   </a>
                 </div>
@@ -227,7 +227,7 @@ export function ProfileTabs({ posts, communities, connectedAccounts, profile, cu
                   href={`/communities/${community.slug}`}
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors"
                 >
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ background: "var(--brand-gradient)" }}>
                     {community.name[0]}
                   </div>
                   <div className="flex-1">

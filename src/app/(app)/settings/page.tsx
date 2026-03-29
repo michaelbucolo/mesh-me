@@ -307,7 +307,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       <div className="flex items-center gap-3 mb-8">
-        <Settings className="h-6 w-6 text-blue-400" />
+        <Settings className="h-6 w-6" style={{ color: "var(--accent)" }} />
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Settings</h1>
       </div>
 
@@ -340,15 +340,15 @@ export default function SettingsPage() {
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
                   activeTab === tab.id
                     ? tab.id === "meshpro"
-                      ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/10 text-blue-300 font-medium"
+                      ? "glass-surface font-medium" + " text-[var(--accent)]"
                       : "glass-surface text-[var(--text-primary)] font-medium"
                     : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                 }`}
               >
-                <tab.icon className={`h-4 w-4 ${tab.id === "meshpro" ? "text-blue-400" : ""}`} />
+                <tab.icon className="h-4 w-4" style={tab.id === "meshpro" ? { color: "var(--accent)" } : undefined} />
                 {tab.label}
                 {tab.id === "meshpro" && (
-                  <span className="ml-auto text-[9px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-1.5 py-0.5 rounded-full">PRO</span>
+                  <span className="ml-auto text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full" style={{ background: "var(--brand-gradient)" }}>PRO</span>
                 )}
               </button>
             ))}
@@ -460,7 +460,7 @@ export default function SettingsPage() {
                       onClick={() => toggleInterest(tag)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                         selectedInterests.includes(tag)
-                          ? "bg-blue-600 text-white"
+                          ? "brand-button text-white"
                           : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                       }`}
                     >
@@ -473,7 +473,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold text-[var(--text-primary)]">Social links</h2>
-                  <button type="button" onClick={addLink} className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300">
+                  <button type="button" onClick={addLink} className="flex items-center gap-1 text-sm transition-colors" style={{ color: "var(--accent)" }}>
                     <Plus className="h-4 w-4" /> Add link
                   </button>
                 </div>
@@ -512,7 +512,7 @@ export default function SettingsPage() {
               {/* Theme selection */}
               <div>
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-                  <Paintbrush className="h-4 w-4 text-blue-400" /> Theme
+                  <Paintbrush className="h-4 w-4" style={{ color: "var(--accent)" }} /> Theme
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   {THEME_OPTIONS.map((theme) => (
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                       onClick={() => setSelectedTheme(theme.id)}
                       className={`p-4 rounded-xl border-2 transition-all text-left ${
                         selectedTheme === theme.id
-                          ? "border-blue-500 bg-[var(--bg-tertiary)]"
+                          ? "bg-[var(--bg-tertiary)]" + " border-[var(--accent)]"
                           : "glass-surface hover:border-[var(--glass-border)]"
                       }`}
                     >
@@ -538,7 +538,7 @@ export default function SettingsPage() {
               {/* Feed layout preference */}
               <div>
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-                  <Layout className="h-4 w-4 text-blue-400" /> Default feed layout
+                  <Layout className="h-4 w-4" style={{ color: "var(--accent)" }} /> Default feed layout
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   {FEED_LAYOUTS.map((layout) => (
@@ -547,7 +547,7 @@ export default function SettingsPage() {
                       onClick={() => setSelectedLayout(layout.id)}
                       className={`p-3 rounded-xl border-2 transition-all text-left ${
                         selectedLayout === layout.id
-                          ? "border-blue-500 bg-[var(--bg-tertiary)]"
+                          ? "bg-[var(--bg-tertiary)]" + " border-[var(--accent)]"
                           : "glass-surface hover:border-[var(--glass-border)]"
                       }`}
                     >
@@ -561,14 +561,14 @@ export default function SettingsPage() {
               {/* Mesh density */}
               <div>
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-blue-400" /> Background mesh
+                  <Globe className="h-4 w-4" style={{ color: "var(--accent)" }} /> Background mesh
                 </h3>
                 <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
                     <span className="text-sm text-[var(--text-primary)] block font-medium">Show constellation mesh</span>
                     <span className="text-xs text-[var(--text-muted)]">Animated node background across the app</span>
                   </div>
-                  <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
+                  <button type="button" className="relative w-11 h-6 bg-[var(--accent)] rounded-full transition-colors">
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
@@ -610,7 +610,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => item.setter(!item.state)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${item.state ? "bg-blue-600" : "bg-[var(--bg-hover)]"}`}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${item.state ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${item.state ? "right-0.5" : "left-0.5"}`} />
                     </button>
@@ -619,9 +619,9 @@ export default function SettingsPage() {
               </div>
 
               {/* AI Smart Notifications */}
-              <div className="mt-6 border border-blue-500/20 bg-blue-500/5 rounded-xl p-4">
+              <div className="mt-6 rounded-xl rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-blue-400" />
+                  <Sparkles className="h-4 w-4" style={{ color: "var(--accent)" }} />
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">AI Smart Notifications</h3>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] mb-3">
@@ -633,7 +633,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setNotifAISummary(!notifAISummary)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${notifAISummary ? "bg-blue-600" : "bg-[var(--bg-hover)]"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${notifAISummary ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${notifAISummary ? "right-0.5" : "left-0.5"}`} />
                   </button>
@@ -655,7 +655,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleTogglePrivacy(!isPublic)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-blue-600" : "bg-[var(--bg-hover)]"}`}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${isPublic ? "right-0.5" : "left-0.5"}`} />
                   </button>
@@ -665,14 +665,14 @@ export default function SettingsPage() {
                     <span className="text-sm text-[var(--text-primary)] block font-medium">Who can message you</span>
                     <span className="text-xs text-[var(--text-muted)]">Control who can send you direct messages</span>
                   </div>
-                  <span className="text-sm text-blue-400 font-medium">Everyone</span>
+                  <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>Everyone</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
                     <span className="text-sm text-[var(--text-primary)] block font-medium">Show in discovery</span>
                     <span className="text-xs text-[var(--text-muted)]">Allow others to find you through explore</span>
                   </div>
-                  <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
+                  <button type="button" className="relative w-11 h-6 bg-[var(--accent)] rounded-full transition-colors">
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
@@ -690,7 +690,7 @@ export default function SettingsPage() {
                     <span className="text-sm text-[var(--text-primary)] block font-medium">Read receipts</span>
                     <span className="text-xs text-[var(--text-muted)]">Show when you&apos;ve read messages</span>
                   </div>
-                  <button type="button" className="relative w-11 h-6 bg-blue-600 rounded-full transition-colors">
+                  <button type="button" className="relative w-11 h-6 bg-[var(--accent)] rounded-full transition-colors">
                     <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
@@ -819,7 +819,7 @@ export default function SettingsPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <ShieldCheck className="h-5 w-5 text-blue-400" />
+                  <ShieldCheck className="h-5 w-5" style={{ color: "var(--accent)" }} />
                   <h2 className="text-lg font-semibold text-[var(--text-primary)]">Security Hub</h2>
                 </div>
                 <p className="text-sm text-[var(--text-muted)]">
@@ -830,7 +830,7 @@ export default function SettingsPage() {
               {/* Cross-platform content management */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-blue-400" /> Content Management
+                  <FileText className="h-4 w-4" style={{ color: "var(--accent)" }} /> Content Management
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mb-4">
                   Delete posts, comments, videos, or entire channels across your connected platforms directly from mesh.me.
@@ -842,8 +842,8 @@ export default function SettingsPage() {
                     { icon: MessageSquare, label: "Comments & Replies", desc: "Find and remove your comments anywhere", count: 0 },
                   ].map((item) => (
                     <button key={item.label} className="w-full flex items-center gap-3 p-3 rounded-xl glass-surface hover:border-[var(--glass-border)] transition-all text-left group">
-                      <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                        <item.icon className="h-4 w-4 text-blue-400" />
+                      <div className="h-9 w-9 rounded-lg bg-[var(--accent-subtle)] flex items-center justify-center flex-shrink-0">
+                        <item.icon className="h-4 w-4" style={{ color: "var(--accent)" }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-[var(--text-primary)] block">{item.label}</span>
@@ -858,7 +858,7 @@ export default function SettingsPage() {
               {/* Active sessions */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-blue-400" /> Active Sessions
+                  <Activity className="h-4 w-4" style={{ color: "var(--accent)" }} /> Active Sessions
                 </h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 rounded-xl glass-surface">
@@ -880,7 +880,7 @@ export default function SettingsPage() {
               {/* Data export */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
-                  <Scan className="h-4 w-4 text-blue-400" /> Data Export
+                  <Scan className="h-4 w-4" style={{ color: "var(--accent)" }} /> Data Export
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mb-3">
                   Download a complete copy of all your mesh.me data including posts, messages, and account info.
@@ -895,9 +895,9 @@ export default function SettingsPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Fingerprint className="h-5 w-5 text-blue-400" />
+                  <Fingerprint className="h-5 w-5" style={{ color: "var(--accent)" }} />
                   <h2 className="text-lg font-semibold text-[var(--text-primary)]">Digital Footprint</h2>
-                  <span className="text-[9px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-1.5 py-0.5 rounded-full">PRO</span>
+                  <span className="text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full" style={{ background: "var(--brand-gradient)" }}>PRO</span>
                 </div>
                 <p className="text-sm text-[var(--text-muted)]">
                   See your entire digital presence — the known and unknown. Find every account, mention, and trace linked to your identity.
@@ -907,7 +907,7 @@ export default function SettingsPage() {
               {/* Scanner */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <Search className="h-4 w-4 text-blue-400" /> Identity Scanner
+                  <Search className="h-4 w-4" style={{ color: "var(--accent)" }} /> Identity Scanner
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mb-4">
                   Scan the web for accounts and data associated with your email, phone number, name, and usernames. Similar to services like Incogni but more comprehensive.
@@ -920,8 +920,8 @@ export default function SettingsPage() {
                     { icon: Globe, label: "Data brokers", desc: "Check if your info appears on data broker sites", status: "Not scanned" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl glass-surface">
-                      <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                        <item.icon className="h-4 w-4 text-blue-400" />
+                      <div className="h-9 w-9 rounded-lg bg-[var(--accent-subtle)] flex items-center justify-center flex-shrink-0">
+                        <item.icon className="h-4 w-4" style={{ color: "var(--accent)" }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-[var(--text-primary)] block">{item.label}</span>
@@ -939,11 +939,11 @@ export default function SettingsPage() {
               {/* Footprint overview (placeholder for Pro) */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-blue-400" /> Footprint Overview
+                  <BarChart3 className="h-4 w-4" style={{ color: "var(--accent)" }} /> Footprint Overview
                 </h3>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   {[
-                    { label: "Known accounts", value: "--", icon: Users, color: "text-blue-400" },
+                    { label: "Known accounts", value: "--", icon: Users, color: "text-[var(--accent)]" },
                     { label: "Data exposures", value: "--", icon: AlertTriangle, color: "text-amber-400" },
                     { label: "Privacy score", value: "--", icon: Shield, color: "text-emerald-400" },
                     { label: "Risk level", value: "--", icon: Activity, color: "text-cyan-400" },
@@ -963,7 +963,7 @@ export default function SettingsPage() {
               {/* Cross-platform analytics */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-blue-400" /> Cross-Platform Analytics
+                  <TrendingUp className="h-4 w-4" style={{ color: "var(--accent)" }} /> Cross-Platform Analytics
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mb-3">
                   In-depth stats on your digital presence across all connected platforms — engagement trends, follower growth, content performance, and audience demographics.
@@ -989,7 +989,7 @@ export default function SettingsPage() {
           {activeTab === "meshpro" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 mb-4 shadow-xl shadow-blue-500/20">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-xl" style={{ background: "var(--brand-gradient)" }}>
                   <Crown className="h-8 w-8 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">MeshPro</h2>
@@ -1018,8 +1018,8 @@ export default function SettingsPage() {
                   </div>
                   <Button variant="secondary" className="w-full">Subscribe</Button>
                 </div>
-                <div className="border-2 border-blue-500/40 rounded-2xl p-6 bg-blue-500/5 relative">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs font-bold px-3 py-1 rounded-full">
+                <div className="border-2 rounded-2xl p-6 relative" style={{ borderColor: "var(--accent-muted)", background: "var(--accent-subtle)" }}>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-3 py-1 rounded-full" style={{ background: "var(--brand-gradient)" }}>
                     BEST VALUE
                   </div>
                   <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Yearly</h3>
@@ -1046,8 +1046,8 @@ export default function SettingsPage() {
                   { icon: Layout, title: "Extra feed layouts", desc: "Unlock additional feed layout options and customizations" },
                 ].map((feature) => (
                   <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl glass-surface">
-                    <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                      <feature.icon className="h-4 w-4 text-blue-400" />
+                    <div className="h-8 w-8 rounded-lg bg-[var(--accent-subtle)] flex items-center justify-center flex-shrink-0">
+                      <feature.icon className="h-4 w-4" style={{ color: "var(--accent)" }} />
                     </div>
                     <div>
                       <h4 className="text-sm font-medium text-[var(--text-primary)]">{feature.title}</h4>
@@ -1058,7 +1058,7 @@ export default function SettingsPage() {
               </div>
 
               {/* No ads promise */}
-              <div className="mt-8 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 border border-blue-500/10 rounded-2xl p-6 text-center">
+              <div className="mt-8 rounded-2xl p-6 text-center" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2">Zero ads. Ever.</h3>
                 <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
                   mesh.me will never show advertisements or sell your data. MeshPro subscriptions are the only way we fund the platform.

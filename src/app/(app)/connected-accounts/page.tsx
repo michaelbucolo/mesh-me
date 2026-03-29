@@ -94,7 +94,7 @@ export default function ConnectedAccountsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="w-12 h-12 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+        <div className="w-12 h-12 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)" }} />
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function ConnectedAccountsPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
             <Link2 className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -115,8 +115,8 @@ export default function ConnectedAccountsPage() {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-4 mb-6 flex items-start gap-3">
-        <Shield className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="rounded-2xl p-4 mb-6 flex items-start gap-3" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
+              <Shield className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
         <div>
           <p className="text-sm text-[var(--text-secondary)]">
             Connecting your accounts lets you view content from all platforms in your Custom Feed,
@@ -201,7 +201,7 @@ export default function ConnectedAccountsPage() {
                   <button
                     onClick={() => handleConnect(platform.id)}
                     disabled={isConnecting}
-                    className="px-4 py-1.5 rounded-lg text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 transition-all disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-lg text-xs font-medium text-white brand-button transition-all disabled:opacity-50"
                   >
                     {isConnecting ? (
                       <span className="flex items-center gap-1.5">

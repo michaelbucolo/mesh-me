@@ -29,7 +29,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
   return (
     <div className="max-w-3xl mx-auto">
       {/* Banner */}
-      <div className="h-48 bg-gradient-to-br from-blue-600/30 to-blue-500/30 relative rounded-b-2xl overflow-hidden">
+      <div className="h-48 relative rounded-b-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(45,127,249,0.3), rgba(0,198,251,0.3))" }}>
         {community.bannerUrl && (
           <img src={community.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
@@ -43,7 +43,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
       {/* Community header */}
       <div className="px-6 -mt-10 relative">
         <div className="flex items-end justify-between mb-4">
-          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center ring-4 ring-zinc-950 text-white font-bold text-2xl shadow-xl">
+          <div className="h-20 w-20 rounded-2xl flex items-center justify-center ring-4 ring-zinc-950 text-white font-bold text-2xl shadow-xl" style={{ background: "var(--brand-gradient)" }}>
             {community.iconUrl ? (
               <img src={community.iconUrl} alt={community.name} className="w-full h-full rounded-2xl object-cover" />
             ) : (
@@ -63,7 +63,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">{community.name}</h1>
         <div className="flex items-center gap-3 mb-3">
           {community.category && <Badge variant="secondary">{community.category}</Badge>}
-          {isAdmin && <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Admin</Badge>}
+          {isAdmin && <Badge variant="default">Admin</Badge>}
         </div>
         {community.description && (
           <p className="text-sm text-[var(--text-tertiary)] leading-relaxed mb-4">{community.description}</p>
@@ -113,7 +113,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
         {community.rules && (
           <details className="mb-4 rounded-xl glass-card/50 overflow-hidden">
             <summary className="text-sm font-medium text-[var(--text-tertiary)] cursor-pointer flex items-center gap-2 p-3 hover:bg-[var(--bg-tertiary)] transition-colors">
-              <Shield className="h-4 w-4 text-blue-400" />
+              <Shield className="h-4 w-4" style={{ color: "var(--accent)" }} />
               Community rules
             </summary>
             <div className="px-3 pb-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap border-t border-[var(--border-primary)] pt-3">{community.rules}</div>

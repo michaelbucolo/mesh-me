@@ -72,7 +72,7 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search people, posts, communities, tags..."
-            className="w-full glass-surface rounded-xl pl-12 pr-10 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+            className="w-full glass-surface rounded-xl pl-12 pr-10 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-muted)] focus:border-[var(--accent)] transition-all"
             autoFocus
           />
           {query && (
@@ -101,7 +101,7 @@ export default function SearchPage() {
 
       {isPending && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="h-6 w-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent)" }} />
         </div>
       )}
 
@@ -110,7 +110,7 @@ export default function SearchPage() {
           {filteredResults.users.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Users className="h-4 w-4 text-blue-400" />
+                <Users className="h-4 w-4" style={{ color: "var(--accent)" }} />
                 <h2 className="text-sm font-semibold text-[var(--text-tertiary)] uppercase tracking-wide">People</h2>
               </div>
               <div className="space-y-1">
@@ -120,7 +120,7 @@ export default function SearchPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <h3 className="text-sm font-semibold text-[var(--text-primary)]">{user.displayName}</h3>
-                        {user.isVerified && <svg className="h-3.5 w-3.5 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                        {user.isVerified && <svg className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                       </div>
                       <p className="text-xs text-[var(--text-muted)]">@{user.username}</p>
                       {user.bio && <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-1">{user.bio}</p>}
@@ -135,13 +135,13 @@ export default function SearchPage() {
           {filteredResults.communities.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Hash className="h-4 w-4 text-blue-400" />
+                <Hash className="h-4 w-4" style={{ color: "var(--accent)" }} />
                 <h2 className="text-sm font-semibold text-[var(--text-tertiary)] uppercase tracking-wide">Communities</h2>
               </div>
               <div className="space-y-1">
                 {filteredResults.communities.map((community) => (
                   <Link key={community.id} href={`/communities/${community.slug}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{community.name[0]}</div>
+                    <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: "var(--brand-gradient)" }}>{community.name[0]}</div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-[var(--text-primary)]">{community.name}</h3>
                       {community.description && <p className="text-xs text-[var(--text-muted)] truncate">{community.description}</p>}
@@ -156,7 +156,7 @@ export default function SearchPage() {
           {filteredResults.posts.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-4 w-4 text-blue-400" />
+                <FileText className="h-4 w-4" style={{ color: "var(--accent)" }} />
                 <h2 className="text-sm font-semibold text-[var(--text-tertiary)] uppercase tracking-wide">Posts</h2>
               </div>
               <div className="space-y-1">
@@ -205,7 +205,7 @@ export default function SearchPage() {
           )}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="h-4 w-4 text-blue-400" />
+              <TrendingUp className="h-4 w-4" style={{ color: "var(--accent)" }} />
               <h2 className="text-sm font-medium text-[var(--text-tertiary)]">Suggested searches</h2>
             </div>
             <div className="flex flex-wrap gap-2">

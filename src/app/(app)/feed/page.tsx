@@ -48,7 +48,7 @@ export default async function FeedPage() {
           >
             <Link
               href="/explore"
-              className="inline-flex bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:from-blue-500 hover:to-blue-400 transition-all"
+              className="inline-flex brand-button text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
             >
               Explore mesh.me
             </Link>
