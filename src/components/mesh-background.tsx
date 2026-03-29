@@ -18,6 +18,10 @@ interface Node {
   opacity: number;
   pulsePhase: number;
   pulseSpeed: number;
+  // For center-attraction during typing
+  attractionStrength: number;
+  baseX: number;
+  baseY: number;
 }
 
 export function MeshBackground({
@@ -32,21 +36,28 @@ export function MeshBackground({
   const animFrameRef = useRef<number>(0);
   const timeRef = useRef(0);
   const activityRef = useRef(0);
+  const fieldRef = useRef<string | null>(null);
+  const burstRef = useRef(0);
 
   const initNodes = useCallback(
     (width: number, height: number) => {
       const count = Math.floor((width * height) / (10000 / (density / 80)));
       const nodes: Node[] = [];
       for (let i = 0; i < Math.min(count, 200); i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
         nodes.push({
-          x: Math.random() * width,
-          y: Math.random() * height,
+          x,
+          y,
           vx: (Math.random() - 0.5) * 0.3,
           vy: (Math.random() - 0.5) * 0.3,
           radius: Math.random() * 1.5 + 0.5,
           opacity: Math.random() * 0.5 + 0.2,
           pulsePhase: Math.random() * Math.PI * 2,
           pulseSpeed: Math.random() * 0.02 + 0.005,
+          attractionStrength: Math.random() * 0.5 + 0.3,
+          baseX: x,
+          baseY: y,
         });
       }
       nodesRef.current = nodes;
@@ -82,7 +93,6 @@ export function MeshBackground({
     };
 
     if (interactive) {
-      // Listen on document since canvas has pointer-events: none to allow clicks through
       document.addEventListener("mousemove", handleMouse);
       document.addEventListener("mouseleave", handleMouseLeave);
     }
@@ -91,7 +101,15 @@ export function MeshBackground({
     const handleActivity = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.totalChars != null) {
-        activityRef.current = Math.min(detail.totalChars, 40);
+        const prev = activityRef.current;
+        activityRef.current = Math.min(detail.totalChars, 60);
+        // Trigger burst on new character
+        if (detail.totalChars > prev) {
+          burstRef.current = 1.0;
+        }
+      }
+      if (detail?.field != null) {
+        fieldRef.current = detail.field;
       }
     };
     window.addEventListener("mesh-activity", handleActivity);
@@ -105,10 +123,28 @@ export function MeshBackground({
 
       const nodes = nodesRef.current;
       const mouse = mouseRef.current;
-      // Connection distance grows as user types (mesh evolves)
       const activity = activityRef.current;
-      const connectionDist = 120 + activity * 2;
+      const isTyping = fieldRef.current !== null && activity > 0;
+      const burst = burstRef.current;
+
+      // Decay burst
+      if (burstRef.current > 0) {
+        burstRef.current *= 0.95;
+        if (burstRef.current < 0.01) burstRef.current = 0;
+      }
+
+      // Center point (where the input bubble is)
+      const cx = w / 2;
+      const cy = h / 2;
+
+      // Connection distance grows as user types
+      const connectionDist = 120 + activity * 3;
       const mouseDist = mouseInfluence + activity * 1.5;
+
+      // How strongly nodes are attracted to center when typing
+      const centerAttraction = isTyping ? Math.min(activity * 0.0004, 0.015) : 0;
+      // Connection range to center grows with typing
+      const centerConnectionRange = 200 + activity * 8;
 
       // Update positions
       for (const node of nodes) {
@@ -120,6 +156,18 @@ export function MeshBackground({
         if (node.x > w) node.x = 0;
         if (node.y < 0) node.y = h;
         if (node.y > h) node.y = 0;
+
+        // Center attraction when typing (nodes connect to username like strings)
+        if (centerAttraction > 0) {
+          const dx = cx - node.x;
+          const dy = cy - node.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 50) {
+            const force = centerAttraction * node.attractionStrength;
+            node.vx += dx / dist * force;
+            node.vy += dy / dist * force;
+          }
+        }
 
         // Mouse attraction
         if (interactive && mouse.x > 0) {
@@ -139,13 +187,14 @@ export function MeshBackground({
 
         // Speed limit
         const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-        if (speed > 1) {
-          node.vx = (node.vx / speed) * 1;
-          node.vy = (node.vy / speed) * 1;
+        const maxSpeed = 1 + burst * 2;
+        if (speed > maxSpeed) {
+          node.vx = (node.vx / speed) * maxSpeed;
+          node.vy = (node.vy / speed) * maxSpeed;
         }
       }
 
-      // Draw connections
+      // Draw node-to-node connections
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[i].x - nodes[j].x;
@@ -153,16 +202,49 @@ export function MeshBackground({
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < connectionDist) {
-            const baseAlpha = 0.15 + activity * 0.004;
+            const baseAlpha = 0.15 + activity * 0.005;
             const alpha = (1 - dist / connectionDist) * baseAlpha;
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = `rgba(59, 130, 246, ${alpha})`;
-            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = "rgba(59, 130, 246, " + alpha.toFixed(3) + ")";
+            ctx.lineWidth = 0.5 + burst * 0.5;
             ctx.stroke();
           }
         }
+      }
+
+      // Draw center connections (strings connecting to the username/input)
+      if (isTyping) {
+        for (const node of nodes) {
+          const dx = cx - node.x;
+          const dy = cy - node.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < centerConnectionRange) {
+            const alpha = (1 - dist / centerConnectionRange) * (0.1 + activity * 0.006);
+            // Draw a slightly curved line to center for organic feel
+            const midX = (node.x + cx) / 2 + Math.sin(timeRef.current * 0.02 + node.pulsePhase) * 15;
+            const midY = (node.y + cy) / 2 + Math.cos(timeRef.current * 0.02 + node.pulsePhase) * 15;
+
+            ctx.beginPath();
+            ctx.moveTo(node.x, node.y);
+            ctx.quadraticCurveTo(midX, midY, cx, cy);
+            ctx.strokeStyle = "rgba(96, 165, 250, " + alpha.toFixed(3) + ")";
+            ctx.lineWidth = 0.6 + burst * 0.8;
+            ctx.stroke();
+          }
+        }
+
+        // Draw center glow (around the input area)
+        const glowRadius = 60 + activity * 2 + burst * 30;
+        const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
+        glowGrad.addColorStop(0, "rgba(59, 130, 246, " + (0.08 + activity * 0.003 + burst * 0.1).toFixed(3) + ")");
+        glowGrad.addColorStop(1, "rgba(59, 130, 246, 0)");
+        ctx.beginPath();
+        ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+        ctx.fillStyle = glowGrad;
+        ctx.fill();
       }
 
       // Draw mouse connections
@@ -176,7 +258,7 @@ export function MeshBackground({
             ctx.beginPath();
             ctx.moveTo(node.x, node.y);
             ctx.lineTo(mouse.x, mouse.y);
-            ctx.strokeStyle = `rgba(59, 130, 246, ${alpha})`;
+            ctx.strokeStyle = "rgba(59, 130, 246, " + alpha.toFixed(3) + ")";
             ctx.lineWidth = 0.8;
             ctx.stroke();
           }
@@ -188,18 +270,19 @@ export function MeshBackground({
         const pulse = Math.sin(timeRef.current * node.pulseSpeed + node.pulsePhase) * 0.3 + 0.7;
         const alpha = node.opacity * pulse;
 
-        const glowSize = node.radius * (3 + activity * 0.05);
+        const glowSize = node.radius * (3 + activity * 0.06 + burst * 2);
 
         // Glow
         ctx.beginPath();
         ctx.arc(node.x, node.y, glowSize, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(59, 130, 246, ${alpha * (0.1 + activity * 0.003)})`;
+        ctx.fillStyle = "rgba(59, 130, 246, " + (alpha * (0.1 + activity * 0.004 + burst * 0.08)).toFixed(3) + ")";
         ctx.fill();
 
         // Core
+        const coreRadius = node.radius + activity * 0.025 + burst * 0.5;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius + activity * 0.02, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(147, 197, 253, ${alpha})`;
+        ctx.arc(node.x, node.y, coreRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(147, 197, 253, " + alpha.toFixed(3) + ")";
         ctx.fill();
       }
 
@@ -220,7 +303,7 @@ export function MeshBackground({
   return (
     <canvas
       ref={canvasRef}
-      className={`absolute inset-0 w-full h-full ${className}`}
+      className={"absolute inset-0 w-full h-full " + className}
       style={{ pointerEvents: "none" }}
     />
   );
