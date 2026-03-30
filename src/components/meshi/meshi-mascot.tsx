@@ -37,7 +37,7 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   synergy1017: (color: string) => (
     <g>
       {/* Left eye — tall oval */}
-      <ellipse cx="-4" cy="0" rx="1.8" ry="3" fill={color} />
+      <ellipse cx="-4" cy="0" rx="1.8" ry="3.8" fill={color} />
       {/* Right eye — thick upward-facing wink arc */}
       <path d="M 2 1.5 Q 4.5 -2.5 7 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </g>
