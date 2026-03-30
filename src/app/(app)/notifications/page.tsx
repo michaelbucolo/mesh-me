@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getNotifications } from "@/lib/queries";
 import { NotificationsClient } from "./notifications-client";
 
-function generateAISummary(notifications: Array<{ type: string; message: string; actor: { displayName: string } | null }>) {
+function generateSmartSummary(notifications: Array<{ type: string; message: string; actor: { displayName: string } | null }>) {
   const grouped: Record<string, number> = {};
   notifications.forEach((n) => {
     grouped[n.type] = (grouped[n.type] || 0) + 1;
@@ -27,8 +27,8 @@ export default async function NotificationsPage() {
   const { notifications, unreadCount } = await getNotifications();
 
   const unreadNotifications = notifications.filter((n) => !n.read);
-  const aiSummary = unreadNotifications.length > 2
-    ? generateAISummary(unreadNotifications.map((n) => ({ type: n.type, message: n.message || "", actor: n.actor })))
+  const smartSummary = unreadNotifications.length > 2
+    ? generateSmartSummary(unreadNotifications.map((n) => ({ type: n.type, message: n.message || "", actor: n.actor })))
     : null;
 
   const categorized = {
@@ -51,7 +51,7 @@ export default async function NotificationsPage() {
         reposts: categorized.reposts.map((n) => ({ ...n, createdAt: String(n.createdAt) })),
       }}
       unreadCount={unreadCount}
-      aiSummary={aiSummary}
+      smartSummary={smartSummary}
     />
   );
 }

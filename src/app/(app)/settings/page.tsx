@@ -148,7 +148,7 @@ export default function SettingsPage() {
   const [notifComments, setNotifComments] = useState(true);
   const [notifMessages, setNotifMessages] = useState(true);
   const [notifCommunity, setNotifCommunity] = useState(true);
-  const [notifAISummary, setNotifAISummary] = useState(true);
+  const [notifSmartSummary, setNotifSmartSummary] = useState(true);
 
   // Avatar upload
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -974,10 +974,10 @@ export default function SettingsPage() {
                   <span className="text-sm text-[var(--text-secondary)]">Enable smart summaries</span>
                   <button
                     type="button"
-                    onClick={() => setNotifAISummary(!notifAISummary)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${notifAISummary ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
+                    onClick={() => setNotifSmartSummary(!notifSmartSummary)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${notifSmartSummary ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
                   >
-                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${notifAISummary ? "right-0.5" : "left-0.5"}`} />
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${notifSmartSummary ? "right-0.5" : "left-0.5"}`} />
                   </button>
                 </div>
               </div>

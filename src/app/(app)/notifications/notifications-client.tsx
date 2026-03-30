@@ -38,7 +38,7 @@ type TabKey = "all" | "likes" | "comments" | "follows" | "messages" | "reposts";
 interface NotificationsClientProps {
   categorized: Record<TabKey, Notification[]>;
   unreadCount: number;
-  aiSummary: string | null;
+  smartSummary: string | null;
 }
 
 const TABS: { id: TabKey; label: string; icon: typeof Heart }[] = [
@@ -50,9 +50,9 @@ const TABS: { id: TabKey; label: string; icon: typeof Heart }[] = [
   { id: "reposts", label: "Reposts", icon: Repeat },
 ];
 
-export function NotificationsClient({ categorized, unreadCount, aiSummary }: NotificationsClientProps) {
+export function NotificationsClient({ categorized, unreadCount, smartSummary }: NotificationsClientProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
-  const [showAISummary, setShowAISummary] = useState(!!aiSummary);
+  const [showSmartSummary, setShowSmartSummary] = useState(!!smartSummary);
 
   const notifications = categorized[activeTab];
 
@@ -71,7 +71,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
 
       {/* Smart Summary Banner */}
       <AnimatePresence>
-        {showAISummary && aiSummary && (
+        {showSmartSummary && smartSummary && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -88,10 +88,10 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">Smart Summary</h3>
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>Smart Digest</span>
                   </div>
-                  <p className="text-sm text-[var(--text-secondary)]">{aiSummary}</p>
+                  <p className="text-sm text-[var(--text-secondary)]">{smartSummary}</p>
                 </div>
                 <button
-                  onClick={() => setShowAISummary(false)}
+                  onClick={() => setShowSmartSummary(false)}
                   className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                 >
                   <X className="h-4 w-4" />
