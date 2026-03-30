@@ -283,7 +283,7 @@ function CardPost({ post }: { post: FeedPost }) {
 
           <div className="flex items-center gap-6 mt-3 pt-3 border-t border-[var(--border-primary)]">
             <button onClick={() => { setLiked(!liked); setLikeCount(liked ? likeCount - 1 : likeCount + 1); startTransition(async () => { await toggleReaction(post.id); }); }}
-              className={`flex items-center gap-1.5 text-xs transition-colors ${liked ? "text-pink-500" : "text-[var(--text-muted)] hover:text-pink-400"}`}>
+              className={`flex items-center gap-1.5 text-xs transition-colors ${liked ? "text-red-500" : "text-[var(--text-muted)] hover:text-red-400"}`}>
               <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />{likeCount > 0 && likeCount}
             </button>
             <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
@@ -358,7 +358,7 @@ function ReelPost({ post }: { post: FeedPost }) {
       </div>
       <div className="absolute right-3 bottom-20 flex flex-col items-center gap-4">
         <button onClick={() => { setLiked(!liked); startTransition(async () => { await toggleReaction(post.id); }); }} className="flex flex-col items-center gap-1">
-          <Heart className={`h-7 w-7 ${liked ? "text-pink-500 fill-current" : "text-white"}`} />
+          <Heart className={`h-7 w-7 ${liked ? "text-red-500 fill-current" : "text-white"}`} />
           <span className="text-xs text-white">{post._count.reactions}</span>
         </button>
         <button className="flex flex-col items-center gap-1">

@@ -667,12 +667,12 @@ export function MeshiFloat() {
                     <animate attributeName="r" values="12;14;12" dur="2s" repeatCount="indefinite" />
                   </circle>
                   {[
-                    { x: 40, y: 25, label: "Chat", color: "#8b5cf6" },
+                    { x: 40, y: 25, label: "Chat", color: "#3b82f6" },
                     { x: 160, y: 25, label: "Search", color: "#06b6d4" },
                     { x: 30, y: 75, label: "Guide", color: "#10b981" },
                     { x: 170, y: 75, label: "Style", color: "#f59e0b" },
-                    { x: 100, y: 10, label: "Summary", color: "#ec4899" },
-                    { x: 100, y: 90, label: "History", color: "#6366f1" },
+                    { x: 100, y: 10, label: "Summary", color: "#0ea5e9" },
+                    { x: 100, y: 90, label: "History", color: "#38bdf8" },
                   ].map((node, i) => (
                     <g key={node.label}>
                       <line x1="100" y1="50" x2={node.x} y2={node.y} stroke={node.color} strokeWidth="0.8" opacity="0.4">
@@ -701,12 +701,12 @@ export function MeshiFloat() {
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
               <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=meshi"; }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors" style={{ color: "var(--text-primary)" }}>
-                <Palette className="h-4 w-4" style={{ color: "#ec4899" }} />
+                <Palette className="h-4 w-4" style={{ color: "#0ea5e9" }} />
                 <span className="flex-1">Customize Meshi</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
               <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=privacy"; }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors" style={{ color: "var(--text-primary)" }}>
-                <Settings className="h-4 w-4" style={{ color: "#6366f1" }} />
+                <Settings className="h-4 w-4" style={{ color: "#38bdf8" }} />
                 <span className="flex-1">Mesh Privacy</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>

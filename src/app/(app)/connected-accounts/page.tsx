@@ -316,7 +316,7 @@ export default function ConnectedAccountsPage() {
                   </button>
                   <button
                     onClick={handleImport}
-                    className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 shadow-lg hover:shadow-xl transition-all active:scale-95"
+                    className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-white brand-button shadow-lg hover:shadow-xl transition-all active:scale-95"
                   >
                     Import Selected
                   </button>
