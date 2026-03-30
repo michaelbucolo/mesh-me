@@ -444,22 +444,48 @@ export function MeshiChat({ isOpen, onClose, hat = "none", color = "blue", meshD
     setIsTyping(true);
     setMeshiMood("thinking");
 
-    // Simulate thinking delay (stateless — no data stored)
-    setTimeout(() => {
-      const response = getMeshiResponse(messageText, meshData, meshEntities);
-      setMeshiMood(response.mood);
+    // Call Meshi LLM API for intelligent responses
+    const callMeshiLLM = async () => {
+      try {
+        const res = await fetch("/api/meshi/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: messageText,
+            context: {
+              meshData,
+              meshEntities: meshEntities?.slice(0, 50), // Limit payload size
+            },
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMeshiMood(data.mood as MeshiMood || "happy");
+          const meshiMsg: ChatMessage = {
+            id: `meshi-${Date.now()}`,
+            role: "meshi",
+            content: data.content,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, meshiMsg]);
+        } else {
+          // Fallback to local response
+          const response = getMeshiResponse(messageText, meshData, meshEntities);
+          setMeshiMood(response.mood);
+          setMessages((prev) => [...prev, { id: `meshi-${Date.now()}`, role: "meshi", content: response.content, timestamp: new Date() }]);
+        }
+      } catch {
+        // Fallback to local response on network error
+        const response = getMeshiResponse(messageText, meshData, meshEntities);
+        setMeshiMood(response.mood);
+        setMessages((prev) => [...prev, { id: `meshi-${Date.now()}`, role: "meshi", content: response.content, timestamp: new Date() }]);
+      } finally {
+        setIsTyping(false);
+      }
+    };
 
-      const meshiMsg: ChatMessage = {
-        id: `meshi-${Date.now()}`,
-        role: "meshi",
-        content: response.content,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, meshiMsg]);
-      setIsTyping(false);
-    }, 800 + Math.random() * 600);
-  }, [input, meshData]);
+    callMeshiLLM();
+  }, [input, meshData, meshEntities]);
 
   return (
     <AnimatePresence>
