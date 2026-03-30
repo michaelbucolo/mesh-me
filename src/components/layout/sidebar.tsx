@@ -12,11 +12,11 @@ import {
   Settings,
   LogOut,
   Waypoints,
-  Search,
   Compass,
   Users,
   Shield,
-  ChevronDown,
+  Crown,
+  MessageSquarePlus,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -33,18 +33,18 @@ interface SidebarProps {
   unreadNotifications?: number;
 }
 
-// Only 3 primary tabs — everything else is accessible from the mesh or secondary nav
+// 5 primary tabs: Mesh, Explore, Feed, Messages, MeshPro
 const navItems = [
   { href: "/mesh", icon: Waypoints, label: "The Mesh", gradient: "from-blue-500 to-cyan-400" },
+  { href: "/explore", icon: Compass, label: "Explore", gradient: "from-sky-500 to-blue-400" },
   { href: "/feed", icon: Home, label: "Feed", gradient: "from-blue-500 to-sky-400" },
   { href: "/messages", icon: MessageCircle, label: "Messages", gradient: "from-emerald-500 to-teal-400" },
+  { href: "/meshpro", icon: Crown, label: "MeshPro", gradient: "from-amber-500 to-yellow-400" },
 ];
 
 const secondaryItems = [
-  { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/communities", icon: Users, label: "Communities" },
-  { href: "/notifications", icon: Bell, label: "Notifications" },
-  { href: "/search", icon: Search, label: "Search" },
+  { href: "/connected-accounts", icon: Waypoints, label: "Connected Accounts" },
 ];
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
@@ -52,17 +52,28 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
 
   return (
     <aside data-meshi-zone="sidebar" className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
-      {/* Logo — Meshi is the brand mascot */}
-      <div className="p-6">
+      {/* Logo + Notification Bell */}
+      <div className="p-6 flex items-center justify-between">
         <Link href="/mesh" className="group flex items-center gap-2.5">
           <MeshiLogo size={32} color="blue" mood="happy" />
           <span className="brand-wordmark text-xl" style={{ color: "var(--text-primary)" }}>
             mesh<span className="brand-wordmark-accent">.me</span>
           </span>
         </Link>
+        <Link
+          href="/notifications"
+          className="relative p-2 rounded-xl hover:bg-[var(--bg-hover)] transition-colors"
+        >
+          <Bell className="h-5 w-5" style={{ color: pathname.startsWith("/notifications") ? "var(--accent)" : "var(--text-muted)" }} />
+          {unreadNotifications > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 text-white text-[9px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1" style={{ background: "#ef4444" }}>
+              {unreadNotifications > 99 ? "99+" : unreadNotifications}
+            </span>
+          )}
+        </Link>
       </div>
 
-      {/* Primary Navigation — 3 tabs */}
+      {/* Primary Navigation — 5 tabs */}
       <nav className="flex-1 px-3">
         <div className="space-y-1">
           {navItems.map((item) => {
@@ -120,11 +131,6 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
                 >
                   <item.icon className="h-3.5 w-3.5" />
                   <span>{item.label}</span>
-                  {item.href === "/notifications" && unreadNotifications > 0 && (
-                    <span className="ml-auto text-white text-[9px] rounded-full h-4 min-w-4 flex items-center justify-center px-1" style={{ background: "#ef4444" }}>
-                      {unreadNotifications > 99 ? "99+" : unreadNotifications}
-                    </span>
-                  )}
                 </Link>
               );
             })}
@@ -156,6 +162,19 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
                 <span>Admin</span>
               </Link>
             )}
+
+            <Link
+              href="/feedback"
+              className={cn(
+                "flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200",
+                pathname.startsWith("/feedback")
+                  ? "bg-[var(--accent-muted)] text-[var(--accent)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+              )}
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              <span>Feedback</span>
+            </Link>
 
             <Link
               href="/settings"

@@ -68,6 +68,7 @@ import {
   Trophy,
   Award,
   Gift,
+  ImageIcon,
 } from "lucide-react";
 import { INTEREST_TAGS } from "@/lib/utils";
 import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor } from "@/components/meshi/meshi-mascot";
@@ -152,6 +153,10 @@ export default function SettingsPage() {
   // Avatar upload
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Banner upload
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
   // Customization
   const [selectedTheme, setSelectedTheme] = useState("midnight");
@@ -509,6 +514,84 @@ export default function SettingsPage() {
             >
               <MeshiSettingsTip tab="profile" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Edit profile</h2>
+
+              {/* Banner upload */}
+              <div className="relative w-full h-32 rounded-xl overflow-hidden mb-4 group">
+                <div
+                  className="w-full h-full bg-gradient-to-r from-blue-600/30 to-cyan-500/30"
+                  style={{
+                    backgroundImage: bannerPreview || settings?.bannerUrl ? `url(${bannerPreview || settings?.bannerUrl})` : undefined,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                />
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <div className="flex items-center gap-2 text-white text-sm font-medium">
+                    <ImageIcon className="h-5 w-5" />
+                    {settings?.bannerUrl || bannerPreview ? "Change banner" : "Add banner"}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 4 * 1024 * 1024) {
+                        showError("Banner must be under 4MB");
+                        return;
+                      }
+                      setBannerUploading(true);
+                      const preview = URL.createObjectURL(file);
+                      setBannerPreview(preview);
+                      const fd = new FormData();
+                      fd.append("banner", file);
+                      try {
+                        const res = await fetch("/api/banner", { method: "POST", body: fd });
+                        const data = await res.json();
+                        if (data.error) {
+                          showError(data.error);
+                          setBannerPreview(null);
+                        } else {
+                          showSuccess("Banner updated");
+                          setSettings((prev) => prev ? { ...prev, bannerUrl: data.bannerUrl } : prev);
+                        }
+                      } catch {
+                        showError("Failed to upload banner");
+                        setBannerPreview(null);
+                      } finally {
+                        setBannerUploading(false);
+                      }
+                    }}
+                  />
+                </label>
+                {bannerUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                    <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {(settings?.bannerUrl || bannerPreview) && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setBannerUploading(true);
+                      try {
+                        await fetch("/api/banner", { method: "DELETE" });
+                        setBannerPreview(null);
+                        setSettings((prev) => prev ? { ...prev, bannerUrl: null } : prev);
+                        showSuccess("Banner removed");
+                      } catch {
+                        showError("Failed to remove banner");
+                      } finally {
+                        setBannerUploading(false);
+                      }
+                    }}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-red-500/80 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
 
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative group">
