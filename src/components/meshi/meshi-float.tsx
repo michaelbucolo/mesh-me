@@ -52,12 +52,15 @@ export function MeshiFloat() {
         const greeting = GREETINGS[matchedKey];
         setGreetingText(greeting.text);
         setMood(greeting.mood);
-        const timer = setTimeout(() => {
+        let hideTimer: ReturnType<typeof setTimeout>;
+        const showTimer = setTimeout(() => {
           setShowGreeting(true);
-          const hideTimer = setTimeout(() => setShowGreeting(false), 4000);
-          return () => clearTimeout(hideTimer);
+          hideTimer = setTimeout(() => setShowGreeting(false), 4000);
         }, 1500);
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(showTimer);
+          clearTimeout(hideTimer);
+        };
       }
     }
   }, [pathname, lastPath, view]);

@@ -3,15 +3,15 @@
 import { motion } from "framer-motion";
 
 // Meshi face styles
-const FACES: Record<string, { eyes: string; mouth: string }> = {
-  happy: { eyes: "◕ ◕", mouth: "‿" },
-  excited: { eyes: "★ ★", mouth: "▽" },
-  thinking: { eyes: "◑ ◐", mouth: "～" },
-  sleepy: { eyes: "◡ ◡", mouth: "⌣" },
-  surprised: { eyes: "◎ ◎", mouth: "○" },
-  love: { eyes: "♥ ♥", mouth: "▽" },
-  cool: { eyes: "■ ■", mouth: "‿" },
-  wink: { eyes: "◕ ◡", mouth: "‿" },
+const FACES: Record<string, { eyes: string }> = {
+  happy: { eyes: "◕ ◕" },
+  excited: { eyes: "★ ★" },
+  thinking: { eyes: "◑ ◐" },
+  sleepy: { eyes: "◡ ◡" },
+  surprised: { eyes: "◎ ◎" },
+  love: { eyes: "♥ ♥" },
+  cool: { eyes: "■ ■" },
+  wink: { eyes: "◕ ◡" },
 };
 
 // Meshi hat styles (rendered as SVG elements)
@@ -138,7 +138,7 @@ export function MeshiMascot({
             strokeWidth="1"
             opacity="0.3"
             animate={animate ? {
-              r: [20, 23, 20],
+              scale: [1, 1.15, 1],
               opacity: [0.3, 0.15, 0.3],
             } : undefined}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -187,33 +187,19 @@ export function MeshiMascot({
           {hatElement}
         </g>
 
-        {/* Face */}
+        {/* Face — eyes only, no mouth */}
         <g transform={`scale(${Math.min(scale, 1.2)})`}>
-          {/* Eyes */}
           <text
             x="0"
-            y="-1"
+            y="1"
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize="8"
+            fontSize="9"
             fill={theme.primary}
             fontFamily="system-ui"
             style={{ userSelect: "none" }}
           >
             {face.eyes}
-          </text>
-          {/* Mouth */}
-          <text
-            x="0"
-            y="7"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize="8"
-            fill={theme.primary}
-            fontFamily="system-ui"
-            style={{ userSelect: "none" }}
-          >
-            {face.mouth}
           </text>
         </g>
 
@@ -228,7 +214,7 @@ export function MeshiMascot({
             opacity="0.5"
             animate={animate ? {
               opacity: [0.3, 0.7, 0.3],
-              r: [1.5, 2, 1.5],
+              scale: [1, 1.3, 1],
             } : undefined}
             transition={{
               duration: 2,
@@ -266,8 +252,7 @@ export function MeshiLogo({
       <svg width={size} height={size} viewBox="-20 -20 40 40">
         <circle cx="0" cy="0" r="16" fill={theme.primary} opacity="0.15" />
         <circle cx="0" cy="0" r="16" fill="none" stroke={theme.primary} strokeWidth="2" />
-        <text x="0" y="-1" textAnchor="middle" dominantBaseline="central" fontSize="7" fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>{face.eyes}</text>
-        <text x="0" y="6" textAnchor="middle" dominantBaseline="central" fontSize="7" fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>{face.mouth}</text>
+        <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="8" fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>{face.eyes}</text>
       </svg>
     </div>
   );
