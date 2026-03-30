@@ -39,6 +39,8 @@ import {
   ThumbsUp,
   MessageSquare,
   Plus,
+  Home,
+  Gamepad2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -76,6 +78,7 @@ interface MeshNode {
   platform?: string;
   imageUrl?: string | null;
   interactionCount?: number;
+  status?: "online" | "dnd" | "busy" | "offline";
 }
 
 interface MeshEdge {
@@ -84,6 +87,7 @@ interface MeshEdge {
   strength: number;
   type: "follow" | "mutual" | "community" | "interest" | "post" | "platform" | "alter-ego";
   interactionCount?: number;
+  status?: "online" | "dnd" | "busy" | "offline";
 }
 
 // --- Constants ---
@@ -130,6 +134,15 @@ const PLATFORM_COLORS: Record<string, string> = {
   bluesky: "#0085FF",
 };
 
+
+
+// Status indicator colors (Feature #1: Online/DND/Busy/Offline)
+const STATUS_COLORS: Record<string, string> = {
+  online: "#22c55e",
+  dnd: "#ef4444",
+  busy: "#f59e0b",
+  offline: "#6b7280",
+};
 type FilterType = "all" | "user" | "community" | "tag" | "post" | "platform" | "alter-ego";
 
 // --- Helpers ---
@@ -206,6 +219,35 @@ export default function MeshPage() {
   const [meshiDeliveries, setMeshiDeliveries] = useState<Array<{
     id: string; fromNodeId: string; toNodeId: string; timestamp: number;
   }>>([]);
+
+  // === Feature: Meshi House (clickable home, lock option) ===
+  const [meshiHouseLocked, setMeshiHouseLocked] = useState(false);
+  const [showMeshiHouseMenu, setShowMeshiHouseMenu] = useState(false);
+  
+  // === Feature: Meshi Exploration (magnifying glass animation) ===
+  const [meshiExploring, setMeshiExploring] = useState(false);
+  const [meshiExploreTarget, setMeshiExploreTarget] = useState<string | null>(null);
+  const [meshiDiscoveries, setMeshiDiscoveries] = useState<Array<{ nodeId: string; summary: string; timestamp: number }>>([]);
+  
+  // === Feature: Meshi-to-Meshi interactions ===
+  const [showRpsGame, setShowRpsGame] = useState(false);
+  const [rpsChoice, setRpsChoice] = useState<"rock" | "paper" | "scissors" | null>(null);
+  const [rpsResult, setRpsResult] = useState<{ playerChoice: string; meshiChoice: string; result: "win" | "lose" | "draw" } | null>(null);
+  
+  // === Feature: Profile preview on node click ===
+  const [profilePreview, setProfilePreview] = useState<MeshNode | null>(null);
+
+  // Load Meshi house lock state from localStorage
+  useEffect(() => {
+    try {
+      const locked = localStorage.getItem("meshiHouseLocked");
+      if (locked === "true") setMeshiHouseLocked(true);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("meshiHouseLocked", meshiHouseLocked ? "true" : "false");
+  }, [meshiHouseLocked]);
 
   // Load hidden nodes from localStorage
   useEffect(() => {
@@ -985,6 +1027,24 @@ export default function MeshPage() {
             ctx.fillText(node.sublabel, node.x, node.y + nodeRadius + 20);
           }
         }
+
+        // === Status indicator dot (online/dnd/busy/offline) ===
+        if ((node.type === "user" || node.type === "self") && node.status) {
+          const statusColor = STATUS_COLORS[node.status] || STATUS_COLORS.offline;
+          const dotR = Math.max(3, nodeRadius * 0.2);
+          const dotX = node.x + nodeRadius * 0.7;
+          const dotY = node.y + nodeRadius * 0.7;
+          // White outline
+          ctx.beginPath();
+          ctx.arc(dotX, dotY, dotR + 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(0,0,0,0.8)";
+          ctx.fill();
+          // Status color
+          ctx.beginPath();
+          ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
+          ctx.fillStyle = statusColor;
+          ctx.fill();
+        }
       }
 
       // --- Draw Meshi as a roaming entity ---
@@ -1111,6 +1171,29 @@ export default function MeshPage() {
       ctx.textBaseline = "top";
       ctx.fillText("Meshi", meshiX, meshiY + meshiSize + 4);
 
+      // === Magnifying glass when Meshi is exploring ===
+      if (meshiExploring) {
+        const mgX = meshiX + meshiSize * 0.9;
+        const mgY = meshiY - meshiSize * 0.5;
+        const mgR = 5;
+        const mgBob = Math.sin(time * 4) * 1.5;
+        // Glass circle
+        ctx.beginPath();
+        ctx.arc(mgX, mgY + mgBob, mgR, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(251, 191, 36, 0.9)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = "rgba(251, 191, 36, 0.15)";
+        ctx.fill();
+        // Handle
+        ctx.beginPath();
+        ctx.moveTo(mgX + mgR * 0.7, mgY + mgBob + mgR * 0.7);
+        ctx.lineTo(mgX + mgR * 1.6, mgY + mgBob + mgR * 1.6);
+        ctx.strokeStyle = "rgba(251, 191, 36, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
       // State indicator (small text below name)
       if (m.state === "delivering") {
         ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
@@ -1180,6 +1263,9 @@ export default function MeshPage() {
     return null;
   }, []);
 
+  // Ref to hold zoomToNode so handleCanvasClick can use it without circular dependency
+  const zoomToNodeRef = useRef<(nodeId: string) => void>(() => {});
+
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (dragActiveRef.current) return;
     const coords = getWorldCoords(e.clientX, e.clientY);
@@ -1188,6 +1274,11 @@ export default function MeshPage() {
     if (node?.type === "self" && node.href) {
       router.push(node.href);
       return;
+    }
+    // Feature #7: Click user node -> profile preview + center their mesh
+    if (node?.type === "user") {
+      setProfilePreview(node);
+      zoomToNodeRef.current(node.id);
     }
     setSelectedNode(node);
   }, [getWorldCoords, findNodeAt, router]);
@@ -1334,6 +1425,9 @@ export default function MeshPage() {
     requestAnimationFrame(animate);
   }, []);
 
+  // Keep ref in sync so handleCanvasClick can use it
+  zoomToNodeRef.current = zoomToNode;
+
   // --- Trigger Meshi message delivery animation ---
   // Call this when a message is sent to animate Meshi grabbing an envelope
   // and walking it to the recipient's node. Only visible to sender.
@@ -1461,7 +1555,7 @@ export default function MeshPage() {
       {/* Keyboard shortcut handled in useEffect below */}
 
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-4">
+      <div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <MeshiLogo size={32} color="blue" mood="happy" />
@@ -1498,7 +1592,7 @@ export default function MeshPage() {
         </div>
 
         {/* Filters row */}
-        <div className="flex gap-1 glass-panel rounded-xl p-1 shadow-xl mt-3 w-fit">
+        <div className="flex gap-1 glass-panel rounded-xl p-1 shadow-xl mt-2 sm:mt-3 w-fit max-w-full overflow-x-auto scrollbar-hide">
           {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
             const IconComp = fItem.icon;
             return (
@@ -1525,13 +1619,87 @@ export default function MeshPage() {
       </div>
 
       {/* Zoom controls */}
-      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
+      <div className="absolute bottom-4 right-2 sm:right-4 z-10 flex flex-col gap-1">
         <button onClick={() => handleZoom(0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
         <button onClick={() => handleZoom(-0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
         <button onClick={resetView} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
         <div className="h-px bg-[var(--bg-tertiary)] my-0.5" />
         <button onClick={() => setShowLabels(!showLabels)} className={"p-2 glass-surface rounded-lg transition-all " + (showLabels ? "text-[var(--accent)]" : "text-[var(--text-muted)]")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
         <button onClick={() => setShowStats(!showStats)} className={"p-2 glass-surface rounded-lg transition-all " + (showStats ? "text-[var(--accent)]" : "text-[var(--text-muted)]")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
+      </div>
+
+
+      {/* === Meshi House (Feature #6) === */}
+      <div className="absolute bottom-20 left-4 z-10">
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (meshiHouseLocked) return;
+              setShowMeshiHouseMenu(!showMeshiHouseMenu);
+              // Send Meshi home
+              const m = meshiRef.current;
+              const selfNode = nodesRef.current.find((n) => n.type === "self");
+              if (selfNode) {
+                m.targetX = selfNode.x + 30;
+                m.targetY = selfNode.y - 30;
+                m.state = "returning";
+              }
+            }}
+            className={"p-2.5 rounded-xl transition-all shadow-lg " + (
+              meshiHouseLocked
+                ? "bg-amber-500/20 border border-amber-500/30 text-amber-400"
+                : "glass-surface text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+            )}
+            title={meshiHouseLocked ? "Meshi is locked at home" : "Send Meshi home"}
+          >
+            <Home className="h-4 w-4" />
+          </button>
+          <AnimatePresence>
+            {showMeshiHouseMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                className="absolute bottom-full left-0 mb-2 glass-dropdown rounded-xl p-2 shadow-xl min-w-[160px]"
+              >
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider px-2 pb-1.5 mb-1 border-b border-[var(--border-primary)]">Meshi House</p>
+                <button
+                  onClick={() => {
+                    setMeshiHouseLocked(!meshiHouseLocked);
+                    setShowMeshiHouseMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <Lock className={"h-3 w-3 " + (meshiHouseLocked ? "text-amber-400" : "text-[var(--text-muted)]")} />
+                  <span className="text-[var(--text-secondary)]">{meshiHouseLocked ? "Unlock Meshi" : "Lock Meshi at home"}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    // Trigger exploration
+                    setMeshiExploring(true);
+                    setShowMeshiHouseMenu(false);
+                    // Auto-stop after 15 seconds
+                    setTimeout(() => setMeshiExploring(false), 15000);
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <Search className="h-3 w-3 text-[var(--text-muted)]" />
+                  <span className="text-[var(--text-secondary)]">Explore mesh</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRpsGame(true);
+                    setShowMeshiHouseMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <Gamepad2 className="h-3 w-3 text-[var(--text-muted)]" />
+                  <span className="text-[var(--text-secondary)]">Play with Meshi</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Stats bar */}
@@ -1561,6 +1729,42 @@ export default function MeshPage() {
         )}
       </AnimatePresence>
 
+
+      {/* === Meshi Exploration Discoveries (Feature #4) === */}
+      <AnimatePresence>
+        {meshiExploring && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute top-20 left-4 z-10 glass-dropdown rounded-xl p-3 shadow-xl max-w-[200px]"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+              <span className="text-[11px] font-medium text-[var(--text-primary)]">Meshi is exploring...</span>
+            </div>
+            <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+              Investigating posts and connections in your mesh. Discoveries will appear here.
+            </p>
+            {meshiDiscoveries.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {meshiDiscoveries.slice(-3).map((d) => (
+                  <div key={d.timestamp} className="text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] rounded px-2 py-1">
+                    {d.summary}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setMeshiExploring(false)}
+              className="mt-2 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              Stop exploring
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Hint */}
       {nodes.length > 0 && !selectedNode && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 glass-surface rounded-lg px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none">
@@ -1585,6 +1789,77 @@ export default function MeshPage() {
         onTouchEnd={handleTouchEnd}
       />
 
+
+      {/* === Profile Preview Panel (Feature #7) === */}
+      <AnimatePresence>
+        {profilePreview && profilePreview.type === "user" && (
+          <motion.div
+            initial={{ opacity: 0, x: 20, y: -10 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            exit={{ opacity: 0, x: 20, y: -10 }}
+            transition={{ type: "spring", damping: 25 }}
+            className="absolute top-4 right-4 z-20 w-64 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+          >
+            <div className="h-12 w-full" style={{ background: "linear-gradient(135deg, " + profilePreview.color + "40, " + profilePreview.color + "10)" }} />
+            <div className="px-4 pb-4 -mt-5">
+              <div className="flex items-end gap-3 mb-3">
+                {profilePreview.avatarUrl ? (
+                  <Avatar src={profilePreview.avatarUrl} alt={profilePreview.label} size="lg" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold border-2 border-[var(--bg-primary)]" style={{ backgroundColor: profilePreview.color }}>
+                    {profilePreview.label[0]}
+                  </div>
+                )}
+                <div className="min-w-0 pb-0.5">
+                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{profilePreview.label}</p>
+                  {profilePreview.sublabel && <p className="text-[10px] text-[var(--text-muted)] truncate">{profilePreview.sublabel}</p>}
+                </div>
+              </div>
+              
+              {/* Status indicator */}
+              {profilePreview.status && (
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLORS[profilePreview.status] || STATUS_COLORS.offline }} />
+                  <span className="text-[10px] text-[var(--text-muted)] capitalize">{profilePreview.status === "dnd" ? "Do Not Disturb" : profilePreview.status}</span>
+                </div>
+              )}
+
+              {/* Stats row */}
+              <div className="flex items-center gap-3 mb-3 text-[10px] text-[var(--text-muted)]">
+                {profilePreview.followerCount !== undefined && <span><strong className="text-[var(--text-primary)]">{profilePreview.followerCount}</strong> followers</span>}
+                {profilePreview.postCount !== undefined && <span><strong className="text-[var(--text-primary)]">{profilePreview.postCount}</strong> posts</span>}
+              </div>
+
+              {/* Shared interests */}
+              {profilePreview.sharedInterests && profilePreview.sharedInterests.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {profilePreview.sharedInterests.slice(0, 3).map((tag) => (
+                    <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400">#{tag}</span>
+                  ))}
+                </div>
+              )}
+
+              {/* Quick actions */}
+              <div className="flex gap-2">
+                {profilePreview.href && (
+                  <Link href={profilePreview.href} className="flex-1">
+                    <button className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-medium brand-button text-white transition-all active:scale-95">
+                      View Profile <ChevronRight className="h-2.5 w-2.5" />
+                    </button>
+                  </Link>
+                )}
+                <button
+                  onClick={() => setProfilePreview(null)}
+                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Selected node detail panel with quick actions */}
       <AnimatePresence>
         {selectedNode && (
@@ -1593,7 +1868,7 @@ export default function MeshPage() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute top-20 right-4 z-20 w-80 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute top-20 right-2 sm:right-4 z-20 w-[calc(100vw-1rem)] sm:w-80 max-w-80 glass-dropdown rounded-2xl shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto"
           >
             <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, " + selectedNode.color + ", " + selectedNode.color + "60, transparent)" }} />
             <div className="p-4">

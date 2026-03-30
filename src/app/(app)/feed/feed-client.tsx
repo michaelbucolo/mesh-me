@@ -63,7 +63,7 @@ interface FeedClientProps {
 }
 
 export function FeedClient({ user, initialPosts }: FeedClientProps) {
-  const [layout, setLayout] = useState<FeedLayout>("timeline");
+  const [layout, setLayout] = useState<FeedLayout>("reels");
   const [showLayoutPicker, setShowLayoutPicker] = useState(false);
   const [platformFilter, setPlatformFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
