@@ -142,7 +142,13 @@ function evaluateMath(expr: string): number | null {
 }
 
 // --- Logic & reasoning engine ---
-function reason(query: string, context?: ChatRequest["context"]): { content: string; mood: string } {
+interface ReasonResult {
+  content: string;
+  mood: string;
+  action?: { type: string; content?: string; suggestionType?: string };
+}
+
+function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
   const q = query.toLowerCase().trim();
 
   // --- Math questions ---
@@ -339,9 +345,62 @@ function reason(query: string, context?: ChatRequest["context"]): { content: str
   if (q.includes("setting") || q.includes("config") || q.includes("preference")) return { content: "Settings has everything: Profile, Interests, Customize (themes), Notifications, Privacy, Security, Blocked Users, Achievements, Meshi settings, and MeshPro. Access from the sidebar or ask me about any specific setting!", mood: "happy" };
   if (q.includes("achieve") || q.includes("badge") || q.includes("title")) return { content: "Earn achievement titles and badges by using mesh.me! First 1M users get the 'Pioneer' badge. Complete your profile, connect platforms, grow your mesh, and unlock more. Titles display on your profile.", mood: "excited" };
 
+  // --- Meshi vessel action intents ---
+  // Detect when user wants Meshi to do something on their behalf
+  if (q.includes("post for me") || q.includes("make a post") || q.includes("write a post") || q.includes("create a post for")) {
+    return {
+      content: "I can post on your behalf! Just tell me what you'd like to say and I'll create the post for you. You can also specify tags or a community. For example: 'Post: Hello mesh! #introduction'",
+      mood: "excited",
+      action: { type: "post_prompt" },
+    };
+  }
+
+  if (q.startsWith("post:") || q.startsWith("post ")) {
+    const postContent = q.replace(/^post:?\s*/i, "").trim();
+    if (postContent.length > 0) {
+      return {
+        content: `I'll post this for you: "${postContent}". Sending it now!`,
+        mood: "excited",
+        action: { type: "post", content: postContent },
+      };
+    }
+  }
+
+  if ((q.includes("follow") && q.includes("for me")) || q.includes("follow them") || q.match(/follow\s+@?\w+/)) {
+    return {
+      content: "I can follow people for you! Click any person node on The Mesh and I'll handle the follow. Or tell me the username and I'll find them.",
+      mood: "happy",
+      action: { type: "follow_prompt" },
+    };
+  }
+
+  if ((q.includes("message") || q.includes("send") || q.includes("dm")) && (q.includes("for me") || q.includes("to "))) {
+    return {
+      content: "I can send messages on your behalf! Click a person on The Mesh, or tell me who to message and what to say. For example: 'Message @username: Hey, let's connect!'",
+      mood: "love",
+      action: { type: "message_prompt" },
+    };
+  }
+
+  if (q.includes("suggest") && (q.includes("people") || q.includes("follow") || q.includes("who"))) {
+    return {
+      content: "Let me find some people you might want to follow! I'll look at your interests and connections to find great matches.",
+      mood: "excited",
+      action: { type: "suggest", suggestionType: "people" },
+    };
+  }
+
+  if (q.includes("suggest") && q.includes("communit")) {
+    return {
+      content: "Let me find communities that match your interests!",
+      mood: "excited",
+      action: { type: "suggest", suggestionType: "communities" },
+    };
+  }
+
   // Catch-all: intelligent default that shows Meshi can think
   return {
-    content: "That's an interesting question! I'm Meshi, and I'm best at helping with mesh.me features, searching your mesh, managing privacy, and navigating the platform. I can also do math and answer general questions. What would you like help with?",
+    content: "That's an interesting question! I'm Meshi, and I'm best at helping with mesh.me features, searching your mesh, managing privacy, and navigating the platform. I can also do math, answer general questions, and even post, message, or follow people on your behalf! What would you like help with?",
     mood: "thinking",
   };
 }
