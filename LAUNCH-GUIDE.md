@@ -33,11 +33,12 @@
 
 Your mesh.me codebase is a complete, production-ready Next.js application:
 
-- **Framework**: Next.js 14 (App Router) with TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui + Framer Motion animations
-- **Database ORM**: Prisma (currently configured for SQLite in dev)
+- **Framework**: Next.js 16 (App Router) with TypeScript
+- **Styling**: Tailwind CSS 4 + Radix UI + Framer Motion animations
+- **Database**: Prisma with libsql adapter (SQLite-compatible, works with Turso in production)
 - **Authentication**: Custom session-based auth with bcrypt password hashing
-- **Security**: Rate limiting, account lockout, XSS prevention, security headers
+- **Security**: Rate limiting, account lockout, input sanitization, security headers
+- **AI Assistant**: Meshi — floating AI guide with contextual greetings, visual search, mini-mesh panel
 - **32 routes** covering: landing page, auth, feed, mesh visualization, custom feed, MeChat, communities, profiles, explore, search, notifications, admin panel, settings, connected accounts, privacy policy, terms of service
 - **0 build errors, 0 lint errors**
 
@@ -128,46 +129,34 @@ For this guide, we will use **Vercel** since it is the simplest for Next.js.
 
 ## Step 3: Set Up a Production Database
 
-The development version uses SQLite (a file-based database). For production, you need PostgreSQL.
+mesh.me uses SQLite via the libsql adapter, which means you can use **Turso** for production — no schema changes needed.
 
-### Option A: Neon (Recommended -- Free Tier)
+### Recommended: Turso (Free Tier — works with zero code changes)
 
-1. Go to https://neon.tech
-2. Sign up for a free account
-3. Click "Create Project" and name it "mesh-me"
-4. Select the region closest to your users (e.g., US East)
-5. Copy the connection string -- it looks like:
-   ```
-   postgresql://username:password@ep-something-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
-   ```
-6. **Save this connection string** -- you will need it in Step 4
+1. Go to https://turso.tech and create a free account
+2. Click **"Create Database"** and name it `meshme-prod`
+3. Choose the region closest to your users (e.g., `us-east` for US users)
+4. After creation, click on your database and go to **"Connect"**
+5. Copy these two values:
+   - **Database URL** — looks like: `libsql://meshme-prod-yourusername.turso.io`
+   - **Auth Token** — click "Create Token" to generate one
+6. **Save both values** — you will need them in Step 4
 
-### Option B: Supabase (Free Tier)
+**Turso Free Tier:** 9GB storage, 500 databases, 25M row reads/month (plenty for launch)
 
-1. Go to https://supabase.com
-2. Sign up and create a new project
-3. Go to Settings > Database > Connection string
-4. Copy the connection string
+### Alternative: PostgreSQL (requires code changes)
 
-### Option C: Vercel Postgres
+If you prefer PostgreSQL (Neon, Supabase, or Vercel Postgres), you would need to:
+1. Change the Prisma schema `provider` from `"sqlite"` to `"postgresql"`
+2. Remove the `@prisma/adapter-libsql` and `@libsql/client` dependencies
+3. Run `npx prisma generate` to update the client
+4. Update the connection code in `src/lib/prisma.ts`
 
-1. In your Vercel dashboard, go to Storage
-2. Create a new Postgres database
-3. It will auto-configure environment variables
+**Recommendation:** Stick with Turso. It works with zero code changes.
 
-### Update Prisma Schema for PostgreSQL
-
-Before deploying, you need to change the database provider in `prisma/schema.prisma`:
-
-```prisma
-datasource db {
-  provider = "postgresql"    // Change from "sqlite" to "postgresql"
-}
+Update `.env` with your production database URL:
 ```
-
-Also update `.env` with your production database URL:
-```
-DATABASE_URL="postgresql://username:password@host/database?sslmode=require"
+DATABASE_URL="libsql://meshme-prod-yourusername.turso.io"
 ```
 
 ---
@@ -179,15 +168,16 @@ You will set these in your hosting provider's dashboard (Step 5). Here is what y
 ```env
 # === REQUIRED ===
 
-# Database connection string (from Step 3)
-DATABASE_URL="postgresql://username:password@host/database?sslmode=require"
+# Database (from Step 3 — Turso)
+DATABASE_URL="libsql://meshme-prod-yourusername.turso.io"
+DATABASE_AUTH_TOKEN="your-turso-auth-token-here"
 
-# Session secret -- generate a random 64-character string
+# Session secret — generate a random 64-character string
 # Run this command to generate one: openssl rand -hex 32
-NEXTAUTH_SECRET="your-random-64-character-secret-here"
+AUTH_SECRET="your-random-64-character-secret-here"
 
 # Your production URL (from Step 6)
-NEXTAUTH_URL="https://mesh.me"
+NEXT_PUBLIC_APP_URL="https://mesh.me"
 
 # === RECOMMENDED ===
 
@@ -255,9 +245,10 @@ Copy the output -- that is your secret. It will look something like:
 Before clicking "Deploy", add your environment variables:
 1. Scroll to **"Environment Variables"**
 2. Add each variable from Step 4:
-   - `DATABASE_URL` > your PostgreSQL connection string
-   - `NEXTAUTH_SECRET` > your generated secret
-   - `NEXTAUTH_URL` > `https://mesh.me` (or your domain)
+   - `DATABASE_URL` > your Turso database URL
+   - `DATABASE_AUTH_TOKEN` > your Turso auth token
+   - `AUTH_SECRET` > your generated secret
+   - `NEXT_PUBLIC_APP_URL` > `https://mesh.me` (or your domain)
    - `NODE_ENV` > `production`
 3. Click **"Deploy"**
 
