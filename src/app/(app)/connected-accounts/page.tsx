@@ -109,7 +109,7 @@ export default function ConnectedAccountsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">Connected Accounts</h1>
-            <p className="text-sm text-[var(--text-muted)]">Link your platforms to mesh.me</p>
+            <p className="text-sm text-[var(--text-muted)]">Bring your world into the mesh</p>
           </div>
         </div>
       </div>
@@ -222,9 +222,9 @@ export default function ConnectedAccountsPage() {
       {/* Cross-platform Features Info */}
       <div className="mt-8 grid md:grid-cols-3 gap-4">
         {[
-          { title: "Custom Feed", desc: "View content from all platforms in one customizable feed", icon: "📰" },
-          { title: "MeChat", desc: "Send and receive messages across all connected platforms", icon: "💬" },
-          { title: "Cross-Interact", desc: "Like, comment, and follow on any platform from mesh.me", icon: "🔗" },
+          { title: "Custom Feed", desc: "Every platform, one beautiful feed — yours to customize", icon: "📰" },
+          { title: "MeChat", desc: "Every conversation, every platform, one inbox", icon: "💬" },
+          { title: "Cross-Interact", desc: "Like, comment, and follow across the internet — all from the mesh", icon: "🔗" },
         ].map((feature) => (
           <div key={feature.title} className="glass-surface rounded-xl p-4 text-center">
             <span className="text-2xl mb-2 block">{feature.icon}</span>
