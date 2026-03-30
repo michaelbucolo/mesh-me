@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData] = await Promise.all([
+  const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: user.id },
       include: {
@@ -61,6 +61,12 @@ export async function GET() {
       where: { userId: user.id, isActive: true },
       select: { id: true, platform: true, platformUsername: true },
     }),
+    // Fetch alter egos for this user
+    prisma.alterEgo.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { id: true, username: true, displayName: true, bio: true, avatarUrl: true },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   // Find mutual follows (people the user follows who also follow them back)
@@ -95,6 +101,56 @@ export async function GET() {
     if (shared.length > 0) followingWithSharedInterests[f.following.id] = shared;
   }
 
+  // Calculate interaction counts per user (comments, likes, messages exchanged)
+  // This powers interaction-based proximity — more interactions = closer in the mesh
+  const allUserIds = [...followingIds, ...followerIds];
+  const interactionCounts: Record<string, number> = {};
+
+  if (allUserIds.length > 0) {
+    // Count comments on each other's posts
+    const commentInteractions = await prisma.comment.findMany({
+      where: {
+        OR: [
+          { authorId: user.id, post: { authorId: { in: [...allUserIds] } } },
+          { authorId: { in: [...allUserIds] }, post: { authorId: user.id } },
+        ],
+      },
+      select: {
+        authorId: true,
+        post: { select: { authorId: true } },
+      },
+    });
+
+    for (const c of commentInteractions) {
+      const otherId = c.authorId === user.id ? c.post.authorId : c.authorId;
+      interactionCounts[otherId] = (interactionCounts[otherId] || 0) + 1;
+    }
+
+    // Count reactions on each other's posts
+    const reactionInteractions = await prisma.reaction.findMany({
+      where: {
+        OR: [
+          { userId: user.id, post: { authorId: { in: [...allUserIds] } } },
+          { userId: { in: [...allUserIds] }, post: { authorId: user.id } },
+        ],
+      },
+      select: {
+        userId: true,
+        post: { select: { authorId: true } },
+      },
+    });
+
+    for (const r of reactionInteractions) {
+      const otherId = r.userId === user.id ? r.post.authorId : r.userId;
+      interactionCounts[otherId] = (interactionCounts[otherId] || 0) + 1;
+    }
+
+    // Mutual follows count as extra interaction weight
+    for (const id of mutualIds) {
+      interactionCounts[id] = (interactionCounts[id] || 0) + 3;
+    }
+  }
+
   return NextResponse.json({
     user: {
       id: user.id, username: user.username, displayName: user.displayName,
@@ -107,12 +163,14 @@ export async function GET() {
       sharedInterests: followingWithSharedInterests[f.following.id] || [],
       followerCount: f.following._count.followers,
       postCount: f.following._count.posts,
+      interactionCount: interactionCounts[f.following.id] || 0,
     })),
     followers: followersData.map((f) => ({
       ...f.follower,
       isMutual: mutualIds.includes(f.follower.id),
       followerCount: f.follower._count.followers,
       postCount: f.follower._count.posts,
+      interactionCount: interactionCounts[f.follower.id] || 0,
     })),
     communities: communitiesData.map((cm) => ({
       id: cm.community.id,
@@ -135,6 +193,7 @@ export async function GET() {
       repostCount: p._count.reposts,
     })),
     connectedAccounts: connectedAccountsData,
+    alterEgos: alterEgosData,
     stats: {
       followingCount: followingData.length,
       followerCount: followersData.length,
@@ -143,6 +202,7 @@ export async function GET() {
       postCount: postsData.length,
       interestCount: interestsData.length,
       connectedPlatformCount: connectedAccountsData.length,
+      alterEgoCount: alterEgosData.length,
     },
   });
 }

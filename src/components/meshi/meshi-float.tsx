@@ -7,9 +7,10 @@ import {
   X, Settings, History, Sparkles, MessageCircle,
   ChevronRight, Palette, HelpCircle, Send, GripVertical
 } from "lucide-react";
-import { MeshiMascot, type MeshiMood } from "./meshi-mascot";
+import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
+import { getMeshiPreference } from "@/lib/actions";
 
 // Meshi contextual greetings per route
 const GREETINGS: Record<string, { text: string; mood: MeshiMood }> = {
@@ -54,6 +55,8 @@ export function MeshiFloat() {
   const [meshiEnabled, setMeshiEnabled] = useState(true);
   const [view, setView] = useState<MeshiView>("closed");
   const [mood, setMood] = useState<MeshiMood>("happy");
+  const [meshiColor, setMeshiColor] = useState<MeshiColor>("blue");
+  const [meshiHat, setMeshiHat] = useState<MeshiHat>("none");
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetingText, setGreetingText] = useState("");
   const [lastPath, setLastPath] = useState("");
@@ -168,11 +171,31 @@ export function MeshiFloat() {
     return () => { cancelled = true; };
   }, [pathname]);
 
-  // Listen for changes from settings page
+  // Load Meshi customization preferences from DB on mount
+  useEffect(() => {
+    getMeshiPreference().then((pref) => {
+      if (pref) {
+        if (pref.faceStyle) setMood(pref.faceStyle as MeshiMood);
+        if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
+        if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
+      }
+    }).catch(() => { /* ignore - use defaults */ });
+  }, []);
+
+  // Listen for changes from settings page (both enabled toggle and customization)
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "meshiEnabled") {
         setMeshiEnabled(e.newValue !== "false");
+      }
+      if (e.key === "meshiColor") {
+        setMeshiColor((e.newValue || "blue") as MeshiColor);
+      }
+      if (e.key === "meshiHat") {
+        setMeshiHat((e.newValue || "none") as MeshiHat);
+      }
+      if (e.key === "meshiFace") {
+        setMood((e.newValue || "happy") as MeshiMood);
       }
     };
     window.addEventListener("storage", handleStorage);
@@ -477,7 +500,7 @@ export function MeshiFloat() {
                 animate={{ rotate: [0, 10, -10, 15, -5, 0] }}
                 transition={{ duration: 0.8, repeat: Infinity }}
               >
-                <MeshiMascot size={64} mood="thinking" color="blue" speaking showGlow />
+                <MeshiMascot size={64} mood="thinking" color={meshiColor} hat={meshiHat} speaking showGlow />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -536,7 +559,7 @@ export function MeshiFloat() {
                 >
                   {bubble.role === "meshi" && (
                     <div className="flex items-start gap-1.5 mb-1">
-                      <MeshiMascot size={16} mood={mood} color="blue" showGlow={false} animate={false} />
+                      <MeshiMascot size={16} mood={mood} color={meshiColor} hat={meshiHat} showGlow={false} animate={false} />
                       <span className="text-[10px] font-medium text-[var(--accent)]">Meshi</span>
                     </div>
                   )}
@@ -618,7 +641,7 @@ export function MeshiFloat() {
                   style={{ background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--border-primary)" }}
                 >
                   <div className="flex items-start gap-2">
-                    <MeshiMascot size={20} mood={mood} color="blue" showGlow={false} />
+                    <MeshiMascot size={20} mood={mood} color={meshiColor} hat={meshiHat} showGlow={false} />
                     <p>{greetingText}</p>
                   </div>
                 </motion.div>
@@ -665,7 +688,8 @@ export function MeshiFloat() {
                   <MeshiMascot
                     size={44}
                     mood={isDragging ? "excited" : mood}
-                    color="blue"
+                    color={meshiColor}
+                    hat={meshiHat}
                     showGlow={false}
                     interactive
                     onMoodChange={handleMoodChange}
@@ -752,7 +776,7 @@ export function MeshiFloat() {
           >
             {/* Header */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]" style={{ background: "var(--bg-secondary)" }}>
-              <MeshiMascot size={32} mood="happy" color="blue" showGlow={false} />
+              <MeshiMascot size={32} mood="happy" color={meshiColor} hat={meshiHat} showGlow={false} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">{"Meshi\u2019s Mesh"} <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded text-white ml-1" style={{ background: "var(--accent)" }}>Beta</span></p>
                 <p className="text-[10px] text-[var(--text-muted)]">{"Your AI buddy\u2019s corner"}</p>
