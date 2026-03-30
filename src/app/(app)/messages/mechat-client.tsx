@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 interface Thread {
   id: string;
@@ -88,9 +89,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <div className="brand-logo h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
-              <MessageCircle className="h-4 w-4 text-white" />
-            </div>
+            <MeshiLogo size={32} color="blue" mood="happy" />
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">MeChat</h1>
           </div>
           <p className="text-sm text-[var(--text-muted)] mt-1">Every conversation. One inbox.</p>

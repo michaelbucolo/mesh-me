@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 export default function AboutPage() {
   return (
@@ -6,17 +7,7 @@ export default function AboutPage() {
       <header className="border-b border-[var(--border-primary)] glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="brand-logo h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/>
-                <circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/>
-                <circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/>
-                <circle cx="12" cy="12" r="2.5" fill="white"/>
-                <line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-                <line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-                <line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-              </svg>
-            </div>
+            <MeshiLogo size={32} color="blue" mood="happy" />
             <span className="brand-wordmark text-xl">mesh<span className="brand-wordmark-accent">.me</span></span>
           </Link>
           <div className="flex items-center gap-3">
