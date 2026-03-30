@@ -17,7 +17,7 @@ const DOT_POSITIONS = [0, 72, 144, 216, 288].map((deg) => ({
 }));
 
 // Meshi face styles — eyes only, reacts to interaction
-const FACES: Record<string, { eyes: string }> = {
+const FACES: Record<string, { eyes: string; svg?: boolean }> = {
   happy: { eyes: "◕ ◕" },
   excited: { eyes: "★ ★" },
   thinking: { eyes: "◑ ◐" },
@@ -29,7 +29,19 @@ const FACES: Record<string, { eyes: string }> = {
   petted: { eyes: "◠ ◠" },
   giggle: { eyes: "≧ ≦" },
   shy: { eyes: "· ·" },
-  synergy1017: { eyes: "◕ ◠" },
+  synergy1017: { eyes: "", svg: true },
+};
+
+// SVG face for synergy1017 — oval open eye + thick upward wink, same style as text faces
+const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
+  synergy1017: (color: string) => (
+    <g>
+      {/* Left eye — tall oval */}
+      <ellipse cx="-4" cy="0" rx="1.8" ry="3" fill={color} />
+      {/* Right eye — thick upward-facing wink arc */}
+      <path d="M 2 1.5 Q 4.5 -2.5 7 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </g>
+  ),
 };
 
 
@@ -269,10 +281,19 @@ export function MeshiMascot({
 
           {/* Face — eyes only, reactive to petting */}
           <g transform={`scale(${Math.min(scale, 1.2)})`}>
-            <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
-              fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
-              {(interactive ? (FACES[localMood || mood] || FACES.happy) : face).eyes}
-            </text>
+            {(() => {
+              const currentFace = interactive ? (FACES[localMood || mood] || FACES.happy) : face;
+              const currentMood = interactive ? (localMood || mood) : mood;
+              if (currentFace.svg && SVG_FACES[currentMood]) {
+                return SVG_FACES[currentMood](theme.primary);
+              }
+              return (
+                <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
+                  fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
+                  {currentFace.eyes}
+                </text>
+              );
+            })()}
           </g>
         </g>
 
@@ -303,7 +324,11 @@ export function MeshiLogo({ size = 32, color = "blue", mood = "happy", className
         <circle cx="0" cy="0" r="16" fill={theme.primary} opacity="0.15" />
         <circle cx="0" cy="0" r="16" fill="none" stroke={theme.primary} strokeWidth="2" />
         <ellipse cx="-4" cy="-5" rx="4" ry="3" fill="white" opacity="0.12" transform="rotate(-20)" />
-        <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="8" fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>{face.eyes}</text>
+        {face.svg && SVG_FACES[mood] ? (
+          <g transform="scale(0.85)">{SVG_FACES[mood](theme.primary)}</g>
+        ) : (
+          <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="8" fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>{face.eyes}</text>
+        )}
       </svg>
     </div>
   );
