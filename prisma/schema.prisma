@@ -59,6 +59,10 @@ model User {
   isMeshPro      Boolean  @default(false)
   meshProSince   DateTime?
   signupNumber   Int?
+  alterEgos      AlterEgo[]
+  emails         UserEmail[]
+  phones         UserPhone[]
+  twoFactorMethods TwoFactorMethod[]
 }
 
 model UserInterest {
@@ -456,6 +460,93 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// ─── Alter Egos (Account Merging) ────────────────────────────
+
+model AlterEgo {
+  id          String   @id @default(cuid())
+  userId      String
+  username    String   @unique
+  displayName String
+  bio         String?
+  avatarUrl   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Multi-Email & Multi-Phone ──────────────────────────────
+
+model UserEmail {
+  id         String   @id @default(cuid())
+  userId     String
+  email      String   @unique
+  isPrimary  Boolean  @default(false)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserPhone {
+  id         String   @id @default(cuid())
+  userId     String
+  phone      String   @unique
+  isPrimary  Boolean  @default(false)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Two-Factor Authentication ──────────────────────────────
+
+model TwoFactorMethod {
+  id         String   @id @default(cuid())
+  userId     String
+  // Method type: "email" | "sms" | "totp" | "passkey"
+  method     String
+  // For TOTP: encrypted secret; for passkey: credential ID
+  secret     String?
+  // For passkey: public key
+  publicKey  String?
+  // User-friendly label (e.g. "My iPhone", "Google Authenticator")
+  label      String?
+  isEnabled  Boolean  @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Account Merge Requests ─────────────────────────────────
+
+model AccountMergeRequest {
+  id              String   @id @default(cuid())
+  // The account that will remain (primary)
+  primaryUserId   String
+  // The account that will be merged in (secondary → becomes alter ego)
+  secondaryEmail  String
+  // Status: "pending" | "verified" | "completed" | "rejected"
+  status          String   @default("pending")
+  // Verification token sent to secondary account email
+  verifyToken     String?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([primaryUserId])
+  @@index([secondaryEmail])
 }
 
 // ─── Redeem Codes ────────────────────────────────────────────
