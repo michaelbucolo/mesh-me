@@ -132,9 +132,10 @@ export async function signIn(formData: FormData) {
     return { error: "Invalid email or password" };
   }
 
-  // Check suspension — record failed login to prevent lockout timing oracle
+  // Check suspension — return generic error to prevent user enumeration,
+  // but do NOT record a failed login (this isn't a credential failure,
+  // and recording it would let attackers build lockout state for the real user)
   if (user.isSuspended) {
-    recordFailedLogin(lockoutKey);
     return { error: "Invalid email or password" };
   }
 
