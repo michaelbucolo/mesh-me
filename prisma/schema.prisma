@@ -1,0 +1,570 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  username       String   @unique
+  displayName    String
+  passwordHash   String
+  bio            String?
+  location       String?
+  website        String?
+  avatarUrl      String?
+  bannerUrl      String?
+  accentColor    String   @default("#6366f1")
+  isPublic       Boolean  @default(true)
+  isAdmin        Boolean  @default(false)
+  isVerified     Boolean  @default(false)
+  isSuspended    Boolean  @default(false)
+  onboarded      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  posts          Post[]
+  comments       Comment[]
+  reactions      Reaction[]
+  followers      Follow[]       @relation("following")
+  following      Follow[]       @relation("follower")
+  sentMessages   Message[]      @relation("sender")
+  threadMembers  ThreadMember[]
+  notifications  Notification[] @relation("recipient")
+  actorNotifs    Notification[] @relation("actor")
+  reports        Report[]       @relation("reporter")
+  reportedUser   Report[]       @relation("reportedUser")
+  blocks         Block[]        @relation("blocker")
+  blockedBy      Block[]        @relation("blocked")
+  mutes          Mute[]         @relation("muter")
+  mutedBy        Mute[]         @relation("muted")
+  communityMemberships CommunityMember[]
+  interests      UserInterest[]
+  links          UserLink[]
+  adminLogs      AdminLog[]
+  savedPosts     SavedPost[]
+  connectedAccounts ConnectedAccount[]
+  feedPreference FeedPreference?
+  achievements   UserAchievement[]
+  meshiPreference MeshiPreference?
+  meshCosmetics  MeshCosmetic[]
+  meshPrivacy    MeshPrivacy?
+  sessions       Session[]
+  globalMeshMember GlobalMeshMember?
+  activeTitle    String?
+  isMeshPro      Boolean  @default(false)
+  meshProSince   DateTime?
+  signupNumber   Int?
+  // Online status: "online" | "dnd" | "busy" | "offline"
+  status         String   @default("offline")
+  lastSeenAt     DateTime?
+  alterEgos      AlterEgo[]
+  emails         UserEmail[]
+  phones         UserPhone[]
+  twoFactorMethods TwoFactorMethod[]
+}
+
+model UserInterest {
+  id       String @id @default(cuid())
+  userId   String
+  tag      String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tag])
+  @@index([tag])
+}
+
+model UserLink {
+  id       String @id @default(cuid())
+  userId   String
+  label    String
+  url      String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Post {
+  id          String      @id @default(cuid())
+  content     String
+  authorId    String
+  communityId String?
+  isRepost    Boolean     @default(false)
+  repostId    String?
+  isPinned    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community   Community?  @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  repostOf    Post?       @relation("reposts", fields: [repostId], references: [id], onDelete: SetNull)
+  reposts     Post[]      @relation("reposts")
+  media       PostMedia[]
+  comments    Comment[]
+  reactions   Reaction[]
+  tags        PostTag[]
+  reports     Report[]    @relation("reportedPost")
+  savedBy     SavedPost[]
+  notifications Notification[]
+
+  @@index([authorId])
+  @@index([communityId])
+  @@index([createdAt])
+}
+
+model PostMedia {
+  id       String @id @default(cuid())
+  postId   String
+  url      String
+  type     String @default("image")
+  width    Int?
+  height   Int?
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model PostTag {
+  id     String @id @default(cuid())
+  postId String
+  tag    String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([tag])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  authorId  String
+  postId    String
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("replies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("replies")
+  reports   Report[]  @relation("reportedComment")
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  type      String   @default("like")
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  iconUrl     String?
+  bannerUrl   String?
+  category    String?
+  isPublic    Boolean  @default(true)
+  rules       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts       Post[]
+  members     CommunityMember[]
+  reports     Report[]  @relation("reportedCommunity")
+
+  @@index([category])
+}
+
+model CommunityMember {
+  id          String   @id @default(cuid())
+  userId      String
+  communityId String
+  role        String   @default("member")
+  joinedAt    DateTime @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@index([communityId])
+}
+
+model MessageThread {
+  id        String         @id @default(cuid())
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  members   ThreadMember[]
+  messages  Message[]
+}
+
+model ThreadMember {
+  id        String        @id @default(cuid())
+  userId    String
+  threadId  String
+  lastRead  DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, threadId])
+}
+
+model Message {
+  id        String        @id @default(cuid())
+  content   String
+  senderId  String
+  threadId  String
+  createdAt DateTime      @default(now())
+  sender    User          @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  type        String
+  recipientId String
+  actorId     String?
+  postId      String?
+  message     String?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  recipient   User     @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?    @relation("actor", fields: [actorId], references: [id], onDelete: SetNull)
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId])
+  @@index([createdAt])
+}
+
+model Report {
+  id                String     @id @default(cuid())
+  reason            String
+  status            String     @default("pending")
+  reporterId        String
+  reportedUserId    String?
+  reportedPostId    String?
+  reportedCommentId String?
+  reportedCommunityId String?
+  createdAt         DateTime   @default(now())
+
+  reporter          User       @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser      User?      @relation("reportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  reportedPost      Post?      @relation("reportedPost", fields: [reportedPostId], references: [id], onDelete: SetNull)
+  reportedComment   Comment?   @relation("reportedComment", fields: [reportedCommentId], references: [id], onDelete: SetNull)
+  reportedCommunity Community? @relation("reportedCommunity", fields: [reportedCommunityId], references: [id], onDelete: SetNull)
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker   User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+}
+
+model Mute {
+  id      String   @id @default(cuid())
+  muterId String
+  mutedId String
+  createdAt DateTime @default(now())
+
+  muter   User     @relation("muter", fields: [muterId], references: [id], onDelete: Cascade)
+  muted   User     @relation("muted", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@unique([muterId, mutedId])
+}
+
+model SavedPost {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  action    String
+  details   String?
+  adminId   String
+  createdAt DateTime @default(now())
+
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+model ConnectedAccount {
+  id           String   @id @default(cuid())
+  userId       String
+  platform     String
+  platformUsername String?
+  platformId   String?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@index([platform])
+}
+
+model FeedPreference {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  layout    String   @default("cards")
+  sources   String   @default("all")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Achievements & Titles ──────────────────────────────────
+
+model Achievement {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  icon        String
+  category    String   @default("general")
+  title       String?
+  threshold   Int      @default(1)
+  isLimited   Boolean  @default(false)
+  maxHolders  Int?
+  createdAt   DateTime @default(now())
+
+  holders     UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+// ─── Meshi AI Preferences ───────────────────────────────────
+
+model MeshiPreference {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  hatStyle    String   @default("none")
+  faceStyle   String   @default("happy")
+  colorTheme  String   @default("blue")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Mesh Cosmetics (MeshPro) ───────────────────────────────
+
+model MeshCosmetic {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  value       String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Mesh Privacy Controls ──────────────────────────────────
+
+model MeshPrivacy {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  // Overall mesh visibility: "private" | "friends" | "public" | "partial"
+  meshVisibility  String   @default("friends")
+  // Per-branch visibility overrides (JSON: { "people": "public", "communities": "friends", ... })
+  branchOverrides String   @default("{}")
+  // Whether connections (edges) are visible to others
+  showConnections Boolean  @default(true)
+  // Whether stats are visible to others
+  showStats       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Global Mesh (opt-in) ───────────────────────────────────
+
+model GlobalMeshMember {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  isActive        Boolean  @default(true)
+  // JSON array of branch types shared with global mesh: ["people","communities","interests"]
+  sharedBranches  String   @default("[]")
+  joinedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Sessions (DB-backed for serverless) ─────────────────────
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ─── Alter Egos (Account Merging) ────────────────────────────
+
+model AlterEgo {
+  id          String   @id @default(cuid())
+  userId      String
+  username    String   @unique
+  displayName String
+  bio         String?
+  avatarUrl   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Multi-Email & Multi-Phone ──────────────────────────────
+
+model UserEmail {
+  id         String   @id @default(cuid())
+  userId     String
+  email      String   @unique
+  isPrimary  Boolean  @default(false)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserPhone {
+  id         String   @id @default(cuid())
+  userId     String
+  phone      String   @unique
+  isPrimary  Boolean  @default(false)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Two-Factor Authentication ──────────────────────────────
+
+model TwoFactorMethod {
+  id         String   @id @default(cuid())
+  userId     String
+  // Method type: "email" | "sms" | "totp" | "passkey"
+  method     String
+  // For TOTP: encrypted secret; for passkey: credential ID
+  secret     String?
+  // For passkey: public key
+  publicKey  String?
+  // User-friendly label (e.g. "My iPhone", "Google Authenticator")
+  label      String?
+  isEnabled  Boolean  @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Account Merge Requests ─────────────────────────────────
+
+model AccountMergeRequest {
+  id              String   @id @default(cuid())
+  // The account that will remain (primary)
+  primaryUserId   String
+  // The account that will be merged in (secondary → becomes alter ego)
+  secondaryEmail  String
+  // Status: "pending" | "verified" | "completed" | "rejected"
+  status          String   @default("pending")
+  // Verification token sent to secondary account email
+  verifyToken     String?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([primaryUserId])
+  @@index([secondaryEmail])
+}
+
+// ─── Redeem Codes ────────────────────────────────────────────
+
+model RedeemCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  // What the code unlocks: "meshi-face", "meshi-hat", "meshi-color", "mesh-cosmetic"
+  rewardType  String
+  // The value of the reward (e.g. face name, hat name, color name)
+  rewardValue String
+  // Display label for the reward
+  rewardLabel String
+  // Whether the code has been used
+  redeemedBy  String?
+  redeemedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
