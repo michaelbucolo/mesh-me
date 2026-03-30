@@ -1,10 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getFeedPosts, getExplorePosts } from "@/lib/queries";
-import { PostComposer } from "@/components/feed/post-composer";
-import { PostCard } from "@/components/feed/post-card";
-import { EmptyState } from "@/components/ui/empty-state";
-import { FileText } from "lucide-react";
-import Link from "next/link";
+import { FeedClient } from "./feed-client";
 
 export default async function FeedPage() {
   const user = await getCurrentUser();
@@ -18,43 +14,13 @@ export default async function FeedPage() {
   }
 
   return (
-    <div data-meshi-zone="feed" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Home</h1>
-      </div>
-
-      {/* Composer */}
-      <div className="mb-6">
-        <PostComposer
-          user={{
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-          }}
-        />
-      </div>
-
-      {/* Feed */}
-      <div className="space-y-4">
-        {posts.length > 0 ? (
-          posts.map((post) => (
-            <PostCard key={post.id} post={post} currentUserId={user.id} />
-          ))
-        ) : (
-          <EmptyState
-            icon={FileText}
-            title="Your feed is empty"
-            description="Follow people and join communities to fill your feed, or explore what's happening on the mesh."
-          >
-            <Link
-              href="/explore"
-              className="inline-flex brand-button text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
-            >
-              Explore the Mesh
-            </Link>
-          </EmptyState>
-        )}
-      </div>
-    </div>
+    <FeedClient
+      user={{
+        id: user.id,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      }}
+      initialPosts={posts}
+    />
   );
 }

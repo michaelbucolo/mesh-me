@@ -59,6 +59,9 @@ export default function ConnectedAccountsPage() {
     loadAccounts();
   }, []);
 
+  const [showImportDialog, setShowImportDialog] = useState<string | null>(null);
+  const [importOptions, setImportOptions] = useState({ posts: true, likes: true, comments: true, followers: false });
+
   const handleConnect = async (platformId: string) => {
     setConnecting(platformId);
     try {
@@ -70,12 +73,20 @@ export default function ConnectedAccountsPage() {
       if (res.ok) {
         const data = await res.json();
         setAccounts((prev) => [...prev, data.account]);
+        // Show import dialog after successful connection
+        setShowImportDialog(platformId);
       }
     } catch {
       // connection failed
     } finally {
       setConnecting(null);
     }
+  };
+
+  const handleImport = () => {
+    // Import would sync data from the platform — all imported data is private by default
+    setShowImportDialog(null);
+    setImportOptions({ posts: true, likes: true, comments: true, followers: false });
   };
 
   const handleDisconnect = async (accountId: string) => {
@@ -222,7 +233,7 @@ export default function ConnectedAccountsPage() {
       {/* Cross-platform Features Info */}
       <div className="mt-8 grid md:grid-cols-3 gap-4">
         {[
-          { title: "Custom Feed", desc: "Every platform, one beautiful feed — yours to customize", icon: "📰" },
+          { title: "Unified Feed", desc: "Every platform, one beautiful feed — yours to customize", icon: "📰" },
           { title: "MeChat", desc: "Every conversation, every platform, one inbox", icon: "💬" },
           { title: "Cross-Interact", desc: "Like, comment, and follow across the internet — all from the mesh", icon: "🔗" },
         ].map((feature) => (
@@ -233,6 +244,88 @@ export default function ConnectedAccountsPage() {
           </div>
         ))}
       </div>
+
+      {/* Import Dialog — shown after connecting a platform */}
+      {showImportDialog && (() => {
+        const platform = PLATFORMS.find((p) => p.id === showImportDialog);
+        if (!platform) return null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setShowImportDialog(null); }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="w-full max-w-md mx-4 rounded-2xl overflow-hidden glass-dropdown shadow-2xl"
+            >
+              <div className="h-1.5 w-full" style={{ background: platform.color }} />
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: platform.color }}>
+                    {platform.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[var(--text-primary)]">{platform.name} Connected!</h3>
+                    <p className="text-xs text-[var(--text-muted)]">Would you like to import your existing data?</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
+                  <Shield className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
+                  <p className="text-[11px] text-[var(--text-secondary)]">
+                    All imported data will be <strong>visible only to you</strong> by default. You choose what to make public. mesh.me never shares your imported data without your explicit consent.
+                  </p>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">What to import</p>
+                  {[
+                    { key: "posts" as const, label: "Posts & content", desc: "Import all your existing posts" },
+                    { key: "likes" as const, label: "Likes & reactions", desc: "Import your liked content" },
+                    { key: "comments" as const, label: "Comments", desc: "Import your comment history" },
+                    { key: "followers" as const, label: "Followers & following", desc: "Sync your connections" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setImportOptions((prev) => ({ ...prev, [opt.key]: !prev[opt.key] }))}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[var(--bg-tertiary)] transition-all"
+                    >
+                      <div className="text-left">
+                        <p className="text-xs font-medium text-[var(--text-primary)]">{opt.label}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">{opt.desc}</p>
+                      </div>
+                      <div className={"w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all " + (
+                        importOptions[opt.key]
+                          ? "border-[var(--accent)] bg-[var(--accent)]"
+                          : "border-[var(--border-primary)]"
+                      )}>
+                        {importOptions[opt.key] && (
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowImportDialog(null)}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-all"
+                  >
+                    Skip for now
+                  </button>
+                  <button
+                    onClick={handleImport}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 shadow-lg hover:shadow-xl transition-all active:scale-95"
+                  >
+                    Import Selected
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
