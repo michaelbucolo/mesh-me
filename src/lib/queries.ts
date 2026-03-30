@@ -595,6 +595,7 @@ export async function getAdminStats() {
       take: 20,
     }),
     prisma.adminLog.findMany({
+      where: { action: { not: "feedback" } },
       include: { admin: { select: { username: true, displayName: true } } },
       orderBy: { createdAt: "desc" },
       take: 20,

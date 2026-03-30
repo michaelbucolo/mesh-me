@@ -102,9 +102,9 @@ export async function signIn(formData: FormData) {
 
   const email = rawEmail.trim().toLowerCase();
 
-  // Rate limit login attempts by raw input (pre-lookup, prevents DB spam)
-  const rl = rateLimit(`login:${email}`, 10, 15 * 60 * 1000);
-  if (!rl.allowed) {
+  // Pre-lookup rate limit to prevent DB spam from automated scanners
+  const preRl = rateLimit(`login-input:${email}`, 10, 15 * 60 * 1000);
+  if (!preRl.allowed) {
     return { error: "Too many login attempts. Please try again later." };
   }
 
@@ -119,6 +119,14 @@ export async function signIn(formData: FormData) {
 
   // Key lockout by resolved user ID to prevent bypass via alternative identifiers
   const lockoutKey = user ? user.id : email;
+
+  // Post-lookup rate limit keyed by user ID — prevents bypass via email/username alternation
+  if (user) {
+    const userRl = rateLimit(`login-user:${user.id}`, 10, 15 * 60 * 1000);
+    if (!userRl.allowed) {
+      return { error: "Too many login attempts. Please try again later." };
+    }
+  }
 
   // Check account lockout
   const lockout = checkAccountLockout(lockoutKey);
