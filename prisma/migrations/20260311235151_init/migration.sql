@@ -17,7 +17,11 @@ CREATE TABLE "User" (
     "isSuspended" BOOLEAN NOT NULL DEFAULT false,
     "onboarded" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "updatedAt" DATETIME NOT NULL,
+    "activeTitle" TEXT,
+    "isMeshPro" BOOLEAN NOT NULL DEFAULT false,
+    "meshProSince" DATETIME,
+    "signupNumber" INTEGER
 );
 
 -- CreateTable
@@ -234,6 +238,81 @@ CREATE TABLE "AdminLog" (
     CONSTRAINT "AdminLog_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "ConnectedAccount" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "platform" TEXT NOT NULL,
+    "platformUsername" TEXT,
+    "platformId" TEXT,
+    "accessToken" TEXT,
+    "refreshToken" TEXT,
+    "expiresAt" DATETIME,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "ConnectedAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "FeedPreference" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "layout" TEXT NOT NULL DEFAULT 'cards',
+    "sources" TEXT NOT NULL DEFAULT 'all',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "FeedPreference_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Achievement" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "slug" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "icon" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'general',
+    "title" TEXT,
+    "threshold" INTEGER NOT NULL DEFAULT 1,
+    "isLimited" BOOLEAN NOT NULL DEFAULT false,
+    "maxHolders" INTEGER,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "UserAchievement" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "achievementId" TEXT NOT NULL,
+    "unlockedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "UserAchievement_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "UserAchievement_achievementId_fkey" FOREIGN KEY ("achievementId") REFERENCES "Achievement" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "MeshiPreference" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "hatStyle" TEXT NOT NULL DEFAULT 'none',
+    "faceStyle" TEXT NOT NULL DEFAULT 'happy',
+    "colorTheme" TEXT NOT NULL DEFAULT 'blue',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "MeshiPreference_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "MeshCosmetic" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "MeshCosmetic_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -318,33 +397,6 @@ CREATE UNIQUE INDEX "SavedPost_userId_postId_key" ON "SavedPost"("userId", "post
 -- CreateIndex
 CREATE INDEX "AdminLog_createdAt_idx" ON "AdminLog"("createdAt");
 
--- CreateTable
-CREATE TABLE "ConnectedAccount" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT NOT NULL,
-    "platform" TEXT NOT NULL,
-    "platformUsername" TEXT,
-    "platformId" TEXT,
-    "accessToken" TEXT,
-    "refreshToken" TEXT,
-    "expiresAt" DATETIME,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ConnectedAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "FeedPreference" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT NOT NULL,
-    "layout" TEXT NOT NULL DEFAULT 'cards',
-    "sources" TEXT NOT NULL DEFAULT 'all',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "FeedPreference_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
 -- CreateIndex
 CREATE INDEX "ConnectedAccount_platform_idx" ON "ConnectedAccount"("platform");
 
@@ -353,3 +405,19 @@ CREATE UNIQUE INDEX "ConnectedAccount_userId_platform_key" ON "ConnectedAccount"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "FeedPreference_userId_key" ON "FeedPreference"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Achievement_slug_key" ON "Achievement"("slug");
+
+-- CreateIndex
+CREATE INDEX "UserAchievement_userId_idx" ON "UserAchievement"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserAchievement_userId_achievementId_key" ON "UserAchievement"("userId", "achievementId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MeshiPreference_userId_key" ON "MeshiPreference"("userId");
+
+-- CreateIndex
+CREATE INDEX "MeshCosmetic_userId_idx" ON "MeshCosmetic"("userId");
+

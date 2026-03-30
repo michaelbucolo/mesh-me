@@ -225,6 +225,15 @@ export default function SettingsPage() {
   const [meshiHat, setMeshiHat] = useState<MeshiHat>("none");
   const [meshiFace, setMeshiFace] = useState<MeshiMood>("happy");
   const [meshiColor, setMeshiColor] = useState<MeshiColor>("blue");
+  const [meshiEnabled, setMeshiEnabled] = useState(true);
+
+  // Load Meshi enabled state from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("meshiEnabled");
+      if (stored === "false") setMeshiEnabled(false);
+    }
+  }, []);
 
   // Achievements state
   const [unlockedSlugs, setUnlockedSlugs] = useState<string[]>([]);
@@ -242,7 +251,7 @@ export default function SettingsPage() {
     { id: "footprint", label: "Digital Footprint", icon: Fingerprint },
     { id: "blocked", label: "Blocked Users", icon: UserX },
     { id: "achievements", label: "Achievements", icon: Trophy },
-    { id: "meshi", label: "Meshi", icon: Sparkles },
+    { id: "meshi", label: "Meshi (Beta)", icon: Sparkles },
     { id: "meshpro", label: "MeshPro", icon: Crown },
   ];
 
@@ -1114,12 +1123,46 @@ export default function SettingsPage() {
               <MeshiSettingsTip tab="meshi" />
               <div className="text-center mb-6">
                 <MeshiMascot size={80} mood={meshiFace} hat={meshiHat} color={meshiColor} speaking={false} />
-                <h2 className="text-lg font-semibold text-[var(--text-primary)] mt-4 mb-1">Customize Meshi</h2>
-                <p className="text-sm text-[var(--text-muted)]">Make Meshi uniquely yours!</p>
-                <p className="text-[10px] text-[var(--accent)] mt-1 flex items-center justify-center gap-1">
-                  <Sparkles className="h-3 w-3" /> MeshPro feature
-                </p>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mt-4 mb-1">Meshi <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-white ml-1" style={{ background: "var(--accent)" }}>Beta</span></h2>
+                <p className="text-sm text-[var(--text-muted)]">Your AI assistant for navigating the mesh</p>
               </div>
+
+              {/* Enable / Disable Meshi */}
+              <div className="glass-card rounded-2xl p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Enable Meshi</h3>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">Show the floating Meshi assistant across the app</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newVal = !meshiEnabled;
+                      setMeshiEnabled(newVal);
+                      localStorage.setItem("meshiEnabled", String(newVal));
+                      // Dispatch storage event for other components listening
+                      window.dispatchEvent(new StorageEvent("storage", { key: "meshiEnabled", newValue: String(newVal) }));
+                      showSuccess(newVal ? "Meshi enabled" : "Meshi disabled");
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      meshiEnabled ? "bg-[var(--accent)]" : "bg-[var(--bg-tertiary)]"
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      meshiEnabled ? "translate-x-6" : "translate-x-1"
+                    }`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Customize section - only show when enabled */}
+              {meshiEnabled && (
+                <>
+                <div className="text-center mb-2">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Customize Meshi</h3>
+                  <p className="text-[10px] text-[var(--accent)] mt-1 flex items-center justify-center gap-1">
+                    <Sparkles className="h-3 w-3" /> MeshPro feature
+                  </p>
+                </div>
 
               {/* Face style */}
               <div className="glass-card rounded-2xl p-5">
@@ -1189,6 +1232,8 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
+              </>
+              )}
             </motion.div>
           )}
 

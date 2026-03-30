@@ -82,24 +82,24 @@ interface MeshEdge {
 
 const NODE_COLORS: Record<string, string> = {
   self: "#3b82f6",
-  user: "#60a5fa",
-  mutual: "#818cf8",
-  community: "#ec4899",
-  tag: "#06b6d4",
-  post: "#22c55e",
-  platform: "#f59e0b",
-  meshi: "#2d7ff9",
+  user: "#93b4f5",
+  mutual: "#a5b0f0",
+  community: "#e88cb8",
+  tag: "#5cc8d6",
+  post: "#6dcea0",
+  platform: "#f0b95a",
+  meshi: "#5a9cf7",
 };
 
 const NODE_GLOW: Record<string, string> = {
-  self: "rgba(59, 130, 246, 0.3)",
-  user: "rgba(96, 165, 250, 0.2)",
-  mutual: "rgba(129, 140, 248, 0.25)",
-  community: "rgba(236, 72, 153, 0.2)",
-  tag: "rgba(6, 182, 212, 0.2)",
-  post: "rgba(34, 197, 94, 0.15)",
-  platform: "rgba(245, 158, 11, 0.2)",
-  meshi: "rgba(45, 127, 249, 0.35)",
+  self: "rgba(59, 130, 246, 0.15)",
+  user: "rgba(96, 165, 250, 0.08)",
+  mutual: "rgba(129, 140, 248, 0.1)",
+  community: "rgba(236, 72, 153, 0.08)",
+  tag: "rgba(6, 182, 212, 0.08)",
+  post: "rgba(34, 197, 94, 0.06)",
+  platform: "rgba(245, 158, 11, 0.08)",
+  meshi: "rgba(45, 127, 249, 0.12)",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -419,9 +419,9 @@ export default function MeshPage() {
         const dx = other.x - node.x;
         const dy = other.y - node.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const minDist = node.radius + other.radius + 50;
+        const minDist = node.radius + other.radius + 60;
         if (dist < minDist * 2.5) {
-          const force = (minDist * 2.5 - dist) * 0.003;
+          const force = (minDist * 2.5 - dist) * 0.0015;
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
           if (node.type !== "self") { node.vx -= fx; node.vy -= fy; }
@@ -430,17 +430,17 @@ export default function MeshPage() {
       }
 
       if (node.type !== "self") {
-        node.vx += (cx - node.x) * 0.00008;
-        node.vy += (cy - node.y) * 0.00008;
+        node.vx += (cx - node.x) * 0.00005;
+        node.vy += (cy - node.y) * 0.00005;
         const ndx = node.x - cx;
         const ndy = node.y - cy;
         const ndist = Math.sqrt(ndx * ndx + ndy * ndy) || 1;
-        node.vx += (-ndy / ndist) * 0.015;
-        node.vy += (ndx / ndist) * 0.015;
+        node.vx += (-ndy / ndist) * 0.008;
+        node.vy += (ndx / ndist) * 0.008;
       }
 
-      node.vx *= 0.96;
-      node.vy *= 0.96;
+      node.vx *= 0.98;
+      node.vy *= 0.98;
 
       if (node.type !== "self") {
         node.x += node.vx;
@@ -508,8 +508,8 @@ export default function MeshPage() {
         const isHighlighted = (hovered && (hovered.id === source.id || hovered.id === target.id))
           || (selected && (selected.id === source.id || selected.id === target.id));
 
-        const baseAlpha = isHighlighted ? 0.4 : 0.08 + edge.strength * 0.12;
-        const pulseAlpha = Math.sin(time * 2 + edge.strength * 5) * 0.03;
+        const baseAlpha = isHighlighted ? 0.25 : 0.04 + edge.strength * 0.06;
+        const pulseAlpha = Math.sin(time * 1.2 + edge.strength * 5) * 0.015;
 
         ctx.beginPath();
         ctx.moveTo(source.x, source.y);
@@ -534,7 +534,7 @@ export default function MeshPage() {
           : "59, 130, 246";
 
         ctx.strokeStyle = "rgba(" + edgeColor + ", " + (baseAlpha + pulseAlpha) + ")";
-        ctx.lineWidth = isHighlighted ? 2.5 : 0.8 + edge.strength * 1.2;
+        ctx.lineWidth = isHighlighted ? 1.5 : 0.5 + edge.strength * 0.5;
         ctx.stroke();
 
         if (edge.type === "mutual" && isHighlighted) {
@@ -574,10 +574,10 @@ export default function MeshPage() {
           : node.isMutual ? NODE_GLOW.mutual
           : NODE_GLOW[node.type] || NODE_GLOW.user;
 
-        const glowRadius = nodeRadius * (2.5 + pulse * 0.8);
+        const glowRadius = nodeRadius * (1.8 + pulse * 0.3);
         const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowRadius);
-        gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.3 * nodeOpacity) + ")"));
-        gradient.addColorStop(0.5, glowColor.replace(/[\d.]+\)$/, (0.1 * nodeOpacity) + ")"));
+        gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.15 * nodeOpacity) + ")"));
+        gradient.addColorStop(0.6, glowColor.replace(/[\d.]+\)$/, (0.04 * nodeOpacity) + ")"));
         gradient.addColorStop(1, "rgba(0,0,0,0)");
         ctx.beginPath();
         ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
@@ -585,11 +585,11 @@ export default function MeshPage() {
         ctx.fill();
 
         if (node.type === "self") {
-          const ringRadius = nodeRadius + 8 + pulse * 6;
+          const ringRadius = nodeRadius + 6 + pulse * 3;
           ctx.beginPath();
           ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(59, 130, 246, " + (0.15 + pulse * 0.1) + ")";
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "rgba(59, 130, 246, " + (0.08 + pulse * 0.05) + ")";
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
 
@@ -599,13 +599,13 @@ export default function MeshPage() {
           node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0,
           node.x, node.y, nodeRadius
         );
-        fillGrad.addColorStop(0, node.color + hexAlpha(0.5 * nodeOpacity));
-        fillGrad.addColorStop(1, node.color + hexAlpha(0.2 * nodeOpacity));
+        fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
+        fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
         ctx.fillStyle = fillGrad;
         ctx.fill();
 
-        ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 1 : 0.7) * nodeOpacity);
-        ctx.lineWidth = isHovered || isSelected ? 2.5 : 1.5;
+        ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
+        ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
         ctx.stroke();
 
         ctx.fillStyle = "rgba(255, 255, 255, " + (0.85 * nodeOpacity) + ")";
