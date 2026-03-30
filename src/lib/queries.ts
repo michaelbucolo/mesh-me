@@ -803,3 +803,268 @@ export async function getUnreadNotificationCount() {
     where: { recipientId: user.id, read: false },
   });
 }
+
+// ─── Mesh Graph Data (for Meshi awareness) ─────────────────
+
+export interface MeshGraphEntity {
+  id: string;
+  type: "user" | "community" | "tag" | "platform";
+  label: string;
+  sublabel?: string;
+  isMutual?: boolean;
+  followerCount?: number;
+  memberCount?: number;
+  sharedInterests?: string[];
+}
+
+export async function getMeshGraphData(): Promise<{
+  entities: MeshGraphEntity[];
+  stats: { followers: number; following: number; posts: number; communities: number; platforms: number };
+}> {
+  const user = await getCurrentUser();
+  if (!user) return { entities: [], stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 } };
+
+  const [following, followers, communities, interests, connectedAccounts, postCount] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: user.id },
+      include: {
+        following: {
+          select: { id: true, username: true, displayName: true, _count: { select: { followers: true } } },
+        },
+      },
+    }),
+    prisma.follow.findMany({
+      where: { followingId: user.id },
+      select: { followerId: true },
+    }),
+    prisma.communityMember.findMany({
+      where: { userId: user.id },
+      include: {
+        community: {
+          select: { id: true, name: true, slug: true, _count: { select: { members: true } } },
+        },
+      },
+    }),
+    prisma.userInterest.findMany({ where: { userId: user.id } }),
+    prisma.connectedAccount.findMany({ where: { userId: user.id } }),
+    prisma.post.count({ where: { authorId: user.id } }),
+  ]);
+
+  const followerIds = new Set(followers.map((f) => f.followerId));
+
+  const entities: MeshGraphEntity[] = [];
+
+  // Add people (following)
+  for (const f of following) {
+    entities.push({
+      id: f.following.id,
+      type: "user",
+      label: f.following.displayName,
+      sublabel: `@${f.following.username}`,
+      isMutual: followerIds.has(f.following.id),
+      followerCount: f.following._count.followers,
+    });
+  }
+
+  // Add communities
+  for (const cm of communities) {
+    entities.push({
+      id: cm.community.id,
+      type: "community",
+      label: cm.community.name,
+      sublabel: cm.community.slug,
+      memberCount: cm.community._count.members,
+    });
+  }
+
+  // Add interests
+  for (const interest of interests) {
+    entities.push({
+      id: `interest-${interest.tag}`,
+      type: "tag",
+      label: interest.tag,
+    });
+  }
+
+  // Add platforms
+  for (const account of connectedAccounts) {
+    entities.push({
+      id: account.id,
+      type: "platform",
+      label: account.platform,
+      sublabel: account.platformUsername || undefined,
+    });
+  }
+
+  return {
+    entities,
+    stats: {
+      followers: followers.length,
+      following: following.length,
+      posts: postCount,
+      communities: communities.length,
+      platforms: connectedAccounts.length,
+    },
+  };
+}
+
+// ─── Mesh Privacy Queries ───────────────────────────────────
+
+export async function getMeshPrivacy() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const privacy = await prisma.meshPrivacy.findUnique({
+    where: { userId: user.id },
+  });
+
+  return privacy || {
+    meshVisibility: "friends",
+    branchOverrides: "{}",
+    showConnections: true,
+    showStats: false,
+  };
+}
+
+export async function getGlobalMeshStatus() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const member = await prisma.globalMeshMember.findUnique({
+    where: { userId: user.id },
+  });
+
+  return member || { isActive: false, sharedBranches: "[]" };
+}
+
+// ─── Friend Mesh Viewing ────────────────────────────────────
+
+export async function getFriendMeshData(username: string): Promise<{
+  entities: MeshGraphEntity[];
+  stats: { followers: number; following: number; posts: number; communities: number; platforms: number };
+  privacyLevel: string;
+} | null> {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return null;
+
+  const targetUser = await prisma.user.findUnique({ where: { username } });
+  if (!targetUser) return null;
+
+  // Check privacy settings
+  const privacy = await prisma.meshPrivacy.findUnique({
+    where: { userId: targetUser.id },
+  });
+
+  const visibility = privacy?.meshVisibility || "friends";
+
+  // Check if we're friends (mutual follow)
+  const isFriend = !!(await prisma.follow.findFirst({
+    where: {
+      AND: [
+        { followerId: currentUser.id, followingId: targetUser.id },
+      ],
+    },
+  })) && !!(await prisma.follow.findFirst({
+    where: {
+      AND: [
+        { followerId: targetUser.id, followingId: currentUser.id },
+      ],
+    },
+  }));
+
+  // Check access
+  if (visibility === "private" && targetUser.id !== currentUser.id) {
+    return { entities: [], stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 }, privacyLevel: "private" };
+  }
+  if (visibility === "friends" && !isFriend && targetUser.id !== currentUser.id) {
+    return { entities: [], stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 }, privacyLevel: "friends-only" };
+  }
+
+  const branchOverrides: Record<string, string> = privacy?.branchOverrides ? JSON.parse(privacy.branchOverrides) : {};
+
+  const [following, followers, communities, interests, connectedAccounts, postCount] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: targetUser.id },
+      include: {
+        following: {
+          select: { id: true, username: true, displayName: true, _count: { select: { followers: true } } },
+        },
+      },
+    }),
+    prisma.follow.count({ where: { followingId: targetUser.id } }),
+    prisma.communityMember.findMany({
+      where: { userId: targetUser.id },
+      include: {
+        community: {
+          select: { id: true, name: true, slug: true, _count: { select: { members: true } } },
+        },
+      },
+    }),
+    prisma.userInterest.findMany({ where: { userId: targetUser.id } }),
+    prisma.connectedAccount.findMany({ where: { userId: targetUser.id } }),
+    prisma.post.count({ where: { authorId: targetUser.id } }),
+  ]);
+
+  const entities: MeshGraphEntity[] = [];
+
+  // Filter by branch visibility
+  function canSeeBranch(branchKey: string): boolean {
+    const vis = branchOverrides[branchKey];
+    if (!vis || vis === "public") return true;
+    if (vis === "friends") return isFriend;
+    if (vis === "private") return false;
+    return true;
+  }
+  const canSeePeople = canSeeBranch("people");
+  const canSeeCommunities = canSeeBranch("communities");
+  const canSeeInterests = canSeeBranch("interests");
+  const canSeePlatforms = canSeeBranch("platforms");
+
+  if (canSeePeople) {
+    for (const f of following) {
+      entities.push({
+        id: f.following.id,
+        type: "user",
+        label: f.following.displayName,
+        sublabel: `@${f.following.username}`,
+        followerCount: f.following._count.followers,
+      });
+    }
+  }
+
+  if (canSeeCommunities) {
+    for (const cm of communities) {
+      entities.push({
+        id: cm.community.id,
+        type: "community",
+        label: cm.community.name,
+        sublabel: cm.community.slug,
+        memberCount: cm.community._count.members,
+      });
+    }
+  }
+
+  if (canSeeInterests) {
+    for (const interest of interests) {
+      entities.push({ id: `interest-${interest.tag}`, type: "tag", label: interest.tag });
+    }
+  }
+
+  if (canSeePlatforms) {
+    for (const account of connectedAccounts) {
+      entities.push({ id: account.id, type: "platform", label: account.platform, sublabel: account.platformUsername || undefined });
+    }
+  }
+
+  return {
+    entities,
+    stats: {
+      followers,
+      following: following.length,
+      posts: postCount,
+      communities: communities.length,
+      platforms: connectedAccounts.length,
+    },
+    privacyLevel: visibility,
+  };
+}

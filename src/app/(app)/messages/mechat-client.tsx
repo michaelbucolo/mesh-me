@@ -83,7 +83,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div data-meshi-zone="messages" className="max-w-2xl mx-auto px-4 py-6">
       {/* MeChat Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
