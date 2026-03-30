@@ -281,17 +281,73 @@ export default function MeshPage() {
   useEffect(() => { hoveredNodeRef.current = hoveredNode; }, [hoveredNode]);
   useEffect(() => { selectedNodeRef.current = selectedNode; }, [selectedNode]);
 
-  // Keyboard shortcut: Cmd/Ctrl+K for command palette
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl+K for command palette
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setShowCommandPalette((prev) => !prev);
+        return;
+      }
+      // Escape to deselect / close panels
+      if (e.key === "Escape") {
+        if (selectedNodeRef.current) {
+          setSelectedNode(null);
+        } else if (showCommandPalette) {
+          setShowCommandPalette(false);
+        }
+        return;
+      }
+      // Don't handle shortcuts when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // R to reset view
+      if (e.key === "r" || e.key === "R") {
+        setZoom(1);
+        setPan({ x: 0, y: 0 });
+        zoomRef.current = 1;
+        panRef.current = { x: 0, y: 0 };
+        setSelectedNode(null);
+        return;
+      }
+      // L to toggle labels
+      if (e.key === "l" || e.key === "L") {
+        setShowLabels((prev) => !prev);
+        return;
+      }
+      // S to toggle stats
+      if (e.key === "s" || e.key === "S") {
+        setShowStats((prev) => !prev);
+        return;
+      }
+      // F to toggle footprint
+      if (e.key === "f" || e.key === "F") {
+        setShowFootprint((prev) => !prev);
+        return;
+      }
+      // +/= to zoom in, - to zoom out
+      if (e.key === "+" || e.key === "=") {
+        const newZoom = Math.min(4, zoomRef.current + 0.3);
+        setZoom(newZoom);
+        zoomRef.current = newZoom;
+        return;
+      }
+      if (e.key === "-") {
+        const newZoom = Math.max(0.2, zoomRef.current - 0.3);
+        setZoom(newZoom);
+        zoomRef.current = newZoom;
+        return;
+      }
+      // 1-7 for filter shortcuts
+      const filterKeys: Record<string, FilterType> = { "1": "all", "2": "user", "3": "alter-ego", "4": "community", "5": "tag", "6": "post", "7": "platform" };
+      if (filterKeys[e.key]) {
+        setFilter(filterKeys[e.key]);
+        return;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [showCommandPalette]);
 
   // --- Load mesh data ---
 
@@ -1232,6 +1288,52 @@ export default function MeshPage() {
     setHoveredNode(null);
   }, []);
 
+  // --- Zoom to a specific node (smooth animation) ---
+  const zoomToNode = useCallback((nodeId: string) => {
+    const targetNode = nodesRef.current.find((n) => n.id === nodeId);
+    if (!targetNode || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const cx = centerRef.current.x;
+    const cy = centerRef.current.y;
+
+    // Calculate the pan needed to center this node
+    const targetZoom = 2.0; // zoom in to 200%
+    const offsetX = -(targetNode.x - cx) * targetZoom;
+    const offsetY = -(targetNode.y - cy) * targetZoom;
+
+    // Animate smoothly
+    const startPan = { ...panRef.current };
+    const startZoom = zoomRef.current;
+    const duration = 600; // ms
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      // Ease out cubic
+      const ease = 1 - Math.pow(1 - t, 3);
+
+      const newZoom = startZoom + (targetZoom - startZoom) * ease;
+      const newPanX = startPan.x + (offsetX - startPan.x) * ease;
+      const newPanY = startPan.y + (offsetY - startPan.y) * ease;
+
+      setZoom(newZoom);
+      zoomRef.current = newZoom;
+      setPan({ x: newPanX, y: newPanY });
+      panRef.current = { x: newPanX, y: newPanY };
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Select the node after zoom completes
+        setSelectedNode(targetNode);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, []);
+
   // --- Trigger Meshi message delivery animation ---
   // Call this when a message is sent to animate Meshi grabbing an envelope
   // and walking it to the recipient's node. Only visible to sender.
@@ -1462,7 +1564,7 @@ export default function MeshPage() {
       {/* Hint */}
       {nodes.length > 0 && !selectedNode && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 glass-surface rounded-lg px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none">
-          Click a node to inspect &middot; Double-click to navigate &middot; Scroll to zoom &middot; Drag to pan
+          Click to inspect &middot; Double-click to navigate &middot; Scroll to zoom &middot; R reset &middot; L labels &middot; 1-7 filters &middot; ⌘K search
         </div>
       )}
 
@@ -1555,11 +1657,17 @@ export default function MeshPage() {
                 </div>
               )}
 
-              {/* Connection count */}
-              <div className="mb-3">
+              {/* Connection count + Zoom to */}
+              <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
                   {edges.filter((e) => e.source === selectedNode.id || e.target === selectedNode.id).length} connections in mesh
                 </p>
+                <button
+                  onClick={() => zoomToNode(selectedNode.id)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all"
+                >
+                  <ZoomIn className="h-3 w-3" /> Zoom to
+                </button>
               </div>
 
               {/* ── PRIVACY CONTROL ── */}
