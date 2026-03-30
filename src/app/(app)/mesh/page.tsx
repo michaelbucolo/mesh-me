@@ -34,6 +34,11 @@ import {
   ExternalLink,
   PenSquare,
   Search,
+  EyeOff as HideIcon,
+  Share2,
+  ThumbsUp,
+  MessageSquare,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -80,26 +85,27 @@ interface MeshEdge {
 
 // --- Constants ---
 
+// Vibrant, colorful node palette for a satisfying visual experience
 const NODE_COLORS: Record<string, string> = {
   self: "#3b82f6",
-  user: "#93b4f5",
-  mutual: "#a5b0f0",
-  community: "#e88cb8",
-  tag: "#5cc8d6",
-  post: "#6dcea0",
-  platform: "#f0b95a",
-  meshi: "#5a9cf7",
+  user: "#60a5fa",
+  mutual: "#818cf8",
+  community: "#f472b6",
+  tag: "#22d3ee",
+  post: "#34d399",
+  platform: "#fbbf24",
+  meshi: "#6366f1",
 };
 
 const NODE_GLOW: Record<string, string> = {
-  self: "rgba(59, 130, 246, 0.15)",
-  user: "rgba(96, 165, 250, 0.08)",
-  mutual: "rgba(129, 140, 248, 0.1)",
-  community: "rgba(236, 72, 153, 0.08)",
-  tag: "rgba(6, 182, 212, 0.08)",
-  post: "rgba(34, 197, 94, 0.06)",
-  platform: "rgba(245, 158, 11, 0.08)",
-  meshi: "rgba(45, 127, 249, 0.12)",
+  self: "rgba(59, 130, 246, 0.25)",
+  user: "rgba(96, 165, 250, 0.15)",
+  mutual: "rgba(129, 140, 248, 0.18)",
+  community: "rgba(244, 114, 182, 0.15)",
+  tag: "rgba(34, 211, 238, 0.15)",
+  post: "rgba(52, 211, 153, 0.12)",
+  platform: "rgba(251, 191, 36, 0.15)",
+  meshi: "rgba(99, 102, 241, 0.2)",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -158,7 +164,70 @@ export default function MeshPage() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
   const [showMeshiChat, setShowMeshiChat] = useState(false);
+  const [hiddenNodes, setHiddenNodes] = useState<Set<string>>(new Set());
+  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set());
+  const [showPostComposer, setShowPostComposer] = useState(false);
+  const [postContent, setPostContent] = useState("");
+  const [crossPostPlatforms, setCrossPostPlatforms] = useState<Set<string>>(new Set());
+  const [showNodePrivacy, setShowNodePrivacy] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const router = useRouter();
+
+  // Load hidden nodes from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("meshHiddenNodes");
+      if (saved) setHiddenNodes(new Set(JSON.parse(saved)));
+      const savedBranches = localStorage.getItem("meshHiddenBranches");
+      if (savedBranches) setHiddenBranches(new Set(JSON.parse(savedBranches)));
+    } catch { /* ignore */ }
+  }, []);
+
+  // Persist hidden nodes
+  useEffect(() => {
+    if (hiddenNodes.size > 0) localStorage.setItem("meshHiddenNodes", JSON.stringify([...hiddenNodes]));
+    else localStorage.removeItem("meshHiddenNodes");
+  }, [hiddenNodes]);
+
+  useEffect(() => {
+    if (hiddenBranches.size > 0) localStorage.setItem("meshHiddenBranches", JSON.stringify([...hiddenBranches]));
+    else localStorage.removeItem("meshHiddenBranches");
+  }, [hiddenBranches]);
+
+  const toggleNodeHidden = (nodeId: string) => {
+    setHiddenNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  };
+
+  const toggleBranchHidden = (branchType: string) => {
+    setHiddenBranches((prev) => {
+      const next = new Set(prev);
+      if (next.has(branchType)) next.delete(branchType);
+      else next.add(branchType);
+      return next;
+    });
+  };
+
+  const toggleLike = (postId: string) => {
+    setLikedPosts((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+  };
+
+  // Get visible nodes (respecting privacy/hidden settings)
+  const visibleNodes = nodes.filter((n) => {
+    if (n.type === "self") return true;
+    if (hiddenNodes.has(n.id)) return false;
+    if (hiddenBranches.has(n.type)) return false;
+    return true;
+  });
 
   // Refs for animation loop (avoid stale closures)
   const nodesRef = useRef<MeshNode[]>([]);
@@ -498,7 +567,7 @@ export default function MeshPage() {
       ctx.scale(z, z);
       ctx.translate(-centerRef.current.x, -centerRef.current.y);
 
-      // Draw edges
+      // Draw edges (only for visible nodes)
       for (const edge of es) {
         const source = ns.find((n) => n.id === edge.source);
         const target = ns.find((n) => n.id === edge.target);
@@ -548,7 +617,7 @@ export default function MeshPage() {
         }
       }
 
-      // Draw nodes
+      // Draw nodes (only visible ones)
       for (const node of ns) {
         if (f !== "all" && node.type !== f && node.type !== "self") continue;
 
@@ -828,14 +897,21 @@ export default function MeshPage() {
   // --- Filter options ---
 
   const filterOptions: { id: FilterType; label: string; icon: React.ElementType; count: number }[] = [
-    { id: "all", label: "Everything", icon: Globe, count: nodes.length },
-    { id: "user", label: "People", icon: Users, count: nodes.filter((n) => n.type === "user").length },
-    { id: "community", label: "Communities", icon: MessageCircle, count: nodes.filter((n) => n.type === "community").length },
-    { id: "tag", label: "Interests", icon: Hash, count: nodes.filter((n) => n.type === "tag").length },
-    { id: "post", label: "Posts", icon: FileText, count: nodes.filter((n) => n.type === "post").length },
-    { id: "platform", label: "Platforms", icon: Link2, count: nodes.filter((n) => n.type === "platform").length },
-    { id: "meshi", label: "Meshi", icon: Sparkles, count: nodes.filter((n) => n.type === "meshi").length },
+    { id: "all", label: "Everything", icon: Globe, count: visibleNodes.length },
+    { id: "user", label: "People", icon: Users, count: visibleNodes.filter((n) => n.type === "user").length },
+    { id: "community", label: "Communities", icon: MessageCircle, count: visibleNodes.filter((n) => n.type === "community").length },
+    { id: "tag", label: "Interests", icon: Hash, count: visibleNodes.filter((n) => n.type === "tag").length },
+    { id: "post", label: "Posts", icon: FileText, count: visibleNodes.filter((n) => n.type === "post").length },
+    { id: "platform", label: "Platforms", icon: Link2, count: visibleNodes.filter((n) => n.type === "platform").length },
+    { id: "meshi", label: "Meshi", icon: Sparkles, count: visibleNodes.filter((n) => n.type === "meshi").length },
   ];
+
+  // Available connected platforms for cross-posting
+  const connectedPlatforms = nodes.filter((n) => n.type === "platform").map((n) => ({
+    id: n.id,
+    label: n.label,
+    color: n.color,
+  }));
 
   // --- Render ---
 
@@ -1085,6 +1161,31 @@ export default function MeshPage() {
                 </p>
               </div>
 
+              {/* ── PRIVACY CONTROL ── */}
+              {selectedNode.type !== "self" && (
+                <div className="flex items-center justify-between mb-3 py-2 border-b border-[var(--border-primary)]">
+                  <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Node visibility</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => toggleNodeHidden(selectedNode.id)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all hover:bg-[var(--bg-tertiary)]"
+                      style={{ color: hiddenNodes.has(selectedNode.id) ? "#ef4444" : "var(--text-secondary)" }}
+                    >
+                      <HideIcon className="h-3 w-3" />
+                      {hiddenNodes.has(selectedNode.id) ? "Hidden" : "Hide node"}
+                    </button>
+                    <button
+                      onClick={() => toggleBranchHidden(selectedNode.type)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all hover:bg-[var(--bg-tertiary)]"
+                      style={{ color: hiddenBranches.has(selectedNode.type) ? "#ef4444" : "var(--text-muted)" }}
+                    >
+                      <EyeOff className="h-3 w-3" />
+                      {hiddenBranches.has(selectedNode.type) ? "Branch hidden" : "Hide all " + selectedNode.type + "s"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* ── QUICK ACTIONS ── */}
               <div className="space-y-2">
                 {/* User quick actions: Message, Follow/Unfollow, View Profile */}
@@ -1116,34 +1217,55 @@ export default function MeshPage() {
                   </div>
                 )}
 
-                {/* Post quick actions: View, Delete (own posts) */}
+                {/* Post quick actions: Like, Comment, View, Delete */}
                 {selectedNode.type === "post" && (
-                  <div className="flex gap-2">
-                    {selectedNode.href && (
-                      <Link href={selectedNode.href} className="flex-1">
-                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg">
-                          <Eye className="h-3 w-3" /> View Post
-                        </button>
-                      </Link>
-                    )}
-                    <button
-                      onClick={async () => {
-                        const postId = selectedNode.id.replace("post-", "");
-                        setActionLoading("delete-" + postId);
-                        await deletePost(postId);
-                        setSelectedNode(null);
-                        setActionLoading(null);
-                        window.location.reload();
-                      }}
-                      disabled={actionLoading?.startsWith("delete-")}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 glass-surface hover:bg-red-500/10 transition-all active:scale-95"
-                    >
-                      {actionLoading?.startsWith("delete-") ? (
-                        <div className="h-3 w-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <><Trash2 className="h-3 w-3" /> Delete</>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => toggleLike(selectedNode.id)}
+                        className={"flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 " + (
+                          likedPosts.has(selectedNode.id)
+                            ? "bg-pink-500/20 text-pink-400 border border-pink-500/30"
+                            : "glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                        )}
+                      >
+                        <Heart className={"h-3 w-3" + (likedPosts.has(selectedNode.id) ? " fill-current" : "")} />
+                        {likedPosts.has(selectedNode.id) ? "Liked" : "Like"}
+                      </button>
+                      <button
+                        onClick={() => router.push("/feed")}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95"
+                      >
+                        <MessageSquare className="h-3 w-3" /> Comment
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      {selectedNode.href && (
+                        <Link href={selectedNode.href} className="flex-1">
+                          <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg">
+                            <Eye className="h-3 w-3" /> View Post
+                          </button>
+                        </Link>
                       )}
-                    </button>
+                      <button
+                        onClick={async () => {
+                          const postId = selectedNode.id.replace("post-", "");
+                          setActionLoading("delete-" + postId);
+                          await deletePost(postId);
+                          setSelectedNode(null);
+                          setActionLoading(null);
+                          window.location.reload();
+                        }}
+                        disabled={actionLoading?.startsWith("delete-")}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 glass-surface hover:bg-red-500/10 transition-all active:scale-95"
+                      >
+                        {actionLoading?.startsWith("delete-") ? (
+                          <div className="h-3 w-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <><Trash2 className="h-3 w-3" /> Delete</>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1457,27 +1579,200 @@ export default function MeshPage() {
         } : undefined}
       />
 
-      {/* Quick action bar (bottom left) - always visible */}
+      {/* Quick action bar (bottom left) - create post + privacy toggle */}
       <div className="absolute bottom-4 left-4 z-10 flex gap-2">
-        <Link href="/feed?compose=true">
-          <button className="flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95 shadow-lg">
-            <PenSquare className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Post</span>
-          </button>
-        </Link>
-        <Link href="/messages">
-          <button className="flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95 shadow-lg">
-            <MessageCircle className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">MeChat</span>
-          </button>
-        </Link>
-        <Link href="/explore">
-          <button className="flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95 shadow-lg">
-            <Globe className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Explore</span>
-          </button>
-        </Link>
+        <button
+          onClick={() => setShowPostComposer(true)}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all active:scale-95 shadow-lg bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 hover:shadow-xl hover:shadow-violet-500/25"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Create Post</span>
+        </button>
+        <button
+          onClick={() => setShowNodePrivacy(!showNodePrivacy)}
+          className={"flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium transition-all active:scale-95 shadow-lg " + (
+            showNodePrivacy ? "text-[var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          )}
+        >
+          <Shield className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Privacy</span>
+          {(hiddenNodes.size > 0 || hiddenBranches.size > 0) && (
+            <span className="text-[9px] px-1 rounded-full bg-amber-500/20 text-amber-400">{hiddenNodes.size + hiddenBranches.size}</span>
+          )}
+        </button>
       </div>
+
+      {/* ── PRIVACY PANEL ── */}
+      <AnimatePresence>
+        {showNodePrivacy && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="absolute top-20 left-4 z-20 w-72 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+          >
+            <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-emerald-400" />
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Mesh Privacy</h3>
+                </div>
+                <button onClick={() => setShowNodePrivacy(false)} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] mb-3">Control what&apos;s visible on your mesh. Hidden items are only hidden for you and won&apos;t appear on your public mesh.</p>
+
+              {/* Branch toggles */}
+              <div className="space-y-1.5 mb-3">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Hide entire branches</p>
+                {["user", "community", "tag", "post", "platform"].map((type) => {
+                  const typeLabels: Record<string, string> = { user: "People", community: "Communities", tag: "Interests", post: "Posts", platform: "Platforms" };
+                  const typeColors: Record<string, string> = { user: "text-blue-400", community: "text-pink-400", tag: "text-cyan-400", post: "text-emerald-400", platform: "text-amber-400" };
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => toggleBranchHidden(type)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-all"
+                    >
+                      <span className={"font-medium " + (typeColors[type] || "")}>{typeLabels[type] || type}</span>
+                      <span className={"text-[10px] px-2 py-0.5 rounded-full " + (
+                        hiddenBranches.has(type)
+                          ? "bg-red-500/15 text-red-400"
+                          : "bg-emerald-500/15 text-emerald-400"
+                      )}>
+                        {hiddenBranches.has(type) ? "Hidden" : "Visible"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Individual hidden nodes */}
+              {hiddenNodes.size > 0 && (
+                <div className="mb-3">
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1.5">{hiddenNodes.size} hidden node{hiddenNodes.size !== 1 ? "s" : ""}</p>
+                  <button
+                    onClick={() => { setHiddenNodes(new Set()); setHiddenBranches(new Set()); }}
+                    className="text-[10px] text-[var(--accent)] hover:underline"
+                  >
+                    Show all nodes
+                  </button>
+                </div>
+              )}
+
+              <Link href="/settings">
+                <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg">
+                  <Shield className="h-3 w-3" /> Advanced Privacy Settings
+                </button>
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── INLINE POST COMPOSER ── */}
+      <AnimatePresence>
+        {showPostComposer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowPostComposer(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg mx-4 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-violet-500 to-pink-500" />
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">Create Post</h3>
+                  <button onClick={() => setShowPostComposer(false)} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <textarea
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder="What's on your mind? Share it across your mesh..."
+                  className="w-full h-32 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all"
+                  autoFocus
+                />
+
+                {/* Cross-post to connected platforms */}
+                {connectedPlatforms.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <Share2 className="h-3 w-3" /> Also post to
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {connectedPlatforms.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            setCrossPostPlatforms((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(p.id)) next.delete(p.id);
+                              else next.add(p.id);
+                              return next;
+                            });
+                          }}
+                          className={"flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border " + (
+                            crossPostPlatforms.has(p.id)
+                              ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                              : "border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                          )}
+                        >
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between mt-4">
+                  <p className="text-[10px] text-[var(--text-muted)]">
+                    {postContent.length}/500 characters
+                    {crossPostPlatforms.size > 0 && (
+                      <span className="ml-2 text-[var(--accent)]">+ {crossPostPlatforms.size} platform{crossPostPlatforms.size !== 1 ? "s" : ""}</span>
+                    )}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowPostComposer(false); setPostContent(""); setCrossPostPlatforms(new Set()); }}
+                      className="px-4 py-2 rounded-xl text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!postContent.trim()) return;
+                        // Navigate to feed compose with content pre-filled
+                        router.push("/feed?compose=true");
+                        setShowPostComposer(false);
+                        setPostContent("");
+                        setCrossPostPlatforms(new Set());
+                      }}
+                      disabled={!postContent.trim()}
+                      className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 shadow-lg hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      Publish
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Empty state */}
       {nodes.length <= 1 && !loading && (

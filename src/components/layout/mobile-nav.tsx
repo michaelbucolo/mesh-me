@@ -14,10 +14,9 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
 
   const items = [
     { href: "/mesh", icon: Waypoints, label: "Mesh" },
-    { href: "/feed", icon: Home, label: "Feed" },
     { href: "/feed?compose=true", icon: PenSquare, label: "Post", isAction: true },
-    { href: "/messages", icon: MessageCircle, label: "MeChat" },
-    { href: "/notifications", icon: Bell, label: "Alerts", badge: unreadNotifications },
+    { href: "/feed", icon: Home, label: "Feed" },
+    { href: "/messages", icon: MessageCircle, label: "Messages", badge: unreadNotifications },
   ];
 
   return (
