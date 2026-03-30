@@ -50,7 +50,7 @@ import { MeshiMascot, MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 interface MeshNode {
   id: string;
-  type: "self" | "user" | "community" | "tag" | "post" | "platform";
+  type: "self" | "user" | "community" | "tag" | "post" | "platform" | "alter-ego";
   label: string;
   sublabel?: string;
   avatarUrl?: string | null;
@@ -74,14 +74,16 @@ interface MeshNode {
   sharedInterests?: string[];
   category?: string;
   platform?: string;
-  imageUrl?: string | null; // post image/video thumbnail
+  imageUrl?: string | null;
+  interactionCount?: number;
 }
 
 interface MeshEdge {
   source: string;
   target: string;
   strength: number;
-  type: "follow" | "mutual" | "community" | "interest" | "post" | "platform";
+  type: "follow" | "mutual" | "community" | "interest" | "post" | "platform" | "alter-ego";
+  interactionCount?: number;
 }
 
 // --- Constants ---
@@ -95,6 +97,7 @@ const NODE_COLORS: Record<string, string> = {
   tag: "#22d3ee",
   post: "#34d399",
   platform: "#fbbf24",
+  "alter-ego": "#a78bfa",
 };
 
 const NODE_GLOW: Record<string, string> = {
@@ -105,6 +108,7 @@ const NODE_GLOW: Record<string, string> = {
   tag: "rgba(34, 211, 238, 0.15)",
   post: "rgba(52, 211, 153, 0.12)",
   platform: "rgba(251, 191, 36, 0.15)",
+  "alter-ego": "rgba(167, 139, 250, 0.2)",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -126,7 +130,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   bluesky: "#0085FF",
 };
 
-type FilterType = "all" | "user" | "community" | "tag" | "post" | "platform";
+type FilterType = "all" | "user" | "community" | "tag" | "post" | "platform" | "alter-ego";
 
 // --- Helpers ---
 
@@ -253,7 +257,7 @@ export default function MeshPage() {
 
   // Get visible nodes (respecting privacy/hidden settings)
   const visibleNodes = nodes.filter((n) => {
-    if (n.type === "self") return true;
+    if (n.type === "self" || n.type === "alter-ego") return true;
     if (hiddenNodes.has(n.id)) return false;
     if (hiddenBranches.has(n.type)) return false;
     return true;
@@ -312,15 +316,19 @@ export default function MeshPage() {
           content: data.user.bio || undefined,
         });
 
-        // Following nodes
+        // Following nodes — with interaction-based proximity
         const followingCount = data.following?.length || 0;
         (data.following || []).forEach((f: {
           id: string; username: string; displayName: string; avatarUrl: string | null;
           isMutual: boolean; sharedCommunities: string[]; sharedInterests: string[];
-          followerCount: number; postCount: number;
+          followerCount: number; postCount: number; interactionCount?: number;
         }, i: number) => {
           const angle = (i / Math.max(followingCount, 1)) * Math.PI * 2;
-          const dist = 160 + Math.random() * 60;
+          // Interaction-based proximity: more interactions = closer to self node
+          const interactions = f.interactionCount || 0;
+          const proximityFactor = 1 / (1 + interactions * 0.15);
+          const baseDist = 160 + Math.random() * 60;
+          const dist = baseDist * proximityFactor;
           const isMutual = f.isMutual;
           meshNodes.push({
             id: f.id, type: "user", label: f.displayName,
@@ -347,15 +355,17 @@ export default function MeshPage() {
           });
         });
 
-        // Follower-only nodes
+        // Follower-only nodes — with interaction-based proximity
         const followingIds = new Set((data.following || []).map((f: { id: string }) => f.id));
         (data.followers || []).forEach((f: {
           id: string; username: string; displayName: string; avatarUrl: string | null;
-          isMutual: boolean; followerCount: number; postCount: number;
+          isMutual: boolean; followerCount: number; postCount: number; interactionCount?: number;
         }, i: number) => {
           if (followingIds.has(f.id)) return;
           const angle = (i / Math.max(data.followers.length, 1)) * Math.PI * 2 + 0.5;
-          const dist = 230 + Math.random() * 80;
+          const interactions = f.interactionCount || 0;
+          const proximityFactor = 1 / (1 + interactions * 0.15);
+          const dist = (230 + Math.random() * 80) * proximityFactor;
           meshNodes.push({
             id: "follower-" + f.id, type: "user", label: f.displayName,
             sublabel: "@" + f.username,
@@ -449,6 +459,30 @@ export default function MeshPage() {
               source: "post-" + p.id, target: "tag-" + ptag,
               strength: 0.2, type: "interest",
             });
+          });
+        });
+
+        // Alter ego nodes — separate personas positioned near the self node
+        (data.alterEgos || []).forEach((ego: {
+          id: string; username: string; displayName: string; bio: string | null; avatarUrl: string | null;
+        }, i: number) => {
+          const angle = (i / Math.max(data.alterEgos?.length || 1, 1)) * Math.PI * 2 - Math.PI / 2;
+          const dist = 90 + i * 30;
+          meshNodes.push({
+            id: "alter-ego-" + ego.id, type: "alter-ego",
+            label: ego.displayName,
+            sublabel: "@" + ego.username,
+            avatarUrl: ego.avatarUrl,
+            x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist,
+            vx: 0, vy: 0, radius: 22,
+            color: NODE_COLORS["alter-ego"],
+            opacity: 1, pulsePhase: Math.random() * Math.PI * 2,
+            connections: [data.user.id],
+            content: ego.bio || undefined,
+          });
+          meshEdges.push({
+            source: data.user.id, target: "alter-ego-" + ego.id,
+            strength: 0.9, type: "alter-ego",
           });
         });
 
@@ -559,14 +593,20 @@ export default function MeshPage() {
       const dx = target.x - source.x;
       const dy = target.y - source.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const idealDist = source.radius + target.radius + 80 + (1 - edge.strength) * 120;
+      // Interaction-based proximity: edges with higher interaction counts pull nodes closer
+      const interactions = edge.interactionCount || 0;
+      const interactionProximity = 1 / (1 + interactions * 0.1);
+      const baseIdealDist = source.radius + target.radius + 80 + (1 - edge.strength) * 120;
+      // Alter-ego edges are kept very tight to self node
+      const idealDist = edge.type === "alter-ego"
+        ? source.radius + target.radius + 40
+        : baseIdealDist * interactionProximity;
       const diff = dist - idealDist;
       if (Math.abs(diff) > 5) {
         const force = diff * 0.001 * edge.strength;
         const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-        if (target.type !== "self") { target.vx -= fx; target.vy -= fy; }
-        if (source.type !== "self") { source.vx += fx; source.vy += fy; }
+        if (target.type !== "self") { target.vx -= fx; target.vy -= (dy / dist) * force; }
+        if (source.type !== "self") { source.vx += fx; source.vy += (dy / dist) * force; }
       }
     }
 
@@ -1223,6 +1263,7 @@ export default function MeshPage() {
   const filterOptions: { id: FilterType; label: string; icon: React.ElementType; count: number }[] = [
     { id: "all", label: "Everything", icon: Globe, count: visibleNodes.length },
     { id: "user", label: "People", icon: Users, count: visibleNodes.filter((n) => n.type === "user").length },
+    { id: "alter-ego", label: "Alter Egos", icon: Sparkles, count: visibleNodes.filter((n) => n.type === "alter-ego").length },
     { id: "community", label: "Communities", icon: MessageCircle, count: visibleNodes.filter((n) => n.type === "community").length },
     { id: "tag", label: "Interests", icon: Hash, count: visibleNodes.filter((n) => n.type === "tag").length },
     { id: "post", label: "Posts", icon: FileText, count: visibleNodes.filter((n) => n.type === "post").length },
