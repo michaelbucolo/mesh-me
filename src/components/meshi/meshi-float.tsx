@@ -44,8 +44,6 @@ const ELEMENT_ZONES: Array<{ selector: string; label: string; description: strin
 type MeshiView = "closed" | "chat" | "mini-mesh" | "speech";
 
 // Default position: bottom-right corner (follows user like a chat assistant)
-// Uses negative offsets from viewport edge, resolved at runtime
-const DEFAULT_POSITION = { x: -1, y: -1 }; // sentinel: means "compute from viewport"
 
 /**
  * Global floating Meshi \u2014 a real entity that lives across the entire app.
@@ -68,7 +66,7 @@ export function MeshiFloat() {
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
 
   // Drag state
-  const [position, setPosition] = useState(DEFAULT_POSITION);
+  const [position, setPosition] = useState({ x: -1, y: -1 });
   const [isDragging, setIsDragging] = useState(false);
   const [wasDragged, setWasDragged] = useState(false);
   const [dragOverElement, setDragOverElement] = useState<string | null>(null);
@@ -93,7 +91,7 @@ export function MeshiFloat() {
   const getDefaultPosition = useCallback(() => {
     const w = typeof window !== "undefined" ? window.innerWidth : 1024;
     const h = typeof window !== "undefined" ? window.innerHeight : 768;
-    return { x: w - 72, y: h - 72 };
+    return { x: w - 80, y: h - 80 };
   }, []);
 
   // Load Meshi enabled preference from localStorage
@@ -106,7 +104,15 @@ export function MeshiFloat() {
         try {
           const parsed = JSON.parse(savedPos);
           if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-            setPosition(parsed);
+            // Validate saved position is on the right half of the screen
+            const w = window.innerWidth;
+            if (parsed.x < w / 2) {
+              // Reset to right side if somehow saved on the left
+              setPosition(getDefaultPosition());
+              localStorage.removeItem("meshiPosition");
+            } else {
+              setPosition(parsed);
+            }
           }
         } catch { /* ignore */ }
       } else {
@@ -409,8 +415,8 @@ export function MeshiFloat() {
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
-            className="fixed top-0 left-0 z-40 flex flex-col-reverse items-end gap-2"
-            style={{ transform: `translate(${position.x}px, ${position.y}px)`, touchAction: "none" }}
+            className="fixed z-40 flex flex-col-reverse items-end gap-2"
+            style={{ right: position.x === -1 ? 16 : undefined, bottom: position.x === -1 ? 16 : undefined, left: position.x === -1 ? undefined : 0, top: position.x === -1 ? undefined : 0, transform: position.x === -1 ? undefined : `translate(${position.x}px, ${position.y}px)`, touchAction: "none" }}
           >
             {/* Speech bubbles that float near Meshi */}
             <AnimatePresence>

@@ -1,10 +1,10 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getExplorePosts, getDiscoverUsers, getTrendingCommunities, getTrendingTags } from "@/lib/queries";
 import { PostCard } from "@/components/feed/post-card";
-import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Compass, TrendingUp, Sparkles, Hash, Star, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { ExploreUsersGrid } from "./explore-users";
 
 export default async function ExplorePage() {
   const user = await getCurrentUser();
@@ -61,23 +61,7 @@ export default async function ExplorePage() {
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">People you might vibe with</h2>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 stagger-children">
-            {suggestedUsers.slice(0, 8).map((suggestedUser: { id: string; username: string; displayName: string; avatarUrl: string | null; interests: { id: string; tag: string }[]; _count: { followers: number } }) => (
-              <Link key={suggestedUser.id} href={`/profile/${suggestedUser.username}`} className="rounded-2xl glass-card p-4 hover:border-[var(--border-primary)] transition-all text-center group">
-                <Avatar src={suggestedUser.avatarUrl} alt={suggestedUser.displayName} size="lg" className="mx-auto mb-3" />
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate">{suggestedUser.displayName}</h3>
-                <p className="text-xs text-[var(--text-muted)] mb-2">@{suggestedUser.username}</p>
-                {suggestedUser.interests && suggestedUser.interests.length > 0 && (
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    {suggestedUser.interests.slice(0, 2).map((interest: { id: string; tag: string }) => (
-                      <Badge key={interest.id} variant="secondary" className="text-[10px]">{interest.tag}</Badge>
-                    ))}
-                  </div>
-                )}
-                <p className="text-xs text-[var(--text-muted)] mt-2">{suggestedUser._count.followers} followers</p>
-              </Link>
-            ))}
-          </div>
+          <ExploreUsersGrid users={suggestedUsers} currentUserId={user.id} />
         </div>
       )}
 
