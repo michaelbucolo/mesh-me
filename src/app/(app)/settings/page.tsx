@@ -13,8 +13,12 @@ import {
   updatePrivacy,
   updateUserLinks,
   updateUserInterests,
+  updateMeshiPreference,
+  checkAndAwardAchievements,
+  setActiveTitle,
 } from "@/lib/actions";
 import { useState, useTransition, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings,
@@ -53,8 +57,13 @@ import {
   Users,
   Heart,
   Scan,
+  Trophy,
+  Award,
 } from "lucide-react";
 import { INTEREST_TAGS } from "@/lib/utils";
+import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor } from "@/components/meshi/meshi-mascot";
+import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
+import { AchievementList } from "@/components/achievements/achievement-badges";
 
 const ACCENT_COLORS = [
   "#3b82f6", "#2563eb", "#1d4ed8", "#06b6d4", "#0891b2",
@@ -165,9 +174,40 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Handle URL tab parameter (e.g. /settings?tab=meshi)
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && tabs.some((t) => t.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Load achievements when tab is active
+  useEffect(() => {
+    if (activeTab === "achievements") {
+      setAchievementLoading(true);
+      checkAndAwardAchievements().then((result) => {
+        if (result && "awarded" in result) {
+          // Refresh achievement list
+          fetch("/api/settings").then((r) => r.json()).then((data) => {
+            if (data.settings?.achievements) {
+              setUnlockedSlugs(data.settings.achievements.map((a: { slug: string }) => a.slug));
+            }
+            if (data.settings?.activeTitle) {
+              setUserActiveTitle(data.settings.activeTitle);
+            }
+          }).catch(() => {});
+        }
+        setAchievementLoading(false);
+      }).catch(() => setAchievementLoading(false));
+    }
+  }, [activeTab]);
 
   const showSuccess = (msg: string) => {
     setSuccess(msg);
@@ -181,6 +221,16 @@ export default function SettingsPage() {
     setTimeout(() => setError(""), 5000);
   };
 
+  // Meshi customization state
+  const [meshiHat, setMeshiHat] = useState<MeshiHat>("none");
+  const [meshiFace, setMeshiFace] = useState<MeshiMood>("happy");
+  const [meshiColor, setMeshiColor] = useState<MeshiColor>("blue");
+
+  // Achievements state
+  const [unlockedSlugs, setUnlockedSlugs] = useState<string[]>([]);
+  const [userActiveTitle, setUserActiveTitle] = useState<string | null>(null);
+  const [achievementLoading, setAchievementLoading] = useState(false);
+
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "interests", label: "Interests & Links", icon: Palette },
@@ -191,6 +241,8 @@ export default function SettingsPage() {
     { id: "security-hub", label: "Security Hub", icon: ShieldCheck },
     { id: "footprint", label: "Digital Footprint", icon: Fingerprint },
     { id: "blocked", label: "Blocked Users", icon: UserX },
+    { id: "achievements", label: "Achievements", icon: Trophy },
+    { id: "meshi", label: "Meshi", icon: Sparkles },
     { id: "meshpro", label: "MeshPro", icon: Crown },
   ];
 
@@ -392,6 +444,7 @@ export default function SettingsPage() {
               onSubmit={handleSaveProfile}
               className="space-y-5"
             >
+              <MeshiSettingsTip tab="profile" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Edit profile</h2>
 
               <div className="flex items-center gap-4 mb-4">
@@ -449,6 +502,7 @@ export default function SettingsPage() {
           {/* Interests & Links Tab */}
           {activeTab === "interests" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <MeshiSettingsTip tab="interests" />
               <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Interests</h2>
                 <p className="text-sm text-[var(--text-muted)] mb-4">Select topics you&apos;re interested in to personalize your experience</p>
@@ -504,6 +558,7 @@ export default function SettingsPage() {
           {/* Customize Tab */}
           {activeTab === "customize" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+              <MeshiSettingsTip tab="customize" />
               <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Customize your experience</h2>
                 <p className="text-sm text-[var(--text-muted)] mb-6">Make mesh.me feel like yours</p>
@@ -592,6 +647,7 @@ export default function SettingsPage() {
           {/* Notifications Tab */}
           {activeTab === "notifications" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <MeshiSettingsTip tab="notifications" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Notification preferences</h2>
               <p className="text-sm text-[var(--text-muted)] mb-6">Choose what notifications you want to receive</p>
               <div className="space-y-1">
@@ -645,6 +701,7 @@ export default function SettingsPage() {
           {/* Privacy Tab */}
           {activeTab === "privacy" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <MeshiSettingsTip tab="privacy" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Privacy & Safety</h2>
               <div className="space-y-1">
                 <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
@@ -761,6 +818,7 @@ export default function SettingsPage() {
               onSubmit={handleChangePassword}
               className="space-y-5"
             >
+              <MeshiSettingsTip tab="security" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Change password</h2>
               <p className="text-sm text-[var(--text-muted)] mb-4">Choose a strong password with at least 8 characters</p>
 
@@ -786,6 +844,7 @@ export default function SettingsPage() {
           {/* Blocked Users Tab */}
           {activeTab === "blocked" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <MeshiSettingsTip tab="blocked" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Blocked users</h2>
               <p className="text-sm text-[var(--text-muted)] mb-6">Blocked users cannot see your profile, posts, or message you.</p>
               {blockedUsers.length > 0 ? (
@@ -817,6 +876,7 @@ export default function SettingsPage() {
           {/* Security Hub Tab */}
           {activeTab === "security-hub" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <MeshiSettingsTip tab="security-hub" />
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <ShieldCheck className="h-5 w-5" style={{ color: "var(--accent)" }} />
@@ -893,6 +953,7 @@ export default function SettingsPage() {
           {/* Digital Footprint Tab */}
           {activeTab === "footprint" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <MeshiSettingsTip tab="footprint" />
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Fingerprint className="h-5 w-5" style={{ color: "var(--accent)" }} />
@@ -985,9 +1046,156 @@ export default function SettingsPage() {
             </motion.div>
           )}
 
+          {/* Achievements Tab */}
+          {activeTab === "achievements" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <MeshiSettingsTip tab="achievements" />
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
+                  <Trophy className="h-5 w-5" style={{ color: "var(--accent)" }} />
+                  Achievements & Titles
+                </h2>
+                <p className="text-sm text-[var(--text-muted)] mb-6">
+                  Earn titles through milestones on mesh.me. Titles are displayed on your profile for others to see.
+                </p>
+              </div>
+
+              {/* Active title selector */}
+              <div className="glass-card rounded-2xl p-5 mb-6">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                  <Award className="h-4 w-4" style={{ color: "var(--accent)" }} /> Active Title
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mb-3">Choose a title to display on your profile</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => { startTransition(async () => { await setActiveTitle(null); setUserActiveTitle(null); showSuccess("Title removed"); }); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!userActiveTitle ? "brand-button text-white" : "glass-surface text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"}`}
+                  >
+                    None
+                  </button>
+                  {unlockedSlugs.length === 0 && !achievementLoading && (
+                    <p className="text-xs text-[var(--text-muted)] py-1.5">Earn achievements to unlock titles!</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Achievement list */}
+              {achievementLoading ? (
+                <div className="text-center py-8">
+                  <div className="h-8 w-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-3" style={{ borderColor: "var(--accent)" }} />
+                  <p className="text-sm text-[var(--text-muted)]">Checking achievements...</p>
+                </div>
+              ) : (
+                <AchievementList unlockedSlugs={unlockedSlugs} />
+              )}
+
+              {/* Pioneer callout */}
+              <div className="glass-card rounded-2xl p-5 border border-amber-400/20 bg-amber-400/5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-400/20 to-yellow-600/20 flex items-center justify-center border-2 border-amber-400/40">
+                    <Crown className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-400">Pioneer — Limited Edition</h3>
+                    <p className="text-xs text-[var(--text-muted)]">First 1,000,000 verified mesh.me users</p>
+                  </div>
+                </div>
+                <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+                  The Pioneer title is a limited edition achievement awarded to the first 1 million fully verified mesh.me users.
+                  Once all 1 million spots are claimed, this title can never be earned again. Verify your account to claim yours!
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Meshi Customization Tab */}
+          {activeTab === "meshi" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <MeshiSettingsTip tab="meshi" />
+              <div className="text-center mb-6">
+                <MeshiMascot size={80} mood={meshiFace} hat={meshiHat} color={meshiColor} speaking={false} />
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mt-4 mb-1">Customize Meshi</h2>
+                <p className="text-sm text-[var(--text-muted)]">Make Meshi uniquely yours!</p>
+                <p className="text-[10px] text-[var(--accent)] mt-1 flex items-center justify-center gap-1">
+                  <Sparkles className="h-3 w-3" /> MeshPro feature
+                </p>
+              </div>
+
+              {/* Face style */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Expression</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  {(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink"] as MeshiMood[]).map((face) => (
+                    <button
+                      key={face}
+                      onClick={() => {
+                        setMeshiFace(face);
+                        startTransition(async () => {
+                          await updateMeshiPreference({ faceStyle: face });
+                          showSuccess("Expression updated!");
+                        });
+                      }}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiFace === face ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+                    >
+                      <MeshiMascot size={36} mood={face} color={meshiColor} animate={false} showGlow={false} />
+                      <span className="text-[10px] text-[var(--text-secondary)] capitalize">{face}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Hat style */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Hat</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  {(["none", "tophat", "crown", "beanie", "cap", "party", "flower"] as MeshiHat[]).map((hat) => (
+                    <button
+                      key={hat}
+                      onClick={() => {
+                        setMeshiHat(hat);
+                        startTransition(async () => {
+                          await updateMeshiPreference({ hatStyle: hat });
+                          showSuccess("Hat updated!");
+                        });
+                      }}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiHat === hat ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+                    >
+                      <MeshiMascot size={36} mood={meshiFace} hat={hat} color={meshiColor} animate={false} showGlow={false} />
+                      <span className="text-[10px] text-[var(--text-secondary)] capitalize">{hat}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color theme */}
+              <div className="glass-card rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Color</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  {(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow"] as MeshiColor[]).map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => {
+                        setMeshiColor(color);
+                        startTransition(async () => {
+                          await updateMeshiPreference({ colorTheme: color });
+                          showSuccess("Color updated!");
+                        });
+                      }}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiColor === color ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+                    >
+                      <MeshiMascot size={36} mood={meshiFace} hat={meshiHat} color={color} animate={false} showGlow={false} />
+                      <span className="text-[10px] text-[var(--text-secondary)] capitalize">{color}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* MeshPro Tab */}
           {activeTab === "meshpro" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <MeshiSettingsTip tab="meshpro" />
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-xl" style={{ background: "var(--brand-gradient)" }}>
                   <Crown className="h-8 w-8 text-white" />
@@ -1037,6 +1245,8 @@ export default function SettingsPage() {
                 <h3 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">What you get with Pro</h3>
                 {[
                   { icon: Fingerprint, title: "Digital Footprint Scanner", desc: "Find every account, data broker listing, and trace linked to your identity across the entire web" },
+                  { icon: Sparkles, title: "Customize Meshi", desc: "Give Meshi hats, change expressions, and pick custom colors \u2014 make your guide uniquely yours" },
+                  { icon: Palette, title: "Mesh Cosmetics", desc: "Add visual effects to your mesh that other users can see \u2014 glow trails, particle effects, and node styles" },
                   { icon: BarChart3, title: "Cross-platform analytics", desc: "In-depth stats on your digital presence \u2014 engagement, reach, follower growth, content performance" },
                   { icon: TrendingUp, title: "Audience insights", desc: "Understand who engages with your content across all platforms" },
                   { icon: ShieldCheck, title: "Advanced Security Hub", desc: "Manage and mass-delete content across connected platforms, monitor active sessions" },

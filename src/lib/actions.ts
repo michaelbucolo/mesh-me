@@ -1090,3 +1090,215 @@ export async function updateUserInterests(interests: string[]) {
   revalidatePath("/settings");
   return { success: true };
 }
+
+// ─── Achievement Actions ────────────────────────────────────
+
+export async function checkAndAwardAchievements() {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const awarded: string[] = [];
+
+  // Get user stats
+  const [postCount, followerCount, communityCount, connectedCount, reactionCount, commentCount] = await Promise.all([
+    prisma.post.count({ where: { authorId: user.id } }),
+    prisma.follow.count({ where: { followingId: user.id } }),
+    prisma.communityMember.count({ where: { userId: user.id } }),
+    prisma.connectedAccount.count({ where: { userId: user.id, isActive: true } }),
+    prisma.reaction.count({ where: { userId: user.id } }),
+    prisma.comment.count({ where: { authorId: user.id } }),
+  ]);
+
+  // Check if user has created any communities
+  const createdCommunity = await prisma.communityMember.findFirst({
+    where: { userId: user.id, role: "admin" },
+  });
+
+  // Achievement checks
+  const checks: { slug: string; condition: boolean }[] = [
+    { slug: "first-post", condition: postCount >= 1 },
+    { slug: "ten-posts", condition: postCount >= 10 },
+    { slug: "hundred-posts", condition: postCount >= 100 },
+    { slug: "first-follower", condition: followerCount >= 1 },
+    { slug: "ten-followers", condition: followerCount >= 10 },
+    { slug: "hundred-followers", condition: followerCount >= 100 },
+    { slug: "thousand-followers", condition: followerCount >= 1000 },
+    { slug: "first-community", condition: communityCount >= 1 },
+    { slug: "community-creator", condition: !!createdCommunity },
+    { slug: "platform-linker", condition: connectedCount >= 1 },
+    { slug: "mesh-master", condition: connectedCount >= 5 },
+    { slug: "verified", condition: user.isVerified },
+    { slug: "customizer", condition: !!(user.bio || user.avatarUrl) },
+    { slug: "helper", condition: reactionCount >= 50 },
+    { slug: "conversationalist", condition: commentCount >= 25 },
+  ];
+
+  // Get existing achievements
+  const existing = await prisma.userAchievement.findMany({
+    where: { userId: user.id },
+    include: { achievement: true },
+  });
+  const existingSlugs = new Set(existing.map((e) => e.achievement.slug));
+
+  for (const check of checks) {
+    if (check.condition && !existingSlugs.has(check.slug)) {
+      // Find or create the achievement
+      let achievement = await prisma.achievement.findUnique({ where: { slug: check.slug } });
+      if (!achievement) {
+        // Seed the achievement on first encounter
+        const defs: Record<string, { name: string; description: string; icon: string; category: string; title: string; isLimited: boolean; maxHolders: number | null }> = {
+          "first-post": { name: "First Words", description: "Created your first post", icon: "zap", category: "posts", title: "Creator", isLimited: false, maxHolders: null },
+          "ten-posts": { name: "Getting Started", description: "Created 10 posts", icon: "star", category: "posts", title: "Active Creator", isLimited: false, maxHolders: null },
+          "hundred-posts": { name: "Prolific", description: "Created 100 posts", icon: "trophy", category: "posts", title: "Prolific Creator", isLimited: false, maxHolders: null },
+          "first-follower": { name: "Connected", description: "Got your first follower", icon: "users", category: "social", title: "Connected", isLimited: false, maxHolders: null },
+          "ten-followers": { name: "Growing Network", description: "Reached 10 followers", icon: "users", category: "social", title: "Networker", isLimited: false, maxHolders: null },
+          "hundred-followers": { name: "Community Builder", description: "Reached 100 followers", icon: "globe", category: "social", title: "Community Builder", isLimited: false, maxHolders: null },
+          "thousand-followers": { name: "Influencer", description: "Reached 1,000 followers", icon: "star", category: "social", title: "Influencer", isLimited: false, maxHolders: null },
+          "first-community": { name: "Community Member", description: "Joined your first community", icon: "message-circle", category: "communities", title: "Member", isLimited: false, maxHolders: null },
+          "community-creator": { name: "Community Creator", description: "Created a community", icon: "globe", category: "communities", title: "Founder", isLimited: false, maxHolders: null },
+          "platform-linker": { name: "Platform Linker", description: "Connected your first external platform", icon: "globe", category: "platforms", title: "Multi-Platform", isLimited: false, maxHolders: null },
+          "mesh-master": { name: "Mesh Master", description: "Connected 5+ platforms", icon: "target", category: "platforms", title: "Mesh Master", isLimited: false, maxHolders: null },
+          "verified": { name: "Verified", description: "Verified your mesh.me account", icon: "shield", category: "account", title: "Verified", isLimited: false, maxHolders: null },
+          "customizer": { name: "Customizer", description: "Personalized your profile", icon: "sparkles", category: "account", title: "Customizer", isLimited: false, maxHolders: null },
+          "helper": { name: "Helping Hand", description: "Liked 50 posts", icon: "heart", category: "engagement", title: "Helper", isLimited: false, maxHolders: null },
+          "conversationalist": { name: "Conversationalist", description: "Left 25 comments", icon: "message-circle", category: "engagement", title: "Conversationalist", isLimited: false, maxHolders: null },
+        };
+        const def = defs[check.slug];
+        if (def) {
+          achievement = await prisma.achievement.create({
+            data: { slug: check.slug, ...def },
+          });
+        }
+      }
+      if (achievement) {
+        await prisma.userAchievement.create({
+          data: { userId: user.id, achievementId: achievement.id },
+        });
+        awarded.push(check.slug);
+      }
+    }
+  }
+
+  // Check Pioneer achievement (first 1M verified users)
+  if (user.isVerified && !existingSlugs.has("pioneer")) {
+    let pioneer = await prisma.achievement.findUnique({ where: { slug: "pioneer" } });
+    if (!pioneer) {
+      pioneer = await prisma.achievement.create({
+        data: {
+          slug: "pioneer",
+          name: "Pioneer",
+          description: "Among the first 1 million verified mesh.me users",
+          icon: "crown",
+          category: "limited",
+          title: "Pioneer",
+          isLimited: true,
+          maxHolders: 1000000,
+        },
+      });
+    }
+    const holderCount = await prisma.userAchievement.count({
+      where: { achievementId: pioneer.id },
+    });
+    if (holderCount < 1000000) {
+      await prisma.userAchievement.create({
+        data: { userId: user.id, achievementId: pioneer.id },
+      });
+      awarded.push("pioneer");
+    }
+  }
+
+  return { success: true, awarded };
+}
+
+export async function getUserAchievements(userId: string) {
+  const achievements = await prisma.userAchievement.findMany({
+    where: { userId },
+    include: { achievement: true },
+  });
+  return achievements.map((ua) => ({
+    slug: ua.achievement.slug,
+    name: ua.achievement.name,
+    title: ua.achievement.title,
+    isLimited: ua.achievement.isLimited,
+    unlockedAt: ua.unlockedAt,
+  }));
+}
+
+export async function setActiveTitle(title: string | null) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { activeTitle: title },
+  });
+
+  revalidatePath(`/profile/${user.username}`);
+  return { success: true };
+}
+
+// ─── Meshi Customization Actions ────────────────────────────
+
+export async function updateMeshiPreference(data: { hatStyle?: string; faceStyle?: string; colorTheme?: string }) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.meshiPreference.upsert({
+    where: { userId: user.id },
+    update: {
+      hatStyle: data.hatStyle || undefined,
+      faceStyle: data.faceStyle || undefined,
+      colorTheme: data.colorTheme || undefined,
+    },
+    create: {
+      userId: user.id,
+      hatStyle: data.hatStyle || "none",
+      faceStyle: data.faceStyle || "happy",
+      colorTheme: data.colorTheme || "blue",
+    },
+  });
+
+  revalidatePath("/mesh");
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+export async function getMeshiPreference() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const pref = await prisma.meshiPreference.findUnique({
+    where: { userId: user.id },
+  });
+
+  return pref || { hatStyle: "none", faceStyle: "happy", colorTheme: "blue" };
+}
+
+// ─── Mesh Cosmetics Actions ─────────────────────────────────
+
+export async function updateMeshCosmetics(cosmetics: { type: string; value: string; isActive: boolean }[]) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.meshCosmetic.deleteMany({ where: { userId: user.id } });
+    if (cosmetics.length > 0) {
+      await tx.meshCosmetic.createMany({
+        data: cosmetics.map((c) => ({ userId: user.id, type: c.type, value: c.value, isActive: c.isActive })),
+      });
+    }
+  });
+
+  revalidatePath("/mesh");
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+export async function getMeshCosmetics(userId?: string) {
+  const user = userId ? { id: userId } : await getCurrentUser();
+  if (!user) return [];
+
+  return prisma.meshCosmetic.findMany({
+    where: { userId: user.id, isActive: true },
+  });
+}

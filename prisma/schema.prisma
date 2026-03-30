@@ -49,6 +49,13 @@ model User {
   savedPosts     SavedPost[]
   connectedAccounts ConnectedAccount[]
   feedPreference FeedPreference?
+  achievements   UserAchievement[]
+  meshiPreference MeshiPreference?
+  meshCosmetics  MeshCosmetic[]
+  activeTitle    String?
+  isMeshPro      Boolean  @default(false)
+  meshProSince   DateTime?
+  signupNumber   Int?
 }
 
 model UserInterest {
@@ -339,4 +346,64 @@ model FeedPreference {
   updatedAt DateTime @updatedAt
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Achievements & Titles ──────────────────────────────────
+
+model Achievement {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  icon        String
+  category    String   @default("general")
+  title       String?
+  threshold   Int      @default(1)
+  isLimited   Boolean  @default(false)
+  maxHolders  Int?
+  createdAt   DateTime @default(now())
+
+  holders     UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+// ─── Meshi AI Preferences ───────────────────────────────────
+
+model MeshiPreference {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  hatStyle    String   @default("none")
+  faceStyle   String   @default("happy")
+  colorTheme  String   @default("blue")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Mesh Cosmetics (MeshPro) ───────────────────────────────
+
+model MeshCosmetic {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  value       String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

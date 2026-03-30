@@ -8,6 +8,8 @@ import { INTEREST_TAGS } from "@/lib/utils";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { MeshiOnboardingGuide } from "@/components/meshi/meshi-guide";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
@@ -33,19 +35,25 @@ export default function OnboardingPage() {
     });
   };
 
+  const [showMeshiGuide, setShowMeshiGuide] = useState(true);
+
   const steps = [
-    // Step 0: Welcome
+    // Step 0: Welcome (with Meshi guide)
     <div key="welcome" className="text-center space-y-6 animate-fade-in">
-      <div className="brand-logo inline-flex items-center justify-center h-16 w-16 rounded-2xl mb-2" style={{ background: "var(--brand-gradient)" }}>
-        <Sparkles className="h-8 w-8 text-white" />
-      </div>
-      <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Welcome to the Mesh</h1>
-      <p className="text-[var(--text-tertiary)] text-lg max-w-md mx-auto">
-        Let&apos;s make this yours. A few quick steps and you&apos;re in.
-      </p>
-      <Button onClick={() => setStep(1)} variant="gradient" size="lg">
-        Let&apos;s go <ArrowRight className="h-4 w-4 ml-1" />
-      </Button>
+      {showMeshiGuide ? (
+        <MeshiOnboardingGuide onComplete={() => setShowMeshiGuide(false)} />
+      ) : (
+        <>
+          <MeshiMascot size={64} mood="excited" color="blue" speaking />
+          <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Welcome to the Mesh</h1>
+          <p className="text-[var(--text-tertiary)] text-lg max-w-md mx-auto">
+            Meshi showed you the ropes. Now let&apos;s make this yours!
+          </p>
+          <Button onClick={() => setStep(1)} variant="gradient" size="lg">
+            Let&apos;s go <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </>
+      )}
     </div>,
 
     // Step 1: Bio & Location
