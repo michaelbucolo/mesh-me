@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: "mesh.me — One internet. One you.",
   description: "The universal layer for your digital life. Every connection, conversation, and community — unified, private, and yours.",
   keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network", "universal social"],
+  icons: {
+    icon: "/meshi-favicon.svg",
+    apple: "/meshi-favicon.svg",
+  },
 };
 
 export default function RootLayout({

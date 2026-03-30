@@ -940,16 +940,55 @@ export default function MeshPage() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
         <div className="text-center">
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-2 animate-ping" style={{ borderColor: "var(--accent-muted)" }} />
-            <div className="absolute inset-2 rounded-full border-2 animate-ping" style={{ borderColor: "var(--accent-muted)", animationDelay: "0.2s" }} />
-            <div className="absolute inset-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)" }} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles className="h-6 w-6" style={{ color: "var(--accent)" }} />
+          <motion.div
+            className="relative w-28 h-28 mx-auto mb-6"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {/* Meshi with construction hat */}
+            <div className="relative">
+              <MeshiMascot size={80} mood="excited" color="blue" showGlow animate />
+              {/* Construction hat */}
+              <svg className="absolute -top-5 left-1/2 -translate-x-1/2" width="48" height="28" viewBox="0 0 48 28">
+                <path d="M8 28 L12 12 L36 12 L40 28 Z" fill="#f59e0b" stroke="#d97706" strokeWidth="1" />
+                <rect x="4" y="24" width="40" height="4" rx="2" fill="#d97706" />
+                <rect x="18" y="8" width="12" height="6" rx="1" fill="#fbbf24" />
+              </svg>
             </div>
-          </div>
-          <p className="text-[var(--text-secondary)] font-medium mb-1">Building your mesh...</p>
+            {/* Hammer animation */}
+            <motion.div
+              className="absolute -right-4 top-6"
+              animate={{ rotate: [0, -30, 0] }}
+              transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
+              style={{ transformOrigin: "bottom center" }}
+            >
+              <svg width="24" height="32" viewBox="0 0 24 32">
+                <rect x="10" y="12" width="4" height="20" rx="1" fill="#92400e" />
+                <rect x="2" y="4" width="20" height="10" rx="2" fill="#6b7280" />
+                <rect x="2" y="4" width="20" height="3" rx="1" fill="#9ca3af" />
+              </svg>
+            </motion.div>
+          </motion.div>
+          <motion.p
+            className="text-[var(--text-secondary)] font-medium mb-1"
+            animate={{ opacity: [1, 0.6, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            Meshi is building your mesh...
+          </motion.p>
           <p className="text-[var(--text-muted)] text-sm">Mapping your digital universe</p>
+          {/* Animated dots */}
+          <div className="flex justify-center gap-1.5 mt-3">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-2 h-2 rounded-full"
+                style={{ background: "var(--accent)" }}
+                animate={{ scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );

@@ -16,37 +16,44 @@ interface GuideStep {
 const ONBOARDING_STEPS: GuideStep[] = [
   {
     title: "Welcome to mesh.me!",
-    description: "I'm Meshi, your personal guide to the mesh. Let me show you how mesh.me keeps you safe and connected.",
+    description: "I'm Meshi, your personal guide to the mesh. Let me show you how everything works so you feel right at home.",
     mood: "excited",
     icon: Sparkles,
+  },
+  {
+    title: "The Mesh — your digital universe",
+    description: "The Mesh is an interactive constellation of everything connected to you — people, communities, platforms, and interests. It's your home base.",
+    mood: "excited",
+    icon: Eye,
+    detail: "Click any node to interact with it. You can message people, view posts, join communities, and manage platforms — all from the Mesh. Click on someone to zoom into their mesh too!",
+  },
+  {
+    title: "MeChat — all messages, one place",
+    description: "MeChat unifies your conversations across every connected platform into one encrypted inbox. Message anyone, anywhere, from mesh.me.",
+    mood: "love",
+    icon: Sparkles,
+    detail: "When you connect platforms like Instagram, Discord, or X, your DMs sync here. Everything is end-to-end encrypted. Your conversations stay yours.",
+  },
+  {
+    title: "Your Feed — your internet",
+    description: "Your feed shows posts from people you follow on mesh.me AND across all connected platforms. One feed for your whole internet.",
+    mood: "happy",
+    icon: Eye,
+    detail: "You can customize the feed layout (card, grid, vertical, compact), filter by platform, and even cross-post — create once, share everywhere.",
   },
   {
     title: "Your privacy comes first",
     description: "mesh.me never sells your data. We store only what's needed to run your account — and you can delete everything at any time.",
     mood: "cool",
     icon: Shield,
-    detail: "We store: your username, email (for login), posts you create, and who you follow. That's it. No tracking cookies, no ad profiles, no data brokers.",
+    detail: "No tracking cookies, no ad profiles, no data brokers. You control what's visible. Everything defaults to private until you choose otherwise.",
   },
   {
-    title: "You control what's visible",
-    description: "Only you decide who sees your profile, posts, and connections. Everything defaults to private until you choose otherwise.",
-    mood: "happy",
-    icon: Eye,
-    detail: "Your privacy settings let you control visibility for your profile, posts, follower list, connected platforms, and more.",
-  },
-  {
-    title: "Zero-knowledge AI",
-    description: "I help you search and organize your mesh, but I never store our conversations or your personal data. Everything I do is index-based.",
+    title: "Explore & MeshPro",
+    description: "Discover new people and communities on Explore. MeshPro ($4.99/mo) unlocks extras like custom cosmetics, analytics, and my personality customization!",
     mood: "wink",
-    icon: Lock,
-    detail: "Unlike other AI assistants, I don't learn from your data, don't build profiles, and don't share anything with third parties.",
-  },
-  {
-    title: "Your digital footprint",
-    description: "mesh.me helps you see and manage your entire online presence in one place. The Mesh is your visual map of the internet — your internet.",
-    mood: "love",
     icon: Fingerprint,
-    detail: "Connect your social accounts, and mesh.me becomes your unified dashboard. One internet. One you.",
+    detail: "Nearly everything is free forever. MeshPro just adds fun extras — Digital Footprint Scanner, mesh cosmetics, advanced analytics, and more.",
   },
 ];
 

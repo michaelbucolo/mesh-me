@@ -74,6 +74,15 @@ export function MeshiFloat() {
   const meshiRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
 
+  // Dynamic floating state — Meshi subtly reacts to user interaction
+  const [floatOffset, setFloatOffset] = useState({ x: 0, y: 0 });
+  const [isIdle, setIsIdle] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const floatAnimRef = useRef<number | null>(null);
+  const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
+
   // Speech bubble state — messages appear as floating bubbles near Meshi
   const [speechBubbles, setSpeechBubbles] = useState<Array<{
     id: string;
@@ -170,28 +179,120 @@ export function MeshiFloat() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  // Contextual greeting on page navigation
+  // Contextual greeting on page navigation — only ONCE per page
   useEffect(() => {
     if (!meshiEnabled) return;
-    if (pathname !== lastPath && view === "closed") {
+    if (pathname !== lastPath) {
       setLastPath(pathname);
-      const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
-      if (matchedKey) {
-        const greeting = GREETINGS[matchedKey];
-        setGreetingText(greeting.text);
-        setMood(greeting.mood);
-        let hideTimer: ReturnType<typeof setTimeout>;
-        const showTimer = setTimeout(() => {
-          setShowGreeting(true);
-          hideTimer = setTimeout(() => setShowGreeting(false), 4000);
-        }, 1500);
-        return () => {
-          clearTimeout(showTimer);
-          clearTimeout(hideTimer);
-        };
-      }
+      setHasGreetedThisPage(false); // Reset for new page
     }
-  }, [pathname, lastPath, view, meshiEnabled]);
+  }, [pathname, lastPath, meshiEnabled]);
+
+  useEffect(() => {
+    if (!meshiEnabled || hasGreetedThisPage || view !== "closed") return;
+    const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
+    if (matchedKey) {
+      const greeting = GREETINGS[matchedKey];
+      setGreetingText(greeting.text);
+      setMood(greeting.mood);
+      setHasGreetedThisPage(true);
+      let hideTimer: ReturnType<typeof setTimeout>;
+      const showTimer = setTimeout(() => {
+        setShowGreeting(true);
+        hideTimer = setTimeout(() => setShowGreeting(false), 4000);
+      }, 1500);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+  }, [pathname, hasGreetedThisPage, view, meshiEnabled]);
+
+  // Dynamic floating — Meshi subtly drifts based on mouse position
+  useEffect(() => {
+    if (!meshiEnabled) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+      // Reset idle timer on any mouse movement
+      if (isIdle) setIsIdle(false);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => setIsIdle(true), 30000); // 30s idle
+    };
+    const handleKeyDown = () => {
+      if (!isTyping) setIsTyping(true);
+      if (isIdle) setIsIdle(false);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => setIsIdle(true), 30000);
+    };
+    const handleKeyUp = () => {
+      setTimeout(() => setIsTyping(false), 2000); // Reset typing after 2s
+    };
+    const handleScroll = () => {
+      if (isIdle) setIsIdle(false);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => setIsIdle(true), 30000);
+    };
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("keydown", handleKeyDown, { passive: true });
+    window.addEventListener("keyup", handleKeyUp, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    // Start idle timer
+    idleTimerRef.current = setTimeout(() => setIsIdle(true), 30000);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("scroll", handleScroll);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [meshiEnabled, isIdle, isTyping]);
+
+  // Subtle floating animation — Meshi gently drifts toward/away from cursor
+  useEffect(() => {
+    if (!meshiEnabled || isDragging) return;
+    let lastTime = 0;
+    const animate = (time: number) => {
+      if (time - lastTime > 50) { // ~20fps for subtle effect
+        lastTime = time;
+        const meshiPos = position.x === -1 ? getDefaultPosition() : position;
+        const dx = mouseRef.current.x - meshiPos.x;
+        const dy = mouseRef.current.y - meshiPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        // Subtle attraction when mouse is nearby (within 300px)
+        if (dist < 300 && dist > 30) {
+          const strength = 0.015 * (1 - dist / 300); // Closer = stronger
+          const targetX = dx * strength;
+          const targetY = dy * strength;
+          setFloatOffset(prev => ({
+            x: prev.x + (targetX - prev.x) * 0.08,
+            y: prev.y + (targetY - prev.y) * 0.08,
+          }));
+        } else {
+          // Gentle idle float
+          const t = time * 0.001;
+          setFloatOffset({
+            x: Math.sin(t * 0.7) * 3,
+            y: Math.cos(t * 0.5) * 3,
+          });
+        }
+      }
+      floatAnimRef.current = requestAnimationFrame(animate);
+    };
+    floatAnimRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (floatAnimRef.current) cancelAnimationFrame(floatAnimRef.current);
+    };
+  }, [meshiEnabled, isDragging, position, getDefaultPosition]);
+
+  // Update mood based on interaction state
+  useEffect(() => {
+    if (isDragging || view !== "closed" || !meshiEnabled) return;
+    if (isIdle) {
+      setMood("sleepy" as MeshiMood); // Meshi gets sleepy when idle
+    } else if (isTyping) {
+      setMood("thinking"); // Meshi thinks along while user types
+    }
+  }, [isIdle, isTyping, isDragging, view, meshiEnabled]);
 
   // Add a speech bubble
   const addSpeechBubble = useCallback((role: "user" | "meshi", text: string) => {
@@ -416,7 +517,7 @@ export function MeshiFloat() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
             className="fixed z-40 flex flex-col-reverse items-end gap-2"
-            style={{ right: position.x === -1 ? 16 : undefined, bottom: position.x === -1 ? 16 : undefined, left: position.x === -1 ? undefined : 0, top: position.x === -1 ? undefined : 0, transform: position.x === -1 ? undefined : `translate(${position.x}px, ${position.y}px)`, touchAction: "none" }}
+            style={{ right: position.x === -1 ? 16 - floatOffset.x : undefined, bottom: position.x === -1 ? 16 - floatOffset.y : undefined, left: position.x === -1 ? undefined : 0, top: position.x === -1 ? undefined : 0, transform: position.x === -1 ? undefined : `translate(${position.x + floatOffset.x}px, ${position.y + floatOffset.y}px)`, touchAction: "none", transition: isDragging ? "none" : "right 0.3s ease, bottom 0.3s ease" }}
           >
             {/* Speech bubbles that float near Meshi */}
             <AnimatePresence>
@@ -558,8 +659,8 @@ export function MeshiFloat() {
                 title="Click to chat \u2022 Right-click for menu"
               >
                 <motion.div
-                  animate={isDragging ? { rotate: [0, 10, -10, 10, 0] } : { y: [0, -3, 0, -1, 0], rotate: [0, 2, -2, 1, 0] }}
-                  transition={isDragging ? { duration: 0.5, repeat: Infinity } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  animate={isDragging ? { rotate: [0, 10, -10, 10, 0] } : isIdle ? { y: [0, -2, 0], rotate: [0, 1, 0], opacity: [1, 0.7, 1] } : { y: [0, -3, 0, -1, 0], rotate: [0, 2, -2, 1, 0] }}
+                  transition={isDragging ? { duration: 0.5, repeat: Infinity } : isIdle ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 >
                   <MeshiMascot
                     size={44}
