@@ -1,8 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useSpring } from "framer-motion";
+import { useRef, useState, useCallback, useEffect } from "react";
 
-// Meshi face styles
+// Meshi face styles — eyes only, reacts to interaction
 const FACES: Record<string, { eyes: string }> = {
   happy: { eyes: "◕ ◕" },
   excited: { eyes: "★ ★" },
@@ -12,6 +13,9 @@ const FACES: Record<string, { eyes: string }> = {
   love: { eyes: "♥ ♥" },
   cool: { eyes: "■ ■" },
   wink: { eyes: "◕ ◡" },
+  petted: { eyes: "◠ ◠" },
+  giggle: { eyes: "≧ ≦" },
+  shy: { eyes: "· ·" },
 };
 
 // Meshi hat styles (rendered as SVG elements)
@@ -95,6 +99,10 @@ interface MeshiMascotProps {
   className?: string;
   showGlow?: boolean;
   speaking?: boolean;
+  /** Enable physics jiggle and petting reactions */
+  interactive?: boolean;
+  /** Callback when mood changes from petting */
+  onMoodChange?: (mood: MeshiMood) => void;
 }
 
 export function MeshiMascot({
@@ -107,40 +115,101 @@ export function MeshiMascot({
   className = "",
   showGlow = true,
   speaking = false,
+  interactive = false,
+  onMoodChange,
 }: MeshiMascotProps) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   const face = FACES[mood] || FACES.happy;
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Physics-based jiggle springs
+  const squishX = useSpring(1, { stiffness: 600, damping: 12, mass: 0.3 });
+  const squishY = useSpring(1, { stiffness: 600, damping: 12, mass: 0.3 });
+  const wobbleRotate = useSpring(0, { stiffness: 300, damping: 8, mass: 0.5 });
+
+  // Track mouse velocity for petting
+  const lastMouseX = useRef(0);
+  const lastMouseTime = useRef(0);
+  const petCount = useRef(0);
+  const petTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [localMood, setLocalMood] = useState<MeshiMood | null>(null);
+
+  const activeFace = FACES[localMood || mood] || FACES.happy;
+
+  // Mouse enter — initial shy reaction + gentle jiggle
+  const handleMouseEnter = useCallback(() => {
+    if (!interactive) return;
+    squishX.set(1.12);
+    squishY.set(0.9);
+    wobbleRotate.set(3);
+    setTimeout(() => { squishX.set(0.95); squishY.set(1.08); wobbleRotate.set(-2); }, 80);
+    setTimeout(() => { squishX.set(1); squishY.set(1); wobbleRotate.set(0); }, 200);
+    setLocalMood("shy");
+    onMoodChange?.("shy");
+    if (petTimer.current) clearTimeout(petTimer.current);
+    petTimer.current = setTimeout(() => { setLocalMood(null); petCount.current = 0; }, 2000);
+  }, [interactive, squishX, squishY, wobbleRotate, onMoodChange]);
+
+  // Mouse move over Meshi — "petting" effect
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!interactive) return;
+    const now = Date.now();
+    const dx = e.clientX - lastMouseX.current;
+    const dt = now - lastMouseTime.current;
+    lastMouseX.current = e.clientX;
+    lastMouseTime.current = now;
+    if (dt > 0 && dt < 100) {
+      const velocity = Math.abs(dx) / dt;
+      if (velocity > 0.3) {
+        const jiggleIntensity = Math.min(velocity * 0.15, 0.2);
+        squishX.set(1 + jiggleIntensity);
+        squishY.set(1 - jiggleIntensity * 0.7);
+        wobbleRotate.set(dx > 0 ? jiggleIntensity * 15 : -jiggleIntensity * 15);
+        petCount.current += 1;
+        if (petCount.current > 8) { setLocalMood("giggle"); onMoodChange?.("giggle"); }
+        else if (petCount.current > 3) { setLocalMood("petted"); onMoodChange?.("petted"); }
+        else { setLocalMood("happy"); onMoodChange?.("happy"); }
+        if (petTimer.current) clearTimeout(petTimer.current);
+        petTimer.current = setTimeout(() => { setLocalMood(null); petCount.current = 0; }, 2000);
+      }
+    }
+  }, [interactive, squishX, squishY, wobbleRotate, onMoodChange]);
+
+  // Mouse leave — bounce back
+  const handleMouseLeave = useCallback(() => {
+    if (!interactive) return;
+    squishX.set(0.92); squishY.set(1.1); wobbleRotate.set(0);
+    setTimeout(() => { squishX.set(1); squishY.set(1); }, 150);
+    if (petTimer.current) clearTimeout(petTimer.current);
+    petTimer.current = setTimeout(() => { setLocalMood(null); petCount.current = 0; }, 1200);
+  }, [interactive, squishX, squishY, wobbleRotate]);
+
+  useEffect(() => { return () => { if (petTimer.current) clearTimeout(petTimer.current); }; }, []);
 
   return (
     <motion.div
+      ref={containerRef}
       className={`inline-flex items-center justify-center cursor-pointer select-none ${className}`}
-      style={{ width: size, height: size }}
+      style={{
+        width: size, height: size,
+        scaleX: interactive ? squishX : undefined,
+        scaleY: interactive ? squishY : undefined,
+        rotate: interactive ? wobbleRotate : undefined,
+      }}
       onClick={onClick}
-      whileHover={animate ? { scale: 1.1 } : undefined}
-      whileTap={animate ? { scale: 0.95 } : undefined}
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      whileHover={!interactive && animate ? { scale: 1.1 } : undefined}
+      whileTap={animate ? { scale: 0.9 } : undefined}
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox="-24 -24 48 48"
-        style={{ overflow: "visible" }}
-      >
+      <svg width={size} height={size} viewBox="-24 -24 48 48" style={{ overflow: "visible" }}>
         {/* Glow */}
         {showGlow && (
-          <motion.circle
-            cx="0"
-            cy="0"
-            r="20"
-            fill="none"
-            stroke={theme.primary}
-            strokeWidth="1"
-            opacity="0.3"
-            animate={animate ? {
-              scale: [1, 1.15, 1],
-              opacity: [0.3, 0.15, 0.3],
-            } : undefined}
+          <motion.circle cx="0" cy="0" r="20" fill="none" stroke={theme.primary} strokeWidth="1" opacity="0.3"
+            animate={animate ? { scale: [1, 1.15, 1], opacity: [0.3, 0.15, 0.3] } : undefined}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
@@ -148,80 +217,48 @@ export function MeshiMascot({
         {/* Speaking pulse rings */}
         {speaking && (
           <>
-            <motion.circle
-              cx="0" cy="0" r="18" fill="none"
-              stroke={theme.primary} strokeWidth="1.5"
-              initial={{ r: 18, opacity: 0.6 }}
-              animate={{ r: 28, opacity: 0 }}
+            <motion.circle cx="0" cy="0" r="18" fill="none" stroke={theme.primary} strokeWidth="1.5"
+              initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 1.6, opacity: 0 }}
               transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
             />
-            <motion.circle
-              cx="0" cy="0" r="18" fill="none"
-              stroke={theme.primary} strokeWidth="1"
-              initial={{ r: 18, opacity: 0.4 }}
-              animate={{ r: 32, opacity: 0 }}
+            <motion.circle cx="0" cy="0" r="18" fill="none" stroke={theme.primary} strokeWidth="1"
+              initial={{ scale: 1, opacity: 0.4 }} animate={{ scale: 1.8, opacity: 0 }}
               transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut", delay: 0.4 }}
             />
           </>
         )}
 
-        {/* Body */}
-        <motion.circle
-          cx="0"
-          cy="0"
-          r="16"
-          fill={theme.bg}
-          stroke={theme.primary}
-          strokeWidth="2"
-          animate={animate ? {
-            y: [0, -1.5, 0],
-          } : undefined}
+        {/* Body — soft circle bubble */}
+        <motion.circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2"
+          animate={animate ? { y: [0, -1.5, 0] } : undefined}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Inner gradient circle */}
+        {/* Inner gradient — gives bubble depth */}
         <circle cx="0" cy="0" r="14" fill={theme.primary} opacity="0.15" />
 
-        {/* Hat */}
-        <g style={{ color: theme.primary }}>
-          {hatElement}
-        </g>
+        {/* Bubble highlight — top-left shine for glossy feel */}
+        <ellipse cx="-5" cy="-6" rx="5" ry="3.5" fill="white" opacity="0.15" transform="rotate(-20)" />
 
-        {/* Face — eyes only, no mouth */}
+        {/* Hat */}
+        <g style={{ color: theme.primary }}>{hatElement}</g>
+
+        {/* Face — eyes only, reactive to petting */}
         <g transform={`scale(${Math.min(scale, 1.2)})`}>
-          <text
-            x="0"
-            y="1"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize="9"
-            fill={theme.primary}
-            fontFamily="system-ui"
-            style={{ userSelect: "none" }}
-          >
-            {face.eyes}
+          <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
+            fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
+            {interactive ? activeFace.eyes : face.eyes}
           </text>
         </g>
 
         {/* Mesh connection dots */}
         {[0, 72, 144, 216, 288].map((deg, i) => (
-          <motion.circle
-            key={deg}
+          <motion.circle key={deg}
             cx={Math.cos((deg * Math.PI) / 180) * 18}
             cy={Math.sin((deg * Math.PI) / 180) * 18}
-            r="1.5"
-            fill={theme.primary}
-            opacity="0.5"
-            animate={animate ? {
-              opacity: [0.3, 0.7, 0.3],
-              scale: [1, 1.3, 1],
-            } : undefined}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              delay: i * 0.3,
-              ease: "easeInOut",
-            }}
+            r="1.5" fill={theme.primary} opacity="0.5"
+            animate={animate ? { opacity: [0.3, 0.7, 0.3], scale: [1, 1.3, 1] } : undefined}
+            transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
           />
         ))}
       </svg>
@@ -230,28 +267,17 @@ export function MeshiMascot({
 }
 
 // Mini version for use as app icon / logo
-export function MeshiLogo({
-  size = 32,
-  color = "blue",
-  mood = "happy",
-  className = "",
-}: {
-  size?: number;
-  color?: MeshiColor;
-  mood?: MeshiMood;
-  className?: string;
+export function MeshiLogo({ size = 32, color = "blue", mood = "happy", className = "" }: {
+  size?: number; color?: MeshiColor; mood?: MeshiMood; className?: string;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   const face = FACES[mood] || FACES.happy;
-
   return (
-    <div
-      className={`inline-flex items-center justify-center ${className}`}
-      style={{ width: size, height: size }}
-    >
+    <div className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox="-20 -20 40 40">
         <circle cx="0" cy="0" r="16" fill={theme.primary} opacity="0.15" />
         <circle cx="0" cy="0" r="16" fill="none" stroke={theme.primary} strokeWidth="2" />
+        <ellipse cx="-4" cy="-5" rx="4" ry="3" fill="white" opacity="0.12" transform="rotate(-20)" />
         <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="8" fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>{face.eyes}</text>
       </svg>
     </div>
@@ -268,7 +294,6 @@ export function getMeshiMoodFromActivity(stats: {
   const daysSinceLogin = stats.lastLogin
     ? Math.floor((now.getTime() - new Date(stats.lastLogin).getTime()) / (1000 * 60 * 60 * 24))
     : 999;
-
   if (daysSinceLogin > 7) return "sleepy";
   if (daysSinceLogin > 3) return "thinking";
   if ((stats.postsThisWeek || 0) > 5) return "excited";
