@@ -499,17 +499,15 @@ export default function MeshPage() {
       }
 
       if (node.type !== "self") {
-        node.vx += (cx - node.x) * 0.00005;
-        node.vy += (cy - node.y) * 0.00005;
-        const ndx = node.x - cx;
-        const ndy = node.y - cy;
-        const ndist = Math.sqrt(ndx * ndx + ndy * ndy) || 1;
-        node.vx += (-ndy / ndist) * 0.008;
-        node.vy += (ndx / ndist) * 0.008;
+        // Gentle center gravity only — NO orbit/tangential force
+        // This creates an organic, static web that settles in place
+        node.vx += (cx - node.x) * 0.00008;
+        node.vy += (cy - node.y) * 0.00008;
       }
 
-      node.vx *= 0.98;
-      node.vy *= 0.98;
+      // Heavy damping for organic web feel — nodes settle quickly
+      node.vx *= 0.92;
+      node.vy *= 0.92;
 
       if (node.type !== "self") {
         node.x += node.vx;
@@ -654,11 +652,19 @@ export default function MeshPage() {
         ctx.fill();
 
         if (node.type === "self") {
-          const ringRadius = nodeRadius + 6 + pulse * 3;
+          // Double ring for profile center node — invites clicking
+          const ringRadius = nodeRadius + 5 + pulse * 2;
           ctx.beginPath();
           ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(59, 130, 246, " + (0.08 + pulse * 0.05) + ")";
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = "rgba(59, 130, 246, " + (0.12 + pulse * 0.06) + ")";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          // Outer glow ring
+          const outerRing = ringRadius + 4;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, outerRing, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(59, 130, 246, " + (0.04 + pulse * 0.02) + ")";
+          ctx.lineWidth = 0.5;
           ctx.stroke();
         }
 
@@ -682,8 +688,10 @@ export default function MeshPage() {
         ctx.textBaseline = "middle";
 
         if (node.type === "self") {
-          ctx.font = "bold " + (nodeRadius * 0.7) + "px system-ui, -apple-system, sans-serif";
-          ctx.fillText("me", node.x, node.y);
+          // Draw user's initials (or profile picture placeholder) at center
+          const initials = node.label.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "ME";
+          ctx.font = "bold " + (nodeRadius * 0.55) + "px system-ui, -apple-system, sans-serif";
+          ctx.fillText(initials, node.x, node.y);
         } else if (node.type === "community") {
           ctx.font = Math.max(9, nodeRadius * 0.5) + "px system-ui, -apple-system, sans-serif";
           ctx.fillText((node.label[0] || "C").toUpperCase(), node.x, node.y);
@@ -795,8 +803,13 @@ export default function MeshPage() {
     if (dragActiveRef.current) return;
     const coords = getWorldCoords(e.clientX, e.clientY);
     const node = findNodeAt(coords.x, coords.y);
+    // Clicking center "self" node → navigate to profile page
+    if (node?.type === "self" && node.href) {
+      router.push(node.href);
+      return;
+    }
     setSelectedNode(node);
-  }, [getWorldCoords, findNodeAt]);
+  }, [getWorldCoords, findNodeAt, router]);
 
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const coords = getWorldCoords(e.clientX, e.clientY);
