@@ -224,8 +224,8 @@ Copy the output -- that is your secret. It will look something like:
 ### 5.1: Prepare Code on GitHub
 
 1. Go to https://github.com/michaelbucolo/mesh-me
-2. The code is on the `devin/1774421391-mesh-me-mvp` branch in PR #1
-3. **Merge PR #1 into `main`** when you are ready to deploy
+2. The code is on the development branch in PR #1
+3. **Merge the PR into `main`** when you are ready to deploy
 
 ### 5.2: Connect to Vercel
 

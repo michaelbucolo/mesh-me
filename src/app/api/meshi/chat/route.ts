@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 
-// Meshi LLM — a reasoning engine that can answer ANY question with logic
-// Architecture: designed to plug into OpenAI/Anthropic API when keys are available
+// Meshi — a reasoning engine that can answer questions with logic
+// Architecture: designed to plug into external LLM APIs when keys are available
 // For now: sophisticated local reasoning with math, logic, general knowledge, and mesh awareness
 
 interface ChatRequest {
