@@ -9,29 +9,21 @@ interface MeshBackgroundProps {
   mouseInfluence?: number;
 }
 
-interface Node {
+interface Star {
   x: number;
   y: number;
-  vx: number;
-  vy: number;
   radius: number;
   opacity: number;
-  pulsePhase: number;
-  pulseSpeed: number;
-  // For center-attraction during typing
-  attractionStrength: number;
-  baseX: number;
-  baseY: number;
+  twinklePhase: number;
+  twinkleSpeed: number;
 }
 
 export function MeshBackground({
-  interactive = true,
   density = 80,
   className = "",
-  mouseInfluence = 150,
 }: MeshBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const nodesRef = useRef<Node[]>([]);
+  const starsRef = useRef<Star[]>([]);
   const mouseRef = useRef({ x: -1000, y: -1000 });
   const animFrameRef = useRef<number>(0);
   const timeRef = useRef(0);
@@ -39,29 +31,23 @@ export function MeshBackground({
   const fieldRef = useRef<string | null>(null);
   const burstRef = useRef(0);
   const meshiPosRef = useRef<{ x: number; y: number } | null>(null);
+  const convergeRef = useRef(0);
 
-  const initNodes = useCallback(
+  const initStars = useCallback(
     (width: number, height: number) => {
       const count = Math.floor((width * height) / (10000 / (density / 80)));
-      const nodes: Node[] = [];
+      const stars: Star[] = [];
       for (let i = 0; i < Math.min(count, 200); i++) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        nodes.push({
-          x,
-          y,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
+        stars.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
           radius: Math.random() * 1.5 + 0.5,
-          opacity: Math.random() * 0.5 + 0.2,
-          pulsePhase: Math.random() * Math.PI * 2,
-          pulseSpeed: Math.random() * 0.02 + 0.005,
-          attractionStrength: Math.random() * 0.5 + 0.3,
-          baseX: x,
-          baseY: y,
+          opacity: Math.random() * 0.5 + 0.15,
+          twinklePhase: Math.random() * Math.PI * 2,
+          twinkleSpeed: Math.random() * 0.015 + 0.004,
         });
       }
-      nodesRef.current = nodes;
+      starsRef.current = stars;
     },
     [density]
   );
@@ -78,25 +64,22 @@ export function MeshBackground({
       canvas.width = canvas.offsetWidth * dpr;
       canvas.height = canvas.offsetHeight * dpr;
       ctx.scale(dpr, dpr);
-      initNodes(canvas.offsetWidth, canvas.offsetHeight);
+      initStars(canvas.offsetWidth, canvas.offsetHeight);
     };
 
     resize();
     window.addEventListener("resize", resize);
 
+    // Track mouse for glow effect (nodes stay in place, just glow brighter)
     const handleMouse = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
-
     const handleMouseLeave = () => {
       mouseRef.current = { x: -1000, y: -1000 };
     };
-
-    if (interactive) {
-      document.addEventListener("mousemove", handleMouse);
-      document.addEventListener("mouseleave", handleMouseLeave);
-    }
+    document.addEventListener("mousemove", handleMouse);
+    document.addEventListener("mouseleave", handleMouseLeave);
 
     // Listen for typing activity from MeshEntry
     const handleActivity = (e: Event) => {
@@ -104,7 +87,6 @@ export function MeshBackground({
       if (detail?.totalChars != null) {
         const prev = activityRef.current;
         activityRef.current = Math.min(detail.totalChars, 60);
-        // Trigger burst on new character
         if (detail.totalChars > prev) {
           burstRef.current = 1.0;
         }
@@ -118,6 +100,12 @@ export function MeshBackground({
     };
     window.addEventListener("mesh-activity", handleActivity);
 
+    // Listen for login success — all stars converge on Meshi
+    const handleConverge = () => {
+      convergeRef.current = 0.001;
+    };
+    window.addEventListener("mesh-converge", handleConverge);
+
     const draw = () => {
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
@@ -125,11 +113,12 @@ export function MeshBackground({
 
       ctx.clearRect(0, 0, w, h);
 
-      const nodes = nodesRef.current;
+      const stars = starsRef.current;
       const mouse = mouseRef.current;
       const activity = activityRef.current;
       const isTyping = fieldRef.current !== null && activity > 0;
       const burst = burstRef.current;
+      const mouseGlowRadius = 180;
 
       // Decay burst
       if (burstRef.current > 0) {
@@ -137,169 +126,180 @@ export function MeshBackground({
         if (burstRef.current < 0.01) burstRef.current = 0;
       }
 
-      // Target point: Meshi logo position if available, otherwise center
+      // Converge animation progress
+      let converge = convergeRef.current;
+      if (converge > 0 && converge < 1) {
+        converge = Math.min(converge + 0.008, 1);
+        convergeRef.current = converge;
+      }
+
+      // Meshi target position
       const canvasRect = canvas.getBoundingClientRect();
       const meshi = meshiPosRef.current;
-      const cx = meshi ? meshi.x - canvasRect.left : w / 2;
-      const cy = meshi ? meshi.y - canvasRect.top : h / 2;
+      const mx = meshi ? meshi.x - canvasRect.left : w / 2;
+      const my = meshi ? meshi.y - canvasRect.top : h / 2;
 
-      // Connection distance grows as user types
-      const connectionDist = 120 + activity * 3;
-      const mouseDist = mouseInfluence + activity * 1.5;
+      // Constellation line distance
+      const constellationDist = 120;
+      // String range to Meshi grows with typing
+      const stringRange = 250 + activity * 6;
 
-      // How strongly nodes are attracted to center when typing
-      const centerAttraction = isTyping ? Math.min(activity * 0.0004, 0.015) : 0;
-      // Connection range to center grows with typing
-      const centerConnectionRange = 200 + activity * 8;
-
-      // Update positions
-      for (const node of nodes) {
-        node.x += node.vx;
-        node.y += node.vy;
-
-        // Wrap around edges
-        if (node.x < 0) node.x = w;
-        if (node.x > w) node.x = 0;
-        if (node.y < 0) node.y = h;
-        if (node.y > h) node.y = 0;
-
-        // Center attraction when typing (nodes connect to username like strings)
-        if (centerAttraction > 0) {
-          const dx = cx - node.x;
-          const dy = cy - node.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 50) {
-            const force = centerAttraction * node.attractionStrength;
-            node.vx += dx / dist * force;
-            node.vy += dy / dist * force;
-          }
-        }
-
-        // Mouse attraction
-        if (interactive && mouse.x > 0) {
-          const dx = mouse.x - node.x;
-          const dy = mouse.y - node.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < mouseDist && dist > 10) {
-            const force = (mouseDist - dist) / mouseDist * 0.008;
-            node.vx += dx * force;
-            node.vy += dy * force;
-          }
-        }
-
-        // Damping
-        node.vx *= 0.99;
-        node.vy *= 0.99;
-
-        // Speed limit
-        const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-        const maxSpeed = 1 + burst * 2;
-        if (speed > maxSpeed) {
-          node.vx = (node.vx / speed) * maxSpeed;
-          node.vy = (node.vy / speed) * maxSpeed;
+      // Compute display positions (static, or converging to Meshi on login)
+      const positions: { x: number; y: number }[] = [];
+      for (const star of stars) {
+        if (converge > 0) {
+          const ease = converge * converge * (3 - 2 * converge);
+          positions.push({
+            x: star.x + (mx - star.x) * ease,
+            y: star.y + (my - star.y) * ease,
+          });
+        } else {
+          positions.push({ x: star.x, y: star.y });
         }
       }
 
-      // Draw node-to-node connections
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x;
-          const dy = nodes[i].y - nodes[j].y;
+      // --- Draw constellation lines between nearby stars ---
+      for (let i = 0; i < stars.length; i++) {
+        for (let j = i + 1; j < stars.length; j++) {
+          const dx = positions[i].x - positions[j].x;
+          const dy = positions[i].y - positions[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < connectionDist) {
-            const baseAlpha = 0.15 + activity * 0.005;
-            const alpha = (1 - dist / connectionDist) * baseAlpha;
+          if (dist < constellationDist) {
+            let alpha = (1 - dist / constellationDist) * 0.1;
+
+            // Glow brighter near mouse
+            if (mouse.x > 0) {
+              const midX = (positions[i].x + positions[j].x) / 2;
+              const midY = (positions[i].y + positions[j].y) / 2;
+              const mouseDist = Math.sqrt((mouse.x - midX) ** 2 + (mouse.y - midY) ** 2);
+              if (mouseDist < mouseGlowRadius) {
+                alpha += (1 - mouseDist / mouseGlowRadius) * 0.15;
+              }
+            }
+
+            // Fade during converge
+            if (converge > 0.3) {
+              alpha *= Math.max(0, 1 - (converge - 0.3) / 0.4);
+            }
+
             ctx.beginPath();
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = "rgba(59, 130, 246, " + alpha.toFixed(3) + ")";
-            ctx.lineWidth = 0.5 + burst * 0.5;
+            ctx.moveTo(positions[i].x, positions[i].y);
+            ctx.lineTo(positions[j].x, positions[j].y);
+            ctx.strokeStyle = "rgba(59, 130, 246, " + Math.min(alpha, 0.35).toFixed(3) + ")";
+            ctx.lineWidth = 0.4;
             ctx.stroke();
           }
         }
       }
 
-      // Draw center connections (strings connecting to the username/input)
-      if (isTyping) {
-        for (const node of nodes) {
-          const dx = cx - node.x;
-          const dy = cy - node.y;
+      // --- Draw strings from stars to Meshi when typing ---
+      if (isTyping && converge === 0) {
+        for (let i = 0; i < stars.length; i++) {
+          const pos = positions[i];
+          const dx = mx - pos.x;
+          const dy = my - pos.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < centerConnectionRange) {
-            const alpha = (1 - dist / centerConnectionRange) * (0.1 + activity * 0.006);
-            // Draw a slightly curved line to center for organic feel
-            const midX = (node.x + cx) / 2 + Math.sin(timeRef.current * 0.02 + node.pulsePhase) * 15;
-            const midY = (node.y + cy) / 2 + Math.cos(timeRef.current * 0.02 + node.pulsePhase) * 15;
+          if (dist < stringRange) {
+            const proximity = 1 - dist / stringRange;
+            let alpha = proximity * (0.06 + activity * 0.004) + burst * 0.04;
+
+            // Glow brighter near mouse
+            if (mouse.x > 0) {
+              const mouseDist = Math.sqrt((mouse.x - pos.x) ** 2 + (mouse.y - pos.y) ** 2);
+              if (mouseDist < mouseGlowRadius) {
+                alpha += (1 - mouseDist / mouseGlowRadius) * 0.1;
+              }
+            }
+
+            // Gentle curve for organic string feel
+            const midX = (pos.x + mx) / 2 + Math.sin(timeRef.current * 0.012 + stars[i].twinklePhase) * 10;
+            const midY = (pos.y + my) / 2 + Math.cos(timeRef.current * 0.012 + stars[i].twinklePhase) * 10;
 
             ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.quadraticCurveTo(midX, midY, cx, cy);
-            ctx.strokeStyle = "rgba(96, 165, 250, " + alpha.toFixed(3) + ")";
-            ctx.lineWidth = 0.6 + burst * 0.8;
+            ctx.moveTo(pos.x, pos.y);
+            ctx.quadraticCurveTo(midX, midY, mx, my);
+            ctx.strokeStyle = "rgba(96, 165, 250, " + Math.min(alpha, 0.35).toFixed(3) + ")";
+            ctx.lineWidth = 0.5 + burst * 0.3;
             ctx.stroke();
           }
         }
 
-        // Draw Meshi glow ring (pulsing circle around Meshi)
-        if (meshi) {
-          const ringRadius = 24 + activity * 0.5 + Math.sin(timeRef.current * 0.03) * 3;
-          const ringAlpha = 0.12 + activity * 0.004 + burst * 0.15;
-          ctx.beginPath();
-          ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(96, 165, 250, " + ringAlpha.toFixed(3) + ")";
-          ctx.lineWidth = 1.5 + burst * 1.5;
-          ctx.stroke();
-        }
-
-        // Draw center glow (around Meshi / input area)
-        const glowRadius = 60 + activity * 2 + burst * 30;
-        const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
-        glowGrad.addColorStop(0, "rgba(59, 130, 246, " + (0.08 + activity * 0.003 + burst * 0.1).toFixed(3) + ")");
+        // Subtle glow around Meshi
+        const glowRadius = 40 + activity * 1.2 + burst * 12;
+        const glowGrad = ctx.createRadialGradient(mx, my, 0, mx, my, glowRadius);
+        glowGrad.addColorStop(0, "rgba(59, 130, 246, " + (0.05 + activity * 0.002 + burst * 0.06).toFixed(3) + ")");
         glowGrad.addColorStop(1, "rgba(59, 130, 246, 0)");
         ctx.beginPath();
-        ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+        ctx.arc(mx, my, glowRadius, 0, Math.PI * 2);
         ctx.fillStyle = glowGrad;
         ctx.fill();
       }
 
-      // Draw mouse connections
-      if (interactive && mouse.x > 0) {
-        for (const node of nodes) {
-          const dx = mouse.x - node.x;
-          const dy = mouse.y - node.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < mouseDist) {
-            const alpha = (1 - dist / mouseDist) * 0.3;
-            ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(mouse.x, mouse.y);
-            ctx.strokeStyle = "rgba(59, 130, 246, " + alpha.toFixed(3) + ")";
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-          }
+      // --- Converge: draw strings from all stars to Meshi ---
+      if (converge > 0 && converge < 0.8) {
+        const stringAlpha = Math.min(converge * 2, 0.25) * (1 - converge / 0.8);
+        for (let i = 0; i < stars.length; i++) {
+          const pos = positions[i];
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+          ctx.lineTo(mx, my);
+          ctx.strokeStyle = "rgba(96, 165, 250, " + stringAlpha.toFixed(3) + ")";
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
         }
       }
 
-      // Draw nodes
-      for (const node of nodes) {
-        const pulse = Math.sin(timeRef.current * node.pulseSpeed + node.pulsePhase) * 0.3 + 0.7;
-        const alpha = node.opacity * pulse;
-
-        const glowSize = node.radius * (3 + activity * 0.06 + burst * 2);
-
-        // Glow
+      // --- Converge flash at completion ---
+      if (converge > 0.85 && converge < 1) {
+        const t = (converge - 0.85) / 0.15;
+        const flashAlpha = t * 0.4;
+        const flashRadius = 80 + t * 200;
+        const flashGrad = ctx.createRadialGradient(mx, my, 0, mx, my, flashRadius);
+        flashGrad.addColorStop(0, "rgba(147, 197, 253, " + flashAlpha.toFixed(3) + ")");
+        flashGrad.addColorStop(0.5, "rgba(59, 130, 246, " + (flashAlpha * 0.5).toFixed(3) + ")");
+        flashGrad.addColorStop(1, "rgba(59, 130, 246, 0)");
         ctx.beginPath();
-        ctx.arc(node.x, node.y, glowSize, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(59, 130, 246, " + (alpha * (0.1 + activity * 0.004 + burst * 0.08)).toFixed(3) + ")";
+        ctx.arc(mx, my, flashRadius, 0, Math.PI * 2);
+        ctx.fillStyle = flashGrad;
+        ctx.fill();
+      }
+
+      // --- Draw stars (twinkling in place, constellation-like) ---
+      for (let i = 0; i < stars.length; i++) {
+        const star = stars[i];
+        const pos = positions[i];
+
+        // Twinkle shimmer
+        const twinkle = Math.sin(timeRef.current * star.twinkleSpeed + star.twinklePhase) * 0.35 + 0.65;
+        let alpha = star.opacity * twinkle;
+
+        // Glow brighter near mouse
+        if (mouse.x > 0) {
+          const mouseDist = Math.sqrt((mouse.x - pos.x) ** 2 + (mouse.y - pos.y) ** 2);
+          if (mouseDist < mouseGlowRadius) {
+            const boost = (1 - mouseDist / mouseGlowRadius) * 0.5;
+            alpha = Math.min(alpha + boost, 1);
+          }
+        }
+
+        // Fade at end of converge
+        if (converge > 0.7) {
+          alpha *= Math.max(0, 1 - (converge - 0.7) / 0.3);
+        }
+
+        // Glow halo
+        const glowSize = star.radius * (2.5 + Math.sin(timeRef.current * 0.008 + star.twinklePhase * 2) * 0.4);
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, glowSize, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(59, 130, 246, " + (alpha * 0.07).toFixed(3) + ")";
         ctx.fill();
 
-        // Core
-        const coreRadius = node.radius + activity * 0.025 + burst * 0.5;
+        // Core star dot
         ctx.beginPath();
-        ctx.arc(node.x, node.y, coreRadius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(147, 197, 253, " + alpha.toFixed(3) + ")";
+        ctx.arc(pos.x, pos.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(180, 210, 255, " + alpha.toFixed(3) + ")";
         ctx.fill();
       }
 
@@ -311,11 +311,12 @@ export function MeshBackground({
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mesh-activity", handleActivity);
+      window.removeEventListener("mesh-converge", handleConverge);
       document.removeEventListener("mousemove", handleMouse);
       document.removeEventListener("mouseleave", handleMouseLeave);
       cancelAnimationFrame(animFrameRef.current);
     };
-  }, [interactive, density, mouseInfluence, initNodes]);
+  }, [density, initStars]);
 
   return (
     <canvas

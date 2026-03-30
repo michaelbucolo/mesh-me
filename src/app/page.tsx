@@ -10,7 +10,7 @@ export default async function LandingPage() {
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)] overflow-hidden">
       {/* Constellation mesh background */}
-      <MeshBackground interactive density={80} mouseInfluence={180} />
+      <MeshBackground density={80} />
 
       {/* Subtle radial gradient overlay for depth */}
       <div

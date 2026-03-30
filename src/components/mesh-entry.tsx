@@ -187,8 +187,14 @@ export function MeshEntry() {
     formData.set("email", username);
     formData.set("password", password);
     startTransition(async () => {
+      // Fire converge animation — stars collapse toward Meshi
+      window.dispatchEvent(new CustomEvent("mesh-converge"));
       const result = await signIn(formData);
-      if (result?.error) setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        // Reset converge if login failed (server action returns error instead of redirecting)
+      }
+      // On success, signIn redirects — the converge animation plays during the redirect
     });
   };
 
