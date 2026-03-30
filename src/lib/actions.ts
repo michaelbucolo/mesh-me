@@ -144,7 +144,10 @@ export async function signIn(formData: FormData) {
     return { error: "Invalid email or password" };
   }
 
+  // Clear lockout state for both user.id and the raw email/username input
+  // to avoid stale entries from pre-lookup failed attempts
   clearFailedLogins(user.id);
+  if (lockoutKey !== user.id) clearFailedLogins(lockoutKey);
   await createSession(user.id);
 
   if (!user.onboarded) {

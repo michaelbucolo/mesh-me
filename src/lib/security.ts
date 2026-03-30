@@ -109,8 +109,8 @@ export function validatePostContent(content: string): { valid: boolean; error?: 
   if (!content || !content.trim()) {
     return { valid: false, error: "Content cannot be empty" };
   }
-  if (content.length > 5000) {
-    return { valid: false, error: "Content exceeds maximum length of 5000 characters" };
+  if (content.length > 500) {
+    return { valid: false, error: "Content exceeds maximum length of 500 characters" };
   }
   return { valid: true };
 }
