@@ -72,7 +72,9 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ mergeRequests });
+  // Strip verifyToken from response to prevent token leakage
+  const sanitized = mergeRequests.map(({ verifyToken: _token, ...rest }) => rest);
+  return NextResponse.json({ mergeRequests: sanitized });
 }
 
 // Complete or cancel a merge request
@@ -94,6 +96,11 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Merge request not found" }, { status: 404 });
   }
 
+  // Prevent re-processing of already completed/rejected merges
+  if (mergeRequest.status !== "pending" && mergeRequest.status !== "verified") {
+    return NextResponse.json({ error: "This merge request has already been processed" }, { status: 400 });
+  }
+
   if (action === "cancel") {
     if (mergeRequest.primaryUserId !== session.userId) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
@@ -106,31 +113,27 @@ export async function PUT(req: NextRequest) {
   }
 
   if (action === "complete") {
-    // Verify the requesting user owns this merge request
-    if (mergeRequest.primaryUserId !== session.userId) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    // The secondary account owner must be the one to complete the merge
+    // (they receive the verifyToken via email and confirm by calling this endpoint)
+    const secondaryOwner = await prisma.user.findUnique({
+      where: { email: mergeRequest.secondaryEmail },
+    });
+    if (!secondaryOwner || secondaryOwner.id !== session.userId) {
+      return NextResponse.json({ error: "Only the secondary account owner can complete this merge" }, { status: 403 });
     }
     // Verify token matches
     if (mergeRequest.verifyToken !== verifyToken) {
       return NextResponse.json({ error: "Invalid verification token" }, { status: 400 });
     }
 
-    // Find the secondary user
-    const secondaryUser = await prisma.user.findUnique({
-      where: { email: mergeRequest.secondaryEmail },
-    });
-    if (!secondaryUser) {
-      return NextResponse.json({ error: "Secondary account no longer exists" }, { status: 404 });
-    }
-
-    // Create alter ego from secondary account
+    // Create alter ego from secondary account (secondaryOwner already verified above)
     await prisma.alterEgo.create({
       data: {
         userId: mergeRequest.primaryUserId,
-        username: secondaryUser.username,
-        displayName: secondaryUser.displayName,
-        bio: secondaryUser.bio,
-        avatarUrl: secondaryUser.avatarUrl,
+        username: secondaryOwner.username,
+        displayName: secondaryOwner.displayName,
+        bio: secondaryOwner.bio,
+        avatarUrl: secondaryOwner.avatarUrl,
         updatedAt: new Date(),
       },
     });
@@ -139,7 +142,7 @@ export async function PUT(req: NextRequest) {
     await prisma.userEmail.create({
       data: {
         userId: mergeRequest.primaryUserId,
-        email: secondaryUser.email,
+        email: secondaryOwner.email,
         isPrimary: false,
         isVerified: true,
       },
@@ -155,13 +158,13 @@ export async function PUT(req: NextRequest) {
 
     // Suspend the secondary account (don't delete — preserve data)
     await prisma.user.update({
-      where: { id: secondaryUser.id },
+      where: { id: secondaryOwner.id },
       data: { isSuspended: true },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Accounts merged! " + secondaryUser.username + " is now an alter ego.",
+      message: "Accounts merged! " + secondaryOwner.username + " is now an alter ego.",
     });
   }
 
