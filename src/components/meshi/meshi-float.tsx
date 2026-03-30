@@ -36,6 +36,7 @@ type MeshiView = "closed" | "chat" | "mini-mesh" | "speech";
  * chat history, and personality that makes Meshi feel alive.
  */
 export function MeshiFloat() {
+  const [meshiEnabled, setMeshiEnabled] = useState(true);
   const [view, setView] = useState<MeshiView>("closed");
   const [mood, setMood] = useState<MeshiMood>("happy");
   const [showGreeting, setShowGreeting] = useState(false);
@@ -57,6 +58,28 @@ export function MeshiFloat() {
   const speechInputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
+
+  // Load Meshi enabled preference from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("meshiEnabled");
+      if (stored === "false") setMeshiEnabled(false);
+    }
+  }, []);
+
+  // Listen for changes from settings page
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "meshiEnabled") {
+        setMeshiEnabled(e.newValue !== "false");
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  // If Meshi is disabled, don't render anything
+  if (!meshiEnabled) return null;
 
   // Contextual greeting on page navigation
   useEffect(() => {
@@ -320,7 +343,7 @@ export function MeshiFloat() {
                 onContextMenu={(e) => { e.preventDefault(); setView("mini-mesh"); }}
                 className="rounded-full shadow-2xl p-1.5 transition-shadow hover:shadow-[0_0_24px_rgba(45,127,249,0.4)] group relative"
                 style={{ background: "var(--bg-elevated)", border: "2px solid var(--accent)" }}
-                aria-label="Talk to Meshi"
+                aria-label="Talk to Meshi (Beta)"
                 title="Click to chat \u2022 Right-click for menu"
               >
                 <motion.div
@@ -336,6 +359,8 @@ export function MeshiFloat() {
                     onMoodChange={handleMoodChange}
                   />
                 </motion.div>
+                {/* BETA badge */}
+                <div className="absolute -top-2 -left-1 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider text-white shadow-sm" style={{ background: "var(--accent)" }}>Beta</div>
                 {/* Mini mesh orbiting dots */}
                 <div className="absolute inset-0 pointer-events-none">
                   {[0, 60, 120, 180, 240, 300].map((angle, i) => (
@@ -418,7 +443,7 @@ export function MeshiFloat() {
             <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]" style={{ background: "var(--bg-secondary)" }}>
               <MeshiMascot size={32} mood="happy" color="blue" showGlow={false} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--text-primary)]">{"Meshi\u2019s Mesh"}</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{"Meshi\u2019s Mesh"} <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded text-white ml-1" style={{ background: "var(--accent)" }}>Beta</span></p>
                 <p className="text-[10px] text-[var(--text-muted)]">{"Your AI buddy\u2019s corner"}</p>
               </div>
               <button onClick={() => setView("closed")} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">

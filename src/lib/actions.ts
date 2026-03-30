@@ -128,14 +128,14 @@ export async function signIn(formData: FormData) {
     return { error: "Invalid email or password" };
   }
 
-  const valid = await verifyPassword(password, user.passwordHash);
-  if (!valid) {
-    recordFailedLogin(user.id);
+  // Check suspension before password verification to prevent password enumeration
+  if (user.isSuspended) {
     return { error: "Invalid email or password" };
   }
 
-  if (user.isSuspended) {
-    clearFailedLogins(user.id);
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) {
+    recordFailedLogin(user.id);
     return { error: "Invalid email or password" };
   }
 
