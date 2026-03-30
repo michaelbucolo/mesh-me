@@ -68,6 +68,7 @@ export async function signUp(formData: FormData) {
 
   const passwordHash = await hashPassword(password);
 
+  let userId: string | null = null;
   try {
     const user = await prisma.user.create({
       data: {
@@ -77,15 +78,18 @@ export async function signUp(formData: FormData) {
         passwordHash,
       },
     });
-
-    await createSession(user.id);
-    redirect("/onboarding");
+    userId = user.id;
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
       return { error: "Email or username already taken" };
     }
     throw e;
   }
+
+  // Create session and redirect OUTSIDE try/catch
+  // (Next.js redirect throws internally and must not be caught)
+  await createSession(userId);
+  redirect("/onboarding");
 }
 
 export async function signIn(formData: FormData) {
