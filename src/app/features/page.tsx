@@ -3,15 +3,15 @@ import { Sparkles, Users, MessageCircle, Palette, Compass, Shield, Zap, Heart, G
 
 export default function FeaturesPage() {
   const features = [
-    { icon: Palette, title: "Identity-Rich Profiles", desc: "Profiles that feel like living digital identity cards. Custom accent colors, interest tags, featured content, social links, and creative expression tools that let you show who you really are." },
-    { icon: Compass, title: "Smart Discovery", desc: "Find people based on shared interests, mutual connections, community overlap, and creative energy. Discovery that feels personal, not algorithmic." },
-    { icon: Users, title: "Community Spaces", desc: "Build and join communities around niche interests, fandoms, creative collaboration, and shared identity. Each community has its own culture and moderation." },
-    { icon: MessageCircle, title: "Direct Messaging", desc: "Clean, real-time one-to-one messaging with read states, typing indicators, and online presence. Conversations that feel personal and intentional." },
-    { icon: Sparkles, title: "Creative Posting", desc: "Share text, images, multi-image carousels, and tagged content. Rich post composer with drag-and-drop uploads, emoji picker, and community targeting." },
-    { icon: Heart, title: "Reactions & Comments", desc: "Express yourself with reactions, threaded comments, and reposts. Every interaction is designed to feel meaningful, not performative." },
-    { icon: Shield, title: "Privacy & Safety", desc: "Granular privacy controls, block and mute tools, content reporting, and community moderation. Your space, your rules." },
-    { icon: Zap, title: "Real-time Everything", desc: "Live notifications, presence indicators, instant messaging, and real-time feed updates. The platform feels alive and responsive." },
-    { icon: Globe, title: "Open & Extensible", desc: "Built with modern architecture ready for creator monetization, live rooms, events, mobile apps, and API integrations." },
+    { icon: Palette, title: "Your Identity, Amplified", desc: "Profiles that feel like living digital identity cards. Custom accent colors, interest tags, social links, and creative expression tools — because you are more than a bio and a follower count." },
+    { icon: Compass, title: "Discovery That Feels Human", desc: "Find people through shared interests, mutual connections, and creative energy. No algorithm deciding what you see — you explore on your terms." },
+    { icon: Users, title: "Communities, Not Crowds", desc: "Build and join spaces around niche interests, creative collaboration, and shared identity. Each community has its own culture, its own rules." },
+    { icon: MessageCircle, title: "MeChat — Unified Messaging", desc: "Every conversation, every platform, one inbox. Clean, real-time messaging with read states and presence. Conversations that feel personal and intentional." },
+    { icon: Sparkles, title: "Post Without Limits", desc: "Share text, images, carousels, and tagged content. A rich composer that gets out of your way and lets you create freely." },
+    { icon: Heart, title: "Interactions That Matter", desc: "Reactions, threaded comments, and reposts. Every interaction is designed to feel meaningful, not performative." },
+    { icon: Shield, title: "Private by Design", desc: "Granular privacy controls, block and mute tools, zero tracking, zero ads. Your space, your rules, your data." },
+    { icon: Zap, title: "Alive & Responsive", desc: "Real-time notifications, presence indicators, instant messaging, and live feed updates. mesh.me feels alive because it is." },
+    { icon: Globe, title: "Your Entire Internet, Unified", desc: "Connect every platform you use. Interact with content across the web from one place. One mesh for your whole digital life." },
   ];
 
   return (
@@ -41,8 +41,8 @@ export default function FeaturesPage() {
 
       <main className="max-w-6xl mx-auto px-6 py-24">
         <div className="text-center mb-16">
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4">Everything you need</h1>
-          <p className="text-[var(--text-tertiary)] text-lg max-w-2xl mx-auto">A complete platform for expression, connection, and community.</p>
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4">One platform. Every possibility.</h1>
+          <p className="text-[var(--text-tertiary)] text-lg max-w-2xl mx-auto">Everything you need to connect, create, and own your digital life.</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -59,7 +59,7 @@ export default function FeaturesPage() {
 
         <div className="text-center mt-16">
           <Link href="/signup" className="brand-button inline-flex text-white px-8 py-3.5 rounded-xl text-base font-medium shadow-lg">
-            Get started for free
+            Join the Mesh
           </Link>
         </div>
       </main>

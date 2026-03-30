@@ -121,8 +121,8 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               {count > 0 && (
                 <span className={`h-4 min-w-4 px-1 rounded-full text-[10px] flex items-center justify-center ${
                   activeTab === tab.id ? "bg-white/20 text-white" : ""
-                } style={activeTab !== tab.id ? { background: "var(--accent-muted)", color: "var(--accent)" } : undefined
-                }`}>
+                }`}
+                style={activeTab !== tab.id ? { background: "var(--accent-muted)", color: "var(--accent)" } : undefined}>
                   {count}
                 </span>
               )}
@@ -146,10 +146,8 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
               <Link
                 key={notification.id}
                 href={href}
-                className={`flex items-start gap-3 p-4 rounded-xl transition-all duration-200 ${
-                  notification.read ? "hover:bg-[var(--bg-tertiary)]" : "hover:bg-[var(--bg-tertiary)]"
-                } style={!notification.read ? { background: "var(--accent-subtle)" } : undefined
-                }`}
+                className="flex items-start gap-3 p-4 rounded-xl transition-all duration-200 hover:bg-[var(--bg-tertiary)]"
+                style={!notification.read ? { background: "var(--accent-subtle)" } : undefined}
               >
                 <div className="relative">
                   {notification.actor ? (

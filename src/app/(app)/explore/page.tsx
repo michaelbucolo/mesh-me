@@ -26,7 +26,7 @@ export default async function ExplorePage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">Explore</h1>
-            <p className="text-sm text-[var(--text-muted)]">Discover people, communities, and content that resonate with you</p>
+            <p className="text-sm text-[var(--text-muted)]">Find your people, your communities, your corner of the internet</p>
           </div>
         </div>
       </div>
@@ -58,7 +58,7 @@ export default async function ExplorePage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" style={{ color: "var(--accent)" }} />
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">People you might mesh with</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">People you might vibe with</h2>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 stagger-children">

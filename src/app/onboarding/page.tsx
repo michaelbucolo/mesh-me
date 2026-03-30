@@ -39,9 +39,9 @@ export default function OnboardingPage() {
       <div className="brand-logo inline-flex items-center justify-center h-16 w-16 rounded-2xl mb-2" style={{ background: "var(--brand-gradient)" }}>
         <Sparkles className="h-8 w-8 text-white" />
       </div>
-      <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Welcome to mesh.me</h1>
+      <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Welcome to the Mesh</h1>
       <p className="text-[var(--text-tertiary)] text-lg max-w-md mx-auto">
-        Let&apos;s set up your space. This will help us personalize your experience and help others discover you.
+        Let&apos;s make this yours. A few quick steps and you&apos;re in.
       </p>
       <Button onClick={() => setStep(1)} variant="gradient" size="lg">
         Let&apos;s go <ArrowRight className="h-4 w-4 ml-1" />
@@ -52,7 +52,7 @@ export default function OnboardingPage() {
     <div key="bio" className="space-y-6 animate-fade-in max-w-md mx-auto w-full">
       <div className="text-center mb-2">
         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Tell us about yourself</h2>
-        <p className="text-[var(--text-tertiary)]">A short bio helps people know who you are</p>
+        <p className="text-[var(--text-tertiary)]">A short bio so people know who they&apos;re meshing with</p>
       </div>
       <div>
         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Bio</label>
@@ -85,7 +85,7 @@ export default function OnboardingPage() {
     <div key="interests" className="space-y-6 animate-fade-in max-w-lg mx-auto w-full">
       <div className="text-center mb-2">
         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">What are you into?</h2>
-        <p className="text-[var(--text-tertiary)]">Pick at least 3 interests to personalize your experience</p>
+        <p className="text-[var(--text-tertiary)]">Pick at least 3 — this helps you find your people</p>
       </div>
       <div className="flex flex-wrap gap-2 justify-center">
         {INTEREST_TAGS.map((tag) => (
@@ -111,7 +111,7 @@ export default function OnboardingPage() {
           variant="gradient"
           disabled={isPending}
         >
-          {isPending ? "Setting up..." : "Enter mesh.me"}
+          {isPending ? "Building your mesh..." : "Enter the Mesh"}
         </Button>
       </div>
     </div>,
