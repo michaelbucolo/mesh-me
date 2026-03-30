@@ -11,12 +11,11 @@ CREATE TABLE "Session" (
 CREATE TABLE "RedeemCode" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "code" TEXT NOT NULL,
-    "type" TEXT NOT NULL DEFAULT 'cosmetic',
-    "value" TEXT NOT NULL,
-    "maxUses" INTEGER NOT NULL DEFAULT 1,
-    "currentUses" INTEGER NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "rewardType" TEXT NOT NULL,
+    "rewardValue" TEXT NOT NULL,
+    "rewardLabel" TEXT NOT NULL,
     "redeemedBy" TEXT,
+    "redeemedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
