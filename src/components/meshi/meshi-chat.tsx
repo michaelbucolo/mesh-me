@@ -183,7 +183,7 @@ function getMeshiResponse(
   // ─── Notifications ───────────────────────────────────────
   if (q.includes("notification") || q.includes("alert") || q.includes("notify")) {
     return {
-      content: "mesh.me has a smart notification system! You can receive notifications for follows, likes, comments, messages, and community activity. The AI-powered notification digest summarizes your notifications so you get what matters without the noise. You can customize exactly what you get notified about in Settings > Notifications. You can even disable native app notifications and only use mesh.me's unified notifications!",
+      content: "mesh.me has a smart notification system! You can receive notifications for follows, likes, comments, messages, and community activity. The smart notification digest summarizes your notifications so you get what matters without the noise. You can customize exactly what you get notified about in Settings > Notifications. You can even disable native app notifications and only use mesh.me's unified notifications!",
       mood: "cool",
     };
   }
@@ -223,7 +223,7 @@ function getMeshiResponse(
   // ─── Privacy ─────────────────────────────────────────────
   if (q.includes("privacy") || q.includes("private") || q.includes("who can see") || q.includes("visible") || q.includes("hide")) {
     return {
-      content: "Privacy is mesh.me's #1 priority — not just from other users, but from mesh.me itself! We never sell your data, never track you with cookies, and never build ad profiles. You control exactly who sees your profile, posts, and connections. Everything defaults to maximum privacy. I don't store our conversations either — zero-knowledge AI. Go to Settings > Privacy to control visibility, or Settings > Security Hub to manage your digital footprint.",
+      content: "Privacy is mesh.me's #1 priority — not just from other users, but from mesh.me itself! We never sell your data, never track you with cookies, and never build ad profiles. You control exactly who sees your profile, posts, and connections. Everything defaults to maximum privacy. I don't store our conversations either — zero-knowledge design. Go to Settings > Privacy to control visibility, or Settings > Security Hub to manage your digital footprint.",
       mood: "cool",
     };
   }
@@ -271,7 +271,7 @@ function getMeshiResponse(
   // ─── Meshi identity ──────────────────────────────────────
   if (q.includes("who are you") || q.includes("what are you") || q.includes("tell me about yourself") || (q.includes("meshi") && !q.includes("meshpro"))) {
     return {
-      content: "I'm Meshi! I'm the mesh.me mascot, logo, and your personal AI guide. I know everything about mesh.me and I'm here to help you navigate, search, manage, and understand the platform. I appear on The Mesh as a special node, I guide you during onboarding, I give tips in settings, and I'm always floating around ready to help! I never store your data — everything I do is stateless and privacy-first. MeshPro members can even customize my hat, face, and color!",
+      content: "I'm Meshi! I'm the mesh.me mascot, logo, and your personal guide. I know everything about mesh.me and I'm here to help you navigate, search, manage, and understand the platform. I appear on The Mesh as a special node, I guide you during onboarding, I give tips in settings, and I'm always floating around ready to help! I never store your data — everything I do is stateless and privacy-first. MeshPro members can even customize my hat, face, and color!",
       mood: "love",
     };
   }
@@ -287,7 +287,7 @@ function getMeshiResponse(
   // ─── MeshPro ─────────────────────────────────────────────
   if (q.includes("meshpro") || q.includes("pro") || q.includes("premium") || q.includes("upgrade") || q.includes("subscription") || q.includes("paid")) {
     return {
-      content: "MeshPro is $4.99/month or $39.99/year — and nearly everything on mesh.me is free! MeshPro adds: customizing me (Meshi hats, faces, colors!), mesh cosmetics visible to others, Digital Footprint Scanner (find every trace of you online), cross-platform analytics, audience insights, advanced AI notification summaries, extra feed layouts, verified badge, and profile analytics. No ads ever — MeshPro is the only way we fund the platform.",
+      content: "MeshPro is $4.99/month or $39.99/year — and nearly everything on mesh.me is free! MeshPro adds: customizing me (Meshi hats, faces, colors!), mesh cosmetics visible to others, Digital Footprint Scanner (find every trace of you online), cross-platform analytics, audience insights, advanced notification summaries, extra feed layouts, verified badge, and profile analytics. No ads ever — MeshPro is the only way we fund the platform.",
       mood: "wink",
     };
   }
@@ -375,7 +375,7 @@ function getMeshiResponse(
   // ─── Help / general ──────────────────────────────────────
   if (q.includes("help") || q.includes("what can you") || q.includes("guide") || q.includes("assist")) {
     return {
-      content: "I can help you with anything on mesh.me! Here's what I know about:\n\n• The Mesh — your interactive network visualization\n• Custom Feed — unified content from all platforms\n• MeChat — cross-platform messaging\n• Communities — groups and discussions\n• Connected Accounts — linking your socials\n• Notifications — smart AI summaries\n• Profile & Settings — customization\n• Achievements & Titles — milestones and badges\n• MeshPro — premium features\n• Privacy & Security — staying safe\n• Digital Footprint — managing your online presence\n\nJust ask me about any of these!",
+      content: "I can help you with anything on mesh.me! Here's what I know about:\n\n• The Mesh — your interactive network visualization\n• Custom Feed — unified content from all platforms\n• MeChat — cross-platform messaging\n• Communities — groups and discussions\n• Connected Accounts — linking your socials\n• Notifications — smart summaries\n• Profile & Settings — customization\n• Achievements & Titles — milestones and badges\n• MeshPro — premium features\n• Privacy & Security — staying safe\n• Digital Footprint — managing your online presence\n\nJust ask me about any of these!",
       mood: "excited",
     };
   }
@@ -444,8 +444,8 @@ export function MeshiChat({ isOpen, onClose, hat = "none", color = "blue", meshD
     setIsTyping(true);
     setMeshiMood("thinking");
 
-    // Call Meshi LLM API for intelligent responses
-    const callMeshiLLM = async () => {
+    // Call Meshi reasoning engine for intelligent responses
+    const callMeshiReasoner = async () => {
       try {
         const res = await fetch("/api/meshi/chat", {
           method: "POST",
@@ -484,7 +484,7 @@ export function MeshiChat({ isOpen, onClose, hat = "none", color = "blue", meshD
       }
     };
 
-    callMeshiLLM();
+    callMeshiReasoner();
   }, [input, meshData, meshEntities]);
 
   return (
