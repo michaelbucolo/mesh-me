@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
+import { timingSafeEqual } from "crypto";
 
 // Initiate account merge: primary user requests to merge a secondary account
 export async function POST(req: NextRequest) {
@@ -140,9 +141,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Secondary account not found" }, { status: 404 });
     }
     // Verify token matches (constant-time comparison to prevent timing attacks)
-    const tokenValid = verifyToken && typeof verifyToken === "string" &&
-      verifyToken.length === mergeRequest.verifyToken.length &&
-      mergeRequest.verifyToken === verifyToken;
+    const storedToken = mergeRequest.verifyToken || "";
+    const providedToken = (typeof verifyToken === "string" ? verifyToken : "");
+    let tokenValid = false;
+    if (storedToken.length > 0 && providedToken.length === storedToken.length) {
+      try {
+        tokenValid = timingSafeEqual(Buffer.from(storedToken), Buffer.from(providedToken));
+      } catch { tokenValid = false; }
+    }
     if (!tokenValid) {
       return NextResponse.json({ error: "Invalid verification token" }, { status: 400 });
     }
