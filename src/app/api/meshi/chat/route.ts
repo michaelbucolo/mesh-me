@@ -28,25 +28,114 @@ interface ChatRequest {
   history?: Array<{ role: "user" | "meshi"; content: string }>;
 }
 
-// --- Math evaluation engine ---
+// --- Safe recursive descent math parser (no eval/Function) ---
+// Supports: +, -, *, /, **, %, parentheses, sqrt(), pi, e
 function evaluateMath(expr: string): number | null {
   try {
-    // Clean the expression
     const cleaned = expr
       .replace(/[xX×]/g, "*")
       .replace(/[÷]/g, "/")
-      .replace(/\^/g, "**")
-      .replace(/sqrt\(([^)]+)\)/gi, "Math.sqrt($1)")
-      .replace(/pi/gi, "Math.PI")
       .replace(/\s+/g, "");
 
-    // Only allow safe math characters
-    if (!/^[\d+\-*/().%Math.sqrtPIeE,\s]+$/.test(cleaned)) return null;
+    let pos = 0;
+    const ch = () => cleaned[pos] || "";
+    const advance = () => cleaned[pos++];
 
-    // eslint-disable-next-line no-eval
-    const result = Function(`"use strict"; return (${cleaned})`)();
-    if (typeof result === "number" && isFinite(result)) return result;
-    return null;
+    function parseNumber(): number | null {
+      // Handle sqrt(...)
+      if (cleaned.slice(pos, pos + 4).toLowerCase() === "sqrt") {
+        pos += 4;
+        if (ch() !== "(") return null;
+        advance(); // skip (
+        const inner = parseExpr();
+        if (inner === null || ch() !== ")") return null;
+        advance(); // skip )
+        return Math.sqrt(inner);
+      }
+      // Handle pi
+      if (cleaned.slice(pos, pos + 2).toLowerCase() === "pi") {
+        pos += 2;
+        return Math.PI;
+      }
+      // Handle e (Euler's number, but not if followed by digit like 1e5)
+      if (ch().toLowerCase() === "e" && !/\d/.test(cleaned[pos - 1] || "")) {
+        pos += 1;
+        return Math.E;
+      }
+      // Handle parenthesized expressions
+      if (ch() === "(") {
+        advance();
+        const val = parseExpr();
+        if (val === null || ch() !== ")") return null;
+        advance();
+        return val;
+      }
+      // Handle unary minus
+      if (ch() === "-") {
+        advance();
+        const val = parsePower();
+        return val === null ? null : -val;
+      }
+      // Handle unary plus
+      if (ch() === "+") {
+        advance();
+        return parsePower();
+      }
+      // Parse numeric literal (including decimals and scientific notation like 1e5)
+      const start = pos;
+      while (/[\d.]/.test(ch())) advance();
+      if (ch().toLowerCase() === "e" && /\d/.test(cleaned[pos - 1] || "")) {
+        advance(); // skip e
+        if (ch() === "+" || ch() === "-") advance(); // skip sign
+        while (/\d/.test(ch())) advance();
+      }
+      if (pos === start) return null;
+      const num = parseFloat(cleaned.slice(start, pos));
+      return isNaN(num) ? null : num;
+    }
+
+    function parsePower(): number | null {
+      let base = parseNumber();
+      if (base === null) return null;
+      while (cleaned.slice(pos, pos + 2) === "**" || ch() === "^") {
+        pos += cleaned.slice(pos, pos + 2) === "**" ? 2 : 1;
+        const exp = parseNumber();
+        if (exp === null) return null;
+        base = Math.pow(base, exp);
+      }
+      return base;
+    }
+
+    function parseTerm(): number | null {
+      let left = parsePower();
+      if (left === null) return null;
+      while (ch() === "*" || ch() === "/" || ch() === "%") {
+        const op = advance();
+        const right = parsePower();
+        if (right === null) return null;
+        if (op === "*") left = left * right;
+        else if (op === "/") { if (right === 0) return null; left = left / right; }
+        else left = left % right;
+      }
+      return left;
+    }
+
+    function parseExpr(): number | null {
+      let left = parseTerm();
+      if (left === null) return null;
+      while (ch() === "+" || ch() === "-") {
+        const op = advance();
+        const right = parseTerm();
+        if (right === null) return null;
+        left = op === "+" ? left + right : left - right;
+      }
+      return left;
+    }
+
+    const result = parseExpr();
+    if (result === null || pos !== cleaned.length) return null;
+    if (!isFinite(result)) return null;
+    return result;
   } catch {
     return null;
   }
