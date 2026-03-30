@@ -88,6 +88,11 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "mergeRequestId and action required" }, { status: 400 });
   }
 
+  // Validate action early to reject unknown actions
+  if (action !== "cancel" && action !== "complete") {
+    return NextResponse.json({ error: "Invalid action. Use 'cancel' or 'complete'" }, { status: 400 });
+  }
+
   const mergeRequest = await prisma.accountMergeRequest.findUnique({
     where: { id: mergeRequestId },
   });
@@ -96,13 +101,24 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Merge request not found" }, { status: 404 });
   }
 
+  // Early authorization: caller must be either primary or secondary owner
+  const secondaryOwnerForAuth = await prisma.user.findUnique({
+    where: { email: mergeRequest.secondaryEmail },
+    select: { id: true },
+  });
+  const isPrimary = mergeRequest.primaryUserId === session.userId;
+  const isSecondary = secondaryOwnerForAuth?.id === session.userId;
+  if (!isPrimary && !isSecondary) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+  }
+
   // Prevent re-processing of already completed/rejected merges
   if (mergeRequest.status !== "pending" && mergeRequest.status !== "verified") {
     return NextResponse.json({ error: "This merge request has already been processed" }, { status: 400 });
   }
 
   if (action === "cancel") {
-    if (mergeRequest.primaryUserId !== session.userId) {
+    if (!isPrimary) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
     await prisma.accountMergeRequest.update({
@@ -114,15 +130,20 @@ export async function PUT(req: NextRequest) {
 
   if (action === "complete") {
     // The secondary account owner must be the one to complete the merge
-    // (they receive the verifyToken via email and confirm by calling this endpoint)
+    if (!isSecondary) {
+      return NextResponse.json({ error: "Only the secondary account owner can complete this merge" }, { status: 403 });
+    }
     const secondaryOwner = await prisma.user.findUnique({
       where: { email: mergeRequest.secondaryEmail },
     });
-    if (!secondaryOwner || secondaryOwner.id !== session.userId) {
-      return NextResponse.json({ error: "Only the secondary account owner can complete this merge" }, { status: 403 });
+    if (!secondaryOwner) {
+      return NextResponse.json({ error: "Secondary account not found" }, { status: 404 });
     }
-    // Verify token matches
-    if (mergeRequest.verifyToken !== verifyToken) {
+    // Verify token matches (constant-time comparison to prevent timing attacks)
+    const tokenValid = verifyToken && typeof verifyToken === "string" &&
+      verifyToken.length === mergeRequest.verifyToken.length &&
+      mergeRequest.verifyToken === verifyToken;
+    if (!tokenValid) {
       return NextResponse.json({ error: "Invalid verification token" }, { status: 400 });
     }
 

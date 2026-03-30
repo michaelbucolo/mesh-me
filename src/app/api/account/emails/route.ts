@@ -25,9 +25,13 @@ export async function POST(req: NextRequest) {
 
   const normalized = email.toLowerCase().trim();
 
-  // Check if email already exists
+  // Check if email already exists in UserEmail table or as a primary User email
   const existing = await prisma.userEmail.findUnique({ where: { email: normalized } });
   if (existing) {
+    return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+  }
+  const existingPrimary = await prisma.user.findUnique({ where: { email: normalized } });
+  if (existingPrimary) {
     return NextResponse.json({ error: "Email already in use" }, { status: 409 });
   }
 
