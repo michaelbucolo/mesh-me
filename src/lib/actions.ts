@@ -1180,6 +1180,7 @@ export async function checkAndAwardAchievements() {
   }
 
   // Check Pioneer achievement (first 1M verified users)
+  // Uses a transaction to atomically check count + insert, preventing TOCTOU race
   if (user.isVerified && !existingSlugs.has("pioneer")) {
     let pioneer = await prisma.achievement.findUnique({ where: { slug: "pioneer" } });
     if (!pioneer) {
@@ -1196,13 +1197,20 @@ export async function checkAndAwardAchievements() {
         },
       });
     }
-    const holderCount = await prisma.userAchievement.count({
-      where: { achievementId: pioneer.id },
-    });
-    if (holderCount < 1000000) {
-      await prisma.userAchievement.create({
-        data: { userId: user.id, achievementId: pioneer.id },
+    const pioneerId = pioneer.id;
+    const didAward = await prisma.$transaction(async (tx) => {
+      const holderCount = await tx.userAchievement.count({
+        where: { achievementId: pioneerId },
       });
+      if (holderCount < 1000000) {
+        await tx.userAchievement.create({
+          data: { userId: user.id, achievementId: pioneerId },
+        });
+        return true;
+      }
+      return false;
+    });
+    if (didAward) {
       awarded.push("pioneer");
     }
   }
