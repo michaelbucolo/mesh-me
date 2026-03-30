@@ -199,7 +199,11 @@ export default function MeshPage() {
     currentTargetNodeId: string | null;
     speed: number;
     idleTimer: number;
-    state: "roaming" | "idle" | "delivering" | "returning";
+    state: "launching" | "roaming" | "idle" | "delivering" | "returning";
+    // Launch animation (Meshi jumps from house into mesh)
+    launchProgress: number; // 0-1 arc progress
+    launchFrom: { x: number; y: number };
+    launchTo: { x: number; y: number };
     // Delivery animation
     envelopeProgress: number; // 0-1 progress along delivery path
     deliveryFrom: { x: number; y: number } | null;
@@ -208,9 +212,12 @@ export default function MeshPage() {
     bobPhase: number;
     glowPulse: number;
   }>({
-    x: 0, y: 0, targetX: 0, targetY: 0,
+    x: -999, y: -999, targetX: 0, targetY: 0,
     currentTargetNodeId: null, speed: 1.2,
-    idleTimer: 0, state: "idle",
+    idleTimer: 0, state: "launching",
+    launchProgress: 0,
+    launchFrom: { x: 0, y: 0 },
+    launchTo: { x: 0, y: 0 },
     envelopeProgress: 0,
     deliveryFrom: null, deliveryTo: null,
     hasEnvelope: false,
@@ -713,7 +720,46 @@ export default function MeshPage() {
     m.bobPhase += 0.05;
     m.glowPulse += 0.03;
 
-    if (m.state === "delivering") {
+    // Launch animation: Meshi jumps from his house into the mesh like going to work
+    if (m.state === "launching") {
+      // Initialize launch on first frame
+      if (m.launchProgress === 0 && m.x === -999) {
+        // House is bottom-left of canvas in screen coords — convert to world coords
+        const canvasEl = canvasRef.current;
+        if (canvasEl) {
+          const logW = canvasEl.offsetWidth;
+          const logH = canvasEl.offsetHeight;
+          // Start position: bottom-left (house area) in world coords
+          m.launchFrom = { x: cx - logW * 0.35, y: cy + logH * 0.35 };
+          // Land near the self node
+          const selfNode = ns.find((n) => n.type === "self");
+          if (selfNode) {
+            m.launchTo = { x: selfNode.x + 30, y: selfNode.y - 20 };
+          } else {
+            m.launchTo = { x: cx, y: cy };
+          }
+          m.x = m.launchFrom.x;
+          m.y = m.launchFrom.y;
+        }
+      }
+      m.launchProgress += 0.012; // ~5 seconds for full arc
+      const t = Math.min(m.launchProgress, 1);
+      // Smooth ease-out curve
+      const ease = 1 - Math.pow(1 - t, 3);
+      // Parabolic arc height (peaks at t=0.5)
+      const arcHeight = -180 * Math.sin(t * Math.PI);
+      m.x = m.launchFrom.x + (m.launchTo.x - m.launchFrom.x) * ease;
+      m.y = m.launchFrom.y + (m.launchTo.y - m.launchFrom.y) * ease + arcHeight;
+      if (t >= 1) {
+        // Landing complete — transition to roaming
+        m.state = "roaming";
+        m.x = m.launchTo.x;
+        m.y = m.launchTo.y;
+        m.targetX = m.launchTo.x;
+        m.targetY = m.launchTo.y;
+        m.idleTimer = 0;
+      }
+    } else if (m.state === "delivering") {
       // Move along delivery path
       m.envelopeProgress += 0.008;
       if (m.deliveryFrom && m.deliveryTo) {
@@ -1050,10 +1096,48 @@ export default function MeshPage() {
       // --- Draw Meshi as a roaming entity ---
       const m = meshiRef.current;
       const meshiSize = 16;
-      const meshiBob = Math.sin(m.bobPhase) * 3;
+      const meshiBob = m.state === "launching" ? 0 : Math.sin(m.bobPhase) * 3;
       const meshiGlow = 0.3 + Math.sin(m.glowPulse) * 0.15;
       const meshiX = m.x;
       const meshiY = m.y + meshiBob;
+
+      // Launch trail sparkles — draw a fading arc trail when Meshi is jumping from home
+      if (m.state === "launching" && m.launchProgress > 0.05) {
+        const trailCount = 8;
+        for (let ti = 0; ti < trailCount; ti++) {
+          const trailT = Math.max(0, m.launchProgress - ti * 0.04);
+          if (trailT <= 0) continue;
+          const trailEase = 1 - Math.pow(1 - trailT, 3);
+          const trailArc = -180 * Math.sin(trailT * Math.PI);
+          const tx = m.launchFrom.x + (m.launchTo.x - m.launchFrom.x) * trailEase;
+          const ty = m.launchFrom.y + (m.launchTo.y - m.launchFrom.y) * trailEase + trailArc;
+          const alpha = (1 - ti / trailCount) * 0.5;
+          const sparkleSize = 2 + Math.sin(time * 8 + ti) * 1;
+          ctx.beginPath();
+          ctx.arc(tx, ty, sparkleSize, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(165, 180, 252, " + alpha + ")";
+          ctx.fill();
+        }
+        // Draw a "woosh" line from recent trail
+        if (m.launchProgress < 0.9) {
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+          ctx.setLineDash([4, 6]);
+          ctx.beginPath();
+          const prevT = Math.max(0, m.launchProgress - 0.1);
+          const prevEase = 1 - Math.pow(1 - prevT, 3);
+          const prevArc = -180 * Math.sin(prevT * Math.PI);
+          const prevX = m.launchFrom.x + (m.launchTo.x - m.launchFrom.x) * prevEase;
+          const prevY = m.launchFrom.y + (m.launchTo.y - m.launchFrom.y) * prevEase + prevArc;
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(meshiX, meshiY);
+          ctx.strokeStyle = "rgba(129, 140, 248, 0.6)";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+      }
 
       // Soft glow around Meshi
       const meshiGlowGrad = ctx.createRadialGradient(meshiX, meshiY, 0, meshiX, meshiY, meshiSize * 2.5);
