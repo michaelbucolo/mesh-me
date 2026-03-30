@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 
 // Meshi — a reasoning engine that can answer questions with logic
-// Architecture: designed to plug into external LLM APIs when keys are available
+// Architecture: designed to plug into external APIs when keys are available
 // For now: sophisticated local reasoning with math, logic, general knowledge, and mesh awareness
 
 interface ChatRequest {
@@ -233,7 +233,7 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
     if (q.includes("mesh.me") || q.includes("meshme")) return { content: "mesh.me is a privacy-first universal social platform that unifies your entire digital presence into one seamless experience. The Mesh visualizes your digital footprint, and you control everything.", mood: "excited" };
     if (q.includes("the mesh")) return { content: "The Mesh is an interactive visualization of your entire digital universe. Every person, community, platform, and interest is a node you can click, hide, or manage. It's your internet, all in one place.", mood: "excited" };
     if (q.includes("mechat")) return { content: "MeChat is mesh.me's unified messaging hub. It merges conversations from all your connected platforms into one encrypted, private inbox.", mood: "love" };
-    if (q.includes("meshi")) return { content: "I'm Meshi! Your AI guide to mesh.me. I can answer questions, help you navigate, search your mesh, and explain any feature. I'm always here floating around, ready to help!", mood: "love" };
+    if (q.includes("meshi")) return { content: "I'm Meshi! Your guide to mesh.me. I can answer questions, help you navigate, search your mesh, and explain any feature. I'm always here floating around, ready to help!", mood: "love" };
     if (q.includes("node")) return { content: "A node is any entity on your mesh — a person, community, platform, interest, or post. You can click nodes for actions, hide them for privacy, and manage connections.", mood: "happy" };
     if (q.includes("privacy")) return { content: "Privacy on mesh.me means YOU control everything. Hide individual nodes, entire branches, or set visibility per-connection. mesh.me itself can't see your data — zero-knowledge architecture.", mood: "cool" };
   }
@@ -307,7 +307,7 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
   if (q.includes("thank")) return { content: "Anytime! I'm always here if you need me. Just drag me over to anything you're curious about!", mood: "love" };
   if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("sup") || q.includes("yo")) return { content: "Hey! What can I help you with? I can answer questions, help navigate, search your mesh, or explain any feature.", mood: "happy" };
   if (q.includes("bye") || q.includes("goodbye") || q.includes("later")) return { content: "See you around! I'll be right here whenever you need me.", mood: "love" };
-  if (q.includes("who are you") || q.includes("what are you")) return { content: "I'm Meshi, your AI companion on mesh.me! I can answer any question, help you navigate the platform, search your mesh, explain features, do math, and more. I'm always floating around ready to help!", mood: "love" };
+  if (q.includes("who are you") || q.includes("what are you")) return { content: "I'm Meshi, your companion on mesh.me! I can answer any question, help you navigate the platform, search your mesh, explain features, do math, and more. I'm always floating around ready to help!", mood: "love" };
   if (q.includes("good") && (q.includes("morning") || q.includes("afternoon") || q.includes("evening") || q.includes("night"))) return { content: "Good to see you! Your mesh is looking great today. Anything I can help with?", mood: "happy" };
 
   // Time/date
@@ -336,7 +336,7 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
   if (q.includes("meshpro") || q.includes("pro") || q.includes("premium") || q.includes("upgrade")) return { content: "MeshPro is $4.99/mo or $39.99/yr. It adds: Digital Footprint Scanner, cross-platform analytics, custom mesh cosmetics, and advanced security tools. Everything else is free — we never gate core features.", mood: "happy" };
   if (q.includes("privacy") || q.includes("private") || q.includes("hide") || q.includes("visible")) return { content: "Privacy is mesh.me's #1 priority. You can hide any node, branch, or connection. Set per-node visibility (Private, Friends Only, Public, Custom). mesh.me itself uses zero-knowledge architecture — we can't see your data. Settings > Mesh Privacy has all the controls.", mood: "cool" };
   if (q.includes("security") || q.includes("secure") || q.includes("safe") || q.includes("hack")) return { content: "mesh.me uses strong encryption, rate limiting, account lockout protection, and session management. Your data is yours — we never sell it, track you, or build ad profiles. Change passwords, manage sessions, and export data from Settings > Security.", mood: "cool" };
-  if (q.includes("notification") || q.includes("alert")) return { content: "mesh.me has smart notifications that use AI to summarize what matters. You can disable native app notifications and just use mesh.me's unified alerts. Customize exactly what you get notified about in Settings > Notifications.", mood: "happy" };
+  if (q.includes("notification") || q.includes("alert")) return { content: "mesh.me has smart notifications that intelligently summarize what matters. You can disable native app notifications and just use mesh.me's unified alerts. Customize exactly what you get notified about in Settings > Notifications.", mood: "happy" };
   if (q.includes("post") || q.includes("create") || q.includes("publish")) return { content: "Create posts from the sidebar or from The Mesh itself! Choose which connected platforms to cross-post to, add tags, and publish. Your post appears on mesh.me and syncs to selected platforms. Interactions (likes, comments) sync back!", mood: "excited" };
   if (q.includes("platform") || q.includes("connect") || q.includes("instagram") || q.includes("youtube") || q.includes("tiktok")) return { content: "Connect all major platforms: Instagram, YouTube, TikTok, X, Twitch, Spotify, Reddit, LinkedIn, Discord, and more. Content flows into your feed, interactions sync back natively. Manage from Connected Accounts or The Mesh.", mood: "excited" };
   if (q.includes("communit") || q.includes("group")) return { content: "Communities are groups of mesh.me users with shared interests. Join existing ones or create your own. Each has its own feed and discussion space. They appear as nodes on your mesh!", mood: "happy" };
