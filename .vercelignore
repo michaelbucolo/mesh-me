@@ -1,1 +1,4 @@
-dev.db\nprisma/dev.db\n*.md\nnode_modules
+dev.db
+prisma/dev.db
+*.md
+node_modules
