@@ -151,16 +151,23 @@ export function MeshEntry() {
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const meshiRef = useRef<HTMLDivElement>(null);
   const [activeField, setActiveField] = useState<string | null>(null);
   const totalCharsRef = useRef(0);
 
   useEffect(() => {
     totalCharsRef.current = username.length + password.length + email.length + displayName.length + phone.length;
+    // Get Meshi logo position so the canvas can draw connections to it
+    let meshiPos: { x: number; y: number } | null = null;
+    if (meshiRef.current) {
+      const rect = meshiRef.current.getBoundingClientRect();
+      meshiPos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
     const event = new CustomEvent("mesh-activity", {
-      detail: { field: activeField, totalChars: totalCharsRef.current },
+      detail: { field: activeField, totalChars: totalCharsRef.current, meshiPos },
     });
     window.dispatchEvent(event);
-  }, [activeField, username, password, email, displayName, phone]);
+  }, [activeField, username, password, email, displayName, phone, step]);
 
   useEffect(() => {
     const timer = setTimeout(() => inputRef.current?.focus(), 300);
@@ -309,7 +316,7 @@ export function MeshEntry() {
           <motion.div key="welcome" {...pageMotion} className="text-center max-w-lg w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">
               <div className="inline-flex items-center gap-3">
-                <MeshiLogo size={44} color="blue" mood="happy" />
+                <div ref={meshiRef}><MeshiLogo size={44} color="blue" mood="happy" /></div>
                 <span className="brand-wordmark text-2xl" style={{ color: "var(--text-primary)" }}>
                   mesh<span className="brand-wordmark-accent">.me</span>
                 </span>
@@ -361,7 +368,7 @@ export function MeshEntry() {
         {step === "username" && (
           <motion.div key="username" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <div className="inline-flex items-center gap-2 mb-6">
+              <div ref={meshiRef} className="inline-flex items-center gap-2 mb-6">
                 <MeshiLogo size={32} color="blue" mood="happy" />
               </div>
               <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
@@ -407,7 +414,7 @@ export function MeshEntry() {
         {step === "password" && (
           <motion.div key="password" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <div className="inline-flex items-center gap-2 mb-6">
+              <div ref={meshiRef} className="inline-flex items-center gap-2 mb-6">
                 <MeshiLogo size={32} color="blue" mood="happy" />
               </div>
               <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Enter the Mesh</h2>

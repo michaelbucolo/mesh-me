@@ -38,6 +38,7 @@ export function MeshBackground({
   const activityRef = useRef(0);
   const fieldRef = useRef<string | null>(null);
   const burstRef = useRef(0);
+  const meshiPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const initNodes = useCallback(
     (width: number, height: number) => {
@@ -111,6 +112,9 @@ export function MeshBackground({
       if (detail?.field != null) {
         fieldRef.current = detail.field;
       }
+      if (detail?.meshiPos != null) {
+        meshiPosRef.current = detail.meshiPos;
+      }
     };
     window.addEventListener("mesh-activity", handleActivity);
 
@@ -133,9 +137,11 @@ export function MeshBackground({
         if (burstRef.current < 0.01) burstRef.current = 0;
       }
 
-      // Center point (where the input bubble is)
-      const cx = w / 2;
-      const cy = h / 2;
+      // Target point: Meshi logo position if available, otherwise center
+      const canvasRect = canvas.getBoundingClientRect();
+      const meshi = meshiPosRef.current;
+      const cx = meshi ? meshi.x - canvasRect.left : w / 2;
+      const cy = meshi ? meshi.y - canvasRect.top : h / 2;
 
       // Connection distance grows as user types
       const connectionDist = 120 + activity * 3;
@@ -236,7 +242,18 @@ export function MeshBackground({
           }
         }
 
-        // Draw center glow (around the input area)
+        // Draw Meshi glow ring (pulsing circle around Meshi)
+        if (meshi) {
+          const ringRadius = 24 + activity * 0.5 + Math.sin(timeRef.current * 0.03) * 3;
+          const ringAlpha = 0.12 + activity * 0.004 + burst * 0.15;
+          ctx.beginPath();
+          ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(96, 165, 250, " + ringAlpha.toFixed(3) + ")";
+          ctx.lineWidth = 1.5 + burst * 1.5;
+          ctx.stroke();
+        }
+
+        // Draw center glow (around Meshi / input area)
         const glowRadius = 60 + activity * 2 + burst * 30;
         const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
         glowGrad.addColorStop(0, "rgba(59, 130, 246, " + (0.08 + activity * 0.003 + burst * 0.1).toFixed(3) + ")");
