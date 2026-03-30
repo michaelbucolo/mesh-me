@@ -43,8 +43,9 @@ const ELEMENT_ZONES: Array<{ selector: string; label: string; description: strin
 
 type MeshiView = "closed" | "chat" | "mini-mesh" | "speech";
 
-// Default position: logo area (top-left)
-const LOGO_POSITION = { x: 16, y: 16 };
+// Default position: bottom-right corner (follows user like a chat assistant)
+// Uses negative offsets from viewport edge, resolved at runtime
+const DEFAULT_POSITION = { x: -1, y: -1 }; // sentinel: means "compute from viewport"
 
 /**
  * Global floating Meshi \u2014 a real entity that lives across the entire app.
@@ -67,7 +68,7 @@ export function MeshiFloat() {
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
 
   // Drag state
-  const [position, setPosition] = useState(LOGO_POSITION);
+  const [position, setPosition] = useState(DEFAULT_POSITION);
   const [isDragging, setIsDragging] = useState(false);
   const [wasDragged, setWasDragged] = useState(false);
   const [dragOverElement, setDragOverElement] = useState<string | null>(null);
@@ -88,6 +89,13 @@ export function MeshiFloat() {
 
   const pathname = usePathname();
 
+  // Compute bottom-right default position from viewport
+  const getDefaultPosition = useCallback(() => {
+    const w = typeof window !== "undefined" ? window.innerWidth : 1024;
+    const h = typeof window !== "undefined" ? window.innerHeight : 768;
+    return { x: w - 72, y: h - 72 };
+  }, []);
+
   // Load Meshi enabled preference from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -101,6 +109,13 @@ export function MeshiFloat() {
             setPosition(parsed);
           }
         } catch { /* ignore */ }
+      } else {
+        // No saved position — use bottom-right default
+        setPosition(getDefaultPosition());
+      }
+      // If sentinel position, compute default
+      if (position.x === -1 && position.y === -1) {
+        setPosition(getDefaultPosition());
       }
       // Show drag hint on first visit
       if (!localStorage.getItem("meshiDragHintSeen")) {
@@ -114,6 +129,20 @@ export function MeshiFloat() {
         return () => clearTimeout(timer);
       }
     }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep Meshi in viewport on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const maxX = window.innerWidth - 72;
+      const maxY = window.innerHeight - 72;
+      setPosition((prev) => ({
+        x: Math.min(prev.x, maxX),
+        y: Math.min(prev.y, maxY),
+      }));
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Fetch mesh graph data for Meshi awareness
@@ -300,25 +329,28 @@ export function MeshiFloat() {
       addSpeechBubble("meshi", zone.description);
     }
     setDragOverElement(null);
-    // Snap to logo position if close
-    const distToLogo = Math.sqrt(
-      Math.pow(position.x - LOGO_POSITION.x, 2) + Math.pow(position.y - LOGO_POSITION.y, 2)
+    // Snap to bottom-right default if close to it
+    const defaultPos = getDefaultPosition();
+    const distToDefault = Math.sqrt(
+      Math.pow(position.x - defaultPos.x, 2) + Math.pow(position.y - defaultPos.y, 2)
     );
-    if (distToLogo < 80) {
-      setPosition(LOGO_POSITION);
-      localStorage.setItem("meshiPosition", JSON.stringify(LOGO_POSITION));
+    if (distToDefault < 80) {
+      setPosition(defaultPos);
+      localStorage.removeItem("meshiPosition"); // use default
     } else {
       localStorage.setItem("meshiPosition", JSON.stringify(position));
     }
   }, [position, wasDragged, detectElementUnderMeshi, addSpeechBubble]);
 
-  // Reset to logo position
-  const resetToLogo = useCallback(() => {
-    setPosition(LOGO_POSITION);
-    localStorage.setItem("meshiPosition", JSON.stringify(LOGO_POSITION));
-  }, []);
+  // Reset to default bottom-right position
+  const resetToDefault = useCallback(() => {
+    const defaultPos = getDefaultPosition();
+    setPosition(defaultPos);
+    localStorage.removeItem("meshiPosition");
+  }, [getDefaultPosition]);
 
-  const isAtLogo = Math.abs(position.x - LOGO_POSITION.x) < 5 && Math.abs(position.y - LOGO_POSITION.y) < 5;
+  const defaultPos = getDefaultPosition();
+  const isAtDefault = Math.abs(position.x - defaultPos.x) < 10 && Math.abs(position.y - defaultPos.y) < 10;
 
   if (!meshiEnabled) return null;
 
@@ -381,7 +413,7 @@ export function MeshiFloat() {
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
-            className="fixed top-0 left-0 z-40 flex flex-col items-end gap-2"
+            className="fixed top-0 left-0 z-40 flex flex-col-reverse items-end gap-2"
             style={{ transform: `translate(${position.x}px, ${position.y}px)`, touchAction: "none" }}
           >
             {/* Speech bubbles that float near Meshi */}
@@ -563,9 +595,9 @@ export function MeshiFloat() {
                   </div>
                 )}
               </motion.button>
-              {!isAtLogo && !isDragging && (
+              {!isAtDefault && !isDragging && (
                 <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 0.6, scale: 1 }}
-                  whileHover={{ opacity: 1 }} onClick={resetToLogo}
+                  whileHover={{ opacity: 1 }} onClick={resetToDefault}
                   className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] text-[var(--text-muted)] whitespace-nowrap hover:text-[var(--accent)] transition-colors"
                   title="Return to logo position">
                   {"\u2190 home"}
