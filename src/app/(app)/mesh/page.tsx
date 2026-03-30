@@ -50,7 +50,7 @@ import { MeshiMascot, MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 interface MeshNode {
   id: string;
-  type: "self" | "user" | "community" | "tag" | "post" | "platform" | "meshi";
+  type: "self" | "user" | "community" | "tag" | "post" | "platform";
   label: string;
   sublabel?: string;
   avatarUrl?: string | null;
@@ -94,7 +94,6 @@ const NODE_COLORS: Record<string, string> = {
   tag: "#22d3ee",
   post: "#34d399",
   platform: "#fbbf24",
-  meshi: "#6366f1",
 };
 
 const NODE_GLOW: Record<string, string> = {
@@ -105,7 +104,6 @@ const NODE_GLOW: Record<string, string> = {
   tag: "rgba(34, 211, 238, 0.15)",
   post: "rgba(52, 211, 153, 0.12)",
   platform: "rgba(251, 191, 36, 0.15)",
-  meshi: "rgba(99, 102, 241, 0.2)",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -127,7 +125,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   bluesky: "#0085FF",
 };
 
-type FilterType = "all" | "user" | "community" | "tag" | "post" | "platform" | "meshi";
+type FilterType = "all" | "user" | "community" | "tag" | "post" | "platform";
 
 // --- Helpers ---
 
@@ -172,6 +170,35 @@ export default function MeshPage() {
   const [showNodePrivacy, setShowNodePrivacy] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const router = useRouter();
+
+  // --- Meshi roaming state ---
+  // Meshi is NOT a node — it's a living entity that roams the mesh
+  const meshiRef = useRef<{
+    x: number; y: number;
+    targetX: number; targetY: number;
+    currentTargetNodeId: string | null;
+    speed: number;
+    idleTimer: number;
+    state: "roaming" | "idle" | "delivering" | "returning";
+    // Delivery animation
+    envelopeProgress: number; // 0-1 progress along delivery path
+    deliveryFrom: { x: number; y: number } | null;
+    deliveryTo: { x: number; y: number } | null;
+    hasEnvelope: boolean;
+    bobPhase: number;
+    glowPulse: number;
+  }>({
+    x: 0, y: 0, targetX: 0, targetY: 0,
+    currentTargetNodeId: null, speed: 1.2,
+    idleTimer: 0, state: "idle",
+    envelopeProgress: 0,
+    deliveryFrom: null, deliveryTo: null,
+    hasEnvelope: false,
+    bobPhase: 0, glowPulse: 0,
+  });
+  const [meshiDeliveries, setMeshiDeliveries] = useState<Array<{
+    id: string; fromNodeId: string; toNodeId: string; timestamp: number;
+  }>>([]);
 
   // Load hidden nodes from localStorage
   useEffect(() => {
@@ -422,20 +449,14 @@ export default function MeshPage() {
           });
         });
 
-        // Meshi AI node (orbits near the self node)
-        meshNodes.push({
-          id: "meshi-ai", type: "meshi" as MeshNode["type"], label: "Meshi",
-          sublabel: "Your AI assistant",
-          x: cx + 80, y: cy - 80,
-          vx: 0, vy: 0, radius: 18,
-          color: NODE_COLORS.meshi,
-          opacity: 1, pulsePhase: 0,
-          connections: [data.user.id],
-        });
-        meshEdges.push({
-          source: data.user.id, target: "meshi-ai",
-          strength: 0.9, type: "follow" as MeshEdge["type"],
-        });
+        // Meshi is NOT a node — it roams the mesh as a living entity
+        // Initialize Meshi position near the self node
+        meshiRef.current.x = cx + 60;
+        meshiRef.current.y = cy - 60;
+        meshiRef.current.targetX = cx + 60;
+        meshiRef.current.targetY = cy - 60;
+        meshiRef.current.state = "roaming";
+        meshiRef.current.idleTimer = 0;
 
         // Connected platform nodes
         (data.connectedAccounts || []).forEach((acc: { id: string; platform: string; platformUsername: string | null }, i: number) => {
@@ -530,6 +551,79 @@ export default function MeshPage() {
         const fy = (dy / dist) * force;
         if (target.type !== "self") { target.vx -= fx; target.vy -= fy; }
         if (source.type !== "self") { source.vx += fx; source.vy += fy; }
+      }
+    }
+
+    // --- Meshi roaming AI ---
+    const m = meshiRef.current;
+    m.bobPhase += 0.05;
+    m.glowPulse += 0.03;
+
+    if (m.state === "delivering") {
+      // Move along delivery path
+      m.envelopeProgress += 0.008;
+      if (m.deliveryFrom && m.deliveryTo) {
+        m.x = m.deliveryFrom.x + (m.deliveryTo.x - m.deliveryFrom.x) * m.envelopeProgress;
+        m.y = m.deliveryFrom.y + (m.deliveryTo.y - m.deliveryFrom.y) * m.envelopeProgress;
+      }
+      if (m.envelopeProgress >= 1) {
+        m.state = "returning";
+        m.hasEnvelope = false;
+        m.envelopeProgress = 0;
+        // Return to self node
+        const selfNode = ns.find((n) => n.type === "self");
+        if (selfNode) {
+          m.targetX = selfNode.x + (Math.random() - 0.5) * 80;
+          m.targetY = selfNode.y + (Math.random() - 0.5) * 80;
+        }
+      }
+    } else if (m.state === "returning") {
+      // Smoothly return near self node
+      const retDx = m.targetX - m.x;
+      const retDy = m.targetY - m.y;
+      const retDist = Math.sqrt(retDx * retDx + retDy * retDy);
+      if (retDist > 3) {
+        m.x += (retDx / retDist) * m.speed * 1.5;
+        m.y += (retDy / retDist) * m.speed * 1.5;
+      } else {
+        m.state = "roaming";
+        m.idleTimer = 0;
+      }
+    } else {
+      // Roaming / idle behavior
+      const mDx = m.targetX - m.x;
+      const mDy = m.targetY - m.y;
+      const mDist = Math.sqrt(mDx * mDx + mDy * mDy);
+
+      if (mDist > 3) {
+        // Move toward target
+        m.x += (mDx / mDist) * m.speed;
+        m.y += (mDy / mDist) * m.speed;
+        m.state = "roaming";
+      } else {
+        // Arrived at target — idle briefly, then pick new target
+        m.state = "idle";
+        m.idleTimer += 0.016;
+
+        if (m.idleTimer > 2 + Math.random() * 3) {
+          // Pick a random node to visit
+          const candidates = ns.filter((n) => n.type !== "self" && n.id !== m.currentTargetNodeId);
+          if (candidates.length > 0) {
+            const target = candidates[Math.floor(Math.random() * candidates.length)];
+            m.targetX = target.x + (Math.random() - 0.5) * 20;
+            m.targetY = target.y + (Math.random() - 0.5) * 20;
+            m.currentTargetNodeId = target.id;
+          } else {
+            // Fall back to wandering near self
+            const selfNode = ns.find((n) => n.type === "self");
+            if (selfNode) {
+              m.targetX = selfNode.x + (Math.random() - 0.5) * 150;
+              m.targetY = selfNode.y + (Math.random() - 0.5) * 150;
+            }
+          }
+          m.idleTimer = 0;
+          m.state = "roaming";
+        }
       }
     }
   }, []);
@@ -745,6 +839,137 @@ export default function MeshPage() {
         }
       }
 
+      // --- Draw Meshi as a roaming entity ---
+      const m = meshiRef.current;
+      const meshiSize = 16;
+      const meshiBob = Math.sin(m.bobPhase) * 3;
+      const meshiGlow = 0.3 + Math.sin(m.glowPulse) * 0.15;
+      const meshiX = m.x;
+      const meshiY = m.y + meshiBob;
+
+      // Soft glow around Meshi
+      const meshiGlowGrad = ctx.createRadialGradient(meshiX, meshiY, 0, meshiX, meshiY, meshiSize * 2.5);
+      meshiGlowGrad.addColorStop(0, "rgba(99, 102, 241, " + meshiGlow + ")");
+      meshiGlowGrad.addColorStop(0.5, "rgba(99, 102, 241, " + (meshiGlow * 0.3) + ")");
+      meshiGlowGrad.addColorStop(1, "rgba(99, 102, 241, 0)");
+      ctx.beginPath();
+      ctx.arc(meshiX, meshiY, meshiSize * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = meshiGlowGrad;
+      ctx.fill();
+
+      // Meshi body (circle with gradient)
+      const meshiBodyGrad = ctx.createRadialGradient(
+        meshiX - meshiSize * 0.2, meshiY - meshiSize * 0.2, 0,
+        meshiX, meshiY, meshiSize
+      );
+      meshiBodyGrad.addColorStop(0, "#818cf8");
+      meshiBodyGrad.addColorStop(1, "#6366f1");
+      ctx.beginPath();
+      ctx.arc(meshiX, meshiY, meshiSize, 0, Math.PI * 2);
+      ctx.fillStyle = meshiBodyGrad;
+      ctx.fill();
+
+      // Meshi border ring
+      ctx.strokeStyle = "rgba(165, 180, 252, 0.6)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // Meshi eyes (◕ ◕ style — large oval white eyes with dark pupils)
+      const eyeOffsetX = meshiSize * 0.28;
+      const eyeY = meshiY - meshiSize * 0.08;
+      const eyeRadiusX = meshiSize * 0.22;
+      const eyeRadiusY = meshiSize * 0.28;
+
+      // Left eye white
+      ctx.beginPath();
+      ctx.ellipse(meshiX - eyeOffsetX, eyeY, eyeRadiusX, eyeRadiusY, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "white";
+      ctx.fill();
+      // Left eye pupil
+      ctx.beginPath();
+      ctx.arc(meshiX - eyeOffsetX + 1, eyeY + 1, eyeRadiusX * 0.55, 0, Math.PI * 2);
+      ctx.fillStyle = "#1e1b4b";
+      ctx.fill();
+      // Left eye shine
+      ctx.beginPath();
+      ctx.arc(meshiX - eyeOffsetX - 0.5, eyeY - 1.5, eyeRadiusX * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fill();
+
+      // Right eye white
+      ctx.beginPath();
+      ctx.ellipse(meshiX + eyeOffsetX, eyeY, eyeRadiusX, eyeRadiusY, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "white";
+      ctx.fill();
+      // Right eye pupil
+      ctx.beginPath();
+      ctx.arc(meshiX + eyeOffsetX + 1, eyeY + 1, eyeRadiusX * 0.55, 0, Math.PI * 2);
+      ctx.fillStyle = "#1e1b4b";
+      ctx.fill();
+      // Right eye shine
+      ctx.beginPath();
+      ctx.arc(meshiX + eyeOffsetX - 0.5, eyeY - 1.5, eyeRadiusX * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fill();
+
+      // Draw envelope if Meshi is delivering a message
+      if (m.hasEnvelope && m.state === "delivering") {
+        const envX = meshiX + meshiSize * 0.8;
+        const envY = meshiY - meshiSize * 0.6;
+        const envW = 10;
+        const envH = 7;
+        // Envelope body
+        ctx.fillStyle = "#fbbf24";
+        ctx.fillRect(envX - envW / 2, envY - envH / 2, envW, envH);
+        ctx.strokeStyle = "#d97706";
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(envX - envW / 2, envY - envH / 2, envW, envH);
+        // Envelope flap (triangle)
+        ctx.beginPath();
+        ctx.moveTo(envX - envW / 2, envY - envH / 2);
+        ctx.lineTo(envX, envY + 1);
+        ctx.lineTo(envX + envW / 2, envY - envH / 2);
+        ctx.strokeStyle = "#d97706";
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        // Small sparkle on envelope
+        const sparklePhase = time * 3;
+        const sparkleAlpha = 0.5 + Math.sin(sparklePhase) * 0.5;
+        ctx.fillStyle = "rgba(255, 255, 255, " + sparkleAlpha + ")";
+        ctx.font = "6px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("✦", envX + envW / 2 + 3, envY - envH / 2 - 2);
+      }
+
+      // Delivery trail (fading dotted line from origin to Meshi during delivery)
+      if (m.state === "delivering" && m.deliveryFrom) {
+        ctx.save();
+        ctx.setLineDash([3, 4]);
+        ctx.beginPath();
+        ctx.moveTo(m.deliveryFrom.x, m.deliveryFrom.y);
+        ctx.lineTo(meshiX, meshiY);
+        ctx.strokeStyle = "rgba(99, 102, 241, 0.2)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      // Meshi label
+      ctx.fillStyle = "rgba(165, 180, 252, 0.85)";
+      ctx.font = "9px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText("Meshi", meshiX, meshiY + meshiSize + 4);
+
+      // State indicator (small text below name)
+      if (m.state === "delivering") {
+        ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
+        ctx.font = "7px system-ui";
+        ctx.fillText("delivering...", meshiX, meshiY + meshiSize + 15);
+      }
+
       ctx.restore();
       animationRef.current = requestAnimationFrame(render);
     };
@@ -915,6 +1140,32 @@ export default function MeshPage() {
     setHoveredNode(null);
   }, []);
 
+  // --- Trigger Meshi message delivery animation ---
+  // Call this when a message is sent to animate Meshi grabbing an envelope
+  // and walking it to the recipient's node. Only visible to sender.
+  const triggerMeshiDelivery = useCallback((toNodeId: string) => {
+    const ns = nodesRef.current;
+    const selfNode = ns.find((n) => n.type === "self");
+    const targetNode = ns.find((n) => n.id === toNodeId);
+    if (!selfNode || !targetNode) return;
+
+    const m = meshiRef.current;
+    // First move Meshi to self node to "grab" the envelope
+    m.x = selfNode.x + 30;
+    m.y = selfNode.y - 30;
+    m.hasEnvelope = true;
+    m.state = "delivering";
+    m.envelopeProgress = 0;
+    m.deliveryFrom = { x: selfNode.x + 30, y: selfNode.y - 30 };
+    m.deliveryTo = { x: targetNode.x, y: targetNode.y };
+
+    // Track delivery for privacy (only sender sees this)
+    setMeshiDeliveries((prev) => [
+      ...prev,
+      { id: Date.now().toString(), fromNodeId: selfNode.id, toNodeId, timestamp: Date.now() },
+    ]);
+  }, []);
+
   // --- Filter options ---
 
   const filterOptions: { id: FilterType; label: string; icon: React.ElementType; count: number }[] = [
@@ -924,7 +1175,6 @@ export default function MeshPage() {
     { id: "tag", label: "Interests", icon: Hash, count: visibleNodes.filter((n) => n.type === "tag").length },
     { id: "post", label: "Posts", icon: FileText, count: visibleNodes.filter((n) => n.type === "post").length },
     { id: "platform", label: "Platforms", icon: Link2, count: visibleNodes.filter((n) => n.type === "platform").length },
-    { id: "meshi", label: "Meshi", icon: Sparkles, count: visibleNodes.filter((n) => n.type === "meshi").length },
   ];
 
   // Available connected platforms for cross-posting
@@ -1361,23 +1611,6 @@ export default function MeshPage() {
                   </Link>
                 )}
 
-                {/* Meshi quick actions */}
-                {selectedNode.type === "meshi" && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { setShowMeshiChat(true); setSelectedNode(null); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg"
-                    >
-                      <Sparkles className="h-3 w-3" /> Chat with Meshi
-                    </button>
-                    <Link href="/settings?tab=meshi" className="flex-1">
-                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95">
-                        <Sparkles className="h-3 w-3" /> Customize
-                      </button>
-                    </Link>
-                  </div>
-                )}
-
                 {/* Self quick actions */}
                 {selectedNode.type === "self" && (
                   <div className="flex gap-2">
@@ -1395,7 +1628,7 @@ export default function MeshPage() {
                 )}
 
                 {/* Generic view button for types without specific actions */}
-                {selectedNode.href && !["user", "post", "platform", "community", "tag", "self", "meshi"].includes(selectedNode.type) && (
+                {selectedNode.href && !["user", "post", "platform", "community", "tag", "self"].includes(selectedNode.type) && (
                   <Link href={selectedNode.href}>
                     <Button variant="gradient" size="sm" className="w-full">
                       View <ChevronRight className="h-3.5 w-3.5 ml-1" />
