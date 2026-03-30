@@ -404,7 +404,7 @@ export function MeshiFloat() {
     if (q.includes("privacy") || q.includes("secure") || q.includes("safe"))
       return { text: "Privacy is #1! We never sell data, never track you, and you control everything.", mood: "cool" };
     if (q.includes("meshi") || q.includes("who are you"))
-      return { text: "I\u2019m Meshi! Your AI guide to the mesh. Pet me and I\u2019ll wiggle!", mood: "love" };
+      return { text: "I\u2019m Meshi! Your guide to the mesh. Pet me and I\u2019ll wiggle!", mood: "love" };
     if (q.includes("pro") || q.includes("premium"))
       return { text: "MeshPro is $4.99/mo \u2014 Digital Footprint Scanner, custom cosmetics, and analytics.", mood: "wink" };
     if (q.includes("hello") || q.includes("hi") || q.includes("hey"))
@@ -858,7 +858,7 @@ export function MeshiFloat() {
                     Beta
                   </span>
                 </p>
-                <p className="text-[10px] text-[var(--text-muted)]">{"Your AI buddy\u2019s corner"}</p>
+                <p className="text-[10px] text-[var(--text-muted)]">{"Your buddy\u2019s corner"}</p>
               </div>
               <button
                 onClick={goHome}

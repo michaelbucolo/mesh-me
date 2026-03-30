@@ -69,7 +69,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
         {unreadCount > 0 && <MarkReadButton />}
       </div>
 
-      {/* AI Summary Banner */}
+      {/* Smart Summary Banner */}
       <AnimatePresence>
         {showAISummary && aiSummary && (
           <motion.div
@@ -85,7 +85,7 @@ export function NotificationsClient({ categorized, unreadCount, aiSummary }: Not
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">AI Summary</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Smart Summary</h3>
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>Smart Digest</span>
                   </div>
                   <p className="text-sm text-[var(--text-secondary)]">{aiSummary}</p>

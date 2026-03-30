@@ -20,7 +20,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 - **MeChat** — Unified messaging across platforms
 - **Connected Accounts** — Link 16+ social platforms
 - **Communities** — Create, join, and moderate community spaces
-- **AI Notifications** — Smart notification summaries
+- **Smart Notifications** — Intelligent notification summaries
 - **Expressive Profiles** — Rich identity with accent colors, interest tags, and customization
 - **Admin Panel** — Moderation queue, user management, analytics
 - **Security** — Rate limiting, account lockout, input sanitization, XSS prevention

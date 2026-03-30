@@ -715,7 +715,7 @@ export default function MeshPage() {
       }
     }
 
-    // --- Meshi roaming AI ---
+    // --- Meshi roaming behavior ---
     const m = meshiRef.current;
     m.bobPhase += 0.05;
     m.glowPulse += 0.03;

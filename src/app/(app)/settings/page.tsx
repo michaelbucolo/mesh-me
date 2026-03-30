@@ -960,18 +960,18 @@ export default function SettingsPage() {
                 ))}
               </div>
 
-              {/* AI Smart Notifications */}
+              {/* Smart Notifications */}
               <div className="mt-6 rounded-xl rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-4 w-4" style={{ color: "var(--accent)" }} />
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">AI Smart Notifications</h3>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Smart Notifications</h3>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] mb-3">
                   Intelligently summarize and batch your notifications instead of individual alerts.
-                  mesh.me AI will condense 47 notifications into one clean summary.
+                  mesh.me will condense 47 notifications into one clean summary.
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--text-secondary)]">Enable AI summaries</span>
+                  <span className="text-sm text-[var(--text-secondary)]">Enable smart summaries</span>
                   <button
                     type="button"
                     onClick={() => setNotifAISummary(!notifAISummary)}
@@ -1051,7 +1051,7 @@ export default function SettingsPage() {
                   {[
                     { title: "Zero-knowledge architecture", desc: "mesh.me is designed so we cannot read your private messages or access data you haven't explicitly shared. Your content is yours." },
                     { title: "No behavioral tracking", desc: "We don't track what you click, how long you scroll, or build profiles of your habits. No analytics on your behavior, ever." },
-                    { title: "No data selling", desc: "Your data is never sold, shared with advertisers, or used to train AI models. mesh.me makes money only through MeshPro subscriptions." },
+                    { title: "No data selling", desc: "Your data is never sold, shared with advertisers, or used to train models. mesh.me makes money only through MeshPro subscriptions." },
                     { title: "Minimal data storage", desc: "We store only what's necessary to run the platform. Nothing more. You can see exactly what we store in our transparency report." },
                     { title: "True deletion", desc: "When you delete something, it's gone. No soft-deletes that linger in our database. No 30-day retention periods on your content." },
                     { title: "Full data export", desc: "You own your data. Export everything at any time in a standard format. Your digital life should never be held hostage." },
@@ -1609,7 +1609,7 @@ export default function SettingsPage() {
               <div className="text-center mb-6">
                 <MeshiMascot size={80} mood={meshiFace} hat={meshiHat} color={meshiColor} speaking={false} />
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] mt-4 mb-1">Meshi <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-white ml-1" style={{ background: "var(--accent)" }}>Beta</span></h2>
-                <p className="text-sm text-[var(--text-muted)]">Your AI assistant for navigating the mesh</p>
+                <p className="text-sm text-[var(--text-muted)]">Your personal assistant for navigating the mesh</p>
               </div>
 
               {/* Enable / Disable Meshi */}
@@ -1905,7 +1905,7 @@ export default function SettingsPage() {
                   { icon: ShieldCheck, title: "Advanced Security Hub", desc: "Manage and mass-delete content across connected platforms, monitor active sessions" },
                   { icon: Crown, title: "Verified badge", desc: "Stand out with a verified profile badge" },
                   { icon: Eye, title: "Profile analytics", desc: "See who views your profile and detailed post insights" },
-                  { icon: Sparkles, title: "Advanced AI summaries", desc: "More detailed and personalized AI notification digests" },
+                  { icon: Sparkles, title: "Advanced summaries", desc: "More detailed and personalized notification digests" },
                   { icon: Layout, title: "Extra feed layouts", desc: "Unlock additional feed layout options and customizations" },
                 ].map((feature) => (
                   <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl glass-surface">

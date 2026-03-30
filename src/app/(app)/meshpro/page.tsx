@@ -100,10 +100,10 @@ const PRO_FEATURES = [
     category: "Messages",
   },
   {
-    id: "ai-meshi-plus",
+    id: "meshi-plus",
     icon: MessageCircle,
-    title: "Meshi+ AI",
-    description: "Enhanced AI capabilities for Meshi with deeper context awareness and actions.",
+    title: "Meshi+",
+    description: "Enhanced capabilities for Meshi with deeper context awareness and actions.",
     category: "Meshi",
   },
 ];
