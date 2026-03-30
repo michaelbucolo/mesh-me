@@ -128,8 +128,9 @@ export async function signIn(formData: FormData) {
     return { error: "Invalid email or password" };
   }
 
-  // Check suspension before password verification to prevent password enumeration
+  // Check suspension — record failed login to prevent lockout timing oracle
   if (user.isSuspended) {
+    recordFailedLogin(lockoutKey);
     return { error: "Invalid email or password" };
   }
 
