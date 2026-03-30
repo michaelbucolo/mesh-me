@@ -113,10 +113,6 @@ export function MeshiFloat() {
         // No saved position — use bottom-right default
         setPosition(getDefaultPosition());
       }
-      // If sentinel position, compute default
-      if (position.x === -1 && position.y === -1) {
-        setPosition(getDefaultPosition());
-      }
       // Show drag hint on first visit
       if (!localStorage.getItem("meshiDragHintSeen")) {
         const timer = setTimeout(() => {
