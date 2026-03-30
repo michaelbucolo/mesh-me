@@ -1402,9 +1402,14 @@ export async function updateGlobalMeshBranches(sharedBranches: string[]) {
   const validBranches = ["people", "communities", "interests", "platforms"];
   const filtered = sharedBranches.filter((b) => validBranches.includes(b));
 
-  await prisma.globalMeshMember.update({
+  await prisma.globalMeshMember.upsert({
     where: { userId: user.id },
-    data: { sharedBranches: JSON.stringify(filtered) },
+    create: {
+      userId: user.id,
+      isActive: true,
+      sharedBranches: JSON.stringify(filtered),
+    },
+    update: { sharedBranches: JSON.stringify(filtered) },
   });
 
   revalidatePath("/settings");
