@@ -59,6 +59,9 @@ model User {
   isMeshPro      Boolean  @default(false)
   meshProSince   DateTime?
   signupNumber   Int?
+  // Online status: "online" | "dnd" | "busy" | "offline"
+  status         String   @default("offline")
+  lastSeenAt     DateTime?
   alterEgos      AlterEgo[]
   emails         UserEmail[]
   phones         UserPhone[]

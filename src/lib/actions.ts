@@ -656,6 +656,7 @@ export async function createReport(formData: FormData) {
 export async function toggleBlock(targetUserId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+  if (user.id === targetUserId) return { error: "Cannot block yourself" };
 
   const existing = await prisma.block.findUnique({
     where: { blockerId_blockedId: { blockerId: user.id, blockedId: targetUserId } },
@@ -793,6 +794,7 @@ export async function adminDeletePost(postId: string) {
 export async function toggleMute(targetUserId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+  if (user.id === targetUserId) return { error: "Cannot mute yourself" };
 
   const existing = await prisma.mute.findUnique({
     where: { muterId_mutedId: { muterId: user.id, mutedId: targetUserId } },
