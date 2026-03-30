@@ -20,6 +20,8 @@ import {
   optIntoGlobalMesh,
   optOutOfGlobalMesh,
   updateGlobalMeshBranches,
+  redeemCode,
+  getUserUnlockedCosmetics,
 } from "@/lib/actions";
 import { getMeshPrivacy, getGlobalMeshStatus } from "@/lib/queries";
 import { useState, useTransition, useEffect, useCallback } from "react";
@@ -64,6 +66,7 @@ import {
   Scan,
   Trophy,
   Award,
+  Gift,
 } from "lucide-react";
 import { INTEREST_TAGS } from "@/lib/utils";
 import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor } from "@/components/meshi/meshi-mascot";
@@ -193,6 +196,15 @@ export default function SettingsPage() {
     }
   }, [searchParams]);
 
+  // Load unlocked cosmetics (for exclusive faces like synergy1017)
+  useEffect(() => {
+    getUserUnlockedCosmetics().then((result) => {
+      if (result.cosmetics) {
+        setUnlockedFaces(result.cosmetics.filter((c) => c.type === "face").map((c) => c.value));
+      }
+    });
+  }, []);
+
   // Load achievements when tab is active
   useEffect(() => {
     if (activeTab === "achievements") {
@@ -229,6 +241,9 @@ export default function SettingsPage() {
   // Meshi customization state
   const [meshiHat, setMeshiHat] = useState<MeshiHat>("none");
   const [meshiFace, setMeshiFace] = useState<MeshiMood>("happy");
+  const [redeemInput, setRedeemInput] = useState("");
+  const [redeemStatus, setRedeemStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [unlockedFaces, setUnlockedFaces] = useState<string[]>([]);
   const [meshiColor, setMeshiColor] = useState<MeshiColor>("blue");
   const [meshiEnabled, setMeshiEnabled] = useState(true);
 
@@ -1410,7 +1425,7 @@ export default function SettingsPage() {
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Expression</h3>
                 <div className="grid grid-cols-4 gap-3">
-                  {(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink"] as MeshiMood[]).map((face) => (
+                  {(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", ...(unlockedFaces.includes("synergy1017") ? ["synergy1017" as MeshiMood] : [])] as MeshiMood[]).map((face) => (
                     <button
                       key={face}
                       onClick={() => {
@@ -1561,6 +1576,47 @@ export default function SettingsPage() {
                   mesh.me will never show advertisements or sell your data. MeshPro subscriptions are the only way we fund the platform.
                   Your experience, your data, your space \u2014 always clean, always private.
                 </p>
+              </div>
+
+              {/* Redeem Code */}
+              <div className="mt-8 glass-card rounded-2xl p-6">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1 flex items-center gap-2">
+                  <Gift className="h-4 w-4" style={{ color: "var(--accent)" }} /> Redeem a Code
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mb-4">Have a special code? Enter it below to unlock exclusive rewards.</p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!redeemInput.trim()) return;
+                    setRedeemStatus(null);
+                    startTransition(async () => {
+                      const result = await redeemCode(redeemInput);
+                      if ("error" in result && result.error) {
+                        setRedeemStatus({ type: "error", message: result.error });
+                      } else if ("success" in result && result.success && "reward" in result && result.reward) {
+                        setRedeemStatus({ type: "success", message: `Unlocked: ${result.reward.label}!` });
+                        setRedeemInput("");
+                        // Refresh unlocked faces
+                        const cosmetics = await getUserUnlockedCosmetics();
+                        setUnlockedFaces(cosmetics.cosmetics.filter((c) => c.type === "face").map((c) => c.value));
+                      }
+                    });
+                  }}
+                  className="flex gap-2"
+                >
+                  <Input
+                    value={redeemInput}
+                    onChange={(e) => setRedeemInput(e.target.value)}
+                    placeholder="Enter code..."
+                    className="flex-1"
+                  />
+                  <Button type="submit" variant="gradient" disabled={isPending || !redeemInput.trim()}>Redeem</Button>
+                </form>
+                {redeemStatus && (
+                  <p className={`text-xs mt-3 ${redeemStatus.type === "success" ? "text-emerald-400" : "text-red-400"}`}>
+                    {redeemStatus.message}
+                  </p>
+                )}
               </div>
             </motion.div>
           )}

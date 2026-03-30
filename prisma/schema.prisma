@@ -442,3 +442,20 @@ model GlobalMeshMember {
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// ─── Redeem Codes ────────────────────────────────────────────
+
+model RedeemCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  // What the code unlocks: "meshi-face", "meshi-hat", "meshi-color", "mesh-cosmetic"
+  rewardType  String
+  // The value of the reward (e.g. face name, hat name, color name)
+  rewardValue String
+  // Display label for the reward
+  rewardLabel String
+  // Whether the code has been used
+  redeemedBy  String?
+  redeemedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
