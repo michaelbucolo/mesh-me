@@ -218,11 +218,18 @@ export function MeshiMascot({
       whileHover={!interactive && animate ? { scale: 1.1 } : undefined}
       whileTap={animate ? { scale: 0.9 } : undefined}
     >
-      <svg width={size} height={size} viewBox="-24 -24 48 48" style={{ overflow: "visible" }}>
-        {/* Glow */}
+      <svg width={size} height={size} viewBox="-24 -24 48 48">
+        {/* Clip to perfect circle */}
+        <defs>
+          <clipPath id="meshi-circle-clip">
+            <circle cx="0" cy="0" r="22" />
+          </clipPath>
+        </defs>
+
+        {/* Glow ring — outside clip, perfectly circular */}
         {showGlow && (
           <motion.circle cx="0" cy="0" r="20" fill="none" stroke={theme.primary} strokeWidth="1" opacity="0.3"
-            animate={animate ? { scale: [1, 1.15, 1], opacity: [0.3, 0.15, 0.3] } : undefined}
+            animate={animate ? { scale: [1, 1.1, 1], opacity: [0.3, 0.15, 0.3] } : undefined}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
@@ -231,46 +238,49 @@ export function MeshiMascot({
         {speaking && (
           <>
             <motion.circle cx="0" cy="0" r="18" fill="none" stroke={theme.primary} strokeWidth="1.5"
-              initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 1.6, opacity: 0 }}
+              initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 1.4, opacity: 0 }}
               transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
             />
             <motion.circle cx="0" cy="0" r="18" fill="none" stroke={theme.primary} strokeWidth="1"
-              initial={{ scale: 1, opacity: 0.4 }} animate={{ scale: 1.8, opacity: 0 }}
+              initial={{ scale: 1, opacity: 0.4 }} animate={{ scale: 1.6, opacity: 0 }}
               transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut", delay: 0.4 }}
             />
           </>
         )}
 
-        {/* Body — soft circle bubble */}
-        <motion.circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2"
-          animate={animate ? { y: [0, -1.5, 0] } : undefined}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* Clipped content — everything inside the circle */}
+        <g clipPath="url(#meshi-circle-clip)">
+          {/* Body — perfect circle bubble */}
+          <motion.circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2"
+            animate={animate ? { y: [0, -1, 0] } : undefined}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          />
 
-        {/* Inner gradient — gives bubble depth */}
-        <circle cx="0" cy="0" r="14" fill={theme.primary} opacity="0.15" />
+          {/* Inner gradient — gives bubble depth */}
+          <circle cx="0" cy="0" r="14" fill={theme.primary} opacity="0.15" />
 
-        {/* Bubble highlight — top-left shine for glossy feel */}
-        <ellipse cx="-5" cy="-6" rx="5" ry="3.5" fill="white" opacity="0.15" transform="rotate(-20)" />
+          {/* Bubble highlight — top-left shine for glossy feel */}
+          <ellipse cx="-5" cy="-6" rx="5" ry="3.5" fill="white" opacity="0.15" transform="rotate(-20)" />
 
-        {/* Hat */}
-        <g style={{ color: theme.primary }}>{hatElement}</g>
+          {/* Hat */}
+          <g style={{ color: theme.primary }}>{hatElement}</g>
 
-        {/* Face — eyes only, reactive to petting */}
-        <g transform={`scale(${Math.min(scale, 1.2)})`}>
-          <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
-            fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
-            {interactive ? activeFace.eyes : face.eyes}
-          </text>
+          {/* Face — eyes only, reactive to petting */}
+          <g transform={`scale(${Math.min(scale, 1.2)})`}>
+            <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
+              fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
+              {interactive ? activeFace.eyes : face.eyes}
+            </text>
+          </g>
         </g>
 
-        {/* Mesh connection dots */}
+        {/* Mesh connection dots — on the circle perimeter */}
         {DOT_POSITIONS.map((pos, i) => (
           <motion.circle key={pos.deg}
             cx={pos.cx}
             cy={pos.cy}
             r="1.5" fill={theme.primary} opacity="0.5"
-            animate={animate ? { opacity: [0.3, 0.7, 0.3], scale: [1, 1.3, 1] } : undefined}
+            animate={animate ? { opacity: [0.3, 0.7, 0.3], scale: [1, 1.2, 1] } : undefined}
             transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
           />
         ))}

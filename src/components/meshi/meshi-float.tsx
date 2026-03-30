@@ -508,10 +508,14 @@ export function MeshiFloat() {
                 }}
                 onDoubleClick={() => setView("mini-mesh")}
                 onContextMenu={(e) => { e.preventDefault(); setView("mini-mesh"); }}
-                className={`rounded-full shadow-2xl p-1.5 transition-shadow group relative cursor-grab active:cursor-grabbing ${
+                className={`rounded-full shadow-2xl transition-shadow group relative cursor-grab active:cursor-grabbing ${
                   isDragging ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-primary)]" : "hover:shadow-[0_0_24px_rgba(45,127,249,0.4)]"
                 }`}
                 style={{
+                  width: 56, height: 56,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  aspectRatio: "1 / 1",
+                  borderRadius: "9999px",
                   background: "var(--bg-elevated)",
                   border: `2px solid ${dragOverElement ? "#10b981" : "var(--accent)"}`,
                   boxShadow: isDragging ? "0 0 24px rgba(45,127,249,0.5)" : undefined,
