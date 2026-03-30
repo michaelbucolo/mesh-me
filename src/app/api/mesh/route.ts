@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  try {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -205,4 +206,11 @@ export async function GET() {
       alterEgoCount: alterEgosData.length,
     },
   });
+  } catch (error) {
+    console.error("Mesh API error:", error);
+    return NextResponse.json(
+      { error: "Failed to load mesh data" },
+      { status: 500 }
+    );
+  }
 }
