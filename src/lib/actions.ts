@@ -1219,6 +1219,9 @@ export async function checkAndAwardAchievements() {
 }
 
 export async function getUserAchievements(userId: string) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
   const achievements = await prisma.userAchievement.findMany({
     where: { userId },
     include: { achievement: true },
