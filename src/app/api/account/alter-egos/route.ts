@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
 
   // Check username availability (both User and AlterEgo tables)
   const normalizedUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, "");
+  if (normalizedUsername.length < 3) {
+    return NextResponse.json({ error: "Username must contain at least 3 alphanumeric characters" }, { status: 400 });
+  }
   const existingUser = await prisma.user.findUnique({ where: { username: normalizedUsername } });
   if (existingUser) {
     return NextResponse.json({ error: "Username already taken" }, { status: 409 });
