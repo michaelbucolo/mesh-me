@@ -1,0 +1,4 @@
+dev.db
+prisma/dev.db
+*.md
+node_modules
