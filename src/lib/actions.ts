@@ -124,7 +124,7 @@ export async function signIn(formData: FormData) {
   }
 
   if (!user) {
-    recordFailedLogin(email);
+    recordFailedLogin(lockoutKey);
     return { error: "Invalid email or password" };
   }
 
