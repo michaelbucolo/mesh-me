@@ -61,13 +61,8 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Ensure user keeps at least one 2FA method
-  const remaining = await prisma.twoFactorMethod.count({
-    where: { userId: session.userId, isEnabled: true, id: { not: methodId } },
-  });
-  if (remaining === 0) {
-    return NextResponse.json({ error: "You must keep at least one 2FA method active" }, { status: 400 });
-  }
+  // 2FA is optional — users can remove their last method to fully disable 2FA.
+  // No guard needed here; the user simply won't have 2FA if they delete all methods.
 
   await prisma.twoFactorMethod.delete({ where: { id: methodId } });
   return NextResponse.json({ success: true });

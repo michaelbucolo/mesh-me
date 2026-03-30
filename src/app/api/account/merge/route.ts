@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
-import { timingSafeEqual } from "crypto";
+import { timingSafeEqual, createHash } from "crypto";
 
 // Initiate account merge: primary user requests to merge a secondary account
 export async function POST(req: NextRequest) {
@@ -140,13 +140,17 @@ export async function PUT(req: NextRequest) {
     if (!secondaryOwner) {
       return NextResponse.json({ error: "Secondary account not found" }, { status: 404 });
     }
-    // Verify token matches (constant-time comparison to prevent timing attacks)
+    // Verify token matches (constant-time comparison to prevent timing attacks).
+    // Hash both tokens to fixed-length SHA-256 digests before comparing so that
+    // differing input lengths don't leak information via an early return.
     const storedToken = mergeRequest.verifyToken || "";
     const providedToken = (typeof verifyToken === "string" ? verifyToken : "");
     let tokenValid = false;
-    if (storedToken.length > 0 && providedToken.length === storedToken.length) {
+    if (storedToken.length > 0 && providedToken.length > 0) {
       try {
-        tokenValid = timingSafeEqual(Buffer.from(storedToken), Buffer.from(providedToken));
+        const storedHash = createHash("sha256").update(storedToken).digest();
+        const providedHash = createHash("sha256").update(providedToken).digest();
+        tokenValid = timingSafeEqual(storedHash, providedHash);
       } catch { tokenValid = false; }
     }
     if (!tokenValid) {
