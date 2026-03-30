@@ -29,7 +29,7 @@ const FACES: Record<string, { eyes: string }> = {
   petted: { eyes: "◠ ◠" },
   giggle: { eyes: "≧ ≦" },
   shy: { eyes: "· ·" },
-  synergy1017: { eyes: "◕ ◡" },
+  synergy1017: { eyes: "◕ ◠" },
 };
 
 
