@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Shield, Users, FileText, Flag, TrendingUp, Clock, Activity, Hash } from "lucide-react";
 import { AdminActions } from "./admin-actions";
 import { formatRelativeTime } from "@/lib/utils";
+import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -14,9 +15,7 @@ export default async function AdminPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-center gap-3 mb-8">
-        <div className="brand-logo h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
-          <Shield className="h-5 w-5 text-white" />
-        </div>
+        <MeshiLogo size={40} color="blue" mood="happy" />
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Admin Panel</h1>
           <p className="text-xs text-[var(--text-muted)]">Platform overview and moderation</p>

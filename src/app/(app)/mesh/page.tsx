@@ -44,7 +44,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
 import { MeshiChat } from "@/components/meshi/meshi-chat";
-import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 // --- Types ---
 
@@ -980,9 +980,7 @@ export default function MeshPage() {
       <div className="absolute top-0 left-0 right-0 z-10 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="brand-logo h-8 w-8 rounded-lg flex items-center justify-center shadow-lg" style={{ background: "var(--brand-gradient)" }}>
-              <Layers className="h-4 w-4 text-white" />
-            </div>
+            <MeshiLogo size={32} color="blue" mood="happy" />
             <div>
               <h1 className="text-lg font-bold text-[var(--text-primary)]">The Mesh</h1>
               <p className="text-[11px] text-[var(--text-muted)]">Your digital universe</p>
@@ -1385,9 +1383,7 @@ export default function MeshPage() {
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="brand-logo h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
-                    <Fingerprint className="h-3.5 w-3.5 text-white" />
-                  </div>
+                  <MeshiLogo size={28} color="blue" mood="happy" />
                   <div>
                     <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Digital Footprint</h3>
                     <p className="text-[10px] text-[var(--text-muted)]">Everything in your mesh at a glance</p>
