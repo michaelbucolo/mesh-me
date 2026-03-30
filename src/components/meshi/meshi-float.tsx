@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
   X, Settings, History, Sparkles, MessageCircle,
-  ChevronRight, Palette, HelpCircle, Send
+  ChevronRight, Palette, HelpCircle, Send, GripVertical
 } from "lucide-react";
 import { MeshiMascot, type MeshiMood } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
+import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 
 // Meshi contextual greetings per route
 const GREETINGS: Record<string, { text: string; mood: MeshiMood }> = {
@@ -28,7 +29,22 @@ const GREETINGS: Record<string, { text: string; mood: MeshiMood }> = {
 // Keywords that trigger visual search (only when contextually relevant)
 const SEARCH_TRIGGERS = ["search", "find", "look for", "where", "show me"];
 
+// Element detection zones for drag-to-learn
+const ELEMENT_ZONES: Array<{ selector: string; label: string; description: string }> = [
+  { selector: "[data-meshi-zone='sidebar']", label: "Sidebar", description: "This is the main navigation. Use it to jump between The Mesh, Feed, MeChat, and more!" },
+  { selector: "[data-meshi-zone='mesh-canvas']", label: "The Mesh", description: "This is your interactive mesh visualization. Click nodes to interact, drag to pan, scroll to zoom!" },
+  { selector: "[data-meshi-zone='feed']", label: "Feed", description: "Your content feed! Like, comment, and share posts." },
+  { selector: "[data-meshi-zone='settings']", label: "Settings", description: "Control everything about your mesh.me experience here." },
+  { selector: "[data-meshi-zone='notifications']", label: "Notifications", description: "Your notification center. I can summarize what you've missed!" },
+  { selector: "[data-meshi-zone='messages']", label: "MeChat", description: "Unified messaging across all your connected platforms. Encrypted and private." },
+  { selector: "[data-meshi-zone='search']", label: "Search", description: "Find people, communities, posts, and topics across mesh.me." },
+  { selector: "[data-meshi-zone='privacy']", label: "Privacy Controls", description: "Control who sees your mesh, your posts, and your connections. Privacy is our #1 priority!" },
+];
+
 type MeshiView = "closed" | "chat" | "mini-mesh" | "speech";
+
+// Default position: logo area (top-left)
+const LOGO_POSITION = { x: 16, y: 16 };
 
 /**
  * Global floating Meshi \u2014 a real entity that lives across the entire app.
@@ -45,6 +61,19 @@ export function MeshiFloat() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchingText, setSearchingText] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>([]);
+
+  // Mesh-aware data
+  const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
+  const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
+
+  // Drag state
+  const [position, setPosition] = useState(LOGO_POSITION);
+  const [isDragging, setIsDragging] = useState(false);
+  const [wasDragged, setWasDragged] = useState(false);
+  const [dragOverElement, setDragOverElement] = useState<string | null>(null);
+  const [showDragHint, setShowDragHint] = useState(false);
+  const meshiRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
 
   // Speech bubble state — messages appear as floating bubbles near Meshi
   const [speechBubbles, setSpeechBubbles] = useState<Array<{
@@ -64,8 +93,40 @@ export function MeshiFloat() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("meshiEnabled");
       if (stored === "false") setMeshiEnabled(false);
+      const savedPos = localStorage.getItem("meshiPosition");
+      if (savedPos) {
+        try {
+          const parsed = JSON.parse(savedPos);
+          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+            setPosition(parsed);
+          }
+        } catch { /* ignore */ }
+      }
+      // Show drag hint on first visit
+      if (!localStorage.getItem("meshiDragHintSeen")) {
+        const timer = setTimeout(() => {
+          setShowDragHint(true);
+          setTimeout(() => {
+            setShowDragHint(false);
+            localStorage.setItem("meshiDragHintSeen", "1");
+          }, 6000);
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
     }
   }, []);
+
+  // Fetch mesh graph data for Meshi awareness
+  useEffect(() => {
+    let cancelled = false;
+    getMeshGraphData().then((data) => {
+      if (!cancelled) {
+        setMeshEntities(data.entities);
+        setMeshStats(data.stats);
+      }
+    }).catch(() => { /* ignore fetch errors */ });
+    return () => { cancelled = true; };
+  }, [pathname]);
 
   // Listen for changes from settings page
   useEffect(() => {
@@ -78,11 +139,9 @@ export function MeshiFloat() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  // If Meshi is disabled, don't render anything
-  if (!meshiEnabled) return null;
-
   // Contextual greeting on page navigation
   useEffect(() => {
+    if (!meshiEnabled) return;
     if (pathname !== lastPath && view === "closed") {
       setLastPath(pathname);
       const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
@@ -101,7 +160,16 @@ export function MeshiFloat() {
         };
       }
     }
-  }, [pathname, lastPath, view]);
+  }, [pathname, lastPath, view, meshiEnabled]);
+
+  // Add a speech bubble
+  const addSpeechBubble = useCallback((role: "user" | "meshi", text: string) => {
+    const id = `${role}-${Date.now()}`;
+    setSpeechBubbles((prev) => [...prev.slice(-4), { id, text, role, timestamp: Date.now() }]);
+    setTimeout(() => {
+      setSpeechBubbles((prev) => prev.filter((b) => b.id !== id));
+    }, 12000);
+  }, []);
 
   // Meshi visual search \u2014 bounces around the screen searching
   const triggerSearch = useCallback((_query: string) => {
@@ -119,16 +187,7 @@ export function MeshiFloat() {
       setView("speech");
       addSpeechBubble("meshi", "Here\u2019s what I found! Your mesh is looking great. Want me to dig deeper?");
     }, 4500);
-  }, []);
-
-  // Add a speech bubble
-  const addSpeechBubble = useCallback((role: "user" | "meshi", text: string) => {
-    const id = `${role}-${Date.now()}`;
-    setSpeechBubbles((prev) => [...prev.slice(-4), { id, text, role, timestamp: Date.now() }]);
-    setTimeout(() => {
-      setSpeechBubbles((prev) => prev.filter((b) => b.id !== id));
-    }, 12000);
-  }, []);
+  }, [addSpeechBubble]);
 
   // Handle speech input
   const handleSpeechSend = useCallback(() => {
@@ -190,6 +249,79 @@ export function MeshiFloat() {
     setMood(newMood);
   }, []);
 
+  // Drag-to-learn: detect element under Meshi
+  const detectElementUnderMeshi = useCallback((x: number, y: number) => {
+    for (const zone of ELEMENT_ZONES) {
+      const el = document.querySelector(zone.selector);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          return zone;
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  // Pointer drag handlers
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    dragStartRef.current = { x: e.clientX, y: e.clientY, px: position.x, py: position.y };
+    setWasDragged(false);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [position]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragStartRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      setIsDragging(true);
+      setWasDragged(true);
+    }
+    const newX = dragStartRef.current.px + dx;
+    const newY = dragStartRef.current.py + dy;
+    const maxX = (typeof window !== "undefined" ? window.innerWidth : 1024) - 56;
+    const maxY = (typeof window !== "undefined" ? window.innerHeight : 768) - 56;
+    setPosition({ x: Math.max(0, Math.min(maxX, newX)), y: Math.max(0, Math.min(maxY, newY)) });
+    const zone = detectElementUnderMeshi(e.clientX, e.clientY);
+    setDragOverElement(zone?.label || null);
+  }, [detectElementUnderMeshi]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!dragStartRef.current) return;
+    const didDrag = wasDragged;
+    dragStartRef.current = null;
+    setIsDragging(false);
+    // Drag-to-learn: show explanation for zone
+    const zone = detectElementUnderMeshi(e.clientX, e.clientY);
+    if (zone && didDrag) {
+      setMood("excited");
+      setView("speech");
+      addSpeechBubble("meshi", zone.description);
+    }
+    setDragOverElement(null);
+    // Snap to logo position if close
+    const distToLogo = Math.sqrt(
+      Math.pow(position.x - LOGO_POSITION.x, 2) + Math.pow(position.y - LOGO_POSITION.y, 2)
+    );
+    if (distToLogo < 80) {
+      setPosition(LOGO_POSITION);
+      localStorage.setItem("meshiPosition", JSON.stringify(LOGO_POSITION));
+    } else {
+      localStorage.setItem("meshiPosition", JSON.stringify(position));
+    }
+  }, [position, wasDragged, detectElementUnderMeshi, addSpeechBubble]);
+
+  // Reset to logo position
+  const resetToLogo = useCallback(() => {
+    setPosition(LOGO_POSITION);
+    localStorage.setItem("meshiPosition", JSON.stringify(LOGO_POSITION));
+  }, []);
+
+  const isAtLogo = Math.abs(position.x - LOGO_POSITION.x) < 5 && Math.abs(position.y - LOGO_POSITION.y) < 5;
+
+  if (!meshiEnabled) return null;
+
   return (
     <>
       {/* === Meshi Visual Search Overlay === */}
@@ -231,6 +363,17 @@ export function MeshiFloat() {
         )}
       </AnimatePresence>
 
+      {/* Drag zone highlight */}
+      <AnimatePresence>
+        {isDragging && dragOverElement && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] px-4 py-2 rounded-xl text-sm font-medium shadow-xl"
+            style={{ background: "var(--accent)", color: "white" }}>
+            Drop to learn about: {dragOverElement}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* === Floating Meshi Button + Speech Bubbles === */}
       <AnimatePresence>
         {(view === "closed" || view === "speech") && !isSearching && (
@@ -238,7 +381,8 @@ export function MeshiFloat() {
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
-            className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2"
+            className="fixed top-0 left-0 z-40 flex flex-col items-end gap-2"
+            style={{ transform: `translate(${position.x}px, ${position.y}px)`, touchAction: "none" }}
           >
             {/* Speech bubbles that float near Meshi */}
             <AnimatePresence>
@@ -310,9 +454,27 @@ export function MeshiFloat() {
               </motion.div>
             )}
 
+            {/* First-time drag hint */}
+            <AnimatePresence>
+              {showDragHint && view === "closed" && !isDragging && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                  className="px-3 py-2 rounded-xl text-xs max-w-[220px] shadow-lg"
+                  style={{ background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--accent)" }}
+                >
+                  <div className="flex items-start gap-2">
+                    <GripVertical className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "var(--accent)" }} />
+                    <p><strong>Tip:</strong> Drag me to any part of the screen to learn about it! Click me to chat.</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Greeting bubble */}
             <AnimatePresence>
-              {showGreeting && view === "closed" && (
+              {showGreeting && view === "closed" && !showDragHint && (
                 <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -328,11 +490,15 @@ export function MeshiFloat() {
               )}
             </AnimatePresence>
 
-            {/* Main Meshi button — interactive bubble with physics */}
+            {/* Main Meshi button — draggable interactive bubble */}
             <motion.div className="relative">
               <motion.button
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
+                  if (wasDragged) return;
                   if (view === "speech") {
                     setView("closed");
                     setSpeechBubbles([]);
@@ -340,19 +506,26 @@ export function MeshiFloat() {
                     setView("speech");
                   }
                 }}
+                onDoubleClick={() => setView("mini-mesh")}
                 onContextMenu={(e) => { e.preventDefault(); setView("mini-mesh"); }}
-                className="rounded-full shadow-2xl p-1.5 transition-shadow hover:shadow-[0_0_24px_rgba(45,127,249,0.4)] group relative"
-                style={{ background: "var(--bg-elevated)", border: "2px solid var(--accent)" }}
+                className={`rounded-full shadow-2xl p-1.5 transition-shadow group relative cursor-grab active:cursor-grabbing ${
+                  isDragging ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-primary)]" : "hover:shadow-[0_0_24px_rgba(45,127,249,0.4)]"
+                }`}
+                style={{
+                  background: "var(--bg-elevated)",
+                  border: `2px solid ${dragOverElement ? "#10b981" : "var(--accent)"}`,
+                  boxShadow: isDragging ? "0 0 24px rgba(45,127,249,0.5)" : undefined,
+                }}
                 aria-label="Talk to Meshi (Beta)"
                 title="Click to chat \u2022 Right-click for menu"
               >
                 <motion.div
-                  animate={{ y: [0, -3, 0, -1, 0], rotate: [0, 2, -2, 1, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  animate={isDragging ? { rotate: [0, 10, -10, 10, 0] } : { y: [0, -3, 0, -1, 0], rotate: [0, 2, -2, 1, 0] }}
+                  transition={isDragging ? { duration: 0.5, repeat: Infinity } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 >
                   <MeshiMascot
                     size={44}
-                    mood={mood}
+                    mood={isDragging ? "excited" : mood}
                     color="blue"
                     showGlow={false}
                     interactive
@@ -361,25 +534,16 @@ export function MeshiFloat() {
                 </motion.div>
                 {/* BETA badge */}
                 <div className="absolute -top-2 -left-1 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider text-white shadow-sm" style={{ background: "var(--accent)" }}>Beta</div>
-                {/* Mini mesh orbiting dots */}
-                <div className="absolute inset-0 pointer-events-none">
-                  {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-                    <motion.div
-                      key={angle}
-                      className="absolute w-1.5 h-1.5 rounded-full"
-                      style={{
-                        background: "var(--accent)",
-                        left: `${50 + 42 * Math.cos((angle * Math.PI) / 180)}%`,
-                        top: `${50 + 42 * Math.sin((angle * Math.PI) / 180)}%`,
-                        transform: "translate(-50%, -50%)",
-                      }}
-                      animate={{ opacity: [0.3, 0.8, 0.3], scale: [0.8, 1.2, 0.8] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
-                    />
-                  ))}
-                </div>
+                {/* Drag hint on hover */}
+                {!isDragging && (
+                  <div className="absolute -bottom-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-4 h-4 rounded-full flex items-center justify-center text-white" style={{ background: "var(--accent)" }}>
+                      <GripVertical className="h-2.5 w-2.5" />
+                    </div>
+                  </div>
+                )}
                 {/* Chat indicator on hover */}
-                {view === "closed" && (
+                {view === "closed" && !isDragging && (
                   <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-4 h-4 rounded-full flex items-center justify-center text-white" style={{ background: "var(--accent)" }}>
                       <MessageCircle className="h-2.5 w-2.5" />
@@ -395,6 +559,14 @@ export function MeshiFloat() {
                   </div>
                 )}
               </motion.button>
+              {!isAtLogo && !isDragging && (
+                <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 0.6, scale: 1 }}
+                  whileHover={{ opacity: 1 }} onClick={resetToLogo}
+                  className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] text-[var(--text-muted)] whitespace-nowrap hover:text-[var(--accent)] transition-colors"
+                  title="Return to logo position">
+                  {"\u2190 home"}
+                </motion.button>
+              )}
             </motion.div>
 
             {/* Quick access buttons */}
@@ -497,9 +669,9 @@ export function MeshiFloat() {
                 <span className="flex-1">Customize Meshi</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=meshi"; }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors" style={{ color: "var(--text-primary)" }}>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=privacy"; }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors" style={{ color: "var(--text-primary)" }}>
                 <Settings className="h-4 w-4" style={{ color: "#6366f1" }} />
-                <span className="flex-1">Meshi Settings</span>
+                <span className="flex-1">Mesh Privacy</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
 
@@ -538,6 +710,8 @@ export function MeshiFloat() {
       <MeshiChat
         isOpen={view === "chat"}
         onClose={() => setView("closed")}
+        meshData={meshStats}
+        meshEntities={meshEntities}
       />
     </>
   );

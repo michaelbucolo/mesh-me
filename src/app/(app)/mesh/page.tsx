@@ -876,7 +876,7 @@ export default function MeshPage() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
+    <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
       {/* Keyboard shortcut handled in useEffect below */}
 
       {/* Top bar */}

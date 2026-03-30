@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Sparkles, Search, Settings, BarChart3, Users, Shield, HelpCircle } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor } from "./meshi-mascot";
+import type { MeshGraphEntity } from "@/lib/queries";
 
 interface ChatMessage {
   id: string;
@@ -24,8 +25,82 @@ const QUICK_ACTIONS = [
 
 // Meshi's comprehensive knowledge base — stateless, indexing-only responses
 // Meshi knows about EVERY feature on mesh.me and can guide users through anything
-function getMeshiResponse(query: string, meshData?: { followers?: number; following?: number; posts?: number; communities?: number; platforms?: number }): { content: string; mood: MeshiMood } {
+// Meshi is mesh-aware: it can look up people/entities from the user's mesh graph
+function getMeshiResponse(
+  query: string,
+  meshData?: { followers?: number; following?: number; posts?: number; communities?: number; platforms?: number },
+  meshEntities?: MeshGraphEntity[],
+): { content: string; mood: MeshiMood } {
   const q = query.toLowerCase().trim();
+
+  // ─── Mesh-aware entity lookup ───────────────────────────
+  // Check if user is asking about a specific person, community, or entity on their mesh
+  if (meshEntities && meshEntities.length > 0) {
+    // Check for person queries: "who is X", "tell me about X", "do I know X"
+    const personMatch = q.match(/(?:who is|tell me about|do i (?:know|follow)|what about|info on|look up)\s+(.+)/i);
+    if (personMatch) {
+      const searchTerm = personMatch[1].replace(/[?!.]+$/, "").trim().toLowerCase();
+      const found = meshEntities.find(
+        (e) =>
+          e.label.toLowerCase().includes(searchTerm) ||
+          (e.sublabel && e.sublabel.toLowerCase().includes(searchTerm))
+      );
+
+      if (found) {
+        if (found.type === "user") {
+          const mutualText = found.isMutual ? "You follow each other (mutual)!" : "You follow them.";
+          const followerText = found.followerCount ? ` They have ${found.followerCount} follower${found.followerCount !== 1 ? "s" : ""}.` : "";
+          return {
+            content: `${found.label} (${found.sublabel}) is on your mesh! ${mutualText}${followerText} Click their node on The Mesh to message, view profile, or manage the connection.`,
+            mood: "excited",
+          };
+        }
+        if (found.type === "community") {
+          return {
+            content: `${found.label} is a community you're part of!${found.memberCount ? ` It has ${found.memberCount} members.` : ""} Check it out from The Mesh or the Communities page.`,
+            mood: "happy",
+          };
+        }
+        if (found.type === "tag") {
+          return {
+            content: `"${found.label}" is one of your interests! It appears as a node on your mesh and helps me find relevant content and people for you.`,
+            mood: "happy",
+          };
+        }
+        if (found.type === "platform") {
+          return {
+            content: `You have ${found.label} connected${found.sublabel ? ` as ${found.sublabel}` : ""}! Content from ${found.label} appears in your Custom Feed, and interactions sync back natively.`,
+            mood: "excited",
+          };
+        }
+      } else {
+        // Entity not found on mesh
+        return {
+          content: `I don't see "${searchTerm}" on your mesh yet. If they have a mesh.me account and share their mesh with you, I'll be able to tell you all about them! You can also search for them on the Search page.`,
+          mood: "thinking",
+        };
+      }
+    }
+
+    // "Show me my connections" / "who do I follow"
+    if (q.includes("my connections") || q.includes("who do i follow") || q.includes("list my") || q.includes("show my mesh")) {
+      const people = meshEntities.filter((e) => e.type === "user");
+      const comms = meshEntities.filter((e) => e.type === "community");
+      const tags = meshEntities.filter((e) => e.type === "tag");
+      const platforms = meshEntities.filter((e) => e.type === "platform");
+      const parts = [];
+      if (people.length > 0) parts.push(`${people.length} people (${people.slice(0, 3).map((p) => p.label).join(", ")}${people.length > 3 ? "..." : ""})`);
+      if (comms.length > 0) parts.push(`${comms.length} communities`);
+      if (tags.length > 0) parts.push(`${tags.length} interests`);
+      if (platforms.length > 0) parts.push(`${platforms.length} platforms`);
+      return {
+        content: parts.length > 0
+          ? `Your mesh has: ${parts.join(", ")}. Click any node on The Mesh for quick actions!`
+          : "Your mesh is empty right now. Start by following people, joining communities, or connecting platforms!",
+        mood: parts.length > 0 ? "excited" : "thinking",
+      };
+    }
+  }
 
   // ─── The Mesh (main visualization) ───────────────────────
   if (q.includes("mesh") && (q.includes("what") || q.includes("explain") || q.includes("how") || q.includes("work") || q.includes("use"))) {
@@ -325,9 +400,10 @@ interface MeshiChatProps {
     communities?: number;
     platforms?: number;
   };
+  meshEntities?: MeshGraphEntity[];
 }
 
-export function MeshiChat({ isOpen, onClose, hat = "none", color = "blue", meshData }: MeshiChatProps) {
+export function MeshiChat({ isOpen, onClose, hat = "none", color = "blue", meshData, meshEntities }: MeshiChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -370,7 +446,7 @@ export function MeshiChat({ isOpen, onClose, hat = "none", color = "blue", meshD
 
     // Simulate thinking delay (stateless — no data stored)
     setTimeout(() => {
-      const response = getMeshiResponse(messageText, meshData);
+      const response = getMeshiResponse(messageText, meshData, meshEntities);
       setMeshiMood(response.mood);
 
       const meshiMsg: ChatMessage = {

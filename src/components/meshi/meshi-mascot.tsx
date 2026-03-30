@@ -3,6 +3,19 @@
 import { motion, useSpring } from "framer-motion";
 import { useRef, useState, useCallback, useEffect } from "react";
 
+// Pre-compute trig values to avoid SSR/client hydration mismatches
+const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
+  deg,
+  cx: Math.round(Math.cos((deg * Math.PI) / 180) * 4 * 1000) / 1000,
+  cy: Math.round(Math.sin((deg * Math.PI) / 180) * 4 * 1000) / 1000,
+}));
+
+const DOT_POSITIONS = [0, 72, 144, 216, 288].map((deg) => ({
+  deg,
+  cx: Math.round(Math.cos((deg * Math.PI) / 180) * 18 * 1000) / 1000,
+  cy: Math.round(Math.sin((deg * Math.PI) / 180) * 18 * 1000) / 1000,
+}));
+
 // Meshi face styles — eyes only, reacts to interaction
 const FACES: Record<string, { eyes: string }> = {
   happy: { eyes: "◕ ◕" },
@@ -59,11 +72,11 @@ const HATS: Record<string, React.ReactNode> = {
   flower: (
     <g transform="translate(6, -14)">
       <circle cx="0" cy="0" r="3" fill="#fbbf24" />
-      {[0, 60, 120, 180, 240, 300].map((deg) => (
+      {FLOWER_POSITIONS.map((pos) => (
         <circle
-          key={deg}
-          cx={Math.cos((deg * Math.PI) / 180) * 4}
-          cy={Math.sin((deg * Math.PI) / 180) * 4}
+          key={pos.deg}
+          cx={pos.cx}
+          cy={pos.cy}
           r="2.5"
           fill="#ec4899"
           opacity="0.8"
@@ -252,10 +265,10 @@ export function MeshiMascot({
         </g>
 
         {/* Mesh connection dots */}
-        {[0, 72, 144, 216, 288].map((deg, i) => (
-          <motion.circle key={deg}
-            cx={Math.cos((deg * Math.PI) / 180) * 18}
-            cy={Math.sin((deg * Math.PI) / 180) * 18}
+        {DOT_POSITIONS.map((pos, i) => (
+          <motion.circle key={pos.deg}
+            cx={pos.cx}
+            cy={pos.cy}
             r="1.5" fill={theme.primary} opacity="0.5"
             animate={animate ? { opacity: [0.3, 0.7, 0.3], scale: [1, 1.3, 1] } : undefined}
             transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}

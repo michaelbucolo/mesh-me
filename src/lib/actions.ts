@@ -1310,3 +1310,99 @@ export async function getMeshCosmetics(userId?: string) {
     where: { userId: user.id, isActive: true },
   });
 }
+
+// ─── Mesh Privacy Actions ───────────────────────────────────
+
+export async function updateMeshPrivacy(data: {
+  meshVisibility: string;
+  branchOverrides?: Record<string, string>;
+  showConnections?: boolean;
+  showStats?: boolean;
+}) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const validVisibilities = ["private", "friends", "public", "partial"];
+  if (!validVisibilities.includes(data.meshVisibility)) {
+    return { error: "Invalid visibility setting" };
+  }
+
+  await prisma.meshPrivacy.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      meshVisibility: data.meshVisibility,
+      branchOverrides: JSON.stringify(data.branchOverrides || {}),
+      showConnections: data.showConnections ?? true,
+      showStats: data.showStats ?? false,
+    },
+    update: {
+      meshVisibility: data.meshVisibility,
+      branchOverrides: JSON.stringify(data.branchOverrides || {}),
+      showConnections: data.showConnections ?? true,
+      showStats: data.showStats ?? false,
+    },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/mesh");
+  return { success: true };
+}
+
+// ─── Global Mesh Actions ────────────────────────────────────
+
+export async function optIntoGlobalMesh(sharedBranches: string[]) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const validBranches = ["people", "communities", "interests", "platforms"];
+  const filtered = sharedBranches.filter((b) => validBranches.includes(b));
+
+  await prisma.globalMeshMember.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      isActive: true,
+      sharedBranches: JSON.stringify(filtered),
+    },
+    update: {
+      isActive: true,
+      sharedBranches: JSON.stringify(filtered),
+    },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/mesh");
+  return { success: true };
+}
+
+export async function optOutOfGlobalMesh() {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.globalMeshMember.upsert({
+    where: { userId: user.id },
+    create: { userId: user.id, isActive: false, sharedBranches: "[]" },
+    update: { isActive: false },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/mesh");
+  return { success: true };
+}
+
+export async function updateGlobalMeshBranches(sharedBranches: string[]) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const validBranches = ["people", "communities", "interests", "platforms"];
+  const filtered = sharedBranches.filter((b) => validBranches.includes(b));
+
+  await prisma.globalMeshMember.update({
+    where: { userId: user.id },
+    data: { sharedBranches: JSON.stringify(filtered) },
+  });
+
+  revalidatePath("/settings");
+  return { success: true };
+}

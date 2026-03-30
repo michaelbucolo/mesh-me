@@ -50,7 +50,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const { mode, setMode } = useTheme();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
+    <aside data-meshi-zone="sidebar" className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
       {/* Logo — Meshi is the brand mascot */}
       <div className="p-6">
         <Link href="/mesh" className="group flex items-center gap-2.5">

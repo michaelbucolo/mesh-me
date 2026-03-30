@@ -52,6 +52,8 @@ model User {
   achievements   UserAchievement[]
   meshiPreference MeshiPreference?
   meshCosmetics  MeshCosmetic[]
+  meshPrivacy    MeshPrivacy?
+  globalMeshMember GlobalMeshMember?
   activeTitle    String?
   isMeshPro      Boolean  @default(false)
   meshProSince   DateTime?
@@ -406,4 +408,37 @@ model MeshCosmetic {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ─── Mesh Privacy Controls ──────────────────────────────────
+
+model MeshPrivacy {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  // Overall mesh visibility: "private" | "friends" | "public" | "partial"
+  meshVisibility  String   @default("friends")
+  // Per-branch visibility overrides (JSON: { "people": "public", "communities": "friends", ... })
+  branchOverrides String   @default("{}")
+  // Whether connections (edges) are visible to others
+  showConnections Boolean  @default(true)
+  // Whether stats are visible to others
+  showStats       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Global Mesh (opt-in) ───────────────────────────────────
+
+model GlobalMeshMember {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  isActive        Boolean  @default(true)
+  // JSON array of branch types shared with global mesh: ["people","communities","interests"]
+  sharedBranches  String   @default("[]")
+  joinedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
