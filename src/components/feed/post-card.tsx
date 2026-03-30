@@ -8,6 +8,21 @@ import Link from "next/link";
 import { useState, useTransition, useRef, useEffect } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
 
+// Platform colors for origin badges
+const PLATFORM_BADGE: Record<string, { label: string; color: string; abbr: string }> = {
+  instagram: { label: "Instagram", color: "#E4405F", abbr: "IG" },
+  youtube: { label: "YouTube", color: "#FF0000", abbr: "YT" },
+  tiktok: { label: "TikTok", color: "#69C9D0", abbr: "TT" },
+  twitter: { label: "X", color: "#1DA1F2", abbr: "X" },
+  twitch: { label: "Twitch", color: "#9146FF", abbr: "TW" },
+  spotify: { label: "Spotify", color: "#1DB954", abbr: "SP" },
+  linkedin: { label: "LinkedIn", color: "#0A66C2", abbr: "IN" },
+  reddit: { label: "Reddit", color: "#FF4500", abbr: "RD" },
+  facebook: { label: "Facebook", color: "#1877F2", abbr: "FB" },
+  discord: { label: "Discord", color: "#5865F2", abbr: "DC" },
+  meshme: { label: "mesh.me", color: "#2d7ff9", abbr: "M" },
+};
+
 interface PostCardProps {
   post: {
     id: string;
@@ -27,6 +42,8 @@ interface PostCardProps {
     reactions?: { id: string }[];
     savedBy?: { id: string }[];
     isPinned?: boolean;
+    platform?: string; // Origin platform (e.g. "instagram", "twitter", "meshme")
+    crossPostedTo?: string[]; // Platforms this was cross-posted to
   };
   currentUserId?: string;
   compact?: boolean;
@@ -134,12 +151,37 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                                     </svg>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+              <div className="flex items-center gap-1.5 text-xs flex-wrap" style={{ color: "var(--text-muted)" }}>
                 <Link href={`/profile/${post.author.username}`} className="hover:opacity-80">
                   @{post.author.username}
                 </Link>
                 <span>&middot;</span>
                 <span>{formatRelativeTime(post.createdAt)}</span>
+                {/* Platform origin badge — non-invasive */}
+                {post.platform && PLATFORM_BADGE[post.platform] && (
+                  <>
+                    <span>&middot;</span>
+                    <span
+                      className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[10px] font-medium"
+                      style={{ backgroundColor: PLATFORM_BADGE[post.platform].color + "18", color: PLATFORM_BADGE[post.platform].color }}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{ backgroundColor: PLATFORM_BADGE[post.platform].color }}>
+                        {PLATFORM_BADGE[post.platform].abbr[0]}
+                      </span>
+                      {PLATFORM_BADGE[post.platform].label}
+                    </span>
+                  </>
+                )}
+                {/* Cross-posted indicator */}
+                {post.crossPostedTo && post.crossPostedTo.length > 0 && (
+                  <>
+                    <span>&middot;</span>
+                    <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-0.5">
+                      <Share2 className="h-2.5 w-2.5" />
+                      +{post.crossPostedTo.length}
+                    </span>
+                  </>
+                )}
                 {post.community && (
                   <>
                     <span>&middot;</span>
