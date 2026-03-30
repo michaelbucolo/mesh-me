@@ -1415,3 +1415,98 @@ export async function updateGlobalMeshBranches(sharedBranches: string[]) {
   revalidatePath("/settings");
   return { success: true };
 }
+
+// ─── Redeem Code Actions ─────────────────────────────────────
+
+export async function redeemCode(code: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  if (!code?.trim()) return { error: "Please enter a code" };
+
+  const trimmed = code.trim();
+
+  // Rate limit redemption attempts
+  const rl = rateLimit(`redeem:${user.id}`, 10, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many attempts. Please try again later." };
+  }
+
+  // Auto-seed known codes if they don't exist yet
+  const knownCodes = [
+    {
+      code: "Synergy1017Me",
+      rewardType: "meshi-face",
+      rewardValue: "synergy1017",
+      rewardLabel: "Synergy1017 Wink",
+    },
+  ];
+  for (const known of knownCodes) {
+    const exists = await prisma.redeemCode.findUnique({ where: { code: known.code } });
+    if (!exists) {
+      await prisma.redeemCode.create({ data: known });
+    }
+  }
+
+  // Look up the code
+  const redeemRecord = await prisma.redeemCode.findUnique({ where: { code: trimmed } });
+  if (!redeemRecord) {
+    return { error: "Invalid code" };
+  }
+
+  // Check if already redeemed
+  if (redeemRecord.redeemedBy) {
+    return { error: "This code has already been used" };
+  }
+
+  // Mark the code as redeemed
+  await prisma.redeemCode.update({
+    where: { id: redeemRecord.id },
+    data: {
+      redeemedBy: user.id,
+      redeemedAt: new Date(),
+    },
+  });
+
+  // Grant the cosmetic reward to the user
+  if (redeemRecord.rewardType === "meshi-face") {
+    await prisma.meshCosmetic.create({
+      data: {
+        userId: user.id,
+        type: "face",
+        value: redeemRecord.rewardValue,
+        isActive: true,
+      },
+    });
+
+    // Also set it as the user's active Meshi face
+    await prisma.meshiPreference.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, faceStyle: redeemRecord.rewardValue },
+      update: { faceStyle: redeemRecord.rewardValue },
+    });
+  }
+
+  revalidatePath("/settings");
+  return {
+    success: true,
+    reward: {
+      type: redeemRecord.rewardType,
+      value: redeemRecord.rewardValue,
+      label: redeemRecord.rewardLabel,
+    },
+  };
+}
+
+// Check if user has unlocked a specific cosmetic
+export async function getUserUnlockedCosmetics() {
+  const user = await getCurrentUser();
+  if (!user) return { cosmetics: [] };
+
+  const cosmetics = await prisma.meshCosmetic.findMany({
+    where: { userId: user.id },
+    select: { type: true, value: true, isActive: true },
+  });
+
+  return { cosmetics };
+}
