@@ -218,7 +218,7 @@ export default function SearchPage() {
           </div>
           <div className="text-center pt-8">
             <SearchIcon className="h-12 w-12 text-[var(--text-muted)] mx-auto mb-4" />
-            <p className="text-[var(--text-muted)] text-sm">Search for people, posts, communities, and tags</p>
+            <p className="text-[var(--text-muted)] text-sm">Find anything on the mesh</p>
           </div>
         </div>
       )}

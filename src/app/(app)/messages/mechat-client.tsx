@@ -93,7 +93,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
             </div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">MeChat</h1>
           </div>
-          <p className="text-sm text-[var(--text-muted)] mt-1">All your conversations, one place</p>
+          <p className="text-sm text-[var(--text-muted)] mt-1">Every conversation. One inbox.</p>
         </div>
         <div className="flex items-center gap-2">
           <button

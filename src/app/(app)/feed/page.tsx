@@ -44,13 +44,13 @@ export default async function FeedPage() {
           <EmptyState
             icon={FileText}
             title="Your feed is empty"
-            description="Follow people and join communities to see posts here, or explore what's happening."
+            description="Follow people and join communities to fill your feed, or explore what's happening on the mesh."
           >
             <Link
               href="/explore"
               className="inline-flex brand-button text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
             >
-              Explore mesh.me
+              Explore the Mesh
             </Link>
           </EmptyState>
         )}

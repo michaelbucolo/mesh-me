@@ -16,7 +16,7 @@ export default async function CommunitiesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Communities</h1>
-          <p className="text-sm text-[var(--text-tertiary)] mt-1">Find your people, join the conversation</p>
+          <p className="text-sm text-[var(--text-tertiary)] mt-1">Your corners of the internet, all in one place</p>
         </div>
         <Link
           href="/communities/create"
@@ -37,13 +37,13 @@ export default async function CommunitiesPage() {
         <EmptyState
           icon={Users}
           title="No communities yet"
-          description="Be the first to create a community and bring people together."
+          description="Be the first to start something. Build a space for people like you."
         >
           <Link
             href="/communities/create"
             className="brand-button inline-flex text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
           >
-            Create the first community
+            Start a community
           </Link>
         </EmptyState>
       )}

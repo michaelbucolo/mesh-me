@@ -52,7 +52,7 @@ export default function CreateCommunityPage() {
       </Link>
 
       <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Create a community</h1>
-      <p className="text-sm text-[var(--text-tertiary)] mb-8">Build a space for people who share your interests</p>
+      <p className="text-sm text-[var(--text-tertiary)] mb-8">Build a space for people like you</p>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
