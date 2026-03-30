@@ -16,9 +16,9 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "mesh.me",
-  description: "Your entire digital world, unified. One platform for every connection, conversation, and community.",
-  keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network"],
+  title: "mesh.me — One internet. One you.",
+  description: "The universal layer for your digital life. Every connection, conversation, and community — unified, private, and yours.",
+  keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network", "universal social"],
 };
 
 export default function RootLayout({

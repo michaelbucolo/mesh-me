@@ -30,24 +30,24 @@ export default function AboutPage() {
         <h1 className="font-display text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-6">About mesh.me</h1>
         <div className="space-y-6 text-[var(--text-tertiary)] text-lg leading-relaxed">
           <p>
-            mesh.me was born from a simple observation: social media has become more about performance than connection. We scroll endlessly, chase metrics, and curate personas that don&apos;t reflect who we actually are.
+            The internet wasn&apos;t supposed to feel this fragmented. Fifteen apps, fifteen logins, fifteen versions of you — scattered across platforms that don&apos;t talk to each other and don&apos;t answer to you.
           </p>
           <p>
-            We believe the internet should feel more human. That your online identity should be as rich and multifaceted as you are. That communities should form around genuine shared interest, not just algorithmic coincidence.
+            mesh.me exists to fix that. One place for your entire digital life — every connection, every conversation, every community — unified under an identity you actually own.
           </p>
           <p className="text-[var(--text-secondary)] font-medium text-xl">
-            mesh.me is designed around a single idea: meaningful overlap between people.
+            One internet. One you. That&apos;s the mesh.
           </p>
           <p>
-            When your interests, creativity, values, and energy overlap with someone else&apos;s, that&apos;s where real connection happens. We call that meshing. And we&apos;re building a platform that makes it easy to find, nurture, and celebrate those connections.
+            When your interests, creativity, and energy overlap with someone else&apos;s, that&apos;s where real connection happens. We call it meshing. And we built a platform that makes it effortless to find, nurture, and protect those connections.
           </p>
           <h2 className="text-2xl font-bold text-[var(--text-primary)] pt-6">Our Principles</h2>
           <ul className="space-y-3">
-            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" /><span><strong className="text-[var(--text-primary)]">Identity over vanity metrics.</strong> Your profile should reflect who you are, not how many followers you have.</span></li>
-            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" /><span><strong className="text-[var(--text-primary)]">Connection over addiction.</strong> We design for meaningful interaction, not infinite scrolling.</span></li>
-            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" /><span><strong className="text-[var(--text-primary)]">Expression over sameness.</strong> Every profile, every community, every post should feel personal.</span></li>
-            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" /><span><strong className="text-[var(--text-primary)]">Community over noise.</strong> Quality interactions in smaller spaces beat shouting into the void.</span></li>
-            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" /><span><strong className="text-[var(--text-primary)]">Safety by default.</strong> Privacy controls, moderation tools, and respectful norms are built in from day one.</span></li>
+            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" style={{ background: "var(--accent)" }} /><span><strong className="text-[var(--text-primary)]">Privacy is not a feature. It&apos;s the foundation.</strong> Your data belongs to you. Period.</span></li>
+            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" style={{ background: "var(--accent)" }} /><span><strong className="text-[var(--text-primary)]">No ads. No algorithms. No compromise.</strong> We will never sell your attention to the highest bidder.</span></li>
+            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" style={{ background: "var(--accent)" }} /><span><strong className="text-[var(--text-primary)]">Identity over vanity.</strong> Your profile reflects who you are, not how many people follow you.</span></li>
+            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" style={{ background: "var(--accent)" }} /><span><strong className="text-[var(--text-primary)]">Connection over addiction.</strong> Designed for real interaction, not infinite scrolling.</span></li>
+            <li className="flex items-start gap-3"><div className="h-1.5 w-1.5 rounded-full mt-3 flex-shrink-0" style={{ background: "var(--accent)" }} /><span><strong className="text-[var(--text-primary)]">Built for humans.</strong> Every pixel serves the person using it, not the platform profiting from it.</span></li>
           </ul>
         </div>
       </main>
