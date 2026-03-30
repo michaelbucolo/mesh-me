@@ -71,7 +71,7 @@ const SETTINGS_TIPS: Record<string, { message: string; mood: MeshiMood }> = {
     mood: "excited",
   },
   notifications: {
-    message: "Control exactly what notifications you get and how. mesh.me uses AI to summarize notifications so you get the important stuff without the noise.",
+    message: "Control exactly what notifications you get and how. mesh.me intelligently summarizes notifications so you get the important stuff without the noise.",
     mood: "cool",
   },
   privacy: {

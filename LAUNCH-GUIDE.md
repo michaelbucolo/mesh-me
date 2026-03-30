@@ -38,7 +38,7 @@ Your mesh.me codebase is a complete, production-ready Next.js application:
 - **Database**: Prisma with libsql adapter (SQLite-compatible, works with Turso in production)
 - **Authentication**: Custom session-based auth with bcrypt password hashing
 - **Security**: Rate limiting, account lockout, input sanitization, security headers
-- **AI Assistant**: Meshi — floating AI guide with contextual greetings, visual search, mini-mesh panel
+- **Meshi**: Floating guide with contextual greetings, visual search, mini-mesh panel
 - **32 routes** covering: landing page, auth, feed, mesh visualization, custom feed, MeChat, communities, profiles, explore, search, notifications, admin panel, settings, connected accounts, privacy policy, terms of service
 - **0 build errors, 0 lint errors**
 
