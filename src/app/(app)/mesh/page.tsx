@@ -74,6 +74,7 @@ interface MeshNode {
   sharedInterests?: string[];
   category?: string;
   platform?: string;
+  imageUrl?: string | null; // post image/video thumbnail
 }
 
 interface MeshEdge {
@@ -139,6 +140,8 @@ function hexAlpha(opacity: number): string {
 export default function MeshPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
+  // Image cache for profile pics and post thumbnails
+  const imageCache = useRef<Map<string, HTMLImageElement | null>>(new Map());
   const [nodes, setNodes] = useState<MeshNode[]>([]);
   const [edges, setEdges] = useState<MeshEdge[]>([]);
   const [selectedNode, setSelectedNode] = useState<MeshNode | null>(null);
@@ -479,6 +482,19 @@ export default function MeshPage() {
           });
         });
 
+        // Preload images for nodes with avatars or post images
+        for (const node of meshNodes) {
+          const imgUrl = node.avatarUrl || node.imageUrl;
+          if (imgUrl && !imageCache.current.has(node.id)) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => { imageCache.current.set(node.id, img); };
+            img.onerror = () => { imageCache.current.set(node.id, null); };
+            img.src = imgUrl;
+            imageCache.current.set(node.id, null); // placeholder while loading
+          }
+        }
+
         setNodes(meshNodes);
         setEdges(meshEdges);
         nodesRef.current = meshNodes;
@@ -762,45 +778,81 @@ export default function MeshPage() {
           ctx.stroke();
         }
 
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
-        const fillGrad = ctx.createRadialGradient(
-          node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0,
-          node.x, node.y, nodeRadius
-        );
-        fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
-        fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
-        ctx.fillStyle = fillGrad;
-        ctx.fill();
+        // Check if we have a loaded image for this node
+        const cachedImg = imageCache.current.get(node.id);
+        const hasImage = cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0;
 
-        ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
-        ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
-        ctx.stroke();
+        if (hasImage) {
+          // Draw image clipped to circle (profile pic or post thumbnail IS the node)
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.globalAlpha = nodeOpacity;
+          ctx.drawImage(
+            cachedImg,
+            node.x - nodeRadius, node.y - nodeRadius,
+            nodeRadius * 2, nodeRadius * 2
+          );
+          ctx.globalAlpha = 1;
+          ctx.restore();
 
-        ctx.fillStyle = "rgba(255, 255, 255, " + (0.85 * nodeOpacity) + ")";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
+          // Draw colored border ring around image node
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.9 : 0.5) * nodeOpacity);
+          ctx.lineWidth = isHovered || isSelected ? 2.5 : 1.5;
+          ctx.stroke();
 
-        if (node.type === "self") {
-          // Draw user's initials (or profile picture placeholder) at center
-          const initials = node.label.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "ME";
-          ctx.font = "bold " + (nodeRadius * 0.55) + "px system-ui, -apple-system, sans-serif";
-          ctx.fillText(initials, node.x, node.y);
-        } else if (node.type === "community") {
-          ctx.font = Math.max(9, nodeRadius * 0.5) + "px system-ui, -apple-system, sans-serif";
-          ctx.fillText((node.label[0] || "C").toUpperCase(), node.x, node.y);
-        } else if (node.type === "tag") {
-          ctx.font = Math.max(9, nodeRadius * 0.5) + "px system-ui, -apple-system, sans-serif";
-          ctx.fillText("#", node.x, node.y);
-        } else if (node.type === "post") {
-          ctx.font = Math.max(7, nodeRadius * 0.45) + "px system-ui, -apple-system, sans-serif";
-          ctx.fillText("\u2726", node.x, node.y);
-        } else if (node.type === "platform") {
-          ctx.font = "bold " + (nodeRadius * 0.5) + "px system-ui, -apple-system, sans-serif";
-          ctx.fillText(node.label[0], node.x, node.y);
+          // Optional: subtle inner shadow for depth
+          if (isHovered || isSelected) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, nodeRadius + 2, 0, Math.PI * 2);
+            ctx.strokeStyle = node.color + hexAlpha(0.3 * nodeOpacity);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
         } else {
-          ctx.font = "bold " + (nodeRadius * 0.6) + "px system-ui, -apple-system, sans-serif";
-          ctx.fillText((node.label[0] || "?").toUpperCase(), node.x, node.y);
+          // Fallback: colored circle with initial/icon (no image available)
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+          const fillGrad = ctx.createRadialGradient(
+            node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0,
+            node.x, node.y, nodeRadius
+          );
+          fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
+          fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
+          ctx.fillStyle = fillGrad;
+          ctx.fill();
+
+          ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
+          ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(255, 255, 255, " + (0.85 * nodeOpacity) + ")";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          if (node.type === "self") {
+            const initials = node.label.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "ME";
+            ctx.font = "bold " + (nodeRadius * 0.55) + "px system-ui, -apple-system, sans-serif";
+            ctx.fillText(initials, node.x, node.y);
+          } else if (node.type === "community") {
+            ctx.font = Math.max(9, nodeRadius * 0.5) + "px system-ui, -apple-system, sans-serif";
+            ctx.fillText((node.label[0] || "C").toUpperCase(), node.x, node.y);
+          } else if (node.type === "tag") {
+            ctx.font = Math.max(9, nodeRadius * 0.5) + "px system-ui, -apple-system, sans-serif";
+            ctx.fillText("#", node.x, node.y);
+          } else if (node.type === "post") {
+            ctx.font = Math.max(7, nodeRadius * 0.45) + "px system-ui, -apple-system, sans-serif";
+            ctx.fillText("\u2726", node.x, node.y);
+          } else if (node.type === "platform") {
+            ctx.font = "bold " + (nodeRadius * 0.5) + "px system-ui, -apple-system, sans-serif";
+            ctx.fillText(node.label[0], node.x, node.y);
+          } else {
+            ctx.font = "bold " + (nodeRadius * 0.6) + "px system-ui, -apple-system, sans-serif";
+            ctx.fillText((node.label[0] || "?").toUpperCase(), node.x, node.y);
+          }
         }
 
         if (node.isMutual && node.type === "user") {
