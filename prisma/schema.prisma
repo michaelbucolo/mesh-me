@@ -53,6 +53,7 @@ model User {
   meshiPreference MeshiPreference?
   meshCosmetics  MeshCosmetic[]
   meshPrivacy    MeshPrivacy?
+  sessions       Session[]
   globalMeshMember GlobalMeshMember?
   activeTitle    String?
   isMeshPro      Boolean  @default(false)
@@ -441,6 +442,20 @@ model GlobalMeshMember {
   updatedAt       DateTime @updatedAt
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Sessions (DB-backed for serverless) ─────────────────────
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ─── Redeem Codes ────────────────────────────────────────────
