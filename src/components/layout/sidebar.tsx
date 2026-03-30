@@ -20,8 +20,6 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
-import { useTheme } from "@/components/theme-provider";
-import { Sun, Moon, Monitor } from "lucide-react";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 interface SidebarProps {
@@ -38,7 +36,7 @@ interface SidebarProps {
 // Only 3 primary tabs — everything else is accessible from the mesh or secondary nav
 const navItems = [
   { href: "/mesh", icon: Waypoints, label: "The Mesh", gradient: "from-blue-500 to-cyan-400" },
-  { href: "/feed", icon: Home, label: "Feed", gradient: "from-violet-500 to-pink-400" },
+  { href: "/feed", icon: Home, label: "Feed", gradient: "from-blue-500 to-sky-400" },
   { href: "/messages", icon: MessageCircle, label: "Messages", gradient: "from-emerald-500 to-teal-400" },
 ];
 
@@ -51,7 +49,6 @@ const secondaryItems = [
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const pathname = usePathname();
-  const { mode, setMode } = useTheme();
 
   return (
     <aside data-meshi-zone="sidebar" className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
@@ -97,7 +94,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         <div className="mt-4">
           <Link
             href="/feed?compose=true"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-white font-semibold text-sm shadow-lg active:scale-[0.97] transition-all bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 hover:shadow-xl hover:shadow-violet-500/25"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-white font-semibold text-sm shadow-lg active:scale-[0.97] transition-all brand-button hover:shadow-xl hover:shadow-blue-500/25"
           >
             <PenSquare className="h-4 w-4" />
             <span>Create Post</span>
@@ -175,19 +172,6 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           </div>
         </div>
       </nav>
-
-      {/* Theme Toggle */}
-      <div className="px-3 pb-2">
-        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "var(--bg-tertiary)" }}>
-          {([{ v: "light" as const, icon: Sun, l: "Light" }, { v: "dark" as const, icon: Moon, l: "Dark" }, { v: "system" as const, icon: Monitor, l: "Auto" }]).map((m) => (
-            <button key={m.v} onClick={() => setMode(m.v)}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${mode === m.v ? "shadow-sm" : "opacity-60 hover:opacity-100"}`}
-              style={mode === m.v ? { background: "var(--bg-elevated)", color: "var(--text-primary)" } : { color: "var(--text-secondary)" }}>
-              <m.icon className="h-3.5 w-3.5" />{m.l}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* User section */}
       <div className="p-3" style={{ borderTop: "1px solid var(--border-primary)" }}>

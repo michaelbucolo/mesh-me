@@ -268,7 +268,7 @@ export default function MeshPage() {
         if (!res.ok) throw new Error("Failed to load mesh data");
         const data = await res.json();
 
-        const cx = 600, cy = 400;
+        const cx = centerRef.current.x || 600, cy = centerRef.current.y || 400;
         const meshNodes: MeshNode[] = [];
         const meshEdges: MeshEdge[] = [];
 
@@ -749,9 +749,17 @@ export default function MeshPage() {
       animationRef.current = requestAnimationFrame(render);
     };
 
+    // Set canvas dimensions before first render
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width === 0 || canvas.height === 0) {
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = canvas.offsetHeight * dpr;
+      centerRef.current = { x: canvas.offsetWidth / 2, y: canvas.offsetHeight / 2 };
+    }
+
     render();
     return () => cancelAnimationFrame(animationRef.current);
-  }, [simulate]);
+  }, [simulate, loading]); // re-run when loading finishes and canvas appears
 
   // --- Canvas resize ---
 
@@ -767,7 +775,7 @@ export default function MeshPage() {
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
-  }, []);
+  }, [loading]); // re-run when loading changes so canvas gets sized after mount
 
   // --- Interaction handlers ---
 
@@ -1055,7 +1063,7 @@ export default function MeshPage() {
           >
             {[
               { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-[var(--accent)]" },
-              { label: "communities", count: nodes.filter((n) => n.type === "community").length, color: "text-pink-400" },
+              { label: "communities", count: nodes.filter((n) => n.type === "community").length, color: "text-sky-400" },
               { label: "interests", count: nodes.filter((n) => n.type === "tag").length, color: "text-cyan-400" },
               { label: "posts", count: nodes.filter((n) => n.type === "post").length, color: "text-emerald-400" },
               { label: "platforms", count: nodes.filter((n) => n.type === "platform").length, color: "text-amber-400" },
@@ -1238,7 +1246,7 @@ export default function MeshPage() {
                         onClick={() => toggleLike(selectedNode.id)}
                         className={"flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 " + (
                           likedPosts.has(selectedNode.id)
-                            ? "bg-pink-500/20 text-pink-400 border border-pink-500/30"
+                            ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
                             : "glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                         )}
                       >
@@ -1395,9 +1403,9 @@ export default function MeshPage() {
                 {[
                   { label: "Following", value: meshStats.followingCount, color: "text-[var(--accent)]", icon: Users },
                   { label: "Followers", value: meshStats.followerCount, color: "text-indigo-400", icon: Users },
-                  { label: "Mutuals", value: meshStats.mutualCount, color: "text-purple-400", icon: Heart },
+                  { label: "Mutuals", value: meshStats.mutualCount, color: "text-blue-400", icon: Heart },
                   { label: "Posts", value: meshStats.postCount, color: "text-emerald-400", icon: FileText },
-                  { label: "Communities", value: meshStats.communityCount, color: "text-pink-400", icon: Users },
+                  { label: "Communities", value: meshStats.communityCount, color: "text-sky-400", icon: Users },
                   { label: "Platforms", value: meshStats.connectedPlatformCount, color: "text-amber-400", icon: Link2 },
                 ].map((stat) => (
                   <div key={stat.label} className="glass-surface rounded-xl p-2.5 text-center">
@@ -1596,7 +1604,7 @@ export default function MeshPage() {
       <div className="absolute bottom-4 left-4 z-10 flex gap-2">
         <button
           onClick={() => setShowPostComposer(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all active:scale-95 shadow-lg bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 hover:shadow-xl hover:shadow-violet-500/25"
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all active:scale-95 shadow-lg brand-button hover:shadow-xl hover:shadow-blue-500/25"
         >
           <Plus className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Create Post</span>
@@ -1642,7 +1650,7 @@ export default function MeshPage() {
                 <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Hide entire branches</p>
                 {["user", "community", "tag", "post", "platform"].map((type) => {
                   const typeLabels: Record<string, string> = { user: "People", community: "Communities", tag: "Interests", post: "Posts", platform: "Platforms" };
-                  const typeColors: Record<string, string> = { user: "text-blue-400", community: "text-pink-400", tag: "text-cyan-400", post: "text-emerald-400", platform: "text-amber-400" };
+                  const typeColors: Record<string, string> = { user: "text-blue-400", community: "text-sky-400", tag: "text-cyan-400", post: "text-emerald-400", platform: "text-amber-400" };
                   return (
                     <button
                       key={type}
@@ -1702,7 +1710,7 @@ export default function MeshPage() {
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="w-full max-w-lg mx-4 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-violet-500 to-pink-500" />
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400" />
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-bold text-[var(--text-primary)]">Create Post</h3>
@@ -1775,7 +1783,7 @@ export default function MeshPage() {
                         setCrossPostPlatforms(new Set());
                       }}
                       disabled={!postContent.trim()}
-                      className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 shadow-lg hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                      className="px-5 py-2 rounded-xl text-xs font-semibold text-white brand-button shadow-lg hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
                     >
                       Publish
                     </button>

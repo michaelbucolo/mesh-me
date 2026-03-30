@@ -293,11 +293,6 @@ export function MeshEntry() {
 
   return (
     <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 sm:px-6">
-      {/* Theme toggle */}
-      <div className="fixed top-4 right-4 z-20">
-        <ThemeToggle />
-      </div>
-
       {/* Signup progress bar */}
       {!isLogin && currentStepIndex >= 0 && step !== "success" && (
         <div className="fixed top-0 left-0 right-0 z-30 h-1" style={{ background: "var(--bg-tertiary)" }}>
