@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/** Detect actual image type from file magic bytes (ignores client-provided MIME) */
+function detectImageType(buf: Uint8Array): string | null {
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return "image/jpeg";
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return "image/png";
+  if (buf.length >= 12 && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return "image/webp";
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return "image/gif";
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
@@ -16,22 +25,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF" }, { status: 400 });
-    }
-
     // Validate file size (max 4MB for banners)
     if (file.size > 4 * 1024 * 1024) {
       return NextResponse.json({ error: "File too large. Maximum size is 4MB" }, { status: 400 });
     }
 
-    // Convert to base64 data URL (same approach as avatar for MVP)
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString("base64");
-    const dataUrl = `data:${file.type};base64,${base64}`;
+    // Validate actual file content via magic bytes — don't trust client MIME type
+    const arrayBuf = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuf);
+    const detectedType = detectImageType(bytes);
+    if (!detectedType) {
+      return NextResponse.json({ error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF" }, { status: 400 });
+    }
+
+    const base64 = Buffer.from(arrayBuf).toString("base64");
+    const dataUrl = `data:${detectedType};base64,${base64}`;
 
     await prisma.user.update({
       where: { id: user.id },
