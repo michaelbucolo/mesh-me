@@ -749,9 +749,17 @@ export async function getUserSettings() {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  const [userWithEmail, achievements] = await Promise.all([
+    prisma.user.findUnique({ where: { id: user.id }, select: { email: true, activeTitle: true } }),
+    prisma.userAchievement.findMany({
+      where: { userId: user.id },
+      include: { achievement: { select: { slug: true } } },
+    }),
+  ]);
+
   return {
     id: user.id,
-    email: (await prisma.user.findUnique({ where: { id: user.id }, select: { email: true } }))?.email,
+    email: userWithEmail?.email,
     username: user.username,
     displayName: user.displayName,
     bio: user.bio,
@@ -763,6 +771,8 @@ export async function getUserSettings() {
     isPublic: user.isPublic,
     interests: user.interests,
     links: user.links,
+    activeTitle: userWithEmail?.activeTitle ?? null,
+    achievements: achievements.map((a) => ({ slug: a.achievement.slug })),
   };
 }
 
