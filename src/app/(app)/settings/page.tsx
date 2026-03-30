@@ -38,6 +38,7 @@ import {
   Plus,
   X,
   Palette,
+  Camera,
   AlertTriangle,
   Check,
   UserX,
@@ -147,6 +148,10 @@ export default function SettingsPage() {
   const [notifMessages, setNotifMessages] = useState(true);
   const [notifCommunity, setNotifCommunity] = useState(true);
   const [notifAISummary, setNotifAISummary] = useState(true);
+
+  // Avatar upload
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Customization
   const [selectedTheme, setSelectedTheme] = useState("midnight");
@@ -506,10 +511,82 @@ export default function SettingsPage() {
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Edit profile</h2>
 
               <div className="flex items-center gap-4 mb-4">
-                <Avatar src={settings?.avatarUrl} alt={displayName} size="lg" />
+                <div className="relative group">
+                  <Avatar src={avatarPreview || settings?.avatarUrl} alt={displayName} size="lg" />
+                  <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <Camera className="h-5 w-5 text-white" />
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 2 * 1024 * 1024) {
+                          showError("Image must be under 2MB");
+                          return;
+                        }
+                        setAvatarUploading(true);
+                        const preview = URL.createObjectURL(file);
+                        setAvatarPreview(preview);
+                        const fd = new FormData();
+                        fd.append("avatar", file);
+                        try {
+                          const res = await fetch("/api/avatar", { method: "POST", body: fd });
+                          const data = await res.json();
+                          if (data.error) {
+                            showError(data.error);
+                            setAvatarPreview(null);
+                          } else {
+                            showSuccess("Profile picture updated");
+                            setSettings((prev) => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev);
+                          }
+                        } catch {
+                          showError("Failed to upload image");
+                          setAvatarPreview(null);
+                        } finally {
+                          setAvatarUploading(false);
+                        }
+                      }}
+                    />
+                  </label>
+                  {avatarUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60">
+                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
                 <div>
                   <p className="text-sm text-[var(--text-secondary)] font-medium">@{settings?.username}</p>
                   <p className="text-xs text-[var(--text-muted)]">{settings?.email}</p>
+                  <button
+                    type="button"
+                    onClick={() => setAvatarPreview(null)}
+                    className="text-xs text-[var(--accent)] hover:underline mt-1"
+                  >
+                    Change photo
+                  </button>
+                  {settings?.avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setAvatarUploading(true);
+                        try {
+                          await fetch("/api/avatar", { method: "DELETE" });
+                          setAvatarPreview(null);
+                          setSettings((prev) => prev ? { ...prev, avatarUrl: null } : prev);
+                          showSuccess("Profile picture removed");
+                        } catch {
+                          showError("Failed to remove image");
+                        } finally {
+                          setAvatarUploading(false);
+                        }
+                      }}
+                      className="text-xs text-red-400 hover:underline mt-1 ml-2"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
 
