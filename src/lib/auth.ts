@@ -95,10 +95,9 @@ export async function destroySession() {
   }
 }
 
-export function invalidateAllUserSessions(userId: string): number {
-  // Fire-and-forget: delete all sessions for this user
-  prisma.session.deleteMany({ where: { userId } }).catch(() => {});
-  return 0;
+export async function invalidateAllUserSessions(userId: string): Promise<number> {
+  const result = await prisma.session.deleteMany({ where: { userId } });
+  return result.count;
 }
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;

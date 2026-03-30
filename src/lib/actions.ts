@@ -894,7 +894,7 @@ export async function changePassword(formData: FormData) {
   });
 
   // Invalidate all existing sessions and create a fresh one for the current user
-  invalidateAllUserSessions(user.id);
+  await invalidateAllUserSessions(user.id);
   await createSession(user.id);
 
   return { success: true };
