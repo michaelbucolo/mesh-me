@@ -708,10 +708,17 @@ export async function adminSuspendUser(targetUserId: string) {
   if (!target) return { error: "User not found" };
   if (target.isAdmin) return { error: "Cannot suspend other admin users" };
 
+  const newSuspendedState = !target.isSuspended;
+
   await prisma.user.update({
     where: { id: targetUserId },
-    data: { isSuspended: !target.isSuspended },
+    data: { isSuspended: newSuspendedState },
   });
+
+  // Invalidate all sessions when suspending to prevent continued access
+  if (newSuspendedState) {
+    await invalidateAllUserSessions(targetUserId);
+  }
 
   await prisma.adminLog.create({
     data: {
