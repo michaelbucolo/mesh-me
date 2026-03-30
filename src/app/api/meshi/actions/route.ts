@@ -45,8 +45,8 @@ export async function POST(req: Request) {
         if (!body.content || typeof body.content !== "string" || body.content.trim().length === 0) {
           return NextResponse.json({ error: "Post content is required" }, { status: 400 });
         }
-        if (body.content.length > 5000) {
-          return NextResponse.json({ error: "Post content too long (max 5000 chars)" }, { status: 400 });
+        if (body.content.length > 500) {
+          return NextResponse.json({ error: "Post content too long (max 500 chars)" }, { status: 400 });
         }
 
         const post = await prisma.post.create({
@@ -109,7 +109,10 @@ export async function POST(req: Request) {
         // Find or create thread
         let thread = await prisma.messageThread.findFirst({
           where: {
-            members: { every: { userId: { in: [user.id, body.recipientId] } } },
+            AND: [
+              { members: { some: { userId: user.id } } },
+              { members: { some: { userId: body.recipientId } } },
+            ],
           },
           include: { members: true },
         });
