@@ -1,29 +1,47 @@
 # mesh.me
 
-FastAPI MVP with a sleek animated landing page (mesh threads) + signup.
+A next-generation social identity platform built with Next.js, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
 
-## Run (Windows CMD)
-```bat
-cd %USERPROFILE%\Downloads\mesh.me
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-uvicorn app.main:app --reload
+## Getting Started
+
+```bash
+npm install
+npx prisma generate
+npx prisma db push
+npm run dev
 ```
 
-Open:
-- http://127.0.0.1:8000
-- http://127.0.0.1:8000/signup
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-## Push to GitHub
-Create a repo named `mesh.me`, then:
-```bat
-cd %USERPROFILE%\Downloads\mesh.me
-git init
-git add .
-git commit -m "Initial mesh.me MVP"
-git branch -M main
-git remote add origin https://github.com/YOURUSER/mesh.me.git
-git push -u origin main
-```
+## Features
+
+- **The Mesh** — Interactive constellation network visualization of your social graph
+- **Custom Feed** — Universal scrolling feed with layout modes (Instagram/Twitter/TikTok/YouTube)
+- **MeChat** — Unified messaging across platforms
+- **Connected Accounts** — Link 16+ social platforms
+- **Communities** — Create, join, and moderate community spaces
+- **AI Notifications** — Smart notification summaries
+- **Expressive Profiles** — Rich identity with accent colors, interest tags, and customization
+- **Admin Panel** — Moderation queue, user management, analytics
+- **Security** — Rate limiting, account lockout, input sanitization, XSS prevention
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Database:** PostgreSQL / SQLite (dev)
+- **ORM:** Prisma
+- **Animation:** Framer Motion, HTML5 Canvas
+- **UI:** Custom design system with glass morphism effects
+
+## Architecture
+
+- `src/app/` — Next.js App Router pages and API routes
+- `src/components/` — Reusable UI components
+- `src/lib/` — Server actions, queries, auth, utilities
+- `prisma/` — Database schema and migrations
+
+## Deploy on Vercel
+
+The easiest way to deploy is via [Vercel](https://vercel.com).
