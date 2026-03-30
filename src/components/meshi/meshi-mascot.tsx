@@ -10,30 +10,40 @@ const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
   cy: Math.round(Math.sin((deg * Math.PI) / 180) * 4 * 1000) / 1000,
 }));
 
-const DOT_POSITIONS = [0, 72, 144, 216, 288].map((deg) => ({
-  deg,
-  cx: Math.round(Math.cos((deg * Math.PI) / 180) * 18 * 1000) / 1000,
-  cy: Math.round(Math.sin((deg * Math.PI) / 180) * 18 * 1000) / 1000,
-}));
 
 // Meshi face styles — eyes only, reacts to interaction
 const FACES: Record<string, { eyes: string; svg?: boolean }> = {
-  happy: { eyes: "◕ ◕" },
-  excited: { eyes: "★ ★" },
-  thinking: { eyes: "◑ ◐" },
-  sleepy: { eyes: "◡ ◡" },
-  surprised: { eyes: "◎ ◎" },
-  love: { eyes: "♥ ♥" },
-  cool: { eyes: "■ ■" },
-  wink: { eyes: "◕ ◡" },
-  petted: { eyes: "◠ ◠" },
-  giggle: { eyes: "≧ ≦" },
-  shy: { eyes: "· ·" },
+  happy: { eyes: "", svg: true },
+  excited: { eyes: "★  ★" },
+  thinking: { eyes: "◑  ◐" },
+  sleepy: { eyes: "◡  ◡" },
+  surprised: { eyes: "◎  ◎" },
+  love: { eyes: "♥  ♥" },
+  cool: { eyes: "■  ■" },
+  wink: { eyes: "", svg: true },
+  petted: { eyes: "◠  ◠" },
+  giggle: { eyes: "≧  ≦" },
+  shy: { eyes: "·  ·" },
   synergy1017: { eyes: "", svg: true },
 };
 
-// SVG face for synergy1017 — oval open eye + thick upward wink, same style as text faces
+// SVG faces for clean, scalable eye rendering
 const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
+  happy: (color: string) => (
+    <g>
+      {/* Wide, friendly oval eyes */}
+      <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
+      <ellipse cx="5" cy="0" rx="2.5" ry="3" fill={color} />
+    </g>
+  ),
+  wink: (color: string) => (
+    <g>
+      {/* Left eye — wide oval */}
+      <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
+      {/* Right eye — happy closed arc */}
+      <path d="M 2.5 0.5 Q 5 -2.5 7.5 0.5" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+    </g>
+  ),
   synergy1017: (color: string) => (
     <g>
       {/* Left eye — tall oval */}
@@ -264,17 +274,11 @@ export function MeshiMascot({
 
         {/* Clipped content — everything inside the circle */}
         <g clipPath="url(#meshi-circle-clip)">
-          {/* Body — perfect circle bubble */}
+          {/* Body — clean circle */}
           <motion.circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2"
             animate={animate ? { y: [0, -1, 0] } : undefined}
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           />
-
-          {/* Inner gradient — gives bubble depth */}
-          <circle cx="0" cy="0" r="14" fill={theme.primary} opacity="0.15" />
-
-          {/* Bubble highlight — top-left shine for glossy feel */}
-          <ellipse cx="-5" cy="-6" rx="5" ry="3.5" fill="white" opacity="0.15" transform="rotate(-20)" />
 
           {/* Hat */}
           <g style={{ color: theme.primary }}>{hatElement}</g>
@@ -297,16 +301,6 @@ export function MeshiMascot({
           </g>
         </g>
 
-        {/* Mesh connection dots — on the circle perimeter */}
-        {DOT_POSITIONS.map((pos, i) => (
-          <motion.circle key={pos.deg}
-            cx={pos.cx}
-            cy={pos.cy}
-            r="1.5" fill={theme.primary} opacity="0.5"
-            animate={animate ? { opacity: [0.3, 0.7, 0.3], scale: [1, 1.2, 1] } : undefined}
-            transition={{ duration: 2, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
-          />
-        ))}
       </svg>
     </motion.div>
   );
@@ -321,9 +315,7 @@ export function MeshiLogo({ size = 32, color = "blue", mood = "happy", className
   return (
     <div className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox="-20 -20 40 40">
-        <circle cx="0" cy="0" r="16" fill={theme.primary} opacity="0.15" />
-        <circle cx="0" cy="0" r="16" fill="none" stroke={theme.primary} strokeWidth="2" />
-        <ellipse cx="-4" cy="-5" rx="4" ry="3" fill="white" opacity="0.12" transform="rotate(-20)" />
+        <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2" />
         {face.svg && SVG_FACES[mood] ? (
           <g transform="scale(0.85)">{SVG_FACES[mood](theme.primary)}</g>
         ) : (
