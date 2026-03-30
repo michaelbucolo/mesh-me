@@ -392,6 +392,8 @@ export function MeshEntry() {
                   <input ref={inputRef} type="text" value={username}
                     placeholder={isLogin ? "username or email" : "username"}
                     autoComplete={isLogin ? "email" : "username"}
+                    minLength={3}
+                    maxLength={30}
                     className={inputClass + " pl-8"}
                     style={{ border: "1px solid var(--border-primary)", color: "var(--text-primary)" }}
                     onFocus={() => setActiveField("username")} onBlur={() => setActiveField(null)}
@@ -400,6 +402,9 @@ export function MeshEntry() {
                       setUsername(val);
                     }} />
                 </div>
+                {!isLogin && username.length > 0 && username.length < 3 && (
+                  <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>At least 3 characters required</p>
+                )}
                 <motion.button whileTap={{ scale: 0.98 }} type="submit"
                   className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                   Continue <ArrowRight className="h-4 w-4" />
