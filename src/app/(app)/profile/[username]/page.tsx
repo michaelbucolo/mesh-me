@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
-import { MapPin, Link as LinkIcon, Calendar, MessageCircle, MoreHorizontal, Link2 } from "lucide-react";
+import { MapPin, Link as LinkIcon, Calendar, MessageCircle, MoreHorizontal, Link2, Crown, Trophy } from "lucide-react";
 import Link from "next/link";
 import { FollowButton } from "./follow-button";
 import { formatCount } from "@/lib/utils";
@@ -24,6 +24,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const connectedAccounts = await prisma.connectedAccount.findMany({
     where: { userId: profile.id, isActive: true },
     select: { platform: true, platformUsername: true },
+  });
+
+  // Get user achievements
+  const userAchievements = await prisma.userAchievement.findMany({
+    where: { userId: profile.id },
+    include: { achievement: true },
+    orderBy: { unlockedAt: "desc" },
+  });
+
+  // Get active title
+  const activeTitle = await prisma.user.findUnique({
+    where: { id: profile.id },
+    select: { activeTitle: true },
   });
 
   // Get user communities
@@ -85,6 +98,25 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             )}
           </div>
           <p className="text-sm text-[var(--text-muted)]">@{profile.username}</p>
+          {/* Active Title Badge */}
+          {activeTitle?.activeTitle && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border" style={{
+              background: userAchievements.some(a => a.achievement.isLimited && a.achievement.title === activeTitle.activeTitle)
+                ? "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(234,179,8,0.1))"
+                : "var(--accent-subtle)",
+              borderColor: userAchievements.some(a => a.achievement.isLimited && a.achievement.title === activeTitle.activeTitle)
+                ? "rgba(251,191,36,0.3)"
+                : "var(--accent-muted)",
+              color: userAchievements.some(a => a.achievement.isLimited && a.achievement.title === activeTitle.activeTitle)
+                ? "#fbbf24"
+                : "var(--accent)",
+            }}>
+              {userAchievements.some(a => a.achievement.isLimited && a.achievement.title === activeTitle.activeTitle) && (
+                <Crown className="h-3 w-3" />
+              )}
+              {activeTitle.activeTitle}
+            </span>
+          )}
         </div>
 
         {profile.bio && (
@@ -118,6 +150,32 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             <strong className="text-[var(--text-primary)]">{formatCount(profile._count.followers)}</strong> followers
           </span>
         </div>
+
+        {/* Achievement Badges */}
+        {userAchievements.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {userAchievements.slice(0, 8).map((ua) => (
+              <span
+                key={ua.id}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium"
+                style={{
+                  background: ua.achievement.isLimited ? "rgba(251,191,36,0.1)" : "var(--bg-tertiary)",
+                  color: ua.achievement.isLimited ? "#fbbf24" : "var(--text-secondary)",
+                  border: ua.achievement.isLimited ? "1px solid rgba(251,191,36,0.2)" : "1px solid var(--border-primary)",
+                }}
+                title={ua.achievement.description}
+              >
+                <Trophy className="h-3 w-3" />
+                {ua.achievement.name}
+              </span>
+            ))}
+            {userAchievements.length > 8 && (
+              <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-medium bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+                +{userAchievements.length - 8} more
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Interests */}
         {profile.interests.length > 0 && (

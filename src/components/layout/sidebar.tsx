@@ -22,6 +22,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
 import { useTheme } from "@/components/theme-provider";
 import { Sun, Moon, Monitor } from "lucide-react";
+import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 interface SidebarProps {
   user: {
@@ -50,23 +51,10 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
 
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
-      {/* Logo */}
+      {/* Logo — Meshi is the brand mascot */}
       <div className="p-6">
         <Link href="/mesh" className="group flex items-center gap-2.5">
-          <div className="brand-logo h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="4" r="2" fill="white" opacity="0.9"/>
-              <circle cx="4" cy="20" r="2" fill="white" opacity="0.9"/>
-              <circle cx="20" cy="20" r="2" fill="white" opacity="0.9"/>
-              <circle cx="12" cy="12" r="2.5" fill="white"/>
-              <line x1="12" y1="6" x2="12" y2="9.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-              <line x1="5.5" y1="19" x2="10" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-              <line x1="18.5" y1="19" x2="14" y2="13.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-              <line x1="5" y1="19.5" x2="11" y2="5.5" stroke="white" strokeWidth="0.8" opacity="0.3"/>
-              <line x1="19" y1="19.5" x2="13" y2="5.5" stroke="white" strokeWidth="0.8" opacity="0.3"/>
-              <line x1="6" y1="20" x2="18" y2="20" stroke="white" strokeWidth="0.8" opacity="0.3"/>
-            </svg>
-          </div>
+          <MeshiLogo size={32} color="blue" mood="happy" />
           <span className="brand-wordmark text-xl" style={{ color: "var(--text-primary)" }}>
             mesh<span className="brand-wordmark-accent">.me</span>
           </span>

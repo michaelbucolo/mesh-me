@@ -38,12 +38,14 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
+import { MeshiChat } from "@/components/meshi/meshi-chat";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 
 // --- Types ---
 
 interface MeshNode {
   id: string;
-  type: "self" | "user" | "community" | "tag" | "post" | "platform";
+  type: "self" | "user" | "community" | "tag" | "post" | "platform" | "meshi";
   label: string;
   sublabel?: string;
   avatarUrl?: string | null;
@@ -86,6 +88,7 @@ const NODE_COLORS: Record<string, string> = {
   tag: "#06b6d4",
   post: "#22c55e",
   platform: "#f59e0b",
+  meshi: "#2d7ff9",
 };
 
 const NODE_GLOW: Record<string, string> = {
@@ -96,6 +99,7 @@ const NODE_GLOW: Record<string, string> = {
   tag: "rgba(6, 182, 212, 0.2)",
   post: "rgba(34, 197, 94, 0.15)",
   platform: "rgba(245, 158, 11, 0.2)",
+  meshi: "rgba(45, 127, 249, 0.35)",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -117,7 +121,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   bluesky: "#0085FF",
 };
 
-type FilterType = "all" | "user" | "community" | "tag" | "post" | "platform";
+type FilterType = "all" | "user" | "community" | "tag" | "post" | "platform" | "meshi";
 
 // --- Helpers ---
 
@@ -153,6 +157,7 @@ export default function MeshPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
+  const [showMeshiChat, setShowMeshiChat] = useState(false);
   const router = useRouter();
 
   // Refs for animation loop (avoid stale closures)
@@ -346,6 +351,21 @@ export default function MeshPage() {
               strength: 0.2, type: "interest",
             });
           });
+        });
+
+        // Meshi AI node (orbits near the self node)
+        meshNodes.push({
+          id: "meshi-ai", type: "meshi" as MeshNode["type"], label: "Meshi",
+          sublabel: "Your AI assistant",
+          x: cx + 80, y: cy - 80,
+          vx: 0, vy: 0, radius: 18,
+          color: NODE_COLORS.meshi,
+          opacity: 1, pulsePhase: 0,
+          connections: [data.user.id],
+        });
+        meshEdges.push({
+          source: data.user.id, target: "meshi-ai",
+          strength: 0.9, type: "follow" as MeshEdge["type"],
         });
 
         // Connected platform nodes
@@ -814,6 +834,7 @@ export default function MeshPage() {
     { id: "tag", label: "Interests", icon: Hash, count: nodes.filter((n) => n.type === "tag").length },
     { id: "post", label: "Posts", icon: FileText, count: nodes.filter((n) => n.type === "post").length },
     { id: "platform", label: "Platforms", icon: Link2, count: nodes.filter((n) => n.type === "platform").length },
+    { id: "meshi", label: "Meshi", icon: Sparkles, count: nodes.filter((n) => n.type === "meshi").length },
   ];
 
   // --- Render ---
@@ -1160,6 +1181,23 @@ export default function MeshPage() {
                   </Link>
                 )}
 
+                {/* Meshi quick actions */}
+                {selectedNode.type === "meshi" && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowMeshiChat(true); setSelectedNode(null); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg"
+                    >
+                      <Sparkles className="h-3 w-3" /> Chat with Meshi
+                    </button>
+                    <Link href="/settings?tab=meshi" className="flex-1">
+                      <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium glass-surface text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all active:scale-95">
+                        <Sparkles className="h-3 w-3" /> Customize
+                      </button>
+                    </Link>
+                  </div>
+                )}
+
                 {/* Self quick actions */}
                 {selectedNode.type === "self" && (
                   <div className="flex gap-2">
@@ -1177,7 +1215,7 @@ export default function MeshPage() {
                 )}
 
                 {/* Generic view button for types without specific actions */}
-                {selectedNode.href && !["user", "post", "platform", "community", "tag", "self"].includes(selectedNode.type) && (
+                {selectedNode.href && !["user", "post", "platform", "community", "tag", "self", "meshi"].includes(selectedNode.type) && (
                   <Link href={selectedNode.href}>
                     <Button variant="gradient" size="sm" className="w-full">
                       View <ChevronRight className="h-3.5 w-3.5 ml-1" />
@@ -1393,6 +1431,31 @@ export default function MeshPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Meshi button (bottom right) */}
+      <motion.button
+        onClick={() => setShowMeshiChat(!showMeshiChat)}
+        className="absolute bottom-4 right-4 z-10 flex items-center justify-center w-12 h-12 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95"
+        style={{ background: "var(--brand-gradient)" }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        title="Chat with Meshi"
+      >
+        <MeshiMascot size={28} mood="happy" animate={false} showGlow={false} />
+      </motion.button>
+
+      {/* Meshi Chat overlay */}
+      <MeshiChat
+        isOpen={showMeshiChat}
+        onClose={() => setShowMeshiChat(false)}
+        meshData={meshStats ? {
+          followers: meshStats.followerCount,
+          following: meshStats.followingCount,
+          posts: meshStats.postCount,
+          communities: meshStats.communityCount,
+          platforms: meshStats.connectedPlatformCount,
+        } : undefined}
+      />
 
       {/* Quick action bar (bottom left) - always visible */}
       <div className="absolute bottom-4 left-4 z-10 flex gap-2">
