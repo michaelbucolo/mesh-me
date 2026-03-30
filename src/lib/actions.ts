@@ -722,7 +722,7 @@ export async function adminSuspendUser(targetUserId: string) {
 
   await prisma.adminLog.create({
     data: {
-      action: target.isSuspended ? "unsuspend_user" : "suspend_user",
+      action: newSuspendedState ? "suspend_user" : "unsuspend_user",
       details: `User: ${target.username}`,
       adminId: user.id,
     },
