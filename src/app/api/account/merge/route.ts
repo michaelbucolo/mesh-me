@@ -106,6 +106,10 @@ export async function PUT(req: NextRequest) {
   }
 
   if (action === "complete") {
+    // Verify the requesting user owns this merge request
+    if (mergeRequest.primaryUserId !== session.userId) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
     // Verify token matches
     if (mergeRequest.verifyToken !== verifyToken) {
       return NextResponse.json({ error: "Invalid verification token" }, { status: 400 });
