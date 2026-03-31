@@ -1436,67 +1436,52 @@ export default function MeshPage() {
     <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
       {/* Keyboard shortcut handled in useEffect below */}
 
-      {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <MeshiLogo size={32} color="blue" mood="happy" />
-            <div>
-              <h1 className="text-lg font-bold text-[var(--text-primary)]">The Mesh</h1>
-              <p className="text-[11px] text-[var(--text-muted)]">Your digital universe</p>
-            </div>
+      {/* Simplified top bar */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-3">
+        <div className="flex items-center justify-between gap-2">
+          {/* Compact filters — icon-only pill bar */}
+          <div className="flex gap-0.5 glass-panel rounded-xl p-0.5 shadow-lg overflow-x-auto scrollbar-hide">
+            {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
+              const IconComp = fItem.icon;
+              return (
+                <button
+                  key={fItem.id}
+                  onClick={() => setFilter(fItem.id)}
+                  className={"flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all " + (
+                    filter === fItem.id
+                      ? "brand-button text-white shadow-sm"
+                      : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                  )}
+                  title={fItem.label}
+                >
+                  <IconComp className="h-3 w-3" />
+                  <span className="hidden sm:inline">{fItem.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Quick search / command */}
+          {/* Search + Footprint */}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowCommandPalette(true)}
-              className="flex items-center gap-2 px-3 py-1.5 glass-panel rounded-xl text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all shadow-lg"
+              className="p-2 glass-panel rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all shadow-lg"
+              title="Search mesh (⌘K)"
             >
-              <Search className="h-3 w-3" />
-              <span className="hidden md:inline">Search mesh...</span>
-              <kbd className="hidden md:inline text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-mono">⌘K</kbd>
+              <Search className="h-4 w-4" />
             </button>
-
-            {/* Footprint Dashboard toggle */}
             <button
               onClick={() => setShowFootprint(!showFootprint)}
-              className={"flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium transition-all shadow-lg " + (
+              className={"p-2 rounded-xl transition-all shadow-lg " + (
                 showFootprint
-                  ? "brand-button text-white shadow-lg"
+                  ? "brand-button text-white"
                   : "glass-panel text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               )}
+              title="Digital Footprint"
             >
-              <Fingerprint className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Footprint</span>
+              <Fingerprint className="h-4 w-4" />
             </button>
           </div>
-        </div>
-
-        {/* Filters row */}
-        <div className="flex gap-1 glass-panel rounded-xl p-1 shadow-xl mt-2 sm:mt-3 w-fit max-w-full overflow-x-auto scrollbar-hide">
-          {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
-            const IconComp = fItem.icon;
-            return (
-              <button
-                key={fItem.id}
-                onClick={() => setFilter(fItem.id)}
-                className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all " + (
-                  filter === fItem.id
-                    ? "brand-button text-white shadow-lg"
-                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-                )}
-              >
-                <IconComp className="h-3 w-3" />
-                <span className="hidden lg:inline">{fItem.label}</span>
-                {fItem.count > 0 && fItem.id !== "all" && (
-                  <span className={"text-[9px] px-1 rounded-full " + (filter === fItem.id ? "bg-white/20" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]")}>
-                    {fItem.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
 
