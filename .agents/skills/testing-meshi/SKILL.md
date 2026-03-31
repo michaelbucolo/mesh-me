@@ -1,62 +1,55 @@
-# Testing Meshi AI Companion Features
+# Testing Meshi Companion Features
 
 ## Overview
-Meshi is the AI companion mascot for mesh.me. It appears across the entire app as a living entity with personality, mood changes, speech bubbles, and mesh-awareness.
+Meshi is the AI companion mascot that appears as a floating circle in the bottom-right corner of the app. It has customizable expressions, hats, colors, contextual props per page, and interactive behaviors.
 
-## Key Components
-- **MeshEntry** (`src/components/mesh-entry.tsx`): Auth flow with Meshi personality — speech bubbles react to login/signup steps
-- **MeshiFloat** (`src/components/meshi/meshi-float.tsx`): Global floating companion visible on all authenticated pages
-- **MeshiChat** (`src/components/meshi/meshi-chat.tsx`): Knowledge boundary enforcement — Meshi only knows about entities on the user's mesh
-- **MeshiMascot** (`src/components/meshi/meshi-mascot.tsx`): Interactive mascot with physics, moods, and animations
-- **Sidebar** (`src/components/layout/sidebar.tsx`): MeshiMascot replaces static logo with BETA badge
+## Local Dev Setup
+- Run `npx next dev -p 3000` from `/mesh-app`
+- App runs at `http://localhost:3000`
+- Must be logged in to see Meshi (it renders in the app layout via `MeshiFloat` component)
 
-## How to Test
+## Key UI Paths
 
-### Auth Flow Personality
-1. Sign out or visit `/` when unauthenticated
-2. MeshEntry renders with MeshiMascot above the "mesh.me" wordmark
-3. Click "Sign in" — Meshi shows speech bubble: "Welcome back! Enter your username."
-4. Enter a username and submit — Meshi shows: "Hey @{username}! Enter your password to unlock your mesh."
-5. Wrong password triggers: "Hmm, that doesn't seem right" speech bubble
+### Meshi Customization (Settings)
+1. Navigate to Settings → click "Meshi (Beta)" tab in left sidebar
+2. OR click floating Meshi → "Customize Meshi" → redirects to `/settings?tab=meshi`
+3. Customization options: Expression (8 faces), Hat (7 styles), Color (8 themes)
+4. Click "Save Meshi Preferences" button at bottom to persist all three to DB
+5. Preferences load from server via `getMeshiPreference()` when the meshi tab becomes active
 
-### MeshiFloat Global Presence
-1. Log in and navigate to any authenticated page (/feed, /mesh, /settings, /messages)
-2. MeshiFloat should appear as a small floating mascot (HOME_POSITION: x=28, y=84 in sidebar area, or bottom-right when activated)
-3. Click it to open the speech/chat view with input field and quick actions
-4. It persists across page navigation
+### Meshi Actions Menu
+1. Click floating Meshi in bottom-right corner → opens actions menu
+2. Menu options: Ask Meshi (speech), What did I miss? (search), Customize, Mesh Privacy, Full Chat
+3. Speech mode: type a question and press Enter to interact
 
-### Knowledge Boundary Enforcement
-1. Open MeshiFloat speech view (click the floating mascot)
-2. Ask about someone NOT on the mesh: "who is elon musk"
-3. Expected: Meshi responds with "I don't see 'elon musk' on your mesh yet..."
-4. Ask about a mesh.me feature: "tell me about the feed"
-5. Expected: Meshi responds with feature information (not a person-not-found response)
-6. Test greetings: "hey" → friendly response
-7. Test gratitude: "thanks" → thankful response
+### Contextual Props
+- Props only show when Meshi is in `closed` view (not clicked/expanded)
+- Each page maps to a specific prop via `PAGE_PROPS` in `meshi-mascot.tsx`
+- /mesh → compass, /feed → clipboard, /messages → heart, /settings → wrench, /meshpro → shield, etc.
+- Props are small SVG items rendered inside the mascot circle
 
-### Catch-up Summary
-1. In MeshiFloat speech input, type a search trigger: "show me my mesh" or "search my connections"
-2. Search triggers are: ["search", "find", "look for", "where", "show me"]
-3. Meshi shows animated search text progression ("Looking through your mesh...", "Scanning your connections...", etc.)
-4. After ~4.5s, displays a summary built from real mesh stats (followers, following, platforms, communities)
+### Node Inspector Mode
+- Only activates on `/mesh` page (exact match, not `/meshpro`)
+- Open speech mode on mesh page, type phrases like "who is", "tell me about", "inspect", "look up"
+- Meshi mood transitions: thinking → searching → learning
+- Note: The magnifying glass prop is set in state but hidden during speech view (`prop={view === "closed" ? activeProp : "none"}`)
 
-### Sidebar MeshiMascot
-1. On any authenticated page, check the top-left sidebar
-2. Should show interactive MeshiMascot (blue face icon) with "BETA" badge
-3. Replaces the old static logo
+### Social Meshi (MeshiMini)
+- When viewing another user's mesh via `/mesh?user={username}`, their customized Meshi appears in the "Viewing user's mesh" banner
+- Uses `getUserMeshiPreference(userId)` server action to fetch their hat/face/color
 
-## Dev Server
-- Run: `npm run dev` (starts on port 3000)
-- The app uses Next.js with Turso database
-- Auth is cookie-based — sign out via sidebar "Sign out" button
-
-## Devin Secrets Needed
-- `GITHUB_USERNAME` and `GITHUB_PASSWORD` for pushing to repo
-- `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` for database access
-- `VERCEL_TOKEN` for deployment
+## Key Files
+- `src/components/meshi/meshi-mascot.tsx` — Core SVG component, props, moods, colors, hats, MeshiMini
+- `src/components/meshi/meshi-float.tsx` — Floating wrapper with page detection, speech, actions menu
+- `src/app/(app)/settings/page.tsx` — Customization UI in Meshi (Beta) tab
+- `src/lib/actions.ts` — Server actions: `getMeshiPreference()`, `updateMeshiPreference()`, `getUserMeshiPreference()`
 
 ## Common Issues
-- MeshiFloat may overlap with sidebar elements on small screens — check responsive behavior
-- Knowledge boundary patterns might be too broad — queries like "find people to follow" could be intercepted as person lookups. If this happens, narrow the personPatterns regex in meshi-chat.tsx
-- The `is X on my mesh` regex needs a dedicated pattern with proper capture group (was fixed in PR #13)
-- Feature word filter uses prefix matching ("communit" matches both "community" and "communities")
+- PAGE_PROPS uses `startsWith` matching — longer paths (like `/meshpro`) must be listed before shorter ones (like `/mesh`) to avoid incorrect matching
+- Props are hidden during speech/actions view — only visible when Meshi is in closed/idle state
+- Settings page loads saved preferences via useEffect on `activeTab` change — switching tabs and back will refetch from server
+- The `handleSpeechSend` callback must include `pathname` in its dependency array to avoid stale closure issues with page-specific behaviors
+
+## Devin Secrets Needed
+- GITHUB_USERNAME — for git operations
+- GITHUB_PASSWORD — for git operations
