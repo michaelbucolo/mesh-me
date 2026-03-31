@@ -53,7 +53,7 @@ function getMeshiResponse(
     if (match) {
       const rawTerm = (match[1] || match[2] || "").replace(/[?!.]+$/, "").trim().toLowerCase();
       // Skip if the term looks like a mesh.me feature rather than a person
-      const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "notification", "communit", "meshpro", "meshi", "privacy", "security", "achievement", "explore", "post"];
+      const featureWords = ["mesh", "feed", "mechat", "settings", "setting", "profile", "notification", "communit", "meshpro", "meshi", "privacy", "security", "achievement", "explore", "post", "follow", "search", "find", "discover", "platform", "connect", "message", "chat", "dm", "group", "join", "theme", "dark mode", "light mode", "color", "accent", "appear", "custom", "cosmetic", "hat", "help", "guide", "block", "data", "export", "footprint", "scan", "node", "interest", "topic", "tag", "like", "react", "comment", "verif", "badge", "title", "onboard", "start", "trending", "popular"];
       if (rawTerm && !featureWords.some(fw => rawTerm.includes(fw))) {
         const searchTerm = rawTerm.replace(/^@/, "");
 
