@@ -191,7 +191,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
 export const MANUAL_PLATFORMS = ["soundcloud", "bluesky", "threads"];
 
 export function isPlatformOAuth(platform: string): boolean {
-  return platform in OAUTH_CONFIGS;
+  return Object.hasOwn(OAUTH_CONFIGS, platform);
 }
 
 export function isPlatformManual(platform: string): boolean {
