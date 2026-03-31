@@ -110,6 +110,14 @@ const SETTINGS_TIPS: Record<string, { message: string; mood: MeshiMood }> = {
     message: "Achievements are titles you earn through milestones. The first 1 million verified users get the exclusive Pioneer title!",
     mood: "excited",
   },
+  "mesh-privacy": {
+    message: "Control exactly who can see your mesh! Set it to private (only you), friends-only (mutual follows), or public. You can even override visibility per branch — show your communities but hide your platforms, for example.",
+    mood: "cool",
+  },
+  "alter-egos": {
+    message: "Alter egos let you have multiple identities on mesh.me — a professional profile, a creative persona, or an anonymous account. Each has its own mesh, feed, and messages!",
+    mood: "wink",
+  },
 };
 
 interface MeshiOnboardingGuideProps {

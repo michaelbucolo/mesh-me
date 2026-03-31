@@ -34,53 +34,83 @@ function getMeshiResponse(
   const q = query.toLowerCase().trim();
 
   // ─── Mesh-aware entity lookup ───────────────────────────
-  // Check if user is asking about a specific person, community, or entity on their mesh
-  if (meshEntities && meshEntities.length > 0) {
-    // Check for person queries: "who is X", "tell me about X", "do I know X"
-    const personMatch = q.match(/(?:who is|tell me about|do i (?:know|follow)|what about|info on|look up)\s+(.+)/i);
-    if (personMatch) {
-      const searchTerm = personMatch[1].replace(/[?!.]+$/, "").trim().toLowerCase();
-      const found = meshEntities.find(
-        (e) =>
-          e.label.toLowerCase().includes(searchTerm) ||
-          (e.sublabel && e.sublabel.toLowerCase().includes(searchTerm))
-      );
+  // KNOWLEDGE BOUNDARY: Meshi only knows what's on the user's mesh.
+  // If someone asks about a person/entity not on their mesh, Meshi says "I don't know them yet."
+  // This is a core design principle — Meshi is NOT a general-purpose AI.
 
-      if (found) {
-        if (found.type === "user") {
-          const mutualText = found.isMutual ? "You follow each other (mutual)!" : "You follow them.";
-          const followerText = found.followerCount ? ` They have ${found.followerCount} follower${found.followerCount !== 1 ? "s" : ""}.` : "";
+  // Detect ANY person/entity query — broad pattern matching
+  const personPatterns = [
+    /(?:who is|who's|whos)\s+(.+)/i,
+    /(?:tell me about|what about|info on|look up|do you know|know anything about)\s+(.+)/i,
+    /(?:do i (?:know|follow)|am i following|is .+ on my mesh)\s*(.+)?/i,
+    /(?:have you heard of|ever heard of|what do you think of|thoughts on)\s+(.+)/i,
+    /(?:find|search for|look for)\s+(?:user |person |@)?(.+)/i,
+  ];
+
+  for (const pattern of personPatterns) {
+    const match = q.match(pattern);
+    if (match) {
+      const rawTerm = (match[1] || match[2] || "").replace(/[?!.]+$/, "").trim().toLowerCase();
+      // Skip if the term looks like a mesh.me feature rather than a person
+      const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "notification", "community", "meshpro", "meshi", "privacy", "security", "achievement", "explore", "post"];
+      if (rawTerm && !featureWords.some(fw => rawTerm.includes(fw))) {
+        const searchTerm = rawTerm.replace(/^@/, "");
+
+        // Search the user's mesh entities
+        if (meshEntities && meshEntities.length > 0) {
+          const found = meshEntities.find(
+            (e) =>
+              e.label.toLowerCase().includes(searchTerm) ||
+              (e.sublabel && e.sublabel.toLowerCase().includes(searchTerm))
+          );
+
+          if (found) {
+            if (found.type === "user") {
+              const mutualText = found.isMutual ? "You follow each other (mutual)!" : "You follow them.";
+              const followerText = found.followerCount ? ` They have ${found.followerCount} follower${found.followerCount !== 1 ? "s" : ""}.` : "";
+              return {
+                content: `${found.label} (${found.sublabel}) is on your mesh! ${mutualText}${followerText} Click their node on The Mesh to message, view profile, or manage the connection.`,
+                mood: "excited",
+              };
+            }
+            if (found.type === "community") {
+              return {
+                content: `${found.label} is a community you're part of!${found.memberCount ? ` It has ${found.memberCount} members.` : ""} Check it out from The Mesh or the Communities page.`,
+                mood: "happy",
+              };
+            }
+            if (found.type === "tag") {
+              return {
+                content: `"${found.label}" is one of your interests! It appears as a node on your mesh and helps me find relevant content and people for you.`,
+                mood: "happy",
+              };
+            }
+            if (found.type === "platform") {
+              return {
+                content: `You have ${found.label} connected${found.sublabel ? ` as ${found.sublabel}` : ""}! Content from ${found.label} appears in your Custom Feed, and interactions sync back natively.`,
+                mood: "excited",
+              };
+            }
+          } else {
+            // Entity NOT on mesh — strict knowledge boundary
+            return {
+              content: `I don't know "${searchTerm}" yet! I can only tell you about people and things on your mesh. If they have a mesh.me account and share their mesh with you, I'll know all about them. Try searching for them on the Explore page!`,
+              mood: "thinking",
+            };
+          }
+        } else {
+          // No mesh data loaded — still enforce boundary
           return {
-            content: `${found.label} (${found.sublabel}) is on your mesh! ${mutualText}${followerText} Click their node on The Mesh to message, view profile, or manage the connection.`,
-            mood: "excited",
+            content: `I can only look up people and things that are on your mesh. I don't have info on "${searchTerm}" right now. Try following them or searching on the Explore page — once they're on your mesh, I'll know everything about them!`,
+            mood: "thinking",
           };
         }
-        if (found.type === "community") {
-          return {
-            content: `${found.label} is a community you're part of!${found.memberCount ? ` It has ${found.memberCount} members.` : ""} Check it out from The Mesh or the Communities page.`,
-            mood: "happy",
-          };
-        }
-        if (found.type === "tag") {
-          return {
-            content: `"${found.label}" is one of your interests! It appears as a node on your mesh and helps me find relevant content and people for you.`,
-            mood: "happy",
-          };
-        }
-        if (found.type === "platform") {
-          return {
-            content: `You have ${found.label} connected${found.sublabel ? ` as ${found.sublabel}` : ""}! Content from ${found.label} appears in your Custom Feed, and interactions sync back natively.`,
-            mood: "excited",
-          };
-        }
-      } else {
-        // Entity not found on mesh
-        return {
-          content: `I don't see "${searchTerm}" on your mesh yet. If they have a mesh.me account and share their mesh with you, I'll be able to tell you all about them! You can also search for them on the Search page.`,
-          mood: "thinking",
-        };
       }
     }
+  }
+
+  // Remaining mesh entity queries (connections list, etc.)
+  if (meshEntities && meshEntities.length > 0) {
 
     // "Show me my connections" / "who do I follow"
     if (q.includes("my connections") || q.includes("who do i follow") || q.includes("list my") || q.includes("show my mesh")) {
@@ -100,6 +130,22 @@ function getMeshiResponse(
         mood: parts.length > 0 ? "excited" : "thinking",
       };
     }
+  }
+
+  // ─── Greeting / hello ───────────────────────────────────
+  if (q.match(/^(hi|hello|hey|sup|yo|what'?s up|howdy|greetings)/)) {
+    return {
+      content: "Hey there! I'm Meshi, your mesh.me guide. I know everything about this platform and I can look up anyone on your mesh. What can I help you with?",
+      mood: "excited",
+    };
+  }
+
+  // ─── Gratitude ─────────────────────────────────────────
+  if (q.match(/^(thanks|thank you|thx|ty|appreciate)/)) {
+    return {
+      content: "You're welcome! I'm always here if you need me. Just click me or drag me to any part of the app for help!",
+      mood: "love",
+    };
   }
 
   // ─── The Mesh (main visualization) ───────────────────────
