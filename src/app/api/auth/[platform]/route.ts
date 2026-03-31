@@ -15,17 +15,21 @@ export async function GET(
 
   const { platform } = await params;
 
+  const connectedAccountsUrl = `${getBaseUrl()}/connected-accounts`;
+  const encodedPlatform = encodeURIComponent(platform);
+
   if (!isPlatformOAuth(platform)) {
-    return NextResponse.json({ error: "Platform does not support OAuth" }, { status: 400 });
+    return NextResponse.redirect(
+      `${connectedAccountsUrl}?error=${encodeURIComponent("Platform does not support OAuth")}&platform=${encodedPlatform}`
+    );
   }
 
   const config = OAUTH_CONFIGS[platform];
   const clientId = process.env[config.clientIdEnv];
 
   if (!clientId) {
-    return NextResponse.json(
-      { error: `OAuth not configured for ${config.name}. Missing ${config.clientIdEnv} environment variable.` },
-      { status: 503 }
+    return NextResponse.redirect(
+      `${connectedAccountsUrl}?error=${encodeURIComponent(`OAuth not configured for ${config.name}`)}&platform=${encodedPlatform}`
     );
   }
 
