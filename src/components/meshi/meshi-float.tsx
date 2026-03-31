@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   X, Sparkles, MessageCircle, Send, Search,
   ChevronRight, Palette, Settings, HelpCircle, History,
@@ -88,6 +88,7 @@ export function MeshiFloat() {
   const speechInputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -506,7 +507,7 @@ export function MeshiFloat() {
               </button>
             </div>
 
-            <div className="p-2 space-y-0.5">
+            <div className="p-2 space-y-0.5 overflow-y-auto flex-1">
               {/* Quick Actions */}
               <p className="px-3 pt-1 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quick Actions</p>
               <button onClick={() => setView("speech")}
@@ -516,7 +517,7 @@ export function MeshiFloat() {
                 <span className="flex-1">Ask Meshi</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/feed?compose=true"; }}
+              <button onClick={() => { closeAll(); router.push("/feed?compose=true"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <PenSquare className="h-4 w-4" style={{ color: "#22c55e" }} />
@@ -533,28 +534,28 @@ export function MeshiFloat() {
 
               {/* Navigate */}
               <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Navigate</p>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/explore"; }}
+              <button onClick={() => { closeAll(); router.push("/explore"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <Compass className="h-4 w-4" style={{ color: "#0ea5e9" }} />
                 <span className="flex-1">Explore</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/messages"; }}
+              <button onClick={() => { closeAll(); router.push("/messages"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <MessageCircle className="h-4 w-4" style={{ color: "#10b981" }} />
                 <span className="flex-1">Messages</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/communities"; }}
+              <button onClick={() => { closeAll(); router.push("/communities"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <Users className="h-4 w-4" style={{ color: "#f472b6" }} />
                 <span className="flex-1">Communities</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/connected-accounts"; }}
+              <button onClick={() => { closeAll(); router.push("/connected-accounts"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <Link2 className="h-4 w-4" style={{ color: "#a78bfa" }} />
@@ -564,28 +565,28 @@ export function MeshiFloat() {
 
               {/* Settings & More */}
               <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Settings & More</p>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=meshi"; }}
+              <button onClick={() => { closeAll(); router.push("/settings?tab=meshi"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <Palette className="h-4 w-4" style={{ color: "#06b6d4" }} />
                 <span className="flex-1">Customize Meshi</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings"; }}
+              <button onClick={() => { closeAll(); router.push("/settings"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <Settings className="h-4 w-4" style={{ color: "#38bdf8" }} />
                 <span className="flex-1">Settings</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/meshpro"; }}
+              <button onClick={() => { closeAll(); router.push("/meshpro"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <Crown className="h-4 w-4" style={{ color: "#f59e0b" }} />
                 <span className="flex-1">MeshPro</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/feedback"; }}
+              <button onClick={() => { closeAll(); router.push("/feedback"); }}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <MessageSquarePlus className="h-4 w-4" style={{ color: "#8b5cf6" }} />
