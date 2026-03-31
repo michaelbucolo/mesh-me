@@ -45,7 +45,6 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
-import { MeshiChat } from "@/components/meshi/meshi-chat";
 import { MeshiMascot, MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 // --- Types ---
@@ -181,7 +180,7 @@ export default function MeshPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
-  const [showMeshiChat, setShowMeshiChat] = useState(false);
+  // Meshi chat is handled globally by MeshiFloat — no page-level duplicate
   const [hiddenNodes, setHiddenNodes] = useState<Set<string>>(new Set());
   const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set());
   const [showPostComposer, setShowPostComposer] = useState(false);
@@ -2738,41 +2737,7 @@ export default function MeshPage() {
         )}
       </AnimatePresence>
 
-      {/* Floating Meshi button (bottom right) */}
-      <motion.button
-        onClick={() => setShowMeshiChat(!showMeshiChat)}
-        className="absolute bottom-3 sm:bottom-4 right-2 sm:right-4 z-10 flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95"
-        style={{ background: "var(--brand-gradient)" }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        title="Chat with Meshi"
-      >
-        <MeshiMascot size={28} mood="happy" animate={false} showGlow={false} />
-      </motion.button>
-
-      {/* Meshi Chat overlay */}
-      <MeshiChat
-        isOpen={showMeshiChat}
-        onClose={() => setShowMeshiChat(false)}
-        meshData={meshStats ? {
-          followers: meshStats.followerCount,
-          following: meshStats.followingCount,
-          posts: meshStats.postCount,
-          communities: meshStats.communityCount,
-          platforms: meshStats.connectedPlatformCount,
-        } : undefined}
-        meshEntities={nodes
-          .filter((n) => n.type === "user" || n.type === "community" || n.type === "tag" || n.type === "platform")
-          .map((n) => ({
-            id: n.id,
-            type: n.type as "user" | "community" | "tag" | "platform",
-            label: n.label,
-            sublabel: n.sublabel,
-            isMutual: n.isMutual,
-            followerCount: n.followerCount,
-            memberCount: n.memberCount,
-          }))}
-      />
+      {/* Meshi chat is handled by the global MeshiFloat — no duplicate here */}
 
       {/* Quick action bar (bottom left) */}
       <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-1 sm:gap-2">
