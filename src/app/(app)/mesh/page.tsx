@@ -246,6 +246,10 @@ export default function MeshPage() {
   
   // === Meshi custom color from user preferences ===
   const meshiColorRef = useRef<{ primary: string; glow: string }>({ primary: "#818cf8", glow: "rgba(99, 102, 241, 0.3)" });
+  
+  // === Exploration timer refs (for proper cleanup) ===
+  const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const discoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load Meshi house lock state from localStorage
   useEffect(() => {
@@ -1785,6 +1789,9 @@ export default function MeshPage() {
                 </button>
                 <button
                   onClick={() => {
+                    // Clear any existing exploration timers first
+                    if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
+                    if (discoveryTimeoutRef.current) { clearTimeout(discoveryTimeoutRef.current); discoveryTimeoutRef.current = null; }
                     // Trigger exploration with discovery generation
                     setMeshiExploring(true);
                     setMeshiDiscoveries([]);
@@ -1801,8 +1808,11 @@ export default function MeshPage() {
                     ];
                     let dIdx = 0;
                     const shuffled = [...ns].sort(() => Math.random() - 0.5);
-                    const discoveryInterval = setInterval(() => {
-                      if (dIdx >= shuffled.length || dIdx >= 5) { clearInterval(discoveryInterval); return; }
+                    discoveryIntervalRef.current = setInterval(() => {
+                      if (dIdx >= shuffled.length || dIdx >= 5) {
+                        if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
+                        return;
+                      }
                       const node = shuffled[dIdx];
                       for (const tmpl of discoveryTemplates) {
                         const summary = tmpl(node);
@@ -1814,7 +1824,11 @@ export default function MeshPage() {
                       dIdx++;
                     }, 2500);
                     // Auto-stop after 15 seconds
-                    setTimeout(() => { setMeshiExploring(false); clearInterval(discoveryInterval); }, 15000);
+                    discoveryTimeoutRef.current = setTimeout(() => {
+                      setMeshiExploring(false);
+                      if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
+                      discoveryTimeoutRef.current = null;
+                    }, 15000);
                   }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
                 >
@@ -1891,7 +1905,11 @@ export default function MeshPage() {
               </div>
             )}
             <button
-              onClick={() => setMeshiExploring(false)}
+              onClick={() => {
+                setMeshiExploring(false);
+                if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
+                if (discoveryTimeoutRef.current) { clearTimeout(discoveryTimeoutRef.current); discoveryTimeoutRef.current = null; }
+              }}
               className="mt-2 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
               Stop exploring
