@@ -56,7 +56,10 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
       {/* Logo + Notification Bell */}
       <div className="p-6 flex items-center justify-between">
         <Link href="/mesh" className="group flex items-center gap-2.5">
-          <MeshiLogo size={32} color="blue" mood="happy" />
+          <div className="relative">
+            <MeshiLogo size={32} color="blue" mood="happy" />
+            <span className="absolute -top-1 -right-2 px-1 py-0.5 rounded text-[6px] font-bold uppercase tracking-wider text-white" style={{ background: "var(--accent)", lineHeight: 1 }}>Beta</span>
+          </div>
           <span className="brand-wordmark text-xl" style={{ color: "var(--text-primary)" }}>
             mesh<span className="brand-wordmark-accent">.me</span>
           </span>
