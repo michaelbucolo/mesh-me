@@ -5,7 +5,8 @@ import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motio
 import { usePathname } from "next/navigation";
 import {
   X, Sparkles, MessageCircle, Send, Search,
-  ChevronRight, Palette, Settings, HelpCircle, History
+  ChevronRight, Palette, Settings, HelpCircle, History,
+  PenSquare, Compass, Users, Link2, Crown, MessageSquarePlus,
 } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
@@ -491,7 +492,7 @@ export function MeshiFloat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-20 right-4 z-50 w-[280px] max-w-[calc(100vw-2rem)] glass-dropdown rounded-2xl shadow-2xl overflow-hidden">
+            className="fixed bottom-20 right-4 z-50 w-[280px] max-w-[calc(100vw-2rem)] max-h-[70vh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]"
               style={{ background: "var(--bg-secondary)" }}>
               <MeshiMascot size={28} mood="happy" color={meshiColor} hat={meshiHat} showGlow={false} animate={false} />
@@ -505,57 +506,99 @@ export function MeshiFloat() {
               </button>
             </div>
 
-            <div className="p-3 space-y-1">
+            <div className="p-2 space-y-0.5">
+              {/* Quick Actions */}
+              <p className="px-3 pt-1 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quick Actions</p>
               <button onClick={() => setView("speech")}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <MessageCircle className="h-4 w-4" style={{ color: "var(--accent)" }} />
                 <span className="flex-1">Ask Meshi</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/feed?compose=true"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <PenSquare className="h-4 w-4" style={{ color: "#22c55e" }} />
+                <span className="flex-1">Create Post</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
               <button onClick={() => triggerSearch()}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}>
                 <Search className="h-4 w-4" style={{ color: "#f59e0b" }} />
-                <span className="flex-1">What did I miss?</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=meshi"; }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Palette className="h-4 w-4" style={{ color: "#0ea5e9" }} />
-                <span className="flex-1">Customize Meshi</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=privacy"; }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Settings className="h-4 w-4" style={{ color: "#38bdf8" }} />
-                <span className="flex-1">Mesh Privacy</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => setView("chat")}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <HelpCircle className="h-4 w-4" style={{ color: "#a78bfa" }} />
-                <span className="flex-1">Full Chat</span>
+                <span className="flex-1">Search Mesh</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
 
-              {chatHistory.length > 0 && (
-                <div className="pt-2 mt-1 border-t border-[var(--border-primary)]">
-                  <div className="flex items-center gap-2 px-3 py-1 mb-1">
-                    <History className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                    <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Recent</span>
-                  </div>
-                  {chatHistory.slice(-3).reverse().map((entry, i) => (
-                    <button key={i} onClick={() => setView("speech")}
-                      className="w-full px-3 py-1.5 text-xs text-[var(--text-tertiary)] truncate text-left hover:bg-[var(--bg-hover)] rounded-lg transition-colors">
-                      <span className="text-[var(--text-secondary)]">You:</span> {entry.q}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Navigate */}
+              <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Navigate</p>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/explore"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <Compass className="h-4 w-4" style={{ color: "#0ea5e9" }} />
+                <span className="flex-1">Explore</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/messages"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <MessageCircle className="h-4 w-4" style={{ color: "#10b981" }} />
+                <span className="flex-1">Messages</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/communities"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <Users className="h-4 w-4" style={{ color: "#f472b6" }} />
+                <span className="flex-1">Communities</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/connected-accounts"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <Link2 className="h-4 w-4" style={{ color: "#a78bfa" }} />
+                <span className="flex-1">Connected Accounts</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+
+              {/* Settings & More */}
+              <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Settings & More</p>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings?tab=meshi"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <Palette className="h-4 w-4" style={{ color: "#06b6d4" }} />
+                <span className="flex-1">Customize Meshi</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/settings"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <Settings className="h-4 w-4" style={{ color: "#38bdf8" }} />
+                <span className="flex-1">Settings</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/meshpro"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <Crown className="h-4 w-4" style={{ color: "#f59e0b" }} />
+                <span className="flex-1">MeshPro</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+              <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/feedback"; }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <MessageSquarePlus className="h-4 w-4" style={{ color: "#8b5cf6" }} />
+                <span className="flex-1">Send Feedback</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
+              <button onClick={() => setView("chat")}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ color: "var(--text-primary)" }}>
+                <HelpCircle className="h-4 w-4" style={{ color: "#ec4899" }} />
+                <span className="flex-1">Full Chat with Meshi</span>
+                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              </button>
             </div>
 
             <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between"
