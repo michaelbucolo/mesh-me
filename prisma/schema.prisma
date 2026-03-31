@@ -66,6 +66,7 @@ model User {
   emails         UserEmail[]
   phones         UserPhone[]
   twoFactorMethods TwoFactorMethod[]
+  profileInfo    ProfileInfo?
 }
 
 model UserInterest {
@@ -550,6 +551,38 @@ model AccountMergeRequest {
 
   @@index([primaryUserId])
   @@index([secondaryEmail])
+}
+
+// ─── Profile Info (Facebook-level fields with per-field privacy) ──
+
+model ProfileInfo {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  // Extended bio / "About me"
+  aboutMe         String?
+  // Work & Education
+  workplace       String?
+  jobTitle        String?
+  school          String?
+  // Personal details
+  birthday        String?
+  gender          String?
+  pronouns        String?
+  hometown        String?
+  currentCity     String?
+  relationshipStatus String?
+  // Contact info (beyond primary email/phone)
+  publicEmail     String?
+  publicPhone     String?
+
+  // Per-field privacy: JSON map of field → "public" | "friends" | "personal"
+  // e.g. { "birthday": "friends", "workplace": "public", "publicPhone": "personal" }
+  fieldPrivacy    String   @default("{}")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── Redeem Codes ────────────────────────────────────────────
