@@ -230,6 +230,14 @@ export default function MeshPage() {
   // === Feature: Meshi House (clickable home, lock option) ===
   const [meshiHouseLocked, setMeshiHouseLocked] = useState(false);
   const [showMeshiHouseMenu, setShowMeshiHouseMenu] = useState(false);
+
+  // === Feature: Meshi post reactions (emoji floats when visiting post nodes) ===
+  const meshiReactionsRef = useRef<Array<{ emoji: string; x: number; y: number; age: number; opacity: number }>>([]);
+  const meshiLastReactedNodeRef = useRef<string | null>(null);
+
+  // === Feature: Meshi hat exchange state ===
+  const [showHatExchange, setShowHatExchange] = useState(false);
+  const [hatExchangeResult, setHatExchangeResult] = useState<{ yourHat: string; meshiHat: string } | null>(null);
   
   // === Feature: Meshi Exploration (magnifying glass animation) ===
   const [meshiExploring, setMeshiExploring] = useState(false);
@@ -246,6 +254,10 @@ export default function MeshPage() {
   
   // === Meshi custom color from user preferences ===
   const meshiColorRef = useRef<{ primary: string; glow: string }>({ primary: "#818cf8", glow: "rgba(99, 102, 241, 0.3)" });
+
+  // Ref mirror of meshiHouseLocked for use inside useCallback (avoids stale closure)
+  const meshiHouseLockedRef = useRef(false);
+  useEffect(() => { meshiHouseLockedRef.current = meshiHouseLocked; }, [meshiHouseLocked]);
   
   // === Exploration timer refs (for proper cleanup) ===
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -756,6 +768,31 @@ export default function MeshPage() {
     m.bobPhase += 0.05;
     m.glowPulse += 0.03;
 
+    // Age and remove expired reactions
+    const reactions = meshiReactionsRef.current;
+    for (let ri = reactions.length - 1; ri >= 0; ri--) {
+      reactions[ri].age += 0.016;
+      reactions[ri].y -= 0.5; // float upward
+      reactions[ri].opacity = Math.max(0, 1 - reactions[ri].age / 1.5);
+      if (reactions[ri].age > 1.5) reactions.splice(ri, 1);
+    }
+
+    // If Meshi is locked at home, keep it near the self node and skip roaming
+    if (meshiHouseLockedRef.current && m.state !== "launching") {
+      const selfNode = ns.find((n) => n.type === "self");
+      if (selfNode) {
+        const homeDx = (selfNode.x + 30) - m.x;
+        const homeDy = (selfNode.y - 30) - m.y;
+        const homeDist = Math.sqrt(homeDx * homeDx + homeDy * homeDy);
+        if (homeDist > 5) {
+          m.x += (homeDx / homeDist) * 2;
+          m.y += (homeDy / homeDist) * 2;
+        }
+        m.state = "idle";
+        m.targetX = selfNode.x + 30;
+        m.targetY = selfNode.y - 30;
+      }
+    } else
     // Launch animation: Meshi jumps from his house into the mesh like going to work
     if (m.state === "launching") {
       // Initialize launch on first frame
@@ -859,6 +896,23 @@ export default function MeshPage() {
           }
           m.idleTimer = 0;
           m.state = "roaming";
+
+          // Meshi reacts to post nodes with emoji
+          if (m.currentTargetNodeId) {
+            const visitedNode = ns.find((n) => n.id === m.currentTargetNodeId);
+            if (visitedNode && visitedNode.type === "post" && m.currentTargetNodeId !== meshiLastReactedNodeRef.current) {
+              meshiLastReactedNodeRef.current = m.currentTargetNodeId;
+              const postEmojis = ["✨", "💫", "⭐", "🔥", "💜", "👀", "🎵", "💭"];
+              const emoji = postEmojis[Math.floor(Math.random() * postEmojis.length)];
+              meshiReactionsRef.current.push({
+                emoji,
+                x: m.x + (Math.random() - 0.5) * 20,
+                y: m.y - 18, // float above Meshi (approx 1.5x Meshi's rendered size)
+                age: 0,
+                opacity: 1,
+              });
+            }
+          }
         }
       }
     }
@@ -1296,6 +1350,27 @@ export default function MeshPage() {
         ctx.fillText("delivering...", meshiX, meshiY + meshiSize + 15);
       }
 
+      // Locked indicator (small lock icon when Meshi is home-locked)
+      if (meshiHouseLockedRef.current) {
+        ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
+        ctx.font = "7px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText("🏠 at home", meshiX, meshiY + meshiSize + 15);
+      }
+
+      // === Floating emoji reactions from Meshi visiting post nodes ===
+      const emojiReactions = meshiReactionsRef.current;
+      for (const reaction of emojiReactions) {
+        if (reaction.opacity <= 0) continue;
+        ctx.globalAlpha = reaction.opacity;
+        ctx.font = "14px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(reaction.emoji, reaction.x, reaction.y);
+      }
+      ctx.globalAlpha = 1;
+
       ctx.restore();
       animationRef.current = requestAnimationFrame(render);
     };
@@ -1713,8 +1788,8 @@ export default function MeshPage() {
         </div>
       </div>
 
-      {/* Zoom controls */}
-      <div className="absolute bottom-16 right-2 sm:right-4 z-10 flex flex-col gap-1">
+      {/* Zoom controls — stacked vertically, positioned above Meshi chat button */}
+      <div className="absolute bottom-16 sm:bottom-20 right-2 sm:right-4 z-10 flex flex-col gap-1">
         <button onClick={() => handleZoom(0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
         <button onClick={() => handleZoom(-0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
         <button onClick={resetView} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
@@ -1725,7 +1800,7 @@ export default function MeshPage() {
 
 
       {/* === Meshi House === */}
-      <div className="absolute bottom-32 left-2 sm:left-4 z-10">
+      <div className="absolute bottom-28 sm:bottom-32 left-2 sm:left-4 z-10">
         <div className="relative">
           <button
             onClick={() => {
@@ -1826,6 +1901,16 @@ export default function MeshPage() {
                   <Gamepad2 className="h-3 w-3 text-[var(--text-muted)]" />
                   <span className="text-[var(--text-secondary)]">Play with Meshi</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setShowHatExchange(true);
+                    setShowMeshiHouseMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <Sparkles className="h-3 w-3 text-[var(--text-muted)]" />
+                  <span className="text-[var(--text-secondary)]">Hat Exchange</span>
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1834,12 +1919,12 @@ export default function MeshPage() {
 
       {/* Stats bar — positioned above action bar to prevent overlap */}
       <AnimatePresence>
-        {showStats && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-16 left-2 sm:left-4 z-10 flex gap-1.5 sm:gap-2 flex-wrap max-w-[calc(100vw-5rem)]"
+          {showStats && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-14 sm:bottom-16 left-2 sm:left-4 z-10 flex gap-1 sm:gap-2 flex-wrap max-w-[calc(100vw-5rem)]"
           >
             {[
               { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-[var(--accent)]" },
@@ -2000,6 +2085,96 @@ export default function MeshPage() {
                       className="mt-4 px-4 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95"
                     >
                       Play again
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* === Hat Exchange Overlay (Meshi-to-Meshi interaction) === */}
+      <AnimatePresence>
+        {showHatExchange && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowHatExchange(false); setHatExchangeResult(null); } }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-sm mx-4 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500" />
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-amber-400" />
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Hat Exchange</h3>
+                  </div>
+                  <button onClick={() => { setShowHatExchange(false); setHatExchangeResult(null); }} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {!hatExchangeResult ? (
+                  <>
+                    <p className="text-xs text-[var(--text-muted)] mb-4 text-center">Trade hats with Meshi! Pick a hat to offer and see what Meshi gives you back.</p>
+                    <div className="flex justify-center gap-2 flex-wrap mb-4">
+                      {(["crown", "tophat", "cap", "beanie", "flower", "antenna", "chef", "party"] as const).map((hat) => {
+                        const hatIcons: Record<string, string> = { crown: "\ud83d\udc51", tophat: "\ud83c\udfa9", cap: "\ud83e\udde2", beanie: "\ud83e\udde3", flower: "\ud83c\udf3b", antenna: "\ud83d\udce1", chef: "\ud83d\udc68\u200d\ud83c\udf73", party: "\ud83c\udf89" };
+                        return (
+                          <motion.button
+                            key={hat}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              const meshiHats = ["crown", "tophat", "cap", "beanie", "flower", "antenna", "chef", "party"];
+                              const meshiPick = meshiHats[Math.floor(Math.random() * meshiHats.length)];
+                              setTimeout(() => {
+                                setHatExchangeResult({ yourHat: hat, meshiHat: meshiPick });
+                              }, 800);
+                            }}
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl transition-all border-2 border-[var(--border-primary)] hover:border-amber-400 bg-[var(--bg-tertiary)]"
+                          >
+                            {hatIcons[hat] || hat}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-6 mb-4">
+                      <div className="text-center">
+                        <p className="text-3xl mb-1">{{ crown: "\ud83d\udc51", tophat: "\ud83c\udfa9", cap: "\ud83e\udde2", beanie: "\ud83e\udde3", flower: "\ud83c\udf3b", antenna: "\ud83d\udce1", chef: "\ud83d\udc68\u200d\ud83c\udf73", party: "\ud83c\udf89" }[hatExchangeResult.yourHat] || "\ud83c\udfa9"}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">You offered</p>
+                      </div>
+                      <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 0.8, repeat: 2 }}>
+                        <p className="text-lg font-bold text-amber-400">\u21c4</p>
+                      </motion.div>
+                      <div className="text-center">
+                        <p className="text-3xl mb-1">{{ crown: "\ud83d\udc51", tophat: "\ud83c\udfa9", cap: "\ud83e\udde2", beanie: "\ud83e\udde3", flower: "\ud83c\udf3b", antenna: "\ud83d\udce1", chef: "\ud83d\udc68\u200d\ud83c\udf73", party: "\ud83c\udf89" }[hatExchangeResult.meshiHat] || "\ud83c\udfa9"}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Meshi gave you</p>
+                      </div>
+                    </div>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.2 }}>
+                      <p className="text-sm font-bold text-amber-400 mb-2">
+                        {hatExchangeResult.yourHat === hatExchangeResult.meshiHat ? "Great minds think alike!" : "A fair trade!"}
+                      </p>
+                      <MeshiMascot size={48} mood="excited" animate showGlow={false} />
+                    </motion.div>
+                    <button
+                      onClick={() => setHatExchangeResult(null)}
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95"
+                    >
+                      Trade again
                     </button>
                   </div>
                 )}
@@ -2586,10 +2761,21 @@ export default function MeshPage() {
           communities: meshStats.communityCount,
           platforms: meshStats.connectedPlatformCount,
         } : undefined}
+        meshEntities={nodes
+          .filter((n) => n.type === "user" || n.type === "community" || n.type === "tag" || n.type === "platform")
+          .map((n) => ({
+            id: n.id,
+            type: n.type as "user" | "community" | "tag" | "platform",
+            label: n.label,
+            sublabel: n.sublabel,
+            isMutual: n.isMutual,
+            followerCount: n.followerCount,
+            memberCount: n.memberCount,
+          }))}
       />
 
       {/* Quick action bar (bottom left) */}
-      <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-1.5 sm:gap-2">
+      <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-1 sm:gap-2">
         <button
           onClick={() => setShowPostComposer(true)}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all active:scale-95 shadow-lg brand-button hover:shadow-xl hover:shadow-blue-500/25"
