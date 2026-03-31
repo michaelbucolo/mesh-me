@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Waypoints, Compass, MessageCircle, Crown, Bell } from "lucide-react";
+import { Home, Waypoints, Compass, MessageCircle, Crown, Bell, User } from "lucide-react";
 
 interface MobileNavProps {
   unreadNotifications?: number;
+  username?: string;
 }
 
-export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
+export function MobileNav({ unreadNotifications = 0, username }: MobileNavProps) {
   const pathname = usePathname();
 
   const items = [
@@ -17,6 +18,7 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
     { href: "/explore", icon: Compass, label: "Explore" },
     { href: "/feed", icon: Home, label: "Feed" },
     { href: "/messages", icon: MessageCircle, label: "Messages", badge: unreadNotifications },
+    { href: username ? `/profile/${username}` : "/profile", icon: User, label: "Profile" },
     { href: "/meshpro", icon: Crown, label: "MeshPro" },
   ];
 
@@ -38,7 +40,9 @@ export function MobileNav({ unreadNotifications = 0 }: MobileNavProps) {
         {items.map((item) => {
           const isActive = item.href === "/feed"
             ? pathname === "/feed" || pathname.startsWith("/feed")
-            : pathname.startsWith(item.href);
+            : item.label === "Profile"
+              ? pathname.includes("/profile/")
+              : pathname.startsWith(item.href);
 
           return (
             <Link
