@@ -33,12 +33,13 @@ interface SidebarProps {
   unreadNotifications?: number;
 }
 
-// 5 primary tabs: Mesh, Explore, Feed, Messages, MeshPro
+// 6 primary tabs: Mesh, Explore, Feed, Messages, Profile, MeshPro
 const navItems = [
   { href: "/mesh", icon: Waypoints, label: "The Mesh", gradient: "from-blue-500 to-cyan-400" },
   { href: "/explore", icon: Compass, label: "Explore", gradient: "from-sky-500 to-blue-400" },
   { href: "/feed", icon: Home, label: "Feed", gradient: "from-blue-500 to-sky-400" },
   { href: "/messages", icon: MessageCircle, label: "Messages", gradient: "from-emerald-500 to-teal-400" },
+  { href: "/profile", icon: User, label: "Profile", gradient: "from-violet-500 to-purple-400" },
   { href: "/meshpro", icon: Crown, label: "MeshPro", gradient: "from-amber-500 to-yellow-400" },
 ];
 
@@ -73,15 +74,18 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Primary Navigation — 5 tabs */}
+      {/* Primary Navigation */}
       <nav className="flex-1 px-3">
         <div className="space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const actualHref = item.href === "/profile" ? `/profile/${user.username}` : item.href;
+            const isActive = item.href === "/profile"
+              ? pathname.includes(`/profile/${user.username}`)
+              : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={actualHref}
                 className={cn(
                   "group flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-300",
                   isActive
@@ -134,19 +138,6 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
                 </Link>
               );
             })}
-
-            <Link
-              href={`/profile/${user.username}`}
-              className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200",
-                pathname.includes(`/profile/${user.username}`)
-                  ? "bg-[var(--accent-muted)] text-[var(--accent)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
-              )}
-            >
-              <User className="h-3.5 w-3.5" />
-              <span>Profile</span>
-            </Link>
 
             {user.isAdmin && (
               <Link

@@ -8,13 +8,80 @@ import { prisma } from "@/lib/prisma";
 import { MessageForm } from "./message-form";
 import { formatRelativeTime } from "@/lib/utils";
 
-export default async function ThreadDetailPage({ params }: { params: Promise<{ threadId: string }> }) {
+export default async function ThreadDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ threadId: string }>;
+  searchParams: Promise<{ new?: string }>;
+}) {
   const { threadId } = await params;
+  const query = await searchParams;
   const user = await getCurrentUser();
   if (!user) return null;
 
+  const isNewChat = query.new === "true";
+
+  // If this is a new chat, threadId is actually a userId — find or create thread
+  let resolvedThreadId = threadId;
+  let otherUserDirect: { id: string; username: string; displayName: string; avatarUrl: string | null } | null = null;
+
+  if (isNewChat) {
+    const recipientId = threadId;
+
+    // Don't allow messaging yourself
+    if (recipientId === user.id) notFound();
+
+    // Look up the recipient to make sure they exist
+    const recipient = await prisma.user.findUnique({
+      where: { id: recipientId },
+      select: { id: true, username: true, displayName: true, avatarUrl: true, isSuspended: true },
+    });
+    if (!recipient || recipient.isSuspended) notFound();
+
+    // Check for blocks
+    const blockExists = await prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: user.id, blockedId: recipientId },
+          { blockerId: recipientId, blockedId: user.id },
+        ],
+      },
+    });
+    if (blockExists) notFound();
+
+    // Find existing thread between these two users
+    const existingThread = await prisma.messageThread.findFirst({
+      where: {
+        AND: [
+          { members: { some: { userId: user.id } } },
+          { members: { some: { userId: recipientId } } },
+        ],
+      },
+    });
+
+    if (existingThread) {
+      resolvedThreadId = existingThread.id;
+    } else {
+      // Create a new thread
+      const newThread = await prisma.messageThread.create({
+        data: {
+          members: {
+            create: [
+              { userId: user.id },
+              { userId: recipientId },
+            ],
+          },
+        },
+      });
+      resolvedThreadId = newThread.id;
+    }
+
+    otherUserDirect = recipient;
+  }
+
   const thread = await prisma.messageThread.findUnique({
-    where: { id: threadId },
+    where: { id: resolvedThreadId },
     include: {
       members: {
         include: {
@@ -32,8 +99,8 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ t
   const isMember = thread.members.some((m) => m.userId === user.id);
   if (!isMember) notFound();
 
-  const otherUser = thread.members.find((m) => m.userId !== user.id)?.user;
-  const messages = await getThreadMessages(threadId);
+  const otherUser = otherUserDirect || thread.members.find((m) => m.userId !== user.id)?.user;
+  const messages = await getThreadMessages(resolvedThreadId);
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-2rem)]">
@@ -55,6 +122,13 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ t
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-sm text-[var(--text-muted)]">
+              No messages yet. Say hello!
+            </p>
+          </div>
+        )}
         {messages.map((message) => {
           const isOwn = message.senderId === user.id;
           return (
@@ -83,7 +157,7 @@ export default async function ThreadDetailPage({ params }: { params: Promise<{ t
       </div>
 
       {/* Message input */}
-      <MessageForm threadId={threadId} />
+      <MessageForm threadId={resolvedThreadId} />
     </div>
   );
 }

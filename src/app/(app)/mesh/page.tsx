@@ -1186,60 +1186,33 @@ export default function MeshPage() {
       ctx.fillStyle = meshiGlowGrad;
       ctx.fill();
 
-      // Meshi body (circle with gradient — uses user's custom color)
-      const meshiBodyGrad = ctx.createRadialGradient(
-        meshiX - meshiSize * 0.2, meshiY - meshiSize * 0.2, 0,
-        meshiX, meshiY, meshiSize
-      );
-      // Lighten the primary color for the highlight, darken for the base
-      meshiBodyGrad.addColorStop(0, mColor.primary + "cc");
-      meshiBodyGrad.addColorStop(1, mColor.primary);
+      // Meshi body — matches SVG mascot: light tinted background + colored stroke border
+      const meshiBgAlpha = mColor.glow.replace(/[\d.]+\)$/, "0.1)");
       ctx.beginPath();
       ctx.arc(meshiX, meshiY, meshiSize, 0, Math.PI * 2);
-      ctx.fillStyle = meshiBodyGrad;
+      ctx.fillStyle = meshiBgAlpha;
       ctx.fill();
-
-      // Meshi border ring
-      ctx.strokeStyle = "rgba(165, 180, 252, 0.6)";
-      ctx.lineWidth = 1.2;
+      // Colored border ring (matches SVG strokeWidth=2 on r=16 → ~2px scaled)
+      ctx.strokeStyle = mColor.primary;
+      ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Meshi eyes (◕ ◕ style — large oval white eyes with dark pupils)
-      const eyeOffsetX = meshiSize * 0.28;
-      const eyeY = meshiY - meshiSize * 0.08;
-      const eyeRadiusX = meshiSize * 0.22;
-      const eyeRadiusY = meshiSize * 0.28;
+      // Meshi eyes — simple colored ovals matching the SVG MeshiMascot design
+      const eyeOffsetX = meshiSize * 0.22;
+      const eyeY = meshiY;
+      const eyeRX = meshiSize * 0.12;
+      const eyeRY = meshiSize * 0.16;
 
-      // Left eye white
+      // Left eye (filled oval in theme color)
       ctx.beginPath();
-      ctx.ellipse(meshiX - eyeOffsetX, eyeY, eyeRadiusX, eyeRadiusY, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "white";
-      ctx.fill();
-      // Left eye pupil
-      ctx.beginPath();
-      ctx.arc(meshiX - eyeOffsetX + 1, eyeY + 1, eyeRadiusX * 0.55, 0, Math.PI * 2);
-      ctx.fillStyle = "#1e1b4b";
-      ctx.fill();
-      // Left eye shine
-      ctx.beginPath();
-      ctx.arc(meshiX - eyeOffsetX - 0.5, eyeY - 1.5, eyeRadiusX * 0.2, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.ellipse(meshiX - eyeOffsetX, eyeY, eyeRX, eyeRY, 0, 0, Math.PI * 2);
+      ctx.fillStyle = mColor.primary;
       ctx.fill();
 
-      // Right eye white
+      // Right eye (filled oval in theme color)
       ctx.beginPath();
-      ctx.ellipse(meshiX + eyeOffsetX, eyeY, eyeRadiusX, eyeRadiusY, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "white";
-      ctx.fill();
-      // Right eye pupil
-      ctx.beginPath();
-      ctx.arc(meshiX + eyeOffsetX + 1, eyeY + 1, eyeRadiusX * 0.55, 0, Math.PI * 2);
-      ctx.fillStyle = "#1e1b4b";
-      ctx.fill();
-      // Right eye shine
-      ctx.beginPath();
-      ctx.arc(meshiX + eyeOffsetX - 0.5, eyeY - 1.5, eyeRadiusX * 0.2, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.ellipse(meshiX + eyeOffsetX, eyeY, eyeRX, eyeRY, 0, 0, Math.PI * 2);
+      ctx.fillStyle = mColor.primary;
       ctx.fill();
 
       // Draw envelope if Meshi is delivering a message
