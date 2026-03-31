@@ -42,7 +42,8 @@ function getMeshiResponse(
   const personPatterns = [
     /(?:who is|who's|whos)\s+(.+)/i,
     /(?:tell me about|what about|info on|look up|do you know|know anything about)\s+(.+)/i,
-    /(?:do i (?:know|follow)|am i following|is .+ on my mesh)\s*(.+)?/i,
+    /(?:do i (?:know|follow)|am i following)\s+(.+)/i,
+    /is\s+(.+?)\s+on my mesh/i,
     /(?:have you heard of|ever heard of|what do you think of|thoughts on)\s+(.+)/i,
     /(?:find|search for|look for)\s+(?:user |person |@)?(.+)/i,
   ];
@@ -52,7 +53,7 @@ function getMeshiResponse(
     if (match) {
       const rawTerm = (match[1] || match[2] || "").replace(/[?!.]+$/, "").trim().toLowerCase();
       // Skip if the term looks like a mesh.me feature rather than a person
-      const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "notification", "community", "meshpro", "meshi", "privacy", "security", "achievement", "explore", "post"];
+      const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "notification", "communit", "meshpro", "meshi", "privacy", "security", "achievement", "explore", "post"];
       if (rawTerm && !featureWords.some(fw => rawTerm.includes(fw))) {
         const searchTerm = rawTerm.replace(/^@/, "");
 
