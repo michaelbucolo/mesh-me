@@ -10,8 +10,10 @@ export default defineConfig({
   },
   migrate: {
     async adapter() {
+      const url = process.env["DATABASE_URL"];
+      if (!url || url.startsWith("file:")) return undefined;
       return new PrismaLibSQL({
-        url: process.env["DATABASE_URL"]!,
+        url,
         authToken: process.env["DATABASE_AUTH_TOKEN"],
       });
     },
