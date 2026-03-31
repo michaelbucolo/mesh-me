@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { platform } = await request.json();
+  const { platform, username } = await request.json();
 
   if (!platform) {
     return NextResponse.json({ error: "Platform is required" }, { status: 400 });
@@ -45,6 +45,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 
+  // Only manual-link platforms can be connected via this endpoint;
+  // OAuth platforms must go through /api/auth/[platform]/callback
+  const MANUAL_PLATFORMS = ["soundcloud", "bluesky", "threads"];
+  if (!MANUAL_PLATFORMS.includes(platform)) {
+    return NextResponse.json({ error: "This platform must be connected via OAuth" }, { status: 400 });
+  }
+  const trimmedUsername = typeof username === "string" ? username.trim() : "";
+  if (!trimmedUsername) {
+    return NextResponse.json({ error: "Username is required for this platform" }, { status: 400 });
+  }
+
   // Check if already connected
   const existing = await prisma.connectedAccount.findUnique({
     where: { userId_platform: { userId: user.id, platform } },
@@ -54,13 +65,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Platform already connected" }, { status: 400 });
   }
 
-  // In production, this would initiate OAuth flow
-  // For now, create a placeholder connection
+  // Create the connection with the provided or default username
   const account = await prisma.connectedAccount.create({
     data: {
       userId: user.id,
       platform,
-      platformUsername: user.username,
+      platformUsername: trimmedUsername || user.username,
       isActive: true,
     },
   });

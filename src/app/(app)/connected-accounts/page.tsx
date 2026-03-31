@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import {
   Link2,
   Settings2,
   Shield,
   RefreshCw,
+  ExternalLink,
+  Check,
+  AlertCircle,
+  X,
 } from "lucide-react";
 
 interface ConnectedAccount {
@@ -19,72 +24,131 @@ interface ConnectedAccount {
 }
 
 const PLATFORMS = [
-  { id: "instagram", name: "Instagram", color: "#E4405F", icon: "IG", description: "Share photos and stories" },
-  { id: "youtube", name: "YouTube", color: "#FF0000", icon: "YT", description: "Videos and shorts" },
-  { id: "tiktok", name: "TikTok", color: "#000000", icon: "TT", description: "Short-form video content" },
-  { id: "twitter", name: "X / Twitter", color: "#1DA1F2", icon: "X", description: "Posts and conversations" },
-  { id: "twitch", name: "Twitch", color: "#9146FF", icon: "TW", description: "Livestreaming" },
-  { id: "spotify", name: "Spotify", color: "#1DB954", icon: "SP", description: "Music and podcasts" },
-  { id: "soundcloud", name: "SoundCloud", color: "#FF5500", icon: "SC", description: "Music sharing" },
-  { id: "linkedin", name: "LinkedIn", color: "#0A66C2", icon: "IN", description: "Professional network" },
-  { id: "github", name: "GitHub", color: "#333333", icon: "GH", description: "Code and projects" },
-  { id: "discord", name: "Discord", color: "#5865F2", icon: "DC", description: "Communities and chat" },
-  { id: "snapchat", name: "Snapchat", color: "#FFFC00", icon: "SN", description: "Snaps and stories" },
-  { id: "pinterest", name: "Pinterest", color: "#BD081C", icon: "PN", description: "Visual discovery" },
-  { id: "reddit", name: "Reddit", color: "#FF4500", icon: "RD", description: "Communities and forums" },
-  { id: "facebook", name: "Facebook", color: "#1877F2", icon: "FB", description: "Social networking" },
-  { id: "threads", name: "Threads", color: "#000000", icon: "TH", description: "Text-based conversations" },
-  { id: "bluesky", name: "Bluesky", color: "#0085FF", icon: "BS", description: "Decentralized social" },
+  { id: "instagram", name: "Instagram", color: "#E4405F", icon: "IG", description: "Share photos and stories", method: "oauth" as const },
+  { id: "youtube", name: "YouTube", color: "#FF0000", icon: "YT", description: "Videos and shorts", method: "oauth" as const },
+  { id: "tiktok", name: "TikTok", color: "#000000", icon: "TT", description: "Short-form video content", method: "oauth" as const },
+  { id: "twitter", name: "X / Twitter", color: "#1DA1F2", icon: "X", description: "Posts and conversations", method: "oauth" as const },
+  { id: "twitch", name: "Twitch", color: "#9146FF", icon: "TW", description: "Livestreaming", method: "oauth" as const },
+  { id: "spotify", name: "Spotify", color: "#1DB954", icon: "SP", description: "Music and podcasts", method: "oauth" as const },
+  { id: "soundcloud", name: "SoundCloud", color: "#FF5500", icon: "SC", description: "Music sharing", method: "manual" as const },
+  { id: "linkedin", name: "LinkedIn", color: "#0A66C2", icon: "IN", description: "Professional network", method: "oauth" as const },
+  { id: "github", name: "GitHub", color: "#333333", icon: "GH", description: "Code and projects", method: "oauth" as const },
+  { id: "discord", name: "Discord", color: "#5865F2", icon: "DC", description: "Communities and chat", method: "oauth" as const },
+  { id: "snapchat", name: "Snapchat", color: "#FFFC00", icon: "SN", description: "Snaps and stories", method: "oauth" as const },
+  { id: "pinterest", name: "Pinterest", color: "#BD081C", icon: "PN", description: "Visual discovery", method: "oauth" as const },
+  { id: "reddit", name: "Reddit", color: "#FF4500", icon: "RD", description: "Communities and forums", method: "oauth" as const },
+  { id: "facebook", name: "Facebook", color: "#1877F2", icon: "FB", description: "Social networking", method: "oauth" as const },
+  { id: "threads", name: "Threads", color: "#000000", icon: "TH", description: "Text-based conversations", method: "manual" as const },
+  { id: "bluesky", name: "Bluesky", color: "#0085FF", icon: "BS", description: "Decentralized social", method: "manual" as const },
 ];
 
-export default function ConnectedAccountsPage() {
+function ConnectedAccountsContent() {
+  const searchParams = useSearchParams();
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [manualEntry, setManualEntry] = useState<string | null>(null);
+  const [manualUsername, setManualUsername] = useState("");
+  const [notification, setNotification] = useState<{ type: "success" | "error"; message: string; platform?: string } | null>(null);
 
   useEffect(() => {
-    async function loadAccounts() {
-      try {
-        const res = await fetch("/api/connected-accounts");
-        if (res.ok) {
-          const data = await res.json();
-          setAccounts(data.accounts || []);
-        }
-      } catch {
-        // failed to load
-      } finally {
-        setLoading(false);
-      }
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+    const platform = searchParams.get("platform");
+
+    if (connected) {
+      const platformInfo = PLATFORMS.find((p) => p.id === connected);
+      setNotification({
+        type: "success",
+        message: `${platformInfo?.name || connected} connected successfully!`,
+        platform: connected,
+      });
+      window.history.replaceState({}, "", "/connected-accounts");
+    } else if (error) {
+      setNotification({
+        type: "error",
+        message: error,
+        platform: platform || undefined,
+      });
+      window.history.replaceState({}, "", "/connected-accounts");
     }
+  }, [searchParams]);
+
+  async function loadAccounts() {
+    try {
+      const res = await fetch("/api/connected-accounts");
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data.accounts || []);
+      }
+    } catch {
+      // failed to load
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     loadAccounts();
   }, []);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const [showImportDialog, setShowImportDialog] = useState<string | null>(null);
   const [importOptions, setImportOptions] = useState({ posts: true, likes: true, comments: true, followers: false });
 
-  const handleConnect = async (platformId: string) => {
-    setConnecting(platformId);
+  const handleConnect = (platformId: string) => {
+    const platform = PLATFORMS.find((p) => p.id === platformId);
+    if (!platform) return;
+
+    if (platform.method === "oauth") {
+      setConnecting(platformId);
+      window.location.href = `/api/auth/${platformId}`;
+    } else {
+      setManualEntry(platformId);
+      setManualUsername("");
+    }
+  };
+
+  const handleManualConnect = async () => {
+    if (!manualEntry || !manualUsername.trim()) return;
+
+    setConnecting(manualEntry);
     try {
       const res = await fetch("/api/connected-accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform: platformId }),
+        body: JSON.stringify({ platform: manualEntry, username: manualUsername.trim() }),
       });
       if (res.ok) {
         const data = await res.json();
         setAccounts((prev) => [...prev, data.account]);
-        // Show import dialog after successful connection
-        setShowImportDialog(platformId);
+        const platformInfo = PLATFORMS.find((p) => p.id === manualEntry);
+        setNotification({
+          type: "success",
+          message: `${platformInfo?.name || manualEntry} linked successfully!`,
+          platform: manualEntry,
+        });
+        setShowImportDialog(manualEntry);
+        setManualEntry(null);
+        setManualUsername("");
+      } else {
+        const errData = await res.json();
+        setNotification({ type: "error", message: errData.error || "Failed to link account" });
       }
     } catch {
-      // connection failed
+      setNotification({ type: "error", message: "Connection failed. Please try again." });
     } finally {
       setConnecting(null);
     }
   };
 
   const handleImport = () => {
-    // Import would sync data from the platform — all imported data is private by default
     setShowImportDialog(null);
     setImportOptions({ posts: true, likes: true, comments: true, followers: false });
   };
@@ -94,9 +158,10 @@ export default function ConnectedAccountsPage() {
       const res = await fetch(`/api/connected-accounts/${accountId}`, { method: "DELETE" });
       if (res.ok) {
         setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+        setNotification({ type: "success", message: "Account disconnected" });
       }
     } catch {
-      // disconnect failed
+      setNotification({ type: "error", message: "Failed to disconnect" });
     }
   };
 
@@ -112,7 +177,33 @@ export default function ConnectedAccountsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* Header */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={`mb-4 rounded-xl p-3 flex items-center gap-3 ${
+              notification.type === "success"
+                ? "bg-green-500/10 border border-green-500/20"
+                : "bg-red-500/10 border border-red-500/20"
+            }`}
+          >
+            {notification.type === "success" ? (
+              <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+            )}
+            <p className={`text-sm flex-1 ${notification.type === "success" ? "text-green-400" : "text-red-400"}`}>
+              {notification.message}
+            </p>
+            <button onClick={() => setNotification(null)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
@@ -125,9 +216,8 @@ export default function ConnectedAccountsPage() {
         </div>
       </div>
 
-      {/* Info Banner */}
-            <div className="rounded-2xl p-4 mb-6 flex items-start gap-3" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
-              <Shield className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
+      <div className="rounded-2xl p-4 mb-6 flex items-start gap-3" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
+        <Shield className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
         <div>
           <p className="text-sm text-[var(--text-secondary)]">
             Connecting your accounts lets you view content from all platforms in your Custom Feed,
@@ -142,7 +232,6 @@ export default function ConnectedAccountsPage() {
         </div>
       </div>
 
-      {/* Connected count */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-[var(--text-tertiary)]">
           <span className="text-[var(--text-primary)] font-semibold">{accounts.length}</span> of {PLATFORMS.length} platforms connected
@@ -155,12 +244,12 @@ export default function ConnectedAccountsPage() {
         )}
       </div>
 
-      {/* Platform Grid */}
       <div className="grid gap-3">
         {PLATFORMS.map((platform, index) => {
           const connected = connectedPlatforms.has(platform.id);
           const account = accounts.find((a) => a.platform === platform.id);
           const isConnecting = connecting === platform.id;
+          const isManualEntry = manualEntry === platform.id;
 
           return (
             <motion.div
@@ -168,74 +257,129 @@ export default function ConnectedAccountsPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.03 }}
-              className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+              className={`flex flex-col rounded-xl border transition-all ${
                 connected
                   ? "glass-card"
                   : "glass-surface hover:border-[var(--glass-border)]"
               }`}
             >
-              <div
-                className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                style={{ backgroundColor: platform.color }}
-              >
-                {platform.icon}
-              </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-4 p-4">
+                <div
+                  className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                  style={{ backgroundColor: platform.color }}
+                >
+                  {platform.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{platform.name}</h3>
+                    {connected && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-500/10 text-green-400 border-green-500/20">
+                        Connected
+                      </Badge>
+                    )}
+                    {platform.method === "oauth" && !connected && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        OAuth
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {connected && account?.platformUsername
+                      ? `@${account.platformUsername}`
+                      : platform.description}
+                  </p>
+                </div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">{platform.name}</h3>
-                  {connected && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-500/10 text-green-400 border-green-500/20">
-                      Connected
-                    </Badge>
+                  {connected ? (
+                    <>
+                      <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+                        <Settings2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => account && handleDisconnect(account.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleConnect(platform.id)}
+                      disabled={isConnecting}
+                      className="px-4 py-1.5 rounded-lg text-xs font-medium text-white brand-button transition-all disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {isConnecting ? (
+                        <span className="flex items-center gap-1.5">
+                          <div className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                          Connecting...
+                        </span>
+                      ) : (
+                        <>
+                          {platform.method === "oauth" && <ExternalLink className="h-3 w-3" />}
+                          Connect
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">
-                  {connected && account?.platformUsername
-                    ? `@${account.platformUsername}`
-                    : platform.description}
-                </p>
               </div>
-              <div className="flex items-center gap-2">
-                {connected ? (
-                  <>
-                    <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
-                      <Settings2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => account && handleDisconnect(account.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
-                    >
-                      Disconnect
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => handleConnect(platform.id)}
-                    disabled={isConnecting}
-                    className="px-4 py-1.5 rounded-lg text-xs font-medium text-white brand-button transition-all disabled:opacity-50"
+
+              <AnimatePresence>
+                {isManualEntry && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
                   >
-                    {isConnecting ? (
-                      <span className="flex items-center gap-1.5">
-                        <div className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                        Connecting...
-                      </span>
-                    ) : (
-                      "Connect"
-                    )}
-                  </button>
+                    <div className="px-4 pb-4 pt-0">
+                      <div className="rounded-xl p-3" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-primary)" }}>
+                        <p className="text-xs text-[var(--text-muted)] mb-2">
+                          Enter your {platform.name} username to link your account
+                        </p>
+                        <div className="flex gap-2">
+                          <div className="flex-1 relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)]">@</span>
+                            <input
+                              type="text"
+                              value={manualUsername}
+                              onChange={(e) => setManualUsername(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && handleManualConnect()}
+                              placeholder="username"
+                              autoFocus
+                              className="w-full pl-7 pr-3 py-2 rounded-lg text-sm bg-[var(--bg-primary)] border border-[var(--border-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                            />
+                          </div>
+                          <button
+                            onClick={handleManualConnect}
+                            disabled={!manualUsername.trim()}
+                            className="px-4 py-2 rounded-lg text-xs font-semibold text-white brand-button disabled:opacity-50 transition-all"
+                          >
+                            Link
+                          </button>
+                          <button
+                            onClick={() => { setManualEntry(null); setManualUsername(""); }}
+                            className="px-3 py-2 rounded-lg text-xs text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Cross-platform Features Info */}
       <div className="mt-8 grid md:grid-cols-3 gap-4">
         {[
-          { title: "Unified Feed", desc: "Every platform, one beautiful feed — yours to customize", icon: "📰" },
-          { title: "MeChat", desc: "Every conversation, every platform, one inbox", icon: "💬" },
-          { title: "Cross-Interact", desc: "Like, comment, and follow across the internet — all from the mesh", icon: "🔗" },
+          { title: "Unified Feed", desc: "Every platform, one beautiful feed \u2014 yours to customize", icon: "\ud83d\udcf0" },
+          { title: "MeChat", desc: "Every conversation, every platform, one inbox", icon: "\ud83d\udcac" },
+          { title: "Cross-Interact", desc: "Like, comment, and follow across the internet \u2014 all from the mesh", icon: "\ud83d\udd17" },
         ].map((feature) => (
           <div key={feature.title} className="glass-surface rounded-xl p-4 text-center">
             <span className="text-2xl mb-2 block">{feature.icon}</span>
@@ -245,7 +389,6 @@ export default function ConnectedAccountsPage() {
         ))}
       </div>
 
-      {/* Import Dialog — shown after connecting a platform */}
       {showImportDialog && (() => {
         const platform = PLATFORMS.find((p) => p.id === showImportDialog);
         if (!platform) return null;
@@ -327,5 +470,17 @@ export default function ConnectedAccountsPage() {
         );
       })()}
     </div>
+  );
+}
+
+export default function ConnectedAccountsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <div className="w-12 h-12 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)" }} />
+      </div>
+    }>
+      <ConnectedAccountsContent />
+    </Suspense>
   );
 }
