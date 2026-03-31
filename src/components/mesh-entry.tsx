@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Loader2, ArrowRight, ArrowLeft, Check, Phone, Link2, Shield, Lock, Database, Fingerprint, Sun, Moon, Monitor } from "lucide-react";
 import { signUp, signIn } from "@/lib/actions";
 import { useTheme } from "@/components/theme-provider";
-import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 
 type AuthStep =
   | "welcome"
@@ -154,6 +154,19 @@ export function MeshEntry() {
   const meshiRef = useRef<HTMLDivElement>(null);
   const [activeField, setActiveField] = useState<string | null>(null);
   const totalCharsRef = useRef(0);
+  const [meshiMood, setMeshiMood] = useState<"happy" | "excited" | "thinking" | "love" | "wink" | "sleepy">("happy");
+  const [meshiSpeech, setMeshiSpeech] = useState("");
+  const meshiSpeechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Meshi reacts to what the user is doing
+  const showMeshiSpeech = (text: string, mood: typeof meshiMood = "happy", duration = 3000) => {
+    setMeshiSpeech(text);
+    setMeshiMood(mood);
+    if (meshiSpeechTimer.current) clearTimeout(meshiSpeechTimer.current);
+    meshiSpeechTimer.current = setTimeout(() => setMeshiSpeech(""), duration);
+  };
+
+  useEffect(() => { return () => { if (meshiSpeechTimer.current) clearTimeout(meshiSpeechTimer.current); }; }, []);
 
   useEffect(() => {
     totalCharsRef.current = username.length + password.length + email.length + displayName.length + phone.length;
@@ -183,6 +196,7 @@ export function MeshEntry() {
     e.preventDefault();
     if (!password) return;
     setError("");
+    showMeshiSpeech("Verifying your identity...", "thinking", 10000);
     const formData = new FormData();
     formData.set("email", username);
     formData.set("password", password);
@@ -192,7 +206,7 @@ export function MeshEntry() {
       const result = await signIn(formData);
       if (result?.error) {
         setError(result.error);
-        // Reset converge if login failed (server action returns error instead of redirecting)
+        showMeshiSpeech("Hmm, that doesn't seem right. Try again?", "thinking", 4000);
       }
       // On success, signIn redirects — the converge animation plays during the redirect
     });
@@ -267,8 +281,8 @@ export function MeshEntry() {
     else setStep("welcome");
   };
 
-  const startSignup = () => { setIsLogin(false); setError(""); setStep("username"); };
-  const startLogin = () => { setIsLogin(true); setError(""); setStep("username"); };
+  const startSignup = () => { setIsLogin(false); setError(""); setStep("username"); showMeshiSpeech("Let's get you set up!", "excited"); };
+  const startLogin = () => { setIsLogin(true); setError(""); setStep("username"); showMeshiSpeech("Welcome back! Enter your username.", "happy"); };
 
   const handleUsernameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,7 +290,13 @@ export function MeshEntry() {
     if (!val) return;
     if (val.length < 3) { setError("Username must be at least 3 characters"); return; }
     setError("");
-    setStep(isLogin ? "password" : "signup-name");
+    if (isLogin) {
+      showMeshiSpeech(`Hey @${val}! Enter your password to unlock your mesh.`, "wink", 5000);
+      setStep("password");
+    } else {
+      showMeshiSpeech(`Nice choice, @${val}!`, "love");
+      setStep("signup-name");
+    }
   };
 
   const signupSteps: AuthStep[] = ["username", "signup-name", "signup-email", "signup-privacy", "signup-password", "signup-phone", "signup-accounts"];
@@ -321,11 +341,24 @@ export function MeshEntry() {
         {step === "welcome" && (
           <motion.div key="welcome" {...pageMotion} className="text-center max-w-lg w-full">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">
-              <div className="inline-flex items-center gap-3">
-                <div ref={meshiRef}><MeshiLogo size={44} color="blue" mood="happy" /></div>
+              <div className="inline-flex flex-col items-center gap-3">
+                <div ref={meshiRef}>
+                  <MeshiMascot size={64} mood={meshiMood} color="blue" interactive animate speaking={!!meshiSpeech} />
+                </div>
                 <span className="brand-wordmark text-2xl" style={{ color: "var(--text-primary)" }}>
                   mesh<span className="brand-wordmark-accent">.me</span>
                 </span>
+                {meshiSpeech && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="px-4 py-2 rounded-2xl text-xs max-w-[260px] text-center shadow-lg"
+                    style={{ background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--border-primary)" }}
+                  >
+                    {meshiSpeech}
+                  </motion.div>
+                )}
               </div>
             </motion.div>
 
@@ -374,8 +407,15 @@ export function MeshEntry() {
         {step === "username" && (
           <motion.div key="username" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <div ref={meshiRef} className="inline-flex items-center gap-2 mb-6">
-                <MeshiLogo size={32} color="blue" mood="happy" />
+              <div ref={meshiRef} className="inline-flex flex-col items-center gap-2 mb-4">
+                <MeshiMascot size={48} mood={meshiMood} color="blue" interactive animate speaking={!!meshiSpeech} />
+                {meshiSpeech && (
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                    className="px-3 py-1.5 rounded-xl text-[11px] max-w-[220px] text-center shadow-md"
+                    style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)", border: "1px solid var(--border-primary)" }}>
+                    {meshiSpeech}
+                  </motion.div>
+                )}
               </div>
               <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
                 {isLogin ? "Welcome back" : "Claim your identity"}
@@ -425,8 +465,15 @@ export function MeshEntry() {
         {step === "password" && (
           <motion.div key="password" {...pageMotion} className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <div ref={meshiRef} className="inline-flex items-center gap-2 mb-6">
-                <MeshiLogo size={32} color="blue" mood="happy" />
+              <div ref={meshiRef} className="inline-flex flex-col items-center gap-2 mb-4">
+                <MeshiMascot size={56} mood={meshiMood} color="blue" interactive animate speaking={!!meshiSpeech} />
+                {meshiSpeech && (
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                    className="px-3 py-1.5 rounded-xl text-[11px] max-w-[220px] text-center shadow-md"
+                    style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)", border: "1px solid var(--border-primary)" }}>
+                    {meshiSpeech}
+                  </motion.div>
+                )}
               </div>
               <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Enter the Mesh</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Welcome back, <span style={{ color: "var(--accent)" }}>@{username}</span></p>

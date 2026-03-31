@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { MeshBackground } from "@/components/mesh-background";
 import { DynamicFavicon } from "@/components/dynamic-favicon";
+import { MeshiFloat } from "@/components/meshi/meshi-float";
 import { prisma } from "@/lib/prisma";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <MobileNav unreadNotifications={unreadCount} username={user.username} />
+      <MeshiFloat />
       <DynamicFavicon />
     </div>
   );

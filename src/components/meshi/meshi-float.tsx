@@ -359,18 +359,27 @@ export function MeshiFloat() {
     setView("closed");
     setBehavior("traveling");
     setMeshiSize(FLOAT_SIZE);
-    setTimeout(() => setSearchingText("Scanning your mesh..."), 800);
+    setTimeout(() => setSearchingText("Scanning your connections..."), 800);
     setTimeout(() => setSearchingText("Checking connected platforms..."), 2000);
-    setTimeout(() => setSearchingText("Gathering results..."), 3200);
+    setTimeout(() => setSearchingText("Preparing your summary..."), 3200);
     setTimeout(() => {
       setIsSearching(false);
       setSearchingText("");
       setMood("excited");
       setBehavior("roaming");
       setView("speech");
-      addSpeechBubble("meshi", "Here\u2019s what I found! Your mesh is looking great. Want me to dig deeper?");
+      // Build a real catch-up summary from mesh data
+      const parts: string[] = [];
+      if (meshStats.followers > 0) parts.push(`${meshStats.followers} follower${meshStats.followers !== 1 ? "s" : ""}`);
+      if (meshStats.following > 0) parts.push(`following ${meshStats.following}`);
+      if (meshStats.platforms > 0) parts.push(`${meshStats.platforms} platform${meshStats.platforms !== 1 ? "s" : ""} connected`);
+      if (meshStats.communities > 0) parts.push(`${meshStats.communities} communit${meshStats.communities !== 1 ? "ies" : "y"}`);
+      const summary = parts.length > 0
+        ? `Here's your mesh at a glance: ${parts.join(", ")}. Everything's looking good!`
+        : "Your mesh is just getting started! Try connecting platforms, following people, or joining communities.";
+      addSpeechBubble("meshi", summary);
     }, 4500);
-  }, [addSpeechBubble]);
+  }, [addSpeechBubble, meshStats]);
 
   const handleSpeechSend = useCallback(() => {
     const text = speechInput.trim();
