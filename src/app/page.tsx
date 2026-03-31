@@ -5,7 +5,7 @@ import { MeshEntry } from "@/components/mesh-entry";
 
 export default async function LandingPage() {
   const user = await getCurrentUser();
-  if (user?.onboarded) redirect("/feed");
+  if (user?.onboarded) redirect("/mesh");
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)] overflow-hidden">

@@ -25,6 +25,9 @@ const FACES: Record<string, { eyes: string; svg?: boolean }> = {
   giggle: { eyes: "≧  ≦" },
   shy: { eyes: "·  ·" },
   synergy1017: { eyes: "", svg: true },
+  searching: { eyes: "", svg: true },
+  learning: { eyes: "", svg: true },
+  celebrating: { eyes: "", svg: true },
 };
 
 // SVG faces for clean, scalable eye rendering
@@ -50,6 +53,31 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
       <ellipse cx="-4" cy="0" rx="1.8" ry="3.8" fill={color} />
       {/* Right eye — thick upward-facing wink arc */}
       <path d="M 2 1.5 Q 4.5 -2.5 7 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </g>
+  ),
+  searching: (color: string) => (
+    <g>
+      {/* Squinting focused eyes */}
+      <ellipse cx="-5" cy="0" rx="3" ry="1.5" fill={color} />
+      <ellipse cx="5" cy="0" rx="3" ry="1.5" fill={color} />
+      <circle cx="-4" cy="0" r="0.8" fill="white" />
+      <circle cx="6" cy="0" r="0.8" fill="white" />
+    </g>
+  ),
+  learning: (color: string) => (
+    <g>
+      {/* Wide curious eyes */}
+      <ellipse cx="-5" cy="-0.5" rx="3" ry="3.5" fill={color} />
+      <ellipse cx="5" cy="-0.5" rx="3" ry="3.5" fill={color} />
+      <circle cx="-4" cy="-1.5" r="1" fill="white" opacity="0.8" />
+      <circle cx="6" cy="-1.5" r="1" fill="white" opacity="0.8" />
+    </g>
+  ),
+  celebrating: (color: string) => (
+    <g>
+      {/* Happy closed arcs */}
+      <path d="M -7.5 0 Q -5 -3 -2.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path d="M 2.5 0 Q 5 -3 7.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </g>
   ),
 };
@@ -341,6 +369,31 @@ export function getMeshiMoodFromActivity(stats: {
   if ((stats.postsThisWeek || 0) > 5) return "excited";
   if ((stats.postsThisWeek || 0) > 2) return "love";
   return "happy";
+}
+
+// Small social Meshi for displaying on other users' mesh nodes and Meshi-to-Meshi interactions
+export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy" }: {
+  size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood;
+}) {
+  const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
+  const face = FACES[mood] || FACES.happy;
+  const hatElement = HATS[hat] || null;
+  return (
+    <svg width={size} height={size} viewBox="-24 -24 48 48">
+      <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
+      <g style={{ color: theme.primary }}>{hatElement}</g>
+      <g transform="scale(0.8)">
+        {face.svg && SVG_FACES[mood] ? (
+          SVG_FACES[mood](theme.primary)
+        ) : (
+          <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
+            fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
+            {face.eyes}
+          </text>
+        )}
+      </g>
+    </svg>
+  );
 }
 
 export { COLOR_THEMES, FACES, HATS };

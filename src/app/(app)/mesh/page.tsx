@@ -43,7 +43,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
-import { MeshiMascot, MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, MeshiLogo, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
+import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
 
 // --- Types ---
 
@@ -186,6 +187,9 @@ export default function MeshPage() {
   const [crossPostPlatforms, setCrossPostPlatforms] = useState<Set<string>>(new Set());
   const [showNodePrivacy, setShowNodePrivacy] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [showMeshiMeet, setShowMeshiMeet] = useState(false);
+  const [myMeshiColor, setMyMeshiColor] = useState<MeshiColor>("blue");
+  const [myMeshiHat, setMyMeshiHat] = useState<MeshiHat>("none");
   const router = useRouter();
 
   // === Feature: Profile preview on node click ===
@@ -197,13 +201,17 @@ export default function MeshPage() {
   const [myEdges, setMyEdges] = useState<MeshEdge[]>([]);
   const [loadingUserMesh, setLoadingUserMesh] = useState(false);
 
-  // Load hidden nodes from localStorage
+  // Load hidden nodes and Meshi prefs from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem("meshHiddenNodes");
       if (saved) setHiddenNodes(new Set(JSON.parse(saved)));
       const savedBranches = localStorage.getItem("meshHiddenBranches");
       if (savedBranches) setHiddenBranches(new Set(JSON.parse(savedBranches)));
+      const color = localStorage.getItem("meshiColor");
+      if (color) setMyMeshiColor(color as MeshiColor);
+      const hat = localStorage.getItem("meshiHat");
+      if (hat) setMyMeshiHat(hat as MeshiHat);
     } catch { /* ignore */ }
   }, []);
 
@@ -1362,33 +1370,12 @@ export default function MeshPage() {
       <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
         <div className="text-center">
           <motion.div
-            className="relative w-28 h-28 mx-auto mb-6"
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="relative mx-auto mb-6"
+            animate={{ y: [0, -10, 0], rotate: [0, 3, -3, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            {/* Meshi with construction hat */}
-            <div className="relative">
-              <MeshiMascot size={80} mood="excited" color="blue" showGlow animate />
-              {/* Construction hat */}
-              <svg className="absolute -top-5 left-1/2 -translate-x-1/2" width="48" height="28" viewBox="0 0 48 28">
-                <path d="M8 28 L12 12 L36 12 L40 28 Z" fill="#f59e0b" stroke="#d97706" strokeWidth="1" />
-                <rect x="4" y="24" width="40" height="4" rx="2" fill="#d97706" />
-                <rect x="18" y="8" width="12" height="6" rx="1" fill="#fbbf24" />
-              </svg>
-            </div>
-            {/* Hammer animation */}
-            <motion.div
-              className="absolute -right-4 top-6"
-              animate={{ rotate: [0, -30, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
-              style={{ transformOrigin: "bottom center" }}
-            >
-              <svg width="24" height="32" viewBox="0 0 24 32">
-                <rect x="10" y="12" width="4" height="20" rx="1" fill="#92400e" />
-                <rect x="2" y="4" width="20" height="10" rx="2" fill="#6b7280" />
-                <rect x="2" y="4" width="20" height="3" rx="1" fill="#9ca3af" />
-              </svg>
-            </motion.div>
+            {/* User's custom Meshi */}
+            <MeshiMascot size={80} mood="searching" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
           </motion.div>
           <motion.p
             className="text-[var(--text-secondary)] font-medium mb-1"
@@ -1546,7 +1533,7 @@ export default function MeshPage() {
         )}
       </AnimatePresence>
 
-      {/* Loading overlay when entering another user's mesh */}
+      {/* Loading overlay when entering another user's mesh — shows user's custom Meshi */}
       <AnimatePresence>
         {loadingUserMesh && (
           <motion.div
@@ -1557,14 +1544,47 @@ export default function MeshPage() {
           >
             <div className="glass-dropdown rounded-2xl p-6 shadow-2xl text-center">
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full mx-auto mb-3"
-              />
-              <p className="text-sm text-[var(--text-primary)] font-medium">Entering mesh...</p>
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">Loading their connections</p>
+                animate={{ x: [0, 50, -30, 40, -20, 0], y: [0, -20, 10, -30, 15, 0], rotate: [0, 10, -10, 5, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                className="mx-auto mb-3"
+              >
+                <MeshiMascot size={56} mood="excited" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
+              </motion.div>
+              <p className="text-sm text-[var(--text-primary)] font-medium">Meshi is exploring...</p>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">Entering their mesh</p>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Meshi visitor badge when viewing another user's mesh */}
+      <AnimatePresence>
+        {viewingUserMesh && !loadingUserMesh && (
+          <MeshiVisitorBadge
+            viewingUsername={viewingUserMesh.label}
+            onInteract={() => setShowMeshiMeet(true)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Meshi-to-Meshi interaction overlay */}
+      <AnimatePresence>
+        {showMeshiMeet && viewingUserMesh && (
+          <MeshiMeetOverlay
+            myMeshi={{
+              color: myMeshiColor,
+              hat: myMeshiHat,
+              mood: "excited" as MeshiMood,
+              username: "You",
+            }}
+            theirMeshi={{
+              color: "purple" as MeshiColor,
+              hat: "crown" as MeshiHat,
+              mood: "happy" as MeshiMood,
+              username: viewingUserMesh.label,
+            }}
+            onClose={() => setShowMeshiMeet(false)}
+          />
         )}
       </AnimatePresence>
 
