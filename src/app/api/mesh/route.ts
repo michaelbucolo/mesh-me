@@ -9,13 +9,14 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData] = await Promise.all([
+  const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData, meshiPrefData] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: user.id },
       include: {
         following: {
           select: {
             id: true, username: true, displayName: true, avatarUrl: true,
+            status: true, lastSeenAt: true,
             _count: { select: { followers: true, posts: true } },
             interests: { select: { tag: true }, take: 5 },
           },
@@ -29,6 +30,7 @@ export async function GET() {
         follower: {
           select: {
             id: true, username: true, displayName: true, avatarUrl: true,
+            status: true, lastSeenAt: true,
             _count: { select: { followers: true, posts: true } },
           },
         },
@@ -67,6 +69,11 @@ export async function GET() {
       where: { userId: user.id, isActive: true },
       select: { id: true, username: true, displayName: true, bio: true, avatarUrl: true },
       orderBy: { createdAt: "asc" },
+    }),
+    // Fetch user's Meshi customization preferences
+    prisma.meshiPreference.findUnique({
+      where: { userId: user.id },
+      select: { colorTheme: true, hatStyle: true, faceStyle: true },
     }),
   ]);
 
@@ -165,6 +172,7 @@ export async function GET() {
       followerCount: f.following._count.followers,
       postCount: f.following._count.posts,
       interactionCount: interactionCounts[f.following.id] || 0,
+      status: f.following.status || "offline",
     })),
     followers: followersData.map((f) => ({
       ...f.follower,
@@ -172,6 +180,7 @@ export async function GET() {
       followerCount: f.follower._count.followers,
       postCount: f.follower._count.posts,
       interactionCount: interactionCounts[f.follower.id] || 0,
+      status: f.follower.status || "offline",
     })),
     communities: communitiesData.map((cm) => ({
       id: cm.community.id,
@@ -195,6 +204,7 @@ export async function GET() {
     })),
     connectedAccounts: connectedAccountsData,
     alterEgos: alterEgosData,
+    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy" },
     stats: {
       followingCount: followingData.length,
       followerCount: followersData.length,
