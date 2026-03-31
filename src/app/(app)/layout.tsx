@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <MobileNav unreadNotifications={unreadCount} />
+      <MobileNav unreadNotifications={unreadCount} username={user.username} />
       <DynamicFavicon />
     </div>
   );
