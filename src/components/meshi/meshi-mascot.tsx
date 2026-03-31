@@ -221,6 +221,7 @@ export type MeshiColor = keyof typeof COLOR_THEMES;
 
 // Page-to-prop mapping: which prop Meshi holds on each page
 export const PAGE_PROPS: Record<string, MeshiProp> = {
+  "/meshpro": "shield",
   "/mesh": "compass",
   "/feed": "clipboard",
   "/messages": "heart",
@@ -230,7 +231,6 @@ export const PAGE_PROPS: Record<string, MeshiProp> = {
   "/explore": "compass",
   "/search": "magnifying-glass",
   "/profile": "paintbrush",
-  "/meshpro": "shield",
 };
 
 interface MeshiMascotProps {
