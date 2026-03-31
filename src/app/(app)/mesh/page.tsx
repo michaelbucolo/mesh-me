@@ -39,8 +39,6 @@ import {
   ThumbsUp,
   MessageSquare,
   Plus,
-  Home,
-  Gamepad2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -190,97 +188,14 @@ export default function MeshPage() {
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const router = useRouter();
 
-  // --- Meshi roaming state ---
-  // Meshi is NOT a node — it's a living entity that roams the mesh
-  const meshiRef = useRef<{
-    x: number; y: number;
-    targetX: number; targetY: number;
-    currentTargetNodeId: string | null;
-    speed: number;
-    idleTimer: number;
-    state: "launching" | "roaming" | "idle" | "delivering" | "returning";
-    // Launch animation (Meshi jumps from house into mesh)
-    launchProgress: number; // 0-1 arc progress
-    launchFrom: { x: number; y: number };
-    launchTo: { x: number; y: number };
-    // Delivery animation
-    envelopeProgress: number; // 0-1 progress along delivery path
-    deliveryFrom: { x: number; y: number } | null;
-    deliveryTo: { x: number; y: number } | null;
-    hasEnvelope: boolean;
-    bobPhase: number;
-    glowPulse: number;
-  }>({
-    x: -999, y: -999, targetX: 0, targetY: 0,
-    currentTargetNodeId: null, speed: 1.2,
-    idleTimer: 0, state: "launching",
-    launchProgress: 0,
-    launchFrom: { x: 0, y: 0 },
-    launchTo: { x: 0, y: 0 },
-    envelopeProgress: 0,
-    deliveryFrom: null, deliveryTo: null,
-    hasEnvelope: false,
-    bobPhase: 0, glowPulse: 0,
-  });
-  const [meshiDeliveries, setMeshiDeliveries] = useState<Array<{
-    id: string; fromNodeId: string; toNodeId: string; timestamp: number;
-  }>>([]);
-
-  // === Feature: Meshi House (clickable home, lock option) ===
-  const [meshiHouseLocked, setMeshiHouseLocked] = useState(false);
-  const [showMeshiHouseMenu, setShowMeshiHouseMenu] = useState(false);
-
-  // === Feature: Meshi post reactions (emoji floats when visiting post nodes) ===
-  const meshiReactionsRef = useRef<Array<{ emoji: string; x: number; y: number; age: number; opacity: number }>>([]);
-  const meshiLastReactedNodeRef = useRef<string | null>(null);
-
-  // === Feature: Meshi hat exchange state ===
-  const [showHatExchange, setShowHatExchange] = useState(false);
-  const [hatExchangeResult, setHatExchangeResult] = useState<{ yourHat: string; meshiHat: string } | null>(null);
-  
-  // === Feature: Meshi Exploration (magnifying glass animation) ===
-  const [meshiExploring, setMeshiExploring] = useState(false);
-  const [meshiExploreTarget, setMeshiExploreTarget] = useState<string | null>(null);
-  const [meshiDiscoveries, setMeshiDiscoveries] = useState<Array<{ nodeId: string; summary: string; timestamp: number }>>([]);
-  
-  // === Feature: Meshi-to-Meshi interactions ===
-  const [showRpsGame, setShowRpsGame] = useState(false);
-  const [rpsChoice, setRpsChoice] = useState<"rock" | "paper" | "scissors" | null>(null);
-  const [rpsResult, setRpsResult] = useState<{ playerChoice: string; meshiChoice: string; result: "win" | "lose" | "draw" } | null>(null);
-  
   // === Feature: Profile preview on node click ===
   const [profilePreview, setProfilePreview] = useState<MeshNode | null>(null);
-  
-  // === Meshi custom color from user preferences ===
-  const meshiColorRef = useRef<{ primary: string; glow: string }>({ primary: "#818cf8", glow: "rgba(99, 102, 241, 0.3)" });
 
-  // Ref mirror of meshiHouseLocked for use inside useCallback (avoids stale closure)
-  const meshiHouseLockedRef = useRef(false);
-  useEffect(() => { meshiHouseLockedRef.current = meshiHouseLocked; }, [meshiHouseLocked]);
-  
-  // === Exploration timer refs (for proper cleanup) ===
-  const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const discoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Clean up exploration timers on unmount
-  useEffect(() => {
-    return () => {
-      if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
-      if (discoveryTimeoutRef.current) { clearTimeout(discoveryTimeoutRef.current); discoveryTimeoutRef.current = null; }
-    };
-  }, []);
-
-  // Load Meshi house lock state from localStorage
-  useEffect(() => {
-    try {
-      const locked = localStorage.getItem("meshiHouseLocked");
-      if (locked === "true") setMeshiHouseLocked(true);
-    } catch { /* ignore */ }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("meshiHouseLocked", meshiHouseLocked ? "true" : "false");
-  }, [meshiHouseLocked]);
+  // === Multi-user mesh exploration: viewing another user's mesh ===
+  const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
+  const [myNodes, setMyNodes] = useState<MeshNode[]>([]);
+  const [myEdges, setMyEdges] = useState<MeshEdge[]>([]);
+  const [loadingUserMesh, setLoadingUserMesh] = useState(false);
 
   // Load hidden nodes from localStorage
   useEffect(() => {
@@ -449,22 +364,6 @@ export default function MeshPage() {
 
         // Following nodes — with interaction-based proximity
         const followingCount = data.following?.length || 0;
-        // Apply user's Meshi color preference to canvas rendering
-        const meshiPref = data.meshiPreference;
-        if (meshiPref?.colorTheme) {
-          const colorMap: Record<string, { primary: string; glow: string }> = {
-            blue: { primary: "#3b82f6", glow: "rgba(59, 130, 246, 0.3)" },
-            purple: { primary: "#8b5cf6", glow: "rgba(139, 92, 246, 0.3)" },
-            pink: { primary: "#ec4899", glow: "rgba(236, 72, 153, 0.3)" },
-            green: { primary: "#22c55e", glow: "rgba(34, 197, 94, 0.3)" },
-            orange: { primary: "#f97316", glow: "rgba(249, 115, 22, 0.3)" },
-            cyan: { primary: "#06b6d4", glow: "rgba(6, 182, 212, 0.3)" },
-            gold: { primary: "#eab308", glow: "rgba(234, 179, 8, 0.3)" },
-            rainbow: { primary: "#ec4899", glow: "rgba(236, 72, 153, 0.3)" },
-          };
-          const theme = colorMap[meshiPref.colorTheme] || colorMap.blue;
-          meshiColorRef.current = theme;
-        }
 
         (data.following || []).forEach((f: {
           id: string; username: string; displayName: string; avatarUrl: string | null;
@@ -638,14 +537,6 @@ export default function MeshPage() {
           });
         });
 
-        // Meshi is NOT a node — it roams the mesh as a living entity
-        // Initialize Meshi position near the self node
-        meshiRef.current.x = cx + 60;
-        meshiRef.current.y = cy - 60;
-        meshiRef.current.targetX = cx + 60;
-        meshiRef.current.targetY = cy - 60;
-        meshiRef.current.state = "roaming";
-        meshiRef.current.idleTimer = 0;
 
         // Connected platform nodes
         (data.connectedAccounts || []).forEach((acc: { id: string; platform: string; platformUsername: string | null }, i: number) => {
@@ -762,159 +653,6 @@ export default function MeshPage() {
       }
     }
 
-    // --- Meshi roaming behavior ---
-    const m = meshiRef.current;
-    m.bobPhase += 0.05;
-    m.glowPulse += 0.03;
-
-    // Age and remove expired reactions
-    const reactions = meshiReactionsRef.current;
-    for (let ri = reactions.length - 1; ri >= 0; ri--) {
-      reactions[ri].age += 0.016;
-      reactions[ri].y -= 0.5; // float upward
-      reactions[ri].opacity = Math.max(0, 1 - reactions[ri].age / 1.5);
-      if (reactions[ri].age > 1.5) reactions.splice(ri, 1);
-    }
-
-    // If Meshi is locked at home, keep it near the self node and skip roaming
-    if (meshiHouseLockedRef.current && m.state !== "launching") {
-      const selfNode = ns.find((n) => n.type === "self");
-      if (selfNode) {
-        const homeDx = (selfNode.x + 30) - m.x;
-        const homeDy = (selfNode.y - 30) - m.y;
-        const homeDist = Math.sqrt(homeDx * homeDx + homeDy * homeDy);
-        if (homeDist > 5) {
-          m.x += (homeDx / homeDist) * 2;
-          m.y += (homeDy / homeDist) * 2;
-        }
-        m.state = "idle";
-        m.targetX = selfNode.x + 30;
-        m.targetY = selfNode.y - 30;
-      }
-    } else
-    // Launch animation: Meshi jumps from his house into the mesh like going to work
-    if (m.state === "launching") {
-      // Initialize launch on first frame
-      if (m.launchProgress === 0 && m.x === -999) {
-        // House is bottom-left of canvas in screen coords — convert to world coords
-        const canvasEl = canvasRef.current;
-        if (canvasEl) {
-          const logW = canvasEl.offsetWidth;
-          const logH = canvasEl.offsetHeight;
-          // Start position: bottom-left (house area) in world coords
-          m.launchFrom = { x: cx - logW * 0.35, y: cy + logH * 0.35 };
-          // Land near the self node
-          const selfNode = ns.find((n) => n.type === "self");
-          if (selfNode) {
-            m.launchTo = { x: selfNode.x + 30, y: selfNode.y - 20 };
-          } else {
-            m.launchTo = { x: cx, y: cy };
-          }
-          m.x = m.launchFrom.x;
-          m.y = m.launchFrom.y;
-        }
-      }
-      m.launchProgress += 0.012; // ~5 seconds for full arc
-      const t = Math.min(m.launchProgress, 1);
-      // Smooth ease-out curve
-      const ease = 1 - Math.pow(1 - t, 3);
-      // Parabolic arc height (peaks at t=0.5)
-      const arcHeight = -180 * Math.sin(t * Math.PI);
-      m.x = m.launchFrom.x + (m.launchTo.x - m.launchFrom.x) * ease;
-      m.y = m.launchFrom.y + (m.launchTo.y - m.launchFrom.y) * ease + arcHeight;
-      if (t >= 1) {
-        // Landing complete — transition to roaming
-        m.state = "roaming";
-        m.x = m.launchTo.x;
-        m.y = m.launchTo.y;
-        m.targetX = m.launchTo.x;
-        m.targetY = m.launchTo.y;
-        m.idleTimer = 0;
-      }
-    } else if (m.state === "delivering") {
-      // Move along delivery path
-      m.envelopeProgress += 0.008;
-      if (m.deliveryFrom && m.deliveryTo) {
-        m.x = m.deliveryFrom.x + (m.deliveryTo.x - m.deliveryFrom.x) * m.envelopeProgress;
-        m.y = m.deliveryFrom.y + (m.deliveryTo.y - m.deliveryFrom.y) * m.envelopeProgress;
-      }
-      if (m.envelopeProgress >= 1) {
-        m.state = "returning";
-        m.hasEnvelope = false;
-        m.envelopeProgress = 0;
-        // Return to self node
-        const selfNode = ns.find((n) => n.type === "self");
-        if (selfNode) {
-          m.targetX = selfNode.x + (Math.random() - 0.5) * 80;
-          m.targetY = selfNode.y + (Math.random() - 0.5) * 80;
-        }
-      }
-    } else if (m.state === "returning") {
-      // Smoothly return near self node
-      const retDx = m.targetX - m.x;
-      const retDy = m.targetY - m.y;
-      const retDist = Math.sqrt(retDx * retDx + retDy * retDy);
-      if (retDist > 3) {
-        m.x += (retDx / retDist) * m.speed * 1.5;
-        m.y += (retDy / retDist) * m.speed * 1.5;
-      } else {
-        m.state = "roaming";
-        m.idleTimer = 0;
-      }
-    } else {
-      // Roaming / idle behavior
-      const mDx = m.targetX - m.x;
-      const mDy = m.targetY - m.y;
-      const mDist = Math.sqrt(mDx * mDx + mDy * mDy);
-
-      if (mDist > 3) {
-        // Move toward target
-        m.x += (mDx / mDist) * m.speed;
-        m.y += (mDy / mDist) * m.speed;
-        m.state = "roaming";
-      } else {
-        // Arrived at target — idle briefly, then pick new target
-        m.state = "idle";
-        m.idleTimer += 0.016;
-
-        if (m.idleTimer > 2 + Math.random() * 3) {
-          // Pick a random node to visit
-          const candidates = ns.filter((n) => n.type !== "self" && n.id !== m.currentTargetNodeId);
-          if (candidates.length > 0) {
-            const target = candidates[Math.floor(Math.random() * candidates.length)];
-            m.targetX = target.x + (Math.random() - 0.5) * 20;
-            m.targetY = target.y + (Math.random() - 0.5) * 20;
-            m.currentTargetNodeId = target.id;
-          } else {
-            // Fall back to wandering near self
-            const selfNode = ns.find((n) => n.type === "self");
-            if (selfNode) {
-              m.targetX = selfNode.x + (Math.random() - 0.5) * 150;
-              m.targetY = selfNode.y + (Math.random() - 0.5) * 150;
-            }
-          }
-          m.idleTimer = 0;
-          m.state = "roaming";
-
-          // Meshi reacts to post nodes with emoji
-          if (m.currentTargetNodeId) {
-            const visitedNode = ns.find((n) => n.id === m.currentTargetNodeId);
-            if (visitedNode && visitedNode.type === "post" && m.currentTargetNodeId !== meshiLastReactedNodeRef.current) {
-              meshiLastReactedNodeRef.current = m.currentTargetNodeId;
-              const postEmojis = ["✨", "💫", "⭐", "🔥", "💜", "👀", "🎵", "💭"];
-              const emoji = postEmojis[Math.floor(Math.random() * postEmojis.length)];
-              meshiReactionsRef.current.push({
-                emoji,
-                x: m.x + (Math.random() - 0.5) * 20,
-                y: m.y - 18, // float above Meshi (approx 1.5x Meshi's rendered size)
-                age: 0,
-                opacity: 1,
-              });
-            }
-          }
-        }
-      }
-    }
   }, []);
 
   // --- Canvas rendering ---
@@ -984,7 +722,9 @@ export default function MeshPage() {
           : "59, 130, 246";
 
         ctx.strokeStyle = "rgba(" + edgeColor + ", " + (baseAlpha + pulseAlpha) + ")";
-        ctx.lineWidth = isHighlighted ? 1.5 : 0.5 + edge.strength * 0.5;
+        // Edge thickness: base width + interaction closeness (tether tightening)
+        const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.3, 2.5) : 0;
+        ctx.lineWidth = isHighlighted ? 2 + interactionBoost : 0.5 + edge.strength * 0.5 + interactionBoost;
         ctx.stroke();
 
         if (edge.type === "mutual" && isHighlighted) {
@@ -1017,7 +757,10 @@ export default function MeshPage() {
         const dimmed = (hovered || selected) && !highlight && node.type !== "self";
 
         const nodeOpacity = dimmed ? 0.25 : node.opacity;
-        const nodeRadius = isHovered ? node.radius * 1.15 : node.radius;
+        // Node sizing: scale radius by connection count (mesh size)
+        const connectionBoost = node.connections.length > 0 ? Math.min(node.connections.length * 0.8, 8) : 0;
+        const baseNodeRadius = node.radius + connectionBoost;
+        const nodeRadius = isHovered ? baseNodeRadius * 1.15 : baseNodeRadius;
         const pulse = Math.sin(time * 1.5 + node.pulsePhase) * 0.5 + 0.5;
 
         const glowColor = node.type === "self" ? NODE_GLOW.self
@@ -1182,193 +925,77 @@ export default function MeshPage() {
         }
       }
 
-      // --- Draw Meshi as a roaming entity ---
-      const m = meshiRef.current;
-      const meshiSize = 16;
-      const meshiBob = m.state === "launching" ? 0 : Math.sin(m.bobPhase) * 3;
-      const meshiGlow = 0.3 + Math.sin(m.glowPulse) * 0.15;
-      const meshiX = m.x;
-      const meshiY = m.y + meshiBob;
+      // --- Hover tooltip for nodes ---
+      if (hovered && z >= 0.5) {
+        const ttX = hovered.x;
+        const ttY = hovered.y - hovered.radius - 12;
+        const ttPadX = 10;
+        const ttPadY = 6;
+        const ttLineH = 14;
 
-      // Launch trail sparkles — draw a fading arc trail when Meshi is jumping from home
-      if (m.state === "launching" && m.launchProgress > 0.05) {
-        const trailCount = 8;
-        for (let ti = 0; ti < trailCount; ti++) {
-          const trailT = Math.max(0, m.launchProgress - ti * 0.04);
-          if (trailT <= 0) continue;
-          const trailEase = 1 - Math.pow(1 - trailT, 3);
-          const trailArc = -180 * Math.sin(trailT * Math.PI);
-          const tx = m.launchFrom.x + (m.launchTo.x - m.launchFrom.x) * trailEase;
-          const ty = m.launchFrom.y + (m.launchTo.y - m.launchFrom.y) * trailEase + trailArc;
-          const alpha = (1 - ti / trailCount) * 0.5;
-          const sparkleSize = 2 + Math.sin(time * 8 + ti) * 1;
-          ctx.beginPath();
-          ctx.arc(tx, ty, sparkleSize, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(165, 180, 252, " + alpha + ")";
-          ctx.fill();
+        // Build tooltip lines
+        const ttLines: string[] = [hovered.label];
+        if (hovered.sublabel) ttLines.push(hovered.sublabel);
+        if (hovered.type === "user") {
+          const parts: string[] = [];
+          if (hovered.followerCount !== undefined) parts.push(hovered.followerCount + " followers");
+          if (hovered.postCount !== undefined) parts.push(hovered.postCount + " posts");
+          if (hovered.isMutual) parts.push("Mutual");
+          if (parts.length > 0) ttLines.push(parts.join(" · "));
+          if (hovered.sharedInterests && hovered.sharedInterests.length > 0)
+            ttLines.push("Shared: " + hovered.sharedInterests.slice(0, 3).join(", "));
+        } else if (hovered.type === "community") {
+          if (hovered.memberCount !== undefined) ttLines.push(hovered.memberCount + " members");
+        } else if (hovered.type === "post") {
+          if (hovered.content) ttLines.push(hovered.content.slice(0, 50) + (hovered.content.length > 50 ? "..." : ""));
+          const parts: string[] = [];
+          if (hovered.likeCount !== undefined) parts.push(hovered.likeCount + " likes");
+          if (hovered.commentCount !== undefined) parts.push(hovered.commentCount + " comments");
+          if (parts.length > 0) ttLines.push(parts.join(" · "));
+        } else if (hovered.type === "platform") {
+          ttLines.push("Connected platform");
         }
-        // Draw a "woosh" line from recent trail
-        if (m.launchProgress < 0.9) {
-          ctx.save();
-          ctx.globalAlpha = 0.3;
-          ctx.setLineDash([4, 6]);
-          ctx.beginPath();
-          const prevT = Math.max(0, m.launchProgress - 0.1);
-          const prevEase = 1 - Math.pow(1 - prevT, 3);
-          const prevArc = -180 * Math.sin(prevT * Math.PI);
-          const prevX = m.launchFrom.x + (m.launchTo.x - m.launchFrom.x) * prevEase;
-          const prevY = m.launchFrom.y + (m.launchTo.y - m.launchFrom.y) * prevEase + prevArc;
-          ctx.moveTo(prevX, prevY);
-          ctx.lineTo(meshiX, meshiY);
-          ctx.strokeStyle = "rgba(129, 140, 248, 0.6)";
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.restore();
-        }
-      }
 
-      // Soft glow around Meshi (uses user's custom color)
-      const mColor = meshiColorRef.current;
-      const meshiGlowGrad = ctx.createRadialGradient(meshiX, meshiY, 0, meshiX, meshiY, meshiSize * 2.5);
-      meshiGlowGrad.addColorStop(0, mColor.glow.replace(/[\d.]+\)$/, meshiGlow + ")"));
-      meshiGlowGrad.addColorStop(0.5, mColor.glow.replace(/[\d.]+\)$/, (meshiGlow * 0.3) + ")"));
-      meshiGlowGrad.addColorStop(1, mColor.glow.replace(/[\d.]+\)$/, "0)"));
-      ctx.beginPath();
-      ctx.arc(meshiX, meshiY, meshiSize * 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = meshiGlowGrad;
-      ctx.fill();
+        // Measure text
+        ctx.font = "11px system-ui, -apple-system, sans-serif";
+        let maxW = 0;
+        for (const line of ttLines) { maxW = Math.max(maxW, ctx.measureText(line).width); }
+        const boxW = maxW + ttPadX * 2;
+        const boxH = ttLines.length * ttLineH + ttPadY * 2;
 
-      // Meshi body — matches SVG mascot: light tinted background + colored stroke border
-      const meshiBgAlpha = mColor.glow.replace(/[\d.]+\)$/, "0.1)");
-      ctx.beginPath();
-      ctx.arc(meshiX, meshiY, meshiSize, 0, Math.PI * 2);
-      ctx.fillStyle = meshiBgAlpha;
-      ctx.fill();
-      // Colored border ring (matches SVG strokeWidth=2 on r=16 → ~2px scaled)
-      ctx.strokeStyle = mColor.primary;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Meshi eyes — simple colored ovals matching the SVG MeshiMascot design
-      const eyeOffsetX = meshiSize * 0.22;
-      const eyeY = meshiY;
-      const eyeRX = meshiSize * 0.12;
-      const eyeRY = meshiSize * 0.16;
-
-      // Left eye (filled oval in theme color)
-      ctx.beginPath();
-      ctx.ellipse(meshiX - eyeOffsetX, eyeY, eyeRX, eyeRY, 0, 0, Math.PI * 2);
-      ctx.fillStyle = mColor.primary;
-      ctx.fill();
-
-      // Right eye (filled oval in theme color)
-      ctx.beginPath();
-      ctx.ellipse(meshiX + eyeOffsetX, eyeY, eyeRX, eyeRY, 0, 0, Math.PI * 2);
-      ctx.fillStyle = mColor.primary;
-      ctx.fill();
-
-      // Draw envelope if Meshi is delivering a message
-      if (m.hasEnvelope && m.state === "delivering") {
-        const envX = meshiX + meshiSize * 0.8;
-        const envY = meshiY - meshiSize * 0.6;
-        const envW = 10;
-        const envH = 7;
-        // Envelope body
-        ctx.fillStyle = "#fbbf24";
-        ctx.fillRect(envX - envW / 2, envY - envH / 2, envW, envH);
-        ctx.strokeStyle = "#d97706";
-        ctx.lineWidth = 0.8;
-        ctx.strokeRect(envX - envW / 2, envY - envH / 2, envW, envH);
-        // Envelope flap (triangle)
+        // Draw tooltip background
+        const bx = ttX - boxW / 2;
+        const by = ttY - boxH;
+        ctx.fillStyle = "rgba(15, 15, 20, 0.92)";
         ctx.beginPath();
-        ctx.moveTo(envX - envW / 2, envY - envH / 2);
-        ctx.lineTo(envX, envY + 1);
-        ctx.lineTo(envX + envW / 2, envY - envH / 2);
-        ctx.strokeStyle = "#d97706";
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        // Small sparkle on envelope
-        const sparklePhase = time * 3;
-        const sparkleAlpha = 0.5 + Math.sin(sparklePhase) * 0.5;
-        ctx.fillStyle = "rgba(255, 255, 255, " + sparkleAlpha + ")";
-        ctx.font = "6px system-ui";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("✦", envX + envW / 2 + 3, envY - envH / 2 - 2);
-      }
-
-      // Delivery trail (fading dotted line from origin to Meshi during delivery)
-      if (m.state === "delivering" && m.deliveryFrom) {
-        ctx.save();
-        ctx.setLineDash([3, 4]);
-        ctx.beginPath();
-        ctx.moveTo(m.deliveryFrom.x, m.deliveryFrom.y);
-        ctx.lineTo(meshiX, meshiY);
-        ctx.strokeStyle = "rgba(99, 102, 241, 0.2)";
+        ctx.roundRect(bx, by, boxW, boxH, 6);
+        ctx.fill();
+        ctx.strokeStyle = hovered.color + "60";
         ctx.lineWidth = 1;
         ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
-      }
 
-      // Meshi label
-      ctx.fillStyle = "rgba(165, 180, 252, 0.85)";
-      ctx.font = "9px system-ui, -apple-system, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillText("Meshi", meshiX, meshiY + meshiSize + 4);
-
-      // === Magnifying glass when Meshi is exploring ===
-      if (meshiExploring) {
-        const mgX = meshiX + meshiSize * 0.9;
-        const mgY = meshiY - meshiSize * 0.5;
-        const mgR = 5;
-        const mgBob = Math.sin(time * 4) * 1.5;
-        // Glass circle
+        // Tooltip arrow
         ctx.beginPath();
-        ctx.arc(mgX, mgY + mgBob, mgR, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(251, 191, 36, 0.9)";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.fillStyle = "rgba(251, 191, 36, 0.15)";
+        ctx.moveTo(ttX - 5, ttY - 1);
+        ctx.lineTo(ttX, ttY + 5);
+        ctx.lineTo(ttX + 5, ttY - 1);
+        ctx.fillStyle = "rgba(15, 15, 20, 0.92)";
         ctx.fill();
-        // Handle
-        ctx.beginPath();
-        ctx.moveTo(mgX + mgR * 0.7, mgY + mgBob + mgR * 0.7);
-        ctx.lineTo(mgX + mgR * 1.6, mgY + mgBob + mgR * 1.6);
-        ctx.strokeStyle = "rgba(251, 191, 36, 0.9)";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
 
-      // State indicator (small text below name)
-      if (m.state === "delivering") {
-        ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
-        ctx.font = "7px system-ui";
-        ctx.fillText("delivering...", meshiX, meshiY + meshiSize + 15);
-      }
-
-      // Locked indicator (small lock icon when Meshi is home-locked)
-      if (meshiHouseLockedRef.current) {
-        ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
-        ctx.font = "7px system-ui";
-        ctx.textAlign = "center";
+        // Draw text
+        ctx.textAlign = "left";
         ctx.textBaseline = "top";
-        ctx.fillText("🏠 at home", meshiX, meshiY + meshiSize + 15);
+        for (let li = 0; li < ttLines.length; li++) {
+          if (li === 0) {
+            ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+          } else {
+            ctx.font = "10px system-ui, -apple-system, sans-serif";
+            ctx.fillStyle = "rgba(200, 200, 210, 0.8)";
+          }
+          ctx.fillText(ttLines[li], bx + ttPadX, by + ttPadY + li * ttLineH);
+        }
       }
-
-      // === Floating emoji reactions from Meshi visiting post nodes ===
-      const emojiReactions = meshiReactionsRef.current;
-      for (const reaction of emojiReactions) {
-        if (reaction.opacity <= 0) continue;
-        ctx.globalAlpha = reaction.opacity;
-        ctx.font = "14px system-ui";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(reaction.emoji, reaction.x, reaction.y);
-      }
-      ctx.globalAlpha = 1;
 
       ctx.restore();
       animationRef.current = requestAnimationFrame(render);
@@ -1452,13 +1079,124 @@ export default function MeshPage() {
     setSelectedNode(node);
   }, [getWorldCoords, findNodeAt, router]);
 
+  // === Enter another user's mesh on double-click ===
+  const enterUserMesh = useCallback(async (node: MeshNode) => {
+    if (!node.sublabel) return;
+    const username = node.sublabel.replace("@", "");
+    setLoadingUserMesh(true);
+    try {
+      // Save current mesh state so we can return
+      if (!viewingUserMesh) {
+        setMyNodes([...nodesRef.current]);
+        setMyEdges([...edgesRef.current]);
+      }
+      const res = await fetch(`/api/users/${username}/mesh`);
+      if (!res.ok) throw new Error("Failed to load user mesh");
+      const data = await res.json();
+
+      const cx = centerRef.current.x || 600, cy = centerRef.current.y || 400;
+      const userNodes: MeshNode[] = [];
+      const userEdges: MeshEdge[] = [];
+
+      // Center node is the user we're exploring
+      userNodes.push({
+        id: data.user?.id || node.id, type: "self", label: data.user?.displayName || node.label,
+        sublabel: "@" + username, avatarUrl: data.user?.avatarUrl || node.avatarUrl,
+        href: "/profile/" + username,
+        x: cx, y: cy, vx: 0, vy: 0, radius: 35, color: node.color || NODE_COLORS.self,
+        opacity: 1, pulsePhase: 0, connections: [],
+      });
+
+      // Their following connections (up to 6 colored nodes)
+      const following = data.following || [];
+      following.slice(0, 30).forEach((f: {
+        id: string; username: string; displayName: string; avatarUrl: string | null;
+        isMutual: boolean; followerCount: number; postCount: number;
+      }, i: number) => {
+        const angle = (i / Math.max(following.length, 1)) * Math.PI * 2;
+        const dist = 140 + Math.random() * 50;
+        const isMutual = f.isMutual;
+        userNodes.push({
+          id: f.id, type: "user", label: f.displayName,
+          sublabel: "@" + f.username,
+          avatarUrl: f.avatarUrl, href: "/profile/" + f.username,
+          x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist,
+          vx: 0, vy: 0, radius: isMutual ? 18 : 14,
+          color: isMutual ? NODE_COLORS.mutual : NODE_COLORS.user,
+          opacity: 1, pulsePhase: Math.random() * Math.PI * 2,
+          connections: [data.user?.id || node.id],
+          isMutual, followerCount: f.followerCount, postCount: f.postCount,
+        });
+        userEdges.push({
+          source: data.user?.id || node.id, target: f.id,
+          strength: isMutual ? 1.0 : 0.7,
+          type: isMutual ? "mutual" : "follow",
+        });
+      });
+
+      // Their communities
+      (data.communities || []).slice(0, 6).forEach((c: { id: string; name: string; memberCount: number }, i: number) => {
+        const angle = (i / 6) * Math.PI * 2 + Math.PI / 3;
+        const dist = 200 + Math.random() * 40;
+        userNodes.push({
+          id: "community-" + c.id, type: "community", label: c.name,
+          x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist,
+          vx: 0, vy: 0, radius: 14, color: NODE_COLORS.community,
+          opacity: 0.9, pulsePhase: Math.random() * Math.PI * 2,
+          connections: [data.user?.id || node.id], memberCount: c.memberCount,
+        });
+        userEdges.push({
+          source: data.user?.id || node.id, target: "community-" + c.id,
+          strength: 0.5, type: "community",
+        });
+      });
+
+      setNodes(userNodes);
+      setEdges(userEdges);
+      nodesRef.current = userNodes;
+      edgesRef.current = userEdges;
+      setViewingUserMesh(node);
+      setSelectedNode(null);
+      setProfilePreview(null);
+      // Reset view to center
+      setZoom(1); zoomRef.current = 1;
+      setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 };
+    } catch {
+      // If fetch fails, just navigate to their profile
+      if (node.href) router.push(node.href);
+    } finally {
+      setLoadingUserMesh(false);
+    }
+  }, [viewingUserMesh, router]);
+
+  // === Return to own mesh ===
+  const returnToMyMesh = useCallback(() => {
+    if (myNodes.length > 0) {
+      setNodes(myNodes);
+      setEdges(myEdges);
+      nodesRef.current = myNodes;
+      edgesRef.current = myEdges;
+    }
+    setViewingUserMesh(null);
+    setSelectedNode(null);
+    setProfilePreview(null);
+    // Reset view
+    setZoom(1); zoomRef.current = 1;
+    setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 };
+  }, [myNodes, myEdges]);
+
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const coords = getWorldCoords(e.clientX, e.clientY);
     const node = findNodeAt(coords.x, coords.y);
+    // Double-click user node → enter their mesh
+    if (node?.type === "user" && node.sublabel) {
+      enterUserMesh(node);
+      return;
+    }
     if (node?.href) {
       window.location.href = node.href;
     }
-  }, [getWorldCoords, findNodeAt]);
+  }, [getWorldCoords, findNodeAt, enterUserMesh]);
 
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) {
@@ -1597,31 +1335,6 @@ export default function MeshPage() {
   // Keep ref in sync so handleCanvasClick can use it
   zoomToNodeRef.current = zoomToNode;
 
-  // --- Trigger Meshi message delivery animation ---
-  // Call this when a message is sent to animate Meshi grabbing an envelope
-  // and walking it to the recipient's node. Only visible to sender.
-  const triggerMeshiDelivery = useCallback((toNodeId: string) => {
-    const ns = nodesRef.current;
-    const selfNode = ns.find((n) => n.type === "self");
-    const targetNode = ns.find((n) => n.id === toNodeId);
-    if (!selfNode || !targetNode) return;
-
-    const m = meshiRef.current;
-    // First move Meshi to self node to "grab" the envelope
-    m.x = selfNode.x + 30;
-    m.y = selfNode.y - 30;
-    m.hasEnvelope = true;
-    m.state = "delivering";
-    m.envelopeProgress = 0;
-    m.deliveryFrom = { x: selfNode.x + 30, y: selfNode.y - 30 };
-    m.deliveryTo = { x: targetNode.x, y: targetNode.y };
-
-    // Track delivery for privacy (only sender sees this)
-    setMeshiDeliveries((prev) => [
-      ...prev,
-      { id: Date.now().toString(), fromNodeId: selfNode.id, toNodeId, timestamp: Date.now() },
-    ]);
-  }, []);
 
   // --- Filter options ---
 
@@ -1798,124 +1511,6 @@ export default function MeshPage() {
       </div>
 
 
-      {/* === Meshi House === */}
-      <div className="absolute bottom-28 sm:bottom-32 left-2 sm:left-4 z-10">
-        <div className="relative">
-          <button
-            onClick={() => {
-              if (meshiHouseLocked) return;
-              setShowMeshiHouseMenu(!showMeshiHouseMenu);
-              // Send Meshi home
-              const m = meshiRef.current;
-              const selfNode = nodesRef.current.find((n) => n.type === "self");
-              if (selfNode) {
-                m.targetX = selfNode.x + 30;
-                m.targetY = selfNode.y - 30;
-                m.state = "returning";
-              }
-            }}
-            className={"p-2.5 rounded-xl transition-all shadow-lg " + (
-              meshiHouseLocked
-                ? "bg-amber-500/20 border border-amber-500/30 text-amber-400"
-                : "glass-surface text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-            )}
-            title={meshiHouseLocked ? "Meshi is locked at home" : "Send Meshi home"}
-          >
-            <Home className="h-4 w-4" />
-          </button>
-          <AnimatePresence>
-            {showMeshiHouseMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 5, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                className="absolute bottom-full left-0 mb-2 glass-dropdown rounded-xl p-2 shadow-xl min-w-[160px]"
-              >
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider px-2 pb-1.5 mb-1 border-b border-[var(--border-primary)]">Meshi House</p>
-                <button
-                  onClick={() => {
-                    setMeshiHouseLocked(!meshiHouseLocked);
-                    setShowMeshiHouseMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  <Lock className={"h-3 w-3 " + (meshiHouseLocked ? "text-amber-400" : "text-[var(--text-muted)]")} />
-                  <span className="text-[var(--text-secondary)]">{meshiHouseLocked ? "Unlock Meshi" : "Lock Meshi at home"}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    // Clear any existing exploration timers first
-                    if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
-                    if (discoveryTimeoutRef.current) { clearTimeout(discoveryTimeoutRef.current); discoveryTimeoutRef.current = null; }
-                    // Trigger exploration with discovery generation
-                    setMeshiExploring(true);
-                    setMeshiDiscoveries([]);
-                    setShowMeshiHouseMenu(false);
-                    // Generate discoveries from mesh data over time
-                    const ns = nodesRef.current;
-                    const discoveryTemplates = [
-                      (n: MeshNode) => n.type === "user" && n.isMutual ? `${n.label} is a mutual connection` : null,
-                      (n: MeshNode) => n.type === "post" && n.likeCount && n.likeCount > 0 ? `Found a post with ${n.likeCount} likes` : null,
-                      (n: MeshNode) => n.type === "community" ? `Discovered community: ${n.label}` : null,
-                      (n: MeshNode) => n.type === "tag" ? `Interesting topic: ${n.label}` : null,
-                      (n: MeshNode) => n.type === "platform" ? `Connected to ${n.label}` : null,
-                      (n: MeshNode) => n.type === "user" && n.sharedInterests && n.sharedInterests.length > 0 ? `${n.label} shares ${n.sharedInterests.length} interests with you` : null,
-                    ];
-                    let dIdx = 0;
-                    const shuffled = [...ns].sort(() => Math.random() - 0.5);
-                    discoveryIntervalRef.current = setInterval(() => {
-                      if (dIdx >= shuffled.length || dIdx >= 5) {
-                        if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
-                        return;
-                      }
-                      const node = shuffled[dIdx];
-                      for (const tmpl of discoveryTemplates) {
-                        const summary = tmpl(node);
-                        if (summary) {
-                          setMeshiDiscoveries(prev => [...prev, { nodeId: node.id, summary, timestamp: Date.now() }]);
-                          break;
-                        }
-                      }
-                      dIdx++;
-                    }, 2500);
-                    // Auto-stop after 15 seconds
-                    discoveryTimeoutRef.current = setTimeout(() => {
-                      setMeshiExploring(false);
-                      if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
-                      discoveryTimeoutRef.current = null;
-                    }, 15000);
-                  }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  <Search className="h-3 w-3 text-[var(--text-muted)]" />
-                  <span className="text-[var(--text-secondary)]">Explore mesh</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowRpsGame(true);
-                    setShowMeshiHouseMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  <Gamepad2 className="h-3 w-3 text-[var(--text-muted)]" />
-                  <span className="text-[var(--text-secondary)]">Play with Meshi</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowHatExchange(true);
-                    setShowMeshiHouseMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  <Sparkles className="h-3 w-3 text-[var(--text-muted)]" />
-                  <span className="text-[var(--text-secondary)]">Hat Exchange</span>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
       {/* Stats bar — positioned above action bar to prevent overlap */}
       <AnimatePresence>
           {showStats && (
@@ -1944,241 +1539,46 @@ export default function MeshPage() {
       </AnimatePresence>
 
 
-      {/* === Meshi Exploration Discoveries (Feature #4) === */}
+      {/* === Back to my mesh button (when viewing another user's mesh) === */}
       <AnimatePresence>
-        {meshiExploring && (
+        {viewingUserMesh && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute top-20 left-4 z-10 glass-dropdown rounded-xl p-3 shadow-xl max-w-[200px]"
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-20"
           >
-            <div className="flex items-center gap-2 mb-2">
-              <Search className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
-              <span className="text-[11px] font-medium text-[var(--text-primary)]">Meshi is exploring...</span>
-            </div>
-            <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-              Investigating posts and connections in your mesh. Discoveries will appear here.
-            </p>
-            {meshiDiscoveries.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {meshiDiscoveries.slice(-3).map((d) => (
-                  <div key={d.timestamp} className="text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] rounded px-2 py-1">
-                    {d.summary}
-                  </div>
-                ))}
-              </div>
-            )}
             <button
-              onClick={() => {
-                setMeshiExploring(false);
-                if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
-                if (discoveryTimeoutRef.current) { clearTimeout(discoveryTimeoutRef.current); discoveryTimeoutRef.current = null; }
-              }}
-              className="mt-2 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              onClick={returnToMyMesh}
+              className="flex items-center gap-2 px-4 py-2 glass-dropdown rounded-xl text-xs font-medium text-[var(--text-primary)] shadow-xl hover:bg-[var(--bg-tertiary)] transition-all active:scale-95"
             >
-              Stop exploring
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Back to my mesh</span>
+              <span className="text-[var(--text-muted)]">&middot;</span>
+              <span className="text-[var(--text-muted)]">Viewing {viewingUserMesh.label}&apos;s mesh</span>
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* === Rock Paper Scissors Game Overlay === */}
+      {/* Loading overlay when entering another user's mesh */}
       <AnimatePresence>
-        {showRpsGame && (
+        {loadingUserMesh && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            onClick={(e) => { if (e.target === e.currentTarget) { setShowRpsGame(false); setRpsChoice(null); setRpsResult(null); } }}
+            className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           >
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-sm mx-4 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
-            >
-              <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400" />
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Gamepad2 className="h-4 w-4 text-purple-400" />
-                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Play with Meshi</h3>
-                  </div>
-                  <button onClick={() => { setShowRpsGame(false); setRpsChoice(null); setRpsResult(null); }} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {!rpsResult ? (
-                  <>
-                    <p className="text-xs text-[var(--text-muted)] mb-4 text-center">Choose your move — Meshi is ready!</p>
-                    <div className="flex justify-center gap-3 mb-4">
-                      {(["rock", "paper", "scissors"] as const).map((choice) => {
-                        const icons = { rock: "🪨", paper: "📄", scissors: "✂️" };
-                        return (
-                          <motion.button
-                            key={choice}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => {
-                              setRpsChoice(choice);
-                              const options = ["rock", "paper", "scissors"] as const;
-                              const meshiPick = options[Math.floor(Math.random() * 3)];
-                              const wins: Record<string, string> = { rock: "scissors", paper: "rock", scissors: "paper" };
-                              const result = choice === meshiPick ? "draw" : wins[choice] === meshiPick ? "win" : "lose";
-                              setTimeout(() => {
-                                setRpsResult({ playerChoice: choice, meshiChoice: meshiPick, result });
-                              }, 600);
-                            }}
-                            className={"w-16 h-16 rounded-2xl flex items-center justify-center text-2xl transition-all border-2 " + (
-                              rpsChoice === choice
-                                ? "border-[var(--accent)] bg-[var(--accent)]/10 scale-110"
-                                : "border-[var(--border-primary)] hover:border-[var(--text-muted)] bg-[var(--bg-tertiary)]"
-                            )}
-                          >
-                            {icons[choice]}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                    {rpsChoice && !rpsResult && (
-                      <div className="text-center">
-                        <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>
-                          <MeshiMascot size={40} mood="thinking" animate={false} showGlow={false} />
-                        </motion.div>
-                        <p className="text-[10px] text-[var(--text-muted)] mt-1">Meshi is choosing...</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-6 mb-4">
-                      <div className="text-center">
-                        <p className="text-2xl mb-1">{{ rock: "🪨", paper: "📄", scissors: "✂️" }[rpsResult.playerChoice]}</p>
-                        <p className="text-[10px] text-[var(--text-muted)]">You</p>
-                      </div>
-                      <p className="text-lg font-bold text-[var(--text-muted)]">vs</p>
-                      <div className="text-center">
-                        <p className="text-2xl mb-1">{{ rock: "🪨", paper: "📄", scissors: "✂️" }[rpsResult.meshiChoice]}</p>
-                        <p className="text-[10px] text-[var(--text-muted)]">Meshi</p>
-                      </div>
-                    </div>
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.2 }}>
-                      <p className={"text-lg font-bold mb-1 " + (
-                        rpsResult.result === "win" ? "text-emerald-400" :
-                        rpsResult.result === "lose" ? "text-red-400" : "text-amber-400"
-                      )}>
-                        {rpsResult.result === "win" ? "You win!" : rpsResult.result === "lose" ? "Meshi wins!" : "It's a draw!"}
-                      </p>
-                      <MeshiMascot
-                        size={48}
-                        mood={rpsResult.result === "win" ? "surprised" : rpsResult.result === "lose" ? "excited" : "happy"}
-                        animate showGlow={false}
-                      />
-                    </motion.div>
-                    <button
-                      onClick={() => { setRpsChoice(null); setRpsResult(null); }}
-                      className="mt-4 px-4 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95"
-                    >
-                      Play again
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* === Hat Exchange Overlay (Meshi-to-Meshi interaction) === */}
-      <AnimatePresence>
-        {showHatExchange && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            onClick={(e) => { if (e.target === e.currentTarget) { setShowHatExchange(false); setHatExchangeResult(null); } }}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-sm mx-4 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
-            >
-              <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500" />
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-amber-400" />
-                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Hat Exchange</h3>
-                  </div>
-                  <button onClick={() => { setShowHatExchange(false); setHatExchangeResult(null); }} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {!hatExchangeResult ? (
-                  <>
-                    <p className="text-xs text-[var(--text-muted)] mb-4 text-center">Trade hats with Meshi! Pick a hat to offer and see what Meshi gives you back.</p>
-                    <div className="flex justify-center gap-2 flex-wrap mb-4">
-                      {(["crown", "tophat", "cap", "beanie", "flower", "antenna", "chef", "party"] as const).map((hat) => {
-                        const hatIcons: Record<string, string> = { crown: "\ud83d\udc51", tophat: "\ud83c\udfa9", cap: "\ud83e\udde2", beanie: "\ud83e\udde3", flower: "\ud83c\udf3b", antenna: "\ud83d\udce1", chef: "\ud83d\udc68\u200d\ud83c\udf73", party: "\ud83c\udf89" };
-                        return (
-                          <motion.button
-                            key={hat}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => {
-                              const meshiHats = ["crown", "tophat", "cap", "beanie", "flower", "antenna", "chef", "party"];
-                              const meshiPick = meshiHats[Math.floor(Math.random() * meshiHats.length)];
-                              setTimeout(() => {
-                                setHatExchangeResult({ yourHat: hat, meshiHat: meshiPick });
-                              }, 800);
-                            }}
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl transition-all border-2 border-[var(--border-primary)] hover:border-amber-400 bg-[var(--bg-tertiary)]"
-                          >
-                            {hatIcons[hat] || hat}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-6 mb-4">
-                      <div className="text-center">
-                        <p className="text-3xl mb-1">{{ crown: "\ud83d\udc51", tophat: "\ud83c\udfa9", cap: "\ud83e\udde2", beanie: "\ud83e\udde3", flower: "\ud83c\udf3b", antenna: "\ud83d\udce1", chef: "\ud83d\udc68\u200d\ud83c\udf73", party: "\ud83c\udf89" }[hatExchangeResult.yourHat] || "\ud83c\udfa9"}</p>
-                        <p className="text-[10px] text-[var(--text-muted)]">You offered</p>
-                      </div>
-                      <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 0.8, repeat: 2 }}>
-                        <p className="text-lg font-bold text-amber-400">\u21c4</p>
-                      </motion.div>
-                      <div className="text-center">
-                        <p className="text-3xl mb-1">{{ crown: "\ud83d\udc51", tophat: "\ud83c\udfa9", cap: "\ud83e\udde2", beanie: "\ud83e\udde3", flower: "\ud83c\udf3b", antenna: "\ud83d\udce1", chef: "\ud83d\udc68\u200d\ud83c\udf73", party: "\ud83c\udf89" }[hatExchangeResult.meshiHat] || "\ud83c\udfa9"}</p>
-                        <p className="text-[10px] text-[var(--text-muted)]">Meshi gave you</p>
-                      </div>
-                    </div>
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.2 }}>
-                      <p className="text-sm font-bold text-amber-400 mb-2">
-                        {hatExchangeResult.yourHat === hatExchangeResult.meshiHat ? "Great minds think alike!" : "A fair trade!"}
-                      </p>
-                      <MeshiMascot size={48} mood="excited" animate showGlow={false} />
-                    </motion.div>
-                    <button
-                      onClick={() => setHatExchangeResult(null)}
-                      className="mt-4 px-4 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95"
-                    >
-                      Trade again
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
+            <div className="glass-dropdown rounded-2xl p-6 shadow-2xl text-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full mx-auto mb-3"
+              />
+              <p className="text-sm text-[var(--text-primary)] font-medium">Entering mesh...</p>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">Loading their connections</p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -2186,7 +1586,10 @@ export default function MeshPage() {
       {/* Hint — centered above bottom controls */}
       {nodes.length > 0 && !selectedNode && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] glass-surface rounded-lg px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none hidden md:block">
-          Click to inspect &middot; Double-click to navigate &middot; Scroll to zoom &middot; R reset &middot; L labels &middot; 1-7 filters &middot; ⌘K search
+          {viewingUserMesh
+            ? "Double-click to explore deeper \u00b7 Click back button to return"
+            : "Click to inspect \u00b7 Double-click user to enter their mesh \u00b7 Scroll to zoom \u00b7 R reset \u00b7 L labels \u00b7 1-7 filters \u00b7 \u2318K search"
+          }
         </div>
       )}
 
