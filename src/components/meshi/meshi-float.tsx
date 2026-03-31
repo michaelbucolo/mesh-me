@@ -48,6 +48,19 @@ const ELEMENT_ZONES: Array<{ selector: string; label: string; description: strin
 type MeshiView = "closed" | "chat" | "mini-mesh" | "speech";
 type MeshiBehavior = "home" | "roaming" | "traveling" | "reacting";
 
+// Page-contextual ambient moods — Meshi's expression shifts based on where the user is
+const PAGE_AMBIENT_MOODS: Record<string, MeshiMood[]> = {
+  "/mesh": ["excited", "happy", "cool"],
+  "/feed": ["happy", "love", "wink"],
+  "/messages": ["love", "happy", "wink"],
+  "/explore": ["excited", "cool", "happy"],
+  "/settings": ["thinking", "happy", "cool"],
+  "/profile": ["wink", "happy", "love"],
+  "/meshpro": ["excited", "cool", "happy"],
+  "/notifications": ["thinking", "surprised", "happy"],
+  "/communities": ["excited", "love", "happy"],
+};
+
 // Home position = near the sidebar logo (top-left)
 const HOME_POSITION = { x: 28, y: 84 };
 const HOME_SIZE = 32;
@@ -318,6 +331,42 @@ export function MeshiFloat() {
     }
   }, [isIdle, isTyping, behavior, view, meshiEnabled, meshiX, meshiY]);
 
+  // AMBIENT MOOD CYCLE — Meshi's expression subtly shifts based on current page
+  useEffect(() => {
+    if (!meshiEnabled || view !== "closed" || isIdle || isTyping || isDragging) return;
+    const matchedKey = Object.keys(PAGE_AMBIENT_MOODS).find((key) => pathname.startsWith(key));
+    if (!matchedKey) return;
+    const moods = PAGE_AMBIENT_MOODS[matchedKey];
+    let idx = 0;
+    const interval = setInterval(() => {
+      // Only cycle mood when user isn't actively triggering other mood changes
+      if (behavior === "home" || behavior === "roaming") {
+        idx = (idx + 1) % moods.length;
+        setMood(moods[idx]);
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [pathname, meshiEnabled, view, isIdle, isTyping, isDragging, behavior]);
+
+  // SCROLL DIRECTION REACTION — Meshi leans into scroll direction
+  useEffect(() => {
+    if (!meshiEnabled || view !== "closed") return;
+    let lastScrollY = window.scrollY;
+    const handleScrollDirection = () => {
+      const delta = window.scrollY - lastScrollY;
+      lastScrollY = window.scrollY;
+      if (Math.abs(delta) > 50) {
+        setMood(delta > 0 ? "cool" : "surprised");
+        setBehavior("reacting");
+        setTimeout(() => {
+          if (view === "closed") setBehavior("home");
+        }, 600);
+      }
+    };
+    window.addEventListener("scroll", handleScrollDirection, { passive: true });
+    return () => window.removeEventListener("scroll", handleScrollDirection);
+  }, [meshiEnabled, view]);
+
   // RANDOM ROAM — 15% chance every 30s to briefly wander
   useEffect(() => {
     if (!meshiEnabled || behavior !== "home" || view !== "closed") return;
@@ -352,7 +401,7 @@ export function MeshiFloat() {
     }, 12000);
   }, []);
 
-  const triggerSearch = useCallback((_query: string) => {
+  const triggerSearch = useCallback(() => {
     setIsSearching(true);
     setSearchingText("Looking through your mesh...");
     setMood("thinking");
@@ -381,30 +430,7 @@ export function MeshiFloat() {
     }, 4500);
   }, [addSpeechBubble, meshStats]);
 
-  const handleSpeechSend = useCallback(() => {
-    const text = speechInput.trim();
-    if (!text || isMeshiTyping) return;
-    setSpeechInput("");
-    addSpeechBubble("user", text);
-    setMood("thinking");
-    setIsMeshiTyping(true);
-
-    const isSearchQuery = SEARCH_TRIGGERS.some((trigger) => text.toLowerCase().includes(trigger));
-    if (isSearchQuery && !isSearching) {
-      setTimeout(() => { setIsMeshiTyping(false); triggerSearch(text); }, 500);
-      return;
-    }
-
-    setTimeout(() => {
-      const response = getQuickResponse(text);
-      setMood(response.mood);
-      addSpeechBubble("meshi", response.text);
-      setIsMeshiTyping(false);
-      setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.text, time: new Date() }]);
-    }, 800 + Math.random() * 600);
-  }, [speechInput, isMeshiTyping, isSearching, addSpeechBubble, triggerSearch]);
-
-  const getQuickResponse = (query: string): { text: string; mood: MeshiMood } => {
+  const getQuickResponse = useCallback((query: string): { text: string; mood: MeshiMood } => {
     const q = query.toLowerCase().trim();
     if (q.includes("mesh") && (q.includes("what") || q.includes("how") || q.includes("work")))
       return { text: "The Mesh is your entire digital universe visualized! Every connection as a glowing node.", mood: "excited" };
@@ -421,7 +447,30 @@ export function MeshiFloat() {
     if (q.includes("thank"))
       return { text: "Anytime! Pet me if you\u2019re feeling generous!", mood: "love" };
     return { text: "Great question! For a deeper dive, open the full chat.", mood: "thinking" };
-  };
+  }, []);
+
+  const handleSpeechSend = useCallback(() => {
+    const text = speechInput.trim();
+    if (!text || isMeshiTyping) return;
+    setSpeechInput("");
+    addSpeechBubble("user", text);
+    setMood("thinking");
+    setIsMeshiTyping(true);
+
+    const isSearchQuery = SEARCH_TRIGGERS.some((trigger) => text.toLowerCase().includes(trigger));
+    if (isSearchQuery && !isSearching) {
+      setTimeout(() => { setIsMeshiTyping(false); triggerSearch(); }, 500);
+      return;
+    }
+
+    setTimeout(() => {
+      const response = getQuickResponse(text);
+      setMood(response.mood);
+      addSpeechBubble("meshi", response.text);
+      setIsMeshiTyping(false);
+      setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.text, time: new Date() }]);
+    }, 800 + Math.random() * 600);
+  }, [speechInput, isMeshiTyping, isSearching, addSpeechBubble, triggerSearch, getQuickResponse]);
 
   useEffect(() => {
     if (view === "speech") setTimeout(() => speechInputRef.current?.focus(), 100);
@@ -921,7 +970,7 @@ export function MeshiFloat() {
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
               <button
-                onClick={() => triggerSearch("everything")}
+                onClick={() => triggerSearch()}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ color: "var(--text-primary)" }}
               >
