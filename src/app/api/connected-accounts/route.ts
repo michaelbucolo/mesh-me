@@ -51,7 +51,8 @@ export async function POST(request: Request) {
   if (!MANUAL_PLATFORMS.includes(platform)) {
     return NextResponse.json({ error: "This platform must be connected via OAuth" }, { status: 400 });
   }
-  if (!username) {
+  const trimmedUsername = typeof username === "string" ? username.trim() : "";
+  if (!trimmedUsername) {
     return NextResponse.json({ error: "Username is required for this platform" }, { status: 400 });
   }
 
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
     data: {
       userId: user.id,
       platform,
-      platformUsername: username || user.username,
+      platformUsername: trimmedUsername || user.username,
       isActive: true,
     },
   });
