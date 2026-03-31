@@ -251,6 +251,14 @@ export default function MeshPage() {
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const discoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clean up exploration timers on unmount
+  useEffect(() => {
+    return () => {
+      if (discoveryIntervalRef.current) { clearInterval(discoveryIntervalRef.current); discoveryIntervalRef.current = null; }
+      if (discoveryTimeoutRef.current) { clearTimeout(discoveryTimeoutRef.current); discoveryTimeoutRef.current = null; }
+    };
+  }, []);
+
   // Load Meshi house lock state from localStorage
   useEffect(() => {
     try {
