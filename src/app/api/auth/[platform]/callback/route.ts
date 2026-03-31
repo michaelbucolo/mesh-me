@@ -16,24 +16,25 @@ export async function GET(
 
   const baseUrl = getBaseUrl();
   const connectedAccountsUrl = `${baseUrl}/connected-accounts`;
+  const encodedPlatform = encodeURIComponent(platform);
 
   // Handle OAuth errors
   if (error) {
     const errorDesc = url.searchParams.get("error_description") || error;
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent(errorDesc)}&platform=${platform}`
+      `${connectedAccountsUrl}?error=${encodeURIComponent(errorDesc)}&platform=${encodedPlatform}`
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent("Missing authorization code")}&platform=${platform}`
+      `${connectedAccountsUrl}?error=${encodeURIComponent("Missing authorization code")}&platform=${encodedPlatform}`
     );
   }
 
   if (!isPlatformOAuth(platform)) {
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent("Invalid platform")}&platform=${platform}`
+      `${connectedAccountsUrl}?error=${encodeURIComponent("Invalid platform")}&platform=${encodedPlatform}`
     );
   }
 
@@ -48,7 +49,7 @@ export async function GET(
   const storedState = cookieStore.get(`oauth_state_${platform}`)?.value;
   if (!storedState || storedState !== state) {
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent("Invalid state parameter. Please try again.")}&platform=${platform}`
+      `${connectedAccountsUrl}?error=${encodeURIComponent("Invalid state parameter. Please try again.")}&platform=${encodedPlatform}`
     );
   }
 
@@ -61,7 +62,7 @@ export async function GET(
 
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent("OAuth not configured for this platform")}&platform=${platform}`
+      `${connectedAccountsUrl}?error=${encodeURIComponent("OAuth not configured for this platform")}&platform=${encodedPlatform}`
     );
   }
 
@@ -110,7 +111,7 @@ export async function GET(
       const errorText = await tokenResponse.text();
       console.error(`Token exchange failed for ${platform}:`, errorText);
       return NextResponse.redirect(
-        `${connectedAccountsUrl}?error=${encodeURIComponent("Failed to authenticate with " + config.name)}&platform=${platform}`
+        `${connectedAccountsUrl}?error=${encodeURIComponent("Failed to authenticate with " + config.name)}&platform=${encodedPlatform}`
       );
     }
 
@@ -122,7 +123,7 @@ export async function GET(
 
     if (!accessToken) {
       return NextResponse.redirect(
-        `${connectedAccountsUrl}?error=${encodeURIComponent("No access token received")}&platform=${platform}`
+        `${connectedAccountsUrl}?error=${encodeURIComponent("No access token received")}&platform=${encodedPlatform}`
       );
     }
 
@@ -201,12 +202,12 @@ export async function GET(
     });
 
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?connected=${platform}`
+      `${connectedAccountsUrl}?connected=${encodedPlatform}`
     );
   } catch (err) {
     console.error(`OAuth callback error for ${platform}:`, err);
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent("Something went wrong. Please try again.")}&platform=${platform}`
+      `${connectedAccountsUrl}?error=${encodeURIComponent("Something went wrong. Please try again.")}&platform=${encodedPlatform}`
     );
   }
 }

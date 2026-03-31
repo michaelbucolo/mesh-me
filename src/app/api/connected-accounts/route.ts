@@ -45,9 +45,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 
-  // Manual-link platforms require a username
+  // Only manual-link platforms can be connected via this endpoint;
+  // OAuth platforms must go through /api/auth/[platform]/callback
   const MANUAL_PLATFORMS = ["soundcloud", "bluesky", "threads"];
-  if (MANUAL_PLATFORMS.includes(platform) && !username) {
+  if (!MANUAL_PLATFORMS.includes(platform)) {
+    return NextResponse.json({ error: "This platform must be connected via OAuth" }, { status: 400 });
+  }
+  if (!username) {
     return NextResponse.json({ error: "Username is required for this platform" }, { status: 400 });
   }
 
