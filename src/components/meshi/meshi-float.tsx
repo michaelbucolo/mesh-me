@@ -320,7 +320,7 @@ export function MeshiFloat() {
       setIsMeshiTyping(false);
       setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.text, time: new Date() }]);
     }, isInspectQuery ? 1500 : 800 + Math.random() * 600);
-  }, [speechInput, isMeshiTyping, isSearching, addSpeechBubble, triggerSearch, getQuickResponse]);
+  }, [speechInput, isMeshiTyping, isSearching, addSpeechBubble, triggerSearch, getQuickResponse, pathname]);
 
   useEffect(() => {
     if (view === "speech") setTimeout(() => speechInputRef.current?.focus(), 100);
