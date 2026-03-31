@@ -19,16 +19,9 @@ export default async function ExplorePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded-xl" style={{ background: "var(--accent-subtle)" }}>
-                      <Compass className="h-6 w-6" style={{ color: "var(--accent)" }} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Explore</h1>
-            <p className="text-sm text-[var(--text-muted)]">Find your people, your communities, your corner of the internet</p>
-          </div>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Explore</h1>
+        <p className="text-sm text-[var(--text-muted)] mt-1">Find your people, communities, and corners of the mesh</p>
       </div>
 
       {/* Trending Tags */}
