@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { OAUTH_CONFIGS, getCallbackUrl, getBaseUrl, getNestedField, isPlatformOAuth } from "@/lib/oauth";
+import { OAUTH_CONFIGS, getCallbackUrl, getBaseUrl, getNestedField, resolveNestedPath, isPlatformOAuth } from "@/lib/oauth";
 import { cookies } from "next/headers";
 
 export async function GET(
@@ -152,26 +152,12 @@ export async function GET(
     if (profileResponse.ok) {
       const profileData = await profileResponse.json();
 
-      // Navigate to the right data path if needed
+      // Navigate to the right data path if needed (e.g. Twitter returns {data: {...}})
       let profile = profileData;
       if (config.profileDataPath) {
-        const resolved = getNestedField(profileData as Record<string, unknown>, config.profileDataPath);
+        const resolved = resolveNestedPath(profileData, config.profileDataPath);
         if (resolved && typeof resolved === "object") {
           profile = resolved;
-        } else if (config.profileDataPath.includes(".")) {
-          // For nested paths, try to resolve step by step
-          const parts = config.profileDataPath.split(".");
-          let current: unknown = profileData;
-          for (const part of parts) {
-            if (current && typeof current === "object" && !Array.isArray(current)) {
-              current = (current as Record<string, unknown>)[part];
-            } else if (Array.isArray(current)) {
-              current = current[parseInt(part)];
-            }
-          }
-          if (current && typeof current === "object") {
-            profile = current;
-          }
         }
       }
 
