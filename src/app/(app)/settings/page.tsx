@@ -14,6 +14,7 @@ import {
   updateUserLinks,
   updateUserInterests,
   updateMeshiPreference,
+  getMeshiPreference,
   checkAndAwardAchievements,
   setActiveTitle,
   updateMeshPrivacy,
@@ -264,6 +265,19 @@ export default function SettingsPage() {
       if (stored === "false") setMeshiEnabled(false);
     }
   }, []);
+
+  // Load saved Meshi preferences from server when meshi tab is active
+  useEffect(() => {
+    if (activeTab === "meshi") {
+      getMeshiPreference().then((pref) => {
+        if (pref) {
+          if (pref.faceStyle) setMeshiFace(pref.faceStyle as MeshiMood);
+          if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
+          if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
+        }
+      }).catch(() => {});
+    }
+  }, [activeTab]);
 
   // Alter Egos state
   interface AlterEgo {
