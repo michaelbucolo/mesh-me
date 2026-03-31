@@ -80,7 +80,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           {navItems.map((item) => {
             const actualHref = item.href === "/profile" ? `/profile/${user.username}` : item.href;
             const isActive = item.href === "/profile"
-              ? pathname.includes("/profile/")
+              ? pathname.includes(`/profile/${user.username}`)
               : pathname.startsWith(item.href);
             return (
               <Link

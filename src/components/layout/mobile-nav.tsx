@@ -41,7 +41,7 @@ export function MobileNav({ unreadNotifications = 0, username }: MobileNavProps)
           const isActive = item.href === "/feed"
             ? pathname === "/feed" || pathname.startsWith("/feed")
             : item.label === "Profile"
-              ? pathname.includes("/profile/")
+              ? pathname.includes(`/profile/${username}`)
               : pathname.startsWith(item.href);
 
           return (
