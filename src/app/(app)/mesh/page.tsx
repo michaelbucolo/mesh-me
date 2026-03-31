@@ -243,6 +243,9 @@ export default function MeshPage() {
   
   // === Feature: Profile preview on node click ===
   const [profilePreview, setProfilePreview] = useState<MeshNode | null>(null);
+  
+  // === Meshi custom color from user preferences ===
+  const meshiColorRef = useRef<{ primary: string; glow: string }>({ primary: "#818cf8", glow: "rgba(99, 102, 241, 0.3)" });
 
   // Load Meshi house lock state from localStorage
   useEffect(() => {
@@ -423,10 +426,28 @@ export default function MeshPage() {
 
         // Following nodes — with interaction-based proximity
         const followingCount = data.following?.length || 0;
+        // Apply user's Meshi color preference to canvas rendering
+        const meshiPref = data.meshiPreference;
+        if (meshiPref?.colorTheme) {
+          const colorMap: Record<string, { primary: string; glow: string }> = {
+            blue: { primary: "#3b82f6", glow: "rgba(59, 130, 246, 0.3)" },
+            purple: { primary: "#8b5cf6", glow: "rgba(139, 92, 246, 0.3)" },
+            pink: { primary: "#ec4899", glow: "rgba(236, 72, 153, 0.3)" },
+            green: { primary: "#22c55e", glow: "rgba(34, 197, 94, 0.3)" },
+            orange: { primary: "#f97316", glow: "rgba(249, 115, 22, 0.3)" },
+            cyan: { primary: "#06b6d4", glow: "rgba(6, 182, 212, 0.3)" },
+            gold: { primary: "#eab308", glow: "rgba(234, 179, 8, 0.3)" },
+            rainbow: { primary: "#ec4899", glow: "rgba(236, 72, 153, 0.3)" },
+          };
+          const theme = colorMap[meshiPref.colorTheme] || colorMap.blue;
+          meshiColorRef.current = theme;
+        }
+
         (data.following || []).forEach((f: {
           id: string; username: string; displayName: string; avatarUrl: string | null;
           isMutual: boolean; sharedCommunities: string[]; sharedInterests: string[];
           followerCount: number; postCount: number; interactionCount?: number;
+          status?: string;
         }, i: number) => {
           const angle = (i / Math.max(followingCount, 1)) * Math.PI * 2;
           // Interaction-based proximity: more interactions = closer to self node
@@ -446,6 +467,7 @@ export default function MeshPage() {
             connections: [data.user.id],
             isMutual, followerCount: f.followerCount, postCount: f.postCount,
             sharedInterests: f.sharedInterests,
+            status: (f.status as MeshNode["status"]) || undefined,
           });
           meshEdges.push({
             source: data.user.id, target: f.id,
@@ -465,6 +487,7 @@ export default function MeshPage() {
         (data.followers || []).forEach((f: {
           id: string; username: string; displayName: string; avatarUrl: string | null;
           isMutual: boolean; followerCount: number; postCount: number; interactionCount?: number;
+          status?: string;
         }, i: number) => {
           if (followingIds.has(f.id)) return;
           const angle = (i / Math.max(data.followers.length, 1)) * Math.PI * 2 + 0.5;
@@ -480,6 +503,7 @@ export default function MeshPage() {
             opacity: 0.7, pulsePhase: Math.random() * Math.PI * 2,
             connections: [data.user.id],
             followerCount: f.followerCount, postCount: f.postCount,
+            status: (f.status as MeshNode["status"]) || undefined,
           });
           meshEdges.push({
             source: data.user.id, target: "follower-" + f.id,
@@ -1139,23 +1163,25 @@ export default function MeshPage() {
         }
       }
 
-      // Soft glow around Meshi
+      // Soft glow around Meshi (uses user's custom color)
+      const mColor = meshiColorRef.current;
       const meshiGlowGrad = ctx.createRadialGradient(meshiX, meshiY, 0, meshiX, meshiY, meshiSize * 2.5);
-      meshiGlowGrad.addColorStop(0, "rgba(99, 102, 241, " + meshiGlow + ")");
-      meshiGlowGrad.addColorStop(0.5, "rgba(99, 102, 241, " + (meshiGlow * 0.3) + ")");
-      meshiGlowGrad.addColorStop(1, "rgba(99, 102, 241, 0)");
+      meshiGlowGrad.addColorStop(0, mColor.glow.replace(/[\d.]+\)$/, meshiGlow + ")"));
+      meshiGlowGrad.addColorStop(0.5, mColor.glow.replace(/[\d.]+\)$/, (meshiGlow * 0.3) + ")"));
+      meshiGlowGrad.addColorStop(1, mColor.glow.replace(/[\d.]+\)$/, "0)"));
       ctx.beginPath();
       ctx.arc(meshiX, meshiY, meshiSize * 2.5, 0, Math.PI * 2);
       ctx.fillStyle = meshiGlowGrad;
       ctx.fill();
 
-      // Meshi body (circle with gradient)
+      // Meshi body (circle with gradient — uses user's custom color)
       const meshiBodyGrad = ctx.createRadialGradient(
         meshiX - meshiSize * 0.2, meshiY - meshiSize * 0.2, 0,
         meshiX, meshiY, meshiSize
       );
-      meshiBodyGrad.addColorStop(0, "#818cf8");
-      meshiBodyGrad.addColorStop(1, "#6366f1");
+      // Lighten the primary color for the highlight, darken for the base
+      meshiBodyGrad.addColorStop(0, mColor.primary + "cc");
+      meshiBodyGrad.addColorStop(1, mColor.primary);
       ctx.beginPath();
       ctx.arc(meshiX, meshiY, meshiSize, 0, Math.PI * 2);
       ctx.fillStyle = meshiBodyGrad;
@@ -1703,7 +1729,7 @@ export default function MeshPage() {
       </div>
 
       {/* Zoom controls */}
-      <div className="absolute bottom-4 right-2 sm:right-4 z-10 flex flex-col gap-1">
+      <div className="absolute bottom-16 right-2 sm:right-4 z-10 flex flex-col gap-1">
         <button onClick={() => handleZoom(0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
         <button onClick={() => handleZoom(-0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
         <button onClick={resetView} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
@@ -1713,8 +1739,8 @@ export default function MeshPage() {
       </div>
 
 
-      {/* === Meshi House (Feature #6) === */}
-      <div className="absolute bottom-20 left-4 z-10">
+      {/* === Meshi House === */}
+      <div className="absolute bottom-32 left-2 sm:left-4 z-10">
         <div className="relative">
           <button
             onClick={() => {
@@ -1759,11 +1785,36 @@ export default function MeshPage() {
                 </button>
                 <button
                   onClick={() => {
-                    // Trigger exploration
+                    // Trigger exploration with discovery generation
                     setMeshiExploring(true);
+                    setMeshiDiscoveries([]);
                     setShowMeshiHouseMenu(false);
+                    // Generate discoveries from mesh data over time
+                    const ns = nodesRef.current;
+                    const discoveryTemplates = [
+                      (n: MeshNode) => n.type === "user" && n.isMutual ? `${n.label} is a mutual connection` : null,
+                      (n: MeshNode) => n.type === "post" && n.likeCount && n.likeCount > 0 ? `Found a post with ${n.likeCount} likes` : null,
+                      (n: MeshNode) => n.type === "community" ? `Discovered community: ${n.label}` : null,
+                      (n: MeshNode) => n.type === "tag" ? `Interesting topic: ${n.label}` : null,
+                      (n: MeshNode) => n.type === "platform" ? `Connected to ${n.label}` : null,
+                      (n: MeshNode) => n.type === "user" && n.sharedInterests && n.sharedInterests.length > 0 ? `${n.label} shares ${n.sharedInterests.length} interests with you` : null,
+                    ];
+                    let dIdx = 0;
+                    const shuffled = [...ns].sort(() => Math.random() - 0.5);
+                    const discoveryInterval = setInterval(() => {
+                      if (dIdx >= shuffled.length || dIdx >= 5) { clearInterval(discoveryInterval); return; }
+                      const node = shuffled[dIdx];
+                      for (const tmpl of discoveryTemplates) {
+                        const summary = tmpl(node);
+                        if (summary) {
+                          setMeshiDiscoveries(prev => [...prev, { nodeId: node.id, summary, timestamp: Date.now() }]);
+                          break;
+                        }
+                      }
+                      dIdx++;
+                    }, 2500);
                     // Auto-stop after 15 seconds
-                    setTimeout(() => setMeshiExploring(false), 15000);
+                    setTimeout(() => { setMeshiExploring(false); clearInterval(discoveryInterval); }, 15000);
                   }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
                 >
@@ -1786,14 +1837,14 @@ export default function MeshPage() {
         </div>
       </div>
 
-      {/* Stats bar */}
+      {/* Stats bar — positioned above action bar to prevent overlap */}
       <AnimatePresence>
         {showStats && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-4 left-4 z-10 flex gap-2 flex-wrap"
+            className="absolute bottom-16 left-2 sm:left-4 z-10 flex gap-1.5 sm:gap-2 flex-wrap max-w-[calc(100vw-5rem)]"
           >
             {[
               { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-[var(--accent)]" },
@@ -1849,9 +1900,119 @@ export default function MeshPage() {
         )}
       </AnimatePresence>
 
-      {/* Hint */}
+      {/* === Rock Paper Scissors Game Overlay === */}
+      <AnimatePresence>
+        {showRpsGame && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowRpsGame(false); setRpsChoice(null); setRpsResult(null); } }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-sm mx-4 glass-dropdown rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400" />
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Gamepad2 className="h-4 w-4 text-purple-400" />
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Play with Meshi</h3>
+                  </div>
+                  <button onClick={() => { setShowRpsGame(false); setRpsChoice(null); setRpsResult(null); }} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {!rpsResult ? (
+                  <>
+                    <p className="text-xs text-[var(--text-muted)] mb-4 text-center">Choose your move — Meshi is ready!</p>
+                    <div className="flex justify-center gap-3 mb-4">
+                      {(["rock", "paper", "scissors"] as const).map((choice) => {
+                        const icons = { rock: "🪨", paper: "📄", scissors: "✂️" };
+                        return (
+                          <motion.button
+                            key={choice}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              setRpsChoice(choice);
+                              const options = ["rock", "paper", "scissors"] as const;
+                              const meshiPick = options[Math.floor(Math.random() * 3)];
+                              const wins: Record<string, string> = { rock: "scissors", paper: "rock", scissors: "paper" };
+                              const result = choice === meshiPick ? "draw" : wins[choice] === meshiPick ? "win" : "lose";
+                              setTimeout(() => {
+                                setRpsResult({ playerChoice: choice, meshiChoice: meshiPick, result });
+                              }, 600);
+                            }}
+                            className={"w-16 h-16 rounded-2xl flex items-center justify-center text-2xl transition-all border-2 " + (
+                              rpsChoice === choice
+                                ? "border-[var(--accent)] bg-[var(--accent)]/10 scale-110"
+                                : "border-[var(--border-primary)] hover:border-[var(--text-muted)] bg-[var(--bg-tertiary)]"
+                            )}
+                          >
+                            {icons[choice]}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                    {rpsChoice && !rpsResult && (
+                      <div className="text-center">
+                        <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>
+                          <MeshiMascot size={40} mood="thinking" animate={false} showGlow={false} />
+                        </motion.div>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-1">Meshi is choosing...</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-6 mb-4">
+                      <div className="text-center">
+                        <p className="text-2xl mb-1">{{ rock: "🪨", paper: "📄", scissors: "✂️" }[rpsResult.playerChoice]}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">You</p>
+                      </div>
+                      <p className="text-lg font-bold text-[var(--text-muted)]">vs</p>
+                      <div className="text-center">
+                        <p className="text-2xl mb-1">{{ rock: "🪨", paper: "📄", scissors: "✂️" }[rpsResult.meshiChoice]}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Meshi</p>
+                      </div>
+                    </div>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.2 }}>
+                      <p className={"text-lg font-bold mb-1 " + (
+                        rpsResult.result === "win" ? "text-emerald-400" :
+                        rpsResult.result === "lose" ? "text-red-400" : "text-amber-400"
+                      )}>
+                        {rpsResult.result === "win" ? "You win!" : rpsResult.result === "lose" ? "Meshi wins!" : "It's a draw!"}
+                      </p>
+                      <MeshiMascot
+                        size={48}
+                        mood={rpsResult.result === "win" ? "surprised" : rpsResult.result === "lose" ? "excited" : "happy"}
+                        animate showGlow={false}
+                      />
+                    </motion.div>
+                    <button
+                      onClick={() => { setRpsChoice(null); setRpsResult(null); }}
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95"
+                    >
+                      Play again
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hint — centered above bottom controls */}
       {nodes.length > 0 && !selectedNode && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 glass-surface rounded-lg px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] glass-surface rounded-lg px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none hidden md:block">
           Click to inspect &middot; Double-click to navigate &middot; Scroll to zoom &middot; R reset &middot; L labels &middot; 1-7 filters &middot; ⌘K search
         </div>
       )}
@@ -2406,7 +2567,7 @@ export default function MeshPage() {
       {/* Floating Meshi button (bottom right) */}
       <motion.button
         onClick={() => setShowMeshiChat(!showMeshiChat)}
-        className="absolute bottom-4 right-4 z-10 flex items-center justify-center w-12 h-12 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95"
+        className="absolute bottom-3 sm:bottom-4 right-2 sm:right-4 z-10 flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95"
         style={{ background: "var(--brand-gradient)" }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
@@ -2428,8 +2589,8 @@ export default function MeshPage() {
         } : undefined}
       />
 
-      {/* Quick action bar (bottom left) - create post + privacy toggle */}
-      <div className="absolute bottom-4 left-4 z-10 flex gap-2">
+      {/* Quick action bar (bottom left) */}
+      <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-1.5 sm:gap-2">
         <button
           onClick={() => setShowPostComposer(true)}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all active:scale-95 shadow-lg brand-button hover:shadow-xl hover:shadow-blue-500/25"
