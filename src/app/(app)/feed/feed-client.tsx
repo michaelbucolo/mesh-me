@@ -237,17 +237,17 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
             </div>
           )}
 
-          {/* Reels layout (TikTok/IG Reels style - full width cards) */}
+          {/* Reels layout (TikTok/IG Reels style - full width snap-scroll cards) */}
           {layout === "reels" && (
-            <div className="space-y-2">
+            <div className="snap-y snap-mandatory overflow-y-auto h-[calc(100vh-10rem)] scrollbar-hide -mx-4 sm:-mx-0">
               {posts.map((post) => (
                 <motion.div
                   key={post.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
-                  className="relative bg-[var(--bg-secondary)] rounded-2xl overflow-hidden border border-[var(--border-primary)]"
-                  style={{ minHeight: "400px" }}
+                  className="relative bg-[var(--bg-secondary)] snap-start snap-always overflow-hidden border-b border-[var(--border-primary)] sm:rounded-2xl sm:border sm:mb-2"
+                  style={{ minHeight: "calc(100vh - 10rem)" }}
                 >
                   {post.media.length > 0 ? (
                     <img src={post.media[0].url} alt="" className="w-full h-full object-cover absolute inset-0" />
