@@ -352,19 +352,25 @@ export function MeshiFloat() {
   useEffect(() => {
     if (!meshiEnabled || view !== "closed") return;
     let lastScrollY = window.scrollY;
+    let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
     const handleScrollDirection = () => {
       const delta = window.scrollY - lastScrollY;
       lastScrollY = window.scrollY;
       if (Math.abs(delta) > 50) {
         setMood(delta > 0 ? "cool" : "surprised");
         setBehavior("reacting");
-        setTimeout(() => {
-          if (view === "closed") setBehavior("home");
+        if (pendingTimeout) clearTimeout(pendingTimeout);
+        pendingTimeout = setTimeout(() => {
+          setBehavior("home");
+          pendingTimeout = null;
         }, 600);
       }
     };
     window.addEventListener("scroll", handleScrollDirection, { passive: true });
-    return () => window.removeEventListener("scroll", handleScrollDirection);
+    return () => {
+      window.removeEventListener("scroll", handleScrollDirection);
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+    };
   }, [meshiEnabled, view]);
 
   // RANDOM ROAM — 15% chance every 30s to briefly wander
