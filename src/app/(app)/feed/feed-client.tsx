@@ -6,10 +6,9 @@ import { PostCard } from "@/components/feed/post-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare,
-  SlidersHorizontal, ChevronDown, Link2, Globe,
 } from "lucide-react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 // Feed layout modes inspired by popular platforms
 type FeedLayout = "timeline" | "grid" | "reels" | "compact" | "cards";
@@ -22,18 +21,6 @@ const LAYOUT_OPTIONS: { id: FeedLayout; label: string; icon: React.ElementType; 
   { id: "cards", label: "Cards", icon: FileText, description: "Large card format", inspired: "Facebook" },
 ];
 
-// Platform filter options
-const PLATFORM_FILTERS = [
-  { id: "all", label: "All", color: "#3b82f6" },
-  { id: "meshme", label: "mesh.me", color: "#2d7ff9" },
-  { id: "instagram", label: "Instagram", color: "#E4405F" },
-  { id: "youtube", label: "YouTube", color: "#FF0000" },
-  { id: "tiktok", label: "TikTok", color: "#000000" },
-  { id: "twitter", label: "X", color: "#1DA1F2" },
-  { id: "reddit", label: "Reddit", color: "#FF4500" },
-  { id: "twitch", label: "Twitch", color: "#9146FF" },
-  { id: "linkedin", label: "LinkedIn", color: "#0A66C2" },
-];
 
 interface FeedClientProps {
   user: {
@@ -64,9 +51,6 @@ interface FeedClientProps {
 
 export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [layout, setLayout] = useState<FeedLayout>("reels");
-  const [showLayoutPicker, setShowLayoutPicker] = useState(false);
-  const [platformFilter, setPlatformFilter] = useState("all");
-  const [showFilters, setShowFilters] = useState(false);
 
   // Load saved layout preference
   useEffect(() => {
@@ -87,104 +71,27 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
 
   return (
     <div data-meshi-zone="feed" className="max-w-3xl mx-auto px-4 py-6 animate-page-enter">
-      {/* Header with layout controls */}
+      {/* Clean header with inline layout toggle */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Feed</h1>
-          <p className="text-xs text-[var(--text-muted)]">All your platforms, one beautiful feed</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Platform filter */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={"flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all " + (
-                showFilters ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "glass-surface text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              )}
-            >
-              <Globe className="h-3.5 w-3.5" />
-              {platformFilter === "all" ? "All platforms" : PLATFORM_FILTERS.find((p) => p.id === platformFilter)?.label}
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-1 w-52 glass-dropdown rounded-xl shadow-xl z-30 py-1 overflow-hidden"
-                >
-                  {PLATFORM_FILTERS.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => { setPlatformFilter(p.id); setShowFilters(false); }}
-                      className={"w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-all " + (
-                        platformFilter === p.id
-                          ? "bg-[var(--accent)]/10 text-[var(--accent)]"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
-                      )}
-                    >
-                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                      {p.label}
-                    </button>
-                  ))}
-                  <div className="border-t border-[var(--border-primary)] mt-1 pt-1">
-                    <Link
-                      href="/connected-accounts"
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-all"
-                    >
-                      <Link2 className="h-3 w-3" /> Manage platforms
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Layout picker */}
-          <div className="relative">
-            <button
-              onClick={() => setShowLayoutPicker(!showLayoutPicker)}
-              className={"flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all " + (
-                showLayoutPicker ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "glass-surface text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              )}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{LAYOUT_OPTIONS.find((l) => l.id === layout)?.label}</span>
-            </button>
-            <AnimatePresence>
-              {showLayoutPicker && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-1 w-64 glass-dropdown rounded-xl shadow-xl z-30 py-2 overflow-hidden"
-                >
-                  <p className="px-3 pb-1.5 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Feed Layout</p>
-                  {LAYOUT_OPTIONS.map((opt) => {
-                    const Icon = opt.icon;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => { setLayout(opt.id); setShowLayoutPicker(false); }}
-                        className={"w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all " + (
-                          layout === opt.id
-                            ? "bg-[var(--accent)]/10 text-[var(--accent)]"
-                            : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
-                        )}
-                      >
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <div>
-                          <p className="text-xs font-medium">{opt.label}</p>
-                          <p className="text-[10px] text-[var(--text-muted)]">{opt.description} · Inspired by {opt.inspired}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Feed</h1>
+        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "var(--bg-secondary)" }}>
+          {LAYOUT_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => setLayout(opt.id)}
+                className={"p-2 rounded-lg transition-all " + (
+                  layout === opt.id
+                    ? "bg-[var(--accent)] text-white shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                )}
+                title={opt.label + " — " + opt.description}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
