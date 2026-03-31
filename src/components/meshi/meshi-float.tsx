@@ -298,12 +298,11 @@ export function MeshiFloat() {
       return;
     }
     // Node inspector mode: when on mesh page and asking about a person/entity
-    const isInspectQuery = pathname.startsWith("/mesh") && (
+    const isInspectQuery = (pathname === "/mesh") && (
       text.toLowerCase().includes("who is") ||
       text.toLowerCase().includes("tell me about") ||
       text.toLowerCase().includes("inspect") ||
-      text.toLowerCase().includes("look up") ||
-      text.toLowerCase().includes("find")
+      text.toLowerCase().includes("look up")
     );
     if (isInspectQuery) {
       setMood("searching");
