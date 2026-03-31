@@ -198,8 +198,8 @@ export function isPlatformManual(platform: string): boolean {
   return MANUAL_PLATFORMS.includes(platform);
 }
 
-// Get nested field from object using dot notation
-export function getNestedField(obj: Record<string, unknown>, path: string): string | null {
+// Resolve a nested path in an object, returning the value at the path (may be object, string, etc.)
+export function resolveNestedPath(obj: unknown, path: string): unknown {
   const parts = path.split(".");
   let current: unknown = obj;
   for (const part of parts) {
@@ -213,7 +213,15 @@ export function getNestedField(obj: Record<string, unknown>, path: string): stri
       return null;
     }
   }
-  return typeof current === "string" ? current : current !== null && current !== undefined ? String(current) : null;
+  return current ?? null;
+}
+
+// Get a nested field from an object as a string value
+export function getNestedField(obj: Record<string, unknown>, path: string): string | null {
+  const value = resolveNestedPath(obj, path);
+  if (typeof value === "string") return value;
+  if (value !== null && value !== undefined) return String(value);
+  return null;
 }
 
 // Generate PKCE code verifier and challenge for platforms that require it (e.g. Twitter)
