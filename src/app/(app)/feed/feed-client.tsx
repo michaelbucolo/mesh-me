@@ -8,7 +8,7 @@ import {
   FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 // Feed layout modes inspired by popular platforms
 type FeedLayout = "timeline" | "grid" | "reels" | "compact" | "cards";
