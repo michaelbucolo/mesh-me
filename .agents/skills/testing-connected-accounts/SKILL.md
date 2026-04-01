@@ -7,7 +7,7 @@ The connected accounts page (`/connected-accounts`) allows users to link 16 soci
 
 ### Starting the Dev Server
 ```bash
-npx next dev -p 3000
+npx next dev -p 3333
 ```
 
 ### Database Setup (Critical)
@@ -30,30 +30,58 @@ Restart the dev server after schema changes.
 
 ## Navigating to the Feature
 
-### New Account Flow
-1. Go to `http://localhost:3000` → Click "Join the Mesh"
-2. Complete signup: username → display name → email → privacy → password → phone (skip) → platform tiles (skip)
-3. Click through Meshi onboarding guide (5-6 steps) and interest selection (pick 3+)
-4. Once in the main app, click "Connected Accounts" in the sidebar under "MORE" section
+### From Meshi Command Center (recommended)
+1. Click the Meshi mascot (purple blob) in bottom-right corner
+2. Click "Connected Accounts" in the Navigate section
 
-### Existing Account
-Navigate directly to `http://localhost:3000/connected-accounts` (must be logged in)
+### Direct URL
+Navigate to `http://localhost:3333/connected-accounts` (must be logged in)
 
 ## What You Can Test Without OAuth Credentials
 
 ### Manual Username Entry (SoundCloud, Bluesky, Threads)
-1. Find the platform card (no "OAuth" badge, no external link icon on Connect button)
-2. Click "Connect" → inline form appears with "@" prefix input
-3. Enter a username → Click "Link"
-4. Verify: Import dialog appears ("[Platform] Connected!"), success notification, counter updates, card shows "Connected" badge with username
+1. Find the platform card — these show "Connect" buttons without OAuth badges
+2. Click "Connect" -> inline form appears with "@" prefix input
+3. Enter a username -> Click "Link"
+4. Verify: Import dialog appears ("[Platform] Connected!") with import options (Posts, Likes, Comments, Followers)
+5. Click "Skip for now" or "Import Selected"
+6. Verify: Card shows "Connected" badge with @username and "Disconnect" button
+7. Test disconnect: Click "Disconnect" -> verify card returns to "Connect" state
+
+### Platform Counter
+- Top of page shows "X of 16 platforms connected" with progress counter
+- Updates in real-time when connecting/disconnecting
+
+### Feature Cards
+- Bottom of page has 3 feature cards: Unified Feed, MeChat, Cross-Interact
 
 ### OAuth Button Redirect Behavior
-1. Click "Connect" on any OAuth platform (has "OAuth" badge + external link icon)
-2. Without credentials configured, it redirects back to `/connected-accounts` with an error banner (e.g., "OAuth not configured for GitHub")
+1. Click "Connect" on any OAuth platform
+2. Without credentials configured, it redirects to `/api/auth/{platform}` which may show an error or redirect back
 3. Verify: No raw JSON shown, no env var names leaked in error
 
 ## What Requires Real OAuth Credentials
-Full OAuth flow testing (redirect → authorize → callback → token exchange → profile fetch) requires platform-specific API credentials set as environment variables. See `src/lib/oauth.ts` for the env var names each platform needs.
+Full OAuth flow testing (redirect -> authorize -> callback -> token exchange -> profile fetch) requires platform-specific API credentials set as environment variables. See `src/lib/oauth.ts` for the env var names each platform needs.
+
+## All 16 Platforms
+| Platform | Method | ID |
+|----------|--------|----|
+| Instagram | OAuth | instagram |
+| YouTube | OAuth | youtube |
+| TikTok | OAuth | tiktok |
+| X/Twitter | OAuth | twitter |
+| Twitch | OAuth | twitch |
+| Spotify | OAuth | spotify |
+| SoundCloud | Manual | soundcloud |
+| LinkedIn | OAuth | linkedin |
+| GitHub | OAuth | github |
+| Discord | OAuth | discord |
+| Snapchat | OAuth | snapchat |
+| Pinterest | OAuth | pinterest |
+| Reddit | OAuth | reddit |
+| Facebook | OAuth | facebook |
+| Threads | Manual | threads |
+| Bluesky | Manual | bluesky |
 
 ## Key Files
 - `src/app/(app)/connected-accounts/page.tsx` — UI with platform cards, manual entry forms
