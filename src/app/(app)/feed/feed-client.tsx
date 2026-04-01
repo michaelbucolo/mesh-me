@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { PostComposer } from "@/components/feed/post-composer";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PostSkeleton } from "@/components/ui/skeleton";
 import {
-  FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare,
+  FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare, Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -51,6 +52,11 @@ interface FeedClientProps {
 
 export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [layout, setLayout] = useState<FeedLayout>("reels");
+  const [posts, setPosts] = useState(initialPosts);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(initialPosts.length >= 20);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Load saved layout preference
   useEffect(() => {
@@ -67,7 +73,49 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
     localStorage.setItem("meshFeedLayout", layout);
   }, [layout]);
 
-  const posts = initialPosts;
+  // Cooldown ref to prevent rapid-fire loading (especially in reels layout)
+  const lastLoadTime = useRef(0);
+
+  // Infinite scroll — load more posts
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    // Enforce 1s cooldown between loads
+    const now = Date.now();
+    if (now - lastLoadTime.current < 1000) return;
+    lastLoadTime.current = now;
+
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await fetch(`/api/feed/paginated?page=${nextPage}&limit=20`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.posts && data.posts.length > 0) {
+          setPosts((prev) => [...prev, ...data.posts]);
+          setPage(nextPage);
+          setHasMore(data.hasMore);
+        } else {
+          setHasMore(false);
+        }
+      }
+    } catch { /* ignore */ }
+    setLoadingMore(false);
+  }, [page, hasMore, loadingMore]);
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadMore, layout]);
 
   return (
     <div data-meshi-zone="feed" className="max-w-3xl mx-auto px-4 py-6 animate-page-enter">
@@ -108,6 +156,21 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
       {/* Feed content — layout-dependent rendering */}
       {posts.length > 0 ? (
         <>
+          {/* Feed source tabs */}
+          <div className="flex items-center gap-2 mb-4">
+            {["all", "following", "discover"].map((src) => (
+              <button
+                key={src}
+                className={"px-3 py-1.5 rounded-lg text-xs font-medium transition-all " + (
+                  src === "all"
+                    ? "bg-[var(--accent)] text-white"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+                )}
+              >
+                {src === "all" ? "For You" : src === "following" ? "Following" : "Discover"}
+              </button>
+            ))}
+          </div>
           {/* Timeline layout (X/Twitter style) */}
           {layout === "timeline" && (
             <div className="space-y-4">
@@ -189,6 +252,15 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                   </div>
                 </motion.div>
               ))}
+              {/* Reels-specific infinite scroll trigger (inside the scroll container) */}
+              <div ref={layout === "reels" ? loadMoreRef : undefined} className="py-8 flex justify-center snap-start">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more...
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -239,6 +311,19 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
               ))}
             </div>
           )}
+
+          {/* Infinite scroll trigger (non-reels layouts) */}
+          <div ref={layout !== "reels" ? loadMoreRef : undefined} className="py-8 flex justify-center">
+            {loadingMore && (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading more posts...
+              </div>
+            )}
+            {!hasMore && posts.length > 5 && (
+              <p className="text-xs text-[var(--text-muted)]">You&apos;ve reached the end</p>
+            )}
+          </div>
         </>
       ) : (
         <EmptyState

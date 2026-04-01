@@ -10,6 +10,7 @@ import { FollowButton } from "./follow-button";
 import { formatCount } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { ProfileTabs } from "./profile-tabs";
+import { ProfileCompleteness } from "@/components/profile/profile-completeness";
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -235,6 +236,24 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </div>
         )}
       </div>
+
+      {/* Profile Completeness — only shown on own profile */}
+      {profile.isOwnProfile && (
+        <div className="px-6 mb-2">
+          <ProfileCompleteness
+            profile={{
+              avatarUrl: profile.avatarUrl,
+              bannerUrl: profile.bannerUrl,
+              bio: profile.bio,
+              location: profile.location,
+              website: profile.website,
+              interests: profile.interests.length,
+              links: profile.links.length,
+              connectedAccounts: connectedAccounts.length,
+            }}
+          />
+        </div>
+      )}
 
       {/* Profile Tabs */}
       <ProfileTabs
