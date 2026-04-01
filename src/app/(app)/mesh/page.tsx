@@ -200,6 +200,7 @@ export default function MeshPage() {
   const [myNodes, setMyNodes] = useState<MeshNode[]>([]);
   const [myEdges, setMyEdges] = useState<MeshEdge[]>([]);
   const [loadingUserMesh, setLoadingUserMesh] = useState(false);
+  const [viewingUserMeshiPrefs, setViewingUserMeshiPrefs] = useState<{ color: MeshiColor; hat: MeshiHat } | null>(null);
 
   // Load hidden nodes and Meshi prefs from localStorage
   useEffect(() => {
@@ -1102,6 +1103,17 @@ export default function MeshPage() {
       if (!res.ok) throw new Error("Failed to load user mesh");
       const data = await res.json();
 
+      // Store their Meshi preferences for the Meshi-to-Meshi interaction
+      if (data.meshiPreference) {
+        setViewingUserMeshiPrefs({
+          color: (data.meshiPreference.colorTheme || "blue") as MeshiColor,
+          hat: (data.meshiPreference.hatStyle || "none") as MeshiHat,
+        });
+      } else {
+        // Default to blue/none if no preferences saved
+        setViewingUserMeshiPrefs({ color: "blue", hat: "none" });
+      }
+
       const cx = centerRef.current.x || 600, cy = centerRef.current.y || 400;
       const userNodes: MeshNode[] = [];
       const userEdges: MeshEdge[] = [];
@@ -1115,7 +1127,7 @@ export default function MeshPage() {
         opacity: 1, pulsePhase: 0, connections: [],
       });
 
-      // Their following connections (up to 6 colored nodes)
+      // Their following connections (up to 30 nodes)
       const following = data.following || [];
       following.slice(0, 30).forEach((f: {
         id: string; username: string; displayName: string; avatarUrl: string | null;
@@ -1186,6 +1198,7 @@ export default function MeshPage() {
       edgesRef.current = myEdges;
     }
     setViewingUserMesh(null);
+    setViewingUserMeshiPrefs(null);
     setSelectedNode(null);
     setProfilePreview(null);
     // Reset view
@@ -1569,7 +1582,7 @@ export default function MeshPage() {
 
       {/* Meshi-to-Meshi interaction overlay */}
       <AnimatePresence>
-        {showMeshiMeet && viewingUserMesh && (
+        {showMeshiMeet && viewingUserMesh && viewingUserMeshiPrefs && (
           <MeshiMeetOverlay
             myMeshi={{
               color: myMeshiColor,
@@ -1578,8 +1591,8 @@ export default function MeshPage() {
               username: "You",
             }}
             theirMeshi={{
-              color: "purple" as MeshiColor,
-              hat: "crown" as MeshiHat,
+              color: viewingUserMeshiPrefs.color,
+              hat: viewingUserMeshiPrefs.hat,
               mood: "happy" as MeshiMood,
               username: viewingUserMesh.label,
             }}
