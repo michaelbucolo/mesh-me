@@ -1,0 +1,338 @@
+"use client";
+
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
+import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Share2, Send, Copy, Link2 } from "lucide-react";
+import Link from "next/link";
+import { useState, useTransition, useRef } from "react";
+import { toggleReaction, toggleSavePost, repost, createComment } from "@/lib/actions";
+import { useRouter } from "next/navigation";
+
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+  replies: Array<{
+    id: string;
+    content: string;
+    createdAt: string;
+    author: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatarUrl: string | null;
+    };
+  }>;
+}
+
+interface PostDetailClientProps {
+  post: {
+    id: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+    author: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatarUrl: string | null;
+      isVerified: boolean;
+      bio?: string | null;
+    };
+    community?: { id: string; name: string; slug: string } | null;
+    media: { id: string; url: string; type: string }[];
+    tags: { id: string; tag: string }[];
+    comments: Comment[];
+    _count: { comments: number; reactions: number; reposts: number };
+    reactions?: { id: string }[] | false;
+    savedBy?: { id: string }[] | false;
+  };
+  currentUserId?: string;
+}
+
+export function PostDetailClient({ post, currentUserId }: PostDetailClientProps) {
+  const router = useRouter();
+  const [liked, setLiked] = useState(Array.isArray(post.reactions) && post.reactions.length > 0);
+  const [likeCount, setLikeCount] = useState(post._count.reactions);
+  const [saved, setSaved] = useState(Array.isArray(post.savedBy) && post.savedBy.length > 0);
+  const [repostCount, setRepostCount] = useState(post._count.reposts);
+  const [commentText, setCommentText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleLike = () => {
+    if (!currentUserId) return;
+    setLiked((prev) => !prev);
+    setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+    startTransition(async () => { await toggleReaction(post.id); });
+  };
+
+  const handleSave = () => {
+    if (!currentUserId) return;
+    setSaved((prev) => !prev);
+    startTransition(async () => { await toggleSavePost(post.id); });
+  };
+
+  const handleRepost = () => {
+    if (!currentUserId) return;
+    startTransition(async () => {
+      const result = await repost(post.id);
+      if (result && "reposted" in result) {
+        setRepostCount((prev) => result.reposted ? prev + 1 : prev - 1);
+      }
+    });
+  };
+
+  const handleComment = () => {
+    if (!commentText.trim() || !currentUserId) return;
+    const formData = new FormData();
+    formData.set("content", commentText);
+    formData.set("postId", post.id);
+    if (replyingTo) formData.set("parentId", replyingTo);
+
+    startTransition(async () => {
+      await createComment(formData);
+      setCommentText("");
+      setReplyingTo(null);
+      router.refresh();
+    });
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div data-meshi-zone="post-detail" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
+      {/* Back button */}
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </button>
+
+      {/* Post content */}
+      <article className="rounded-2xl glass-card p-6 mb-6">
+        {/* Author header */}
+        <div className="flex items-start gap-3 mb-4">
+          <Link href={`/profile/${post.author.username}`}>
+            <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size="md" />
+          </Link>
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5">
+              <Link href={`/profile/${post.author.username}`} className="font-semibold hover:underline text-[var(--text-primary)]">
+                {post.author.displayName}
+              </Link>
+              {post.author.isVerified && (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent)" }}>
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+              <span>@{post.author.username}</span>
+              <span>&middot;</span>
+              <span>{formatRelativeTime(post.createdAt)}</span>
+              {post.community && (
+                <>
+                  <span>&middot;</span>
+                  <Link href={`/communities/${post.community.slug}`} style={{ color: "var(--accent)" }}>
+                    {post.community.name}
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap mb-4">{post.content}</p>
+
+        {/* Media */}
+        {post.media.length > 0 && (
+          <div className={cn(
+            "rounded-xl overflow-hidden mb-4",
+            post.media.length === 1 && "max-h-[500px]",
+            post.media.length >= 2 && "grid grid-cols-2 gap-1"
+          )}>
+            {post.media.map((media) => (
+              <div key={media.id} className="relative overflow-hidden">
+                <img src={media.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tags */}
+        {post.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {post.tags.map((tag) => (
+              <Link key={tag.id} href={`/search?q=${encodeURIComponent(tag.tag)}`}>
+                <Badge variant="secondary" className="text-xs cursor-pointer hover:bg-zinc-700">
+                  #{tag.tag}
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Engagement stats */}
+        <div className="flex items-center gap-4 py-3 text-sm text-[var(--text-muted)] border-y border-[var(--border-primary)]">
+          <span><strong className="text-[var(--text-primary)]">{formatCount(likeCount)}</strong> likes</span>
+          <span><strong className="text-[var(--text-primary)]">{formatCount(post._count.comments)}</strong> comments</span>
+          <span><strong className="text-[var(--text-primary)]">{formatCount(repostCount)}</strong> reposts</span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between py-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLike}
+              disabled={isPending}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all",
+                liked ? "text-rose-400" : "text-[var(--text-muted)] hover:text-rose-400"
+              )}
+            >
+              <Heart className={cn("h-5 w-5", liked && "fill-current")} />
+              Like
+            </button>
+            <button
+              onClick={() => {
+                setReplyingTo(null);
+                commentInputRef.current?.focus();
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+            >
+              <MessageCircle className="h-5 w-5" />
+              Comment
+            </button>
+            <button
+              onClick={handleRepost}
+              disabled={isPending}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-emerald-400 transition-colors"
+            >
+              <Repeat2 className="h-5 w-5" />
+              Repost
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={handleCopyLink} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors" title={copied ? "Copied!" : "Copy link"}>
+              {copied ? <Link2 className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={handleSave}
+              className={cn("p-2 rounded-lg transition-colors", saved ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--accent)]")}
+            >
+              <Bookmark className={cn("h-5 w-5", saved && "fill-current")} />
+            </button>
+          </div>
+        </div>
+      </article>
+
+      {/* Comment composer */}
+      {currentUserId && (
+        <div className="rounded-2xl glass-card p-4 mb-6">
+          {replyingTo && (
+            <div className="flex items-center gap-2 mb-2 text-xs text-[var(--text-muted)]">
+              <span>Replying to a comment</span>
+              <button onClick={() => setReplyingTo(null)} className="text-[var(--accent)] hover:underline">Cancel</button>
+            </div>
+          )}
+          <div className="flex gap-3">
+            <textarea
+              ref={commentInputRef}
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Write a comment..."
+              className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[60px]"
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleComment();
+              }}
+            />
+            <Button
+              onClick={handleComment}
+              disabled={!commentText.trim() || isPending}
+              size="icon-sm"
+              variant="gradient"
+              className="self-end"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Comments */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-[var(--text-secondary)]">
+          {post.comments.length > 0 ? `${post.comments.length} Comments` : "No comments yet"}
+        </h3>
+        {post.comments.map((comment) => (
+          <div key={comment.id} className="rounded-xl glass-card p-4">
+            <div className="flex items-start gap-3">
+              <Link href={`/profile/${comment.author.username}`}>
+                <Avatar src={comment.author.avatarUrl} alt={comment.author.displayName} size="sm" />
+              </Link>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Link href={`/profile/${comment.author.username}`} className="text-sm font-semibold text-[var(--text-primary)] hover:underline">
+                    {comment.author.displayName}
+                  </Link>
+                  <span className="text-xs text-[var(--text-muted)]">{formatRelativeTime(comment.createdAt)}</span>
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{comment.content}</p>
+                <button
+                  onClick={() => {
+                    setReplyingTo(comment.id);
+                    commentInputRef.current?.focus();
+                  }}
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] mt-1 transition-colors"
+                >
+                  Reply
+                </button>
+              </div>
+            </div>
+
+            {/* Replies */}
+            {comment.replies.length > 0 && (
+              <div className="ml-10 mt-3 space-y-3 pl-3 border-l-2 border-[var(--border-primary)]">
+                {comment.replies.map((reply) => (
+                  <div key={reply.id} className="flex items-start gap-2">
+                    <Link href={`/profile/${reply.author.username}`}>
+                      <Avatar src={reply.author.avatarUrl} alt={reply.author.displayName} size="xs" />
+                    </Link>
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Link href={`/profile/${reply.author.username}`} className="text-xs font-semibold text-[var(--text-primary)] hover:underline">
+                          {reply.author.displayName}
+                        </Link>
+                        <span className="text-[10px] text-[var(--text-muted)]">{formatRelativeTime(reply.createdAt)}</span>
+                      </div>
+                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{reply.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
