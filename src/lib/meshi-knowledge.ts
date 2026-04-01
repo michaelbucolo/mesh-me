@@ -55,7 +55,10 @@ export function saveKnowledge(state: MeshiExplorationState): void {
   } catch { /* ignore - quota exceeded etc */ }
 }
 
-/** Index a node that Meshi has visited/explored */
+/** Index a node that Meshi has visited/explored.
+ *  When `incrementVisit` is false (used by bulk auto-indexing), visitCount
+ *  and totalExplorations are NOT incremented — only new entries are upserted.
+ */
 export function indexNode(
   state: MeshiExplorationState,
   node: {
@@ -64,7 +67,8 @@ export function indexNode(
     label: string;
     sublabel?: string;
     data?: Record<string, unknown>;
-  }
+  },
+  incrementVisit = true
 ): MeshiExplorationState {
   const existing = state.entries[node.id];
   const now = Date.now();
@@ -76,7 +80,7 @@ export function indexNode(
     sublabel: node.sublabel,
     data: { ...(existing?.data || {}), ...(node.data || {}) },
     indexedAt: existing?.indexedAt || now,
-    visitCount: (existing?.visitCount || 0) + 1,
+    visitCount: incrementVisit ? (existing?.visitCount || 0) + 1 : (existing?.visitCount || 0),
   };
 
   const newEntries = { ...state.entries, [node.id]: entry };
@@ -90,13 +94,16 @@ export function indexNode(
     ...state,
     entries: newEntries,
     totalNodesVisited,
-    totalExplorations: state.totalExplorations + 1,
+    totalExplorations: incrementVisit ? state.totalExplorations + 1 : state.totalExplorations,
     lastExplorationAt: now,
     knowledgeLevel,
   };
 }
 
-/** Bulk index multiple nodes (e.g., when Meshi explores the whole mesh) */
+/** Bulk index multiple nodes (e.g., when Meshi auto-indexes the whole mesh).
+ *  Does NOT inflate visitCount or totalExplorations per-node — only upserts data
+ *  and increments totalExplorations by 1 for the entire pass.
+ */
 export function indexMeshData(
   state: MeshiExplorationState,
   nodes: Array<{
@@ -109,9 +116,13 @@ export function indexMeshData(
 ): MeshiExplorationState {
   let current = state;
   for (const node of nodes) {
-    current = indexNode(current, node);
+    current = indexNode(current, node, false);
   }
-  return current;
+  // Count 1 exploration pass for the entire bulk index, not per-node
+  return {
+    ...current,
+    totalExplorations: current.totalExplorations + 1,
+  };
 }
 
 /** Query the knowledge system - returns matching entries */
