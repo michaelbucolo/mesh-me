@@ -115,7 +115,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
     );
     observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, loadMore]);
+  }, [hasMore, loadingMore, loadMore, layout]);
 
   return (
     <div data-meshi-zone="feed" className="max-w-3xl mx-auto px-4 py-6 animate-page-enter">
