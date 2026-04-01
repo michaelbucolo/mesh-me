@@ -283,7 +283,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
       {/* Comments */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-[var(--text-secondary)]">
-          {post.comments.length > 0 ? `${post.comments.length} Comments` : "No comments yet"}
+          {post._count.comments > 0 ? `${post._count.comments} Comments` : "No comments yet"}
         </h3>
         {post.comments.map((comment) => (
           <div key={comment.id} className="rounded-xl glass-card p-4">
