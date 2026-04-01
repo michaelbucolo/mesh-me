@@ -8,7 +8,7 @@ import {
   ChevronRight, Palette, Settings, HelpCircle, History,
   PenSquare, Compass, Users, Link2, Crown, MessageSquarePlus,
 } from "lucide-react";
-import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat } from "./meshi-mascot";
+import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type MeshiProp, PAGE_PROPS } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 import { getMeshiPreference } from "@/lib/actions";
@@ -75,6 +75,7 @@ export function MeshiFloat() {
 
   const [isIdle, setIsIdle] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [activeProp, setActiveProp] = useState<MeshiProp>("none");
   const [clickBurst, setClickBurst] = useState(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
@@ -126,9 +127,12 @@ export function MeshiFloat() {
     return () => { cancelled = true; };
   }, [pathname]);
 
-  // Page transition bounce
+  // Page transition bounce + contextual prop
   useEffect(() => {
     if (!meshiEnabled) return;
+    // Set contextual prop based on current page
+    const matchedPropKey = Object.keys(PAGE_PROPS).find((key) => pathname.startsWith(key));
+    setActiveProp(matchedPropKey ? PAGE_PROPS[matchedPropKey] : "none");
     if (pathname !== lastPath && lastPath !== "") {
       setIsPageTransitioning(true);
       setMood("excited");
@@ -295,14 +299,29 @@ export function MeshiFloat() {
       setTimeout(() => { setIsMeshiTyping(false); triggerSearch(); }, 500);
       return;
     }
+    // Node inspector mode: when on mesh page and asking about a person/entity
+    const isInspectQuery = (pathname === "/mesh") && (
+      text.toLowerCase().includes("who is") ||
+      text.toLowerCase().includes("tell me about") ||
+      text.toLowerCase().includes("inspect") ||
+      text.toLowerCase().includes("look up")
+    );
+    if (isInspectQuery) {
+      setMood("searching");
+      setActiveProp("magnifying-glass");
+      setTimeout(() => {
+        setActiveProp(PAGE_PROPS["/mesh"] || "compass");
+        setMood("learning");
+      }, 3000);
+    }
     setTimeout(() => {
       const response = getQuickResponse(text);
-      setMood(response.mood);
+      setMood(isInspectQuery ? "learning" : response.mood);
       addSpeechBubble("meshi", response.text);
       setIsMeshiTyping(false);
       setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.text, time: new Date() }]);
-    }, 800 + Math.random() * 600);
-  }, [speechInput, isMeshiTyping, isSearching, addSpeechBubble, triggerSearch, getQuickResponse]);
+    }, isInspectQuery ? 1500 : 800 + Math.random() * 600);
+  }, [speechInput, isMeshiTyping, isSearching, addSpeechBubble, triggerSearch, getQuickResponse, pathname]);
 
   useEffect(() => {
     if (view === "speech") setTimeout(() => speechInputRef.current?.focus(), 100);
@@ -470,6 +489,8 @@ export function MeshiFloat() {
                   hat={meshiHat}
                   showGlow={view !== "closed"}
                   interactive
+                  prop={view === "closed" ? activeProp : "none"}
+                  bouncy={isIdle}
                 />
               </motion.div>
 
