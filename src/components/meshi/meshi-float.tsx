@@ -66,7 +66,10 @@ export function MeshiFloat() {
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
-  const [knowledge, setKnowledge] = useState<MeshiExplorationState>(loadKnowledge());
+  const [knowledge, setKnowledge] = useState<MeshiExplorationState>(() => {
+    if (typeof window === "undefined") return { totalNodesVisited: 0, totalExplorations: 0, lastExplorationAt: 0, knowledgeLevel: 1, entries: {} };
+    return loadKnowledge();
+  });
   const [isExploring, setIsExploring] = useState(false);
   const [explorationProgress, setExplorationProgress] = useState(0);
 
