@@ -384,8 +384,8 @@ export function MeshiFloat() {
     const isExploreQuery = q.includes("explore") || q.includes("index") || q.includes("learn more");
 
     // Mesh knowledge questions — Meshi pulls out magnifying glass and explores
-    const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("@") ||
-      q.includes("tell me about my mesh") || q.includes("summary") || q.includes("what do you know");
+    const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("find ") || q.includes("@") ||
+      q.includes("tell me about my mesh") || q.includes("summary") || q.includes("what do you know") || q.includes("knowledge level");
 
     if (isMeshQuery && !isSearching) {
       // Magnifying glass exploration animation, then answer
