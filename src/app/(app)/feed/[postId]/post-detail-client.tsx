@@ -72,8 +72,10 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
 
   const handleLike = () => {
     if (!currentUserId) return;
-    setLiked((prev) => !prev);
-    setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+    setLiked((prevLiked) => {
+      setLikeCount((prev) => (prevLiked ? prev - 1 : prev + 1));
+      return !prevLiked;
+    });
     startTransition(async () => { await toggleReaction(post.id); });
   };
 

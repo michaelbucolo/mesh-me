@@ -73,9 +73,17 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
     localStorage.setItem("meshFeedLayout", layout);
   }, [layout]);
 
+  // Cooldown ref to prevent rapid-fire loading (especially in reels layout)
+  const lastLoadTime = useRef(0);
+
   // Infinite scroll — load more posts
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
+    // Enforce 1s cooldown between loads
+    const now = Date.now();
+    if (now - lastLoadTime.current < 1000) return;
+    lastLoadTime.current = now;
+
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
