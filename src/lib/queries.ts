@@ -941,7 +941,15 @@ export async function getGlobalMeshStatus() {
 // ─── Friend Mesh Viewing ────────────────────────────────────
 
 export async function getFriendMeshData(username: string): Promise<{
-  entities: MeshGraphEntity[];
+  user: { id: string; username: string; displayName: string; avatarUrl: string | null };
+  following: Array<{
+    id: string; username: string; displayName: string; avatarUrl: string | null;
+    isMutual: boolean; followerCount: number; postCount: number;
+  }>;
+  communities: Array<{ id: string; name: string; slug: string; memberCount: number }>;
+  interests: string[];
+  platforms: Array<{ id: string; platform: string; platformUsername: string | null }>;
+  meshiPreference: { colorTheme: string; hatStyle: string; faceStyle: string } | null;
   stats: { followers: number; following: number; posts: number; communities: number; platforms: number };
   privacyLevel: string;
 } | null> {
@@ -959,36 +967,45 @@ export async function getFriendMeshData(username: string): Promise<{
   const visibility = privacy?.meshVisibility || "friends";
 
   // Check if we're friends (mutual follow)
-  const isFriend = !!(await prisma.follow.findFirst({
-    where: {
-      AND: [
-        { followerId: currentUser.id, followingId: targetUser.id },
-      ],
-    },
-  })) && !!(await prisma.follow.findFirst({
-    where: {
-      AND: [
-        { followerId: targetUser.id, followingId: currentUser.id },
-      ],
-    },
-  }));
+  const [followToTarget, followFromTarget] = await Promise.all([
+    prisma.follow.findFirst({
+      where: { followerId: currentUser.id, followingId: targetUser.id },
+    }),
+    prisma.follow.findFirst({
+      where: { followerId: targetUser.id, followingId: currentUser.id },
+    }),
+  ]);
+  const isFriend = !!followToTarget && !!followFromTarget;
+
+  const emptyResult = {
+    user: { id: targetUser.id, username: targetUser.username, displayName: targetUser.displayName, avatarUrl: targetUser.avatarUrl },
+    following: [] as Array<{ id: string; username: string; displayName: string; avatarUrl: string | null; isMutual: boolean; followerCount: number; postCount: number }>,
+    communities: [] as Array<{ id: string; name: string; slug: string; memberCount: number }>,
+    interests: [] as string[],
+    platforms: [] as Array<{ id: string; platform: string; platformUsername: string | null }>,
+    meshiPreference: null,
+    stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 },
+  };
 
   // Check access
   if (visibility === "private" && targetUser.id !== currentUser.id) {
-    return { entities: [], stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 }, privacyLevel: "private" };
+    return { ...emptyResult, privacyLevel: "private" };
   }
   if (visibility === "friends" && !isFriend && targetUser.id !== currentUser.id) {
-    return { entities: [], stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 }, privacyLevel: "friends-only" };
+    return { ...emptyResult, privacyLevel: "friends-only" };
   }
 
   const branchOverrides: Record<string, string> = privacy?.branchOverrides ? JSON.parse(privacy.branchOverrides) : {};
 
-  const [following, followers, communities, interests, connectedAccounts, postCount] = await Promise.all([
+  const [following, followers, communities, interests, connectedAccounts, postCount, meshiPref] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: targetUser.id },
       include: {
         following: {
-          select: { id: true, username: true, displayName: true, _count: { select: { followers: true } } },
+          select: {
+            id: true, username: true, displayName: true, avatarUrl: true,
+            _count: { select: { followers: true, posts: true } },
+          },
         },
       },
     }),
@@ -1004,9 +1021,8 @@ export async function getFriendMeshData(username: string): Promise<{
     prisma.userInterest.findMany({ where: { userId: targetUser.id } }),
     prisma.connectedAccount.findMany({ where: { userId: targetUser.id } }),
     prisma.post.count({ where: { authorId: targetUser.id } }),
+    prisma.meshiPreference.findUnique({ where: { userId: targetUser.id } }),
   ]);
-
-  const entities: MeshGraphEntity[] = [];
 
   // Filter by branch visibility
   function canSeeBranch(branchKey: string): boolean {
@@ -1016,49 +1032,66 @@ export async function getFriendMeshData(username: string): Promise<{
     if (vis === "private") return false;
     return true;
   }
-  const canSeePeople = canSeeBranch("people");
-  const canSeeCommunities = canSeeBranch("communities");
-  const canSeeInterests = canSeeBranch("interests");
-  const canSeePlatforms = canSeeBranch("platforms");
 
-  if (canSeePeople) {
-    for (const f of following) {
-      entities.push({
+  // Check which user IDs follow the target user (to determine mutuals)
+  const targetFollowerIds = new Set<string>();
+  if (canSeeBranch("people")) {
+    const targetFollowers = await prisma.follow.findMany({
+      where: { followingId: targetUser.id },
+      select: { followerId: true },
+    });
+    for (const tf of targetFollowers) {
+      targetFollowerIds.add(tf.followerId);
+    }
+  }
+
+  const followingData = canSeeBranch("people")
+    ? following.map((f) => ({
         id: f.following.id,
-        type: "user",
-        label: f.following.displayName,
-        sublabel: `@${f.following.username}`,
+        username: f.following.username,
+        displayName: f.following.displayName,
+        avatarUrl: f.following.avatarUrl,
+        isMutual: targetFollowerIds.has(f.following.id),
         followerCount: f.following._count.followers,
-      });
-    }
-  }
+        postCount: f.following._count.posts,
+      }))
+    : [];
 
-  if (canSeeCommunities) {
-    for (const cm of communities) {
-      entities.push({
+  const communityData = canSeeBranch("communities")
+    ? communities.map((cm) => ({
         id: cm.community.id,
-        type: "community",
-        label: cm.community.name,
-        sublabel: cm.community.slug,
+        name: cm.community.name,
+        slug: cm.community.slug,
         memberCount: cm.community._count.members,
-      });
-    }
-  }
+      }))
+    : [];
 
-  if (canSeeInterests) {
-    for (const interest of interests) {
-      entities.push({ id: `interest-${interest.tag}`, type: "tag", label: interest.tag });
-    }
-  }
+  const interestData = canSeeBranch("interests")
+    ? interests.map((i) => i.tag)
+    : [];
 
-  if (canSeePlatforms) {
-    for (const account of connectedAccounts) {
-      entities.push({ id: account.id, type: "platform", label: account.platform, sublabel: account.platformUsername || undefined });
-    }
-  }
+  const platformData = canSeeBranch("platforms")
+    ? connectedAccounts.map((a) => ({
+        id: a.id,
+        platform: a.platform,
+        platformUsername: a.platformUsername,
+      }))
+    : [];
 
   return {
-    entities,
+    user: {
+      id: targetUser.id,
+      username: targetUser.username,
+      displayName: targetUser.displayName,
+      avatarUrl: targetUser.avatarUrl,
+    },
+    following: followingData,
+    communities: communityData,
+    interests: interestData,
+    platforms: platformData,
+    meshiPreference: meshiPref
+      ? { colorTheme: meshiPref.colorTheme, hatStyle: meshiPref.hatStyle, faceStyle: meshiPref.faceStyle }
+      : null,
     stats: {
       followers,
       following: following.length,

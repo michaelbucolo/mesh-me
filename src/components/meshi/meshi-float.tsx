@@ -12,6 +12,10 @@ import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type Meshi
 import { MeshiChat } from "./meshi-chat";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 import { getMeshiPreference } from "@/lib/actions";
+import {
+  loadKnowledge, saveKnowledge, indexMeshData, answerMeshQuestion,
+  getKnowledgeLevelDescription, type MeshiExplorationState,
+} from "@/lib/meshi-knowledge";
 
 // Meshi is ONE standalone AI entity. No bubble, no home position.
 // Click Meshi to open actions. Meshi floats freely in the bottom-right.
@@ -62,6 +66,12 @@ export function MeshiFloat() {
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
+  const [knowledge, setKnowledge] = useState<MeshiExplorationState>(() => {
+    if (typeof window === "undefined") return { totalNodesVisited: 0, totalExplorations: 0, lastExplorationAt: 0, knowledgeLevel: 1, entries: {} };
+    return loadKnowledge();
+  });
+  const [isExploring, setIsExploring] = useState(false);
+  const [explorationProgress, setExplorationProgress] = useState(0);
 
   // Position starts bottom-right, no home position
   const meshiX = useMotionValue(typeof window !== "undefined" ? window.innerWidth - 80 : 900);
@@ -119,10 +129,29 @@ export function MeshiFloat() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  // Load mesh data AND index it into knowledge system
   useEffect(() => {
     let cancelled = false;
     getMeshGraphData().then((data) => {
-      if (!cancelled) { setMeshEntities(data.entities); setMeshStats(data.stats); }
+      if (!cancelled) {
+        setMeshEntities(data.entities);
+        setMeshStats(data.stats);
+        // Auto-index mesh data into knowledge system
+        if (data.entities.length > 0) {
+          const nodes = data.entities.map((e) => ({
+            id: e.id,
+            type: e.type as "user" | "community" | "tag" | "post" | "platform",
+            label: e.label,
+            sublabel: e.sublabel || undefined,
+            data: { followerCount: e.followerCount || 0, memberCount: e.memberCount || 0, isMutual: e.isMutual || false },
+          }));
+          setKnowledge((prev) => {
+            const updated = indexMeshData(prev, nodes);
+            saveKnowledge(updated);
+            return updated;
+          });
+        }
+      }
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [pathname]);
@@ -251,25 +280,80 @@ export function MeshiFloat() {
     setTimeout(() => { setSpeechBubbles((prev) => prev.filter((b) => b.id !== id)); }, 12000);
   }, []);
 
-  const triggerSearch = useCallback(() => {
+  // Meshi exploration animation — travels through mesh nodes and indexes them
+  const triggerExploration = useCallback(() => {
+    setIsExploring(true);
     setIsSearching(true);
-    setSearchingText("Looking through your mesh...");
-    setMood("thinking");
+    setSearchingText("Exploring your mesh...");
+    setMood("searching" as MeshiMood);
     setView("closed");
-    const stats = meshStats;
+    setExplorationProgress(0);
+
+    const totalSteps = 5;
+    const stepDuration = 800;
+    const messages = [
+      "Discovering connections...",
+      "Indexing posts & communities...",
+      "Mapping your digital universe...",
+      "Learning about your mesh...",
+      "Almost done!",
+    ];
+
+    messages.forEach((msg, i) => {
+      setTimeout(() => {
+        setSearchingText(msg);
+        setExplorationProgress(((i + 1) / totalSteps) * 100);
+        if (i === 1) setMood("learning" as MeshiMood);
+        if (i === 3) setMood("thinking");
+      }, i * stepDuration);
+    });
+
     setTimeout(() => {
       setIsSearching(false);
+      setIsExploring(false);
+      setExplorationProgress(0);
+      const stats = meshStats;
+      const kLevel = knowledge.knowledgeLevel;
+      const levelDesc = getKnowledgeLevelDescription(kLevel);
       const summary = stats.followers + stats.following + stats.posts > 0
-        ? `Found ${stats.followers} followers, ${stats.following} following, ${stats.posts} posts, ${stats.communities} communities across ${stats.platforms} platforms!`
+        ? `Exploration complete! Found ${stats.followers} followers, ${stats.following} following, ${stats.posts} posts, ${stats.communities} communities across ${stats.platforms} platforms. Knowledge Level: ${kLevel}/10 (${levelDesc})`
         : "Your mesh is just getting started! Connect some platforms to see it grow.";
-      setMood("excited");
+      setMood("celebrating" as MeshiMood);
       setView("speech");
       addSpeechBubble("meshi", summary);
-    }, 3000);
-  }, [meshStats, addSpeechBubble]);
+      setTimeout(() => setMood("excited"), 2000);
+    }, totalSteps * stepDuration);
+  }, [meshStats, knowledge.knowledgeLevel, addSpeechBubble]);
 
+  // Legacy triggerSearch now uses exploration
+  const triggerSearch = triggerExploration;
+
+  // Enhanced quick response with knowledge system integration
   const getQuickResponse = useCallback((query: string): { text: string; mood: MeshiMood } => {
     const q = query.toLowerCase().trim();
+
+    // Check if this is a mesh knowledge question (how many, who is, find, etc.)
+    const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("find ") ||
+      q.includes("@") || q.includes("tell me about my mesh") || q.includes("summary") ||
+      q.includes("what do you know") || q.includes("knowledge level");
+
+    if (isMeshQuery) {
+      const result = answerMeshQuestion(knowledge, query);
+      return { text: result.answer, mood: result.mood as MeshiMood };
+    }
+
+    if (q.includes("knowledge") || q.includes("how smart") || q.includes("level")) {
+      const level = knowledge.knowledgeLevel;
+      const desc = getKnowledgeLevelDescription(level);
+      return {
+        text: `I'm at Knowledge Level ${level}/10 — ${desc}! I've explored ${knowledge.totalNodesVisited} nodes and learned ${Object.keys(knowledge.entries).length} things about your mesh.`,
+        mood: level >= 5 ? "excited" : "happy",
+      };
+    }
+
+    if (q.includes("explore") || q.includes("index") || q.includes("learn more"))
+      return { text: "I'll explore your mesh right now! Watch me go!", mood: "excited" };
+
     if (q.includes("mesh") && (q.includes("what") || q.includes("how") || q.includes("work")))
       return { text: "The Mesh is your entire digital universe visualized! Every connection as a glowing node.", mood: "excited" };
     if (q.includes("mechat") || q.includes("message") || q.includes("chat"))
@@ -277,7 +361,7 @@ export function MeshiFloat() {
     if (q.includes("privacy") || q.includes("secure") || q.includes("safe"))
       return { text: "Privacy is #1! We never sell data, never track you, and you control everything.", mood: "cool" };
     if (q.includes("meshi") || q.includes("who are you"))
-      return { text: "I\u2019m Meshi! Your guide to the mesh. I\u2019m always here to help!", mood: "love" };
+      return { text: `I'm Meshi! Your mesh.me AI companion. Knowledge Level ${knowledge.knowledgeLevel}/10 and growing!`, mood: "love" };
     if (q.includes("pro") || q.includes("premium"))
       return { text: "MeshPro is $4.99/mo \u2014 Digital Footprint Scanner, custom cosmetics, and analytics.", mood: "wink" };
     if (q.includes("hello") || q.includes("hi") || q.includes("hey"))
@@ -285,7 +369,7 @@ export function MeshiFloat() {
     if (q.includes("thank"))
       return { text: "Anytime! Happy to help!", mood: "love" };
     return { text: "Great question! For a deeper dive, open the full chat.", mood: "thinking" };
-  }, []);
+  }, [knowledge]);
 
   const handleSpeechSend = useCallback(() => {
     const text = speechInput.trim();
@@ -294,11 +378,43 @@ export function MeshiFloat() {
     addSpeechBubble("user", text);
     setMood("thinking");
     setIsMeshiTyping(true);
-    const isSearchQuery = SEARCH_TRIGGERS.some((trigger) => text.toLowerCase().includes(trigger));
-    if (isSearchQuery && !isSearching) {
-      setTimeout(() => { setIsMeshiTyping(false); triggerSearch(); }, 500);
+
+    const q = text.toLowerCase();
+    const isSearchQuery = SEARCH_TRIGGERS.some((trigger) => q.includes(trigger));
+    const isExploreQuery = q.includes("explore") || q.includes("index") || q.includes("learn more");
+
+    // Mesh knowledge questions — Meshi pulls out magnifying glass and explores
+    const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("find ") || q.includes("@") ||
+      q.includes("tell me about my mesh") || q.includes("summary") || q.includes("what do you know") || q.includes("knowledge level");
+
+    if (isMeshQuery && !isSearching) {
+      // Magnifying glass exploration animation, then answer
+      setIsSearching(true);
+      setSearchingText("Searching through your mesh...");
+      setMood("searching" as MeshiMood);
+      setView("closed");
+      setTimeout(() => {
+        setSearchingText("Analyzing data...");
+        setMood("learning" as MeshiMood);
+      }, 1500);
+      setTimeout(() => {
+        setIsSearching(false);
+        const result = answerMeshQuestion(knowledge, text);
+        setMood(result.mood as MeshiMood);
+        setView("speech");
+        addSpeechBubble("meshi", result.answer);
+        setIsMeshiTyping(false);
+        setChatHistory((prev) => [...prev.slice(-49), { q: text, a: result.answer, time: new Date() }]);
+        setTimeout(() => setMood("happy"), 3000);
+      }, 3000);
       return;
     }
+
+    if ((isSearchQuery || isExploreQuery) && !isSearching) {
+      setTimeout(() => { setIsMeshiTyping(false); triggerExploration(); }, 500);
+      return;
+    }
+
     // Node inspector mode: when on mesh page and asking about a person/entity
     const isInspectQuery = (pathname === "/mesh") && (
       text.toLowerCase().includes("who is") ||
@@ -321,7 +437,7 @@ export function MeshiFloat() {
       setIsMeshiTyping(false);
       setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.text, time: new Date() }]);
     }, isInspectQuery ? 1500 : 800 + Math.random() * 600);
-  }, [speechInput, isMeshiTyping, isSearching, addSpeechBubble, triggerSearch, getQuickResponse, pathname]);
+  }, [speechInput, isMeshiTyping, isSearching, knowledge, addSpeechBubble, triggerExploration, getQuickResponse, pathname]);
 
   useEffect(() => {
     if (view === "speech") setTimeout(() => speechInputRef.current?.focus(), 100);
@@ -374,12 +490,31 @@ export function MeshiFloat() {
               animate={{ x: [0, 100, -80, 60, -40, 0], y: [0, -50, 30, -60, 20, 0] }}
               transition={{ duration: 4, ease: "easeInOut" }}>
               <motion.div animate={{ rotate: [0, 10, -10, 15, -5, 0] }} transition={{ duration: 0.8, repeat: Infinity }}>
-                <MeshiMascot size={64} mood="thinking" color={meshiColor} hat={meshiHat} speaking showGlow />
+                <MeshiMascot size={80} mood={isExploring ? "searching" as MeshiMood : "thinking"} color={meshiColor} hat={meshiHat} speaking showGlow />
+              </motion.div>
+              {/* Magnifying glass icon */}
+              <motion.div
+                animate={{ rotate: [-15, 15, -15], scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                className="text-2xl"
+              >
+                <Search className="h-8 w-8" style={{ color: "var(--accent)" }} />
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-2 rounded-xl text-sm font-medium shadow-xl"
+                className="px-4 py-2 rounded-xl text-sm font-medium shadow-xl flex flex-col items-center gap-1"
                 style={{ background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--accent)" }}>
-                {searchingText}
+                <span>{searchingText}</span>
+                {isExploring && explorationProgress > 0 && (
+                  <div className="w-32 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: "var(--accent)" }}
+                      animate={{ width: `${explorationProgress}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                )}
+                <span className="text-[10px] text-[var(--text-muted)]">Knowledge Level {knowledge.knowledgeLevel}/10</span>
               </motion.div>
             </motion.div>
           </motion.div>
