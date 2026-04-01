@@ -252,6 +252,15 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                   </div>
                 </motion.div>
               ))}
+              {/* Reels-specific infinite scroll trigger (inside the scroll container) */}
+              <div ref={layout === "reels" ? loadMoreRef : undefined} className="py-8 flex justify-center snap-start">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more...
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -303,8 +312,8 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
             </div>
           )}
 
-          {/* Infinite scroll trigger */}
-          <div ref={loadMoreRef} className="py-8 flex justify-center">
+          {/* Infinite scroll trigger (non-reels layouts) */}
+          <div ref={layout !== "reels" ? loadMoreRef : undefined} className="py-8 flex justify-center">
             {loadingMore && (
               <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                 <Loader2 className="h-4 w-4 animate-spin" />
