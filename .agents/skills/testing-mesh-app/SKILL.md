@@ -20,6 +20,7 @@ The app runs at http://localhost:3000. Uses SQLite locally (dev.db in project ro
   ```
 - Login flow: Go to /login → enter username → enter password → redirects to /mesh
 - The production site (meshme.vercel.app) uses Turso DB, not local SQLite
+- **Important**: Vercel preview deployments may fail with server-side errors if the preview branch uses `file:./dev.db` (local SQLite) instead of Turso. Test locally when preview deployment has DB errors.
 
 ## Devin Secrets Needed
 
@@ -28,6 +29,38 @@ The app runs at http://localhost:3000. Uses SQLite locally (dev.db in project ro
 - Vercel token - For production deployments
 
 ## Key Testing Paths
+
+### Feed (/feed)
+- **Navigation**: Sidebar → "Feed"
+- **Layout switching**: 5 layout toggle icons in top-right of feed page (Timeline, Grid, Reels, Compact, Cards)
+  - Timeline: Classic scrolling feed with PostCard components (has clickable links to post detail)
+  - Grid: 3-column square tiles (Instagram style)
+  - Reels: Full-screen snap-scroll cards (TikTok style) — note: posts are NOT directly clickable in this layout
+  - Compact: Dense thread view (Reddit style) — entire row is clickable
+  - Cards: Large card format (Facebook style)
+- **Infinite scroll**: Scroll to bottom of feed. If fewer than 20 posts, shows "You've reached the end". If more, triggers IntersectionObserver to load next page via `/api/feed/paginated`.
+- **Feed source tabs**: "For You" / "Following" / "Discover" — currently placeholder UI (non-functional)
+- **Post composer**: At top of feed, "What's happening?" textarea with Post button
+
+### Post Detail (/feed/[postId])
+- **Navigation**: Click on a post card in Timeline or Cards layout, or click a grid tile/compact row
+- **Features**:
+  - Back arrow + "Back" button at top (uses router.back())
+  - Author info: avatar, display name, @username, timestamp, community badge
+  - Full post content with media gallery and tags
+  - Engagement stats: "X likes · Y comments · Z reposts"
+  - Action buttons: Like (heart toggle), Comment, Repost, Copy link, Bookmark
+  - Comment section: textarea + send button, threaded replies
+- **Like toggle**: Click heart icon — count increments/decrements. Uses functional updater pattern to avoid stale closure bugs on rapid clicks.
+- **Comment count**: Both heading and stats use `post._count.comments` (includes all replies) for consistency.
+
+### Profile (/profile/[username])
+- **Navigation**: Sidebar → "Profile" (resolves to `/profile/{currentUser.username}`)
+- **Profile completeness meter**: Shows "Complete your profile" card with percentage and 8-item checklist:
+  - Profile photo, Cover image, Bio, Location, Website, Interests (3+), Links, Connected platform
+  - Hidden when profile is 100% complete
+  - Progress bar animates with framer-motion
+- **Profile tabs**: Posts, Media, About, Communities
 
 ### Mesh Canvas (/mesh)
 - **Navigation**: Sidebar → "The Mesh" (first nav item)
@@ -65,9 +98,12 @@ npx next build
 - Prisma schema at `prisma/schema.prisma`
 - After schema changes: `npx prisma generate` then `npx prisma migrate dev`
 - ProfileInfo model stores Facebook-level fields with per-field JSON privacy
+- Local dev DB has ~18 seed posts across multiple users and communities
 
 ## Common Issues
 
 - If sqlite3 CLI is not installed: `sudo apt-get install -y sqlite3`
 - Dev DB might not exist on fresh clone - run `npx prisma migrate dev` to create
 - The canvas is rendered with Canvas 2D API, not a library - interactions are custom event handlers on the canvas element
+- Preview deployments on Vercel may fail if DATABASE_URL points to local SQLite — use local dev server for testing in this case
+- When testing in Reels layout, posts don't have direct click-through links — switch to Timeline or Compact layout to navigate to post detail pages
