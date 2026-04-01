@@ -1311,6 +1311,17 @@ export async function getMeshiPreference() {
   return pref || { hatStyle: "none", faceStyle: "happy", colorTheme: "blue" };
 }
 
+// Get another user's Meshi preference (for social Meshi on their mesh nodes)
+export async function getUserMeshiPreference(userId: string) {
+  if (!userId) return null;
+
+  const pref = await prisma.meshiPreference.findUnique({
+    where: { userId },
+  });
+
+  return pref ? { hatStyle: pref.hatStyle, faceStyle: pref.faceStyle, colorTheme: pref.colorTheme } : null;
+}
+
 // ─── Mesh Cosmetics Actions ─────────────────────────────────
 
 export async function updateMeshCosmetics(cosmetics: { type: string; value: string; isActive: boolean }[]) {

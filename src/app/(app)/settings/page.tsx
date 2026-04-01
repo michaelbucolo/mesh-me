@@ -14,6 +14,7 @@ import {
   updateUserLinks,
   updateUserInterests,
   updateMeshiPreference,
+  getMeshiPreference,
   checkAndAwardAchievements,
   setActiveTitle,
   updateMeshPrivacy,
@@ -264,6 +265,19 @@ export default function SettingsPage() {
       if (stored === "false") setMeshiEnabled(false);
     }
   }, []);
+
+  // Load saved Meshi preferences from server when meshi tab is active
+  useEffect(() => {
+    if (activeTab === "meshi") {
+      getMeshiPreference().then((pref) => {
+        if (pref) {
+          if (pref.faceStyle) setMeshiFace(pref.faceStyle as MeshiMood);
+          if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
+          if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
+        }
+      }).catch(() => {});
+    }
+  }, [activeTab]);
 
   // Alter Egos state
   interface AlterEgo {
@@ -1659,10 +1673,6 @@ export default function SettingsPage() {
                       onClick={() => {
                         setMeshiFace(face);
                         localStorage.setItem("meshiFace", face);
-                        startTransition(async () => {
-                          await updateMeshiPreference({ faceStyle: face });
-                          showSuccess("Expression updated!");
-                        });
                       }}
                       className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiFace === face ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
                     >
@@ -1683,10 +1693,6 @@ export default function SettingsPage() {
                       onClick={() => {
                         setMeshiHat(hat);
                         localStorage.setItem("meshiHat", hat);
-                        startTransition(async () => {
-                          await updateMeshiPreference({ hatStyle: hat });
-                          showSuccess("Hat updated!");
-                        });
                       }}
                       className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiHat === hat ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
                     >
@@ -1707,10 +1713,6 @@ export default function SettingsPage() {
                       onClick={() => {
                         setMeshiColor(color);
                         localStorage.setItem("meshiColor", color);
-                        startTransition(async () => {
-                          await updateMeshiPreference({ colorTheme: color });
-                          showSuccess("Color updated!");
-                        });
                       }}
                       className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiColor === color ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
                     >
@@ -1720,6 +1722,27 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Save Preferences Button */}
+              <button
+                onClick={() => {
+                  startTransition(async () => {
+                    await updateMeshiPreference({
+                      faceStyle: meshiFace,
+                      hatStyle: meshiHat,
+                      colorTheme: meshiColor,
+                    });
+                    window.dispatchEvent(new StorageEvent("storage", { key: "meshiFace", newValue: meshiFace }));
+                    window.dispatchEvent(new StorageEvent("storage", { key: "meshiHat", newValue: meshiHat }));
+                    window.dispatchEvent(new StorageEvent("storage", { key: "meshiColor", newValue: meshiColor }));
+                    showSuccess("Meshi preferences saved!");
+                  });
+                }}
+                className="w-full py-3 rounded-xl brand-button text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
+              >
+                <Sparkles className="h-4 w-4" />
+                Save Meshi Preferences
+              </button>
               </>
               )}
             </motion.div>

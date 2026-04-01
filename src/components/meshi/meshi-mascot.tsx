@@ -25,6 +25,9 @@ const FACES: Record<string, { eyes: string; svg?: boolean }> = {
   giggle: { eyes: "≧  ≦" },
   shy: { eyes: "·  ·" },
   synergy1017: { eyes: "", svg: true },
+  searching: { eyes: "", svg: true },
+  learning: { eyes: "", svg: true },
+  celebrating: { eyes: "", svg: true },
 };
 
 // SVG faces for clean, scalable eye rendering
@@ -50,6 +53,96 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
       <ellipse cx="-4" cy="0" rx="1.8" ry="3.8" fill={color} />
       {/* Right eye — thick upward-facing wink arc */}
       <path d="M 2 1.5 Q 4.5 -2.5 7 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </g>
+  ),
+  searching: (color: string) => (
+    <g>
+      {/* Squinting eyes — focused look */}
+      <ellipse cx="-5" cy="0" rx="3" ry="1.5" fill={color} />
+      <ellipse cx="5" cy="0" rx="3" ry="1.5" fill={color} />
+      <circle cx="-4" cy="0" r="0.8" fill="white" />
+      <circle cx="6" cy="0" r="0.8" fill="white" />
+    </g>
+  ),
+  learning: (color: string) => (
+    <g>
+      {/* Wide curious eyes — big and bright */}
+      <ellipse cx="-5" cy="-0.5" rx="3" ry="3.5" fill={color} />
+      <ellipse cx="5" cy="-0.5" rx="3" ry="3.5" fill={color} />
+      <circle cx="-4" cy="-1.5" r="1" fill="white" opacity="0.8" />
+      <circle cx="6" cy="-1.5" r="1" fill="white" opacity="0.8" />
+    </g>
+  ),
+  celebrating: (color: string) => (
+    <g>
+      {/* Happy closed eyes — arcs */}
+      <path d="M -7.5 0 Q -5 -3 -2.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path d="M 2.5 0 Q 5 -3 7.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </g>
+  ),
+};
+
+// Meshi prop types — contextual items Meshi holds
+export type MeshiProp = "none" | "magnifying-glass" | "clipboard" | "paintbrush" | "megaphone" | "shield" | "compass" | "bell" | "heart" | "wrench";
+
+// SVG props rendered near Meshi
+const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
+  "magnifying-glass": (color: string) => (
+    <g transform="translate(12, -8) scale(0.6)">
+      <circle cx="0" cy="0" r="6" fill="none" stroke={color} strokeWidth="2.5" />
+      <line x1="4" y1="4" x2="10" y2="10" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    </g>
+  ),
+  clipboard: (color: string) => (
+    <g transform="translate(12, -6) scale(0.55)">
+      <rect x="-5" y="-2" width="10" height="14" rx="1.5" fill="none" stroke={color} strokeWidth="2" />
+      <rect x="-2" y="-4" width="4" height="3" rx="1" fill={color} />
+      <line x1="-3" y1="3" x2="3" y2="3" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="-3" y1="6" x2="3" y2="6" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="-3" y1="9" x2="1" y2="9" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+    </g>
+  ),
+  paintbrush: (color: string) => (
+    <g transform="translate(13, -7) scale(0.55) rotate(-30)">
+      <rect x="-1.5" y="-2" width="3" height="12" rx="1" fill={color} />
+      <path d="M -2.5 10 Q 0 14 2.5 10" fill={color} opacity="0.7" />
+    </g>
+  ),
+  megaphone: (color: string) => (
+    <g transform="translate(12, -4) scale(0.55)">
+      <path d="M -2 -4 L 8 -8 L 8 4 L -2 0 Z" fill={color} opacity="0.8" />
+      <rect x="-4" y="-4" width="3" height="4" rx="1" fill={color} />
+    </g>
+  ),
+  shield: (color: string) => (
+    <g transform="translate(12, -6) scale(0.55)">
+      <path d="M 0 -7 L 7 -3 L 6 5 L 0 8 L -6 5 L -7 -3 Z" fill="none" stroke={color} strokeWidth="2" />
+      <path d="M 0 -2 L 3 1 L 0 4 L -3 1 Z" fill={color} opacity="0.5" />
+    </g>
+  ),
+  compass: (color: string) => (
+    <g transform="translate(12, -6) scale(0.55)">
+      <circle cx="0" cy="0" r="7" fill="none" stroke={color} strokeWidth="2" />
+      <polygon points="0,-5 2,0 0,5 -2,0" fill={color} opacity="0.7" />
+      <circle cx="0" cy="0" r="1.5" fill={color} />
+    </g>
+  ),
+  bell: (color: string) => (
+    <g transform="translate(12, -6) scale(0.55)">
+      <path d="M -5 2 Q -5 -6 0 -7 Q 5 -6 5 2 L -5 2 Z" fill={color} opacity="0.8" />
+      <rect x="-6" y="2" width="12" height="2" rx="1" fill={color} />
+      <circle cx="0" cy="5" r="1.5" fill={color} />
+    </g>
+  ),
+  heart: (color: string) => (
+    <g transform="translate(12, -6) scale(0.55)">
+      <path d="M 0 3 C -8 -2 -8 -8 -4 -8 C -1 -8 0 -5 0 -5 C 0 -5 1 -8 4 -8 C 8 -8 8 -2 0 3 Z" fill={color} opacity="0.8" />
+    </g>
+  ),
+  wrench: (color: string) => (
+    <g transform="translate(13, -7) scale(0.55) rotate(-45)">
+      <rect x="-1.5" y="-2" width="3" height="14" rx="1" fill={color} />
+      <circle cx="0" cy="-2" r="3" fill="none" stroke={color} strokeWidth="2" />
     </g>
   ),
 };
@@ -126,6 +219,20 @@ export type MeshiMood = keyof typeof FACES;
 export type MeshiHat = keyof typeof HATS;
 export type MeshiColor = keyof typeof COLOR_THEMES;
 
+// Page-to-prop mapping: which prop Meshi holds on each page
+export const PAGE_PROPS: Record<string, MeshiProp> = {
+  "/meshpro": "shield",
+  "/mesh": "compass",
+  "/feed": "clipboard",
+  "/messages": "heart",
+  "/communities": "megaphone",
+  "/notifications": "bell",
+  "/settings": "wrench",
+  "/explore": "compass",
+  "/search": "magnifying-glass",
+  "/profile": "paintbrush",
+};
+
 interface MeshiMascotProps {
   size?: number;
   mood?: MeshiMood;
@@ -140,6 +247,10 @@ interface MeshiMascotProps {
   interactive?: boolean;
   /** Callback when mood changes from petting */
   onMoodChange?: (mood: MeshiMood) => void;
+  /** Prop to display (contextual item Meshi holds) */
+  prop?: MeshiProp;
+  /** Enable enhanced bouncing idle animation */
+  bouncy?: boolean;
 }
 
 export function MeshiMascot({
@@ -154,6 +265,8 @@ export function MeshiMascot({
   speaking = false,
   interactive = false,
   onMoodChange,
+  prop = "none",
+  bouncy = false,
 }: MeshiMascotProps) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   const face = FACES[mood] || FACES.happy;
@@ -172,8 +285,6 @@ export function MeshiMascot({
   const petCount = useRef(0);
   const petTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localMood, setLocalMood] = useState<MeshiMood | null>(null);
-
-  const activeFace = FACES[localMood || mood] || FACES.happy;
 
   // Mouse enter — initial shy reaction + gentle jiggle
   const handleMouseEnter = useCallback(() => {
@@ -225,6 +336,9 @@ export function MeshiMascot({
 
   useEffect(() => { return () => { if (petTimer.current) clearTimeout(petTimer.current); }; }, []);
 
+  // Determine prop SVG
+  const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
+
   return (
     <motion.div
       ref={containerRef}
@@ -274,10 +388,16 @@ export function MeshiMascot({
 
         {/* Clipped content — everything inside the circle */}
         <g clipPath="url(#meshi-circle-clip)">
-          {/* Body — clean circle */}
+          {/* Body — clean circle with enhanced bounce */}
           <motion.circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2"
-            animate={animate ? { y: [0, -1, 0] } : undefined}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            animate={animate ? (bouncy
+              ? { y: [0, -2.5, 0, -1, 0], scaleX: [1, 0.97, 1.02, 0.99, 1], scaleY: [1, 1.04, 0.97, 1.01, 1] }
+              : { y: [0, -1, 0] }
+            ) : undefined}
+            transition={bouncy
+              ? { duration: 2, repeat: Infinity, ease: "easeInOut" }
+              : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
+            }
           />
 
           {/* Hat */}
@@ -300,6 +420,18 @@ export function MeshiMascot({
             })()}
           </g>
         </g>
+
+        {/* Prop — rendered outside the clip for visibility */}
+        {propSvg && (
+          <motion.g
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          >
+            {propSvg}
+          </motion.g>
+        )}
 
       </svg>
     </motion.div>
@@ -343,4 +475,29 @@ export function getMeshiMoodFromActivity(stats: {
   return "happy";
 }
 
-export { COLOR_THEMES, FACES, HATS };
+// Small social Meshi for displaying on other users' mesh nodes
+export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy" }: {
+  size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood;
+}) {
+  const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
+  const face = FACES[mood] || FACES.happy;
+  const hatElement = HATS[hat] || null;
+  return (
+    <svg width={size} height={size} viewBox="-24 -24 48 48">
+      <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
+      <g style={{ color: theme.primary }}>{hatElement}</g>
+      <g transform="scale(0.8)">
+        {face.svg && SVG_FACES[mood] ? (
+          SVG_FACES[mood](theme.primary)
+        ) : (
+          <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
+            fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
+            {face.eyes}
+          </text>
+        )}
+      </g>
+    </svg>
+  );
+}
+
+export { COLOR_THEMES, FACES, HATS, PROP_SVGS };
