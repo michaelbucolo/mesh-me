@@ -1199,6 +1199,7 @@ export default function MeshPage() {
     }
     setViewingUserMesh(null);
     setViewingUserMeshiPrefs(null);
+    setShowMeshiMeet(false);
     setSelectedNode(null);
     setProfilePreview(null);
     // Reset view
