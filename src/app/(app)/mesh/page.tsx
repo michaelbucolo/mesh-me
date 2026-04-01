@@ -43,7 +43,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
-import { MeshiMascot, MeshiLogo, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, MeshiLogo, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
 
 // --- Types ---
@@ -1178,6 +1178,11 @@ export default function MeshPage() {
       setViewingUserMesh(node);
       setSelectedNode(null);
       setProfilePreview(null);
+      // Fetch their Meshi customization for social Meshi display
+      const userId = data.user?.id || node.id;
+      getUserMeshiPreference(userId).then((pref) => {
+        setViewingUserMeshiPref(pref);
+      }).catch(() => {});
       // Reset view to center
       setZoom(1); zoomRef.current = 1;
       setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 };
@@ -1540,6 +1545,14 @@ export default function MeshPage() {
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Back to my mesh</span>
               <span className="text-[var(--text-muted)]">&middot;</span>
+              {viewingUserMeshiPref && (
+                <MeshiMini
+                  size={18}
+                  color={viewingUserMeshiPref.colorTheme as MeshiColor}
+                  hat={viewingUserMeshiPref.hatStyle as MeshiHat}
+                  mood={viewingUserMeshiPref.faceStyle as MeshiMood}
+                />
+              )}
               <span className="text-[var(--text-muted)]">Viewing {viewingUserMesh.label}&apos;s mesh</span>
             </button>
           </motion.div>
