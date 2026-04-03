@@ -258,11 +258,10 @@ export default function ContentHubPage() {
 
   // Load tab-specific data when tab changes
   useEffect(() => {
-    if (activeTab === "posts") loadPosts();
     if (activeTab === "followers") loadFollowers();
     if (activeTab === "analytics") loadAnalytics();
     if (activeTab === "sync") loadSyncData();
-  }, [activeTab, loadPosts, loadFollowers, loadAnalytics, loadSyncData]);
+  }, [activeTab, loadFollowers, loadAnalytics, loadSyncData]);
 
   // Notification auto-dismiss
   useEffect(() => {
@@ -348,6 +347,8 @@ export default function ContentHubPage() {
         setCrossPostPlatforms([]);
         setShowCrossPost(false);
         await loadPosts();
+      } else {
+        setNotification({ type: "error", message: data.error || "Cross-post failed" });
       }
     } catch {
       setNotification({ type: "error", message: "Cross-post failed" });
