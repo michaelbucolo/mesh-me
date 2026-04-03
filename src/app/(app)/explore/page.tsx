@@ -17,12 +17,35 @@ export default async function ExplorePage() {
     getTrendingTags(),
   ]);
 
+  const isEmpty = suggestedUsers.length === 0 && posts.length === 0 && trendingTags.length === 0 && trendingCommunities.length === 0;
+
   return (
     <div data-meshi-zone="explore" className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Explore</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">Find your people, communities, and corners of the mesh</p>
       </div>
+
+      {/* First-time user context hint */}
+      {isEmpty && (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-subtle)" }}>
+            <Compass className="h-8 w-8" style={{ color: "var(--accent)" }} />
+          </div>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">The mesh is just getting started</h3>
+          <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto mb-6">
+            As more people join and create content, this page will fill with trending posts, suggested connections, and communities to explore.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Link href="/feed?compose=true" className="brand-button inline-flex items-center gap-2 text-white px-5 py-2.5 rounded-xl text-sm font-medium">
+              Create a post
+            </Link>
+            <Link href="/communities/create" className="inline-flex items-center gap-2 glass-surface text-[var(--text-secondary)] px-5 py-2.5 rounded-xl text-sm font-medium hover:text-[var(--text-primary)]">
+              Start a community
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Trending Tags */}
       {trendingTags.length > 0 && (
@@ -58,58 +81,60 @@ export default async function ExplorePage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main content - Trending Posts */}
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-5 w-5" style={{ color: "var(--accent)" }} />
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Trending</h2>
-            </div>
-            <div className="space-y-4">
-              {posts.length > 0 ? (
-                                posts.map((post) => (
-                                  <PostCard key={post.id} post={post} currentUserId={user.id} />
-                ))
-              ) : (
-                <div className="text-center py-16 text-[var(--text-muted)]">
-                  <Compass className="h-12 w-12 mx-auto mb-4 text-[var(--text-muted)]" />
-                  <p>No trending posts yet. Be the first to create something!</p>
-                </div>
-              )}
+      {!isEmpty && (
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main content - Trending Posts */}
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="h-5 w-5" style={{ color: "var(--accent)" }} />
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Trending</h2>
+              </div>
+              <div className="space-y-4">
+                {posts.length > 0 ? (
+                                  posts.map((post) => (
+                                    <PostCard key={post.id} post={post} currentUserId={user.id} />
+                  ))
+                ) : (
+                  <div className="text-center py-16 text-[var(--text-muted)]">
+                    <Compass className="h-12 w-12 mx-auto mb-4 text-[var(--text-muted)]" />
+                    <p>No trending posts yet. Be the first to create something!</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Rising Communities */}
-          {trendingCommunities.length > 0 && (
-            <div className="rounded-2xl glass-card p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Star className="h-5 w-5" style={{ color: "var(--accent)" }} />
-                <h3 className="font-semibold text-[var(--text-primary)]">Rising communities</h3>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Rising Communities */}
+            {trendingCommunities.length > 0 && (
+              <div className="rounded-2xl glass-card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Star className="h-5 w-5" style={{ color: "var(--accent)" }} />
+                  <h3 className="font-semibold text-[var(--text-primary)]">Rising communities</h3>
+                </div>
+                <div className="space-y-3">
+                  {trendingCommunities.slice(0, 5).map((community: { id: string; name: string; slug: string; _count: { members: number; posts: number } }) => (
+                    <Link key={community.id} href={`/communities/${community.slug}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors">
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: "var(--brand-gradient)" }}>
+                        {community.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">{community.name}</h4>
+                        <p className="text-xs text-[var(--text-muted)]">{community._count.members} members &middot; {community._count.posts} posts</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <Link href="/communities" className="flex items-center gap-1 text-sm mt-4 transition-colors" style={{ color: "var(--accent)" }}>
+                  View all communities <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
-              <div className="space-y-3">
-                {trendingCommunities.slice(0, 5).map((community: { id: string; name: string; slug: string; _count: { members: number; posts: number } }) => (
-                  <Link key={community.id} href={`/communities/${community.slug}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors">
-                    <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: "var(--brand-gradient)" }}>
-                      {community.name[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">{community.name}</h4>
-                      <p className="text-xs text-[var(--text-muted)]">{community._count.members} members &middot; {community._count.posts} posts</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-              <Link href="/communities" className="flex items-center gap-1 text-sm mt-4 transition-colors" style={{ color: "var(--accent)" }}>
-                View all communities <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

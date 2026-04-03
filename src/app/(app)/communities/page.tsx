@@ -37,14 +37,23 @@ export default async function CommunitiesPage() {
         <EmptyState
           icon={Users}
           title="No communities yet"
-          description="Be the first to start something. Build a space for people like you."
+          description="Communities are spaces for people who share your interests. Create one to bring your people together, or explore to find existing ones."
         >
-          <Link
-            href="/communities/create"
-            className="brand-button inline-flex text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
-          >
-            Start a community
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <Link
+              href="/communities/create"
+              className="brand-button inline-flex items-center gap-2 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all"
+            >
+              <Plus className="h-4 w-4" />
+              Start a community
+            </Link>
+            <Link
+              href="/explore"
+              className="inline-flex items-center gap-2 glass-surface text-[var(--text-secondary)] px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:text-[var(--text-primary)]"
+            >
+              Explore the mesh
+            </Link>
+          </div>
         </EmptyState>
       )}
     </div>

@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { WelcomeBanner } from "@/components/ui/welcome-banner";
+import { Sparkles, Compass } from "lucide-react";
 
 // Feed layout modes inspired by popular platforms
 type FeedLayout = "timeline" | "grid" | "reels" | "compact" | "cards";
@@ -142,6 +144,20 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
           })}
         </div>
       </div>
+
+      {/* First-time welcome banner */}
+      <WelcomeBanner
+        storageKey="feed"
+        icon={Sparkles}
+        title="Welcome to your Feed"
+        description="This is where posts from people you follow and communities you've joined appear. You can switch between 5 different layout styles!"
+        tips={[
+          "Use the layout icons (top-right) to switch between Timeline, Grid, Reels, Compact, and Cards views",
+          "Create your first post using the composer below",
+          "Explore the mesh to find people and communities to follow",
+        ]}
+        action={{ label: "Explore the mesh \u2192", onClick: () => window.location.href = "/explore" }}
+      />
 
       {/* Composer */}
       <div className="mb-6">
