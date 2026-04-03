@@ -36,7 +36,6 @@ import {
   Search,
   EyeOff as HideIcon,
   Share2,
-  ThumbsUp,
   MessageSquare,
   Plus,
 } from "lucide-react";
@@ -90,27 +89,27 @@ interface MeshEdge {
 
 // --- Constants ---
 
-// Vibrant, colorful node palette for a satisfying visual experience
+// Premium node palette — inspired by Instagram/X's clean, high-contrast aesthetic
 const NODE_COLORS: Record<string, string> = {
-  self: "#3b82f6",
-  user: "#60a5fa",
-  mutual: "#818cf8",
-  community: "#f472b6",
-  tag: "#22d3ee",
-  post: "#34d399",
-  platform: "#fbbf24",
-  "alter-ego": "#a78bfa",
+  self: "#6366f1",
+  user: "#818cf8",
+  mutual: "#a78bfa",
+  community: "#ec4899",
+  tag: "#06b6d4",
+  post: "#10b981",
+  platform: "#f59e0b",
+  "alter-ego": "#c084fc",
 };
 
 const NODE_GLOW: Record<string, string> = {
-  self: "rgba(59, 130, 246, 0.25)",
-  user: "rgba(96, 165, 250, 0.15)",
-  mutual: "rgba(129, 140, 248, 0.18)",
-  community: "rgba(244, 114, 182, 0.15)",
-  tag: "rgba(34, 211, 238, 0.15)",
-  post: "rgba(52, 211, 153, 0.12)",
-  platform: "rgba(251, 191, 36, 0.15)",
-  "alter-ego": "rgba(167, 139, 250, 0.2)",
+  self: "rgba(99, 102, 241, 0.3)",
+  user: "rgba(129, 140, 248, 0.18)",
+  mutual: "rgba(167, 139, 250, 0.22)",
+  community: "rgba(236, 72, 153, 0.18)",
+  tag: "rgba(6, 182, 212, 0.18)",
+  post: "rgba(16, 185, 129, 0.15)",
+  platform: "rgba(245, 158, 11, 0.18)",
+  "alter-ego": "rgba(192, 132, 252, 0.22)",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -690,6 +689,14 @@ export default function MeshPage() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, logicalW, logicalH);
 
+      // Subtle radial gradient background for depth
+      const bgGrad = ctx.createRadialGradient(logicalW / 2, logicalH / 2, 0, logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.7);
+      bgGrad.addColorStop(0, "rgba(99, 102, 241, 0.03)");
+      bgGrad.addColorStop(0.5, "rgba(99, 102, 241, 0.01)");
+      bgGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, logicalW, logicalH);
+
       ctx.save();
       ctx.translate(logicalW / 2 + p.x, logicalH / 2 + p.y);
       ctx.scale(z, z);
@@ -723,12 +730,12 @@ export default function MeshPage() {
           ctx.lineTo(target.x, target.y);
         }
 
-        const edgeColor = edge.type === "mutual" ? "129, 140, 248"
+        const edgeColor = edge.type === "mutual" ? "167, 139, 250"
           : edge.type === "community" ? "236, 72, 153"
           : edge.type === "interest" ? "6, 182, 212"
-          : edge.type === "post" ? "34, 197, 94"
+          : edge.type === "post" ? "16, 185, 129"
           : edge.type === "platform" ? "245, 158, 11"
-          : "59, 130, 246";
+          : "99, 102, 241";
 
         ctx.strokeStyle = "rgba(" + edgeColor + ", " + (baseAlpha + pulseAlpha) + ")";
         // Edge thickness: base width + interaction closeness (tether tightening)
@@ -787,19 +794,19 @@ export default function MeshPage() {
         ctx.fill();
 
         if (node.type === "self") {
-          // Double ring for profile center node — invites clicking
+          // Instagram-style gradient ring for self node
           const ringRadius = nodeRadius + 5 + pulse * 2;
           ctx.beginPath();
           ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(59, 130, 246, " + (0.12 + pulse * 0.06) + ")";
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "rgba(99, 102, 241, " + (0.18 + pulse * 0.08) + ")";
+          ctx.lineWidth = 2;
           ctx.stroke();
           // Outer glow ring
-          const outerRing = ringRadius + 4;
+          const outerRing = ringRadius + 5;
           ctx.beginPath();
           ctx.arc(node.x, node.y, outerRing, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(59, 130, 246, " + (0.04 + pulse * 0.02) + ")";
-          ctx.lineWidth = 0.5;
+          ctx.strokeStyle = "rgba(99, 102, 241, " + (0.06 + pulse * 0.03) + ")";
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
 
@@ -1313,7 +1320,6 @@ export default function MeshPage() {
     const targetNode = nodesRef.current.find((n) => n.id === nodeId);
     if (!targetNode || !canvasRef.current) return;
 
-    const canvas = canvasRef.current;
     const cx = centerRef.current.x;
     const cy = centerRef.current.y;
 
@@ -1384,32 +1390,28 @@ export default function MeshPage() {
       <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
         <div className="text-center">
           <motion.div
-            className="relative mx-auto mb-6"
-            animate={{ y: [0, -10, 0], rotate: [0, 3, -3, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            className="relative mx-auto mb-8"
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
-            {/* User's custom Meshi */}
             <MeshiMascot size={80} mood="searching" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
           </motion.div>
           <motion.p
-            className="text-[var(--text-secondary)] font-medium mb-1"
-            animate={{ opacity: [1, 0.6, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+            className="text-[var(--text-primary)] font-semibold text-lg mb-1"
+            animate={{ opacity: [1, 0.7, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
           >
-            Meshi is building your mesh...
+            Building your mesh
           </motion.p>
           <p className="text-[var(--text-muted)] text-sm">Mapping your digital universe</p>
-          {/* Animated dots */}
-          <div className="flex justify-center gap-1.5 mt-3">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 rounded-full"
-                style={{ background: "var(--accent)" }}
-                animate={{ scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-              />
-            ))}
+          {/* Smooth loading bar */}
+          <div className="mt-6 mx-auto w-48 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-indigo-500"
+              animate={{ x: ["-100%", "200%"] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              style={{ width: "40%" }}
+            />
           </div>
         </div>
       </div>
@@ -1419,14 +1421,15 @@ export default function MeshPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
-        <div className="text-center">
+        <div className="text-center max-w-sm">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
             <X className="h-8 w-8 text-red-400" />
           </div>
-          <p className="text-[var(--text-secondary)] font-medium mb-2">{error}</p>
+          <p className="text-[var(--text-primary)] font-semibold mb-1">Something went wrong</p>
+          <p className="text-[var(--text-muted)] text-sm mb-4">{error}</p>
           <Button variant="secondary" onClick={() => window.location.reload()}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Retry
+            Try again
           </Button>
         </div>
       </div>
@@ -1437,46 +1440,50 @@ export default function MeshPage() {
     <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
       {/* Keyboard shortcut handled in useEffect below */}
 
-      {/* Simplified top bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-3">
-        <div className="flex items-center justify-between gap-2">
-          {/* Compact filters — icon-only pill bar */}
-          <div className="flex gap-0.5 glass-panel rounded-xl p-0.5 shadow-lg overflow-x-auto scrollbar-hide">
+      {/* Top bar — clean, floating pill design inspired by Instagram Stories bar */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-4">
+        <div className="flex items-center justify-between gap-3">
+          {/* Filter pills — horizontal scroll, Instagram-style */}
+          <div className="flex gap-1 rounded-2xl p-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] overflow-x-auto scrollbar-hide">
             {filterOptions.filter((fItem) => fItem.count > 0 || fItem.id === "all").map((fItem) => {
               const IconComp = fItem.icon;
+              const isActive = filter === fItem.id;
               return (
                 <button
                   key={fItem.id}
                   onClick={() => setFilter(fItem.id)}
-                  className={"flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all " + (
-                    filter === fItem.id
-                      ? "brand-button text-white shadow-sm"
-                      : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                  className={"flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all duration-200 whitespace-nowrap " + (
+                    isActive
+                      ? "bg-white/15 text-white shadow-sm"
+                      : "text-white/50 hover:text-white/80 hover:bg-white/[0.06]"
                   )}
                   title={fItem.label}
                 >
-                  <IconComp className="h-3 w-3" />
+                  <IconComp className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{fItem.label}</span>
+                  {isActive && fItem.count > 0 && fItem.id !== "all" && (
+                    <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full">{fItem.count}</span>
+                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* Search + Footprint */}
-          <div className="flex items-center gap-1.5">
+          {/* Search + Footprint — floating action buttons */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCommandPalette(true)}
-              className="p-2 glass-panel rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all shadow-lg"
-              title="Search mesh (⌘K)"
+              className="p-2.5 rounded-xl bg-black/30 backdrop-blur-xl border border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200"
+              title="Search mesh (Cmd+K)"
             >
               <Search className="h-4 w-4" />
             </button>
             <button
               onClick={() => setShowFootprint(!showFootprint)}
-              className={"p-2 rounded-xl transition-all shadow-lg " + (
+              className={"p-2.5 rounded-xl backdrop-blur-xl border transition-all duration-200 " + (
                 showFootprint
-                  ? "brand-button text-white"
-                  : "glass-panel text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  ? "bg-indigo-500/30 border-indigo-400/30 text-indigo-300"
+                  : "bg-black/30 border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10"
               )}
               title="Digital Footprint"
             >
@@ -1486,39 +1493,39 @@ export default function MeshPage() {
         </div>
       </div>
 
-      {/* Zoom controls — stacked vertically, positioned above Meshi chat button */}
-      <div className="absolute bottom-16 sm:bottom-20 right-2 sm:right-4 z-10 flex flex-col gap-1">
-        <button onClick={() => handleZoom(0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
-        <button onClick={() => handleZoom(-0.3)} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
-        <button onClick={resetView} className="p-2 glass-surface rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
-        <div className="h-px bg-[var(--bg-tertiary)] my-0.5" />
-        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 glass-surface rounded-lg transition-all " + (showLabels ? "text-[var(--accent)]" : "text-[var(--text-muted)]")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
-        <button onClick={() => setShowStats(!showStats)} className={"p-2 glass-surface rounded-lg transition-all " + (showStats ? "text-[var(--accent)]" : "text-[var(--text-muted)]")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
+      {/* Zoom controls — refined floating stack with premium feel */}
+      <div className="absolute bottom-16 sm:bottom-20 right-2 sm:right-4 z-10 flex flex-col gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-1.5">
+        <button onClick={() => handleZoom(0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
+        <button onClick={() => handleZoom(-0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
+        <button onClick={resetView} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
+        <div className="h-px bg-white/[0.08] mx-1" />
+        <button onClick={() => setShowLabels(!showLabels)} className={"p-2 rounded-xl transition-all duration-200 " + (showLabels ? "text-indigo-400 bg-indigo-500/15" : "text-white/40 hover:text-white/70")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
+        <button onClick={() => setShowStats(!showStats)} className={"p-2 rounded-xl transition-all duration-200 " + (showStats ? "text-indigo-400 bg-indigo-500/15" : "text-white/40 hover:text-white/70")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
       </div>
 
 
-      {/* Stats bar — positioned above action bar to prevent overlap */}
+      {/* Stats bar — clean floating indicators */}
       <AnimatePresence>
           {showStats && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-14 sm:bottom-16 left-2 sm:left-4 z-10 flex gap-1 sm:gap-2 flex-wrap max-w-[calc(100vw-5rem)]"
+              className="absolute bottom-14 sm:bottom-16 left-2 sm:left-4 z-10 flex gap-1.5 flex-wrap max-w-[calc(100vw-5rem)]"
           >
             {[
-              { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-[var(--accent)]" },
-              { label: "communities", count: nodes.filter((n) => n.type === "community").length, color: "text-sky-400" },
+              { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-indigo-400" },
+              { label: "communities", count: nodes.filter((n) => n.type === "community").length, color: "text-pink-400" },
               { label: "interests", count: nodes.filter((n) => n.type === "tag").length, color: "text-cyan-400" },
               { label: "posts", count: nodes.filter((n) => n.type === "post").length, color: "text-emerald-400" },
               { label: "platforms", count: nodes.filter((n) => n.type === "platform").length, color: "text-amber-400" },
             ].filter((s) => s.count > 0).map((s) => (
-              <div key={s.label} className="glass-surface rounded-lg/60 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] shadow-lg">
-                <span className={"font-semibold " + s.color}>{s.count}</span> {s.label}
+              <div key={s.label} className="bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-xl px-2.5 py-1.5 text-[11px] text-white/50">
+                <span className={"font-bold " + s.color}>{s.count}</span> {s.label}
               </div>
             ))}
-            <div className="glass-surface rounded-lg/60 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)]">
-              {Math.round(zoom * 100)}% zoom
+            <div className="bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-xl px-2.5 py-1.5 text-[11px] text-white/40">
+              {Math.round(zoom * 100)}%
             </div>
           </motion.div>
         )}
@@ -1610,12 +1617,12 @@ export default function MeshPage() {
         )}
       </AnimatePresence>
 
-      {/* Hint — centered above bottom controls */}
+      {/* Hint — subtle centered pill */}
       {nodes.length > 0 && !selectedNode && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] glass-surface rounded-lg px-3 py-1.5 text-[10px] text-[var(--text-muted)] pointer-events-none hidden md:block">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/25 backdrop-blur-xl border border-white/[0.04] rounded-full px-4 py-1.5 text-[10px] text-white/35 pointer-events-none hidden md:block">
           {viewingUserMesh
-            ? "Double-click to explore deeper \u00b7 Click back button to return"
-            : "Click to inspect \u00b7 Double-click user to enter their mesh \u00b7 Scroll to zoom \u00b7 R reset \u00b7 L labels \u00b7 1-7 filters \u00b7 \u2318K search"
+            ? "Double-click to explore deeper \u00b7 Click back to return"
+            : "Click to inspect \u00b7 Double-click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
           }
         </div>
       )}
@@ -2169,25 +2176,27 @@ export default function MeshPage() {
 
       {/* Meshi chat is handled by the global MeshiFloat — no duplicate here */}
 
-      {/* Quick action bar (bottom left) */}
-      <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-1 sm:gap-2">
+      {/* Quick action bar (bottom left) — premium floating buttons */}
+      <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-2">
         <button
           onClick={() => setShowPostComposer(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all active:scale-95 shadow-lg brand-button hover:shadow-xl hover:shadow-blue-500/25"
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all duration-200 active:scale-95 shadow-lg bg-indigo-500 hover:bg-indigo-400 hover:shadow-indigo-500/30"
         >
           <Plus className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Create Post</span>
         </button>
         <button
           onClick={() => setShowNodePrivacy(!showNodePrivacy)}
-          className={"flex items-center gap-1.5 px-3 py-2 glass-surface rounded-xl text-[11px] font-medium transition-all active:scale-95 shadow-lg " + (
-            showNodePrivacy ? "text-[var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-200 active:scale-95 backdrop-blur-xl border " + (
+            showNodePrivacy
+              ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-300"
+              : "bg-black/30 border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10"
           )}
         >
           <Shield className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Privacy</span>
           {(hiddenNodes.size > 0 || hiddenBranches.size > 0) && (
-            <span className="text-[9px] px-1 rounded-full bg-amber-500/20 text-amber-400">{hiddenNodes.size + hiddenBranches.size}</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 font-bold">{hiddenNodes.size + hiddenBranches.size}</span>
           )}
         </button>
       </div>
