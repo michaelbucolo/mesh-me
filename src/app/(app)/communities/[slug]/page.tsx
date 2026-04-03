@@ -33,7 +33,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
         {community.bannerUrl && (
           <img src={community.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/90 via-[var(--bg-primary)]/30 to-transparent" />
         <Link href="/communities" className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-white bg-[var(--bg-primary)]/50 backdrop-blur-sm rounded-lg px-3 py-1.5 transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -43,7 +43,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
       {/* Community header */}
       <div className="px-6 -mt-10 relative">
         <div className="flex items-end justify-between mb-4">
-          <div className="h-20 w-20 rounded-2xl flex items-center justify-center ring-4 ring-zinc-950 text-white font-bold text-2xl shadow-xl" style={{ background: "var(--brand-gradient)" }}>
+          <div className="h-20 w-20 rounded-2xl flex items-center justify-center ring-4 ring-[var(--bg-primary)] text-white font-bold text-2xl shadow-xl" style={{ background: "var(--brand-gradient)" }}>
             {community.iconUrl ? (
               <img src={community.iconUrl} alt={community.name} className="w-full h-full rounded-2xl object-cover" />
             ) : (

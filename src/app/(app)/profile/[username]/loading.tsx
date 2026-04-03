@@ -5,7 +5,7 @@ export default function ProfileLoading() {
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
       <Skeleton className="h-48 w-full rounded-2xl" />
       <div className="flex items-end gap-4 -mt-12 px-4">
-        <Skeleton className="h-24 w-24 rounded-full border-4 border-zinc-950" />
+        <Skeleton className="h-24 w-24 rounded-full border-4 border-[var(--bg-primary)]" />
         <div className="space-y-2 flex-1">
           <Skeleton className="h-6 w-40" />
           <Skeleton className="h-4 w-24" />

@@ -56,7 +56,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         {profile.bannerUrl && (
           <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/80 to-transparent" />
       </div>
 
       {/* Profile header */}
@@ -66,7 +66,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             src={profile.avatarUrl}
             alt={profile.displayName}
             size="xl"
-            className="ring-4 ring-zinc-950"
+            className="ring-4 ring-[var(--bg-primary)]"
           />
           <div className="flex items-center gap-2 mb-2">
             {profile.isOwnProfile ? (
