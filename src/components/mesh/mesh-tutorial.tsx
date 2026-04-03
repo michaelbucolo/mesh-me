@@ -78,14 +78,12 @@ export function MeshTutorial() {
     if (step > 0) setStep(step - 1);
   };
 
-  if (!visible) return null;
-
   const current = TUTORIAL_STEPS[step];
   const isLast = step === TUTORIAL_STEPS.length - 1;
 
   return (
     <AnimatePresence>
-      <motion.div
+      {visible && <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -205,7 +203,7 @@ export function MeshTutorial() {
             </div>
           </div>
         </motion.div>
-      </motion.div>
+      </motion.div>}
     </AnimatePresence>
   );
 }

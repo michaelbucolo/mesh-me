@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, LucideIcon } from "lucide-react";
 
@@ -29,21 +29,22 @@ export function WelcomeBanner({
   accentColor,
   action,
 }: WelcomeBannerProps) {
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return true; // SSR: hide to avoid flash
-    return localStorage.getItem(`welcome-dismissed-${storageKey}`) === "true";
-  });
+  // Start dismissed (hidden) to match SSR, then check localStorage after mount
+  const [dismissed, setDismissed] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(`welcome-dismissed-${storageKey}`);
+    if (stored !== "true") setDismissed(false);
+  }, [storageKey]);
 
   const handleDismiss = () => {
     setDismissed(true);
     localStorage.setItem(`welcome-dismissed-${storageKey}`, "true");
   };
 
-  if (dismissed) return null;
-
   return (
     <AnimatePresence>
-      <motion.div
+      {!dismissed && <motion.div
         initial={{ opacity: 0, y: -10, height: 0 }}
         animate={{ opacity: 1, y: 0, height: "auto" }}
         exit={{ opacity: 0, y: -10, height: 0 }}
@@ -138,7 +139,7 @@ export function WelcomeBanner({
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.div>}
     </AnimatePresence>
   );
 }
