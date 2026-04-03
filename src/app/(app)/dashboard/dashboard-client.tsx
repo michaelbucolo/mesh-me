@@ -46,7 +46,7 @@ const statCards = [
 ] as const;
 
 const quickActions = [
-  { label: "Create Post", icon: FileText, href: "/feed", color: "var(--accent)" },
+  { label: "Create Post", icon: FileText, href: "/feed", color: "#2d7ff9" },
   { label: "View Mesh", icon: Waypoints, href: "/mesh", color: "#a855f7" },
   { label: "Content Hub", icon: Globe, href: "/content-hub", color: "#22c55e" },
   { label: "Platforms", icon: Link2, href: "/connected-accounts", color: "#f59e0b" },
