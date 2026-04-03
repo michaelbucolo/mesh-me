@@ -24,22 +24,22 @@ interface ConnectedAccount {
 }
 
 const PLATFORMS = [
-  { id: "instagram", name: "Instagram", color: "#E4405F", icon: "IG", description: "Share photos and stories", method: "oauth" as const },
-  { id: "youtube", name: "YouTube", color: "#FF0000", icon: "YT", description: "Videos and shorts", method: "oauth" as const },
-  { id: "tiktok", name: "TikTok", color: "#000000", icon: "TT", description: "Short-form video content", method: "oauth" as const },
-  { id: "twitter", name: "X / Twitter", color: "#1DA1F2", icon: "X", description: "Posts and conversations", method: "oauth" as const },
-  { id: "twitch", name: "Twitch", color: "#9146FF", icon: "TW", description: "Livestreaming", method: "oauth" as const },
-  { id: "spotify", name: "Spotify", color: "#1DB954", icon: "SP", description: "Music and podcasts", method: "oauth" as const },
-  { id: "soundcloud", name: "SoundCloud", color: "#FF5500", icon: "SC", description: "Music sharing", method: "manual" as const },
-  { id: "linkedin", name: "LinkedIn", color: "#0A66C2", icon: "IN", description: "Professional network", method: "oauth" as const },
-  { id: "github", name: "GitHub", color: "#333333", icon: "GH", description: "Code and projects", method: "oauth" as const },
-  { id: "discord", name: "Discord", color: "#5865F2", icon: "DC", description: "Communities and chat", method: "oauth" as const },
-  { id: "snapchat", name: "Snapchat", color: "#FFFC00", icon: "SN", description: "Snaps and stories", method: "oauth" as const },
-  { id: "pinterest", name: "Pinterest", color: "#BD081C", icon: "PN", description: "Visual discovery", method: "oauth" as const },
-  { id: "reddit", name: "Reddit", color: "#FF4500", icon: "RD", description: "Communities and forums", method: "oauth" as const },
-  { id: "facebook", name: "Facebook", color: "#1877F2", icon: "FB", description: "Social networking", method: "oauth" as const },
-  { id: "threads", name: "Threads", color: "#000000", icon: "TH", description: "Text-based conversations", method: "manual" as const },
-  { id: "bluesky", name: "Bluesky", color: "#0085FF", icon: "BS", description: "Decentralized social", method: "manual" as const },
+  { id: "github", name: "GitHub", color: "#333333", icon: "GH", description: "Code and projects", method: "oauth" as const, comingSoon: false },
+  { id: "discord", name: "Discord", color: "#5865F2", icon: "DC", description: "Communities and chat", method: "oauth" as const, comingSoon: false },
+  { id: "spotify", name: "Spotify", color: "#1DB954", icon: "SP", description: "Music and podcasts", method: "oauth" as const, comingSoon: false },
+  { id: "youtube", name: "YouTube", color: "#FF0000", icon: "YT", description: "Videos and shorts", method: "oauth" as const, comingSoon: false },
+  { id: "twitter", name: "X / Twitter", color: "#1DA1F2", icon: "X", description: "Posts and conversations", method: "oauth" as const, comingSoon: false },
+  { id: "tiktok", name: "TikTok", color: "#000000", icon: "TT", description: "Short-form video content", method: "oauth" as const, comingSoon: false },
+  { id: "twitch", name: "Twitch", color: "#9146FF", icon: "TW", description: "Livestreaming", method: "oauth" as const, comingSoon: false },
+  { id: "soundcloud", name: "SoundCloud", color: "#FF5500", icon: "SC", description: "Music sharing", method: "manual" as const, comingSoon: false },
+  { id: "threads", name: "Threads", color: "#000000", icon: "TH", description: "Text-based conversations", method: "manual" as const, comingSoon: false },
+  { id: "bluesky", name: "Bluesky", color: "#0085FF", icon: "BS", description: "Decentralized social", method: "manual" as const, comingSoon: false },
+  { id: "instagram", name: "Instagram", color: "#E4405F", icon: "IG", description: "Share photos and stories", method: "oauth" as const, comingSoon: true },
+  { id: "linkedin", name: "LinkedIn", color: "#0A66C2", icon: "IN", description: "Professional network", method: "oauth" as const, comingSoon: true },
+  { id: "reddit", name: "Reddit", color: "#FF4500", icon: "RD", description: "Communities and forums", method: "oauth" as const, comingSoon: true },
+  { id: "facebook", name: "Facebook", color: "#1877F2", icon: "FB", description: "Social networking", method: "oauth" as const, comingSoon: true },
+  { id: "pinterest", name: "Pinterest", color: "#BD081C", icon: "PN", description: "Visual discovery", method: "oauth" as const, comingSoon: true },
+  { id: "snapchat", name: "Snapchat", color: "#FFFC00", icon: "SN", description: "Snaps and stories", method: "oauth" as const, comingSoon: true },
 ];
 
 function ConnectedAccountsContent() {
@@ -260,7 +260,9 @@ function ConnectedAccountsContent() {
               className={`flex flex-col rounded-xl border transition-all ${
                 connected
                   ? "glass-card"
-                  : "glass-surface hover:border-[var(--glass-border)]"
+                  : platform.comingSoon
+                    ? "glass-surface opacity-60"
+                    : "glass-surface hover:border-[var(--glass-border)]"
               }`}
             >
               <div className="flex items-center gap-4 p-4">
@@ -278,7 +280,12 @@ function ConnectedAccountsContent() {
                         Connected
                       </Badge>
                     )}
-                    {platform.method === "oauth" && !connected && (
+                    {platform.comingSoon && !connected && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                        Coming Soon
+                      </Badge>
+                    )}
+                    {platform.method === "oauth" && !connected && !platform.comingSoon && (
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                         OAuth
                       </Badge>
@@ -303,6 +310,10 @@ function ConnectedAccountsContent() {
                         Disconnect
                       </button>
                     </>
+                  ) : platform.comingSoon ? (
+                    <span className="px-4 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] bg-[var(--bg-tertiary)] cursor-default select-none">
+                      Coming Soon
+                    </span>
                   ) : (
                     <button
                       onClick={() => handleConnect(platform.id)}
