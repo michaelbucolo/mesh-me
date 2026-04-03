@@ -37,6 +37,7 @@ export function Tooltip({
 
   const show = () => {
     if (dismissed) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => setVisible(true), delay);
   };
 

@@ -39,11 +39,11 @@ const navItems = [
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const pathname = usePathname();
-  const [showGettingStarted, setShowGettingStarted] = useState(false);
+  const [showGettingStarted, setShowGettingStarted] = useState<boolean | null>(null);
 
   useEffect(() => {
     const dismissed = localStorage.getItem("sidebar-getting-started-dismissed");
-    if (!dismissed) setShowGettingStarted(true);
+    setShowGettingStarted(!dismissed);
   }, []);
 
   const dismissGettingStarted = () => {
@@ -134,7 +134,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         )}
 
         {/* Meshi hint (shows after getting started is dismissed) */}
-        {!showGettingStarted && (
+        {showGettingStarted === false && (
           <div className="mt-8 mx-3 p-3 rounded-xl" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-primary)" }}>
             <p className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
               Need something?
