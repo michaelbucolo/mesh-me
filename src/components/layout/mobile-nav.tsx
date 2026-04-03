@@ -3,20 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Waypoints, MessageCircle, Bell, User } from "lucide-react";
+import { Waypoints, MessageCircle, Bell, User, Home, Search } from "lucide-react";
 
 interface MobileNavProps {
   unreadNotifications?: number;
   username?: string;
+  onOpenMeshi?: () => void;
 }
 
-// 4 core tabs matching sidebar — Meshi handles everything else
-export function MobileNav({ unreadNotifications = 0, username }: MobileNavProps) {
+export function MobileNav({ unreadNotifications = 0, username, onOpenMeshi }: MobileNavProps) {
   const pathname = usePathname();
 
   const items = [
-    { href: "/mesh", icon: Waypoints, label: "Mesh" },
+    { href: "/dashboard", icon: Home, label: "Home" },
     { href: "/feed", icon: MessageCircle, label: "Feed" },
+    { href: "meshi", icon: Search, label: "Meshi", isMeshi: true },
     { href: "/notifications", icon: Bell, label: "Alerts", badge: unreadNotifications },
     { href: username ? `/profile/${username}` : "/profile", icon: User, label: "Profile" },
   ];
@@ -25,6 +26,21 @@ export function MobileNav({ unreadNotifications = 0, username }: MobileNavProps)
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-panel safe-area-bottom" style={{ borderTop: "1px solid var(--glass-border)", borderLeft: "none", borderRight: "none", borderBottom: "none" }}>
       <div className="flex items-center justify-around px-4 py-1.5">
         {items.map((item) => {
+          if ("isMeshi" in item && item.isMeshi) {
+            return (
+              <button
+                key="meshi"
+                onClick={onOpenMeshi}
+                className="flex flex-col items-center justify-center p-2 min-w-[56px] relative transition-all duration-200 active:scale-90"
+              >
+                <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ background: "var(--accent-muted)" }}>
+                  <item.icon className="h-4 w-4" style={{ color: "var(--accent)" }} />
+                </div>
+                <span className="text-[9px] mt-0.5 font-medium" style={{ color: "var(--accent)" }}>{item.label}</span>
+              </button>
+            );
+          }
+
           const isActive = item.href === "/feed"
             ? pathname === "/feed" || pathname.startsWith("/feed")
             : item.label === "Profile"
