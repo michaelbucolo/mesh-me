@@ -186,7 +186,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     size="md"
                   />
                   <div
-                    className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-zinc-950 flex items-center justify-center"
+                    className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-[var(--bg-primary)] flex items-center justify-center"
                     style={{ backgroundColor: platformInfo.color }}
                   >
                     <MessageCircle className="h-2.5 w-2.5 text-white" />
