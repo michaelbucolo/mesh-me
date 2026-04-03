@@ -390,7 +390,7 @@ function ConnectedAccountsContent() {
                     <>
                       <button
                         onClick={() => account && handleSyncPlatform(account.id)}
-                        disabled={syncing === account?.id}
+                        disabled={syncing === account?.id || syncingAll}
                         className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-subtle)] transition-colors disabled:opacity-50"
                         title="Sync platform data"
                       >

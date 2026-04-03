@@ -54,6 +54,9 @@ export async function POST(req: NextRequest) {
     const result = await syncComments(connectedAccountId, platformPostId);
     return NextResponse.json(result);
   }
+  if (syncType === "comments") {
+    return NextResponse.json({ error: "platformPostId is required for comment sync" }, { status: 400 });
+  }
 
   const result = await syncPlatform(connectedAccountId, syncType || "full");
   return NextResponse.json(result);
