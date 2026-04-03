@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface TooltipProps {
@@ -25,13 +25,14 @@ export function Tooltip({
   storageKey,
 }: TooltipProps) {
   const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
     if (showOnce && storageKey) {
-      return localStorage.getItem(`tooltip-${storageKey}`) === "true";
+      const seen = localStorage.getItem(`tooltip-${storageKey}`);
+      if (seen === "true") setDismissed(true);
     }
-    return false;
-  });
+  }, [showOnce, storageKey]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = () => {
@@ -62,10 +63,8 @@ export function Tooltip({
     right: { initial: { opacity: 0, x: -4 }, animate: { opacity: 1, x: 0 } },
   };
 
-  if (dismissed) return <>{children}</>;
-
   return (
-    <div className="relative inline-flex" onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
+    <div className="relative inline-flex" onMouseEnter={dismissed ? undefined : show} onMouseLeave={dismissed ? undefined : hide} onFocus={dismissed ? undefined : show} onBlur={dismissed ? undefined : hide}>
       {children}
       <AnimatePresence>
         {visible && (
