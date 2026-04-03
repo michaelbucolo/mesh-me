@@ -459,11 +459,11 @@ export default function ContentHubPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleSyncAll}
-            disabled={syncing !== null}
+            disabled={syncing !== null || syncingAll}
             className="px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all text-white brand-button disabled:opacity-50"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
-            Sync All
+            <RefreshCw className={`h-3.5 w-3.5 ${syncingAll || syncing ? "animate-spin" : ""}`} />
+            {syncingAll ? "Syncing..." : "Sync All"}
           </button>
         </div>
       </div>
@@ -529,7 +529,7 @@ export default function ContentHubPage() {
           {activeTab === "posts" && (
             <PostsTab
               posts={filteredPosts}
-              totalPosts={totalPosts}
+              totalPosts={searchQuery ? filteredPosts.length : totalPosts}
               page={page}
               filterPlatform={filterPlatform}
               filterPostType={filterPostType}
@@ -576,6 +576,7 @@ export default function ContentHubPage() {
               accounts={accounts}
               syncJobs={syncJobs}
               syncing={syncing}
+              syncingAll={syncingAll}
               onSync={handleSync}
               onSyncAll={handleSyncAll}
               onRefresh={loadSyncData}
@@ -811,7 +812,7 @@ function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, sea
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalPages > 1 && !searchQuery && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-xs text-[var(--text-muted)]">
             Showing {(page - 1) * 20 + 1}-{Math.min(page * 20, totalPosts)} of {totalPosts}
@@ -1152,10 +1153,11 @@ function CrossPostTab({ accounts, content, selectedPlatforms, posting, onContent
 
 // ─── Sync Tab ───────────────────────────────────────────────
 
-function SyncTab({ accounts, syncJobs, syncing, onSync, onSyncAll, onRefresh }: {
+function SyncTab({ accounts, syncJobs, syncing, syncingAll, onSync, onSyncAll, onRefresh }: {
   accounts: PlatformAccount[];
   syncJobs: SyncJob[];
   syncing: string | null;
+  syncingAll: boolean;
   onSync: (id: string, type?: string) => void;
   onSyncAll: () => void;
   onRefresh: () => void;
@@ -1169,7 +1171,7 @@ function SyncTab({ accounts, syncJobs, syncing, onSync, onSyncAll, onRefresh }: 
           <button onClick={onRefresh} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
             <RefreshCw className="h-4 w-4" />
           </button>
-          <button onClick={onSyncAll} disabled={syncing !== null} className="px-4 py-2 rounded-xl text-xs font-semibold text-white brand-button disabled:opacity-50 flex items-center gap-2">
+          <button onClick={onSyncAll} disabled={syncing !== null || syncingAll} className="px-4 py-2 rounded-xl text-xs font-semibold text-white brand-button disabled:opacity-50 flex items-center gap-2">
             <Zap className="h-3.5 w-3.5" />
             Sync All Platforms
           </button>
