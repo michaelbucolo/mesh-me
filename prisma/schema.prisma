@@ -338,14 +338,238 @@ model ConnectedAccount {
   accessToken  String?
   refreshToken String?
   expiresAt    DateTime?
+  // OAuth scopes granted by the platform
+  scopes       String?
   isActive     Boolean  @default(true)
+  // Last successful sync timestamp
+  lastSyncAt   DateTime?
+  // Sync status: "idle" | "syncing" | "error" | "rate_limited"
+  syncStatus   String   @default("idle")
+  syncError    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platformPosts PlatformPost[]
+  platformComments PlatformComment[]
+  platformMedia PlatformMedia[]
+  platformFollowers PlatformFollower[]
+  syncJobs     SyncJob[]
+  platformAnalytics PlatformAnalytics[]
 
   @@unique([userId, platform])
   @@index([platform])
+}
+
+// ─── Cross-Platform Content Sync ────────────────────────────
+
+model PlatformPost {
+  id                String   @id @default(cuid())
+  connectedAccountId String
+  // Original post ID on the platform
+  platformPostId    String
+  // Post content / caption / description
+  content           String?
+  // Post title (YouTube videos, Reddit posts, etc.)
+  title             String?
+  // Direct URL to the post on the platform
+  url               String?
+  // Post type: "text" | "image" | "video" | "story" | "reel" | "short" | "tweet" | "thread" | "article" | "pin" | "snap"
+  postType          String   @default("text")
+  // Engagement metrics
+  likeCount         Int      @default(0)
+  commentCount      Int      @default(0)
+  shareCount        Int      @default(0)
+  viewCount         Int      @default(0)
+  // Video-specific metrics
+  watchTimeSeconds  Int?
+  // Post visibility: "public" | "private" | "unlisted" | "friends"
+  visibility        String   @default("public")
+  // Whether this post was created from mesh.me (cross-posted)
+  isFromMesh        Boolean  @default(false)
+  // Whether we've imported comments for this post
+  commentsImported  Boolean  @default(false)
+  // Original publish timestamp from the platform
+  publishedAt       DateTime?
+  // Thumbnail / preview image URL
+  thumbnailUrl      String?
+  // Raw JSON metadata from platform API
+  rawMetadata       String?
+  // Is this post pinned on the platform?
+  isPinned          Boolean  @default(false)
+  // Is this a scheduled post?
+  isScheduled       Boolean  @default(false)
+  scheduledFor      DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  comments          PlatformComment[]
+  media             PlatformMedia[]
+
+  @@unique([connectedAccountId, platformPostId])
+  @@index([connectedAccountId])
+  @@index([publishedAt])
+  @@index([postType])
+}
+
+model PlatformComment {
+  id                String   @id @default(cuid())
+  connectedAccountId String
+  platformPostId    String?
+  platformCommentId String
+  // The post this comment belongs to (if synced)
+  postId            String?
+  // Comment text
+  content           String
+  // Author info from the platform
+  authorName        String?
+  authorUsername    String?
+  authorAvatarUrl  String?
+  // Is this the connected user's own comment?
+  isOwnComment      Boolean  @default(false)
+  // Engagement
+  likeCount         Int      @default(0)
+  replyCount        Int      @default(0)
+  // Parent comment ID (for threaded comments)
+  parentCommentId   String?
+  // Direct URL to the comment
+  url               String?
+  // Sentiment: "positive" | "negative" | "neutral" | "question"
+  sentiment         String?
+
+  publishedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  post              PlatformPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([connectedAccountId, platformCommentId])
+  @@index([connectedAccountId])
+  @@index([postId])
+}
+
+model PlatformMedia {
+  id                String   @id @default(cuid())
+  connectedAccountId String
+  platformMediaId   String?
+  // Associated platform post
+  postId            String?
+  // Media type: "image" | "video" | "audio" | "gif" | "document"
+  mediaType         String   @default("image")
+  // URL to the media file
+  url               String
+  // Thumbnail URL
+  thumbnailUrl      String?
+  // Alt text / description
+  altText           String?
+  // Media dimensions
+  width             Int?
+  height            Int?
+  // Duration in seconds (for video/audio)
+  durationSeconds   Int?
+  // File size in bytes
+  fileSizeBytes     Int?
+  // MIME type
+  mimeType          String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  post              PlatformPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([connectedAccountId])
+  @@index([postId])
+}
+
+model PlatformFollower {
+  id                String   @id @default(cuid())
+  connectedAccountId String
+  // Platform user ID
+  platformUserId    String
+  // Username on the platform
+  username          String?
+  // Display name
+  displayName       String?
+  // Profile picture URL
+  avatarUrl         String?
+  // Follower count on that platform
+  followerCount     Int?
+  // Is this a mutual follow?
+  isMutual          Boolean  @default(false)
+  // Type: "follower" | "following" | "subscriber" | "friend"
+  relationshipType  String   @default("follower")
+  // Profile URL
+  profileUrl        String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([connectedAccountId, platformUserId])
+  @@index([connectedAccountId])
+}
+
+model PlatformAnalytics {
+  id                String   @id @default(cuid())
+  connectedAccountId String
+  // Date for this analytics snapshot
+  date              DateTime
+  // Follower/subscriber count at this point
+  followerCount     Int      @default(0)
+  followingCount    Int      @default(0)
+  // Engagement metrics for the day
+  postCount         Int      @default(0)
+  totalLikes        Int      @default(0)
+  totalComments     Int      @default(0)
+  totalViews        Int      @default(0)
+  totalShares       Int      @default(0)
+  // Growth metrics
+  newFollowers      Int      @default(0)
+  lostFollowers     Int      @default(0)
+  // Engagement rate (percentage * 100 for precision)
+  engagementRate    Int?
+  // Top-performing post ID for the day
+  topPostId         String?
+  // Raw JSON for platform-specific analytics
+  rawData           String?
+
+  createdAt         DateTime @default(now())
+
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([connectedAccountId, date])
+  @@index([connectedAccountId])
+  @@index([date])
+}
+
+model SyncJob {
+  id                String   @id @default(cuid())
+  connectedAccountId String
+  // Sync type: "full" | "incremental" | "posts" | "comments" | "followers" | "analytics" | "media"
+  syncType          String   @default("full")
+  // Status: "pending" | "running" | "completed" | "failed" | "cancelled"
+  status            String   @default("pending")
+  // Progress (0-100)
+  progress          Int      @default(0)
+  // Items synced / total
+  itemsSynced       Int      @default(0)
+  totalItems        Int?
+  // Error message if failed
+  error             String?
+  // Timing
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime @default(now())
+
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  @@index([connectedAccountId])
+  @@index([status])
 }
 
 model FeedPreference {
