@@ -45,8 +45,9 @@ export async function GET(
   });
 
   // Build authorization URL
+  const clientIdParamName = config.clientIdParam || "client_id";
   const authParams = new URLSearchParams({
-    client_id: clientId,
+    [clientIdParamName]: clientId,
     redirect_uri: getCallbackUrl(platform),
     response_type: "code",
     state,
