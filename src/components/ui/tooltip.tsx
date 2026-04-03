@@ -42,11 +42,11 @@ export function Tooltip({
 
   const hide = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setVisible(false);
-    if (showOnce && storageKey) {
+    if (showOnce && storageKey && visible) {
       setDismissed(true);
       localStorage.setItem(`tooltip-${storageKey}`, "true");
     }
+    setVisible(false);
   };
 
   const positionClasses: Record<string, string> = {
