@@ -13,6 +13,7 @@ export interface OAuthConfig {
   // How to extract username from profile response
   usernameField: string;
   // Some platforms use different param names
+  clientIdParam?: string; // defaults to "client_id", TikTok uses "client_key"
   scopeDelimiter?: string;
   // Extra auth params
   extraAuthParams?: Record<string, string>;
@@ -158,6 +159,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     scopes: ["user.info.basic"],
     clientIdEnv: "TIKTOK_CLIENT_KEY",
     clientSecretEnv: "TIKTOK_CLIENT_SECRET",
+    clientIdParam: "client_key",
     usernameField: "username",
     profileDataPath: "data.user",
     scopeDelimiter: ",",

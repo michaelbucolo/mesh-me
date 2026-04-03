@@ -68,11 +68,12 @@ export async function GET(
 
   try {
     // Exchange authorization code for access token
+    const clientIdParamName = config.clientIdParam || "client_id";
     const tokenParams: Record<string, string> = {
       grant_type: "authorization_code",
       code,
       redirect_uri: getCallbackUrl(platform),
-      client_id: clientId,
+      [clientIdParamName]: clientId,
       client_secret: clientSecret,
     };
 
