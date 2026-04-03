@@ -115,6 +115,7 @@ function ConnectedAccountsContent() {
   const [showImportDialog, setShowImportDialog] = useState<string | null>(null);
   const [importOptions, setImportOptions] = useState({ posts: true, likes: true, comments: true, followers: false });
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
 
   const handleSyncPlatform = async (accountId: string) => {
     setSyncing(accountId);
@@ -139,9 +140,11 @@ function ConnectedAccountsContent() {
   };
 
   const handleSyncAll = async () => {
+    setSyncingAll(true);
     for (const account of accounts) {
       await handleSyncPlatform(account.id);
     }
+    setSyncingAll(false);
   };
 
   const handleConnect = (platformId: string) => {
@@ -298,11 +301,11 @@ function ConnectedAccountsContent() {
         {accounts.length > 0 && (
           <button
             onClick={handleSyncAll}
-            disabled={syncing !== null}
+            disabled={syncing !== null || syncingAll}
             className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-3 w-3 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing..." : "Sync all"}
+            <RefreshCw className={`h-3 w-3 ${syncingAll ? "animate-spin" : ""}`} />
+            {syncingAll ? "Syncing..." : "Sync all"}
           </button>
         )}
       </div>

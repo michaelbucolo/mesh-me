@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -175,6 +175,8 @@ export default function ContentHubPage() {
   const [crossPostPlatforms, setCrossPostPlatforms] = useState<string[]>([]);
   const [crossPosting, setCrossPosting] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const initialLoadDone = useRef(false);
 
   // Load sync status and accounts
   const loadSyncData = useCallback(async () => {
@@ -236,15 +238,23 @@ export default function ContentHubPage() {
     }
   }, [page, filterPlatform]);
 
-  // Initial load
+  // Initial load (only shows full-page spinner once)
   useEffect(() => {
+    if (initialLoadDone.current) return;
     async function init() {
       setLoading(true);
       await Promise.all([loadSyncData(), loadPosts(), loadAnalytics()]);
       setLoading(false);
+      initialLoadDone.current = true;
     }
     init();
-  }, [loadSyncData, loadPosts, loadAnalytics]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reload posts when filters/pagination change (after initial load)
+  useEffect(() => {
+    if (initialLoadDone.current) loadPosts();
+  }, [page, filterPlatform, filterPostType, loadPosts]);
 
   // Load tab-specific data when tab changes
   useEffect(() => {
@@ -289,9 +299,11 @@ export default function ContentHubPage() {
 
   // Sync all
   const handleSyncAll = async () => {
+    setSyncingAll(true);
     for (const account of accounts) {
       await handleSync(account.id);
     }
+    setSyncingAll(false);
   };
 
   // Delete post
