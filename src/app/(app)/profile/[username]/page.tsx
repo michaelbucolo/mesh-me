@@ -50,7 +50,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   });
 
   return (
-    <div className="max-w-2xl mx-auto animate-page-enter">
+    <div data-meshi-zone="profile" className="max-w-2xl mx-auto animate-page-enter">
       {/* Banner */}
       <div className="h-48 relative" style={{ background: "linear-gradient(135deg, rgba(45,127,249,0.3) 0%, rgba(0,198,251,0.3) 100%)" }}>
         {profile.bannerUrl && (

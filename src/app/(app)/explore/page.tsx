@@ -18,7 +18,7 @@ export default async function ExplorePage() {
   ]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">
+    <div data-meshi-zone="explore" className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Explore</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">Find your people, communities, and corners of the mesh</p>

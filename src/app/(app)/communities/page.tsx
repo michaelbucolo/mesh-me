@@ -12,7 +12,7 @@ export default async function CommunitiesPage() {
   const communities = await getCommunities();
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 animate-page-enter">
+    <div data-meshi-zone="communities" className="max-w-4xl mx-auto px-4 py-6 animate-page-enter">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Communities</h1>
