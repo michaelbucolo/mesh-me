@@ -10,6 +10,7 @@ import {
   LogOut,
   Waypoints,
   Shield,
+  Globe,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -28,10 +29,11 @@ interface SidebarProps {
 
 // 4 core tabs — everything else lives in Meshi command center
 const navItems = [
-  { href: "/mesh", icon: Waypoints, label: "The Mesh", gradient: "from-blue-500 to-cyan-400" },
-  { href: "/feed", icon: MessageCircle, label: "Feed", gradient: "from-emerald-500 to-teal-400" },
-  { href: "/notifications", icon: Bell, label: "Notifications", gradient: "from-amber-500 to-orange-400" },
-  { href: "/profile", icon: User, label: "Profile", gradient: "from-violet-500 to-purple-400" },
+  { href: "/mesh", icon: Waypoints, label: "The Mesh" },
+  { href: "/content-hub", icon: Globe, label: "Content Hub" },
+  { href: "/feed", icon: MessageCircle, label: "Feed" },
+  { href: "/notifications", icon: Bell, label: "Notifications" },
+  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
@@ -55,9 +57,9 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         </p>
       </div>
 
-      {/* Primary Navigation — clean, minimal */}
+      {/* Primary Navigation */}
       <nav className="flex-1 px-3 mt-2">
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {navItems.map((item) => {
             const actualHref = item.href === "/profile" ? `/profile/${user.username}` : item.href;
             const isActive = item.href === "/profile"
@@ -68,16 +70,17 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
                 key={item.href}
                 href={actualHref}
                 className={cn(
-                  "group flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-300",
+                  "group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-gradient-to-r " + item.gradient + " text-white shadow-lg shadow-blue-500/20"
-                    : "hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    ? "nav-active text-[var(--text-primary)]"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                 )}
+                style={isActive ? { background: "var(--accent-muted)" } : undefined}
               >
-                <item.icon className={cn("h-5 w-5 transition-transform duration-200", isActive ? "scale-110" : "group-hover:scale-105")} />
+                <item.icon className={cn("h-[18px] w-[18px] transition-all duration-200", isActive && "text-[var(--accent)]")} />
                 <span>{item.label}</span>
                 {item.href === "/notifications" && unreadNotifications > 0 && (
-                  <span className="ml-auto text-white text-[10px] font-bold rounded-full h-5 min-w-5 flex items-center justify-center px-1" style={{ background: isActive ? "rgba(255,255,255,0.3)" : "#ef4444" }}>
+                  <span className="ml-auto notif-dot text-white text-[10px] font-bold rounded-full h-5 min-w-5 flex items-center justify-center px-1" style={{ background: "var(--error)" }}>
                     {unreadNotifications > 99 ? "99+" : unreadNotifications}
                   </span>
                 )}
@@ -87,7 +90,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         </div>
 
         {/* Meshi hint */}
-        <div className="mt-8 mx-3 p-3 rounded-xl" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-primary)" }}>
+        <div className="mt-8 mx-3 p-3 rounded-xl glass-surface">
           <p className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
             Need something?
           </p>
@@ -115,7 +118,7 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
         )}
       </nav>
 
-      {/* User section — minimal */}
+      {/* User section */}
       <div className="p-3" style={{ borderTop: "1px solid var(--border-primary)" }}>
         <div className="flex items-center gap-3 px-2 py-2">
           <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />

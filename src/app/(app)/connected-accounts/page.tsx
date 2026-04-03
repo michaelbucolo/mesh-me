@@ -13,6 +13,10 @@ import {
   Check,
   AlertCircle,
   X,
+  Globe,
+  ArrowUpRight,
+  Loader2,
+  Clock,
 } from "lucide-react";
 
 interface ConnectedAccount {
@@ -21,6 +25,15 @@ interface ConnectedAccount {
   platformUsername: string | null;
   isActive: boolean;
   createdAt: string;
+  syncStatus?: string;
+  syncError?: string | null;
+  lastSyncAt?: string | null;
+  _count?: {
+    platformPosts: number;
+    platformComments: number;
+    platformFollowers: number;
+    platformMedia: number;
+  };
 }
 
 const PLATFORMS = [
@@ -101,6 +114,35 @@ function ConnectedAccountsContent() {
 
   const [showImportDialog, setShowImportDialog] = useState<string | null>(null);
   const [importOptions, setImportOptions] = useState({ posts: true, likes: true, comments: true, followers: false });
+  const [syncing, setSyncing] = useState<string | null>(null);
+
+  const handleSyncPlatform = async (accountId: string) => {
+    setSyncing(accountId);
+    try {
+      const res = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ connectedAccountId: accountId, syncType: "full" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotification({ type: "success", message: `Synced ${data.itemsSynced || 0} items successfully` });
+        await loadAccounts();
+      } else {
+        setNotification({ type: "error", message: data.error || "Sync failed" });
+      }
+    } catch {
+      setNotification({ type: "error", message: "Sync failed. Please try again." });
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const handleSyncAll = async () => {
+    for (const account of accounts) {
+      await handleSyncPlatform(account.id);
+    }
+  };
 
   const handleConnect = (platformId: string) => {
     const platform = PLATFORMS.find((p) => p.id === platformId);
@@ -232,14 +274,35 @@ function ConnectedAccountsContent() {
         </div>
       </div>
 
+      {/* Content Hub Link */}
+      {accounts.length > 0 && (
+        <a
+          href="/content-hub"
+          className="mb-4 rounded-xl p-4 flex items-center gap-3 glass-card hover-lift transition-all block"
+        >
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
+            <Globe className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Content Hub</h3>
+            <p className="text-xs text-[var(--text-muted)]">Manage all your content, analytics, and audience from one place</p>
+          </div>
+          <ArrowUpRight className="h-4 w-4 text-[var(--text-muted)]" />
+        </a>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-[var(--text-tertiary)]">
           <span className="text-[var(--text-primary)] font-semibold">{accounts.filter(a => !PLATFORMS.find(p => p.id === a.platform)?.comingSoon).length}</span> of {PLATFORMS.filter(p => !p.comingSoon).length} platforms connected
         </p>
         {accounts.length > 0 && (
-          <button className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] flex items-center gap-1 transition-colors">
-            <RefreshCw className="h-3 w-3" />
-            Sync all
+          <button
+            onClick={handleSyncAll}
+            disabled={syncing !== null}
+            className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] flex items-center gap-1.5 font-medium transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3 w-3 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync all"}
           </button>
         )}
       </div>
@@ -296,10 +359,44 @@ function ConnectedAccountsContent() {
                       ? `@${account.platformUsername}`
                       : platform.description}
                   </p>
+                  {connected && account?._count && (account._count.platformPosts > 0 || account._count.platformFollowers > 0) && (
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-[var(--text-muted)]">
+                        {account._count.platformPosts} posts
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)]">
+                        {account._count.platformFollowers} followers
+                      </span>
+                      {account.lastSyncAt && (
+                        <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-0.5">
+                          <Clock className="h-2.5 w-2.5" />
+                          {new Date(account.lastSyncAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {connected && account?.syncStatus === "error" && account?.syncError && (
+                    <p className="text-[10px] text-red-400 mt-0.5 flex items-center gap-0.5">
+                      <AlertCircle className="h-2.5 w-2.5" />
+                      {account.syncError}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {connected ? (
                     <>
+                      <button
+                        onClick={() => account && handleSyncPlatform(account.id)}
+                        disabled={syncing === account?.id}
+                        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-subtle)] transition-colors disabled:opacity-50"
+                        title="Sync platform data"
+                      >
+                        {syncing === account?.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--accent)" }} />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                      </button>
                       <button className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
                         <Settings2 className="h-4 w-4" />
                       </button>
