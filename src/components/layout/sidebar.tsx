@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,8 @@ import {
   Waypoints,
   Shield,
   Globe,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -38,6 +41,17 @@ const navItems = [
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const pathname = usePathname();
+  const [showGettingStarted, setShowGettingStarted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("sidebar-getting-started-dismissed");
+    setShowGettingStarted(!dismissed);
+  }, []);
+
+  const dismissGettingStarted = () => {
+    setShowGettingStarted(false);
+    localStorage.setItem("sidebar-getting-started-dismissed", "true");
+  };
 
   return (
     <aside data-meshi-zone="sidebar" className="hidden lg:flex flex-col w-60 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
@@ -89,15 +103,50 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           })}
         </div>
 
-        {/* Meshi hint */}
-        <div className="mt-8 mx-3 p-3 rounded-xl glass-surface">
-          <p className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
-            Need something?
-          </p>
-          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-            Click Meshi (bottom right) for search, settings, communities, and more.
-          </p>
-        </div>
+        {/* Getting started guide for new users */}
+        {showGettingStarted && (
+          <div className="mt-6 mx-3 p-3.5 rounded-xl" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
+              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                Getting started
+              </p>
+            </div>
+            <ul className="space-y-1.5 mb-2.5">
+              <li className="text-[10px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                <span className="mt-0.5">1.</span>
+                <span>Explore <strong>The Mesh</strong> to see your digital universe</span>
+              </li>
+              <li className="text-[10px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                <span className="mt-0.5">2.</span>
+                <span>Create your first post in the <strong>Feed</strong></span>
+              </li>
+              <li className="text-[10px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                <span className="mt-0.5">3.</span>
+                <span>Click <strong>Meshi</strong> (bottom right) to search, navigate, and chat</span>
+              </li>
+            </ul>
+            <button
+              onClick={dismissGettingStarted}
+              className="text-[10px] font-medium transition-colors"
+              style={{ color: "var(--accent)" }}
+            >
+              Got it, dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Meshi hint (shows after getting started is dismissed) */}
+        {showGettingStarted === false && (
+          <div className="mt-8 mx-3 p-3 rounded-xl glass-surface">
+            <p className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+              Need something?
+            </p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+              Click Meshi (bottom right) for search, settings, communities, and more.
+            </p>
+          </div>
+        )}
 
         {/* Admin link (only for admins) */}
         {user.isAdmin && (

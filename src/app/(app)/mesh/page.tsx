@@ -44,6 +44,7 @@ import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
 import { MeshiMascot, MeshiLogo, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
+import { MeshTutorial } from "@/components/mesh/mesh-tutorial";
 
 // --- Types ---
 
@@ -1438,6 +1439,9 @@ export default function MeshPage() {
 
   return (
     <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
+      {/* First-time tutorial overlay */}
+      <MeshTutorial />
+
       {/* Keyboard shortcut handled in useEffect below */}
 
       {/* Top bar — clean, floating pill design inspired by Instagram Stories bar */}
