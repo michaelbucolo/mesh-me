@@ -253,8 +253,8 @@ export default function ContentHubPage() {
 
   // Reload posts when filters/pagination change (after initial load)
   useEffect(() => {
-    if (initialLoadDone.current) loadPosts();
-  }, [page, filterPlatform, filterPostType, loadPosts]);
+    if (initialLoadDone.current && activeTab === "posts") loadPosts();
+  }, [page, filterPlatform, filterPostType, loadPosts, activeTab]);
 
   // Load tab-specific data when tab changes
   useEffect(() => {
