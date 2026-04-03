@@ -17,6 +17,17 @@ export async function GET() {
       platformUsername: true,
       isActive: true,
       createdAt: true,
+      syncStatus: true,
+      syncError: true,
+      lastSyncAt: true,
+      _count: {
+        select: {
+          platformPosts: true,
+          platformComments: true,
+          platformFollowers: true,
+          platformMedia: true,
+        },
+      },
     },
   });
 
