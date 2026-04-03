@@ -90,6 +90,7 @@ export function MeshiFloat() {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
+  const [isFirstTimeMeshi, setIsFirstTimeMeshi] = useState(false);
 
   const [speechBubbles, setSpeechBubbles] = useState<Array<{
     id: string; text: string; role: "user" | "meshi"; timestamp: number;
@@ -105,6 +106,9 @@ export function MeshiFloat() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("meshiEnabled");
       if (stored === "false") setMeshiEnabled(false);
+      // Check if user has ever interacted with Meshi
+      const hasInteracted = localStorage.getItem("meshiInteracted");
+      if (!hasInteracted) setIsFirstTimeMeshi(true);
     }
   }, []);
 
@@ -445,11 +449,16 @@ export function MeshiFloat() {
 
   const handleMeshiClick = useCallback(() => {
     if (wasDragged) return;
+    // Mark first-time interaction
+    if (isFirstTimeMeshi) {
+      setIsFirstTimeMeshi(false);
+      localStorage.setItem("meshiInteracted", "true");
+    }
     if (view === "closed") { setView("actions"); setMood("excited"); }
     else if (view === "actions") { setView("closed"); }
     else if (view === "speech") { setView("closed"); setSpeechBubbles([]); }
     else { setView("closed"); }
-  }, [view, wasDragged]);
+  }, [view, wasDragged, isFirstTimeMeshi]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     dragStartRef.current = { x: e.clientX, y: e.clientY, px: springX.get(), py: springY.get() };
@@ -635,6 +644,26 @@ export function MeshiFloat() {
                   style={{ border: "2px solid var(--accent)" }}
                   animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.2, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity }} />
+              )}
+
+              {/* First-time pulse indicator — draws attention to Meshi for new users */}
+              {isFirstTimeMeshi && view === "closed" && (
+                <>
+                  <motion.div
+                    className="absolute -inset-2 rounded-full pointer-events-none"
+                    style={{ border: "2px solid var(--accent)" }}
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                  />
+                  <motion.div
+                    className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold text-white pointer-events-none shadow-lg"
+                    style={{ background: "var(--accent)" }}
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    Hi!
+                  </motion.div>
+                </>
               )}
             </motion.div>
           </motion.div>
