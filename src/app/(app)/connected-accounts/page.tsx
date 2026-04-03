@@ -234,7 +234,7 @@ function ConnectedAccountsContent() {
 
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-[var(--text-tertiary)]">
-          <span className="text-[var(--text-primary)] font-semibold">{accounts.length}</span> of {PLATFORMS.filter(p => !p.comingSoon).length} platforms connected
+          <span className="text-[var(--text-primary)] font-semibold">{accounts.filter(a => !PLATFORMS.find(p => p.id === a.platform)?.comingSoon).length}</span> of {PLATFORMS.filter(p => !p.comingSoon).length} platforms connected
         </p>
         {accounts.length > 0 && (
           <button className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] flex items-center gap-1 transition-colors">
