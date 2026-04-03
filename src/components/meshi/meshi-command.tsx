@@ -76,6 +76,20 @@ export function MeshiCommand({ isOpen, onClose, username }: MeshiCommandProps) {
       })
     : commands;
 
+  // Build display-order array matching render order (meshi -> actions -> navigation)
+  // This ensures keyboard navigation and rendered items use the same index
+  const displayOrder = [
+    ...filteredCommands.filter((c) => c.category === "meshi"),
+    ...filteredCommands.filter((c) => c.category === "actions"),
+    ...filteredCommands.filter((c) => c.category === "navigation"),
+  ];
+
+  const grouped = {
+    navigation: filteredCommands.filter((c) => c.category === "navigation"),
+    actions: filteredCommands.filter((c) => c.category === "actions"),
+    meshi: filteredCommands.filter((c) => c.category === "meshi"),
+  };
+
   useEffect(() => {
     if (isOpen) {
       setQuery("");
@@ -101,20 +115,40 @@ export function MeshiCommand({ isOpen, onClose, username }: MeshiCommandProps) {
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
+        setSelectedIndex((i) => Math.min(i + 1, displayOrder.length - 1));
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((i) => Math.max(i - 1, 0));
       }
-      if (e.key === "Enter" && !chatMode && filteredCommands[selectedIndex]) {
+      if (e.key === "Enter" && !chatMode && displayOrder[selectedIndex]) {
         e.preventDefault();
-        filteredCommands[selectedIndex].action();
+        displayOrder[selectedIndex].action();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, filteredCommands, selectedIndex, chatMode, onClose]);
+  }, [isOpen, displayOrder, selectedIndex, chatMode, onClose]);
+
+  const getMeshiResponse = (text: string): string => {
+    const lower = text.toLowerCase();
+    if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+      return "Hey there! How can I help you today?";
+    } else if (lower.includes("sync") || lower.includes("refresh")) {
+      return "Head to Connected Platforms to sync. Want me to take you there?";
+    } else if (lower.includes("post") || lower.includes("create")) {
+      return "Head to the Feed to compose a new post, or use Content Hub for cross-platform publishing!";
+    } else if (lower.includes("analytics") || lower.includes("stats")) {
+      return "Check out the Content Hub for cross-platform analytics!";
+    } else if (lower.includes("who are you")) {
+      return "I am Meshi! Your AI companion and the heart of mesh.me.";
+    } else if (lower.includes("help") || lower.includes("what can you do")) {
+      return "I can navigate, sync platforms, create posts, view analytics, and more!";
+    } else if (lower.includes("thank")) {
+      return "You are welcome! Let me know if you need anything else!";
+    }
+    return "I am still learning! Try asking me to navigate somewhere or sync your platforms.";
+  };
 
   const handleChatSend = () => {
     if (!query.trim()) return;
@@ -122,32 +156,17 @@ export function MeshiCommand({ isOpen, onClose, username }: MeshiCommandProps) {
     setChatMessages((prev) => [...prev, { role: "user", content: userMsg }]);
     setQuery("");
     setTimeout(() => {
-      let response = "I am still learning! Try asking me to navigate somewhere or sync your platforms.";
-      const lower = userMsg.toLowerCase();
-      if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-        response = "Hey there! How can I help you today?";
-      } else if (lower.includes("sync") || lower.includes("refresh")) {
-        response = "Head to Connected Platforms to sync. Want me to take you there?";
-      } else if (lower.includes("post") || lower.includes("create")) {
-        response = "Head to the Feed to compose a new post, or use Content Hub for cross-platform publishing!";
-      } else if (lower.includes("analytics") || lower.includes("stats")) {
-        response = "Check out the Content Hub for cross-platform analytics!";
-      } else if (lower.includes("who are you")) {
-        response = "I am Meshi! Your AI companion and the heart of mesh.me.";
-      } else if (lower.includes("help")) {
-        response = "I can navigate, sync platforms, create posts, view analytics, and more!";
-      } else if (lower.includes("thank")) {
-        response = "You are welcome! Let me know if you need anything else!";
-      }
-      setChatMessages((prev) => [...prev, { role: "meshi", content: response }]);
+      setChatMessages((prev) => [...prev, { role: "meshi", content: getMeshiResponse(userMsg) }]);
     }, 500);
   };
 
-  const grouped = {
-    navigation: filteredCommands.filter((c) => c.category === "navigation"),
-    actions: filteredCommands.filter((c) => c.category === "actions"),
-    meshi: filteredCommands.filter((c) => c.category === "meshi"),
+  const sendDirectMessage = (text: string) => {
+    setChatMessages((prev) => [...prev, { role: "user", content: text }]);
+    setTimeout(() => {
+      setChatMessages((prev) => [...prev, { role: "meshi", content: getMeshiResponse(text) }]);
+    }, 500);
   };
+
   let flatIndex = 0;
 
   return (
@@ -231,10 +250,7 @@ export function MeshiCommand({ isOpen, onClose, username }: MeshiCommandProps) {
                       {["What can you do?", "Sync my platforms", "Show analytics"].map((q) => (
                         <button
                           key={q}
-                          onClick={() => {
-                            setQuery(q);
-                            setTimeout(handleChatSend, 50);
-                          }}
+                          onClick={() => sendDirectMessage(q)}
                           className="text-xs px-3 py-1.5 rounded-full"
                           style={{ background: "var(--accent-muted)", color: "var(--accent)" }}
                         >
