@@ -71,10 +71,6 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
       if (saved && LAYOUT_OPTIONS.some((l) => l.id === saved)) {
         setLayout(saved as FeedLayout);
       }
-      const savedSource = localStorage.getItem("meshFeedSource");
-      if (savedSource === "all" || savedSource === "following" || savedSource === "discover") {
-        setSource(savedSource);
-      }
     } catch { /* ignore */ }
   }, []);
 
@@ -142,6 +138,16 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
       if (requestId === sourceRequestId.current) setLoadingSource(false);
     }
   }, [fetchFeedPage, loadingSource, source]);
+
+  // Restore saved source and fetch matching first page
+  useEffect(() => {
+    try {
+      const savedSource = localStorage.getItem("meshFeedSource");
+      if (savedSource === "following" || savedSource === "discover") {
+        void handleSourceChange(savedSource);
+      }
+    } catch { /* ignore */ }
+  }, [handleSourceChange]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
