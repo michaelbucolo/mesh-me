@@ -310,14 +310,14 @@ export function MeshEntry() {
     transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] as const },
   };
 
-  const ErrorBanner = () => error ? (
+  const errorBanner = error ? (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
       className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs overflow-hidden">
       {error}
     </motion.div>
   ) : null;
 
-  const BackButton = ({ onClick }: { onClick?: () => void }) => (
+  const renderBackButton = (onClick?: () => void) => (
     <button onClick={onClick || goBack}
       className="text-xs hover:opacity-80 transition-opacity flex items-center gap-1"
       style={{ color: "var(--text-muted)" }}>
@@ -425,7 +425,7 @@ export function MeshEntry() {
               </p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
+              <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
               <form onSubmit={handleUsernameSubmit} className="space-y-4">
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: "var(--text-muted)" }}>@</span>
@@ -452,7 +452,7 @@ export function MeshEntry() {
               </form>
             </div>
             <div className="flex items-center justify-between mt-5 px-1">
-              <BackButton onClick={() => { setStep("welcome"); setError(""); }} />
+              {renderBackButton(() => { setStep("welcome"); setError(""); })}
               <button onClick={() => { setIsLogin(!isLogin); setError(""); }}
                 className="text-xs transition-colors" style={{ color: "var(--text-tertiary)" }}>
                 {isLogin ? "Create an account" : "Already have an account?"}
@@ -479,7 +479,7 @@ export function MeshEntry() {
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Welcome back, <span style={{ color: "var(--accent)" }}>@{username}</span></p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
+              <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
               <form onSubmit={handleLoginPasswordSubmit} className="space-y-4">
                 <div className="relative">
                   <input ref={inputRef} type={showPassword ? "text" : "password"} value={password}
@@ -500,7 +500,7 @@ export function MeshEntry() {
                 </motion.button>
               </form>
             </div>
-            <div className="mt-5 px-1"><BackButton /></div>
+            <div className="mt-5 px-1">{renderBackButton()}</div>
           </motion.div>
         )}
 
@@ -513,7 +513,7 @@ export function MeshEntry() {
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>The name people will see — you can change it anytime</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
+              <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
               <form onSubmit={handleSignupNameSubmit} className="space-y-4">
                 <input ref={inputRef} type="text" value={displayName} placeholder="Your name"
                   autoComplete="name" className={inputClass}
@@ -526,7 +526,7 @@ export function MeshEntry() {
                 </motion.button>
               </form>
             </div>
-            <div className="mt-5 px-1"><BackButton /></div>
+            <div className="mt-5 px-1">{renderBackButton()}</div>
           </motion.div>
         )}
 
@@ -539,7 +539,7 @@ export function MeshEntry() {
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>For account recovery only — we will never spam you</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
+              <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
               <form onSubmit={handleSignupEmailSubmit} className="space-y-4">
                 <input ref={inputRef} type="email" value={email} placeholder="you@example.com"
                   autoComplete="email" className={inputClass}
@@ -552,7 +552,7 @@ export function MeshEntry() {
                 </motion.button>
               </form>
             </div>
-            <div className="mt-5 px-1"><BackButton /></div>
+            <div className="mt-5 px-1">{renderBackButton()}</div>
           </motion.div>
         )}
 
@@ -602,7 +602,7 @@ export function MeshEntry() {
                 I understand, continue <ArrowRight className="h-4 w-4" />
               </motion.button>
             </div>
-            <div className="mt-5 px-1"><BackButton /></div>
+            <div className="mt-5 px-1">{renderBackButton()}</div>
           </motion.div>
         )}
 
@@ -615,7 +615,7 @@ export function MeshEntry() {
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Choose a strong password — encrypted end-to-end, invisible to us</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
+              <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
               <form onSubmit={handleSignupPasswordSubmit} className="space-y-4">
                 <div className="relative">
                   <input ref={inputRef} type={showPassword ? "text" : "password"} value={password}
@@ -637,7 +637,7 @@ export function MeshEntry() {
                 </motion.button>
               </form>
             </div>
-            <div className="mt-5 px-1"><BackButton /></div>
+            <div className="mt-5 px-1">{renderBackButton()}</div>
           </motion.div>
         )}
 
@@ -665,7 +665,7 @@ export function MeshEntry() {
               </form>
               {!phone && <p className="text-[10px] mt-3" style={{ color: "var(--text-muted)" }}>You can add this later in settings</p>}
             </div>
-            <div className="mt-5 px-1"><BackButton /></div>
+            <div className="mt-5 px-1">{renderBackButton()}</div>
           </motion.div>
         )}
 
@@ -680,7 +680,7 @@ export function MeshEntry() {
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Link your platforms — one mesh to rule them all</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              <AnimatePresence mode="wait"><ErrorBanner /></AnimatePresence>
+              <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
               <div className="grid grid-cols-4 gap-2 mb-6">
                 {SOCIAL_PLATFORMS.map((platform) => {
                   const isConnected = connectedPlatforms.includes(platform.id);
@@ -721,7 +721,7 @@ export function MeshEntry() {
               </motion.button>
               <p className="text-[10px] mt-3" style={{ color: "var(--text-muted)" }}>You can connect accounts anytime in settings</p>
             </div>
-            <div className="mt-5 px-1"><BackButton /></div>
+            <div className="mt-5 px-1">{renderBackButton()}</div>
           </motion.div>
         )}
 
@@ -737,7 +737,7 @@ export function MeshEntry() {
               </motion.div>
             </motion.div>
             <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-              className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>You're in.</motion.h2>
+              className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>You&apos;re in.</motion.h2>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }}
               className="text-sm" style={{ color: "var(--text-tertiary)" }}>Building your mesh...</motion.p>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}

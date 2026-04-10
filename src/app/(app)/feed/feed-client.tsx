@@ -4,17 +4,17 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { PostComposer } from "@/components/feed/post-composer";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PostSkeleton } from "@/components/ui/skeleton";
 import {
-  FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare, Loader2,
+  FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare, Loader2, Heart, MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
-import { Sparkles, Compass } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 // Feed layout modes inspired by popular platforms
 type FeedLayout = "timeline" | "grid" | "reels" | "compact" | "cards";
+type FeedSource = "all" | "following" | "discover";
 
 const LAYOUT_OPTIONS: { id: FeedLayout; label: string; icon: React.ElementType; description: string; inspired: string }[] = [
   { id: "timeline", label: "Timeline", icon: LayoutList, description: "Classic scrolling feed", inspired: "X / Twitter" },
@@ -54,10 +54,12 @@ interface FeedClientProps {
 
 export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [layout, setLayout] = useState<FeedLayout>("reels");
+  const [source, setSource] = useState<FeedSource>("all");
   const [posts, setPosts] = useState(initialPosts);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialPosts.length >= 20);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingSource, setLoadingSource] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Load saved layout preference
@@ -78,6 +80,12 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   // Cooldown ref to prevent rapid-fire loading (especially in reels layout)
   const lastLoadTime = useRef(0);
 
+  const fetchFeedPage = useCallback(async (nextPage: number, nextSource: FeedSource) => {
+    const res = await fetch(`/api/feed/paginated?page=${nextPage}&limit=20&source=${nextSource}`);
+    if (!res.ok) return null;
+    return res.json() as Promise<{ posts: FeedClientProps["initialPosts"]; hasMore: boolean }>;
+  }, []);
+
   // Infinite scroll — load more posts
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -89,20 +97,37 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const res = await fetch(`/api/feed/paginated?page=${nextPage}&limit=20`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.posts && data.posts.length > 0) {
-          setPosts((prev) => [...prev, ...data.posts]);
-          setPage(nextPage);
-          setHasMore(data.hasMore);
-        } else {
-          setHasMore(false);
-        }
+      const data = await fetchFeedPage(nextPage, source);
+      if (data?.posts && data.posts.length > 0) {
+        setPosts((prev) => [...prev, ...data.posts]);
+        setPage(nextPage);
+        setHasMore(data.hasMore);
+      } else {
+        setHasMore(false);
       }
     } catch { /* ignore */ }
     setLoadingMore(false);
-  }, [page, hasMore, loadingMore]);
+  }, [page, hasMore, loadingMore, fetchFeedPage, source]);
+
+  const handleSourceChange = useCallback(async (nextSource: FeedSource) => {
+    if (loadingSource || nextSource === source) return;
+    setSource(nextSource);
+    setLoadingSource(true);
+    setPage(1);
+    setHasMore(true);
+    lastLoadTime.current = 0;
+
+    try {
+      const data = await fetchFeedPage(1, nextSource);
+      setPosts(data?.posts ?? []);
+      setHasMore(data?.hasMore ?? false);
+    } catch {
+      setPosts([]);
+      setHasMore(false);
+    } finally {
+      setLoadingSource(false);
+    }
+  }, [fetchFeedPage, loadingSource, source]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -174,11 +199,13 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
         <>
           {/* Feed source tabs */}
           <div className="flex items-center gap-2 mb-4">
-            {["all", "following", "discover"].map((src) => (
+            {(["all", "following", "discover"] as FeedSource[]).map((src) => (
               <button
                 key={src}
+                onClick={() => handleSourceChange(src)}
+                disabled={loadingSource && source === src}
                 className={"px-3 py-1.5 rounded-lg text-xs font-medium transition-all " + (
-                  src === "all"
+                  src === source
                     ? "bg-[var(--accent)] text-white"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                 )}
@@ -186,6 +213,12 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                 {src === "all" ? "For You" : src === "following" ? "Following" : "Discover"}
               </button>
             ))}
+            {loadingSource && (
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Refreshing
+              </span>
+            )}
           </div>
           {/* Timeline layout (X/Twitter style) */}
           {layout === "timeline" && (
@@ -257,13 +290,13 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                   </div>
                   {/* Side action bar */}
                   <div className="absolute right-3 bottom-20 flex flex-col items-center gap-4">
-                    <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition-all">
-                      ❤️
-                    </button>
+                    <Link href={`/feed/${post.id}`} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition-all">
+                      <Heart className="h-4 w-4" />
+                    </Link>
                     <span className="text-white text-[10px]">{post._count.reactions}</span>
-                    <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition-all">
-                      💬
-                    </button>
+                    <Link href={`/feed/${post.id}`} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition-all">
+                      <MessageCircle className="h-4 w-4" />
+                    </Link>
                     <span className="text-white text-[10px]">{post._count.comments}</span>
                   </div>
                 </motion.div>

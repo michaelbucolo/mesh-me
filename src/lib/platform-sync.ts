@@ -210,7 +210,7 @@ const youtubeAdapter: PlatformAdapter = {
 
       // Get video stats
       const videoIds = videosData.items?.map((v: Record<string, unknown>) => (v.contentDetails as Record<string, unknown>)?.videoId).filter(Boolean).join(",");
-      let statsMap: Record<string, Record<string, unknown>> = {};
+      const statsMap: Record<string, Record<string, unknown>> = {};
       if (videoIds) {
         const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
