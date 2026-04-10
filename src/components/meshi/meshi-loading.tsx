@@ -17,19 +17,18 @@ interface MeshiLoadingProps {
 }
 
 function useMeshiPrefs() {
-  const [color, setColor] = useState<MeshiColor>("blue");
-  const [hat, setHat] = useState<MeshiHat>("none");
-  const [mood, setMood] = useState<MeshiMood>("happy");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const storedColor = localStorage.getItem("meshiColor");
-    const storedHat = localStorage.getItem("meshiHat");
-    const storedFace = localStorage.getItem("meshiFace");
-    if (storedColor) setColor(storedColor as MeshiColor);
-    if (storedHat) setHat(storedHat as MeshiHat);
-    if (storedFace) setMood(storedFace as MeshiMood);
-  }, []);
+  const [color] = useState<MeshiColor>(() => {
+    if (typeof window === "undefined") return "blue";
+    return (localStorage.getItem("meshiColor") as MeshiColor) || "blue";
+  });
+  const [hat] = useState<MeshiHat>(() => {
+    if (typeof window === "undefined") return "none";
+    return (localStorage.getItem("meshiHat") as MeshiHat) || "none";
+  });
+  const [mood] = useState<MeshiMood>(() => {
+    if (typeof window === "undefined") return "happy";
+    return (localStorage.getItem("meshiFace") as MeshiMood) || "happy";
+  });
 
   return { color, hat, mood };
 }

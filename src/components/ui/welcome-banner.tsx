@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, LucideIcon } from "lucide-react";
 
@@ -29,13 +29,10 @@ export function WelcomeBanner({
   accentColor,
   action,
 }: WelcomeBannerProps) {
-  // Start dismissed (hidden) to match SSR, then check localStorage after mount
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(`welcome-dismissed-${storageKey}`);
-    if (stored !== "true") setDismissed(false);
-  }, [storageKey]);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(`welcome-dismissed-${storageKey}`) === "true";
+  });
 
   const handleDismiss = () => {
     setDismissed(true);

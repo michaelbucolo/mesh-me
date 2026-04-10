@@ -12,7 +12,6 @@ import {
   Globe,
   Lock,
   Check,
-  Star,
   Waypoints,
   Users,
   MessageCircle,
@@ -110,7 +109,7 @@ const PRO_FEATURES = [
 
 export default function MeshProPage() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
-  const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
+  const [, setHoveredFeature] = useState<string | null>(null);
 
   const monthlyPrice = 4.99;
   const yearlyPrice = 39.99;

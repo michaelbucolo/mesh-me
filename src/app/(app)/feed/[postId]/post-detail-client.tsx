@@ -4,8 +4,9 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
-import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Share2, Send, Copy, Link2 } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Send, Copy, Link2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useTransition, useRef } from "react";
 import { toggleReaction, toggleSavePost, repost, createComment } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -173,7 +174,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
           )}>
             {post.media.map((media) => (
               <div key={media.id} className="relative overflow-hidden">
-                <img src={media.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                <Image src={media.url} alt="" fill unoptimized sizes="(max-width: 768px) 100vw, 50vw" className="w-full h-full object-cover" />
               </div>
             ))}
           </div>

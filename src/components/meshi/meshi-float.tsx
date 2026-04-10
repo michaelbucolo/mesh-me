@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motio
 import { usePathname, useRouter } from "next/navigation";
 import {
   X, Sparkles, MessageCircle, Send, Search,
-  ChevronRight, Palette, Settings, HelpCircle, History,
+  ChevronRight, Palette, Settings, HelpCircle,
   PenSquare, Compass, Users, Link2, Crown, MessageSquarePlus,
 } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type MeshiProp, PAGE_PROPS } from "./meshi-mascot";
@@ -52,7 +52,10 @@ type MeshiView = "closed" | "actions" | "speech" | "chat";
 const MESHI_SIZE = 52;
 
 export function MeshiFloat() {
-  const [meshiEnabled, setMeshiEnabled] = useState(true);
+  const [meshiEnabled, setMeshiEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("meshiEnabled") !== "false";
+  });
   const [view, setView] = useState<MeshiView>("closed");
   const [mood, setMood] = useState<MeshiMood>("happy");
   const [meshiColor, setMeshiColor] = useState<MeshiColor>("blue");
@@ -62,7 +65,6 @@ export function MeshiFloat() {
   const [lastPath, setLastPath] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchingText, setSearchingText] = useState("");
-  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>([]);
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
@@ -90,7 +92,10 @@ export function MeshiFloat() {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
-  const [isFirstTimeMeshi, setIsFirstTimeMeshi] = useState(false);
+  const [isFirstTimeMeshi, setIsFirstTimeMeshi] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem("meshiInteracted");
+  });
 
   const [speechBubbles, setSpeechBubbles] = useState<Array<{
     id: string; text: string; role: "user" | "meshi"; timestamp: number;
@@ -101,16 +106,6 @@ export function MeshiFloat() {
 
   const pathname = usePathname();
   const router = useRouter();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("meshiEnabled");
-      if (stored === "false") setMeshiEnabled(false);
-      // Check if user has ever interacted with Meshi
-      const hasInteracted = localStorage.getItem("meshiInteracted");
-      if (!hasInteracted) setIsFirstTimeMeshi(true);
-    }
-  }, []);
 
   useEffect(() => {
     getMeshiPreference().then((pref) => {
@@ -165,16 +160,19 @@ export function MeshiFloat() {
     if (!meshiEnabled) return;
     // Set contextual prop based on current page
     const matchedPropKey = Object.keys(PAGE_PROPS).find((key) => pathname.startsWith(key));
-    setActiveProp(matchedPropKey ? PAGE_PROPS[matchedPropKey] : "none");
+    const contextualProp = matchedPropKey ? PAGE_PROPS[matchedPropKey] : "none";
+    queueMicrotask(() => setActiveProp(contextualProp));
     if (pathname !== lastPath && lastPath !== "") {
-      setIsPageTransitioning(true);
-      setMood("excited");
+      queueMicrotask(() => {
+        setIsPageTransitioning(true);
+        setMood("excited");
+        setLastPath(pathname);
+        setHasGreetedThisPage(false);
+      });
       const timer = setTimeout(() => setIsPageTransitioning(false), 800);
-      setLastPath(pathname);
-      setHasGreetedThisPage(false);
       return () => clearTimeout(timer);
     }
-    if (lastPath === "") setLastPath(pathname);
+    if (lastPath === "") queueMicrotask(() => setLastPath(pathname));
   }, [pathname, lastPath, meshiEnabled]);
 
   // Contextual greeting
@@ -183,9 +181,11 @@ export function MeshiFloat() {
     const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
     if (matchedKey) {
       const greeting = GREETINGS[matchedKey];
-      setGreetingText(greeting.text);
-      setMood(greeting.mood);
-      setHasGreetedThisPage(true);
+      queueMicrotask(() => {
+        setGreetingText(greeting.text);
+        setMood(greeting.mood);
+        setHasGreetedThisPage(true);
+      });
       let hideTimer: ReturnType<typeof setTimeout>;
       const showTimer = setTimeout(() => {
         setShowGreeting(true);
@@ -233,8 +233,8 @@ export function MeshiFloat() {
   // Idle behavior
   useEffect(() => {
     if (!meshiEnabled || view !== "closed") return;
-    if (isIdle) setMood("sleepy");
-    else if (isTyping) setMood("thinking");
+    if (isIdle) queueMicrotask(() => setMood("sleepy"));
+    else if (isTyping) queueMicrotask(() => setMood("thinking"));
   }, [isIdle, isTyping, view, meshiEnabled]);
 
   // Ambient mood cycling
@@ -408,7 +408,6 @@ export function MeshiFloat() {
         setView("speech");
         addSpeechBubble("meshi", result.answer);
         setIsMeshiTyping(false);
-        setChatHistory((prev) => [...prev.slice(-49), { q: text, a: result.answer, time: new Date() }]);
         setTimeout(() => setMood("happy"), 3000);
       }, 3000);
       return;
@@ -439,7 +438,6 @@ export function MeshiFloat() {
       setMood(isInspectQuery ? "learning" : response.mood);
       addSpeechBubble("meshi", response.text);
       setIsMeshiTyping(false);
-      setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.text, time: new Date() }]);
     }, isInspectQuery ? 1500 : 800 + Math.random() * 600);
   }, [speechInput, isMeshiTyping, isSearching, knowledge, addSpeechBubble, triggerExploration, getQuickResponse, pathname]);
 

@@ -74,7 +74,11 @@ export async function GET() {
   });
 
   // Strip verifyToken from response to prevent token leakage
-  const sanitized = mergeRequests.map(({ verifyToken: _token, ...rest }) => rest);
+  const sanitized = mergeRequests.map((request) => {
+    const { verifyToken: tokenForRemoval, ...rest } = request as typeof request & { verifyToken?: string };
+    void tokenForRemoval;
+    return rest;
+  });
   return NextResponse.json({ mergeRequests: sanitized });
 }
 

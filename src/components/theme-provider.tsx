@@ -29,23 +29,26 @@ function applyTheme(resolved: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
-  const [mounted, setMounted] = useState(false);
+  const [mode, setModeState] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") return "system";
+    const stored = localStorage.getItem("mesh-theme");
+    return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+    if (typeof window === "undefined") return "dark";
+    const stored = localStorage.getItem("mesh-theme");
+    const initialMode: ThemeMode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+    return initialMode === "system" ? getSystemTheme() : initialMode;
+  });
+  const [mounted] = useState(true);
 
   const resolve = useCallback((m: ThemeMode): ResolvedTheme => {
     return m === "system" ? getSystemTheme() : m;
   }, []);
 
   useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem("mesh-theme") as ThemeMode | null;
-    const initial: ThemeMode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
-    setModeState(initial);
-    const resolved = resolve(initial);
-    setResolvedTheme(resolved);
-    applyTheme(resolved);
-  }, [resolve]);
+    applyTheme(resolvedTheme);
+  }, [resolvedTheme]);
 
   // Listen for OS theme changes when in system mode
   useEffect(() => {

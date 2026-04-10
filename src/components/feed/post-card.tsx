@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
 import { Heart, MessageCircle, Repeat2, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useTransition, useRef, useEffect } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
 
@@ -208,9 +209,9 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                   <ExternalLink className="h-4 w-4" /> Open post
                 </Link>
                 {!isOwner && (
-                  <button className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
+                  <Link href={`/feedback?type=report&postId=${post.id}`} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                     <Flag className="h-4 w-4" /> Report post
-                  </button>
+                  </Link>
                 )}
                 {isOwner && (
                   <button onClick={handleDelete} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
@@ -232,7 +233,14 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
           <div className={cn("rounded-xl overflow-hidden mb-3", post.media.length === 1 && "max-h-96", post.media.length >= 2 && "grid grid-cols-2 gap-1")}>
             {post.media.slice(0, 4).map((media, idx) => (
               <div key={media.id} className={cn("relative overflow-hidden", post.media.length === 3 && idx === 0 && "row-span-2", post.media.length >= 4 && "aspect-square")}>
-                <img src={media.url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
+                <Image
+                  src={media.url}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  unoptimized
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                />
                 {idx === 3 && post.media.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <span className="text-white font-bold text-lg">+{post.media.length - 4}</span>

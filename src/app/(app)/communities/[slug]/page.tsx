@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Users, FileText, Shield, Crown, Settings } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { JoinButton } from "./join-button";
 
 export default async function CommunityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -31,7 +32,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
       {/* Banner */}
       <div className="h-48 relative rounded-b-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(45,127,249,0.3), rgba(0,198,251,0.3))" }}>
         {community.bannerUrl && (
-          <img src={community.bannerUrl} alt="" className="w-full h-full object-cover" />
+          <Image src={community.bannerUrl} alt="" fill unoptimized sizes="100vw" className="w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/90 via-[var(--bg-primary)]/30 to-transparent" />
         <Link href="/communities" className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-white bg-[var(--bg-primary)]/50 backdrop-blur-sm rounded-lg px-3 py-1.5 transition-colors">
@@ -45,7 +46,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
         <div className="flex items-end justify-between mb-4">
           <div className="h-20 w-20 rounded-2xl flex items-center justify-center ring-4 ring-[var(--bg-primary)] text-white font-bold text-2xl shadow-xl" style={{ background: "var(--brand-gradient)" }}>
             {community.iconUrl ? (
-              <img src={community.iconUrl} alt={community.name} className="w-full h-full rounded-2xl object-cover" />
+              <Image src={community.iconUrl} alt={community.name} width={80} height={80} unoptimized className="w-full h-full rounded-2xl object-cover" />
             ) : (
               community.name[0]
             )}

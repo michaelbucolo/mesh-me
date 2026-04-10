@@ -25,7 +25,7 @@ import {
   getUserUnlockedCosmetics,
 } from "@/lib/actions";
 import { getMeshPrivacy, getGlobalMeshStatus } from "@/lib/queries";
-import { useState, useTransition, useEffect, useCallback } from "react";
+import { useState, useTransition, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -45,7 +45,6 @@ import {
   UserX,
   Crown,
   Sparkles,
-  Zap,
   Eye,
   Globe,
   Paintbrush,
@@ -194,6 +193,22 @@ export default function SettingsPage() {
   }, []);
 
   const searchParams = useSearchParams();
+  const tabs = useMemo(() => [
+    { id: "profile", label: "Profile", icon: User },
+    { id: "interests", label: "Interests & Links", icon: Palette },
+    { id: "customize", label: "Customize", icon: Paintbrush },
+    { id: "alter-egos", label: "Alter Egos", icon: Users },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "privacy", label: "Privacy & Safety", icon: Shield },
+    { id: "mesh-privacy", label: "Mesh Privacy", icon: Globe },
+    { id: "security", label: "Security", icon: Lock },
+    { id: "security-hub", label: "Security Hub", icon: ShieldCheck },
+    { id: "footprint", label: "Digital Footprint", icon: Fingerprint },
+    { id: "blocked", label: "Blocked Users", icon: UserX },
+    { id: "achievements", label: "Achievements", icon: Trophy },
+    { id: "meshi", label: "Meshi (Beta)", icon: Sparkles },
+    { id: "meshpro", label: "MeshPro", icon: Crown },
+  ], []);
 
   useEffect(() => {
     loadSettings();
@@ -205,7 +220,7 @@ export default function SettingsPage() {
     if (tabParam && tabs.some((t) => t.id === tabParam)) {
       setActiveTab(tabParam);
     }
-  }, [searchParams]);
+  }, [searchParams, tabs]);
 
   // Load unlocked cosmetics (for exclusive faces like synergy1017)
   useEffect(() => {
@@ -378,23 +393,6 @@ export default function SettingsPage() {
       }).catch(() => setMeshPrivacyLoaded(true));
     }
   }, [activeTab, meshPrivacyLoaded]);
-
-  const tabs = [
-    { id: "profile", label: "Profile", icon: User },
-    { id: "interests", label: "Interests & Links", icon: Palette },
-    { id: "customize", label: "Customize", icon: Paintbrush },
-    { id: "alter-egos", label: "Alter Egos", icon: Users },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "privacy", label: "Privacy & Safety", icon: Shield },
-    { id: "mesh-privacy", label: "Mesh Privacy", icon: Globe },
-    { id: "security", label: "Security", icon: Lock },
-    { id: "security-hub", label: "Security Hub", icon: ShieldCheck },
-    { id: "footprint", label: "Digital Footprint", icon: Fingerprint },
-    { id: "blocked", label: "Blocked Users", icon: UserX },
-    { id: "achievements", label: "Achievements", icon: Trophy },
-    { id: "meshi", label: "Meshi (Beta)", icon: Sparkles },
-    { id: "meshpro", label: "MeshPro", icon: Crown },
-  ];
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();

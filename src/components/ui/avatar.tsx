@@ -1,4 +1,5 @@
 import { cn, getInitials } from "@/lib/utils";
+import Image from "next/image";
 
 interface AvatarProps {
   src?: string | null;
@@ -15,12 +16,23 @@ const sizeMap = {
   xl: "h-20 w-20 text-xl",
 };
 
+const pixelSizeMap = {
+  xs: 24,
+  sm: 32,
+  md: 40,
+  lg: 56,
+  xl: 80,
+};
+
 export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
   if (src) {
     return (
-      <img
+      <Image
         src={src}
         alt={alt}
+        width={pixelSizeMap[size]}
+        height={pixelSizeMap[size]}
+        unoptimized
         className={cn(
           "rounded-full object-cover ring-2 ring-[var(--border-primary)] flex-shrink-0",
           sizeMap[size],

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
   LayoutDashboard,
   RefreshCw,
@@ -997,7 +998,7 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
               <div key={f.id} className="glass-card rounded-xl p-4 flex items-center gap-3 hover-lift">
                 <div className="relative">
                   {f.avatarUrl ? (
-                    <img src={f.avatarUrl} alt={f.displayName || f.username || ""} className="h-10 w-10 rounded-full object-cover" />
+                    <Image src={f.avatarUrl} alt={f.displayName || f.username || ""} width={40} height={40} unoptimized className="h-10 w-10 rounded-full object-cover" />
                   ) : (
                     <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ background: "var(--bg-tertiary)" }}>
                       <Users className="h-4 w-4 text-[var(--text-muted)]" />
@@ -1311,7 +1312,7 @@ function PostCard({ post, compact, onDelete }: {
         {/* Thumbnail */}
         {post.thumbnailUrl && !compact && (
           <div className="h-16 w-24 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-tertiary)]">
-            <img src={post.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+            <Image src={post.thumbnailUrl} alt="" width={96} height={64} unoptimized className="h-full w-full object-cover" />
           </div>
         )}
 
