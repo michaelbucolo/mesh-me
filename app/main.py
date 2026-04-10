@@ -133,6 +133,7 @@ def create_app() -> FastAPI:
                 "notifications_enabled": True,
                 "summary_enabled": False,
                 "connected_platforms": [],
+                "connected_accounts": {},
                 "read_receipts": True,
                 "native_notifications_muted": False,
                 "privacy_mode": "balanced",
@@ -148,6 +149,7 @@ def create_app() -> FastAPI:
         prefs.setdefault("notifications_enabled", True)
         prefs.setdefault("summary_enabled", False)
         prefs.setdefault("connected_platforms", [])
+        prefs.setdefault("connected_accounts", {})
         prefs.setdefault("read_receipts", True)
         prefs.setdefault("native_notifications_muted", False)
         prefs.setdefault("privacy_mode", "balanced")
@@ -752,6 +754,7 @@ def create_app() -> FastAPI:
                 "notifications_enabled": True,
                 "summary_enabled": False,
                 "connected_platforms": [],
+                "connected_accounts": {},
                 "read_receipts": True,
                 "native_notifications_muted": False,
                 "privacy_mode": "balanced",
@@ -1755,6 +1758,7 @@ def create_app() -> FastAPI:
                 "minimal": False,
                 "user": user,
                 "supported_platforms": supported_platforms,
+                "connected_accounts": user.get("preferences", {}).get("connected_accounts", {}),
             },
         )
 
@@ -1769,15 +1773,31 @@ def create_app() -> FastAPI:
             return RedirectResponse(url="/", status_code=303)
         # Normalise platforms to a list
         chosen = platforms if isinstance(platforms, list) else ([] if platforms is None else [platforms])
+        supported_platforms = {"instagram", "youtube", "tiktok", "twitter", "facebook", "reddit"}
+        chosen = [p for p in chosen if p in supported_platforms]
+        connected_accounts: dict[str, dict] = {}
+        form_data = await request.form()
+        for platform in chosen:
+            handle_key = f"handle_{platform}"
+            sync_key = f"sync_{platform}"
+            handle = clean_text(str(form_data.get(handle_key, "")), 120).lstrip("@")
+            connected_accounts[platform] = {
+                "handle": handle,
+                "sync_enabled": str(form_data.get(sync_key, "")).lower() in {"on", "true", "1", "yes"},
+                "connected_at": datetime.utcnow().isoformat(),
+            }
         users = load_users()
         # Update the current user's record in the loaded users list
         for u in users:
             if u.get("id") == user.get("id"):
                 u["preferences"]["connected_platforms"] = chosen
+                u["preferences"]["connected_accounts"] = connected_accounts
                 # refresh the user variable to reflect changes
                 user["preferences"]["connected_platforms"] = chosen
+                user["preferences"]["connected_accounts"] = connected_accounts
                 break
         save_users(users)
+        log_security_event(user.get("id"), "platform_connections_updated", f"platforms={','.join(chosen)}", "info")
         return RedirectResponse(url="/connect", status_code=303)
 
     @app.get("/settings", response_class=HTMLResponse)

@@ -218,6 +218,32 @@ class PrivacyAndSafetyTests(unittest.TestCase):
         self.assertTrue(any(e.get("platform") == "youtube" and e.get("action") == "message" for e in alice.get("sync_events", [])))
         self.assertTrue(any("youtube" in (m.get("platform_targets") or []) for m in alice.get("messages", [])))
 
+    def test_connect_stores_platform_handles_and_sync_preferences(self):
+        self._signup(self.client_alice, "alice", "alice@example.com")
+        alice_csrf = self.client_alice.cookies.get("meshme_csrf")
+        response = self.client_alice.post(
+            "/connect",
+            data={
+                "platforms": ["instagram", "youtube"],
+                "handle_instagram": "@alice_insta",
+                "handle_youtube": "aliceYT",
+                "sync_instagram": "on",
+                "csrf_token": alice_csrf,
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303)
+        users = json.loads(self.user_file.read_text(encoding="utf-8"))
+        alice = next(u for u in users if u.get("username") == "alice")
+        prefs = alice.get("preferences", {})
+        self.assertIn("instagram", prefs.get("connected_platforms", []))
+        self.assertIn("youtube", prefs.get("connected_platforms", []))
+        accounts = prefs.get("connected_accounts", {})
+        self.assertEqual(accounts.get("instagram", {}).get("handle"), "alice_insta")
+        self.assertEqual(accounts.get("youtube", {}).get("handle"), "aliceYT")
+        self.assertTrue(accounts.get("instagram", {}).get("sync_enabled"))
+        self.assertFalse(accounts.get("youtube", {}).get("sync_enabled"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,9 +6,17 @@
   <p style="color:var(--muted);">Connect your social accounts so Mesh + Custom Feed can combine content and interactions.</p>
   <form method="post">
     {% for platform in supported_platforms %}
-    <div style="margin-bottom:8px;">
-      <input type="checkbox" name="platforms" value="{{ platform }}" id="plat-{{ platform }}" {% if platform in user.preferences.connected_platforms %}checked{% endif %}>
-      <label for="plat-{{ platform }}">{{ platform|capitalize }}</label>
+    {% set account = connected_accounts.get(platform, {}) %}
+    <div style="margin-bottom:12px; border:1px solid var(--line); border-radius:12px; padding:12px;">
+      <label style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
+        <input type="checkbox" name="platforms" value="{{ platform }}" id="plat-{{ platform }}" {% if platform in user.preferences.connected_platforms %}checked{% endif %}>
+        <strong>{{ platform|capitalize }}</strong>
+      </label>
+      <input class="mm-input" type="text" name="handle_{{ platform }}" placeholder="@{{ platform }} handle" value="{{ account.handle|default('') }}" style="max-width:280px; margin-bottom:8px;">
+      <label style="display:flex; gap:8px; align-items:center;">
+        <input type="checkbox" name="sync_{{ platform }}" {% if account.sync_enabled is not defined or account.sync_enabled %}checked{% endif %}>
+        Enable native action sync for {{ platform|capitalize }}
+      </label>
     </div>
     {% endfor %}
     <button class="mm-btn mm-primary" type="submit" style="margin-top:16px;">Save Connections</button>
