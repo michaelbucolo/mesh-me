@@ -61,6 +61,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingSource, setLoadingSource] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const activeLayoutOption = LAYOUT_OPTIONS.find((opt) => opt.id === layout) ?? LAYOUT_OPTIONS[0];
 
   // Load saved layout preference
   useEffect(() => {
@@ -147,26 +148,32 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   return (
     <div data-meshi-zone="feed" className="max-w-3xl mx-auto px-4 py-6 animate-page-enter">
       {/* Clean header with inline layout toggle */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Feed</h1>
-        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "var(--bg-secondary)" }}>
-          {LAYOUT_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            return (
-              <button
-                key={opt.id}
-                onClick={() => setLayout(opt.id)}
-                className={"p-2 rounded-lg transition-all " + (
-                  layout === opt.id
-                    ? "bg-[var(--accent)] text-white shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                )}
-                title={opt.label + " — " + opt.description}
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            );
-          })}
+        <div className="text-right">
+          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "var(--bg-secondary)" }}>
+            {LAYOUT_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => setLayout(opt.id)}
+                  className={"p-2 rounded-lg transition-all " + (
+                    layout === opt.id
+                      ? "bg-[var(--accent)] text-white shadow-sm"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  )}
+                  title={opt.label + " — " + opt.description}
+                  aria-label={`${opt.label} layout`}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+            {activeLayoutOption.label}: {activeLayoutOption.description}
+          </p>
         </div>
       </div>
 
@@ -194,32 +201,34 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
         />
       </div>
 
+      {/* Feed source tabs */}
+      <div className="flex items-center gap-2 mb-4">
+        {(["all", "following", "discover"] as FeedSource[]).map((src) => (
+          <button
+            key={src}
+            onClick={() => handleSourceChange(src)}
+            disabled={loadingSource}
+            className={"px-3 py-1.5 rounded-lg text-xs font-medium transition-all " + (
+              src === source
+                ? "bg-[var(--accent)] text-white"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+            )}
+            aria-pressed={src === source}
+          >
+            {src === "all" ? "For You" : src === "following" ? "Following" : "Discover"}
+          </button>
+        ))}
+        {loadingSource && (
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Refreshing
+          </span>
+        )}
+      </div>
+
       {/* Feed content — layout-dependent rendering */}
       {posts.length > 0 ? (
         <>
-          {/* Feed source tabs */}
-          <div className="flex items-center gap-2 mb-4">
-            {(["all", "following", "discover"] as FeedSource[]).map((src) => (
-              <button
-                key={src}
-                onClick={() => handleSourceChange(src)}
-                disabled={loadingSource && source === src}
-                className={"px-3 py-1.5 rounded-lg text-xs font-medium transition-all " + (
-                  src === source
-                    ? "bg-[var(--accent)] text-white"
-                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
-                )}
-              >
-                {src === "all" ? "For You" : src === "following" ? "Following" : "Discover"}
-              </button>
-            ))}
-            {loadingSource && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Refreshing
-              </span>
-            )}
-          </div>
           {/* Timeline layout (X/Twitter style) */}
           {layout === "timeline" && (
             <div className="space-y-4">

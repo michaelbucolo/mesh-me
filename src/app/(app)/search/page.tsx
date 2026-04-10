@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { searchAll } from "@/lib/queries";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search as SearchIcon, Users, FileText, Hash, Clock, X, TrendingUp } from "lucide-react";
@@ -47,9 +46,18 @@ export default function SearchPage() {
     setQuery(value);
     if (value.trim().length < 2) { setResults(null); return; }
     startTransition(async () => {
-      const data = await searchAll(value);
-      setResults(data as SearchResults);
-      saveSearch(value.trim());
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(value.trim())}`);
+        if (!res.ok) {
+          setResults({ users: [], posts: [], communities: [] });
+          return;
+        }
+        const data = await res.json();
+        setResults(data as SearchResults);
+        saveSearch(value.trim());
+      } catch {
+        setResults({ users: [], posts: [], communities: [] });
+      }
     });
   };
 

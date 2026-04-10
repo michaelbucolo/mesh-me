@@ -95,7 +95,8 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
     });
   };
 
-  const handleComment = () => {
+  const handleComment = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!commentText.trim() || !currentUserId) return;
     const formData = new FormData();
     formData.set("content", commentText);
@@ -255,7 +256,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               <button onClick={() => setReplyingTo(null)} className="text-[var(--accent)] hover:underline">Cancel</button>
             </div>
           )}
-          <div className="flex gap-3">
+          <form className="flex gap-3" onSubmit={handleComment}>
             <textarea
               ref={commentInputRef}
               value={commentText}
@@ -268,7 +269,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               }}
             />
             <Button
-              onClick={handleComment}
+              type="submit"
               disabled={!commentText.trim() || isPending}
               size="icon-sm"
               variant="gradient"
@@ -276,7 +277,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
             >
               <Send className="h-4 w-4" />
             </Button>
-          </div>
+          </form>
         </div>
       )}
 

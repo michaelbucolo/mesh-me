@@ -74,14 +74,24 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
   const handleLike = () => {
     if (!currentUserId) return;
-    const newLiked = !liked;
+    const previousLiked = liked;
+    const previousCount = likeCount;
+    const newLiked = !previousLiked;
     setLiked(newLiked);
-    setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+    setLikeCount((prev) => (previousLiked ? prev - 1 : prev + 1));
     if (newLiked) {
       setLikeAnimating(true);
       setTimeout(() => setLikeAnimating(false), 400);
     }
-    startTransition(async () => { await toggleReaction(post.id); });
+    startTransition(async () => {
+      const result = await toggleReaction(post.id);
+      if (result && "liked" in result) {
+        setLiked(result.liked);
+      } else if (result && "error" in result) {
+        setLiked(previousLiked);
+        setLikeCount(previousCount);
+      }
+    });
   };
 
   const handleSave = () => {

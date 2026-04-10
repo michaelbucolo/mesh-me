@@ -65,7 +65,17 @@ export function MeshiFloat() {
   const [lastPath, setLastPath] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchingText, setSearchingText] = useState("");
-  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>([]);
+  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem("meshi-chat-history");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as Array<{ q: string; a: string; time: string }>;
+      return parsed.map((entry) => ({ ...entry, time: new Date(entry.time) }));
+    } catch {
+      return [];
+    }
+  });
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
@@ -117,6 +127,19 @@ export function MeshiFloat() {
       }
     }).catch(() => {});
   }, []);
+
+  // Persist Meshi conversation memory
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(
+        "meshi-chat-history",
+        JSON.stringify(chatHistory.map((entry) => ({ ...entry, time: entry.time.toISOString() })))
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [chatHistory]);
 
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
@@ -485,6 +508,18 @@ export function MeshiFloat() {
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
 
+  // Keyboard shortcut: Cmd/Ctrl + M toggles Meshi menu
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        setView((prev) => (prev === "closed" ? "actions" : "closed"));
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   if (!meshiEnabled) return null;
 
   return (
@@ -786,6 +821,42 @@ export function MeshiFloat() {
                 <span className="flex-1">Full Chat with Meshi</span>
                 <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
               </button>
+
+              {/* Conversation Memory */}
+              <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Recent Conversations</p>
+              {chatHistory.length === 0 ? (
+                <div className="px-3 py-2 text-[11px] text-[var(--text-muted)] flex items-center gap-2">
+                  <History className="h-3.5 w-3.5" />
+                  No recent Meshi chats yet
+                </div>
+              ) : (
+                <>
+                  {chatHistory.slice(-3).reverse().map((entry, idx) => (
+                    <button
+                      key={`${entry.time.toISOString()}-${idx}`}
+                      onClick={() => {
+                        setView("speech");
+                        setMood("thinking");
+                        addSpeechBubble("user", entry.q);
+                        addSpeechBubble("meshi", entry.a);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--bg-hover)] transition-colors"
+                    >
+                      <p className="text-[11px] text-[var(--text-primary)] line-clamp-1">{entry.q}</p>
+                      <p className="text-[10px] text-[var(--text-muted)] line-clamp-1">{entry.a}</p>
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => {
+                      setChatHistory([]);
+                      if (typeof window !== "undefined") localStorage.removeItem("meshi-chat-history");
+                    }}
+                    className="w-full px-3 py-2 rounded-xl text-[11px] text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors text-left"
+                  >
+                    Clear conversation memory
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between"

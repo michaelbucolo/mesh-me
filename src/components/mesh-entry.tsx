@@ -149,9 +149,12 @@ export function MeshEntry() {
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
+  const [hasAcknowledgedTransparency, setHasAcknowledgedTransparency] = useState(false);
+  const [showTransparencyHint, setShowTransparencyHint] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const meshiRef = useRef<HTMLDivElement>(null);
+  const transparencyScrollRef = useRef<HTMLDivElement>(null);
   const [activeField, setActiveField] = useState<string | null>(null);
   const totalCharsRef = useRef(0);
   const [meshiMood, setMeshiMood] = useState<"happy" | "excited" | "thinking" | "love" | "wink" | "sleepy">("happy");
@@ -227,6 +230,8 @@ export function MeshEntry() {
       return;
     }
     setError("");
+    setHasAcknowledgedTransparency(false);
+    setShowTransparencyHint(false);
     setStep("signup-privacy");
   };
 
@@ -275,7 +280,13 @@ export function MeshEntry() {
     else if (step === "signup-name") { setStep("username"); setIsLogin(false); }
     else if (step === "signup-email") setStep("signup-name");
     else if (step === "signup-privacy") setStep("signup-email");
-    else if (step === "signup-password") setStep("signup-privacy");
+    else if (step === "signup-password") {
+      setHasAcknowledgedTransparency(false);
+      setShowTransparencyHint(true);
+      const node = transparencyScrollRef.current;
+      if (node) node.scrollTo({ top: 0 });
+      setStep("signup-privacy");
+    }
     else if (step === "signup-phone") setStep("signup-password");
     else if (step === "signup-accounts") setStep("signup-phone");
     else setStep("welcome");
@@ -388,6 +399,17 @@ export function MeshEntry() {
                     style={{ border: "1px solid var(--border-primary)", color: "var(--text-secondary)" }}>
                     Sign in
                   </motion.button>
+                  <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                    Returning user?{" "}
+                    <button
+                      type="button"
+                      onClick={startLogin}
+                      className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      Go straight to sign in
+                    </button>
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -570,7 +592,21 @@ export function MeshEntry() {
             </div>
 
             <div className={cardClass + " text-left"} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              <div className="space-y-5 mb-6">
+              <p className="text-xs mb-3" style={{ color: "var(--text-tertiary)" }}>
+                Scroll to the end, then press <strong style={{ color: "var(--accent)" }}>&quot;I understand, continue&quot;</strong> to proceed.
+              </p>
+              <div
+                ref={transparencyScrollRef}
+                onScroll={(e) => {
+                  const node = e.currentTarget;
+                  const isAtBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 8;
+                  if (isAtBottom) {
+                    setHasAcknowledgedTransparency(true);
+                    setShowTransparencyHint(false);
+                  }
+                }}
+                className="space-y-5 mb-6 max-h-[340px] overflow-y-auto pr-2"
+              >
                 {DATA_TRANSPARENCY.map((section, idx) => (
                   <motion.div key={section.title}
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -591,6 +627,26 @@ export function MeshEntry() {
                 ))}
               </div>
 
+              {showTransparencyHint && !hasAcknowledgedTransparency && (
+                <p className="text-[11px] mb-3" style={{ color: "var(--text-muted)" }}>
+                  Keep scrolling to review the full transparency summary.
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  const node = transparencyScrollRef.current;
+                  if (!node) return;
+                  node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
+                  setShowTransparencyHint(false);
+                }}
+                className="w-full mb-3 px-4 py-2 rounded-lg text-xs font-medium transition-all"
+                style={{ border: "1px solid var(--border-primary)", color: "var(--text-secondary)" }}
+              >
+                Auto-scroll to the end
+              </button>
+
               <div className="p-3 rounded-xl mb-4 text-xs leading-relaxed" style={{ background: "var(--accent-subtle)", color: "var(--text-secondary)", border: "1px solid var(--border-focus)" }}>
                 <strong style={{ color: "var(--accent)" }}>mesh.me promise:</strong> We will never sell your data, never show you ads, and you can delete everything at any time. Read our full{" "}
                 <a href="/privacy" style={{ color: "var(--accent)" }} className="underline hover:no-underline">Privacy Policy</a> and{" "}
@@ -598,7 +654,8 @@ export function MeshEntry() {
               </div>
 
               <motion.button whileTap={{ scale: 0.98 }} onClick={() => setStep("signup-password")}
-                className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
+                disabled={!hasAcknowledgedTransparency}
+                className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
                 I understand, continue <ArrowRight className="h-4 w-4" />
               </motion.button>
             </div>
@@ -613,6 +670,7 @@ export function MeshEntry() {
               <p className="text-xs mb-2" style={{ color: "var(--accent)" }}>@{username} · {displayName}</p>
               <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Lock it down</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Choose a strong password — encrypted end-to-end, invisible to us</p>
+              <p className="text-[11px] mt-2" style={{ color: "var(--text-muted)" }}>Step 5 of 7 · Security setup</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
@@ -631,6 +689,11 @@ export function MeshEntry() {
                   </button>
                 </div>
                 {password && <PasswordStrength password={password} />}
+                {password.length >= 8 && (
+                  <p className="text-[11px]" style={{ color: "var(--accent)" }}>
+                    Looks good — password requirements met.
+                  </p>
+                )}
                 <motion.button whileTap={{ scale: 0.98 }} type="submit"
                   className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
                   Continue <ArrowRight className="h-4 w-4" />
@@ -650,6 +713,7 @@ export function MeshEntry() {
               </div>
               <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Add a safety net</h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>For account recovery — never shared, never sold</p>
+              <p className="text-[11px] mt-2" style={{ color: "var(--text-muted)" }}>Step 6 of 7 · Recovery setup</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <form onSubmit={handleSignupPhoneSubmit} className="space-y-4">
@@ -663,6 +727,11 @@ export function MeshEntry() {
                   {phone ? "Verify & Continue" : "Skip for now"} <ArrowRight className="h-4 w-4" />
                 </motion.button>
               </form>
+              {phone && (
+                <p className="text-[11px] mt-3" style={{ color: "var(--accent)" }}>
+                  Recovery number added.
+                </p>
+              )}
               {!phone && <p className="text-[10px] mt-3" style={{ color: "var(--text-muted)" }}>You can add this later in settings</p>}
             </div>
             <div className="mt-5 px-1">{renderBackButton()}</div>

@@ -142,6 +142,8 @@ export default function SettingsPage() {
 
   // Privacy
   const [isPublic, setIsPublic] = useState(true);
+  const [hideActivityStatus, setHideActivityStatus] = useState(false);
+  const [dmPermission, setDmPermission] = useState<"everyone" | "following" | "nobody">("everyone");
 
   // Notifications toggles
   const [notifFollowers, setNotifFollowers] = useState(true);
@@ -263,6 +265,17 @@ export default function SettingsPage() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("meshiEnabled");
       if (stored === "false") setMeshiEnabled(false);
+    }
+  }, []);
+
+  // Local privacy controls until dedicated backend fields are available
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedActivity = localStorage.getItem("mesh-hide-activity-status");
+    const savedDmPermission = localStorage.getItem("mesh-dm-permission");
+    if (savedActivity === "true") setHideActivityStatus(true);
+    if (savedDmPermission === "everyone" || savedDmPermission === "following" || savedDmPermission === "nobody") {
+      setDmPermission(savedDmPermission);
     }
   }, []);
 
@@ -411,11 +424,28 @@ export default function SettingsPage() {
         showError(result.error || "Failed to update profile");
       } else {
         showSuccess("Profile updated successfully");
+        loadSettings();
       }
     });
   };
 
   const handleSaveInterests = () => {
+    const invalidLink = links.find((link) => {
+      const trimmed = link.url.trim();
+      if (!trimmed) return false;
+      try {
+        const parsed = new URL(trimmed);
+        return parsed.protocol !== "http:" && parsed.protocol !== "https:";
+      } catch {
+        return true;
+      }
+    });
+
+    if (invalidLink) {
+      showError(`Please provide a valid URL for "${invalidLink.label || "link"}"`);
+      return;
+    }
+
     startTransition(async () => {
       await updateUserInterests(selectedInterests);
       await updateUserLinks(links);
@@ -1022,7 +1052,20 @@ export default function SettingsPage() {
                     <span className="text-sm text-[var(--text-primary)] block font-medium">Who can message you</span>
                     <span className="text-xs text-[var(--text-muted)]">Control who can send you direct messages</span>
                   </div>
-                  <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>Everyone</span>
+                  <select
+                    value={dmPermission}
+                    onChange={(e) => {
+                      const next = e.target.value as "everyone" | "following" | "nobody";
+                      setDmPermission(next);
+                      if (typeof window !== "undefined") localStorage.setItem("mesh-dm-permission", next);
+                      showSuccess("DM privacy updated");
+                    }}
+                    className="text-sm rounded-lg px-2 py-1 bg-[var(--bg-hover)] border border-[var(--border-primary)] text-[var(--text-primary)]"
+                  >
+                    <option value="everyone">Everyone</option>
+                    <option value="following">People you follow</option>
+                    <option value="nobody">No one</option>
+                  </select>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
                   <div>
@@ -1038,8 +1081,17 @@ export default function SettingsPage() {
                     <span className="text-sm text-[var(--text-primary)] block font-medium">Hide activity status</span>
                     <span className="text-xs text-[var(--text-muted)]">Others won&apos;t see when you&apos;re online</span>
                   </div>
-                  <button type="button" className="relative w-11 h-6 bg-[var(--bg-hover)] rounded-full transition-colors">
-                    <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !hideActivityStatus;
+                      setHideActivityStatus(next);
+                      if (typeof window !== "undefined") localStorage.setItem("mesh-hide-activity-status", String(next));
+                      showSuccess(next ? "Activity status hidden" : "Activity status visible");
+                    }}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${hideActivityStatus ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
+                  >
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${hideActivityStatus ? "right-0.5" : "left-0.5"}`} />
                   </button>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">

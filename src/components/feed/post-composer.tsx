@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useTransition, useEffect } from "react";
 import { createPost } from "@/lib/actions";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Connected platforms for cross-posting
 const CROSS_POST_PLATFORMS = [
@@ -26,12 +27,14 @@ interface PostComposerProps {
 }
 
 export function PostComposer({ user, communityId }: PostComposerProps) {
+  const router = useRouter();
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [showTags, setShowTags] = useState(false);
   const [showCrossPost, setShowCrossPost] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
   const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Load connected accounts
@@ -60,6 +63,7 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
 
   const handleSubmit = () => {
     if (!content.trim()) return;
+    setFeedback(null);
     const formData = new FormData();
     formData.set("content", content);
     if (tags) formData.set("tags", tags);
@@ -77,6 +81,10 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
         setShowTags(false);
         setSelectedPlatforms(new Set());
         setShowCrossPost(false);
+        setFeedback({ type: "success", message: "Posted successfully." });
+        router.refresh();
+      } else {
+        setFeedback({ type: "error", message: result?.error || "Post failed. Please try again." });
       }
     });
   };
@@ -210,6 +218,14 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
               </Button>
             </div>
           </div>
+          {feedback && (
+            <p
+              className="mt-2 text-xs"
+              style={{ color: feedback.type === "success" ? "var(--accent)" : "#f87171" }}
+            >
+              {feedback.message}
+            </p>
+          )}
         </div>
       </div>
     </div>

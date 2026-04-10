@@ -352,8 +352,12 @@ export default function MeshPage() {
 
   useEffect(() => {
     async function loadMeshData() {
+      setLoading(true);
+      setError(null);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
       try {
-        const res = await fetch("/api/mesh");
+        const res = await fetch("/api/mesh", { signal: controller.signal });
         if (!res.ok) throw new Error("Failed to load mesh data");
         const data = await res.json();
 
@@ -586,9 +590,14 @@ export default function MeshPage() {
         nodesRef.current = meshNodes;
         edgesRef.current = meshEdges;
         setMeshStats(data.stats || null);
-      } catch {
-        setError("Failed to load your mesh. Please try again.");
+      } catch (err) {
+        if ((err as Error).name === "AbortError") {
+          setError("Mesh loading timed out. Check your connection and try again.");
+        } else {
+          setError("Failed to load your mesh. Please try again.");
+        }
       } finally {
+        clearTimeout(timeout);
         setLoading(false);
       }
     }

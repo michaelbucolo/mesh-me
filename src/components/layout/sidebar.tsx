@@ -74,6 +74,8 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
           const actualHref = item.href === "/profile" ? `/profile/${user.username}` : item.href;
           const isActive = item.href === "/profile"
             ? pathname.includes(`/profile/${user.username}`)
+            : item.href === "/mesh"
+              ? pathname === "/mesh"
             : pathname.startsWith(item.href);
 
           return (
