@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
   Globe,
   Sparkles,
   ArrowRight,
+  Compass,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -30,10 +31,10 @@ interface SidebarProps {
   unreadNotifications?: number;
 }
 
-// 4 core tabs — everything else lives in Meshi command center
 const navItems = [
   { href: "/mesh", icon: Waypoints, label: "The Mesh" },
   { href: "/content-hub", icon: Globe, label: "Content Hub" },
+  { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/feed", icon: MessageCircle, label: "Feed" },
   { href: "/notifications", icon: Bell, label: "Notifications" },
   { href: "/profile", icon: User, label: "Profile" },
@@ -41,12 +42,10 @@ const navItems = [
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   const pathname = usePathname();
-  const [showGettingStarted, setShowGettingStarted] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const dismissed = localStorage.getItem("sidebar-getting-started-dismissed");
-    setShowGettingStarted(!dismissed);
-  }, []);
+  const [showGettingStarted, setShowGettingStarted] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem("sidebar-getting-started-dismissed");
+  });
 
   const dismissGettingStarted = () => {
     setShowGettingStarted(false);
@@ -54,132 +53,106 @@ export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {
   };
 
   return (
-    <aside data-meshi-zone="sidebar" className="hidden lg:flex flex-col w-60 h-screen sticky top-0 glass-panel" style={{ borderRight: "1px solid var(--glass-border)", borderLeft: "none", borderTop: "none", borderBottom: "none" }}>
-      {/* Logo */}
-      <div className="p-5 pb-3">
-        <Link href="/mesh" className="group flex items-center gap-2.5">
+    <aside className="hidden h-screen w-72 shrink-0 flex-col border-r border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-5 backdrop-blur-2xl lg:flex">
+      <div className="mb-5 rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4">
+        <Link href="/mesh" className="group flex items-center gap-3">
           <div className="relative">
-            <MeshiLogo size={32} color="blue" mood="happy" />
-            <span className="absolute -top-1 -right-2 px-1 py-0.5 rounded text-[6px] font-bold uppercase tracking-wider text-white" style={{ background: "var(--accent)", lineHeight: 1 }}>Beta</span>
+            <MeshiLogo size={34} color="blue" mood="happy" />
+            <span className="absolute -right-2 -top-1 rounded bg-[var(--accent)] px-1 py-0.5 text-[8px] font-bold uppercase leading-none text-white">New</span>
           </div>
-          <span className="brand-wordmark text-xl" style={{ color: "var(--text-primary)" }}>
-            mesh<span className="brand-wordmark-accent">.me</span>
-          </span>
+          <div>
+            <p className="brand-wordmark text-xl text-[var(--text-primary)]">
+              mesh<span className="brand-wordmark-accent">.me</span>
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)]">Digital operating system</p>
+          </div>
         </Link>
-        <p className="text-[11px] mt-2 ml-1" style={{ color: "var(--text-muted)" }}>
-          Your digital universe
-        </p>
       </div>
 
-      {/* Primary Navigation */}
-      <nav className="flex-1 px-3 mt-2">
-        <div className="space-y-0.5">
-          {navItems.map((item) => {
-            const actualHref = item.href === "/profile" ? `/profile/${user.username}` : item.href;
-            const isActive = item.href === "/profile"
-              ? pathname.includes(`/profile/${user.username}`)
-              : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={actualHref}
-                className={cn(
-                  "group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "nav-active text-[var(--text-primary)]"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
-                )}
-                style={isActive ? { background: "var(--accent-muted)" } : undefined}
-              >
-                <item.icon className={cn("h-[18px] w-[18px] transition-all duration-200", isActive && "text-[var(--accent)]")} />
-                <span>{item.label}</span>
-                {item.href === "/notifications" && unreadNotifications > 0 && (
-                  <span className="ml-auto notif-dot text-white text-[10px] font-bold rounded-full h-5 min-w-5 flex items-center justify-center px-1" style={{ background: "var(--error)" }}>
-                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+      <nav className="flex-1 space-y-1">
+        {navItems.map((item) => {
+          const actualHref = item.href === "/profile" ? `/profile/${user.username}` : item.href;
+          const isActive = item.href === "/profile"
+            ? pathname.includes(`/profile/${user.username}`)
+            : pathname.startsWith(item.href);
 
-        {/* Getting started guide for new users */}
-        {showGettingStarted && (
-          <div className="mt-6 mx-3 p-3.5 rounded-xl" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
-              <p className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
-                Getting started
-              </p>
-            </div>
-            <ul className="space-y-1.5 mb-2.5">
-              <li className="text-[10px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                <span className="mt-0.5">1.</span>
-                <span>Explore <strong>The Mesh</strong> to see your digital universe</span>
-              </li>
-              <li className="text-[10px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                <span className="mt-0.5">2.</span>
-                <span>Create your first post in the <strong>Feed</strong></span>
-              </li>
-              <li className="text-[10px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                <span className="mt-0.5">3.</span>
-                <span>Click <strong>Meshi</strong> (bottom right) to search, navigate, and chat</span>
-              </li>
-            </ul>
-            <button
-              onClick={dismissGettingStarted}
-              className="text-[10px] font-medium transition-colors"
-              style={{ color: "var(--accent)" }}
-            >
-              Got it, dismiss
-            </button>
-          </div>
-        )}
-
-        {/* Meshi hint (shows after getting started is dismissed) */}
-        {showGettingStarted === false && (
-          <div className="mt-8 mx-3 p-3 rounded-xl glass-surface">
-            <p className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
-              Need something?
-            </p>
-            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-              Click Meshi (bottom right) for search, settings, communities, and more.
-            </p>
-          </div>
-        )}
-
-        {/* Admin link (only for admins) */}
-        {user.isAdmin && (
-          <div className="mt-4 px-1">
+          return (
             <Link
-              href="/admin"
+              key={item.href}
+              href={actualHref}
               className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200",
-                pathname.startsWith("/admin")
-                  ? "bg-[var(--accent-muted)] text-[var(--accent)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                isActive
+                  ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               )}
             >
-              <Shield className="h-3.5 w-3.5" />
-              <span>Admin</span>
+              <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-[var(--accent)]")} />
+              <span>{item.label}</span>
+              {item.href === "/notifications" && unreadNotifications > 0 && (
+                <span className="notif-dot ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              )}
             </Link>
-          </div>
+          );
+        })}
+
+        {user.isAdmin && (
+          <Link
+            href="/admin"
+            className={cn(
+              "mt-2 flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition",
+              pathname.startsWith("/admin")
+                ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
+                : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+            )}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            <span>Admin Console</span>
+          </Link>
         )}
       </nav>
 
-      {/* User section */}
-      <div className="p-3" style={{ borderTop: "1px solid var(--border-primary)" }}>
-        <div className="flex items-center gap-3 px-2 py-2">
+      {showGettingStarted && (
+        <div className="mb-3 rounded-2xl border border-[var(--accent-muted)] bg-[var(--accent-subtle)] p-3.5">
+          <div className="mb-2 flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
+            <p className="text-[11px] font-semibold text-[var(--text-primary)]">New here?</p>
+          </div>
+          <p className="text-[10px] text-[var(--text-secondary)]">
+            Start with <strong>The Mesh</strong>, then publish in <strong>Feed</strong>, and open Meshi for quick commands.
+          </p>
+          <button
+            onClick={dismissGettingStarted}
+            className="mt-2 text-[10px] font-medium text-[var(--accent)]"
+          >
+            Dismiss tip
+          </button>
+        </div>
+      )}
+
+      {showGettingStarted === false && (
+        <Link
+          href="/onboarding"
+          className="mb-3 flex items-center justify-between rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-3 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-hover)]"
+        >
+          <span>Revisit onboarding</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      )}
+
+      <div className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-3">
+        <div className="flex items-center gap-3">
           <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{user.displayName}</p>
-            <p className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>@{user.username}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{user.displayName}</p>
+            <p className="truncate text-[11px] text-[var(--text-muted)]">@{user.username}</p>
           </div>
           <form action={signOut}>
             <button
               type="submit"
-              className="p-2 rounded-lg hover:text-red-400 transition-colors"
-              style={{ color: "var(--text-muted)" }}
+              className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-red-400"
               title="Sign out"
             >
               <LogOut className="h-4 w-4" />
