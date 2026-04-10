@@ -16,8 +16,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "mesh.me — One internet. One you.",
-  description: "The universal layer for your digital life. Every connection, conversation, and community — unified, private, and yours.",
+  title: "mesh.me — Your digital universe, remixed",
+  description: "A creator-first social operating system that unifies identity, communities, and conversations in one private graph.",
   keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network", "universal social"],
   icons: {
     icon: "/meshi-favicon.svg",
@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jakarta.variable} font-sans antialiased`} style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
+      <body className={`${inter.variable} ${jakarta.variable} app-shell-gradient font-sans antialiased`} style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <ThemeProvider>
           <ToastProvider>
             {children}
