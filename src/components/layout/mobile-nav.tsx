@@ -3,27 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Waypoints, MessageCircle, Bell, User } from "lucide-react";
+import { Waypoints, MessageCircle, Bell, User, Compass } from "lucide-react";
 
 interface MobileNavProps {
   unreadNotifications?: number;
   username?: string;
 }
 
-// 4 core tabs matching sidebar — Meshi handles everything else
 export function MobileNav({ unreadNotifications = 0, username }: MobileNavProps) {
   const pathname = usePathname();
 
   const items = [
     { href: "/mesh", icon: Waypoints, label: "Mesh" },
+    { href: "/explore", icon: Compass, label: "Explore" },
     { href: "/feed", icon: MessageCircle, label: "Feed" },
     { href: "/notifications", icon: Bell, label: "Alerts", badge: unreadNotifications },
     { href: username ? `/profile/${username}` : "/profile", icon: User, label: "Profile" },
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-panel safe-area-bottom" style={{ borderTop: "1px solid var(--glass-border)", borderLeft: "none", borderRight: "none", borderBottom: "none" }}>
-      <div className="flex items-center justify-around px-4 py-1.5">
+    <nav className="safe-area-bottom fixed bottom-3 left-1/2 z-40 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1.5 shadow-[var(--shadow-lg)] backdrop-blur-2xl lg:hidden">
+      <div className="grid grid-cols-5 gap-1">
         {items.map((item) => {
           const isActive = item.href === "/feed"
             ? pathname === "/feed" || pathname.startsWith("/feed")
@@ -36,13 +36,14 @@ export function MobileNav({ unreadNotifications = 0, username }: MobileNavProps)
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center p-2 min-w-[56px] relative transition-all duration-200 active:scale-90"
+                "relative flex flex-col items-center justify-center rounded-xl px-1.5 py-2 text-[10px] font-medium transition-all active:scale-95",
+                isActive ? "bg-[var(--accent-subtle)] text-[var(--accent)]" : "text-[var(--text-muted)]"
               )}
             >
-              <item.icon className="h-5 w-5" style={isActive ? { color: "var(--accent)" } : { color: "var(--text-muted)" }} />
-              <span className="text-[9px] mt-0.5 font-medium" style={isActive ? { color: "var(--accent)" } : { color: "var(--text-muted)" }}>{item.label}</span>
+              <item.icon className="h-[18px] w-[18px]" />
+              <span className="mt-1">{item.label}</span>
               {item.badge && item.badge > 0 && (
-                <span className="absolute top-0.5 right-1 text-white text-[8px] font-bold rounded-full h-3.5 min-w-3.5 flex items-center justify-center px-0.5" style={{ background: "#ef4444" }}>
+                <span className="absolute right-1.5 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
               )}
