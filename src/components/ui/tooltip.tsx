@@ -30,7 +30,10 @@ export function Tooltip({
   useEffect(() => {
     if (showOnce && storageKey) {
       const seen = localStorage.getItem(`tooltip-${storageKey}`);
-      if (seen === "true") setDismissed(true);
+      if (seen === "true") {
+        const t = setTimeout(() => setDismissed(true), 0);
+        return () => clearTimeout(t);
+      }
     }
   }, [showOnce, storageKey]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

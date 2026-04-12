@@ -45,7 +45,6 @@ import {
   UserX,
   Crown,
   Sparkles,
-  Zap,
   Eye,
   Globe,
   Paintbrush,
