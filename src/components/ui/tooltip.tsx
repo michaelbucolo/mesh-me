@@ -30,7 +30,7 @@ export function Tooltip({
   useEffect(() => {
     if (showOnce && storageKey) {
       const seen = localStorage.getItem(`tooltip-${storageKey}`);
-      if (seen === "true") setDismissed(true);
+      if (seen === "true") queueMicrotask(() => setDismissed(true));
     }
   }, [showOnce, storageKey]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
