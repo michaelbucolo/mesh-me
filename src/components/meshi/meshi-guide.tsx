@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, ChevronLeft, Shield, Eye, Fingerprint, Sparkles, Lock } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Shield, Eye, Fingerprint, Sparkles } from "lucide-react";
 import { MeshiMascot, type MeshiMood } from "./meshi-mascot";
 
 interface GuideStep {

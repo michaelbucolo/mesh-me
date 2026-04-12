@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 export default function TermsPage() {
   return (
@@ -6,10 +7,8 @@ export default function TermsPage() {
       <header className="border-b border-[var(--border-primary)] glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
-              <span className="text-white font-bold text-sm">m</span>
-            </div>
-            <span className="text-xl font-bold text-[var(--text-primary)]">mesh<span style={{ color: "var(--accent)" }}>.me</span></span>
+            <MeshiLogo size={32} color="blue" mood="happy" />
+            <span className="brand-wordmark text-xl">mesh<span className="brand-wordmark-accent">.me</span></span>
           </Link>
         </div>
       </header>

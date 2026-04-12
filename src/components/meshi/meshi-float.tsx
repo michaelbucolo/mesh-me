@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motio
 import { usePathname, useRouter } from "next/navigation";
 import {
   X, Sparkles, MessageCircle, Send, Search,
-  ChevronRight, Palette, Settings, HelpCircle, History,
+  ChevronRight, Palette, Settings, HelpCircle,
   PenSquare, Compass, Users, Link2, Crown, MessageSquarePlus,
 } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type MeshiProp, PAGE_PROPS } from "./meshi-mascot";
@@ -65,7 +65,7 @@ export function MeshiFloat() {
   const [lastPath, setLastPath] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchingText, setSearchingText] = useState("");
-  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>([]);
+  const [, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>([]);
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
@@ -93,7 +93,7 @@ export function MeshiFloat() {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
-  const [isFirstTimeMeshi] = useState(() => {
+  const [isFirstTimeMeshi, setIsFirstTimeMeshi] = useState(() => {
     if (typeof window === "undefined") return false;
     return !localStorage.getItem("meshiInteracted");
   });
