@@ -202,14 +202,19 @@ export async function completeOnboarding(formData: FormData) {
   if (phone && phone.trim()) {
     const existing = await prisma.userPhone.findFirst({ where: { userId: user.id } });
     if (!existing) {
-      await prisma.userPhone.create({
-        data: {
-          userId: user.id,
-          phone: phone.trim(),
-          isPrimary: true,
-          isVerified: false, // Real verification requires SMS provider
-        },
-      });
+      try {
+        await prisma.userPhone.create({
+          data: {
+            userId: user.id,
+            phone: phone.trim(),
+            isPrimary: true,
+            isVerified: false,
+          },
+        });
+      } catch (e) {
+        // Skip if phone already claimed by another user (P2002 unique constraint)
+        if (!(e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2002")) throw e;
+      }
     }
   }
 

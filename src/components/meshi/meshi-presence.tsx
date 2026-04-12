@@ -119,6 +119,7 @@ export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInt
                 <MeshiMini
                   size={24}
                   color={presence.meshiColor as MeshiColor}
+                  hat={presence.meshiHat as MeshiHat}
                   mood={(presence.meshiMood as MeshiMood) || "happy"}
                 />
               </motion.div>
