@@ -1187,6 +1187,7 @@ export default function MeshPage() {
       setViewingUserMesh(node);
       setSelectedNode(null);
       setProfilePreview(null);
+      setShowMeshiMeet(false);
       // Reset view to center
       setZoom(1); zoomRef.current = 1;
       setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 };
@@ -1607,6 +1608,7 @@ export default function MeshPage() {
         myMeshiColor={myMeshiColor}
         myMeshiHat={myMeshiHat}
         onInteract={(presence) => {
+          if (!viewingUserMesh) return; // Only interact when on another user's mesh
           setViewingUserMeshiPrefs({
             color: presence.meshiColor as MeshiColor,
             hat: presence.meshiHat as MeshiHat,
