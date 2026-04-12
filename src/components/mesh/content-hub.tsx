@@ -246,11 +246,9 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
   // Unique platforms from loaded posts
   const availablePlatforms = [...new Set(posts.map((p) => p.connectedAccount.platform))];
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <motion.div
+      {isOpen && <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -488,7 +486,7 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
             </div>
           )}
         </motion.div>
-      </motion.div>
+      </motion.div>}
     </AnimatePresence>
   );
 }
