@@ -109,7 +109,8 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
-export function ThemeToggle() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function ThemeToggle() {
   const { mode, setMode } = useTheme();
   const modes: Array<{ value: "light" | "dark" | "system"; icon: typeof Sun; label: string }> = [
     { value: "light", icon: Sun, label: "Light" },

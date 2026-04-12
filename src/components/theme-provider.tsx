@@ -38,16 +38,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem("mesh-theme") as ThemeMode | null;
-    const initial: ThemeMode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
-    const resolved = resolve(initial);
-    // Use queueMicrotask to avoid synchronous setState in effect
-    queueMicrotask(() => {
-      setModeState(initial);
-      setResolvedTheme(resolved);
+    const initTimer = setTimeout(() => {
       setMounted(true);
-    });
-    applyTheme(resolved);
+      const stored = localStorage.getItem("mesh-theme") as ThemeMode | null;
+      const initial: ThemeMode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+      setModeState(initial);
+      const resolved = resolve(initial);
+      setResolvedTheme(resolved);
+      applyTheme(resolved);
+    }, 0);
+    return () => clearTimeout(initTimer);
   }, [resolve]);
 
   // Listen for OS theme changes when in system mode

@@ -44,6 +44,7 @@ import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
 import { MeshiMascot, MeshiLogo, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
+import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
 import { MeshTutorial } from "@/components/mesh/mesh-tutorial";
 
 // --- Types ---
@@ -1186,6 +1187,7 @@ export default function MeshPage() {
       setViewingUserMesh(node);
       setSelectedNode(null);
       setProfilePreview(null);
+      setShowMeshiMeet(false);
       // Reset view to center
       setZoom(1); zoomRef.current = 1;
       setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 };
@@ -1599,6 +1601,21 @@ export default function MeshPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* Live Meshi presence — see other users' Meshis in real-time */}
+      <LiveMeshiPresence
+        viewingMesh={viewingUserMesh ? viewingUserMesh.id : null}
+        myMeshiColor={myMeshiColor}
+        myMeshiHat={myMeshiHat}
+        onInteract={(presence) => {
+          if (!viewingUserMesh) return; // Only interact when on another user's mesh
+          setViewingUserMeshiPrefs({
+            color: presence.meshiColor as MeshiColor,
+            hat: presence.meshiHat as MeshiHat,
+          });
+          setShowMeshiMeet(true);
+        }}
+      />
 
       {/* Meshi-to-Meshi interaction overlay */}
       <AnimatePresence>

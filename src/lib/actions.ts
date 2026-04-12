@@ -180,6 +180,8 @@ export async function completeOnboarding(formData: FormData) {
   const bio = formData.get("bio") as string;
   const location = formData.get("location") as string;
   const interests = formData.getAll("interests") as string[];
+  const phone = formData.get("phone") as string | null;
+  const platforms = formData.getAll("platforms") as string[];
 
   await prisma.user.update({
     where: { id: user.id },
@@ -194,6 +196,46 @@ export async function completeOnboarding(formData: FormData) {
     await prisma.userInterest.createMany({
       data: interests.map((tag) => ({ userId: user.id, tag })),
     });
+  }
+
+  // Persist phone number if provided
+  if (phone && phone.trim()) {
+    const existing = await prisma.userPhone.findFirst({ where: { userId: user.id } });
+    if (!existing) {
+      try {
+        await prisma.userPhone.create({
+          data: {
+            userId: user.id,
+            phone: phone.trim(),
+            isPrimary: true,
+            isVerified: false,
+          },
+        });
+      } catch (e) {
+        // Skip if phone already claimed by another user (P2002 unique constraint)
+        if (!(e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2002")) throw e;
+      }
+    }
+  }
+
+  // Create manual connected account stubs for selected platforms
+  if (platforms.length > 0) {
+    const existingAccounts = await prisma.connectedAccount.findMany({
+      where: { userId: user.id },
+      select: { platform: true },
+    });
+    const existingPlatforms = new Set(existingAccounts.map((a) => a.platform));
+    const newPlatforms = platforms.filter((p) => !existingPlatforms.has(p));
+    if (newPlatforms.length > 0) {
+      await prisma.connectedAccount.createMany({
+        data: newPlatforms.map((platform) => ({
+          userId: user.id,
+          platform,
+          platformId: `pending-${user.id}-${platform}`,
+          isActive: false, // Marked inactive until OAuth is completed
+        })),
+      });
+    }
   }
 
   redirect("/mesh");
