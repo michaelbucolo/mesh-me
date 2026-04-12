@@ -46,6 +46,7 @@ import { MeshiMascot, MeshiLogo, MeshiMini, type MeshiColor, type MeshiHat, type
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
 import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
 import { MeshTutorial } from "@/components/mesh/mesh-tutorial";
+import { ContentHub } from "@/components/mesh/content-hub";
 
 // --- Types ---
 
@@ -189,6 +190,7 @@ export default function MeshPage() {
   const [showNodePrivacy, setShowNodePrivacy] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [showMeshiMeet, setShowMeshiMeet] = useState(false);
+  const [showContentHub, setShowContentHub] = useState(false);
   const [myMeshiColor, setMyMeshiColor] = useState<MeshiColor>("blue");
   const [myMeshiHat, setMyMeshiHat] = useState<MeshiHat>("none");
   const router = useRouter();
@@ -2207,6 +2209,17 @@ export default function MeshPage() {
           <span className="hidden sm:inline">Create Post</span>
         </button>
         <button
+          onClick={() => setShowContentHub(true)}
+          className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-200 active:scale-95 backdrop-blur-xl border " + (
+            showContentHub
+              ? "bg-cyan-500/20 border-cyan-400/30 text-cyan-300"
+              : "bg-black/30 border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10"
+          )}
+        >
+          <Layers className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Content Hub</span>
+        </button>
+        <button
           onClick={() => setShowNodePrivacy(!showNodePrivacy)}
           className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-200 active:scale-95 backdrop-blur-xl border " + (
             showNodePrivacy
@@ -2221,6 +2234,16 @@ export default function MeshPage() {
           )}
         </button>
       </div>
+
+      {/* ── CONTENT HUB ── */}
+      <ContentHub
+        isOpen={showContentHub}
+        onClose={() => setShowContentHub(false)}
+        onDeleteSuccess={() => {
+          // Refresh the mesh canvas when content is deleted
+          window.location.reload();
+        }}
+      />
 
       {/* ── PRIVACY PANEL ── */}
       <AnimatePresence>
