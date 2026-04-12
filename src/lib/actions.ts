@@ -231,7 +231,7 @@ export async function completeOnboarding(formData: FormData) {
         data: newPlatforms.map((platform) => ({
           userId: user.id,
           platform,
-          platformUserId: `pending-${user.id}-${platform}`,
+          platformId: `pending-${user.id}-${platform}`,
           isActive: false, // Marked inactive until OAuth is completed
         })),
       });
