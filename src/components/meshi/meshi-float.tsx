@@ -49,7 +49,20 @@ const PAGE_AMBIENT_MOODS: Record<string, MeshiMood[]> = {
 
 type MeshiView = "closed" | "actions" | "speech" | "chat";
 
-const MESHI_SIZE = 52;
+const MESHI_SIZE = 48;
+
+// Safe insets: Meshi docks bottom-right but must never overlap UI.
+// Desktop: 16px from right, 16px from bottom
+// Mobile: 16px from right, 80px from bottom (above mobile nav)
+function getSafePosition() {
+  if (typeof window === "undefined") return { x: 900, y: 600 };
+  const isMobile = window.innerWidth < 1024;
+  const safeBottom = isMobile ? 80 : 16; // mobile nav is ~60px + gap
+  return {
+    x: window.innerWidth - MESHI_SIZE - 16,
+    y: window.innerHeight - MESHI_SIZE - safeBottom,
+  };
+}
 
 export function MeshiFloat() {
   const [meshiEnabled, setMeshiEnabled] = useState(() => {
@@ -76,9 +89,10 @@ export function MeshiFloat() {
   const [isExploring, setIsExploring] = useState(false);
   const [explorationProgress, setExplorationProgress] = useState(0);
 
-  // Position starts bottom-right, no home position
-  const meshiX = useMotionValue(typeof window !== "undefined" ? window.innerWidth - 80 : 900);
-  const meshiY = useMotionValue(typeof window !== "undefined" ? window.innerHeight - 80 : 650);
+  // Position starts in safe bottom-right zone (never overlapping UI)
+  const safePos = getSafePosition();
+  const meshiX = useMotionValue(safePos.x);
+  const meshiY = useMotionValue(safePos.y);
   const springX = useSpring(meshiX, { stiffness: 200, damping: 25, mass: 0.6 });
   const springY = useSpring(meshiY, { stiffness: 200, damping: 25, mass: 0.6 });
 
@@ -267,13 +281,17 @@ export function MeshiFloat() {
     return () => { window.removeEventListener("scroll", handleScrollDirection); if (pendingTimeout) clearTimeout(pendingTimeout); };
   }, [meshiEnabled, view]);
 
-  // Keep Meshi in view on resize
+  // Keep Meshi in safe zone on resize — snap to safe position if out of bounds
   useEffect(() => {
     const handleResize = () => {
-      const maxX = window.innerWidth - 70;
-      const maxY = window.innerHeight - 70;
-      if (meshiX.get() > maxX) meshiX.set(maxX);
-      if (meshiY.get() > maxY) meshiY.set(maxY);
+      const safe = getSafePosition();
+      const curX = meshiX.get();
+      const curY = meshiY.get();
+      // If Meshi is near the default position or out of bounds, snap to safe zone
+      if (curX > window.innerWidth - MESHI_SIZE - 8 || curY > window.innerHeight - MESHI_SIZE - 8) {
+        meshiX.set(safe.x);
+        meshiY.set(safe.y);
+      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -472,8 +490,10 @@ export function MeshiFloat() {
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) { setIsDragging(true); setWasDragged(true); }
-    const maxX = (typeof window !== "undefined" ? window.innerWidth : 1024) - 56;
-    const maxY = (typeof window !== "undefined" ? window.innerHeight : 768) - 56;
+    const maxX = (typeof window !== "undefined" ? window.innerWidth : 1024) - MESHI_SIZE;
+    const isMobile = (typeof window !== "undefined" ? window.innerWidth : 1024) < 1024;
+    const safeBottom = isMobile ? 80 : 16;
+    const maxY = (typeof window !== "undefined" ? window.innerHeight : 768) - MESHI_SIZE - safeBottom;
     meshiX.set(Math.max(0, Math.min(maxX, dragStartRef.current.px + dx)));
     meshiY.set(Math.max(0, Math.min(maxY, dragStartRef.current.py + dy)));
   }, [meshiX, meshiY]);
@@ -481,7 +501,17 @@ export function MeshiFloat() {
   const handlePointerUp = useCallback(() => {
     dragStartRef.current = null;
     setIsDragging(false);
-  }, []);
+    // Snap back to safe zone if released near edges where UI lives
+    const curX = meshiX.get();
+    const curY = meshiY.get();
+    const safe = getSafePosition();
+    const nearRight = curX > window.innerWidth - MESHI_SIZE - 24;
+    const nearBottom = curY > safe.y - 8;
+    if (nearRight && nearBottom) {
+      meshiX.set(safe.x);
+      meshiY.set(safe.y);
+    }
+  }, [meshiX, meshiY]);
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
 
@@ -679,7 +709,7 @@ export function MeshiFloat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-20 right-4 z-50 w-[280px] max-w-[calc(100vw-2rem)] max-h-[70vh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            className="fixed bottom-[72px] lg:bottom-[72px] right-4 z-50 w-[280px] max-w-[calc(100vw-2rem)] max-h-[60vh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]"
               style={{ background: "var(--bg-secondary)" }}>
               <MeshiMascot size={28} mood="happy" color={meshiColor} hat={meshiHat} showGlow={false} animate={false} />

@@ -1501,8 +1501,8 @@ export default function MeshPage() {
         </div>
       </div>
 
-      {/* Zoom controls — refined floating stack with premium feel */}
-      <div className="absolute bottom-16 sm:bottom-20 right-2 sm:right-4 z-10 flex flex-col gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-1.5">
+      {/* Zoom controls — positioned above Meshi's safe zone (right side, vertically centered) */}
+      <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-3 z-10 flex flex-col gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-1.5">
         <button onClick={() => handleZoom(0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
         <button onClick={() => handleZoom(-0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
         <button onClick={resetView} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
@@ -1519,7 +1519,7 @@ export default function MeshPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-14 sm:bottom-16 left-2 sm:left-4 z-10 flex gap-1.5 flex-wrap max-w-[calc(100vw-5rem)]"
+              className="absolute bottom-16 sm:bottom-[4.5rem] left-2 sm:left-4 z-10 flex gap-1.5 flex-wrap max-w-[calc(100vw-6rem)]"
           >
             {[
               { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-indigo-400" },
