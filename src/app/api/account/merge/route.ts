@@ -74,6 +74,7 @@ export async function GET() {
   });
 
   // Strip verifyToken from response to prevent token leakage
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sanitized = mergeRequests.map(({ verifyToken: _token, ...rest }) => rest);
   return NextResponse.json({ mergeRequests: sanitized });
 }
