@@ -1,21 +1,29 @@
 import Link from "next/link";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { MeshBackground } from "@/components/mesh-background";
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      <header className="border-b border-[var(--border-primary)] glass sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center">
+    <div className="relative min-h-screen bg-[var(--bg-primary)]">
+      <MeshBackground density={30} className="opacity-20" />
+
+      <header className="relative z-10 border-b border-[var(--glass-border)] glass sticky top-0">
+        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <MeshiLogo size={32} color="blue" mood="happy" />
-            <span className="brand-wordmark text-xl">mesh<span className="brand-wordmark-accent">.me</span></span>
+            <MeshiLogo size={28} color="blue" mood="happy" />
+            <span className="brand-wordmark text-lg">mesh<span className="brand-wordmark-accent">.me</span></span>
           </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/about" className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors px-3 py-1.5">About</Link>
+            <Link href="/" className="brand-button text-sm text-white px-5 py-2 rounded-xl font-medium">Enter the Mesh</Link>
+          </div>
         </div>
       </header>
-      <main className="max-w-3xl mx-auto px-6 py-16">
-        <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Terms of Service</h1>
+
+      <main className="relative z-10 max-w-3xl mx-auto px-6 py-16">
+        <h1 className="font-display text-3xl font-bold text-[var(--text-primary)] mb-2">Terms of Service</h1>
         <p className="text-sm text-[var(--text-muted)] mb-8">Last updated: March 2026</p>
-        <div className="prose prose-invert prose-zinc max-w-none space-y-6 text-[var(--text-tertiary)] text-sm leading-relaxed">
+        <div className="space-y-6 text-[var(--text-tertiary)] text-sm leading-relaxed">
 
           <h2 className="text-xl font-semibold text-[var(--text-primary)]">1. Acceptance of Terms</h2>
           <p>By accessing or using mesh.me (&quot;the Platform&quot;, &quot;the Service&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to all of these Terms, you may not access or use the Service. These Terms constitute a legally binding agreement between you and mesh.me.</p>
@@ -81,12 +89,14 @@ export default function TermsPage() {
           <p>For questions about these Terms, contact us at legal@mesh.me.</p>
         </div>
       </main>
-      <footer className="border-t border-[var(--border-primary)] py-8 mt-8">
+
+      <footer className="relative z-10 border-t border-[var(--glass-border)] py-8 mt-8">
         <div className="max-w-3xl mx-auto px-6 flex items-center justify-between text-xs text-[var(--text-muted)]">
           <span>&copy; 2026 mesh.me. All rights reserved.</span>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:text-[var(--text-tertiary)] transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-[var(--text-tertiary)] transition-colors">Terms of Service</Link>
+            <Link href="/about" className="hover:text-[var(--text-tertiary)] transition-colors">About</Link>
           </div>
         </div>
       </footer>

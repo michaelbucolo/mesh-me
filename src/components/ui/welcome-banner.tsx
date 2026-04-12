@@ -34,7 +34,10 @@ export function WelcomeBanner({
 
   useEffect(() => {
     const stored = localStorage.getItem(`welcome-dismissed-${storageKey}`);
-    if (stored !== "true") queueMicrotask(() => setDismissed(false));
+    if (stored !== "true") {
+      const t = setTimeout(() => setDismissed(false), 0);
+      return () => clearTimeout(t);
+    }
   }, [storageKey]);
 
   const handleDismiss = () => {
