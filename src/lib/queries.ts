@@ -847,7 +847,7 @@ export async function getMeshGraphData(): Promise<{
       },
     }),
     prisma.userInterest.findMany({ where: { userId: user.id } }),
-    prisma.connectedAccount.findMany({ where: { userId: user.id } }),
+    prisma.connectedAccount.findMany({ where: { userId: user.id, isActive: true } }),
     prisma.post.count({ where: { authorId: user.id } }),
   ]);
 
@@ -1019,7 +1019,7 @@ export async function getFriendMeshData(username: string): Promise<{
       },
     }),
     prisma.userInterest.findMany({ where: { userId: targetUser.id } }),
-    prisma.connectedAccount.findMany({ where: { userId: targetUser.id } }),
+    prisma.connectedAccount.findMany({ where: { userId: targetUser.id, isActive: true } }),
     prisma.post.count({ where: { authorId: targetUser.id } }),
     prisma.meshiPreference.findUnique({ where: { userId: targetUser.id } }),
   ]);
