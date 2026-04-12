@@ -295,18 +295,21 @@ export function MeshiMascot({
   // Smooth blinking at random intervals (2-6 seconds)
   useEffect(() => {
     if (!animate) return;
+    let cancelled = false;
     const scheduleBlink = () => {
       const delay = 2000 + Math.random() * 4000;
       blinkTimerRef.current = setTimeout(() => {
+        if (cancelled) return;
         setIsBlinking(true);
         setTimeout(() => {
+          if (cancelled) return;
           setIsBlinking(false);
           scheduleBlink();
         }, 120);
       }, delay);
     };
     scheduleBlink();
-    return () => { if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current); };
+    return () => { cancelled = true; if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current); };
   }, [animate]);
 
   // Global mouse tracking for eye follow (smooth, Codex-like)
