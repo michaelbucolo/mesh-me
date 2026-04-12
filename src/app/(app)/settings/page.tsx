@@ -45,7 +45,6 @@ import {
   UserX,
   Crown,
   Sparkles,
-  Zap,
   Eye,
   Globe,
   Paintbrush,
@@ -200,11 +199,13 @@ export default function SettingsPage() {
   }, [loadSettings]);
 
   // Handle URL tab parameter (e.g. /settings?tab=meshi)
+  const tabIds = ["profile", "interests", "customize", "alter-egos", "notifications", "privacy", "mesh-privacy", "security", "security-hub", "footprint", "blocked", "achievements", "meshi", "meshpro"];
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam && tabs.some((t) => t.id === tabParam)) {
+    if (tabParam && tabIds.includes(tabParam)) {
       setActiveTab(tabParam);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // Load unlocked cosmetics (for exclusive faces like synergy1017)

@@ -40,7 +40,7 @@ export function MeshiMeetOverlay({
   const [phase, setPhase] = useState<"meet" | "rps-choose" | "rps-result" | "hat-exchange" | "idle">("meet");
   const [myChoice, setMyChoice] = useState<RPSChoice | null>(null);
   const [theirChoice, setTheirChoice] = useState<RPSChoice | null>(null);
-  const [rpsResult, setRpsResult] = useState<RPSResult | null>(null);
+  const [, setRpsResult] = useState<RPSResult | null>(null);
   const [hatExchanged, setHatExchanged] = useState(false);
   const [myCurrentHat, setMyCurrentHat] = useState(myMeshi.hat);
   const [theirCurrentHat, setTheirCurrentHat] = useState(theirMeshi.hat);
