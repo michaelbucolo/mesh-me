@@ -604,6 +604,7 @@ button, a, [role="button"], nav {
 }
 
 /* Ensure inputs zoom correctly on iOS */
+input:not([type]),
 input[type="text"],
 input[type="email"],
 input[type="password"],
