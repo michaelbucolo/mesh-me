@@ -57,9 +57,8 @@ export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInt
     } catch { /* silently fail */ }
   }, [viewingMesh]);
 
-  // Start heartbeat and polling on mount
+  // Start heartbeat and polling — restarts when callbacks change (prop updates)
   useEffect(() => {
-    // Initial fetch via intervals starting immediately (0ms first tick)
     const heartbeat = setInterval(sendHeartbeat, 10000);
     const poll = setInterval(pollPresences, 5000);
     heartbeatRef.current = heartbeat;
@@ -75,10 +74,16 @@ export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInt
       clearTimeout(initTimer);
       clearInterval(heartbeat);
       clearInterval(poll);
-      // Clean up presence on unmount
-      fetch("/api/mesh/presence", { method: "DELETE" }).catch(() => {});
     };
   }, [sendHeartbeat, pollPresences]);
+
+  // Clean up presence only on true component unmount (empty deps)
+  useEffect(() => {
+    return () => {
+      fetch("/api/mesh/presence", { method: "DELETE" }).catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (presences.length === 0) return null;
 
