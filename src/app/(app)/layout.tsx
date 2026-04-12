@@ -89,7 +89,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </header>
 
-          <main className="min-h-[calc(100vh-3.5rem)] flex-1 px-3 pb-20 pt-4 md:px-5 md:pt-6 lg:pb-8 lg:pt-6">
+          {/* pb-24: mobile needs room for bottom nav (60px) + gap; lg:pb-6: desktop has no bottom nav */}
+          <main className="min-h-[calc(100vh-3.5rem)] flex-1 px-3 pb-24 pt-4 md:px-5 md:pt-6 lg:pb-6 lg:pt-6">
             <div className="mx-auto w-full max-w-6xl animate-page-enter">{children}</div>
           </main>
         </div>
