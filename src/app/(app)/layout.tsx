@@ -20,27 +20,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     where: { recipientId: user.id, read: false },
   });
 
-  // Count threads with messages newer than the user's last read
-  const memberThreads = await prisma.threadMember.findMany({
-    where: { userId: user.id },
-    select: { threadId: true, lastRead: true },
-  });
-
-  let unreadMessages = 0;
-  if (memberThreads.length > 0) {
-    const counts = await Promise.all(
-      memberThreads.map((tm) =>
-        prisma.message.count({
-          where: {
-            threadId: tm.threadId,
-            senderId: { not: user.id },
-            createdAt: { gt: tm.lastRead },
-          },
-        })
-      )
-    );
-    unreadMessages = counts.reduce((sum, c) => sum + c, 0);
-  }
+  // Single aggregated query for unread messages across all threads
+  const unreadMessages = await prisma.$queryRawUnsafe<[{ count: bigint }]>(
+    `SELECT COUNT(*) as count FROM Message m
+     INNER JOIN ThreadMember tm ON tm.threadId = m.threadId
+     WHERE tm.userId = ? AND m.senderId != ? AND m.createdAt > tm.lastRead`,
+    user.id,
+    user.id
+  ).then((rows) => Number(rows[0]?.count ?? 0)).catch(() => 0);
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)]">
