@@ -3,12 +3,12 @@
 ## Local Dev Setup
 
 ```bash
-cd mesh-app
+cd mesh-me
 npm install
-npx next dev -p 3000
+npx next dev -p 3333
 ```
 
-The app runs at http://localhost:3000. Uses SQLite locally (dev.db in project root).
+The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Uses SQLite locally (dev.db in project root).
 
 ## Authentication for Testing
 
@@ -74,17 +74,38 @@ The app runs at http://localhost:3000. Uses SQLite locally (dev.db in project ro
 - **Multi-user exploration**: Double-click user node → loading overlay → their mesh loads → "Back to my mesh" button at top center
 - **Edge rendering**: Edges between nodes vary in thickness based on interactionCount
 - **Node sizing**: Nodes scale in radius based on connection count
+- **Zoom controls**: Vertically centered on the right edge of the canvas (top-1/2 -translate-y-1/2). Contains Zoom in, Zoom out, Reset view, Hide labels, Hide stats buttons.
+- **Action bar**: Bottom-left contains Create Post, Content Hub, Privacy buttons.
+- **Stats bar**: Shows node counts (people, communities, interests, posts) and zoom percentage above the action bar.
 
-### MeshiFloat (bottom-right floating button)
-- Click Meshi mascot → opens actions menu
-- Actions: Ask Meshi, What did I miss?, Customize Meshi, Mesh Privacy, Full Chat
-- No bubble/home UI - clean simplified menu only
+### MeshiFloat (bottom-right floating companion)
+- Click Meshi mascot → opens actions menu above Meshi
+- **Actions menu sections**:
+  - Quick Actions: Ask Meshi, Create Post, Search Mesh
+  - Navigate: Explore, Messages, Communities, Connected Accounts
+  - Settings & More: Customize Meshi, Settings, MeshPro, Send Feedback, Full Chat with Meshi
+- Menu positioned at `bottom-[72px] right-4` with `z-50`
+- Meshi itself uses `z-40`, size is 48px
+- **Safe positioning**: Meshi docks bottom-right with safe insets:
+  - Desktop: 16px from right edge, 16px from bottom
+  - Mobile (<1024px): 16px from right edge, 80px from bottom (above mobile nav)
+- **Drag behavior**: Meshi is draggable. Drag bounds respect safe zones. Releasing near bottom-right corner snaps back to safe position.
+- **Z-index hierarchy**: Mobile nav (z-50) > Meshi actions menu (z-50) > Meshi (z-40) > zoom controls (z-10)
 
 ### Profile Preview Panel
 - Click any user node → panel slides in from right
 - Shows: avatar, name, username, mutual status, follower/post counts, shared interests
 - Action buttons: Message, Follow/Unfollow
 - Node visibility controls: Hide node, Hide all users
+
+## Testing Meshi Positioning
+
+When testing Meshi layout changes:
+1. **Desktop Mesh page**: Verify zoom controls are vertically centered on right edge (NOT bottom-right), Meshi is at bottom-right with ~16px clearance, clear vertical separation between them
+2. **Mobile viewport**: Use Chrome DevTools device toolbar (Ctrl+Shift+M) to switch to 375-400px width. Verify Meshi sits ABOVE the bottom nav bar (6 items: Mesh, Feed, Explore, Chat, Alerts, Profile)
+3. **Actions menu**: Click Meshi → menu should open above it without covering zoom controls or extending below viewport
+4. **Other pages**: Navigate to Feed, Settings, etc. and verify Meshi doesn't cover interactive elements like buttons or form inputs
+5. **Zoom functionality**: Click each zoom button and verify the mesh actually zooms (check percentage indicator changes)
 
 ## Build & Lint
 
@@ -107,3 +128,5 @@ npx next build
 - The canvas is rendered with Canvas 2D API, not a library - interactions are custom event handlers on the canvas element
 - Preview deployments on Vercel may fail if DATABASE_URL points to local SQLite — use local dev server for testing in this case
 - When testing in Reels layout, posts don't have direct click-through links — switch to Timeline or Compact layout to navigate to post detail pages
+- The dev server port might vary — check which port is being used (commonly 3000 or 3333). Use `-p` flag to specify.
+- When testing mobile viewport, the page may need a reload after switching to device toolbar mode for Meshi to recalculate its safe position.
