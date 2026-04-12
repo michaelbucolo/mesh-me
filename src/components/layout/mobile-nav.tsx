@@ -24,7 +24,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   ];
 
   return (
-    <nav className="safe-area-bottom fixed bottom-3 left-1/2 z-40 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1.5 shadow-[var(--shadow-lg)] backdrop-blur-2xl lg:hidden">
+    <nav className="safe-area-bottom fixed bottom-3 left-1/2 z-50 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1.5 shadow-[var(--shadow-lg)] backdrop-blur-2xl lg:hidden">
       <div className="grid grid-cols-6 gap-0.5">
         {items.map((item) => {
           const isActive = item.label === "Profile"
