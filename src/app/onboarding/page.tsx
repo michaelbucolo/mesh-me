@@ -75,7 +75,7 @@ export default function OnboardingPage() {
     formData.set("bio", bio);
     formData.set("location", location);
     selectedInterests.forEach((tag) => formData.append("interests", tag));
-    if (phoneNumber) formData.set("phone", phoneNumber);
+    if (phoneNumber && phoneVerified) formData.set("phone", phoneNumber);
     selectedPlatforms.forEach((p) => formData.append("platforms", p));
 
     startTransition(async () => {
