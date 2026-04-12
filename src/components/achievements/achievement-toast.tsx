@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Star, Crown, X } from "lucide-react";
 import { ACHIEVEMENT_DEFINITIONS } from "./achievement-badges";
@@ -16,17 +16,15 @@ interface AchievementToast {
 
 export function AchievementChecker() {
   const [toasts, setToasts] = useState<AchievementToast[]>([]);
-  const [checked, setChecked] = useState(false);
+  const checkedRef = useRef(false);
 
   const dismissToast = useCallback((slug: string) => {
     setToasts((prev) => prev.filter((t) => t.slug !== slug));
   }, []);
 
   useEffect(() => {
-    if (checked) return;
-    const timer = setTimeout(() => {
-      setChecked(true);
-    }, 0);
+    if (checkedRef.current) return;
+    checkedRef.current = true;
 
     // Check achievements after a short delay to avoid blocking initial render
     const checkTimer = setTimeout(async () => {
@@ -56,10 +54,9 @@ export function AchievementChecker() {
     }, 3000);
 
     return () => {
-      clearTimeout(timer);
       clearTimeout(checkTimer);
     };
-  }, [checked, dismissToast]);
+  }, [dismissToast]);
 
   return (
     <div className="fixed top-4 right-4 z-[60] flex flex-col gap-3 pointer-events-none">
