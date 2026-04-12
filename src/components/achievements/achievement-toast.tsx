@@ -24,10 +24,12 @@ export function AchievementChecker() {
 
   useEffect(() => {
     if (checked) return;
-    setChecked(true);
+    const timer = setTimeout(() => {
+      setChecked(true);
+    }, 0);
 
     // Check achievements after a short delay to avoid blocking initial render
-    const timer = setTimeout(async () => {
+    const checkTimer = setTimeout(async () => {
       try {
         const result = await checkAndAwardAchievements();
         if (result && "awarded" in result && result.awarded && result.awarded.length > 0) {
@@ -53,7 +55,10 @@ export function AchievementChecker() {
       }
     }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(checkTimer);
+    };
   }, [checked, dismissToast]);
 
   return (

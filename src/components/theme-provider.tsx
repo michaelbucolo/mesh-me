@@ -38,13 +38,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem("mesh-theme") as ThemeMode | null;
-    const initial: ThemeMode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
-    setModeState(initial);
-    const resolved = resolve(initial);
-    setResolvedTheme(resolved);
-    applyTheme(resolved);
+    const initTimer = setTimeout(() => {
+      setMounted(true);
+      const stored = localStorage.getItem("mesh-theme") as ThemeMode | null;
+      const initial: ThemeMode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+      setModeState(initial);
+      const resolved = resolve(initial);
+      setResolvedTheme(resolved);
+      applyTheme(resolved);
+    }, 0);
+    return () => clearTimeout(initTimer);
   }, [resolve]);
 
   // Listen for OS theme changes when in system mode

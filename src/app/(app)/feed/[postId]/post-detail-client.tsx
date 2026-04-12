@@ -4,7 +4,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
-import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Share2, Send, Copy, Link2 } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Send, Copy, Link2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition, useRef } from "react";
 import { toggleReaction, toggleSavePost, repost, createComment } from "@/lib/actions";
