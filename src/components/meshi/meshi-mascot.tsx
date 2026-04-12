@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, useSpring } from "framer-motion";
-import { useRef, useState, useCallback, useEffect } from "react";
+import { motion, useSpring, useMotionValue } from "framer-motion";
+import { useRef, useState, useCallback, useEffect, useId } from "react";
 
 // Pre-compute trig values to avoid SSR/client hydration mismatches
 const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
@@ -28,36 +28,31 @@ const FACES: Record<string, { eyes: string; svg?: boolean }> = {
   searching: { eyes: "", svg: true },
   learning: { eyes: "", svg: true },
   celebrating: { eyes: "", svg: true },
+  blinking: { eyes: "", svg: true },
 };
 
 // SVG faces for clean, scalable eye rendering
 const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   happy: (color: string) => (
     <g>
-      {/* Wide, friendly oval eyes */}
       <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
       <ellipse cx="5" cy="0" rx="2.5" ry="3" fill={color} />
     </g>
   ),
   wink: (color: string) => (
     <g>
-      {/* Left eye — wide oval */}
       <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
-      {/* Right eye — happy closed arc */}
       <path d="M 2.5 0.5 Q 5 -2.5 7.5 0.5" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
     </g>
   ),
   synergy1017: (color: string) => (
     <g>
-      {/* Left eye — tall oval */}
       <ellipse cx="-4" cy="0" rx="1.8" ry="3.8" fill={color} />
-      {/* Right eye — thick upward-facing wink arc */}
       <path d="M 2 1.5 Q 4.5 -2.5 7 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </g>
   ),
   searching: (color: string) => (
     <g>
-      {/* Squinting eyes — focused look */}
       <ellipse cx="-5" cy="0" rx="3" ry="1.5" fill={color} />
       <ellipse cx="5" cy="0" rx="3" ry="1.5" fill={color} />
       <circle cx="-4" cy="0" r="0.8" fill="white" />
@@ -66,7 +61,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   ),
   learning: (color: string) => (
     <g>
-      {/* Wide curious eyes — big and bright */}
       <ellipse cx="-5" cy="-0.5" rx="3" ry="3.5" fill={color} />
       <ellipse cx="5" cy="-0.5" rx="3" ry="3.5" fill={color} />
       <circle cx="-4" cy="-1.5" r="1" fill="white" opacity="0.8" />
@@ -75,9 +69,14 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   ),
   celebrating: (color: string) => (
     <g>
-      {/* Happy closed eyes — arcs */}
       <path d="M -7.5 0 Q -5 -3 -2.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
       <path d="M 2.5 0 Q 5 -3 7.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </g>
+  ),
+  blinking: (color: string) => (
+    <g>
+      <path d="M -7.5 0 Q -5 0.5 -2.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path d="M 2.5 0 Q 5 0.5 7.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </g>
   ),
 };
@@ -243,13 +242,9 @@ interface MeshiMascotProps {
   className?: string;
   showGlow?: boolean;
   speaking?: boolean;
-  /** Enable physics jiggle and petting reactions */
   interactive?: boolean;
-  /** Callback when mood changes from petting */
   onMoodChange?: (mood: MeshiMood) => void;
-  /** Prop to display (contextual item Meshi holds) */
   prop?: MeshiProp;
-  /** Enable enhanced bouncing idle animation */
   bouncy?: boolean;
 }
 
@@ -273,11 +268,18 @@ export function MeshiMascot({
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
   const containerRef = useRef<HTMLDivElement>(null);
+  const uniqueId = useId();
 
   // Physics-based jiggle springs
   const squishX = useSpring(1, { stiffness: 600, damping: 12, mass: 0.3 });
   const squishY = useSpring(1, { stiffness: 600, damping: 12, mass: 0.3 });
   const wobbleRotate = useSpring(0, { stiffness: 300, damping: 8, mass: 0.5 });
+
+  // Smooth eye tracking via spring-based motion values
+  const eyeOffsetX = useMotionValue(0);
+  const eyeOffsetY = useMotionValue(0);
+  const smoothEyeX = useSpring(eyeOffsetX, { stiffness: 150, damping: 20, mass: 0.5 });
+  const smoothEyeY = useSpring(eyeOffsetY, { stiffness: 150, damping: 20, mass: 0.5 });
 
   // Track mouse velocity for petting
   const lastMouseX = useRef(0);
@@ -285,6 +287,47 @@ export function MeshiMascot({
   const petCount = useRef(0);
   const petTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localMood, setLocalMood] = useState<MeshiMood | null>(null);
+
+  // Blinking state for smooth, lifelike animation
+  const [isBlinking, setIsBlinking] = useState(false);
+  const blinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Smooth blinking at random intervals (2-6 seconds)
+  useEffect(() => {
+    if (!animate) return;
+    const scheduleBlink = () => {
+      const delay = 2000 + Math.random() * 4000;
+      blinkTimerRef.current = setTimeout(() => {
+        setIsBlinking(true);
+        setTimeout(() => {
+          setIsBlinking(false);
+          scheduleBlink();
+        }, 120);
+      }, delay);
+    };
+    scheduleBlink();
+    return () => { if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current); };
+  }, [animate]);
+
+  // Global mouse tracking for eye follow (smooth, Codex-like)
+  useEffect(() => {
+    if (!interactive && !animate) return;
+    const handleGlobalMouse = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxOffset = 2.5;
+      const factor = Math.min(dist / 300, 1);
+      eyeOffsetX.set((dx / (dist || 1)) * maxOffset * factor);
+      eyeOffsetY.set((dy / (dist || 1)) * maxOffset * factor);
+    };
+    window.addEventListener("mousemove", handleGlobalMouse, { passive: true });
+    return () => window.removeEventListener("mousemove", handleGlobalMouse);
+  }, [interactive, animate, eyeOffsetX, eyeOffsetY]);
 
   // Mouse enter — initial shy reaction + gentle jiggle
   const handleMouseEnter = useCallback(() => {
@@ -339,6 +382,16 @@ export function MeshiMascot({
   // Determine prop SVG
   const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
 
+  // Determine current face (with blinking override)
+  const getCurrentFace = () => {
+    if (isBlinking && !speaking) return { face: FACES.blinking, mood: "blinking" as MeshiMood };
+    const currentMood = interactive ? (localMood || mood) : mood;
+    const currentFace = interactive ? (FACES[localMood || mood] || FACES.happy) : face;
+    return { face: currentFace, mood: currentMood };
+  };
+
+  const { face: renderedFace, mood: renderedMood } = getCurrentFace();
+
   return (
     <motion.div
       ref={containerRef}
@@ -357,22 +410,34 @@ export function MeshiMascot({
       whileTap={animate ? { scale: 0.9 } : undefined}
     >
       <svg width={size} height={size} viewBox="-24 -24 48 48">
-        {/* Clip to perfect circle */}
+        {/* Clip to perfect circle — unique ID per instance */}
         <defs>
-          <clipPath id="meshi-circle-clip">
+          <clipPath id={`${uniqueId}-clip`}>
             <circle cx="0" cy="0" r="22" />
           </clipPath>
+          {/* Breathing glow filter */}
+          <filter id={`${uniqueId}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        {/* Glow ring — outside clip, perfectly circular */}
+        {/* Breathing ambient glow */}
         {showGlow && (
-          <motion.circle cx="0" cy="0" r="20" fill="none" stroke={theme.primary} strokeWidth="1" opacity="0.3"
-            animate={animate ? { scale: [1, 1.1, 1], opacity: [0.3, 0.15, 0.3] } : undefined}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          <motion.circle cx="0" cy="0" r="20" fill="none" stroke={theme.primary} strokeWidth="1.5" opacity="0.2"
+            animate={animate ? {
+              scale: [1, 1.08, 1.03, 1.1, 1],
+              opacity: [0.2, 0.35, 0.25, 0.3, 0.2],
+              strokeWidth: [1.5, 2, 1.5, 1.8, 1.5],
+            } : undefined}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
 
-        {/* Speaking pulse rings */}
+        {/* Speaking pulse rings — triple layered for rich effect */}
         {speaking && (
           <>
             <motion.circle cx="0" cy="0" r="18" fill="none" stroke={theme.primary} strokeWidth="1.5"
@@ -383,42 +448,51 @@ export function MeshiMascot({
               initial={{ scale: 1, opacity: 0.4 }} animate={{ scale: 1.6, opacity: 0 }}
               transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut", delay: 0.4 }}
             />
+            <motion.circle cx="0" cy="0" r="18" fill="none" stroke={theme.primary} strokeWidth="0.5"
+              initial={{ scale: 1, opacity: 0.3 }} animate={{ scale: 1.8, opacity: 0 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut", delay: 0.8 }}
+            />
           </>
         )}
 
         {/* Clipped content — everything inside the circle */}
-        <g clipPath="url(#meshi-circle-clip)">
-          {/* Body — clean circle with enhanced bounce */}
+        <g clipPath={`url(#${uniqueId}-clip)`}>
+          {/* Body — clean circle with smooth breathing animation */}
           <motion.circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2"
             animate={animate ? (bouncy
               ? { y: [0, -2.5, 0, -1, 0], scaleX: [1, 0.97, 1.02, 0.99, 1], scaleY: [1, 1.04, 0.97, 1.01, 1] }
-              : { y: [0, -1, 0] }
+              : {
+                  scaleX: [1, 1.015, 1, 0.985, 1],
+                  scaleY: [1, 0.985, 1, 1.015, 1],
+                  y: [0, -0.5, 0, 0.3, 0],
+                }
             ) : undefined}
             transition={bouncy
               ? { duration: 2, repeat: Infinity, ease: "easeInOut" }
-              : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
+              : { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
             }
           />
 
           {/* Hat */}
           <g style={{ color: theme.primary }}>{hatElement}</g>
 
-          {/* Face — eyes only, reactive to petting */}
-          <g transform={`scale(${Math.min(scale, 1.2)})`}>
+          {/* Face — eyes with smooth tracking and blinking */}
+          <motion.g
+            transform={`scale(${Math.min(scale, 1.2)})`}
+            style={{ x: smoothEyeX, y: smoothEyeY }}
+          >
             {(() => {
-              const currentFace = interactive ? (FACES[localMood || mood] || FACES.happy) : face;
-              const currentMood = interactive ? (localMood || mood) : mood;
-              if (currentFace.svg && SVG_FACES[currentMood]) {
-                return SVG_FACES[currentMood](theme.primary);
+              if (renderedFace.svg && SVG_FACES[renderedMood]) {
+                return SVG_FACES[renderedMood](theme.primary);
               }
               return (
                 <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
                   fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
-                  {currentFace.eyes}
+                  {renderedFace.eyes}
                 </text>
               );
             })()}
-          </g>
+          </motion.g>
         </g>
 
         {/* Prop — rendered outside the clip for visibility */}
@@ -432,7 +506,6 @@ export function MeshiMascot({
             {propSvg}
           </motion.g>
         )}
-
       </svg>
     </motion.div>
   );
