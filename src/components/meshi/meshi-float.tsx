@@ -16,6 +16,7 @@ import {
   loadKnowledge, saveKnowledge, indexMeshData, answerMeshQuestion,
   getKnowledgeLevelDescription, type MeshiExplorationState,
 } from "@/lib/meshi-knowledge";
+import { impactFeedback } from "@/lib/native/haptics";
 
 // Meshi is ONE standalone AI entity. No bubble, no home position.
 // Click Meshi to open actions. Meshi floats freely in the bottom-right.
@@ -468,6 +469,7 @@ export function MeshiFloat() {
 
   const handleMeshiClick = useCallback(() => {
     if (wasDragged) return;
+    impactFeedback("MEDIUM");
     // Mark first-time interaction
     if (isFirstTimeMeshi) {
       setIsFirstTimeMeshi(false);

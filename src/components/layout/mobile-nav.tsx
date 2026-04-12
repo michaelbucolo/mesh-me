@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Waypoints, MessageCircle, Bell, User, Compass, Rss } from "lucide-react";
+import { impactFeedback } from "@/lib/native/haptics";
 
 interface MobileNavProps {
   unreadNotifications?: number;
@@ -24,7 +25,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   ];
 
   return (
-    <nav className="safe-area-bottom fixed bottom-3 left-1/2 z-50 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1.5 shadow-[var(--shadow-lg)] backdrop-blur-2xl lg:hidden">
+    <nav className="safe-area-bottom fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1.5 shadow-[var(--shadow-lg)] backdrop-blur-2xl lg:hidden">
       <div className="grid grid-cols-6 gap-0.5">
         {items.map((item) => {
           const isActive = item.label === "Profile"
@@ -35,6 +36,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => impactFeedback("LIGHT")}
               className={cn(
                 "relative flex flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition-all active:scale-95",
                 isActive ? "bg-[var(--accent-subtle)] text-[var(--accent)]" : "text-[var(--text-muted)]"
