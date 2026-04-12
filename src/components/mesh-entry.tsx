@@ -109,7 +109,7 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const { mode, setMode } = useTheme();
   const modes: Array<{ value: "light" | "dark" | "system"; icon: typeof Sun; label: string }> = [
     { value: "light", icon: Sun, label: "Light" },

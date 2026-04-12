@@ -12,7 +12,6 @@ import {
   Globe,
   Lock,
   Check,
-  Star,
   Waypoints,
   Users,
   MessageCircle,
@@ -110,8 +109,6 @@ const PRO_FEATURES = [
 
 export default function MeshProPage() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
-  const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
-
   const monthlyPrice = 4.99;
   const yearlyPrice = 39.99;
   const yearlySavings = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
@@ -228,8 +225,6 @@ export default function MeshProPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + index * 0.05 }}
-              onMouseEnter={() => setHoveredFeature(feature.id)}
-              onMouseLeave={() => setHoveredFeature(null)}
               className="group relative p-5 rounded-xl glass-surface hover:glass-card transition-all duration-300 cursor-default"
             >
               <div className="flex items-start gap-3">

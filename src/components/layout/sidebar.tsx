@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   MessageCircle,
+  MessagesSquare,
   Bell,
   User,
   LogOut,
@@ -15,6 +16,8 @@ import {
   Sparkles,
   ArrowRight,
   Compass,
+  Settings,
+  Link2,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -36,8 +39,11 @@ const navItems = [
   { href: "/content-hub", icon: Globe, label: "Content Hub" },
   { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/feed", icon: MessageCircle, label: "Feed" },
+  { href: "/messages", icon: MessagesSquare, label: "MeChat" },
   { href: "/notifications", icon: Bell, label: "Notifications" },
+  { href: "/connected-accounts", icon: Link2, label: "Connected Accounts" },
   { href: "/profile", icon: User, label: "Profile" },
+  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export function Sidebar({ user, unreadNotifications = 0 }: SidebarProps) {

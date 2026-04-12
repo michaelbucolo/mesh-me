@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getAdminStats } from "@/lib/queries";
 import { redirect } from "next/navigation";
-import { Shield, Users, FileText, Flag, TrendingUp, Clock, Activity, Hash } from "lucide-react";
+import { Users, FileText, Flag, TrendingUp, Clock, Activity, Hash } from "lucide-react";
 import { AdminActions } from "./admin-actions";
 import { formatRelativeTime } from "@/lib/utils";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";

@@ -7,7 +7,7 @@ import { completeOnboarding } from "@/lib/actions";
 import { INTEREST_TAGS } from "@/lib/utils";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { MeshiOnboardingGuide } from "@/components/meshi/meshi-guide";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 
