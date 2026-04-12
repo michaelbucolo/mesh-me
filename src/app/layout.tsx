@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/theme-provider";
+import { NativeInit } from "@/components/native-init";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -22,7 +23,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/meshi-favicon.svg",
-    apple: "/meshi-favicon.svg",
+    apple: [
+      { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
   },
   applicationName: "mesh.me",
   appleWebApp: {
@@ -43,6 +48,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#09090b",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -53,6 +67,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${jakarta.variable} app-shell-gradient font-sans antialiased`} style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <ThemeProvider>
           <ToastProvider>
+            <NativeInit />
             {children}
           </ToastProvider>
         </ThemeProvider>

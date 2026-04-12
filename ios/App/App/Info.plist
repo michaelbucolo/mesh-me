@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>mesh.me</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+
+	<!-- Camera permission for profile photos and content creation -->
+	<key>NSCameraUsageDescription</key>
+	<string>mesh.me uses your camera to take profile photos and create posts</string>
+
+	<!-- Photo library for profile photos and media posts -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>mesh.me accesses your photos to share in posts and set your profile picture</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>mesh.me saves photos and media to your library</string>
+
+	<!-- Face ID for secure authentication -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>mesh.me uses Face ID for quick and secure sign-in</string>
+
+	<!-- Contacts for finding friends -->
+	<key>NSContactsUsageDescription</key>
+	<string>mesh.me checks your contacts to help you find friends already on the platform</string>
+
+	<!-- Location for nearby features -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>mesh.me uses your location to show nearby communities and events</string>
+
+	<!-- Microphone for video recording -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>mesh.me uses your microphone to record audio for video posts</string>
+
+	<!-- Mac Catalyst support -->
+	<key>UIApplicationSupportsMultipleScenes</key>
+	<true/>
+
+	<!-- URL schemes for OAuth callbacks and deep linking -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>meshme</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>me.mesh.app</string>
+		</dict>
+	</array>
+
+	<!-- Universal links -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:mesh.me</string>
+		<string>applinks:www.mesh.me</string>
+	</array>
+
+	<!-- Background modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
+
+	<!-- App Transport Security — allow the hosted server -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+
+	<!-- iPad multitasking support -->
+	<key>UIRequiresFullScreen</key>
+	<false/>
+	<key>UISupportsDocumentBrowser</key>
+	<false/>
+</dict>
+</plist>

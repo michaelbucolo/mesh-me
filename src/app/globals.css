@@ -508,6 +508,15 @@ h1, h2, h3, .font-display {
 
 /* ─── Utility ─── */
 .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-area-top { padding-top: env(safe-area-inset-top); }
+.safe-area-left { padding-left: env(safe-area-inset-left); }
+.safe-area-right { padding-right: env(safe-area-inset-right); }
+.safe-area-all {
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+}
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -573,4 +582,64 @@ h1, h2, h3, .font-display {
 .soft-outline {
   border: 1px solid var(--glass-card-border);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* ─── iOS Native Feel ─── */
+
+/* Prevent rubber-band overscroll on body for native app feel */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection on interactive elements (native feel) */
+button, a, [role="button"], nav {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Prevent tap highlight on iOS */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure inputs zoom correctly on iOS */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+textarea,
+select {
+  font-size: 16px; /* Prevents iOS auto-zoom on focus */
+}
+
+/* Touch-friendly hit targets */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* iOS standalone mode adjustments */
+@media all and (display-mode: standalone) {
+  body {
+    /* Extra top padding for iOS status bar */
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Smooth momentum scrolling for scrollable containers */
+.scroll-native {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent content from being hidden behind notch */
+.notch-safe {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
 }
