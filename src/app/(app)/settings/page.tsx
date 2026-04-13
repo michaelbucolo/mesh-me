@@ -69,6 +69,7 @@ import {
   Award,
   Gift,
   ImageIcon,
+  ArrowRight,
 } from "lucide-react";
 import { INTEREST_TAGS } from "@/lib/utils";
 import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor } from "@/components/meshi/meshi-mascot";
@@ -1733,6 +1734,11 @@ export default function SettingsPage() {
                       hatStyle: meshiHat,
                       colorTheme: meshiColor,
                     });
+                    // Persist to localStorage for instant cross-component sync
+                    localStorage.setItem("meshiFace", meshiFace);
+                    localStorage.setItem("meshiHat", meshiHat);
+                    localStorage.setItem("meshiColor", meshiColor);
+                    // Dispatch storage events so all Meshi instances update in real-time
                     window.dispatchEvent(new StorageEvent("storage", { key: "meshiFace", newValue: meshiFace }));
                     window.dispatchEvent(new StorageEvent("storage", { key: "meshiHat", newValue: meshiHat }));
                     window.dispatchEvent(new StorageEvent("storage", { key: "meshiColor", newValue: meshiColor }));
@@ -1744,6 +1750,63 @@ export default function SettingsPage() {
                 <Sparkles className="h-4 w-4" />
                 Save Meshi Preferences
               </button>
+
+              {/* App Logo Customization — MeshPro Feature */}
+              <div className="glass-card rounded-2xl p-5 mt-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Crown className="h-4 w-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">App Logo</h3>
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-amber-400 bg-amber-400/10">MeshPro</span>
+                </div>
+                <p className="text-xs text-[var(--text-muted)] mb-4">
+                  Replace the default app logo with your customized Meshi. Your personalized Meshi appears in the sidebar, favicon, and throughout the app.
+                </p>
+
+                {/* Preview */}
+                <div className="flex items-center gap-4 mb-4 p-3 rounded-xl" style={{ background: "var(--bg-tertiary)" }}>
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">Default</span>
+                    <div className="p-2 rounded-xl" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-primary)" }}>
+                      <MeshiMascot size={36} mood="happy" color="blue" hat="none" animate={false} showGlow={false} />
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-[9px] text-amber-400 uppercase tracking-wider font-bold">Your Logo</span>
+                    <div className="p-2 rounded-xl ring-2 ring-amber-400/30" style={{ background: "var(--bg-primary)", border: "1px solid rgba(251,191,36,0.3)" }}>
+                      <MeshiMascot size={36} mood={meshiFace} color={meshiColor} hat={meshiHat} animate showGlow={false} bouncy />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem("meshiAppLogo", "custom");
+                    localStorage.setItem("meshiAppLogoColor", meshiColor);
+                    window.dispatchEvent(new StorageEvent("storage", { key: "meshiAppLogo", newValue: "custom" }));
+                    window.dispatchEvent(new StorageEvent("storage", { key: "meshiAppLogoColor", newValue: meshiColor }));
+                    showSuccess("App logo updated to your custom Meshi!");
+                  }}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                  style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(234,179,8,0.08))", border: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24" }}
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  Use Custom Meshi as App Logo
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem("meshiAppLogo", "default");
+                    localStorage.removeItem("meshiAppLogoColor");
+                    window.dispatchEvent(new StorageEvent("storage", { key: "meshiAppLogo", newValue: "default" }));
+                    window.dispatchEvent(new StorageEvent("storage", { key: "meshiAppLogoColor", newValue: "blue" }));
+                    showSuccess("App logo reset to default");
+                  }}
+                  className="w-full py-2 rounded-xl text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors mt-2"
+                >
+                  Reset to Default Logo
+                </button>
+              </div>
               </>
               )}
             </motion.div>

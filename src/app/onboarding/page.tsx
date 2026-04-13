@@ -11,6 +11,7 @@ import { ArrowRight, ArrowLeft, Phone, Check, Globe } from "lucide-react";
 import { MeshiOnboardingGuide } from "@/components/meshi/meshi-guide";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import { MeshBackground } from "@/components/mesh-background";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 const SOCIAL_PLATFORMS = [
   { id: "instagram", name: "Instagram", color: "#E4405F", icon: "IG" },
@@ -35,6 +36,7 @@ const TOTAL_STEPS = 5;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
+  const meshiPrefs = useMeshiPreferences();
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -90,7 +92,7 @@ export default function OnboardingPage() {
         <MeshiOnboardingGuide onComplete={() => setShowMeshiGuide(false)} />
       ) : (
         <>
-          <MeshiMascot size={64} mood="excited" color="blue" speaking />
+          <MeshiMascot size={64} mood="excited" color={meshiPrefs.color} hat={meshiPrefs.hat} speaking animate bouncy />
           <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">Welcome to the Mesh</h1>
           <p className="text-[var(--text-tertiary)] text-lg max-w-md mx-auto">
             Meshi showed you the ropes. Now let&apos;s make this yours!
