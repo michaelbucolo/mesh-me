@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   // For production builds, the static export in `out/` is used instead.
   server: {
     // Use the hosted URL so SSR, API routes, and auth all work.
-    url: "https://mesh-me.vercel.app",
+    url: "https://meshme.vercel.app",
     cleartext: false,
   },
 
