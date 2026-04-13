@@ -19,21 +19,22 @@ The iOS app is a native shell (WKWebView) that loads the hosted mesh.me web appl
 
 ## Prerequisites
 
-- **macOS** with Xcode 15+ installed
-- **Apple Developer Account** (for device testing and App Store submission)
-- **CocoaPods** — `sudo gem install cocoapods`
+- **macOS** with Xcode 15+ installed (from Mac App Store)
+- **Apple ID** (free Apple ID works for testing on your own devices)
 - **Node.js 20+** and npm
 
-## Quick Start
+## First Time Setup
+
+If you just installed Xcode for the first time:
 
 ```bash
-# 1. Install dependencies
+# 1. Install Xcode command line tools (if prompted)
+xcode-select --install
+
+# 2. Install dependencies
 npm install
 
-# 2. Build the web app (generates the `out/` directory)
-npm run build:ios
-
-# 3. Sync web assets to the iOS project
+# 3. Sync web assets and plugins to the iOS project
 npm run cap:sync
 
 # 4. Open in Xcode
@@ -41,9 +42,20 @@ npm run cap:open
 ```
 
 Then in Xcode:
-1. Select your target device or simulator
-2. Set your development team in **Signing & Capabilities**
-3. Press **Cmd + R** to build and run
+
+1. In the **left sidebar**, click the blue **App** project icon (top of the file tree)
+2. Click the **Signing & Capabilities** tab in the center panel
+3. Check **"Automatically manage signing"** if not already checked
+4. Under **Team**, click the dropdown → **Add an Account...** → sign in with your Apple ID
+5. Select your name from the Team dropdown
+6. At the top toolbar, choose a device:
+   - **iPhone Simulator** (e.g. "iPhone 15 Pro") — no physical device needed
+   - **Your iPhone/iPad** — plug in via USB, tap "Trust" on the device
+   - **My Mac (Designed for iPad)** — runs as a Mac app
+7. Press **Cmd + R** to build and run
+
+> **Note:** A free Apple ID lets you run on your own devices and simulators.
+> An Apple Developer Program membership ($99/yr) is only needed for App Store distribution.
 
 ## Project Structure
 
