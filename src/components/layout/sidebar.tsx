@@ -76,7 +76,15 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
       <div className="mb-4 rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-3.5">
         <Link href="/mesh" className="group flex items-center gap-3">
           <div className="relative">
-            <MeshiMascot size={32} color={meshiPrefs.color} mood={meshiPrefs.face} hat={meshiPrefs.hat} animate showGlow={false} bouncy />
+            <MeshiMascot
+              size={32}
+              color={meshiPrefs.appLogo === "custom" ? meshiPrefs.color : "blue"}
+              mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
+              hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
+              animate
+              showGlow={false}
+              bouncy
+            />
           </div>
           <div>
             <p className="brand-wordmark text-lg text-[var(--text-primary)]">

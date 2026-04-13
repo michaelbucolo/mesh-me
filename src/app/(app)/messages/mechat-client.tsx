@@ -106,7 +106,15 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <MeshiMascot size={32} color={meshiPrefs.color} mood={meshiPrefs.face} hat={meshiPrefs.hat} animate showGlow={false} bouncy />
+            <MeshiMascot
+              size={32}
+              color={meshiPrefs.appLogo === "custom" ? meshiPrefs.color : "blue"}
+              mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
+              hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
+              animate
+              showGlow={false}
+              bouncy
+            />
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">MeChat</h1>
           </div>
           <p className="text-sm text-[var(--text-muted)] mt-1">Every conversation. One inbox.</p>
