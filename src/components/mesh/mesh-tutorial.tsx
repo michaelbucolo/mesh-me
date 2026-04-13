@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MousePointer2, ZoomIn, Filter, Waypoints, Sparkles, ArrowRight } from "lucide-react";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 const TUTORIAL_STEPS = [
   {
@@ -51,6 +52,7 @@ const TUTORIAL_STEPS = [
 export function MeshTutorial() {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
+  const meshiPrefs = useMeshiPreferences();
 
   useEffect(() => {
     const seen = localStorage.getItem("mesh-tutorial-seen");
@@ -134,7 +136,8 @@ export function MeshTutorial() {
               <MeshiMascot
                 size={48}
                 mood={current.mood}
-                color="blue"
+                color={meshiPrefs.color}
+                hat={meshiPrefs.hat}
                 interactive
                 animate
               />
