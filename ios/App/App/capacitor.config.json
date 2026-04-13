@@ -3,7 +3,7 @@
 	"appName": "mesh.me",
 	"webDir": "out",
 	"server": {
-		"url": "https://mesh-me.vercel.app",
+		"url": "https://meshme.vercel.app",
 		"cleartext": false
 	},
 	"ios": {
