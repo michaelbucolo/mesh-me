@@ -48,8 +48,8 @@ export function useMeshiPreferences(): MeshiPreferences & { refresh: () => void 
             color: (pref.colorTheme as MeshiColor) || DEFAULTS.color,
             hat: (pref.hatStyle as MeshiHat) || DEFAULTS.hat,
             face: (pref.faceStyle as MeshiMood) || DEFAULTS.face,
-            appLogo: DEFAULTS.appLogo,
-            appLogoColor: DEFAULTS.appLogoColor,
+            appLogo: (localStorage.getItem("meshiAppLogo") as "default" | "custom") || DEFAULTS.appLogo,
+            appLogoColor: (localStorage.getItem("meshiAppLogoColor") as MeshiColor) || DEFAULTS.appLogoColor,
           };
           setPrefs(updated);
           // Sync to localStorage for instant access elsewhere
