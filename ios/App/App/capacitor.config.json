@@ -1,0 +1,54 @@
+{
+	"appId": "me.mesh.app",
+	"appName": "mesh.me",
+	"webDir": "out",
+	"server": {
+		"url": "https://mesh-me.vercel.app",
+		"cleartext": false
+	},
+	"ios": {
+		"contentInset": "always",
+		"backgroundColor": "#09090b",
+		"preferredContentMode": "mobile",
+		"scheme": "meshme",
+		"allowsLinkPreview": true,
+		"scrollEnabled": true
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 1500,
+			"launchAutoHide": true,
+			"launchFadeOutDuration": 300,
+			"backgroundColor": "#09090b",
+			"showSpinner": false,
+			"androidScaleType": "CENTER_CROP",
+			"splashFullScreen": true,
+			"splashImmersive": true
+		},
+		"StatusBar": {
+			"style": "DARK",
+			"backgroundColor": "#09090b",
+			"overlaysWebView": true
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		}
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"CAPBrowserPlugin",
+		"CAPCameraPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"LocalNotificationsPlugin",
+		"PreferencesPlugin",
+		"PushNotificationsPlugin",
+		"SharePlugin",
+		"SplashScreenPlugin",
+		"StatusBarPlugin"
+	]
+}
