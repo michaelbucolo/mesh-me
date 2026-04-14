@@ -42,17 +42,35 @@ export async function GET() {
       timestamp: n.createdAt.getTime(),
     }));
 
-    // Mark them as read
-    if (deliveryNotifs.length > 0) {
-      await prisma.notification.updateMany({
-        where: {
-          id: { in: deliveryNotifs.map((n) => n.id) },
-        },
-        data: { read: true },
-      });
+    // Don't mark as read here — the client will call POST after displaying each delivery
+    return NextResponse.json({ deliveries });
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
+
+// POST: Mark specific deliveries as read after the client has displayed them
+export async function POST(req: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const { ids } = await req.json();
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: "ids array required" }, { status: 400 });
     }
 
-    return NextResponse.json({ deliveries });
+    // Only mark notifications that belong to this user
+    await prisma.notification.updateMany({
+      where: {
+        id: { in: ids },
+        recipientId: user.id,
+        type: "meshi_delivery",
+      },
+      data: { read: true },
+    });
+
+    return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
