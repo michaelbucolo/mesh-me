@@ -82,7 +82,9 @@ export class MeshEngine {
     if (nodes.length === 0) return false;
     let totalKineticEnergy = 0;
 
-    // Node-node repulsion
+    // Phase 1: Apply all forces to velocities
+
+    // Node-node repulsion + center gravity
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       for (let j = i + 1; j < nodes.length; j++) {
@@ -100,23 +102,10 @@ export class MeshEngine {
         }
       }
 
-      // Center gravity
       if (node.type !== "self") {
         node.vx += (center.x - node.x) * config.centerGravity;
         node.vy += (center.y - node.y) * config.centerGravity;
       }
-
-      // Damping
-      node.vx *= config.damping;
-      node.vy *= config.damping;
-
-      // Apply velocity
-      if (node.type !== "self") {
-        node.x += node.vx;
-        node.y += node.vy;
-      }
-
-      totalKineticEnergy += node.vx * node.vx + node.vy * node.vy;
     }
 
     // Edge spring forces
@@ -144,6 +133,17 @@ export class MeshEngine {
         if (target.type !== "self") { target.vx -= fx; target.vy -= fy; }
         if (source.type !== "self") { source.vx += fx; source.vy += fy; }
       }
+    }
+
+    // Phase 2: Apply damping, update positions, compute kinetic energy
+    for (const node of nodes) {
+      node.vx *= config.damping;
+      node.vy *= config.damping;
+      if (node.type !== "self") {
+        node.x += node.vx;
+        node.y += node.vy;
+      }
+      totalKineticEnergy += node.vx * node.vx + node.vy * node.vy;
     }
 
     // Check if simulation has settled
