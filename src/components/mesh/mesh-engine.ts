@@ -75,12 +75,11 @@ export class MeshEngine {
 
   /** Run one tick of the physics simulation. Returns true if still active. */
   tick(): boolean {
+    this.time += 0.016;
     if (this._isSettled) return false;
 
     const { nodes, edges, config, center } = this;
     if (nodes.length === 0) return false;
-
-    this.time += 0.016;
     let totalKineticEnergy = 0;
 
     // Node-node repulsion
