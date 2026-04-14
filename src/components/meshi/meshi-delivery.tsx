@@ -56,9 +56,12 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
   useEffect(() => {
     if (activeDelivery || deliveries.length === 0) return;
     const next = deliveries[0];
-    setActiveDelivery(next);
-    setDeliveries(prev => prev.slice(1));
-    setDeliveryPhase("traveling");
+    // Use functional updates and batch via microtask to avoid synchronous cascading renders
+    queueMicrotask(() => {
+      setActiveDelivery(next);
+      setDeliveries(prev => prev.slice(1));
+      setDeliveryPhase("traveling");
+    });
   }, [activeDelivery, deliveries]);
 
   // Phase transitions — runs when activeDelivery changes (not when deliveries changes)
