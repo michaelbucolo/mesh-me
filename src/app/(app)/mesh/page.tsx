@@ -250,12 +250,16 @@ export default function MeshPage() {
 
   // --- Multi-user mesh exploration ---
   const enterUserMesh = useCallback(async (node: MeshNode) => {
-    if (viewingUserMesh) return;
     const username = node.sublabel?.replace("@", "");
     if (!username) return;
 
     try {
       setLoadingUserMesh(true);
+      // Save current mesh only on first exploration
+      if (!viewingUserMesh) {
+        setMyNodes([...engine.nodes]);
+        setMyEdges([...engine.edges]);
+      }
       const res = await fetch(`/api/users/${username}/mesh`);
       if (!res.ok) { if (node.href) router.push(node.href); return; }
       const data = await res.json();
@@ -530,7 +534,7 @@ export default function MeshPage() {
             onClose={() => setShowCommandPalette(false)}
             onSelectNode={setSelectedNode}
             onShowFootprint={() => setShowFootprint(true)}
-            centerRef={{ current: engine.getCenter() }}
+            centerRef={{ get current() { return engine.getCenter(); } }}
             zoomRef={zoomRef}
             panRef={panRef}
             onPanChange={(newPan) => { setPan(newPan); panRef.current = newPan; }}
