@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-
-// Meshi — a reasoning engine that can answer questions with logic
-// Architecture: designed to plug into external APIs when keys are available
-// For now: sophisticated local reasoning with math, logic, general knowledge, and mesh awareness
+import { meshiQuery } from "@/lib/meshi-engine";
 
 interface ChatRequest {
   message: string;
@@ -426,12 +423,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    // Rate limit: max 60 messages per minute per user (simple in-memory)
+    // Try the smart query engine first — it queries the database for real answers
+    try {
+      const engineResult = await meshiQuery(message);
+      if (engineResult.content) {
+        return NextResponse.json({
+          content: engineResult.content,
+          mood: engineResult.mood,
+          action: engineResult.action,
+        });
+      }
+    } catch {
+      // Engine failed, fall through to pattern matching
+    }
+
+    // Fallback to pattern-matching reasoning
     const result = reason(message, context);
 
     return NextResponse.json({
       content: result.content,
       mood: result.mood,
+      action: result.action,
     });
   } catch {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
