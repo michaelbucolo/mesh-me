@@ -584,7 +584,7 @@ export function MeshiChat({ isOpen, onClose, hat = "none", color = "blue", meshD
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-line ${
                     msg.role === "user"
                       ? "brand-button text-white rounded-br-md"
                       : "bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-bl-md border border-[var(--border-primary)]"

@@ -24,7 +24,7 @@ import {
   redeemCode,
   getUserUnlockedCosmetics,
 } from "@/lib/actions";
-import { getMeshPrivacy, getGlobalMeshStatus } from "@/lib/queries";
+import { getMeshPrivacy, getGlobalMeshStatus, getPrivacyTransparencyData } from "@/lib/queries";
 import { useState, useTransition, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -142,6 +142,11 @@ export default function SettingsPage() {
 
   // Privacy
   const [isPublic, setIsPublic] = useState(true);
+
+  // Privacy transparency data
+  type TransparencyData = Awaited<ReturnType<typeof getPrivacyTransparencyData>>;
+  const [transparencyData, setTransparencyData] = useState<TransparencyData>(null);
+  const [transparencyLoaded, setTransparencyLoaded] = useState(false);
 
   // Notifications toggles
   const [notifFollowers, setNotifFollowers] = useState(true);
@@ -380,6 +385,16 @@ export default function SettingsPage() {
       }).catch(() => setMeshPrivacyLoaded(true));
     }
   }, [activeTab, meshPrivacyLoaded]);
+
+  // Load privacy transparency data
+  useEffect(() => {
+    if (activeTab === "privacy" && !transparencyLoaded) {
+      getPrivacyTransparencyData().then((data) => {
+        setTransparencyData(data);
+        setTransparencyLoaded(true);
+      }).catch(() => setTransparencyLoaded(true));
+    }
+  }, [activeTab, transparencyLoaded]);
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -1085,6 +1100,129 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Data Transparency Dashboard */}
+              <div className="mt-6 glass-card rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                    <Eye className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Data Transparency Report</h3>
+                    <p className="text-[10px] text-[var(--text-muted)]">Everything mesh.me knows about you — no hidden data</p>
+                  </div>
+                </div>
+
+                {transparencyData ? (
+                  <div className="space-y-4">
+                    {/* Data stored breakdown */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Content You Created</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: "Posts", count: transparencyData.dataStored.posts },
+                          { label: "Comments", count: transparencyData.dataStored.comments },
+                          { label: "Reactions", count: transparencyData.dataStored.reactions },
+                          { label: "Messages sent", count: transparencyData.dataStored.messages },
+                          { label: "Saved posts", count: transparencyData.dataStored.savedPosts },
+                          { label: "Interests", count: transparencyData.dataStored.interests },
+                        ].map((item) => (
+                          <div key={item.label} className="glass-surface rounded-lg px-3 py-2 text-center">
+                            <p className="text-lg font-bold text-[var(--text-primary)]">{item.count}</p>
+                            <p className="text-[9px] text-[var(--text-muted)]">{item.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Connections */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Social Graph</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="glass-surface rounded-lg px-3 py-2 text-center">
+                          <p className="text-lg font-bold text-[var(--text-primary)]">{transparencyData.connections.followers}</p>
+                          <p className="text-[9px] text-[var(--text-muted)]">Followers</p>
+                        </div>
+                        <div className="glass-surface rounded-lg px-3 py-2 text-center">
+                          <p className="text-lg font-bold text-[var(--text-primary)]">{transparencyData.connections.following}</p>
+                          <p className="text-[9px] text-[var(--text-muted)]">Following</p>
+                        </div>
+                        <div className="glass-surface rounded-lg px-3 py-2 text-center">
+                          <p className="text-lg font-bold text-[var(--text-primary)]">{transparencyData.connections.communities}</p>
+                          <p className="text-[9px] text-[var(--text-muted)]">Communities</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Connected platforms */}
+                    {transparencyData.platforms.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Connected Platforms</p>
+                        <div className="space-y-1.5">
+                          {transparencyData.platforms.map((p) => (
+                            <div key={p.name} className="flex items-center justify-between glass-surface rounded-lg px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                <div className={`h-2 w-2 rounded-full ${p.active ? "bg-emerald-500" : "bg-gray-500"}`} />
+                                <span className="text-xs font-medium text-[var(--text-primary)] capitalize">{p.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {p.scopes && (
+                                  <span className="text-[9px] text-[var(--text-muted)] bg-[var(--bg-tertiary)] rounded px-1.5 py-0.5">
+                                    {typeof p.scopes === "string" ? p.scopes.split(",").length : 0} permissions
+                                  </span>
+                                )}
+                                <span className="text-[9px] text-[var(--text-muted)]">
+                                  {p.active ? "Active" : "Inactive"}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-[var(--text-muted)] mt-2">
+                          {transparencyData.dataStored.platformPosts} synced posts from connected platforms
+                        </p>
+                      </div>
+                    )}
+
+                    {/* What we DON'T store */}
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3">
+                      <p className="text-[11px] font-semibold text-emerald-400 mb-2">What mesh.me does NOT collect</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {[
+                          "Browsing history",
+                          "Device fingerprints",
+                          "Location tracking",
+                          "Behavioral analytics",
+                          "Ad preferences",
+                          "Third-party cookies",
+                          "Contact lists",
+                          "App usage patterns",
+                        ].map((item) => (
+                          <div key={item} className="flex items-center gap-1.5">
+                            <X className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                            <span className="text-[10px] text-[var(--text-muted)]">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Active sessions */}
+                    <div className="flex items-center justify-between glass-surface rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-3.5 w-3.5 text-[var(--accent)]" />
+                        <span className="text-xs text-[var(--text-primary)]">Active sessions</span>
+                      </div>
+                      <span className="text-xs font-medium text-[var(--text-primary)]">{transparencyData.sessions}</span>
+                    </div>
+                  </div>
+                ) : transparencyLoaded ? (
+                  <p className="text-xs text-[var(--text-muted)]">Unable to load transparency data.</p>
+                ) : (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="h-5 w-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
               </div>
 
               <div className="mt-8 pt-6 border-t border-[var(--border-primary)]">

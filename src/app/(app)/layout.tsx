@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { MeshBackground } from "@/components/mesh-background";
 import { DynamicFavicon } from "@/components/dynamic-favicon";
 import { MeshiFloat } from "@/components/meshi/meshi-float";
+import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
 import { prisma } from "@/lib/prisma";
 import { Sparkles, Search, MessageCircle, Bell, Settings } from "lucide-react";
@@ -98,6 +99,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <MobileNav unreadNotifications={unreadCount} unreadMessages={unreadMessages} username={user.username} />
       <MeshiFloat />
+      <MeshiDeliveryWrapper />
       <AchievementChecker />
       <DynamicFavicon />
     </div>
