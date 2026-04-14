@@ -2,6 +2,7 @@
 
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { rateLimit } from "./security";
 
 /**
  * Meshi Query Engine
@@ -736,19 +737,52 @@ async function sendMeshiMessage(recipient: string, message: string): Promise<Mes
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
 
-  // Find the recipient
-  const recipientUser = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: { contains: recipient.toLowerCase() } },
-        { displayName: { contains: recipient } },
-      ],
-    },
+  // Rate limit messages
+  const rl = rateLimit(`msg:${user.id}`, 30, 60 * 1000);
+  if (!rl.allowed) {
+    return { content: "You're sending messages too quickly! Give me a moment before the next delivery.", mood: "thinking" };
+  }
+
+  // Find the recipient — prefer exact username match, fall back to displayName
+  const searchTerm = recipient.toLowerCase().replace(/^@/, "");
+  let recipientUser = await prisma.user.findFirst({
+    where: { username: searchTerm },
     select: { id: true, username: true, displayName: true },
   });
 
   if (!recipientUser) {
+    recipientUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: { contains: searchTerm } },
+          { displayName: { contains: searchTerm } },
+        ],
+      },
+      select: { id: true, username: true, displayName: true },
+    });
+  }
+
+  if (!recipientUser) {
     return { content: `I can't find "${recipient}" on mesh.me. Make sure the name is right!`, mood: "thinking" };
+  }
+
+  // Prevent self-messaging
+  if (recipientUser.id === user.id) {
+    return { content: "You can't send a message to yourself! Try sending to a friend instead.", mood: "thinking" };
+  }
+
+  // Check if either user has blocked the other
+  const blockExists = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: user.id, blockedId: recipientUser.id },
+        { blockerId: recipientUser.id, blockedId: user.id },
+      ],
+    },
+  });
+
+  if (blockExists) {
+    return { content: `I wasn't able to deliver that message. There may be a connection issue between you and ${recipientUser.displayName}.`, mood: "thinking" };
   }
 
   // Find or create thread

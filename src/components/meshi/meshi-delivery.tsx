@@ -51,18 +51,19 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
     };
   }, [checkDeliveries]);
 
-  // Process delivery queue
+  // Dequeue the next delivery when idle
   useEffect(() => {
     if (activeDelivery || deliveries.length === 0) return;
+    const next = deliveries[0];
+    setActiveDelivery(next);
+    setDeliveries(prev => prev.slice(1));
+    setDeliveryPhase("traveling");
+  }, [activeDelivery, deliveries]);
 
-    const t0 = setTimeout(() => {
-      const next = deliveries[0];
-      setActiveDelivery(next);
-      setDeliveries(prev => prev.slice(1));
-      setDeliveryPhase("traveling");
-    }, 0);
+  // Phase transitions — runs when activeDelivery changes (not when deliveries changes)
+  useEffect(() => {
+    if (!activeDelivery) return;
 
-    // Phase transitions
     const t1 = setTimeout(() => setDeliveryPhase("arriving"), 1500);
     const t2 = setTimeout(() => setDeliveryPhase("delivered"), 2500);
     const t3 = setTimeout(() => {
@@ -71,12 +72,11 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
     }, 6000);
 
     return () => {
-      clearTimeout(t0);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, [activeDelivery, deliveries]);
+  }, [activeDelivery]);
 
   if (!activeDelivery || !deliveryPhase) return null;
 
