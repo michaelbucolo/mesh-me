@@ -40,6 +40,31 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
 
 ## Key Testing Paths
 
+### Sidebar Navigation
+- **Structure**: Three labeled groups plus bottom section
+  - **CORE**: The Mesh, Feed, Explore
+  - **SOCIAL**: MeChat (badge shows unread count), Notifications (badge shows unread count), Communities
+  - **MANAGE** (collapsible): Content Hub, Connected Accounts — click group header to collapse/expand, chevron rotates -90° when collapsed
+  - **ADMIN** (only for admin users): Admin Console
+  - **Bottom** (separate from groups): Profile, Settings, MeshPro
+- Badge values for `alexcreates` seed data: MeChat = 1, Notifications = 2
+- Sidebar is hidden on mobile (<1024px), replaced by mobile bottom nav
+
+### Header (Desktop)
+- **Location**: Sticky top bar, only visible on lg+ screens (hidden on mobile)
+- **Content**: 3 icon-only buttons (no text labels) aligned right:
+  - Search (magnifying glass) — links to /search, no badge
+  - Messages (chat bubble) — links to /messages, badge shows unread count
+  - Notifications (bell) — links to /notifications, badge shows unread count
+- Badge counts should match sidebar badge counts
+- Badge overflow: shows "99+" when count > 99
+
+### Mobile Bottom Nav
+- 6 items: Mesh, Feed, Explore, Chat, Alerts, Profile
+- Badge overflow: shows "99+" when count > 99
+- Uses safe area insets for iOS
+- Z-index: z-50 (above Meshi at z-40)
+
 ### Settings (/settings)
 - **Navigation**: Sidebar → "Settings"
 - **Architecture**: The Settings page is a slim 269-line shell (`settings/page.tsx`) that manages state and renders 14 extracted tab components from `settings/tabs/`.
@@ -87,7 +112,14 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
 - **Profile tabs**: Posts, Media, About, Communities
 
 ### Mesh Canvas (/mesh)
-- **Navigation**: Sidebar → "The Mesh" (first nav item)
+- **Navigation**: Sidebar → "The Mesh" (first nav item under CORE)
+- **Component architecture**: Mesh page broken into focused components:
+  - `mesh-types.ts` — shared type definitions (MeshNode, MeshEdge, etc.)
+  - `mesh-node-detail.tsx` — right-side panel for node inspection
+  - `mesh-command-palette.tsx` — Ctrl+K search overlay
+  - `mesh-footprint-panel.tsx` — digital footprint slide-out
+  - `mesh-privacy-controls.tsx` — privacy settings panel
+  - `mesh-post-composer.tsx` — inline post creation
 - **Node types**: self (center), user, community, interest, post, platform
 - **Interactions**:
   - Hover over node → tooltip with details (at zoom >= 0.5x)
@@ -101,6 +133,17 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
 - **Zoom controls**: Vertically centered on the right edge of the canvas (top-1/2 -translate-y-1/2). Contains Zoom in, Zoom out, Reset view, Hide labels, Hide stats buttons.
 - **Action bar**: Bottom-left contains Create Post, Content Hub, Privacy buttons.
 - **Stats bar**: Shows node counts (people, communities, interests, posts) and zoom percentage above the action bar.
+
+### MeshNodeDetail Panel
+- Click any user node → panel slides in from right
+- Shows: avatar, name, username, mutual status, follower/post counts, shared interests
+- Action buttons: Message, Follow/Unfollow
+- **Follow button state**: Uses `node.isFollowing` (NOT `node.isMutual`) to determine label:
+  - `isFollowing: true` → shows "Unfollow" button
+  - `isFollowing: false` → shows "Follow" button
+  - Following nodes (users you follow) have bare IDs; follower-only nodes have "follower-" prefix
+- Message button strips "follower-" prefix from node.id before navigating
+- Node visibility controls: Hide node, Hide all users
 
 ### MeshiFloat (bottom-right floating companion)
 - Click Meshi mascot → opens actions menu above Meshi
@@ -117,12 +160,6 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
   - Mobile (<1024px): 16px from right edge, 80px from bottom (above mobile nav)
 - **Drag behavior**: Meshi is draggable. Drag bounds respect safe zones. Releasing near bottom-right corner snaps back to safe position.
 - **Z-index hierarchy**: Mobile nav (z-50) > Meshi actions menu (z-50) > Meshi (z-40) > zoom controls (z-10)
-
-### Profile Preview Panel
-- Click any user node → panel slides in from right
-- Shows: avatar, name, username, mutual status, follower/post counts, shared interests
-- Action buttons: Message, Follow/Unfollow
-- Node visibility controls: Hide node, Hide all users
 
 ## Page Consistency
 
