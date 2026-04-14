@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
-  X, Sparkles, MessageCircle, Send, Search,
-  ChevronRight, Palette, Settings, HelpCircle,
-  PenSquare, Compass, Users, Link2, Crown, MessageSquarePlus,
+  Send, Search,
 } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type MeshiProp, PAGE_PROPS } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
+import { MeshiActionsMenu } from "./meshi-actions-menu";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 import { getMeshiPreference } from "@/lib/actions";
 import {
@@ -121,7 +120,6 @@ export function MeshiFloat() {
   const speechInputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     getMeshiPreference().then((pref) => {
@@ -706,131 +704,14 @@ export function MeshiFloat() {
       {/* Actions Menu */}
       <AnimatePresence>
         {view === "actions" && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-[72px] lg:bottom-[72px] right-4 z-50 w-[280px] max-w-[calc(100vw-2rem)] max-h-[60vh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]"
-              style={{ background: "var(--bg-secondary)" }}>
-              <MeshiMascot size={28} mood="happy" color={meshiColor} hat={meshiHat} showGlow={false} animate={false} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--text-primary)]">Meshi</p>
-                <p className="text-[10px] text-[var(--text-muted)]">Your mesh.me AI</p>
-              </div>
-              <button onClick={closeAll}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="p-2 space-y-0.5 overflow-y-auto flex-1">
-              {/* Quick Actions */}
-              <p className="px-3 pt-1 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quick Actions</p>
-              <button onClick={() => setView("speech")}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <MessageCircle className="h-4 w-4" style={{ color: "var(--accent)" }} />
-                <span className="flex-1">Ask Meshi</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { closeAll(); router.push("/feed?compose=true"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <PenSquare className="h-4 w-4" style={{ color: "#22c55e" }} />
-                <span className="flex-1">Create Post</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => triggerSearch()}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Search className="h-4 w-4" style={{ color: "#f59e0b" }} />
-                <span className="flex-1">Search Mesh</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-
-              {/* Navigate */}
-              <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Navigate</p>
-              <button onClick={() => { closeAll(); router.push("/explore"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Compass className="h-4 w-4" style={{ color: "#0ea5e9" }} />
-                <span className="flex-1">Explore</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { closeAll(); router.push("/messages"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <MessageCircle className="h-4 w-4" style={{ color: "#10b981" }} />
-                <span className="flex-1">Messages</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { closeAll(); router.push("/communities"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Users className="h-4 w-4" style={{ color: "#f472b6" }} />
-                <span className="flex-1">Communities</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { closeAll(); router.push("/connected-accounts"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Link2 className="h-4 w-4" style={{ color: "#a78bfa" }} />
-                <span className="flex-1">Connected Accounts</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-
-              {/* Settings & More */}
-              <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Settings & More</p>
-              <button onClick={() => { closeAll(); router.push("/settings?tab=meshi"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Palette className="h-4 w-4" style={{ color: "#06b6d4" }} />
-                <span className="flex-1">Customize Meshi</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { closeAll(); router.push("/settings"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Settings className="h-4 w-4" style={{ color: "#38bdf8" }} />
-                <span className="flex-1">Settings</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { closeAll(); router.push("/meshpro"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <Crown className="h-4 w-4" style={{ color: "#f59e0b" }} />
-                <span className="flex-1">MeshPro</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => { closeAll(); router.push("/feedback"); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <MessageSquarePlus className="h-4 w-4" style={{ color: "#8b5cf6" }} />
-                <span className="flex-1">Send Feedback</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-              <button onClick={() => setView("chat")}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
-                style={{ color: "var(--text-primary)" }}>
-                <HelpCircle className="h-4 w-4" style={{ color: "#ec4899" }} />
-                <span className="flex-1">Full Chat with Meshi</span>
-                <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              </button>
-            </div>
-
-            <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between"
-              style={{ background: "var(--bg-secondary)" }}>
-              <div className="flex items-center gap-1 text-[9px] text-emerald-500 font-medium">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Zero data stored
-              </div>
-              <span className="text-[9px] text-[var(--text-muted)]">
-                <Sparkles className="h-3 w-3 inline" /> mesh.me AI
-              </span>
-            </div>
-          </motion.div>
+          <MeshiActionsMenu
+            meshiColor={meshiColor}
+            meshiHat={meshiHat}
+            onClose={closeAll}
+            onAskMeshi={() => setView("speech")}
+            onSearchMesh={() => triggerSearch()}
+            onOpenChat={() => setView("chat")}
+          />
         )}
       </AnimatePresence>
 
