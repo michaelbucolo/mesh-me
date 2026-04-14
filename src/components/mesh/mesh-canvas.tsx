@@ -73,7 +73,13 @@ export function MeshCanvas({
       const dpr = window.devicePixelRatio || 1;
       canvas.width = canvas.offsetWidth * dpr;
       canvas.height = canvas.offsetHeight * dpr;
-      engine.setCenter(canvas.offsetWidth / 2, canvas.offsetHeight / 2);
+      const cx = canvas.offsetWidth / 2;
+      const cy = canvas.offsetHeight / 2;
+      engine.setCenter(cx, cy);
+      // Move pinned self node to new center and restart physics
+      const selfNode = engine.nodes.find((n) => n.type === "self");
+      if (selfNode) { selfNode.x = cx; selfNode.y = cy; }
+      engine.wake();
     };
     resize();
     window.addEventListener("resize", resize);
