@@ -154,7 +154,7 @@ export function MeshNodeDetail({
           {node.type === "user" && (
             <div className="flex gap-2">
               <button
-                onClick={() => router.push("/messages?to=" + node.id)}
+                onClick={() => router.push("/messages?to=" + node.id.replace("follower-", ""))}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium brand-button text-white transition-all active:scale-95 shadow-lg"
               >
                 <Send className="h-3 w-3" /> Message
