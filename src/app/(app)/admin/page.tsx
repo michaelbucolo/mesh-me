@@ -13,7 +13,7 @@ export default async function AdminPage() {
   const stats = await getAdminStats();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div data-meshi-zone="admin" className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">
       <div className="flex items-center gap-3 mb-8">
         <MeshiLogo size={40} color="blue" mood="happy" />
         <div>

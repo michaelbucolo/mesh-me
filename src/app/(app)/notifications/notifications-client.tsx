@@ -58,7 +58,7 @@ export function NotificationsClient({ categorized, unreadCount, smartSummary }: 
   const notifications = categorized[activeTab];
 
   return (
-    <div data-meshi-zone="notifications" className="max-w-2xl mx-auto px-4 py-6">
+    <div data-meshi-zone="notifications" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
       {/* First-time welcome banner */}
       <WelcomeBanner
         storageKey="notifications"

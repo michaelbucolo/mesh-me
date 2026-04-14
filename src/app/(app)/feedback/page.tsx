@@ -99,7 +99,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div data-meshi-zone="feedback" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--brand-gradient)" }}>
