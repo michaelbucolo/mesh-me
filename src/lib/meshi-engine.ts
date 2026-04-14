@@ -46,9 +46,17 @@ function detectIntent(query: string): QueryIntent {
   const q = query.toLowerCase().trim().replace(/[?!.]+$/, "");
 
   // ── Send message intent ──
-  const msgMatch = q.match(/(?:let|tell|send|message|dm)\s+(\w+)\s+(?:know|that|:)?\s*(.*)/i);
-  if (msgMatch && msgMatch[2] && msgMatch[2].length > 2) {
-    return { type: "send_message", recipient: msgMatch[1], message: msgMatch[2] };
+  // Require explicit messaging syntax: "send @user: message", "dm user that message", "message user: text"
+  // Exclude common false positives like "tell me about", "send me a", "let me know"
+  const SELF_WORDS = ["me", "my", "i", "myself"];
+  const msgMatch = q.match(/(?:send|message|dm)\s+@?(\w+)\s*[:]\s*(.+)/i)
+    || q.match(/(?:let|tell)\s+(\w+)\s+(?:know|that)\s+(.+)/i)
+    || q.match(/(?:send|message|dm)\s+@?(\w+)\s+that\s+(.+)/i);
+  if (msgMatch && msgMatch[1] && msgMatch[2] && msgMatch[2].length > 2) {
+    const recipientWord = msgMatch[1].toLowerCase();
+    if (!SELF_WORDS.includes(recipientWord)) {
+      return { type: "send_message", recipient: msgMatch[1], message: msgMatch[2] };
+    }
   }
 
   // ── Shared posts ──

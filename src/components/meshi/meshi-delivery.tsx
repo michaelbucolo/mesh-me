@@ -67,6 +67,12 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
     const t1 = setTimeout(() => setDeliveryPhase("arriving"), 1500);
     const t2 = setTimeout(() => setDeliveryPhase("delivered"), 2500);
     const t3 = setTimeout(() => {
+      // Mark this delivery as read on the server after the animation completes
+      fetch("/api/meshi/deliveries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [activeDelivery.id] }),
+      }).catch(() => { /* best-effort */ });
       setDeliveryPhase(null);
       setActiveDelivery(null);
     }, 6000);
