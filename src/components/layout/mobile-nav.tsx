@@ -46,7 +46,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
               <span className="mt-0.5">{item.label}</span>
               {item.badge && item.badge > 0 && (
                 <span className="absolute right-1.5 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-0.5 text-[7px] font-bold text-white">
-                  {item.badge > 99 ? "+" : item.badge}
+                  {item.badge > 99 ? "99+" : item.badge}
                 </span>
               )}
               {isActive && (
