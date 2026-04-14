@@ -17,6 +17,7 @@ export interface MeshNode {
   pulsePhase: number;
   connections: string[];
   isMutual?: boolean;
+  isFollowing?: boolean;
   followerCount?: number;
   postCount?: number;
   memberCount?: number;

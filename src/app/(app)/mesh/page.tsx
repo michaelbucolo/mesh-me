@@ -226,7 +226,7 @@ export default function MeshPage() {
             color: isMutual ? NODE_COLORS.mutual : NODE_COLORS.user,
             opacity: 1, pulsePhase: Math.random() * Math.PI * 2,
             connections: [data.user.id],
-            isMutual, followerCount: f.followerCount, postCount: f.postCount,
+            isMutual, isFollowing: true, followerCount: f.followerCount, postCount: f.postCount,
             sharedInterests: f.sharedInterests,
             status: (f.status as MeshNode["status"]) || undefined,
           });

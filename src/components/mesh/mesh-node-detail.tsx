@@ -170,7 +170,7 @@ export function MeshNodeDetail({
               >
                 {actionLoading === "follow-" + node.id ? (
                   <div className="h-3 w-3 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent)" }} />
-                ) : node.isMutual ? (
+                ) : node.isFollowing ? (
                   <><UserMinus className="h-3 w-3" /> Unfollow</>
                 ) : (
                   <><UserPlus className="h-3 w-3" /> Follow</>
