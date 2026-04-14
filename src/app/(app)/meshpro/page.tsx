@@ -152,7 +152,7 @@ export default function MeshProPage() {
   const yearlySavings = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 animate-page-enter">
+    <div data-meshi-zone="meshpro" className="max-w-4xl mx-auto px-4 py-8 animate-page-enter">
       {/* Hero */}
       <div className="text-center mb-14">
         <motion.div

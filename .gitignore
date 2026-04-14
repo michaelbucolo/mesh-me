@@ -48,3 +48,5 @@ __pycache__/
 .venv/
 meshme.db
 Thumbs.db
+dev.db
+prisma/dev.db

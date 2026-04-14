@@ -103,7 +103,7 @@ export default async function ThreadDetailPage({
   const messages = await getThreadMessages(resolvedThreadId);
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-2rem)]">
+    <div data-meshi-zone="thread-detail" className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-2rem)] animate-page-enter">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-[var(--border-primary)]">
         <Link href="/messages" className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
