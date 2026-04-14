@@ -1,16 +1,65 @@
 # Testing Meshi AI Companion Features
 
 ## Overview
-Meshi is the AI companion mascot for mesh.me. It appears across the entire app as a living entity with personality, mood changes, speech bubbles, and mesh-awareness.
+Meshi is the AI companion mascot for mesh.me. It appears across the entire app as a living entity with personality, mood changes, speech bubbles, and mesh-awareness. Meshi has a smart query engine that answers natural language questions using real database data.
 
 ## Key Components
 - **MeshEntry** (`src/components/mesh-entry.tsx`): Auth flow with Meshi personality — speech bubbles react to login/signup steps
-- **MeshiFloat** (`src/components/meshi/meshi-float.tsx`): Global floating companion visible on all authenticated pages
+- **MeshiFloat** (`src/components/meshi/meshi-float.tsx`): Global floating companion visible on all authenticated pages. Click to open actions menu, then select "Full Chat with Meshi" for Q&A testing
 - **MeshiChat** (`src/components/meshi/meshi-chat.tsx`): Knowledge boundary enforcement — Meshi only knows about entities on the user's mesh
 - **MeshiMascot** (`src/components/meshi/meshi-mascot.tsx`): Interactive mascot with physics, moods, and animations
+- **MeshiEngine** (`src/lib/meshi-engine.ts`): Server-side smart query engine with 18+ intent handlers. Queries the database for real answers (post counts, person lookups, platform summaries, community lists, mutual connections, content stats, recent activity, who's active)
+- **MeshiDelivery** (`src/components/meshi/meshi-delivery.tsx`): Animated message delivery system (traveling → arriving → delivered phases)
 - **Sidebar** (`src/components/layout/sidebar.tsx`): MeshiMascot replaces static logo with BETA badge
 
 ## How to Test
+
+### Opening Meshi Chat
+1. Click the floating Meshi mascot (bottom-right corner on any authenticated page)
+2. This opens the **actions menu** (not the chat directly)
+3. Click **"Full Chat with Meshi"** at the bottom of the actions menu to open the chat panel
+4. The chat panel has an input field at the bottom: "Ask Meshi anything..."
+5. Type your question and press Enter
+
+### Smart Engine Q&A (Focus: 4 main features)
+
+#### 1. Post Count Query
+- Type: "How many posts do I have?"
+- Expected: Real count from database (e.g., "You have 2 posts on mesh.me!" for alexcreates)
+- FAIL indicator: Generic canned response or wrong number
+- Code: `src/lib/meshi-engine.ts` — `getPostCount` handler
+
+#### 2. Person Lookup
+- Type: "Who is mayamusic?" (or any seeded username)
+- Expected: DisplayName, username, bio, follower/following/post counts, verified status, mutual follow relationship
+- Example response: "Maya Chen (@mayamusic) is on your mesh! You follow each other. Bio: '...' 6 followers, 4 following, 2 posts. They're verified!"
+- FAIL indicator: "I can't find..." or generic text when the user exists in the DB
+- Code: `src/lib/meshi-engine.ts` — `lookupPerson` handler
+
+#### 3. Intent Regex Safety (Critical)
+- Type: "tell me about my followers"
+- PASS: Any informational response (NOT "Message delivered" or "traveled across the mesh")
+- FAIL: Response contains "Message delivered" — means the SELF_WORDS exclusion is broken
+- The SELF_WORDS list ["me", "my", "i", "myself"] at line 51 prevents "tell me about X" from triggering send_message
+- NOTE: This query may fall through to person_lookup (searching for "my followers" as a person) rather than follower_count. That's acceptable — the critical test is that no message is sent.
+
+#### 4. Privacy Transparency Dashboard
+- Navigate to Settings → click "Privacy & Safety" tab in the left settings nav
+- Scroll down past "Our Privacy Commitment to You" section
+- Look for "Your Data Transparency Report" section
+- Expected: Real data counts matching the database (for alexcreates: Posts=2, Followers=8, Following=4, Communities=3, Interests=4)
+- "What mesh.me does NOT collect" section should list exactly 8 items: Browsing history, Device fingerprints, Location tracking, Behavioral analytics, Ad preferences, Third-party cookies, Contact lists, App usage patterns
+- Active sessions count should be displayed
+- Code: `src/app/(app)/settings/page.tsx` lines 391-397 (lazy loads on tab select), lines 1192-1201 (NOT collected items)
+
+### Expected Seed Data Values (alexcreates)
+- Posts: 2
+- Followers: 8
+- Following: 4
+- Communities: 3 (creativeCoder admin, soundVision, designSystems)
+- Interests: 4 (Art, Design, Photography, Technology)
+- Comments: 3
+- Reactions: 10
 
 ### Auth Flow Personality
 1. Sign out or visit `/` when unauthenticated
@@ -21,42 +70,37 @@ Meshi is the AI companion mascot for mesh.me. It appears across the entire app a
 
 ### MeshiFloat Global Presence
 1. Log in and navigate to any authenticated page (/feed, /mesh, /settings, /messages)
-2. MeshiFloat should appear as a small floating mascot (HOME_POSITION: x=28, y=84 in sidebar area, or bottom-right when activated)
-3. Click it to open the speech/chat view with input field and quick actions
+2. MeshiFloat should appear as a small floating mascot in the bottom-right corner
+3. Click it to open the actions menu with Quick Actions, Navigate, and Settings & More sections
 4. It persists across page navigation
 
 ### Knowledge Boundary Enforcement
-1. Open MeshiFloat speech view (click the floating mascot)
+1. Open MeshiFloat chat (click mascot → "Full Chat with Meshi")
 2. Ask about someone NOT on the mesh: "who is elon musk"
-3. Expected: Meshi responds with "I don't see 'elon musk' on your mesh yet..."
+3. Expected: Meshi responds with "I can't find 'elon musk' anywhere on mesh.me..."
 4. Ask about a mesh.me feature: "tell me about the feed"
 5. Expected: Meshi responds with feature information (not a person-not-found response)
 6. Test greetings: "hey" → friendly response
 7. Test gratitude: "thanks" → thankful response
 
-### Catch-up Summary
-1. In MeshiFloat speech input, type a search trigger: "show me my mesh" or "search my connections"
-2. Search triggers are: ["search", "find", "look for", "where", "show me"]
-3. Meshi shows animated search text progression ("Looking through your mesh...", "Scanning your connections...", etc.)
-4. After ~4.5s, displays a summary built from real mesh stats (followers, following, platforms, communities)
-
-### Sidebar MeshiMascot
-1. On any authenticated page, check the top-left sidebar
-2. Should show interactive MeshiMascot (blue face icon) with "BETA" badge
-3. Replaces the old static logo
+### Message Delivery Animation
+1. In Meshi chat, type: "send @demouser: hello there!"
+2. Expected animation sequence: Meshi travels with envelope (1.5s) → arrives and reveals message (1s) → shows delivered checkmark (3.5s) → total ~6s
+3. FAIL indicator: Animation stuck in "traveling" phase forever (would indicate the useEffect split bug has regressed)
+4. After animation completes, the delivery should be marked as read on the server via POST
 
 ## Dev Server
-- Run: `npm run dev` (starts on port 3000)
-- The app uses Next.js with Turso database
-- Auth is cookie-based — sign out via sidebar "Sign out" button
+- Run: `npx next dev -p 3333` (port 3333 per local-dev-setup skill)
+- Database: SQLite at project root `dev.db` (seeded with 10 users, 15 posts)
+- Auth: NextAuth.js with username/password — test accounts: alexcreates/password123, demouser/password123, mayamusic/password123
 
 ## Devin Secrets Needed
-- `GITHUB_USERNAME` and `GITHUB_PASSWORD` for pushing to repo
-- `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` for database access
-- `VERCEL_TOKEN` for deployment
+- None required for local testing — SQLite database is file-based and pre-seeded
+- `GITHUB_USERNAME` and `GITHUB_PASSWORD` for pushing to repo (if needed)
 
 ## Common Issues
-- MeshiFloat may overlap with sidebar elements on small screens — check responsive behavior
-- Knowledge boundary patterns might be too broad — queries like "find people to follow" could be intercepted as person lookups. If this happens, narrow the personPatterns regex in meshi-chat.tsx
-- The `is X on my mesh` regex needs a dedicated pattern with proper capture group (was fixed in PR #13)
-- Feature word filter uses prefix matching ("communit" matches both "community" and "communities")
+- **Meshi chat not opening**: You must click the mascot first to open the actions menu, THEN click "Full Chat with Meshi". Clicking the mascot does NOT directly open the chat.
+- **Intent routing quirks**: "tell me about my followers" routes to person_lookup (searching for "my followers") instead of follower_count. The critical safety check is that it doesn't trigger send_message.
+- **MeshiFloat may overlap with sidebar elements on small screens** — check responsive behavior
+- **Feature word filter uses prefix matching** ("communit" matches both "community" and "communities")
+- **Privacy dashboard lazy-loads** — data only fetches when the Privacy & Safety tab is selected. If you navigate there and see no data, wait a moment for the async fetch to complete.
