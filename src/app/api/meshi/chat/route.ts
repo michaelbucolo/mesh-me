@@ -443,6 +443,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       content: result.content,
       mood: result.mood,
+      action: result.action,
     });
   } catch {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
