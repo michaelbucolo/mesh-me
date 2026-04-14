@@ -208,11 +208,11 @@ export default function MeshPage() {
         case "-": handleZoom(-0.3); break;
         case "1": setFilter("all"); break;
         case "2": setFilter("user"); break;
-        case "3": setFilter("community"); break;
-        case "4": setFilter("tag"); break;
-        case "5": setFilter("post"); break;
-        case "6": setFilter("platform"); break;
-        case "7": setFilter("alter-ego"); break;
+        case "3": setFilter("alter-ego"); break;
+        case "4": setFilter("community"); break;
+        case "5": setFilter("tag"); break;
+        case "6": setFilter("post"); break;
+        case "7": setFilter("platform"); break;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
