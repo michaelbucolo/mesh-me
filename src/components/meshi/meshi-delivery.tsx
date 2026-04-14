@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "./meshi-mascot";
 import { Mail, Check } from "lucide-react";
@@ -24,6 +24,7 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
   const [deliveries, setDeliveries] = useState<DeliveryNotification[]>([]);
   const [activeDelivery, setActiveDelivery] = useState<DeliveryNotification | null>(null);
   const [deliveryPhase, setDeliveryPhase] = useState<"traveling" | "arriving" | "delivered" | null>(null);
+  const seenIds = useRef<Set<string>>(new Set());
 
   // Poll for new Meshi deliveries
   const checkDeliveries = useCallback(async () => {
@@ -33,8 +34,8 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
         const data = await res.json();
         if (data.deliveries && data.deliveries.length > 0) {
           setDeliveries(prev => {
-            const existingIds = new Set(prev.map(d => d.id));
-            const newOnes = data.deliveries.filter((d: DeliveryNotification) => !existingIds.has(d.id));
+            const newOnes = data.deliveries.filter((d: DeliveryNotification) => !seenIds.current.has(d.id));
+            for (const d of newOnes) seenIds.current.add(d.id);
             return [...prev, ...newOnes];
           });
         }
