@@ -27,7 +27,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
   const isMod = community.userRole === "moderator" || isAdmin;
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div data-meshi-zone="community-detail" className="max-w-3xl mx-auto animate-page-enter">
       {/* Banner */}
       <div className="h-48 relative rounded-b-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(45,127,249,0.3), rgba(0,198,251,0.3))" }}>
         {community.bannerUrl && (

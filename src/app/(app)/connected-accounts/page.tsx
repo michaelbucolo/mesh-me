@@ -221,7 +221,7 @@ function ConnectedAccountsContent() {
   }
 
   return (
-    <div data-meshi-zone="connected-accounts" className="max-w-3xl mx-auto px-4 py-6">
+    <div data-meshi-zone="connected-accounts" className="max-w-3xl mx-auto px-4 py-6 animate-page-enter">
       <AnimatePresence>
         {notification && (
           <motion.div

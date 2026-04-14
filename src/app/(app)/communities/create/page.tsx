@@ -45,7 +45,7 @@ export default function CreateCommunityPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6">
+    <div data-meshi-zone="community-create" className="max-w-xl mx-auto px-4 py-6 animate-page-enter">
       <Link href="/communities" className="inline-flex items-center gap-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors mb-6">
         <ArrowLeft className="h-4 w-4" />
         Back to communities
