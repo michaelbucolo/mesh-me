@@ -271,6 +271,8 @@ export default function MeshPage() {
           color: (data.meshiPreference.colorTheme || "blue") as MeshiColor,
           hat: (data.meshiPreference.hatStyle || "none") as MeshiHat,
         });
+      } else {
+        setViewingUserMeshiPrefs({ color: "blue", hat: "none" });
       }
 
       setViewingUserMesh(node);
