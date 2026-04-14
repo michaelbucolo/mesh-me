@@ -1102,3 +1102,73 @@ export async function getFriendMeshData(username: string): Promise<{
     privacyLevel: visibility,
   };
 }
+
+// ─── Privacy Transparency Dashboard ──────────────────────────
+
+export async function getPrivacyTransparencyData() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const [
+    postCount,
+    commentCount,
+    reactionCount,
+    messageCount,
+    followerCount,
+    followingCount,
+    communityCount,
+    connectedAccounts,
+    savedPostCount,
+    notificationCount,
+    interestCount,
+    blockCount,
+    platformPostCount,
+    sessionCount,
+  ] = await Promise.all([
+    prisma.post.count({ where: { authorId: user.id } }),
+    prisma.comment.count({ where: { authorId: user.id } }),
+    prisma.reaction.count({ where: { userId: user.id } }),
+    prisma.message.count({ where: { senderId: user.id } }),
+    prisma.follow.count({ where: { followingId: user.id } }),
+    prisma.follow.count({ where: { followerId: user.id } }),
+    prisma.communityMember.count({ where: { userId: user.id } }),
+    prisma.connectedAccount.findMany({
+      where: { userId: user.id },
+      select: { platform: true, isActive: true, lastSyncAt: true, scopes: true },
+    }),
+    prisma.savedPost.count({ where: { userId: user.id } }),
+    prisma.notification.count({ where: { recipientId: user.id } }),
+    prisma.userInterest.count({ where: { userId: user.id } }),
+    prisma.block.count({ where: { blockerId: user.id } }),
+    prisma.platformPost.count({ where: { connectedAccount: { userId: user.id } } }),
+    prisma.session.count({ where: { userId: user.id } }),
+  ]);
+
+  return {
+    dataStored: {
+      posts: postCount,
+      comments: commentCount,
+      reactions: reactionCount,
+      messages: messageCount,
+      savedPosts: savedPostCount,
+      notifications: notificationCount,
+      interests: interestCount,
+      blocks: blockCount,
+      platformPosts: platformPostCount,
+    },
+    connections: {
+      followers: followerCount,
+      following: followingCount,
+      communities: communityCount,
+    },
+    platforms: connectedAccounts.map(a => ({
+      name: a.platform,
+      active: a.isActive,
+      lastSync: a.lastSyncAt,
+      scopes: a.scopes,
+    })),
+    sessions: sessionCount,
+    accountCreated: user.createdAt,
+    isMeshPro: user.isMeshPro,
+  };
+}
