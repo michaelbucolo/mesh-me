@@ -17,8 +17,9 @@ import {
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 interface Thread {
   id: string;
@@ -60,6 +61,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
   const [showPlatformFilter, setShowPlatformFilter] = useState(false);
   const [newChatSearch, setNewChatSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; username: string; displayName: string; avatarUrl: string | null }>>([]);
+  const meshiPrefs = useMeshiPreferences();
 
   const filteredThreads = initialThreads.filter((t) => {
     if (platformFilter !== "all" && (t.platform || "mesh") !== platformFilter) return false;
@@ -104,7 +106,15 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <MeshiLogo size={32} color="blue" mood="happy" />
+            <MeshiMascot
+              size={32}
+              color={meshiPrefs.appLogo === "custom" ? meshiPrefs.color : "blue"}
+              mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
+              hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
+              animate
+              showGlow={false}
+              bouncy
+            />
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">MeChat</h1>
           </div>
           <p className="text-sm text-[var(--text-muted)] mt-1">Every conversation. One inbox.</p>
