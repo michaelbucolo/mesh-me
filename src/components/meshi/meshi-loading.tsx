@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiMood } from "./meshi-mascot";
+import { MeshiMascot } from "./meshi-mascot";
 import { useEffect, useState } from "react";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 /**
  * Custom Meshi Loading Screen
@@ -16,25 +17,9 @@ interface MeshiLoadingProps {
   size?: number;
 }
 
-function useMeshiPrefs() {
-  const [color] = useState<MeshiColor>(() => {
-    if (typeof window === "undefined") return "blue";
-    return (localStorage.getItem("meshiColor") as MeshiColor) || "blue";
-  });
-  const [hat] = useState<MeshiHat>(() => {
-    if (typeof window === "undefined") return "none";
-    return (localStorage.getItem("meshiHat") as MeshiHat) || "none";
-  });
-  const [mood] = useState<MeshiMood>(() => {
-    if (typeof window === "undefined") return "happy";
-    return (localStorage.getItem("meshiFace") as MeshiMood) || "happy";
-  });
-
-  return { color, hat, mood };
-}
 
 export function MeshiLoading({ message = "Loading...", fullScreen = false, size = 48 }: MeshiLoadingProps) {
-  const { color, hat } = useMeshiPrefs();
+  const { color, hat } = useMeshiPreferences();
   const [dots, setDots] = useState("");
 
   useEffect(() => {
@@ -83,7 +68,7 @@ export function MeshiLoading({ message = "Loading...", fullScreen = false, size 
 
 /** Page transition loading overlay — shows custom Meshi bouncing */
 export function MeshiPageTransition({ isTransitioning }: { isTransitioning: boolean }) {
-  const { color, hat } = useMeshiPrefs();
+  const { color, hat } = useMeshiPreferences();
 
   if (!isTransitioning) return null;
 
@@ -110,7 +95,7 @@ export function MeshiPageTransition({ isTransitioning }: { isTransitioning: bool
 
 /** Inline Meshi spinner for buttons/forms */
 export function MeshiSpinner({ size = 20 }: { size?: number }) {
-  const { color } = useMeshiPrefs();
+  const { color } = useMeshiPreferences();
 
   return (
     <motion.div

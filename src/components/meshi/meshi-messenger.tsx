@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, CheckCircle, Loader2 } from "lucide-react";
 import { MeshiMascot } from "./meshi-mascot";
 import { sendMessage } from "@/lib/actions";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 type DeliveryPhase = "idle" | "composing" | "traveling" | "delivered";
 
@@ -19,6 +20,7 @@ interface MeshiMessengerProps {
 export function MeshiMessenger({ recipientId, recipientName, recipientUsername, onClose, onSent }: MeshiMessengerProps) {
   const [message, setMessage] = useState("");
   const [phase, setPhase] = useState<DeliveryPhase>("composing");
+  const meshiPrefs = useMeshiPreferences();
   const [error, setError] = useState<string | null>(null);
 
   const handleSend = useCallback(async () => {
@@ -90,7 +92,7 @@ export function MeshiMessenger({ recipientId, recipientName, recipientUsername, 
             {phase === "composing" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div className="flex justify-center mb-4">
-                  <MeshiMascot mood="love" size={48} color="blue" hat="none" />
+                  <MeshiMascot mood="love" size={48} color={meshiPrefs.color} hat={meshiPrefs.hat} />
                 </div>
                 <p className="text-xs text-center text-[var(--text-muted)] mb-3">
                   Meshi will carry your message to {recipientName}
@@ -137,7 +139,7 @@ export function MeshiMessenger({ recipientId, recipientName, recipientUsername, 
                   }}
                   transition={{ duration: 2, ease: "easeInOut" }}
                 >
-                  <MeshiMascot mood="excited" size={56} color="blue" hat="none" prop="heart" />
+                  <MeshiMascot mood="excited" size={56} color={meshiPrefs.color} hat={meshiPrefs.hat} prop="heart" />
                 </motion.div>
 
                 {/* Travel trail */}
@@ -174,7 +176,7 @@ export function MeshiMessenger({ recipientId, recipientName, recipientUsername, 
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 0.5 }}
                 >
-                  <MeshiMascot mood="celebrating" size={56} color="blue" hat="none" />
+                  <MeshiMascot mood="celebrating" size={56} color={meshiPrefs.color} hat={meshiPrefs.hat} />
                 </motion.div>
 
                 <motion.div

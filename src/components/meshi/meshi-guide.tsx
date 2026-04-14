@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronRight, ChevronLeft, Shield, Eye, Fingerprint, Sparkles } from "lucide-react";
 import { MeshiMascot, type MeshiMood } from "./meshi-mascot";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 interface GuideStep {
   title: string;
@@ -127,6 +128,7 @@ interface MeshiOnboardingGuideProps {
 export function MeshiOnboardingGuide({ onComplete }: MeshiOnboardingGuideProps) {
   const [step, setStep] = useState(0);
   const [showDetail, setShowDetail] = useState(false);
+  const meshiPrefs = useMeshiPreferences();
   const currentStep = ONBOARDING_STEPS[step];
 
   return (
@@ -155,8 +157,11 @@ export function MeshiOnboardingGuide({ onComplete }: MeshiOnboardingGuideProps) 
           <MeshiMascot
             size={64}
             mood={currentStep.mood}
-            color="blue"
+            color={meshiPrefs.color}
+            hat={meshiPrefs.hat}
             speaking={true}
+            animate
+            bouncy
           />
         </div>
 
@@ -238,6 +243,7 @@ export function MeshiOnboardingGuide({ onComplete }: MeshiOnboardingGuideProps) 
 // Settings helper tip from Meshi
 export function MeshiSettingsTip({ tab }: { tab: string }) {
   const [dismissed, setDismissed] = useState(false);
+  const meshiPrefs = useMeshiPreferences();
   const tip = SETTINGS_TIPS[tab];
 
   if (!tip || dismissed) return null;
@@ -249,7 +255,7 @@ export function MeshiSettingsTip({ tab }: { tab: string }) {
       exit={{ opacity: 0, y: -10 }}
       className="flex items-start gap-3 p-3 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 mb-4"
     >
-      <MeshiMascot size={32} mood={tip.mood} color="blue" animate={false} showGlow={false} />
+      <MeshiMascot size={32} mood={tip.mood} color={meshiPrefs.color} hat={meshiPrefs.hat} animate={false} showGlow={false} />
       <div className="flex-1 min-w-0">
         <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{tip.message}</p>
       </div>

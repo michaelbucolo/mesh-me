@@ -42,7 +42,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
-import { MeshiMascot, MeshiLogo, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
 import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
 import { MeshTutorial } from "@/components/mesh/mesh-tutorial";
@@ -2009,7 +2009,7 @@ export default function MeshPage() {
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <MeshiLogo size={28} color="blue" mood="happy" />
+                  <MeshiMascot size={28} color={myMeshiColor} mood="happy" hat={myMeshiHat} animate showGlow={false} />
                   <div>
                     <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Digital Footprint</h3>
                     <p className="text-[10px] text-[var(--text-muted)]">Everything in your mesh at a glance</p>

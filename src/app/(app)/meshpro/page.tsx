@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 // Highlight features — the top 3 value propositions shown prominently
 const HIGHLIGHT_FEATURES = [
@@ -144,6 +145,7 @@ const PRO_FEATURES = [
 export default function MeshProPage() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
   const [expandedHighlight, setExpandedHighlight] = useState<string | null>(null);
+  const meshiPrefs = useMeshiPreferences();
 
   const monthlyPrice = 4.99;
   const yearlyPrice = 39.99;
@@ -288,7 +290,7 @@ export default function MeshProPage() {
             <div className="p-8 text-center">
               {/* Meshi with crown */}
               <div className="mb-4">
-                <MeshiMascot size={48} mood="excited" color="gold" animate showGlow />
+                <MeshiMascot size={48} mood="excited" color="gold" animate showGlow hat={meshiPrefs.hat} />
               </div>
 
               <div className="flex items-baseline justify-center gap-1 mb-2">
