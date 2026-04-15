@@ -5,10 +5,19 @@
 ```bash
 cd mesh-me
 npm install
+
+# Database setup (SQLite dev DB has path resolution quirks)
+npx prisma db push              # Creates prisma/dev.db
+sqlite3 dev.db < <(sqlite3 prisma/dev.db .dump)  # Copy schema to root
+npx tsx prisma/seed.ts           # Seed root dev.db
+
+# Start dev server
 npx next dev -p 3333
 ```
 
 The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Uses SQLite locally (dev.db in project root).
+
+**Important**: `file:./dev.db` in the Prisma schema resolves to the project root at runtime, but `prisma db push` creates it inside `prisma/`. You must copy the schema to root and seed the root copy. After schema changes, delete BOTH `dev.db` files and redo the setup.
 
 ## Authentication for Testing
 
@@ -19,6 +28,7 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
   sqlite3 dev.db "UPDATE User SET passwordHash='<hash>' WHERE username='alexcreates';"
   ```
 - Login flow: Go to /login → enter username → enter password → redirects to /mesh
+- Test accounts: `alexcreates/password123` (admin), `demouser/password123`, `mayamusic/password123`
 - The production site (meshme.vercel.app) uses Turso DB, not local SQLite
 - **Important**: Vercel preview deployments may fail with server-side errors if the preview branch uses `file:./dev.db` (local SQLite) instead of Turso. Test locally when preview deployment has DB errors.
 
@@ -54,6 +64,20 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
 - Badge overflow: shows "99+" when count > 99
 - Uses safe area insets for iOS
 - Z-index: z-50 (above Meshi at z-40)
+
+### Settings (/settings)
+- **Navigation**: Sidebar → "Settings"
+- **Architecture**: The Settings page is a slim 269-line shell (`settings/page.tsx`) that manages state and renders 14 extracted tab components from `settings/tabs/`.
+- **14 tabs**: Profile, Interests & Links, Customize, Alter Egos, Notifications, Privacy & Safety, Mesh Privacy, Security, Security Hub, Digital Footprint, Blocked Users, Achievements, Meshi (Beta), MeshPro
+- **Tab switching**: Click tab in left sidebar (desktop) or horizontal scroll bar (mobile). Each tab renders its own extracted component.
+- **URL parameter routing**: Navigate to `/settings?tab=<tab-id>` to deep-link to a specific tab. Tab IDs: `profile`, `interests`, `customize`, `alter-egos`, `notifications`, `privacy`, `mesh-privacy`, `security`, `security-hub`, `footprint`, `blocked`, `achievements`, `meshi`, `meshpro`
+- **Key tabs to verify**:
+  - Profile: avatar/banner upload, display name, bio, location, website, accent color picker (15 options)
+  - Customize: 4 themes (Midnight, Deep Ocean, Dark Violet, Charcoal), 4 feed layouts, background mesh toggle
+  - MeshPro: Pricing ($4.99/mo monthly, $39.99/yr yearly = $3.33/mo), 10 feature descriptions, redeem code
+  - Meshi (Beta): Expression selector (8), hat selector (7), color selector (8), enable toggle, app logo customization (MeshPro)
+- **Desktop sidebar**: Left nav with all 14 tabs + Sign out button at bottom
+- **Mobile tabs**: Horizontal scrollable tab bar above content, Sign out at bottom of content
 
 ### Feed (/feed)
 - **Navigation**: Sidebar → "Feed"
@@ -123,10 +147,12 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
 
 ### MeshiFloat (bottom-right floating companion)
 - Click Meshi mascot → opens actions menu above Meshi
-- **Actions menu sections**:
+- **Actions menu** is an extracted component (`meshi-actions-menu.tsx`) with:
+  - Header: Meshi mascot mini-preview + "Your mesh.me companion"
   - Quick Actions: Ask Meshi, Create Post, Search Mesh
   - Navigate: Explore, Messages, Communities, Connected Accounts
   - Settings & More: Customize Meshi, Settings, MeshPro, Send Feedback, Full Chat with Meshi
+  - Footer: "Zero data stored" + mesh.me branding
 - Menu positioned at `bottom-[72px] right-4` with `z-50`
 - Meshi itself uses `z-40`, size is 48px
 - **Safe positioning**: Meshi docks bottom-right with safe insets:
@@ -134,6 +160,13 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
   - Mobile (<1024px): 16px from right edge, 80px from bottom (above mobile nav)
 - **Drag behavior**: Meshi is draggable. Drag bounds respect safe zones. Releasing near bottom-right corner snaps back to safe position.
 - **Z-index hierarchy**: Mobile nav (z-50) > Meshi actions menu (z-50) > Meshi (z-40) > zoom controls (z-10)
+
+## Page Consistency
+
+All app pages should have:
+- `animate-page-enter` class on the main content div (smooth fade/slide entrance animation)
+- `data-meshi-zone` attribute for Meshi contextual awareness
+- Verify with: `document.querySelector('.animate-page-enter') !== null` in browser console
 
 ## Testing Meshi Positioning
 
@@ -161,9 +194,10 @@ npx next build
 ## Common Issues
 
 - If sqlite3 CLI is not installed: `sudo apt-get install -y sqlite3`
-- Dev DB might not exist on fresh clone - run `npx prisma migrate dev` to create
+- Dev DB might not exist on fresh clone - run `npx prisma db push` then copy and seed (see Local Dev Setup)
 - The canvas is rendered with Canvas 2D API, not a library - interactions are custom event handlers on the canvas element
 - Preview deployments on Vercel may fail if DATABASE_URL points to local SQLite — use local dev server for testing in this case
 - When testing in Reels layout, posts don't have direct click-through links — switch to Timeline or Compact layout to navigate to post detail pages
 - The dev server port might vary — check which port is being used (commonly 3000 or 3333). Use `-p` flag to specify.
 - When testing mobile viewport, the page may need a reload after switching to device toolbar mode for Meshi to recalculate its safe position.
+- The "1 Issue" badge in bottom-left during dev mode is a Next.js dev indicator, not a bug.
