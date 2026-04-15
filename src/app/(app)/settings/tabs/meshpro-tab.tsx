@@ -35,6 +35,9 @@ function PaymentModal({ plan, onClose }: { plan: PaymentPlan; onClose: () => voi
       }
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setError("Could not start checkout. Please try again.");
+        setLoading(false);
       }
     } catch {
       setError("Network error. Please check your connection and try again.");
