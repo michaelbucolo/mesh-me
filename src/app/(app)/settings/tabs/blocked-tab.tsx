@@ -6,7 +6,6 @@ import { toggleBlock } from "@/lib/actions";
 import { useTransition } from "react";
 import { motion } from "framer-motion";
 import { UserX } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 import type { BlockedUser } from "./types";
 
 interface BlockedTabProps {
@@ -28,7 +27,6 @@ export function BlockedTab({ blockedUsers, setBlockedUsers, showSuccess }: Block
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <MeshiSettingsTip tab="blocked" />
       <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Blocked users</h2>
       <p className="text-sm text-[var(--text-muted)] mb-6">Blocked users cannot see your profile, posts, or message you.</p>
       {blockedUsers.length > 0 ? (

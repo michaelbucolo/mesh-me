@@ -22,7 +22,7 @@ export async function GET() {
           },
         },
       },
-      take: 50,
+      take: 80,
     }),
     prisma.follow.findMany({
       where: { followingId: user.id },
@@ -32,10 +32,11 @@ export async function GET() {
             id: true, username: true, displayName: true, avatarUrl: true,
             status: true, lastSeenAt: true,
             _count: { select: { followers: true, posts: true } },
+            interests: { select: { tag: true }, take: 5 },
           },
         },
       },
-      take: 50,
+      take: 80,
     }),
     prisma.communityMember.findMany({
       where: { userId: user.id },
@@ -58,7 +59,7 @@ export async function GET() {
         _count: { select: { reactions: true, comments: true, reposts: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 50,
     }),
     prisma.connectedAccount.findMany({
       where: { userId: user.id, isActive: true },
@@ -84,11 +85,12 @@ export async function GET() {
 
   // Find which users share communities with the current user
   const communityIds = communitiesData.map((cm) => cm.community.id);
+  const allUserIds = [...new Set([...followingIds, ...followerIds])];
   const sharedCommunityMembers = communityIds.length > 0
     ? await prisma.communityMember.findMany({
         where: {
           communityId: { in: communityIds },
-          userId: { in: [...followingIds] },
+          userId: { in: allUserIds },
         },
         select: { userId: true, communityId: true },
       })
@@ -101,17 +103,22 @@ export async function GET() {
     userCommunityLinks[m.userId].push(m.communityId);
   }
 
-  // Find shared interests between user and followed users
+  // Find shared interests between user and all connected users
   const userTags = new Set(interestsData.map((i) => i.tag));
-  const followingWithSharedInterests: Record<string, string[]> = {};
+  const userSharedInterests: Record<string, string[]> = {};
   for (const f of followingData) {
     const shared = f.following.interests?.filter((i) => userTags.has(i.tag)).map((i) => i.tag) || [];
-    if (shared.length > 0) followingWithSharedInterests[f.following.id] = shared;
+    if (shared.length > 0) userSharedInterests[f.following.id] = shared;
+  }
+  for (const f of followersData) {
+    if (!userSharedInterests[f.follower.id]) {
+      const shared = f.follower.interests?.filter((i) => userTags.has(i.tag)).map((i) => i.tag) || [];
+      if (shared.length > 0) userSharedInterests[f.follower.id] = shared;
+    }
   }
 
   // Calculate interaction counts per user (comments, likes, messages exchanged)
   // This powers interaction-based proximity — more interactions = closer in the mesh
-  const allUserIds = [...followingIds, ...followerIds];
   const interactionCounts: Record<string, number> = {};
 
   if (allUserIds.length > 0) {
@@ -168,7 +175,8 @@ export async function GET() {
       ...f.following,
       isMutual: mutualIds.includes(f.following.id),
       sharedCommunities: userCommunityLinks[f.following.id] || [],
-      sharedInterests: followingWithSharedInterests[f.following.id] || [],
+      sharedInterests: userSharedInterests[f.following.id] || [],
+      lastSeenAt: f.following.lastSeenAt,
       followerCount: f.following._count.followers,
       postCount: f.following._count.posts,
       interactionCount: interactionCounts[f.following.id] || 0,
@@ -177,10 +185,13 @@ export async function GET() {
     followers: followersData.map((f) => ({
       ...f.follower,
       isMutual: mutualIds.includes(f.follower.id),
+      sharedCommunities: userCommunityLinks[f.follower.id] || [],
+      sharedInterests: userSharedInterests[f.follower.id] || [],
       followerCount: f.follower._count.followers,
       postCount: f.follower._count.posts,
       interactionCount: interactionCounts[f.follower.id] || 0,
       status: f.follower.status || "offline",
+      lastSeenAt: f.follower.lastSeenAt,
     })),
     communities: communitiesData.map((cm) => ({
       id: cm.community.id,
@@ -194,7 +205,7 @@ export async function GET() {
     interests: interestsData.map((i) => i.tag),
     posts: postsData.map((p) => ({
       id: p.id,
-      content: p.content.slice(0, 120),
+      content: p.content.slice(0, 200),
       createdAt: p.createdAt,
       communityId: p.communityId,
       tags: p.tags.map((t) => t.tag),
