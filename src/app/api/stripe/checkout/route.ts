@@ -43,11 +43,18 @@ export async function POST(req: Request) {
 
     const baseUrl = process.env.NEXTAUTH_URL || "https://meshme.vercel.app";
 
-    const checkoutSession = await stripe.checkout.sessions.create({
+    // Prevent duplicate subscriptions
+    if (user.isMeshPro && user.stripeSubscriptionId) {
+      return NextResponse.json(
+        { error: "You already have an active MeshPro subscription." },
+        { status: 400 },
+      );
+    }
+
+    const checkoutParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: user.email,
       success_url: `${baseUrl}/settings?tab=meshpro&payment=success`,
       cancel_url: `${baseUrl}/settings?tab=meshpro&payment=cancelled`,
       metadata: {
@@ -55,7 +62,16 @@ export async function POST(req: Request) {
         plan,
       },
       allow_promotion_codes: true,
-    });
+    };
+
+    // Reuse existing Stripe customer if available, otherwise create via email
+    if (user.stripeCustomerId) {
+      checkoutParams.customer = user.stripeCustomerId;
+    } else {
+      checkoutParams.customer_email = user.email;
+    }
+
+    const checkoutSession = await stripe.checkout.sessions.create(checkoutParams);
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
