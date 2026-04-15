@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateUserInterests, updateUserLinks } from "@/lib/actions";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { INTEREST_TAGS } from "@/lib/utils";

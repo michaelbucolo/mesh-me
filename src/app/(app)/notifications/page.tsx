@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getNotifications } from "@/lib/queries";
 import { NotificationsClient } from "./notifications-client";
+
+export const metadata: Metadata = { title: "Notifications" };
 
 function generateSmartSummary(notifications: Array<{ type: string; message: string; actor: { displayName: string } | null }>) {
   const grouped: Record<string, number> = {};

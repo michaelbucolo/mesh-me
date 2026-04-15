@@ -25,7 +25,7 @@ interface MeshCommandPaletteProps {
 
 export function MeshCommandPalette({
   nodes, searchQuery, onSearchChange, onClose, onSelectNode,
-  onShowFootprint, centerRef, zoomRef, panRef, onPanChange,
+  onShowFootprint, centerRef, zoomRef, onPanChange,
 }: MeshCommandPaletteProps) {
   const router = useRouter();
 
