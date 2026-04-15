@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "./meshi-mascot";
+import type { RemoteMeshi } from "@/components/mesh/meshi-on-mesh";
 
 interface MeshiPresence {
   userId: string;
@@ -16,18 +17,35 @@ interface MeshiPresence {
 }
 
 interface LiveMeshiPresenceProps {
-  viewingMesh: string | null; // userId of mesh being viewed, null = own mesh
+  viewingMesh: string | null;
   myMeshiColor: MeshiColor;
   myMeshiHat: MeshiHat;
+  myMeshiPosition?: { x: number; y: number };
+  myMeshiMood?: string;
   onInteract?: (presence: MeshiPresence) => void;
+  onRemoteMeshisChange?: (meshis: RemoteMeshi[]) => void;
 }
 
-export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInteract }: LiveMeshiPresenceProps) {
+export function LiveMeshiPresence({
+  viewingMesh, myMeshiColor, myMeshiHat,
+  myMeshiPosition, myMeshiMood,
+  onInteract, onRemoteMeshisChange,
+}: LiveMeshiPresenceProps) {
   const [presences, setPresences] = useState<MeshiPresence[]>([]);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const positionRef = useRef(myMeshiPosition || { x: 400, y: 300 });
+  const moodRef = useRef(myMeshiMood || "exploring");
 
-  // Send heartbeat to update our presence
+  // Keep position/mood refs in sync
+  useEffect(() => {
+    if (myMeshiPosition) positionRef.current = myMeshiPosition;
+  }, [myMeshiPosition]);
+  useEffect(() => {
+    if (myMeshiMood) moodRef.current = myMeshiMood;
+  }, [myMeshiMood]);
+
+  // Send heartbeat with actual Meshi canvas coordinates
   const sendHeartbeat = useCallback(async () => {
     try {
       await fetch("/api/mesh/presence", {
@@ -36,8 +54,8 @@ export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInt
         body: JSON.stringify({
           meshiColor: myMeshiColor,
           meshiHat: myMeshiHat,
-          meshiMood: "exploring",
-          position: { x: Math.random() * 800, y: Math.random() * 600 },
+          meshiMood: moodRef.current,
+          position: positionRef.current,
           viewingMesh,
         }),
       });
@@ -52,10 +70,26 @@ export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInt
       const res = await fetch(`/api/mesh/presence?${params}`);
       if (res.ok) {
         const data = await res.json();
-        setPresences(data.presences || []);
+        const list: MeshiPresence[] = data.presences || [];
+        setPresences(list);
+
+        // Convert to RemoteMeshi format for canvas rendering
+        if (onRemoteMeshisChange) {
+          const remoteMeshis: RemoteMeshi[] = list.map((p) => ({
+            userId: p.userId,
+            username: p.username,
+            displayName: p.displayName,
+            x: p.position.x,
+            y: p.position.y,
+            color: p.meshiColor,
+            hat: p.meshiHat,
+            mood: (p.meshiMood as RemoteMeshi["mood"]) || "happy",
+          }));
+          onRemoteMeshisChange(remoteMeshis);
+        }
       }
     } catch { /* silently fail */ }
-  }, [viewingMesh]);
+  }, [viewingMesh, onRemoteMeshisChange]);
 
   // Start heartbeat and polling — restarts when callbacks change (prop updates)
   useEffect(() => {
@@ -82,7 +116,6 @@ export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInt
     return () => {
       fetch("/api/mesh/presence", { method: "DELETE" }).catch(() => {});
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (presences.length === 0) return null;

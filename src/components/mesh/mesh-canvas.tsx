@@ -4,6 +4,7 @@ import { useRef, useCallback, useEffect } from "react";
 import type { MeshEngine } from "./mesh-engine";
 import type { MeshNode, FilterType } from "./mesh-types";
 import { renderMesh } from "./mesh-renderer";
+import { createMeshiState, tickMeshi, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 interface MeshCanvasProps {
   engine: MeshEngine;
@@ -15,6 +16,11 @@ interface MeshCanvasProps {
   selectedNode: MeshNode | null;
   imageCache: React.RefObject<Map<string, HTMLImageElement | null>>;
   loading: boolean;
+  meshiColor?: string;
+  meshiHat?: string;
+  meshiUsername?: string;
+  remoteMeshis?: RemoteMeshi[];
+  onMeshiPositionChange?: (x: number, y: number, mood: string) => void;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: { x: number; y: number }) => void;
   onHoverChange: (node: MeshNode | null) => void;
@@ -25,6 +31,8 @@ interface MeshCanvasProps {
 export function MeshCanvas({
   engine, filter, showLabels, zoom, pan,
   hoveredNode, selectedNode, imageCache, loading,
+  meshiColor, meshiHat, meshiUsername, remoteMeshis,
+  onMeshiPositionChange,
   onZoomChange, onPanChange, onHoverChange, onClick, onDoubleClick,
 }: MeshCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,6 +41,12 @@ export function MeshCanvas({
   const dragActiveRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const lastTouchRef = useRef<{ x: number; y: number; dist?: number } | null>(null);
+
+  // Meshi state
+  const meshiStateRef = useRef<MeshiState | null>(null);
+  const meshiInitializedRef = useRef(false);
+  const remoteMeshisRef = useRef<RemoteMeshi[]>([]);
+  const lastPositionReportRef = useRef(0);
 
   // Keep refs in sync for the render loop
   const zoomRef = useRef(zoom);
@@ -48,6 +62,7 @@ export function MeshCanvas({
   useEffect(() => { showLabelsRef.current = showLabels; }, [showLabels]);
   useEffect(() => { hoveredRef.current = hoveredNode; }, [hoveredNode]);
   useEffect(() => { selectedRef.current = selectedNode; }, [selectedNode]);
+  useEffect(() => { remoteMeshisRef.current = remoteMeshis || []; }, [remoteMeshis]);
 
   // World coordinate conversion
   const getWorldCoords = useCallback((clientX: number, clientY: number) => {
@@ -93,9 +108,44 @@ export function MeshCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let lastTime = performance.now();
+
     const render = () => {
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.1); // Cap delta to avoid jumps
+      lastTime = now;
+
       // Tick physics
       engine.tick();
+
+      // Initialize Meshi at self node position once nodes are loaded
+      if (!meshiInitializedRef.current && engine.nodes.length > 0) {
+        const selfNode = engine.nodes.find((n) => n.type === "self");
+        const cx = selfNode ? selfNode.x : engine.getCenter().x;
+        const cy = selfNode ? selfNode.y : engine.getCenter().y;
+        meshiStateRef.current = createMeshiState(
+          cx, cy,
+          meshiColor || "blue",
+          meshiHat || "none",
+          meshiUsername || "You",
+        );
+        meshiInitializedRef.current = true;
+      }
+
+      // Tick Meshi wandering behavior
+      if (meshiStateRef.current) {
+        tickMeshi(meshiStateRef.current, engine.nodes, dt);
+
+        // Report position every 2 seconds for presence system
+        if (onMeshiPositionChange && now - lastPositionReportRef.current > 2000) {
+          lastPositionReportRef.current = now;
+          onMeshiPositionChange(
+            meshiStateRef.current.x,
+            meshiStateRef.current.y,
+            meshiStateRef.current.mood,
+          );
+        }
+      }
 
       const cache = imageCache.current;
       renderMesh(ctx, engine.nodes, engine.edges, {
@@ -108,6 +158,8 @@ export function MeshCanvas({
       }, {
         hoveredNode: hoveredRef.current,
         selectedNode: selectedRef.current,
+        meshiState: meshiStateRef.current,
+        remoteMeshis: remoteMeshisRef.current,
       }, cache);
 
       animationRef.current = requestAnimationFrame(render);
@@ -122,7 +174,7 @@ export function MeshCanvas({
 
     render();
     return () => cancelAnimationFrame(animationRef.current);
-  }, [engine, loading, imageCache]);
+  }, [engine, loading, imageCache, meshiColor, meshiHat, meshiUsername, onMeshiPositionChange]);
 
   // --- Mouse handlers ---
 
