@@ -63,7 +63,37 @@ export async function GET() {
     }),
     prisma.connectedAccount.findMany({
       where: { userId: user.id, isActive: true },
-      select: { id: true, platform: true, platformUsername: true },
+      select: {
+        id: true, platform: true, platformUsername: true,
+        lastSyncAt: true, syncStatus: true,
+        _count: { select: { platformPosts: true, platformFollowers: true, platformMedia: true, platformComments: true } },
+        platformPosts: {
+          select: {
+            id: true, title: true, content: true, url: true, postType: true,
+            likeCount: true, commentCount: true, shareCount: true, viewCount: true,
+            thumbnailUrl: true, publishedAt: true, visibility: true,
+          },
+          orderBy: { likeCount: "desc" },
+          take: 8,
+        },
+        platformFollowers: {
+          select: {
+            id: true, username: true, displayName: true, avatarUrl: true,
+            followerCount: true, isMutual: true, relationshipType: true, profileUrl: true,
+          },
+          orderBy: { followerCount: "desc" },
+          take: 10,
+        },
+        platformAnalytics: {
+          select: {
+            followerCount: true, followingCount: true, postCount: true,
+            totalLikes: true, totalComments: true, totalViews: true, totalShares: true,
+            date: true,
+          },
+          orderBy: { date: "desc" },
+          take: 1,
+        },
+      },
     }),
     // Fetch alter egos for this user
     prisma.alterEgo.findMany({
@@ -213,7 +243,37 @@ export async function GET() {
       commentCount: p._count.comments,
       repostCount: p._count.reposts,
     })),
-    connectedAccounts: connectedAccountsData,
+    connectedAccounts: connectedAccountsData.map((acct) => ({
+      id: acct.id,
+      platform: acct.platform,
+      platformUsername: acct.platformUsername,
+      lastSyncAt: acct.lastSyncAt,
+      syncStatus: acct.syncStatus,
+      counts: acct._count,
+      analytics: acct.platformAnalytics[0] || null,
+      topPosts: acct.platformPosts.map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: (p.content || "").slice(0, 150),
+        url: p.url,
+        postType: p.postType,
+        likeCount: p.likeCount,
+        commentCount: p.commentCount,
+        shareCount: p.shareCount,
+        viewCount: p.viewCount,
+        thumbnailUrl: p.thumbnailUrl,
+        publishedAt: p.publishedAt,
+      })),
+      topFollowers: acct.platformFollowers.map((f) => ({
+        id: f.id,
+        username: f.username,
+        displayName: f.displayName,
+        avatarUrl: f.avatarUrl,
+        followerCount: f.followerCount,
+        isMutual: f.isMutual,
+        profileUrl: f.profileUrl,
+      })),
+    })),
     alterEgos: alterEgosData,
     meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy" },
     stats: {

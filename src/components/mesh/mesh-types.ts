@@ -42,7 +42,7 @@ export interface MeshEdge {
   source: string;
   target: string;
   strength: number;
-  type: "follow" | "mutual" | "community" | "interest" | "post" | "platform" | "alter-ego" | "shared-community" | "cross-follow";
+  type: "follow" | "mutual" | "community" | "interest" | "post" | "platform" | "alter-ego" | "shared-community" | "cross-follow" | "platform-content" | "platform-follower";
   interactionCount?: number;
   status?: "online" | "dnd" | "busy" | "offline";
 }

@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
 import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
-import { MeshTutorial } from "@/components/mesh/mesh-tutorial";
 import { ContentHub } from "@/components/mesh/content-hub";
 import { MeshNodeDetail } from "@/components/mesh/mesh-node-detail";
 import { MeshCommandPalette } from "@/components/mesh/mesh-command-palette";
