@@ -58,6 +58,8 @@ model User {
   activeTitle    String?
   isMeshPro      Boolean  @default(false)
   meshProSince   DateTime?
+  stripeCustomerId    String?  @unique
+  stripeSubscriptionId String?
   signupNumber   Int?
   // Privacy toggles
   showInDiscovery  Boolean @default(true)
