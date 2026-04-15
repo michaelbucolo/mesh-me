@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
 import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
-import { MeshTutorial } from "@/components/mesh/mesh-tutorial";
 import { MeshEngine } from "@/components/mesh/mesh-engine";
 import { MeshCanvas } from "@/components/mesh/mesh-canvas";
 import { MeshFilterBar, MeshZoomControls, MeshStatsBar, MeshActionBar } from "@/components/mesh/mesh-controls";
@@ -60,6 +59,12 @@ export default function MeshPage() {
   const [meshStats, setMeshStats] = useState<MeshApiResponse["stats"] | null>(null);
   const [myMeshiColor, setMyMeshiColor] = useState<MeshiColor>("blue");
   const [myMeshiHat, setMyMeshiHat] = useState<MeshiHat>("none");
+
+  // --- Meshi on mesh state ---
+  const [meshiPosition, setMeshiPosition] = useState<{ x: number; y: number }>({ x: 400, y: 300 });
+  const [meshiMood, setMeshiMood] = useState("exploring");
+  const [remoteMeshis, setRemoteMeshis] = useState<import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]>([]);
+  const [myUsername, setMyUsername] = useState("You");
 
   // --- Multi-user mesh exploration ---
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
@@ -162,6 +167,7 @@ export default function MeshPage() {
 
         // Set stats and Meshi prefs
         setMeshStats(data.stats);
+        setMyUsername(data.user.displayName || data.user.username);
         if (data.meshiPreference) {
           const c = data.meshiPreference.colorTheme as MeshiColor;
           const h = data.meshiPreference.hatStyle as MeshiHat;
@@ -304,6 +310,15 @@ export default function MeshPage() {
   }, [myNodes, myEdges, engine, resetView]);
 
   // --- Canvas interaction handlers ---
+  const handleMeshiPositionChange = useCallback((x: number, y: number, mood: string) => {
+    setMeshiPosition({ x, y });
+    setMeshiMood(mood);
+  }, []);
+
+  const handleRemoteMeshisChange = useCallback((meshis: import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]) => {
+    setRemoteMeshis(meshis);
+  }, []);
+
   const handleCanvasClick = useCallback((node: MeshNode | null) => {
     if (node) {
       setSelectedNode(node);
@@ -381,8 +396,6 @@ export default function MeshPage() {
 
   return (
     <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
-      <MeshTutorial />
-
       {/* Filter bar + search/footprint buttons */}
       <MeshFilterBar
         filter={filter}
@@ -417,6 +430,11 @@ export default function MeshPage() {
         selectedNode={selectedNode}
         imageCache={imageCache}
         loading={loading}
+        meshiColor={myMeshiColor}
+        meshiHat={myMeshiHat}
+        meshiUsername={myUsername}
+        remoteMeshis={remoteMeshis}
+        onMeshiPositionChange={handleMeshiPositionChange}
         onZoomChange={(z) => { setZoom(z); zoomRef.current = z; }}
         onPanChange={(p) => { setPan(p); panRef.current = p; }}
         onHoverChange={setHoveredNode}
@@ -466,6 +484,9 @@ export default function MeshPage() {
         viewingMesh={viewingUserMesh ? viewingUserMesh.id : null}
         myMeshiColor={myMeshiColor}
         myMeshiHat={myMeshiHat}
+        myMeshiPosition={meshiPosition}
+        myMeshiMood={meshiMood}
+        onRemoteMeshisChange={handleRemoteMeshisChange}
         onInteract={(presence) => {
           if (!viewingUserMesh) return;
           setViewingUserMeshiPrefs({ color: presence.meshiColor as MeshiColor, hat: presence.meshiHat as MeshiHat });

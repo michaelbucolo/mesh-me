@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 
 interface NotificationsTabProps {
   notifFollowers: boolean;
@@ -34,7 +33,6 @@ export function NotificationsTab({
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <MeshiSettingsTip tab="notifications" />
       <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Notification preferences</h2>
       <p className="text-sm text-[var(--text-muted)] mb-6">Choose what notifications you want to receive</p>
       <div className="space-y-1">

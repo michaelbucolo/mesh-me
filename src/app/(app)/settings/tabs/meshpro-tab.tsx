@@ -6,7 +6,6 @@ import { redeemCode } from "@/lib/actions";
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Crown, Check, Sparkles, Eye, Palette, Fingerprint, BarChart3, TrendingUp, ShieldCheck, Layout, Gift } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 
 export function MeshProTab() {
   const [isPending, startTransition] = useTransition();
@@ -15,7 +14,6 @@ export function MeshProTab() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <MeshiSettingsTip tab="meshpro" />
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-xl" style={{ background: "var(--brand-gradient)" }}>
           <Crown className="h-8 w-8 text-white" />

@@ -8,7 +8,6 @@ import { updateProfile } from "@/lib/actions";
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Camera, X, ImageIcon } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 import { ACCENT_COLORS, type SettingsData } from "./types";
 
 interface ProfileTabProps {
@@ -59,7 +58,6 @@ export function ProfileTab({
 
   return (
     <motion.form initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSaveProfile} className="space-y-5">
-      <MeshiSettingsTip tab="profile" />
       <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Edit profile</h2>
 
       {/* Banner upload */}

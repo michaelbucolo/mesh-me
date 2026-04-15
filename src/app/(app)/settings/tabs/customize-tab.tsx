@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { useTransition } from "react";
 import { motion } from "framer-motion";
 import { Paintbrush, Layout, Globe } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 import { THEME_OPTIONS, FEED_LAYOUTS } from "./types";
 
 interface CustomizeTabProps {
@@ -19,7 +18,6 @@ export function CustomizeTab({ selectedTheme, setSelectedTheme, selectedLayout, 
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-      <MeshiSettingsTip tab="customize" />
       <div>
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Customize your experience</h2>
         <p className="text-sm text-[var(--text-muted)] mb-6">Make mesh.me feel like yours</p>

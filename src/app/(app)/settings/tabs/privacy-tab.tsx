@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { updatePrivacy, deleteAccount } from "@/lib/actions";
 import { useTransition, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
+import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity, Check } from "lucide-react";
 import { getPrivacyTransparencyData } from "@/lib/queries";
 import type { TransparencyData } from "./types";
 
@@ -49,7 +48,6 @@ export function PrivacyTab({ isPublic, setIsPublic, showSuccess }: PrivacyTabPro
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <MeshiSettingsTip tab="privacy" />
       <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Privacy & Safety</h2>
       <div className="space-y-1">
         <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">

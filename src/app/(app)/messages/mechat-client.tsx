@@ -18,7 +18,6 @@ import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
-import { WelcomeBanner } from "@/components/ui/welcome-banner";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 interface Thread {
@@ -88,20 +87,6 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
 
   return (
     <div data-meshi-zone="messages" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
-      {/* First-time welcome banner */}
-      <WelcomeBanner
-        storageKey="messages"
-        icon={MessageCircle}
-        title="Welcome to MeChat"
-        description="All your conversations from every platform, unified in one inbox. Messages from mesh.me and your connected platforms appear here."
-        tips={[
-          "Use the filter button to sort by platform (mesh.me, Instagram, Twitter, etc.)",
-          "Click 'New Chat' to start a conversation with anyone on the mesh",
-          "Connect more platforms in Settings to see all your messages here",
-        ]}
-        accentColor="#10b981"
-      />
-
       {/* MeChat Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

@@ -3,6 +3,7 @@
 
 import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
 import { NODE_GLOW, STATUS_COLORS, hexAlpha } from "./mesh-types";
+import { drawMeshi, drawRemoteMeshis, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 export interface ViewportState {
   zoom: number;
@@ -16,6 +17,8 @@ export interface ViewportState {
 export interface InteractionState {
   hoveredNode: MeshNode | null;
   selectedNode: MeshNode | null;
+  meshiState?: MeshiState | null;
+  remoteMeshis?: RemoteMeshi[];
 }
 
 export function renderMesh(
@@ -27,7 +30,7 @@ export function renderMesh(
   imageCache: Map<string, HTMLImageElement | null>,
 ) {
   const { zoom: z, pan: p, center, filter: f, showLabels: labels, time } = viewport;
-  const { hoveredNode: hovered, selectedNode: selected } = interaction;
+  const { hoveredNode: hovered, selectedNode: selected, meshiState, remoteMeshis } = interaction;
 
   const dpr = window.devicePixelRatio || 1;
   const w = ctx.canvas.width;
@@ -38,10 +41,11 @@ export function renderMesh(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, logicalW, logicalH);
 
-  // Subtle radial gradient background
+  // Ambient background glow
   const bgGrad = ctx.createRadialGradient(logicalW / 2, logicalH / 2, 0, logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.7);
-  bgGrad.addColorStop(0, "rgba(99, 102, 241, 0.03)");
-  bgGrad.addColorStop(0.5, "rgba(99, 102, 241, 0.01)");
+  bgGrad.addColorStop(0, "rgba(99, 102, 241, 0.04)");
+  bgGrad.addColorStop(0.3, "rgba(99, 102, 241, 0.02)");
+  bgGrad.addColorStop(0.6, "rgba(139, 92, 246, 0.01)");
   bgGrad.addColorStop(1, "transparent");
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, logicalW, logicalH);
@@ -51,11 +55,51 @@ export function renderMesh(
   ctx.scale(z, z);
   ctx.translate(-center.x, -center.y);
 
+  // Draw orbit rings around self node
+  const selfNode = nodes.find((n) => n.type === "self");
+  if (selfNode) {
+    drawOrbitRings(ctx, selfNode, time);
+  }
+
   drawEdges(ctx, nodes, edges, f, hovered, selected, time);
+  drawDataParticles(ctx, nodes, edges, f, time, hovered, selected);
   drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache);
+
+  // Draw Meshi avatars on the mesh (after nodes, before tooltip)
+  if (remoteMeshis && remoteMeshis.length > 0) {
+    drawRemoteMeshis(ctx, remoteMeshis, time);
+  }
+  if (meshiState) {
+    drawMeshi(ctx, meshiState, time);
+  }
+
   drawTooltip(ctx, hovered, z, time);
 
   ctx.restore();
+}
+
+// --- Orbit rings around self ---
+
+function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
+  const rings = [
+    { radius: 160, alpha: 0.04, dashLen: 6 },
+    { radius: 300, alpha: 0.03, dashLen: 8 },
+    { radius: 400, alpha: 0.025, dashLen: 10 },
+    { radius: 500, alpha: 0.02, dashLen: 12 },
+    { radius: 620, alpha: 0.015, dashLen: 14 },
+  ];
+
+  for (const ring of rings) {
+    const pulse = Math.sin(time * 0.3 + ring.radius * 0.01) * 0.01;
+    ctx.beginPath();
+    ctx.arc(self.x, self.y, ring.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(99, 102, 241, ${ring.alpha + pulse})`;
+    ctx.setLineDash([ring.dashLen, ring.dashLen * 2]);
+    ctx.lineDashOffset = -time * 8;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
 }
 
 // --- Edges ---
@@ -69,7 +113,6 @@ function drawEdges(
   selected: MeshNode | null,
   time: number,
 ) {
-  // Build a quick lookup for node by id
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
 
@@ -82,17 +125,23 @@ function drawEdges(
     const isHighlighted = (hovered && (hovered.id === source.id || hovered.id === target.id))
       || (selected && (selected.id === source.id || selected.id === target.id));
 
-    const baseAlpha = isHighlighted ? 0.25 : 0.04 + edge.strength * 0.06;
+    const isCross = edge.type === "shared-community" || edge.type === "cross-follow";
+    const baseAlpha = isHighlighted ? 0.3
+      : isCross ? 0.02 + edge.strength * 0.04
+      : 0.04 + edge.strength * 0.06;
     const pulseAlpha = Math.sin(time * 1.2 + edge.strength * 5) * 0.015;
 
     ctx.beginPath();
     ctx.moveTo(source.x, source.y);
-    if (edge.type === "mutual") {
+
+    if (edge.type === "mutual" || edge.type === "cross-follow") {
+      // Curved lines for mutual/cross edges
       const mx = (source.x + target.x) / 2;
       const my = (source.y + target.y) / 2;
       const edx = target.x - source.x;
       const edy = target.y - source.y;
-      ctx.quadraticCurveTo(mx - edy * 0.15, my + edx * 0.15, target.x, target.y);
+      const curveFactor = edge.type === "cross-follow" ? 0.1 : 0.15;
+      ctx.quadraticCurveTo(mx - edy * curveFactor, my + edx * curveFactor, target.x, target.y);
     } else {
       ctx.lineTo(target.x, target.y);
     }
@@ -100,17 +149,62 @@ function drawEdges(
     const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
     ctx.strokeStyle = `rgba(${edgeColor}, ${baseAlpha + pulseAlpha})`;
     const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.3, 2.5) : 0;
-    ctx.lineWidth = isHighlighted ? 2 + interactionBoost : 0.5 + edge.strength * 0.5 + interactionBoost;
+    ctx.lineWidth = isHighlighted ? 2 + interactionBoost
+      : isCross ? 0.3 + edge.strength * 0.3
+      : 0.5 + edge.strength * 0.5 + interactionBoost;
     ctx.stroke();
+  }
+}
 
-    // Animated particle on highlighted mutual edges
-    if (edge.type === "mutual" && isHighlighted) {
-      const t = (time * 0.5) % 1;
+// --- Data particles flowing along edges ---
+
+function drawDataParticles(
+  ctx: CanvasRenderingContext2D,
+  nodes: MeshNode[],
+  edges: MeshEdge[],
+  filter: FilterType,
+  time: number,
+  hovered: MeshNode | null,
+  selected: MeshNode | null,
+) {
+  const nodeMap = new Map<string, MeshNode>();
+  for (const n of nodes) nodeMap.set(n.id, n);
+
+  for (let ei = 0; ei < edges.length; ei++) {
+    const edge = edges[ei];
+    const source = nodeMap.get(edge.source);
+    const target = nodeMap.get(edge.target);
+    if (!source || !target) continue;
+    if (filter !== "all" && target.type !== filter && source.type !== filter && source.type !== "self" && target.type !== "self") continue;
+
+    const isHighlighted = (hovered && (hovered.id === source.id || hovered.id === target.id))
+      || (selected && (selected.id === source.id || selected.id === target.id));
+    const isCross = edge.type === "shared-community" || edge.type === "cross-follow";
+
+    // Show particles on highlighted edges, mutual edges, and sporadically on others
+    const showParticle = isHighlighted || edge.type === "mutual"
+      || (edge.strength > 0.5 && (ei % 3 === 0));
+    if (!showParticle && !isCross) {
+      // Still show faint particles on some non-cross edges
+      if (ei % 7 !== 0) continue;
+    }
+    if (isCross && !isHighlighted) continue; // Skip particles on cross edges unless highlighted
+
+    // Multiple particles per edge for highlighted ones
+    const particleCount = isHighlighted ? 2 : 1;
+    const speed = isHighlighted ? 0.4 : 0.2;
+    const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
+    const alpha = isHighlighted ? 0.7 : 0.3;
+    const radius = isHighlighted ? 2 : 1.2;
+
+    for (let pi = 0; pi < particleCount; pi++) {
+      const t = ((time * speed + ei * 0.37 + pi * 0.5) % 1);
       const px = source.x + (target.x - source.x) * t;
       const py = source.y + (target.y - source.y) * t;
+
       ctx.beginPath();
-      ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${edgeColor}, 0.8)`;
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${edgeColor}, ${alpha})`;
       ctx.fill();
     }
   }
@@ -124,6 +218,30 @@ const EDGE_COLORS: Record<string, string> = {
   platform: "245, 158, 11",
   follow: "99, 102, 241",
   "alter-ego": "192, 132, 252",
+  "shared-community": "200, 120, 200",
+  "cross-follow": "140, 140, 250",
+  "platform-content": "245, 158, 11",
+  "platform-follower": "220, 160, 50",
+};
+
+// --- Platform icon emojis ---
+const PLATFORM_ICONS: Record<string, string> = {
+  instagram: "\ud83d\udcf7",
+  youtube: "\u25b6",
+  tiktok: "\ud83c\udfb5",
+  twitter: "\ud83d\udc26",
+  twitch: "\ud83c\udfae",
+  spotify: "\ud83c\udfa7",
+  soundcloud: "\u2601",
+  linkedin: "\ud83d\udcbc",
+  github: "\ud83d\udc31",
+  discord: "\ud83d\udcac",
+  snapchat: "\ud83d\udc7b",
+  pinterest: "\ud83d\udccc",
+  reddit: "\ud83e\udd16",
+  facebook: "\ud83d\udc64",
+  threads: "\ud83e\uddf5",
+  bluesky: "\ud83e\ude77",
 };
 
 // --- Nodes ---
@@ -154,8 +272,8 @@ function drawNodes(
     const highlight = isHovered || isSelected || isConnectedToHovered || isConnectedToSelected;
     const dimmed = (hovered || selected) && !highlight && node.type !== "self";
 
-    const nodeOpacity = dimmed ? 0.25 : node.opacity;
-    const connectionBoost = node.connections.length > 0 ? Math.min(node.connections.length * 0.8, 8) : 0;
+    const nodeOpacity = dimmed ? 0.2 : node.opacity;
+    const connectionBoost = node.connections.length > 0 ? Math.min(node.connections.length * 0.6, 6) : 0;
     const baseNodeRadius = node.radius + connectionBoost;
     const nodeRadius = isHovered ? baseNodeRadius * 1.15 : baseNodeRadius;
     const pulse = Math.sin(time * 1.5 + node.pulsePhase) * 0.5 + 0.5;
@@ -167,8 +285,8 @@ function drawNodes(
     // Glow
     const glowRadius = nodeRadius * (1.8 + pulse * 0.3);
     const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowRadius);
-    gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.15 * nodeOpacity) + ")"));
-    gradient.addColorStop(0.6, glowColor.replace(/[\d.]+\)$/, (0.04 * nodeOpacity) + ")"));
+    gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.18 * nodeOpacity) + ")"));
+    gradient.addColorStop(0.5, glowColor.replace(/[\d.]+\)$/, (0.06 * nodeOpacity) + ")"));
     gradient.addColorStop(1, "rgba(0,0,0,0)");
     ctx.beginPath();
     ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
@@ -177,15 +295,31 @@ function drawNodes(
 
     // Self node rings
     if (node.type === "self") {
-      const ringRadius = nodeRadius + 5 + pulse * 2;
+      const ringRadius = nodeRadius + 6 + pulse * 3;
       ctx.beginPath();
       ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${0.18 + pulse * 0.08})`;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(99, 102, 241, ${0.2 + pulse * 0.1})`;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(node.x, node.y, ringRadius + 5, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${0.06 + pulse * 0.03})`;
+      ctx.arc(node.x, node.y, ringRadius + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(99, 102, 241, ${0.08 + pulse * 0.04})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, ringRadius + 12, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(99, 102, 241, ${0.03 + pulse * 0.02})`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Activity pulse for online users
+    if (node.status === "online" && node.type === "user") {
+      const activityPulse = Math.sin(time * 2 + node.pulsePhase) * 0.5 + 0.5;
+      const activityRadius = nodeRadius + 3 + activityPulse * 4;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, activityRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(34, 197, 94, ${0.08 + activityPulse * 0.06})`;
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -204,6 +338,28 @@ function drawNodes(
       ctx.strokeStyle = "#09090b";
       ctx.lineWidth = 1.5;
       ctx.stroke();
+    }
+
+    // Platform icon badge for platform nodes
+    if (node.type === "platform" && node.platform) {
+      const emoji = PLATFORM_ICONS[node.platform.toLowerCase()];
+      if (emoji) {
+        ctx.font = `${Math.max(10, nodeRadius * 0.7)}px system-ui, -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(emoji, node.x, node.y);
+      }
+    }
+
+    // Engagement indicator (small bar under high-engagement nodes)
+    if (node.engagementScore && node.engagementScore > 5 && node.type === "user") {
+      const barWidth = Math.min(node.engagementScore * 0.4, nodeRadius * 1.5);
+      const barX = node.x - barWidth / 2;
+      const barY = node.y + nodeRadius + 2;
+      ctx.fillStyle = `rgba(99, 102, 241, ${0.15 * nodeOpacity})`;
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barWidth, 2, 1);
+      ctx.fill();
     }
 
     // Labels
@@ -274,6 +430,9 @@ function drawNodeBody(
     ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
     ctx.stroke();
 
+    // Platform nodes get emoji icons handled above; skip letter fallback for them
+    if (node.type === "platform") return;
+
     // Fallback icon/letter
     ctx.fillStyle = `rgba(255, 255, 255, ${0.85 * nodeOpacity})`;
     ctx.textAlign = "center";
@@ -283,7 +442,6 @@ function drawNodeBody(
       community: { text: "", sizeFactor: 0.5 },
       tag: { text: "#", sizeFactor: 0.5 },
       post: { text: "\u2726", sizeFactor: 0.45 },
-      platform: { text: "", sizeFactor: 0.5 },
     };
     const iconInfo = ICON_MAP[node.type];
     const fontSize = Math.max(9, nodeRadius * (iconInfo?.sizeFactor || 0.6));
@@ -336,36 +494,82 @@ function drawTooltip(
   ctx: CanvasRenderingContext2D,
   hovered: MeshNode | null,
   zoom: number,
-  time: number,
+  _time: number,
 ) {
   if (!hovered || zoom < 0.5) return;
-  // suppress unused var lint
-  void time;
 
   const ttX = hovered.x;
-  const ttY = hovered.y - hovered.radius - 12;
+  const ttY = hovered.y - hovered.radius - 14;
   const ttPadX = 10, ttPadY = 6, ttLineH = 14;
-  const ttLines: string[] = [hovered.label];
-  if (hovered.sublabel) ttLines.push(hovered.sublabel);
+  const ttLines: string[] = [];
 
-  if (hovered.type === "user") {
+  // Platform nodes get emoji-prefixed label; others get plain label + sublabel
+  if (hovered.type === "platform") {
+    const emoji = PLATFORM_ICONS[(hovered.platform || "").toLowerCase()] || "";
+    ttLines.push(emoji + " " + (hovered.platform || "Platform"));
+    if (hovered.sublabel) ttLines.push(hovered.sublabel);
+  } else {
+    ttLines.push(hovered.label);
+    if (hovered.sublabel) ttLines.push(hovered.sublabel);
+  }
+
+  if (hovered.type === "self") {
     const parts: string[] = [];
     if (hovered.followerCount !== undefined) parts.push(hovered.followerCount + " followers");
     if (hovered.postCount !== undefined) parts.push(hovered.postCount + " posts");
-    if (hovered.isMutual) parts.push("Mutual");
+    if (hovered.platformCount) parts.push(hovered.platformCount + " platforms");
+    if (parts.length > 0) ttLines.push(parts.join(" \u00b7 "));
+    if (hovered.description) ttLines.push(hovered.description.slice(0, 60) + (hovered.description.length > 60 ? "..." : ""));
+    ttLines.push("Your digital universe");
+  } else if (hovered.type === "user") {
+    const parts: string[] = [];
+    if (hovered.followerCount !== undefined) parts.push(hovered.followerCount + " followers");
+    if (hovered.postCount !== undefined) parts.push(hovered.postCount + " posts");
+    if (hovered.isMutual) parts.push("\u2728 Mutual");
+    if (hovered.interactionCount) parts.push(hovered.interactionCount + " interactions");
     if (parts.length > 0) ttLines.push(parts.join(" \u00b7 "));
     if (hovered.sharedInterests && hovered.sharedInterests.length > 0)
-      ttLines.push("Shared: " + hovered.sharedInterests.slice(0, 3).join(", "));
+      ttLines.push("Shared: " + hovered.sharedInterests.slice(0, 4).join(", "));
+    if (hovered.sharedCommunities && hovered.sharedCommunities.length > 0)
+      ttLines.push(hovered.sharedCommunities.length + " shared communities");
+    if (hovered.status === "online") ttLines.push("\ud83d\udfe2 Online now");
   } else if (hovered.type === "community") {
-    if (hovered.memberCount !== undefined) ttLines.push(hovered.memberCount + " members");
-  } else if (hovered.type === "post") {
-    if (hovered.content) ttLines.push(hovered.content.slice(0, 50) + (hovered.content.length > 50 ? "..." : ""));
     const parts: string[] = [];
-    if (hovered.likeCount !== undefined) parts.push(hovered.likeCount + " likes");
-    if (hovered.commentCount !== undefined) parts.push(hovered.commentCount + " comments");
+    if (hovered.memberCount !== undefined) parts.push(hovered.memberCount + " members");
+    if (hovered.postCount !== undefined) parts.push(hovered.postCount + " posts");
     if (parts.length > 0) ttLines.push(parts.join(" \u00b7 "));
+    if (hovered.category) ttLines.push("Category: " + hovered.category);
+    if (hovered.description) ttLines.push(hovered.description.slice(0, 50) + (hovered.description.length > 50 ? "..." : ""));
+  } else if (hovered.type === "post") {
+    if (hovered.platform) {
+      const pEmoji = PLATFORM_ICONS[hovered.platform.toLowerCase()] || "";
+      ttLines.push(pEmoji + " " + hovered.platform);
+    }
+    if (hovered.content) ttLines.push(hovered.content.slice(0, 60) + (hovered.content.length > 60 ? "..." : ""));
+    const parts: string[] = [];
+    if (hovered.likeCount !== undefined) parts.push("\u2764 " + hovered.likeCount);
+    if (hovered.commentCount !== undefined) parts.push("\ud83d\udcac " + hovered.commentCount);
+    if (hovered.repostCount !== undefined) parts.push("\ud83d\udd01 " + hovered.repostCount);
+    if (parts.length > 0) ttLines.push(parts.join("  "));
   } else if (hovered.type === "platform") {
-    ttLines.push("Connected platform");
+    const parts: string[] = [];
+    if (hovered.followerCount) parts.push(hovered.followerCount + " followers");
+    if (hovered.postCount) parts.push(hovered.postCount + " posts");
+    if (parts.length > 0) ttLines.push(parts.join(" \u00b7 "));
+    if (hovered.likeCount) ttLines.push("\u2764 " + hovered.likeCount + " total likes");
+    if (hovered.description) ttLines.push(hovered.description);
+    ttLines.push("Click to manage connections");
+  } else if (hovered.type === "tag") {
+    ttLines.push("Interest tag");
+    ttLines.push("Click to explore related content");
+  } else if (hovered.type === "alter-ego") {
+    ttLines.push("Alter ego persona");
+    if (hovered.description) ttLines.push(hovered.description.slice(0, 50) + (hovered.description.length > 50 ? "..." : ""));
+  }
+
+  // Connection count
+  if (hovered.connections.length > 0) {
+    ttLines.push(hovered.connections.length + " mesh connections");
   }
 
   ctx.font = "11px system-ui, -apple-system, sans-serif";
@@ -376,11 +580,11 @@ function drawTooltip(
   const bx = ttX - boxW / 2;
   const by = ttY - boxH;
 
-  ctx.fillStyle = "rgba(15, 15, 20, 0.92)";
+  ctx.fillStyle = "rgba(12, 12, 18, 0.94)";
   ctx.beginPath();
-  ctx.roundRect(bx, by, boxW, boxH, 6);
+  ctx.roundRect(bx, by, boxW, boxH, 8);
   ctx.fill();
-  ctx.strokeStyle = hovered.color + "60";
+  ctx.strokeStyle = hovered.color + "40";
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -389,7 +593,7 @@ function drawTooltip(
   ctx.moveTo(ttX - 5, ttY - 1);
   ctx.lineTo(ttX, ttY + 5);
   ctx.lineTo(ttX + 5, ttY - 1);
-  ctx.fillStyle = "rgba(15, 15, 20, 0.92)";
+  ctx.fillStyle = "rgba(12, 12, 18, 0.94)";
   ctx.fill();
 
   ctx.textAlign = "left";
@@ -398,6 +602,9 @@ function drawTooltip(
     if (li === 0) {
       ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    } else if (li === ttLines.length - 1 && ttLines[li].includes("mesh connections")) {
+      ctx.font = "10px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "rgba(99, 102, 241, 0.7)";
     } else {
       ctx.font = "10px system-ui, -apple-system, sans-serif";
       ctx.fillStyle = "rgba(200, 200, 210, 0.8)";
