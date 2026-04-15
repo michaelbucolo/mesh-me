@@ -56,6 +56,12 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
 
   const userId = data.user.id;
 
+  // Build community ID → name lookup for resolving shared communities
+  const communityNameMap: Record<string, string> = {};
+  for (const c of data.communities || []) {
+    communityNameMap[c.id] = c.name;
+  }
+
   // --- Self node (center) ---
   nodes.push({
     id: userId,
@@ -82,7 +88,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Alter Egos (ring 1: close to self) ---
   const alterEgos = data.alterEgos || [];
   alterEgos.forEach((ego: any, i: number) => {
-    const pos = ringPosition(cx, cy, 80, i, alterEgos.length, Math.PI / 6);
+    const pos = ringPosition(cx, cy, 100, i, alterEgos.length, Math.PI / 6);
     nodes.push({
       id: "alter-ego-" + ego.id,
       type: "alter-ego",
@@ -105,11 +111,15 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     });
   });
 
-  // --- Connected Platforms (ring 2) ---
+  // --- Connected Platforms (ring 2) with sub-nodes ---
   const platforms = data.connectedAccounts || [];
   platforms.forEach((acct: any, i: number) => {
-    const pos = ringPosition(cx, cy, 140, i, platforms.length, Math.PI / 4);
+    const pos = ringPosition(cx, cy, 180, i, platforms.length, Math.PI / 4);
     const platformKey = acct.platform?.toLowerCase() || "";
+    const analytics = acct.analytics || null;
+    const totalPosts = acct.counts?.platformPosts || 0;
+    const totalFollowers = acct.counts?.platformFollowers || 0;
+
     nodes.push({
       id: "platform-" + acct.id,
       type: "platform",
@@ -117,18 +127,91 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       sublabel: acct.platformUsername ? "@" + acct.platformUsername : undefined,
       href: "/connected-accounts",
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 16,
+      radius: 16 + Math.min(totalPosts * 0.2, 8),
       color: PLATFORM_COLORS[platformKey] || NODE_COLORS.platform,
       opacity: 0.9,
       pulsePhase: i * 0.8,
       connections: [userId],
       platform: acct.platform,
+      postCount: totalPosts,
+      followerCount: analytics?.followerCount ?? totalFollowers,
+      likeCount: analytics?.totalLikes ?? 0,
+      commentCount: analytics?.totalComments ?? 0,
+      description: acct.platformUsername
+        ? `${totalPosts} posts · ${totalFollowers} followers synced`
+        : undefined,
+      engagementScore: analytics
+        ? (analytics.followerCount || 0) * 0.1 + (analytics.totalLikes || 0) * 0.3 + (analytics.totalViews || 0) * 0.01
+        : 0,
     });
     edges.push({
       source: userId,
       target: "platform-" + acct.id,
       strength: 0.7,
       type: "platform",
+    });
+
+    // --- Platform top posts as sub-nodes orbiting the platform ---
+    const topPosts = acct.topPosts || [];
+    topPosts.forEach((pp: any, pi: number) => {
+      const subPos = ringPosition(pos.x, pos.y, 50 + pi * 8, pi, topPosts.length, Math.PI / 3 + i);
+      const ppId = "pp-" + pp.id;
+      const ppEngagement = (pp.likeCount || 0) + (pp.commentCount || 0) * 2 + (pp.viewCount || 0) * 0.01;
+      nodes.push({
+        id: ppId,
+        type: "post",
+        label: (pp.title || pp.content || pp.postType || "Post").slice(0, 35) + ((pp.title || pp.content || "").length > 35 ? "..." : ""),
+        content: pp.content || pp.title,
+        href: pp.url || undefined,
+        imageUrl: pp.thumbnailUrl || null,
+        x: subPos.x, y: subPos.y, vx: 0, vy: 0,
+        radius: 7 + Math.min(ppEngagement * 0.3, 6),
+        color: PLATFORM_COLORS[platformKey] || NODE_COLORS.post,
+        opacity: 0.75,
+        pulsePhase: pi * 0.6 + i,
+        connections: ["platform-" + acct.id],
+        likeCount: pp.likeCount,
+        commentCount: pp.commentCount,
+        repostCount: pp.shareCount,
+        platform: acct.platform,
+        lastActiveAt: pp.publishedAt || null,
+      });
+      edges.push({
+        source: "platform-" + acct.id,
+        target: ppId,
+        strength: 0.35,
+        type: "platform-content",
+      });
+    });
+
+    // --- Platform top followers as sub-nodes ---
+    const topFollowers = acct.topFollowers || [];
+    topFollowers.slice(0, 6).forEach((pf: any, fi: number) => {
+      const subPos = ringPosition(pos.x, pos.y, 70 + fi * 6, fi, Math.min(topFollowers.length, 6), -Math.PI / 4 + i);
+      const pfId = "pf-" + pf.id;
+      nodes.push({
+        id: pfId,
+        type: "user",
+        label: pf.displayName || pf.username || "User",
+        sublabel: pf.username ? "@" + pf.username : undefined,
+        avatarUrl: pf.avatarUrl,
+        href: pf.profileUrl || undefined,
+        x: subPos.x, y: subPos.y, vx: 0, vy: 0,
+        radius: 9 + Math.min((pf.followerCount || 0) * 0.001, 4),
+        color: PLATFORM_COLORS[platformKey] || NODE_COLORS.user,
+        opacity: 0.7,
+        pulsePhase: fi * 0.7 + i,
+        connections: ["platform-" + acct.id],
+        isMutual: pf.isMutual,
+        followerCount: pf.followerCount,
+        platform: acct.platform,
+      });
+      edges.push({
+        source: "platform-" + acct.id,
+        target: pfId,
+        strength: 0.25,
+        type: "platform-follower",
+      });
     });
   });
 
@@ -164,7 +247,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     const isMutual = !!f.isMutual;
     const interactionCount = f.interactionCount || 0;
     // Mutuals closer, high-interaction users even closer
-    const baseDist = isMutual ? 180 : 260;
+    const baseDist = isMutual ? 240 : 340;
     const interactionPull = Math.min(interactionCount * 4, 60);
     const ringRadius = baseDist - interactionPull;
     const pos = ringPosition(cx, cy, ringRadius, i, peopleToDraw.length);
@@ -191,7 +274,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       followerCount: f.followerCount ?? f._count?.followers,
       postCount: f.postCount ?? f._count?.posts,
       sharedInterests: f.sharedInterests,
-      sharedCommunities: f.sharedCommunities,
+      sharedCommunities: (f.sharedCommunities || []).map((id: string) => communityNameMap[id] || id),
       interactionCount,
       status: f.status || "offline",
       engagementScore: engagement,
@@ -268,7 +351,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Communities (ring 4) ---
   const communities = data.communities || [];
   communities.forEach((c: any, i: number) => {
-    const pos = ringPosition(cx, cy, 340, i, communities.length, Math.PI / 5);
+    const pos = ringPosition(cx, cy, 420, i, communities.length, Math.PI / 5);
     const communityId = "community-" + c.id;
     nodes.push({
       id: communityId,
@@ -315,7 +398,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Interests (ring 5) ---
   const interests = data.interests || [];
   interests.forEach((tag: string, i: number) => {
-    const pos = ringPosition(cx, cy, 420, i, interests.length, Math.PI / 8);
+    const pos = ringPosition(cx, cy, 520, i, interests.length, Math.PI / 8);
     const tagId = "tag-" + tag;
     nodes.push({
       id: tagId,
@@ -356,7 +439,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   const posts = data.posts || [];
   const maxPosts = 40;
   posts.slice(0, maxPosts).forEach((p: any, i: number) => {
-    const pos = ringPosition(cx, cy, 500, i, Math.min(posts.length, maxPosts), Math.PI / 10);
+    const pos = ringPosition(cx, cy, 620, i, Math.min(posts.length, maxPosts), Math.PI / 10);
     const postId = "post-" + p.id;
     // Size posts by engagement
     const postEngagement = (p.likeCount || 0) + (p.commentCount || 0) * 2 + (p.repostCount || 0) * 3;

@@ -70,11 +70,11 @@ export function renderMesh(
 
 function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
   const rings = [
-    { radius: 140, alpha: 0.04, dashLen: 6 },
-    { radius: 260, alpha: 0.03, dashLen: 8 },
-    { radius: 340, alpha: 0.025, dashLen: 10 },
-    { radius: 420, alpha: 0.02, dashLen: 12 },
-    { radius: 500, alpha: 0.015, dashLen: 14 },
+    { radius: 160, alpha: 0.04, dashLen: 6 },
+    { radius: 300, alpha: 0.03, dashLen: 8 },
+    { radius: 400, alpha: 0.025, dashLen: 10 },
+    { radius: 500, alpha: 0.02, dashLen: 12 },
+    { radius: 620, alpha: 0.015, dashLen: 14 },
   ];
 
   for (const ring of rings) {
@@ -208,26 +208,28 @@ const EDGE_COLORS: Record<string, string> = {
   "alter-ego": "192, 132, 252",
   "shared-community": "200, 120, 200",
   "cross-follow": "140, 140, 250",
+  "platform-content": "245, 158, 11",
+  "platform-follower": "220, 160, 50",
 };
 
 // --- Platform icon emojis ---
 const PLATFORM_ICONS: Record<string, string> = {
-  Instagram: "\ud83d\udcf7",
-  YouTube: "\u25b6",
-  TikTok: "\ud83c\udfb5",
-  Twitter: "\ud83d\udc26",
-  Twitch: "\ud83c\udfae",
-  Spotify: "\ud83c\udfa7",
-  SoundCloud: "\u2601",
-  LinkedIn: "\ud83d\udcbc",
-  GitHub: "\ud83d\udc31",
-  Discord: "\ud83d\udcac",
-  Snapchat: "\ud83d\udc7b",
-  Pinterest: "\ud83d\udccc",
-  Reddit: "\ud83e\udd16",
-  Facebook: "\ud83d\udc64",
-  Threads: "\ud83e\uddf5",
-  Bluesky: "\ud83e\ude77",
+  instagram: "\ud83d\udcf7",
+  youtube: "\u25b6",
+  tiktok: "\ud83c\udfb5",
+  twitter: "\ud83d\udc26",
+  twitch: "\ud83c\udfae",
+  spotify: "\ud83c\udfa7",
+  soundcloud: "\u2601",
+  linkedin: "\ud83d\udcbc",
+  github: "\ud83d\udc31",
+  discord: "\ud83d\udcac",
+  snapchat: "\ud83d\udc7b",
+  pinterest: "\ud83d\udccc",
+  reddit: "\ud83e\udd16",
+  facebook: "\ud83d\udc64",
+  threads: "\ud83e\uddf5",
+  bluesky: "\ud83e\ude77",
 };
 
 // --- Nodes ---
@@ -328,7 +330,7 @@ function drawNodes(
 
     // Platform icon badge for platform nodes
     if (node.type === "platform" && node.platform) {
-      const emoji = PLATFORM_ICONS[node.platform];
+      const emoji = PLATFORM_ICONS[node.platform.toLowerCase()];
       if (emoji) {
         ctx.font = `${Math.max(10, nodeRadius * 0.7)}px system-ui, -apple-system, sans-serif`;
         ctx.textAlign = "center";
@@ -518,6 +520,10 @@ function drawTooltip(
     if (hovered.category) ttLines.push("Category: " + hovered.category);
     if (hovered.description) ttLines.push(hovered.description.slice(0, 50) + (hovered.description.length > 50 ? "..." : ""));
   } else if (hovered.type === "post") {
+    if (hovered.platform) {
+      const pEmoji = PLATFORM_ICONS[hovered.platform.toLowerCase()] || "";
+      ttLines.push(pEmoji + " " + hovered.platform);
+    }
     if (hovered.content) ttLines.push(hovered.content.slice(0, 60) + (hovered.content.length > 60 ? "..." : ""));
     const parts: string[] = [];
     if (hovered.likeCount !== undefined) parts.push("\u2764 " + hovered.likeCount);
@@ -525,9 +531,16 @@ function drawTooltip(
     if (hovered.repostCount !== undefined) parts.push("\ud83d\udd01 " + hovered.repostCount);
     if (parts.length > 0) ttLines.push(parts.join("  "));
   } else if (hovered.type === "platform") {
-    const emoji = PLATFORM_ICONS[hovered.platform || ""] || "";
-    ttLines.push(emoji + " Connected platform");
-    if (hovered.sublabel) ttLines.push("Username: " + hovered.sublabel);
+    const emoji = PLATFORM_ICONS[(hovered.platform || "").toLowerCase()] || "";
+    ttLines.push(emoji + " " + (hovered.platform || "Platform"));
+    if (hovered.sublabel) ttLines.push(hovered.sublabel);
+    const parts: string[] = [];
+    if (hovered.followerCount) parts.push(hovered.followerCount + " followers");
+    if (hovered.postCount) parts.push(hovered.postCount + " posts");
+    if (parts.length > 0) ttLines.push(parts.join(" \u00b7 "));
+    if (hovered.likeCount) ttLines.push("\u2764 " + hovered.likeCount + " total likes");
+    if (hovered.description) ttLines.push(hovered.description);
+    ttLines.push("Click to manage connections");
   } else if (hovered.type === "tag") {
     ttLines.push("Interest tag");
     ttLines.push("Click to explore related content");
