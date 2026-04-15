@@ -170,7 +170,7 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number): voi
   const dist = Math.sqrt(dx * dx + dy * dy);
 
   if (dist > state.radius + 5) {
-    const speed = Math.min(MOVE_SPEED, dist * 0.06);
+    const speed = Math.min(MOVE_SPEED, dist * 0.06) * dt * 60;
     state.x += (dx / dist) * speed;
     state.y += (dy / dist) * speed;
     state.isMoving = true;
