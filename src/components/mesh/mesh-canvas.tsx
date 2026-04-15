@@ -4,7 +4,7 @@ import { useRef, useCallback, useEffect } from "react";
 import type { MeshEngine } from "./mesh-engine";
 import type { MeshNode, FilterType } from "./mesh-types";
 import { renderMesh } from "./mesh-renderer";
-import { createMeshiState, tickMeshi, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
+import { createMeshiState, tickMeshi, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 interface MeshCanvasProps {
   engine: MeshEngine;
@@ -63,6 +63,16 @@ export function MeshCanvas({
   useEffect(() => { hoveredRef.current = hoveredNode; }, [hoveredNode]);
   useEffect(() => { selectedRef.current = selectedNode; }, [selectedNode]);
   useEffect(() => { remoteMeshisRef.current = remoteMeshis || []; }, [remoteMeshis]);
+
+  // Patch Meshi appearance when user prefs change without destroying position/trail state
+  useEffect(() => {
+    if (meshiStateRef.current) {
+      meshiStateRef.current.color = MESHI_COLORS[meshiColor || "blue"] || MESHI_COLORS.blue;
+      meshiStateRef.current.hatColor = MESHI_COLORS[meshiColor || "blue"] || MESHI_COLORS.blue;
+      meshiStateRef.current.hat = meshiHat || "none";
+      meshiStateRef.current.username = meshiUsername || "You";
+    }
+  }, [meshiColor, meshiHat, meshiUsername]);
 
   // World coordinate conversion
   const getWorldCoords = useCallback((clientX: number, clientY: number) => {
