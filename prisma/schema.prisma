@@ -67,7 +67,7 @@ model User {
   emailVerified    Boolean @default(false)
   phoneVerified    Boolean @default(false)
   // Password reset
-  resetToken       String?
+  resetToken       String?  @unique
   resetTokenExpiry DateTime?
   // Online status: "online" | "dnd" | "busy" | "offline"
   status         String   @default("offline")

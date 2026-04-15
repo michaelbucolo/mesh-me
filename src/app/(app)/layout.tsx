@@ -41,7 +41,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Check if user needs verification (after 1 month of signup)
   const now = new Date();
-  const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+  const oneMonthAgo = new Date(now);
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  if (oneMonthAgo.getDate() !== now.getDate()) oneMonthAgo.setDate(0);
   const accountOldEnough = user.createdAt < oneMonthAgo;
   const needsEmailVerification = accountOldEnough && !user.emailVerified;
   const needsPhoneVerification = accountOldEnough && !user.phoneVerified;
