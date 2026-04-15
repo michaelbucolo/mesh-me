@@ -3,6 +3,7 @@
 
 import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
 import { NODE_GLOW, STATUS_COLORS, hexAlpha } from "./mesh-types";
+import { drawMeshi, drawRemoteMeshis, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 export interface ViewportState {
   zoom: number;
@@ -16,6 +17,8 @@ export interface ViewportState {
 export interface InteractionState {
   hoveredNode: MeshNode | null;
   selectedNode: MeshNode | null;
+  meshiState?: MeshiState | null;
+  remoteMeshis?: RemoteMeshi[];
 }
 
 export function renderMesh(
@@ -27,7 +30,7 @@ export function renderMesh(
   imageCache: Map<string, HTMLImageElement | null>,
 ) {
   const { zoom: z, pan: p, center, filter: f, showLabels: labels, time } = viewport;
-  const { hoveredNode: hovered, selectedNode: selected } = interaction;
+  const { hoveredNode: hovered, selectedNode: selected, meshiState, remoteMeshis } = interaction;
 
   const dpr = window.devicePixelRatio || 1;
   const w = ctx.canvas.width;
@@ -61,6 +64,15 @@ export function renderMesh(
   drawEdges(ctx, nodes, edges, f, hovered, selected, time);
   drawDataParticles(ctx, nodes, edges, f, time, hovered, selected);
   drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache);
+
+  // Draw Meshi avatars on the mesh (after nodes, before tooltip)
+  if (remoteMeshis && remoteMeshis.length > 0) {
+    drawRemoteMeshis(ctx, remoteMeshis, time);
+  }
+  if (meshiState) {
+    drawMeshi(ctx, meshiState, time);
+  }
+
   drawTooltip(ctx, hovered, z, time);
 
   ctx.restore();
