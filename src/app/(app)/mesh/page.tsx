@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { X, RotateCcw, Layers } from "lucide-react";
@@ -10,17 +10,19 @@ import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood 
 import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
 import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
 import { MeshTutorial } from "@/components/mesh/mesh-tutorial";
-import { ContentHub } from "@/components/mesh/content-hub";
-import { MeshNodeDetail } from "@/components/mesh/mesh-node-detail";
-import { MeshCommandPalette } from "@/components/mesh/mesh-command-palette";
-import { MeshFootprint } from "@/components/mesh/mesh-footprint";
-import { MeshPrivacyPanel } from "@/components/mesh/mesh-privacy-panel";
-import { MeshPostComposer } from "@/components/mesh/mesh-post-composer";
 import { MeshEngine } from "@/components/mesh/mesh-engine";
 import { MeshCanvas } from "@/components/mesh/mesh-canvas";
 import { MeshFilterBar, MeshZoomControls, MeshStatsBar, MeshActionBar } from "@/components/mesh/mesh-controls";
 import { buildMeshData, buildUserMeshData, preloadNodeImages, type MeshApiResponse } from "@/components/mesh/mesh-data";
 import type { MeshNode, MeshEdge, FilterType } from "@/components/mesh/mesh-types";
+
+// Lazy-load overlay panels — only rendered when user opens them
+const ContentHub = lazy(() => import("@/components/mesh/content-hub").then(m => ({ default: m.ContentHub })));
+const MeshNodeDetail = lazy(() => import("@/components/mesh/mesh-node-detail").then(m => ({ default: m.MeshNodeDetail })));
+const MeshCommandPalette = lazy(() => import("@/components/mesh/mesh-command-palette").then(m => ({ default: m.MeshCommandPalette })));
+const MeshFootprint = lazy(() => import("@/components/mesh/mesh-footprint").then(m => ({ default: m.MeshFootprint })));
+const MeshPrivacyPanel = lazy(() => import("@/components/mesh/mesh-privacy-panel").then(m => ({ default: m.MeshPrivacyPanel })));
+const MeshPostComposer = lazy(() => import("@/components/mesh/mesh-post-composer").then(m => ({ default: m.MeshPostComposer })));
 
 export default function MeshPage() {
   const router = useRouter();
@@ -495,6 +497,7 @@ export default function MeshPage() {
       {/* Selected node detail panel */}
       <AnimatePresence>
         {selectedNode && (
+          <Suspense fallback={null}>
           <MeshNodeDetail
             node={selectedNode}
             edges={engine.edges}
@@ -509,24 +512,28 @@ export default function MeshPage() {
             onSetActionLoading={setActionLoading}
             onZoomToNode={zoomToNode}
           />
+          </Suspense>
         )}
       </AnimatePresence>
 
       {/* Footprint dashboard */}
       <AnimatePresence>
         {showFootprint && meshStats && (
+          <Suspense fallback={null}>
           <MeshFootprint
             meshStats={meshStats}
             meshiColor={myMeshiColor}
             meshiHat={myMeshiHat}
             onClose={() => setShowFootprint(false)}
           />
+          </Suspense>
         )}
       </AnimatePresence>
 
       {/* Command palette */}
       <AnimatePresence>
         {showCommandPalette && (
+          <Suspense fallback={null}>
           <MeshCommandPalette
             nodes={engine.nodes}
             searchQuery={commandSearch}
@@ -539,6 +546,7 @@ export default function MeshPage() {
             panRef={panRef}
             onPanChange={(newPan) => { setPan(newPan); panRef.current = newPan; }}
           />
+          </Suspense>
         )}
       </AnimatePresence>
 
@@ -553,11 +561,14 @@ export default function MeshPage() {
       />
 
       {/* Content Hub */}
-      <ContentHub isOpen={showContentHub} onClose={() => setShowContentHub(false)} onDeleteSuccess={() => window.location.reload()} />
+      <Suspense fallback={null}>
+        <ContentHub isOpen={showContentHub} onClose={() => setShowContentHub(false)} onDeleteSuccess={() => window.location.reload()} />
+      </Suspense>
 
       {/* Privacy panel */}
       <AnimatePresence>
         {showNodePrivacy && (
+          <Suspense fallback={null}>
           <MeshPrivacyPanel
             hiddenNodes={hiddenNodes}
             hiddenBranches={hiddenBranches}
@@ -565,16 +576,19 @@ export default function MeshPage() {
             onShowAll={() => { setHiddenNodes(new Set()); setHiddenBranches(new Set()); }}
             onClose={() => setShowNodePrivacy(false)}
           />
+          </Suspense>
         )}
       </AnimatePresence>
 
       {/* Post composer */}
       <AnimatePresence>
         {showPostComposer && (
+          <Suspense fallback={null}>
           <MeshPostComposer
             connectedPlatforms={connectedPlatforms}
             onClose={() => setShowPostComposer(false)}
           />
+          </Suspense>
         )}
       </AnimatePresence>
 
