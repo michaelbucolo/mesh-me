@@ -207,6 +207,11 @@ export async function resetPassword(token: string, newPassword: string) {
     return { error: "Invalid request" };
   }
 
+  const rl = rateLimit(`reset-verify:${token.slice(0, 16)}`, 5, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many attempts. Please try again later." };
+  }
+
   if (newPassword.length < 8) {
     return { error: "Password must be at least 8 characters" };
   }
