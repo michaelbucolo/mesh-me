@@ -59,6 +59,16 @@ model User {
   isMeshPro      Boolean  @default(false)
   meshProSince   DateTime?
   signupNumber   Int?
+  // Privacy toggles
+  showInDiscovery  Boolean @default(true)
+  hideActivityStatus Boolean @default(false)
+  readReceipts     Boolean @default(true)
+  // Verification tracking
+  emailVerified    Boolean @default(false)
+  phoneVerified    Boolean @default(false)
+  // Password reset
+  resetToken       String?  @unique
+  resetTokenExpiry DateTime?
   // Online status: "online" | "dnd" | "busy" | "offline"
   status         String   @default("offline")
   lastSeenAt     DateTime?

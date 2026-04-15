@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Loader2, ArrowRight, ArrowLeft, Check, Phone, Link2, Shield, Lock, Fingerprint } from "lucide-react";
-import { signUp, signIn } from "@/lib/actions";
+import { Eye, EyeOff, Loader2, ArrowRight, ArrowLeft, Check, Phone, Link2, Shield, Lock, Fingerprint, Mail } from "lucide-react";
+import { signUp, signIn, requestPasswordReset } from "@/lib/actions";
 import { MeshiMascot, type MeshiMood } from "@/components/meshi/meshi-mascot";
 
 // Simple 4-step signup: username+password → email → phone → connect platforms
@@ -12,6 +12,8 @@ type AuthStep =
   | "welcome"
   | "credentials" // username + password combined (signup) or username (login)
   | "login-password"
+  | "forgot-password"
+  | "reset-sent"
   | "email"
   | "phone"
   | "connect"
@@ -103,6 +105,7 @@ export function MeshEntry() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
   const [phoneSent, setPhoneSent] = useState(false);
@@ -199,6 +202,25 @@ export function MeshEntry() {
     });
   };
 
+  // Forgot password
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+    setError("");
+    startTransition(async () => {
+      const result = await requestPasswordReset(resetEmail.trim());
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        showMeshiSpeech("Check your inbox!", "happy");
+        setStep("reset-sent");
+      }
+    });
+  };
+
   // Signup: email → phone
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,6 +277,8 @@ export function MeshEntry() {
     setError("");
     if (step === "credentials") setStep("welcome");
     else if (step === "login-password") setStep("credentials");
+    else if (step === "forgot-password") setStep("login-password");
+    else if (step === "reset-sent") setStep("forgot-password");
     else if (step === "email") setStep("credentials");
     else if (step === "phone") setStep("email");
     else if (step === "connect") setStep("phone");
@@ -420,7 +444,69 @@ export function MeshEntry() {
                 </motion.button>
               </form>
             </div>
+            <div className="flex items-center justify-between mt-5 px-1">
+              <BackButton onClick={goBack} />
+              <button onClick={() => { setError(""); setResetEmail(""); showMeshiSpeech("No worries, let's get you back in.", "thinking"); setStep("forgot-password"); }}
+                className="text-xs transition-colors" style={{ color: "var(--text-tertiary)" }}>
+                Forgot password?
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ============ FORGOT PASSWORD ============ */}
+        {step === "forgot-password" && (
+          <motion.div key="forgot-password" {...pageMotion} className="w-full max-w-sm text-center">
+            <div className="mb-8">
+              <MeshiWithSpeech meshiRef={meshiRef} meshiMood={meshiMood} meshiSpeech={meshiSpeech} />
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Reset password</h2>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Enter the email linked to your account</p>
+            </div>
+            <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+              <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--text-muted)" }} />
+                  <input ref={inputRef} type="email" value={resetEmail} placeholder="you@example.com"
+                    autoComplete="email" className={inputClass + " pl-10 text-center"}
+                    style={{ border: "1px solid var(--border-primary)", color: "var(--text-primary)" }}
+                    onChange={(e) => setResetEmail(e.target.value)} />
+                </div>
+                <motion.button whileTap={{ scale: 0.98 }} type="submit" disabled={isPending}
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Send reset link</span><ArrowRight className="h-4 w-4" /></>}
+                </motion.button>
+              </form>
+            </div>
             <div className="mt-5 px-1"><BackButton onClick={goBack} /></div>
+          </motion.div>
+        )}
+
+        {/* ============ RESET SENT ============ */}
+        {step === "reset-sent" && (
+          <motion.div key="reset-sent" {...pageMotion} className="w-full max-w-sm text-center">
+            <div className="mb-8">
+              <MeshiWithSpeech meshiRef={meshiRef} meshiMood={meshiMood} meshiSpeech={meshiSpeech} />
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Check your email</h2>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                We sent a reset link to <span style={{ color: "var(--accent)" }}>{resetEmail}</span>
+              </p>
+            </div>
+            <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+              <div className="space-y-4 py-2">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15">
+                  <Mail className="h-7 w-7 text-emerald-500" />
+                </div>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  Click the link in your email to set a new password. If you don&apos;t see it, check your spam folder.
+                </p>
+                <motion.button whileTap={{ scale: 0.98 }}
+                  onClick={() => { setStep("welcome"); setError(""); }}
+                  className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg flex items-center justify-center gap-2">
+                  Back to sign in
+                </motion.button>
+              </div>
+            </div>
           </motion.div>
         )}
 
