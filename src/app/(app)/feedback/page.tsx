@@ -174,17 +174,18 @@ export default function FeedbackPage() {
               <option value="">Select area...</option>
               <option value="mesh">The Mesh</option>
               <option value="feed">Feed</option>
-              <option value="custom-feed">Custom Feed</option>
               <option value="messages">Messages / MeChat</option>
               <option value="profile">Profile</option>
               <option value="settings">Settings</option>
               <option value="explore">Explore</option>
               <option value="communities">Communities</option>
               <option value="connected-accounts">Connected Accounts</option>
+              <option value="content-hub">Content Hub</option>
               <option value="notifications">Notifications</option>
               <option value="meshi">Meshi</option>
               <option value="search">Search</option>
               <option value="login-signup">Login / Signup</option>
+              <option value="meshpro">MeshPro</option>
               <option value="other">Other</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)] pointer-events-none" />

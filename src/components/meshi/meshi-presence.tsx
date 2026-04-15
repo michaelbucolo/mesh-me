@@ -82,7 +82,6 @@ export function LiveMeshiPresence({ viewingMesh, myMeshiColor, myMeshiHat, onInt
     return () => {
       fetch("/api/mesh/presence", { method: "DELETE" }).catch(() => {});
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (presences.length === 0) return null;

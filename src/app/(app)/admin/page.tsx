@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getAdminStats } from "@/lib/queries";
 import { redirect } from "next/navigation";
@@ -5,6 +6,8 @@ import { Users, FileText, Flag, TrendingUp, Clock, Activity, Hash } from "lucide
 import { AdminActions } from "./admin-actions";
 import { formatRelativeTime } from "@/lib/utils";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+
+export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
