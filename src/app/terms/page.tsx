@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { MeshBackground } from "@/components/mesh-background";
+
+export const metadata: Metadata = {
+  title: "Terms of Service — mesh.me",
+  description: "Terms of Service for mesh.me — the privacy-first social platform.",
+};
 
 export default function TermsPage() {
   return (

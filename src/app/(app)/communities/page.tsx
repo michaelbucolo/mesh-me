@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunities } from "@/lib/queries";
 import { CommunityCard } from "@/components/shared/community-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users, Plus } from "lucide-react";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "Communities" };
 
 export default async function CommunitiesPage() {
   const user = await getCurrentUser();
@@ -20,10 +23,11 @@ export default async function CommunitiesPage() {
         </div>
         <Link
           href="/communities/create"
-          className="brand-button inline-flex items-center gap-2 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
+          className="brand-button inline-flex items-center gap-2 text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
         >
           <Plus className="h-4 w-4" />
-          Create community
+          <span className="hidden sm:inline">Create community</span>
+          <span className="sm:hidden">Create</span>
         </Link>
       </div>
 

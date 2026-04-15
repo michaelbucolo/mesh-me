@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getMessageThreads } from "@/lib/queries";
 import { MeChatClient } from "./mechat-client";
+
+export const metadata: Metadata = { title: "MeChat" };
 
 export default async function MessagesPage() {
   const user = await getCurrentUser();
