@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { updatePrivacy, deleteAccount, signOut } from "@/lib/actions";
+import { updatePrivacy, deleteAccount } from "@/lib/actions";
 import { useTransition, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity, Check } from "lucide-react";
+import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity } from "lucide-react";
 import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 import { getPrivacyTransparencyData } from "@/lib/queries";
 import type { TransparencyData } from "./types";
@@ -16,7 +16,7 @@ interface PrivacyTabProps {
   showError: (msg: string) => void;
 }
 
-export function PrivacyTab({ isPublic, setIsPublic, showSuccess, showError }: PrivacyTabProps) {
+export function PrivacyTab({ isPublic, setIsPublic, showSuccess }: PrivacyTabProps) {
   const [isPending, startTransition] = useTransition();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [transparencyData, setTransparencyData] = useState<TransparencyData>(null);
@@ -41,7 +41,6 @@ export function PrivacyTab({ isPublic, setIsPublic, showSuccess, showError }: Pr
     });
   };
 
-  const handleSignOut = () => { startTransition(async () => { await signOut(); }); };
 
   const handleDeleteAccount = () => {
     if (!deleteConfirm) { setDeleteConfirm(true); return; }

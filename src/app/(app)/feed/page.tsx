@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getFeedPosts, getExplorePosts } from "@/lib/queries";
 import { FeedClient } from "./feed-client";
+
+export const metadata: Metadata = { title: "Feed" };
 
 export default async function FeedPage() {
   const user = await getCurrentUser();

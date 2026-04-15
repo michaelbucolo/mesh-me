@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Share2, Plus } from "lucide-react";
+import { X, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface MeshPostComposerProps {

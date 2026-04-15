@@ -11,7 +11,6 @@ import {
   LogOut,
   Waypoints,
   Shield,
-  Sparkles,
   Compass,
   Settings,
   Link2,

@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { MeshBackground } from "@/components/mesh-background";
+
+export const metadata: Metadata = {
+  title: "About — mesh.me",
+  description: "One internet. One you. Learn about mesh.me and our mission to unify your digital life.",
+};
 
 export default function AboutPage() {
   return (

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { redeemCode, getUserUnlockedCosmetics } from "@/lib/actions";
+import { redeemCode } from "@/lib/actions";
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Crown, Check, Sparkles, Eye, Palette, Fingerprint, BarChart3, TrendingUp, ShieldCheck, Layout, Gift } from "lucide-react";
