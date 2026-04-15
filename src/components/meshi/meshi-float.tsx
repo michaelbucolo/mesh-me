@@ -515,9 +515,6 @@ export function MeshiFloat() {
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
 
-  // SINGLETON: hide floating Meshi on /mesh page — the canvas renders its own Meshi
-  const isOnMeshPage = pathname === "/mesh" || pathname.startsWith("/mesh/");
-
   if (!meshiEnabled) return null;
 
   return (
@@ -564,9 +561,9 @@ export function MeshiFloat() {
         )}
       </AnimatePresence>
 
-      {/* THE ONE MESHI - standalone floating entity (hidden on /mesh where canvas Meshi lives) */}
+      {/* THE ONE MESHI - standalone floating entity */}
       <AnimatePresence>
-        {!isSearching && !isOnMeshPage && (
+        {!isSearching && (
           <motion.div className="fixed z-40" style={{ left: springX, top: springY }}>
             {/* Speech bubbles above Meshi */}
             {view === "speech" && (
@@ -704,9 +701,9 @@ export function MeshiFloat() {
         )}
       </AnimatePresence>
 
-      {/* Actions Menu (hidden on /mesh page) */}
+      {/* Actions Menu */}
       <AnimatePresence>
-        {view === "actions" && !isOnMeshPage && (
+        {view === "actions" && (
           <MeshiActionsMenu
             meshiColor={meshiColor}
             meshiHat={meshiHat}
