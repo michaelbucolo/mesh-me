@@ -489,8 +489,17 @@ function drawTooltip(
   const ttX = hovered.x;
   const ttY = hovered.y - hovered.radius - 14;
   const ttPadX = 10, ttPadY = 6, ttLineH = 14;
-  const ttLines: string[] = [hovered.label];
-  if (hovered.sublabel) ttLines.push(hovered.sublabel);
+  const ttLines: string[] = [];
+
+  // Platform nodes get emoji-prefixed label; others get plain label + sublabel
+  if (hovered.type === "platform") {
+    const emoji = PLATFORM_ICONS[(hovered.platform || "").toLowerCase()] || "";
+    ttLines.push(emoji + " " + (hovered.platform || "Platform"));
+    if (hovered.sublabel) ttLines.push(hovered.sublabel);
+  } else {
+    ttLines.push(hovered.label);
+    if (hovered.sublabel) ttLines.push(hovered.sublabel);
+  }
 
   if (hovered.type === "self") {
     const parts: string[] = [];
@@ -531,9 +540,6 @@ function drawTooltip(
     if (hovered.repostCount !== undefined) parts.push("\ud83d\udd01 " + hovered.repostCount);
     if (parts.length > 0) ttLines.push(parts.join("  "));
   } else if (hovered.type === "platform") {
-    const emoji = PLATFORM_ICONS[(hovered.platform || "").toLowerCase()] || "";
-    ttLines.push(emoji + " " + (hovered.platform || "Platform"));
-    if (hovered.sublabel) ttLines.push(hovered.sublabel);
     const parts: string[] = [];
     if (hovered.followerCount) parts.push(hovered.followerCount + " followers");
     if (hovered.postCount) parts.push(hovered.postCount + " posts");
