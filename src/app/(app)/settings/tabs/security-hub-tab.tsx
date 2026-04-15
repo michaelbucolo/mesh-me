@@ -3,12 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ShieldCheck, FileText, Video, MessageSquare, ExternalLink, Activity, Scan } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 
 export function SecurityHubTab() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <MeshiSettingsTip tab="security-hub" />
       <div>
         <div className="flex items-center gap-2 mb-2">
           <ShieldCheck className="h-5 w-5" style={{ color: "var(--accent)" }} />

@@ -86,6 +86,9 @@ export function MeshNodeDetail({
         {/* Content preview */}
         {node.content && <p className="text-xs text-[var(--text-tertiary)] leading-relaxed mb-3 line-clamp-3">{node.content}</p>}
 
+        {/* Description */}
+        {node.description && <p className="text-xs text-[var(--text-tertiary)] leading-relaxed mb-3 line-clamp-2">{node.description}</p>}
+
         {/* Stats */}
         {(node.followerCount !== undefined || node.postCount !== undefined || node.memberCount !== undefined || node.likeCount !== undefined) && (
           <div className="flex items-center gap-3 mb-3 py-2 border-y border-[var(--border-primary)]">
@@ -94,6 +97,17 @@ export function MeshNodeDetail({
             {node.memberCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Users className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{node.memberCount}</span></div>}
             {node.likeCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><Heart className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{node.likeCount}</span></div>}
             {node.commentCount !== undefined && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><MessageCircle className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{node.commentCount}</span></div>}
+            {node.repostCount !== undefined && node.repostCount > 0 && <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]"><ExternalLink className="h-3 w-3" /><span className="text-[var(--text-primary)] font-medium">{node.repostCount}</span></div>}
+          </div>
+        )}
+
+        {/* Engagement score */}
+        {node.engagementScore !== undefined && node.engagementScore > 0 && node.type === "user" && (
+          <div className="mb-3">
+            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">Engagement</p>
+            <div className="h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${Math.min(node.engagementScore * 2, 100)}%` }} />
+            </div>
           </div>
         )}
 
@@ -106,6 +120,27 @@ export function MeshNodeDetail({
                 <span key={stag} className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">#{stag}</span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Shared communities */}
+        {node.sharedCommunities && node.sharedCommunities.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1.5">Shared communities</p>
+            <div className="flex flex-wrap gap-1">
+              {node.sharedCommunities.map((comm) => (
+                <span key={comm} className="text-[10px] px-2 py-0.5 rounded-md bg-pink-500/10 text-pink-400 border border-pink-500/20">{comm}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Last active */}
+        {node.lastActiveAt && node.type === "user" && (
+          <div className="mb-3">
+            <p className="text-[10px] text-[var(--text-muted)]">
+              Last seen {new Date(node.lastActiveAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </p>
           </div>
         )}
 

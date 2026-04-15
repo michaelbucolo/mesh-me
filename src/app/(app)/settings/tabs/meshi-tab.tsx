@@ -4,7 +4,6 @@ import { updateMeshiPreference, getMeshiPreference, getUserUnlockedCosmetics } f
 import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Crown, ArrowRight } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor } from "@/components/meshi/meshi-mascot";
 
 interface MeshiTabProps {
@@ -41,7 +40,6 @@ export function MeshiTab({ showSuccess }: MeshiTabProps) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <MeshiSettingsTip tab="meshi" />
       <div className="text-center mb-6">
         <MeshiMascot size={80} mood={meshiFace} hat={meshiHat} color={meshiColor} speaking={false} />
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mt-4 mb-1">Meshi <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-white ml-1" style={{ background: "var(--accent)" }}>Beta</span></h2>

@@ -6,7 +6,7 @@ import {
   Search, Fingerprint, Plus, Layers, Shield,
   Users, Hash, Globe, MessageCircle, FileText, Link2, Sparkles,
 } from "lucide-react";
-import type { MeshNode, FilterType } from "./mesh-types";
+import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
 
 // --- Filter Bar ---
 
@@ -116,28 +116,59 @@ interface StatsBarProps {
   visible: boolean;
 }
 
-export function MeshStatsBar({ nodes, zoom, visible }: StatsBarProps) {
+export function MeshStatsBar({ nodes, zoom, visible }: StatsBarProps & { edges?: MeshEdge[] }) {
+  const people = nodes.filter((n) => n.type === "user");
+  const communities = nodes.filter((n) => n.type === "community");
+  const interests = nodes.filter((n) => n.type === "tag");
+  const posts = nodes.filter((n) => n.type === "post");
+  const platforms = nodes.filter((n) => n.type === "platform");
+  const mutuals = people.filter((n) => n.isMutual);
+  const onlineCount = people.filter((n) => n.status === "online").length;
+
+  // Compute total reach (sum of all user follower counts)
+  const totalReach = people.reduce((sum, n) => sum + (n.followerCount || 0), 0);
+
   const stats = [
-    { label: "people", count: nodes.filter((n) => n.type === "user").length, color: "text-indigo-400" },
-    { label: "communities", count: nodes.filter((n) => n.type === "community").length, color: "text-pink-400" },
-    { label: "interests", count: nodes.filter((n) => n.type === "tag").length, color: "text-cyan-400" },
-    { label: "posts", count: nodes.filter((n) => n.type === "post").length, color: "text-emerald-400" },
-    { label: "platforms", count: nodes.filter((n) => n.type === "platform").length, color: "text-amber-400" },
+    { label: "people", count: people.length, color: "text-indigo-400" },
+    { label: "mutuals", count: mutuals.length, color: "text-violet-400" },
+    { label: "communities", count: communities.length, color: "text-pink-400" },
+    { label: "interests", count: interests.length, color: "text-cyan-400" },
+    { label: "posts", count: posts.length, color: "text-emerald-400" },
+    { label: "platforms", count: platforms.length, color: "text-amber-400" },
   ].filter((s) => s.count > 0);
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-          className="absolute bottom-16 sm:bottom-[4.5rem] left-2 sm:left-4 z-10 flex gap-1.5 flex-wrap max-w-[calc(100vw-6rem)]"
+          className="absolute bottom-16 sm:bottom-[4.5rem] left-2 sm:left-4 z-10 flex flex-col gap-1.5 max-w-[calc(100vw-6rem)]"
         >
-          {stats.map((s) => (
-            <div key={s.label} className="bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-xl px-2.5 py-1.5 text-[11px] text-white/50">
-              <span className={"font-bold " + s.color}>{s.count}</span> {s.label}
+          {/* Mesh insights row */}
+          <div className="flex gap-1.5 flex-wrap">
+            <div className="bg-black/40 backdrop-blur-xl border border-indigo-500/20 rounded-xl px-3 py-1.5 text-[11px] text-white/60">
+              <span className="font-bold text-indigo-300">{nodes.length}</span> nodes in mesh
             </div>
-          ))}
-          <div className="bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-xl px-2.5 py-1.5 text-[11px] text-white/40">
-            {Math.round(zoom * 100)}%
+            {totalReach > 0 && (
+              <div className="bg-black/40 backdrop-blur-xl border border-violet-500/20 rounded-xl px-3 py-1.5 text-[11px] text-white/60">
+                <span className="font-bold text-violet-300">{totalReach.toLocaleString()}</span> total reach
+              </div>
+            )}
+            {onlineCount > 0 && (
+              <div className="bg-black/40 backdrop-blur-xl border border-emerald-500/20 rounded-xl px-3 py-1.5 text-[11px] text-white/60">
+                <span className="font-bold text-emerald-300">{onlineCount}</span> online
+              </div>
+            )}
+          </div>
+          {/* Node type breakdown */}
+          <div className="flex gap-1.5 flex-wrap">
+            {stats.map((s) => (
+              <div key={s.label} className="bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-xl px-2.5 py-1.5 text-[11px] text-white/50">
+                <span className={"font-bold " + s.color}>{s.count}</span> {s.label}
+              </div>
+            ))}
+            <div className="bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-xl px-2.5 py-1.5 text-[11px] text-white/40">
+              {Math.round(zoom * 100)}%
+            </div>
           </div>
         </motion.div>
       )}

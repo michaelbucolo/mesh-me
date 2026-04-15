@@ -8,7 +8,6 @@ import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { MarkReadButton } from "./mark-read-button";
 import { motion, AnimatePresence } from "framer-motion";
-import { WelcomeBanner } from "@/components/ui/welcome-banner";
 
 const NOTIFICATION_ICONS: Record<string, typeof Heart> = {
   like: Heart,
@@ -59,20 +58,6 @@ export function NotificationsClient({ categorized, unreadCount, smartSummary }: 
 
   return (
     <div data-meshi-zone="notifications" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
-      {/* First-time welcome banner */}
-      <WelcomeBanner
-        storageKey="notifications"
-        icon={Bell}
-        title="Your notification hub"
-        description="All your activity in one place. When someone likes, comments, follows, or mentions you, it shows up here."
-        tips={[
-          "Use the category tabs to filter by type (likes, comments, follows, etc.)",
-          "Unread notifications have a blue dot and highlighted background",
-          "Smart Summaries appear when you have lots of unread activity",
-        ]}
-        accentColor="#f59e0b"
-      />
-
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>

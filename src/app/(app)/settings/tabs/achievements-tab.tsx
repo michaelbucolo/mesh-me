@@ -4,7 +4,6 @@ import { checkAndAwardAchievements, setActiveTitle } from "@/lib/actions";
 import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Award, Crown } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 import { AchievementList } from "@/components/achievements/achievement-badges";
 
 interface AchievementsTabProps {
@@ -40,7 +39,6 @@ export function AchievementsTab({ showSuccess }: AchievementsTabProps) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <MeshiSettingsTip tab="achievements" />
       <div>
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
           <Trophy className="h-5 w-5" style={{ color: "var(--accent)" }} />
