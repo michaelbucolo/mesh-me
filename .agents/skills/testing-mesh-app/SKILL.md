@@ -19,6 +19,24 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
 
 **Important**: `file:./dev.db` in the Prisma schema resolves to the project root at runtime, but `prisma db push` creates it inside `prisma/`. You must copy the schema to root and seed the root copy. After schema changes, delete BOTH `dev.db` files and redo the setup.
 
+### Schema Sync (Critical)
+
+If the Prisma schema has been updated with new fields but the local SQLite DB hasn't been migrated, **all user queries will crash** with errors like `SQLITE_ERROR: no such column: main.User.showInDiscovery`.
+
+**Fix options:**
+1. **Best**: Delete both `dev.db` files and redo full setup (push + copy + seed)
+2. **Quick**: Add missing columns directly:
+   ```bash
+   sqlite3 dev.db "ALTER TABLE User ADD COLUMN columnName TYPE NOT NULL DEFAULT value;"
+   ```
+3. After any DB fix, restart the dev server with a clean cache:
+   ```bash
+   rm -rf .next
+   npx next dev -p 3333
+   ```
+
+**How to detect**: If you see "Something went wrong" on any page, check the browser console (F12) for the actual Prisma/SQLite error. The server console may also show the error.
+
 ## Authentication for Testing
 
 - The local dev DB has seed users (alexcreates, mayamusic, jordandev, lunawrites, samfilms)
@@ -64,6 +82,48 @@ The app runs at http://localhost:3333 (port 3333 is used to avoid conflicts). Us
 - Badge overflow: shows "99+" when count > 99
 - Uses safe area insets for iOS
 - Z-index: z-50 (above Meshi at z-40)
+
+### Forgot Password Flow
+- **Path**: Landing page → "Sign in" → enter username → Continue → password screen → "Forgot password?" link
+- **Reset password screen**: Heading "Reset password", email input with mail icon and "you@example.com" placeholder, "Send reset link" button
+- **Success screen**: "Check your email" heading, subtitle "We sent a reset link to {email}", Meshi says "Check your inbox!"
+- **Backend**: Server action `requestPasswordReset` in `src/lib/actions.ts` — rate limited (3 requests per 15 min), generates 32-byte crypto token with 1-hour expiry, always returns success (prevents email enumeration)
+- **Testing note**: Email is not actually sent in dev (console.log only). Verify the transition from reset form to success screen.
+- **Gotcha**: On the password screen, the first click on "Forgot password?" might dismiss a Meshi speech bubble instead of navigating. Click again if needed.
+
+### MeshPro Payment Modal
+- **Path**: Settings → MeshPro tab → click "Subscribe" on Monthly ($4.99) or Yearly ($39.99)
+- **Modal content**: Price confirmation, 3 payment methods (Apple Pay dark button, Google Pay light button, Card outlined button)
+- **Card entry**: Fields for Card number, MM/YY, CVC, Name on card
+- **Card formatting**: Number auto-formats with spaces every 4 digits ("4242 4242 4242 4242"), expiry as MM/YY ("12/28")
+- **Flow**: Fill card → Pay → 2-second processing spinner → "Welcome to MeshPro!" success screen
+- **Testing note**: Payment is mock (setTimeout). No real Stripe integration yet.
+
+### Privacy Toggle Persistence
+- **Path**: Settings → Privacy & Safety tab
+- **Toggles**: Public account (default ON), Show in discovery (default ON), Hide activity status (default OFF), Read receipts (default ON)
+- **Persistence**: Toggle click → "Privacy settings updated" success toast → state saved to DB via server action `updatePrivacySettings`
+- **Verify**: Toggle a setting, do a full page reload, confirm the toggle state persisted
+- **Gotcha**: After clicking a toggle, the page might briefly show a different tab. Navigate back to Privacy & Safety to verify the change before reloading.
+
+### Verification Banner
+- **Path**: Any authenticated page when account is >1 month old and email/phone not verified
+- **Content**: Shield icon, "Verify your account" heading, email section with "Verify" button, phone section with "Add" button
+- **Dismiss**: X button hides banner within session
+- **Testing**: Backdate the test user's `createdAt` to trigger the banner:
+  ```bash
+  sqlite3 dev.db "UPDATE User SET createdAt='2026-02-01T00:00:00.000Z' WHERE username='alexcreates';"
+  ```
+- **Date calculation**: Uses `setMonth()` with overflow guard (not Date constructor) to handle month-end edge cases correctly
+
+### Onboarding (/onboarding)
+- **Path**: Navigate directly to /onboarding
+- **3 steps** (streamlined from original 5):
+  - Step 0: Meshi mascot, "Welcome to the Mesh", bio textarea (160 char limit), location input (optional), Next button
+  - Step 1: "What are you into?" — interest tag buttons (30 options), counter shows "X selected", must pick at least 3 to enable Next
+  - Step 2: "Connect your world" — 16 platform buttons (Instagram, YouTube, TikTok, X/Twitter, Twitch, Spotify, SoundCloud, LinkedIn, GitHub, Discord, Snapchat, Pinterest, Reddit, Facebook, Threads, Bluesky), "Enter the Mesh" button
+- **Progress bar**: Exactly 3 segments at top, fills as you advance
+- **Key assertion**: Verify 3 segments (not 5) to confirm the streamlining worked
 
 ### Settings (/settings)
 - **Navigation**: Sidebar → "Settings"
@@ -187,9 +247,12 @@ npx next build
 ## Database
 
 - Prisma schema at `prisma/schema.prisma`
-- After schema changes: `npx prisma generate` then `npx prisma migrate dev`
+- After schema changes: `npx prisma generate` then `npx prisma db push` (or `npx prisma migrate dev` for migrations)
+- **Critical**: After adding new fields to the Prisma schema, the local SQLite DB must be synced. Either re-push or manually ALTER TABLE. Failure to sync causes all queries touching the User model to crash.
 - ProfileInfo model stores Facebook-level fields with per-field JSON privacy
 - Local dev DB has ~18 seed posts across multiple users and communities
+- Privacy fields on User model: `showInDiscovery` (default true), `hideActivityStatus` (default false), `readReceipts` (default true)
+- Password reset fields: `resetToken` (unique, nullable), `resetTokenExpiry` (nullable DateTime)
 
 ## Common Issues
 
@@ -201,3 +264,6 @@ npx next build
 - The dev server port might vary — check which port is being used (commonly 3000 or 3333). Use `-p` flag to specify.
 - When testing mobile viewport, the page may need a reload after switching to device toolbar mode for Meshi to recalculate its safe position.
 - The "1 Issue" badge in bottom-left during dev mode is a Next.js dev indicator, not a bug.
+- **DB schema mismatch**: If you see "Something went wrong" on pages after a schema update, check browser console for `SQLITE_ERROR: no such column` errors. This means the DB needs to be synced with the Prisma schema (see Schema Sync section above).
+- **Forgot password first click**: On the password screen, the first click on "Forgot password?" may dismiss a Meshi speech bubble overlay. Click the link again to navigate.
+- **Privacy toggle tab jump**: After clicking a privacy toggle, the Settings page might briefly show the MeshPro tab. Navigate back to Privacy & Safety to verify the change before reloading.
