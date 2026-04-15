@@ -55,6 +55,9 @@ export default function SettingsPage() {
 
   // Privacy
   const [isPublic, setIsPublic] = useState(true);
+  const [showInDiscovery, setShowInDiscovery] = useState(true);
+  const [hideActivityStatus, setHideActivityStatus] = useState(false);
+  const [readReceipts, setReadReceipts] = useState(true);
 
   // Notifications
   const [notifFollowers, setNotifFollowers] = useState(true);
@@ -91,6 +94,9 @@ export default function SettingsPage() {
           setWebsite(data.settings.website || "");
           setAccentColor(data.settings.accentColor || "#3b82f6");
           setIsPublic(data.settings.isPublic !== false);
+          setShowInDiscovery(data.settings.showInDiscovery !== false);
+          setHideActivityStatus(data.settings.hideActivityStatus === true);
+          setReadReceipts(data.settings.readReceipts !== false);
           setSelectedInterests(data.settings.interests?.map((i: { tag: string }) => i.tag) || []);
           setLinks(data.settings.links?.map((l: { label: string; url: string }) => ({ label: l.label, url: l.url })) || []);
         }
@@ -238,7 +244,13 @@ export default function SettingsPage() {
             />
           )}
           {activeTab === "privacy" && (
-            <PrivacyTab isPublic={isPublic} setIsPublic={setIsPublic} showSuccess={showSuccess} showError={showError} />
+            <PrivacyTab
+              isPublic={isPublic} setIsPublic={setIsPublic}
+              showInDiscovery={showInDiscovery} setShowInDiscovery={setShowInDiscovery}
+              hideActivityStatus={hideActivityStatus} setHideActivityStatus={setHideActivityStatus}
+              readReceipts={readReceipts} setReadReceipts={setReadReceipts}
+              showSuccess={showSuccess} showError={showError}
+            />
           )}
           {activeTab === "mesh-privacy" && (
             <MeshPrivacyTab showSuccess={showSuccess} showError={showError} />

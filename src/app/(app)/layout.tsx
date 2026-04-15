@@ -9,6 +9,7 @@ import { DynamicFavicon } from "@/components/dynamic-favicon";
 import { MeshiFloat } from "@/components/meshi/meshi-float";
 import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
+import { VerificationBanner } from "@/components/verification/verification-banner";
 import { prisma } from "@/lib/prisma";
 import { Search, MessageCircle, Bell } from "lucide-react";
 
@@ -37,6 +38,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     user.id,
     user.id
   ).then((rows) => Number(rows[0]?.count ?? 0)).catch(() => 0);
+
+  // Check if user needs verification (after 1 month of signup)
+  const now = new Date();
+  const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+  const accountOldEnough = user.createdAt < oneMonthAgo;
+  const needsEmailVerification = accountOldEnough && !user.emailVerified;
+  const needsPhoneVerification = accountOldEnough && !user.phoneVerified;
+
+  // Get user email for the verification banner
+  const userEmail = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { email: true },
+  }).then((u) => u?.email || "");
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)]">
@@ -92,6 +106,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </header>
 
           <main className="min-h-[calc(100vh-3rem)] flex-1 px-4 pb-24 pt-5 md:px-6 lg:pb-6">
+            {(needsEmailVerification || needsPhoneVerification) && (
+              <VerificationBanner
+                needsEmailVerification={needsEmailVerification}
+                needsPhoneVerification={needsPhoneVerification}
+                userEmail={userEmail}
+              />
+            )}
             <div className="mx-auto w-full max-w-5xl animate-page-enter">{children}</div>
           </main>
         </div>
