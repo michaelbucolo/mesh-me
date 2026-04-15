@@ -40,7 +40,7 @@ export interface RemoteMeshi {
   mood: MeshiMoodCanvas;
 }
 
-const MESHI_COLORS: Record<string, string> = {
+export const MESHI_COLORS: Record<string, string> = {
   blue: "#6366f1",
   purple: "#a855f7",
   pink: "#ec4899",
@@ -50,6 +50,8 @@ const MESHI_COLORS: Record<string, string> = {
   cyan: "#06b6d4",
   yellow: "#eab308",
   white: "#e2e8f0",
+  gold: "#eab308",
+  rainbow: "#ec4899",
 };
 
 // How frequently Meshi picks a new node to visit (seconds)
@@ -473,10 +475,23 @@ function drawMeshiHat(ctx: CanvasRenderingContext2D, x: number, y: number, hat: 
       ctx.fillStyle = darkenColor(color, 20);
       ctx.fill();
       break;
-    case "top-hat":
+    case "tophat":
       ctx.fillStyle = "#1e1e2e";
       ctx.fillRect(x - radius * 0.45, hatY - radius * 0.7, radius * 0.9, radius * 0.7);
       ctx.fillRect(x - radius * 0.65, hatY, radius * 1.3, radius * 0.12);
+      break;
+    case "party":
+      ctx.fillStyle = "#ec4899";
+      ctx.beginPath();
+      ctx.moveTo(x, hatY - radius * 0.7);
+      ctx.lineTo(x - radius * 0.4, hatY);
+      ctx.lineTo(x + radius * 0.4, hatY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, hatY - radius * 0.7, radius * 0.1, 0, Math.PI * 2);
+      ctx.fillStyle = "#fbbf24";
+      ctx.fill();
       break;
     case "headphones":
       ctx.strokeStyle = "#6b7280";
