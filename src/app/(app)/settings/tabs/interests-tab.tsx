@@ -6,7 +6,6 @@ import { updateUserInterests, updateUserLinks } from "@/lib/actions";
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 import { INTEREST_TAGS } from "@/lib/utils";
 
 interface InterestsTabProps {
@@ -40,7 +39,6 @@ export function InterestsTab({ selectedInterests, setSelectedInterests, links, s
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <MeshiSettingsTip tab="interests" />
       <div>
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Interests</h2>
         <p className="text-sm text-[var(--text-muted)] mb-4">Select topics you&apos;re interested in to personalize your experience</p>

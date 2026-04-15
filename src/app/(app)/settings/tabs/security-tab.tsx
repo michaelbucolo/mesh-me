@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { changePassword } from "@/lib/actions";
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 
 interface SecurityTabProps {
   showSuccess: (msg: string) => void;
@@ -39,7 +38,6 @@ export function SecurityTab({ showSuccess, showError }: SecurityTabProps) {
 
   return (
     <motion.form initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleChangePassword} className="space-y-5">
-      <MeshiSettingsTip tab="security" />
       <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Change password</h2>
       <p className="text-sm text-[var(--text-muted)] mb-4">Choose a strong password with at least 8 characters</p>
       <div>

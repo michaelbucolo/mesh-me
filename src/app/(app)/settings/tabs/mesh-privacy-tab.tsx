@@ -6,7 +6,6 @@ import { getMeshPrivacy, getGlobalMeshStatus } from "@/lib/queries";
 import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Eye, Activity, Globe, Users, Heart, Check } from "lucide-react";
-import { MeshiSettingsTip } from "@/components/meshi/meshi-guide";
 
 interface MeshPrivacyTabProps {
   showSuccess: (msg: string) => void;
@@ -43,7 +42,6 @@ export function MeshPrivacyTab({ showSuccess, showError }: MeshPrivacyTabProps) 
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <MeshiSettingsTip tab="privacy" />
       <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Mesh Privacy Controls</h2>
       <p className="text-sm text-[var(--text-muted)] mb-6">Control who can see your mesh, your connections, and your data. Privacy is our #1 priority.</p>
 

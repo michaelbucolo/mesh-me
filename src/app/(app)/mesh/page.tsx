@@ -379,8 +379,6 @@ export default function MeshPage() {
 
   return (
     <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
-      <MeshTutorial />
-
       {/* Filter bar + search/footprint buttons */}
       <MeshFilterBar
         filter={filter}

@@ -23,20 +23,26 @@ export interface MeshNode {
   memberCount?: number;
   likeCount?: number;
   commentCount?: number;
+  repostCount?: number;
   content?: string;
   sharedInterests?: string[];
+  sharedCommunities?: string[];
   category?: string;
   platform?: string;
   imageUrl?: string | null;
   interactionCount?: number;
   status?: "online" | "dnd" | "busy" | "offline";
+  lastActiveAt?: string | null;
+  platformCount?: number;
+  engagementScore?: number;
+  description?: string;
 }
 
 export interface MeshEdge {
   source: string;
   target: string;
   strength: number;
-  type: "follow" | "mutual" | "community" | "interest" | "post" | "platform" | "alter-ego";
+  type: "follow" | "mutual" | "community" | "interest" | "post" | "platform" | "alter-ego" | "shared-community" | "cross-follow";
   interactionCount?: number;
   status?: "online" | "dnd" | "busy" | "offline";
 }
