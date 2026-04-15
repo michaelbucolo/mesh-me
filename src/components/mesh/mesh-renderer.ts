@@ -82,20 +82,18 @@ export function renderMesh(
 
 function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
   const rings = [
-    { radius: 160, alpha: 0.04, dashLen: 6 },
-    { radius: 300, alpha: 0.03, dashLen: 8 },
-    { radius: 400, alpha: 0.025, dashLen: 10 },
-    { radius: 500, alpha: 0.02, dashLen: 12 },
-    { radius: 620, alpha: 0.015, dashLen: 14 },
+    { radius: 180, alpha: 0.025, dashLen: 8 },
+    { radius: 340, alpha: 0.018, dashLen: 10 },
+    { radius: 500, alpha: 0.012, dashLen: 14 },
   ];
 
   for (const ring of rings) {
-    const pulse = Math.sin(time * 0.3 + ring.radius * 0.01) * 0.01;
+    const pulse = Math.sin(time * 0.2 + ring.radius * 0.01) * 0.005;
     ctx.beginPath();
     ctx.arc(self.x, self.y, ring.radius, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(99, 102, 241, ${ring.alpha + pulse})`;
-    ctx.setLineDash([ring.dashLen, ring.dashLen * 2]);
-    ctx.lineDashOffset = -time * 8;
+    ctx.setLineDash([ring.dashLen, ring.dashLen * 2.5]);
+    ctx.lineDashOffset = -time * 5;
     ctx.lineWidth = 0.5;
     ctx.stroke();
   }
@@ -129,7 +127,7 @@ function drawEdges(
     const baseAlpha = isHighlighted ? 0.3
       : isCross ? 0.02 + edge.strength * 0.04
       : 0.04 + edge.strength * 0.06;
-    const pulseAlpha = Math.sin(time * 1.2 + edge.strength * 5) * 0.015;
+    const pulseAlpha = Math.sin(time * 0.8 + edge.strength * 5) * 0.008;
 
     ctx.beginPath();
     ctx.moveTo(source.x, source.y);
@@ -181,21 +179,18 @@ function drawDataParticles(
       || (selected && (selected.id === source.id || selected.id === target.id));
     const isCross = edge.type === "shared-community" || edge.type === "cross-follow";
 
-    // Show particles on highlighted edges, mutual edges, and sporadically on others
-    const showParticle = isHighlighted || edge.type === "mutual"
-      || (edge.strength > 0.5 && (ei % 3 === 0));
+    // Show particles only on highlighted and mutual edges for a cleaner look
+    const showParticle = isHighlighted || (edge.type === "mutual" && ei % 2 === 0);
     if (!showParticle && !isCross) {
-      // Still show faint particles on some non-cross edges
-      if (ei % 7 !== 0) continue;
+      continue;
     }
     if (isCross && !isHighlighted) continue; // Skip particles on cross edges unless highlighted
 
-    // Multiple particles per edge for highlighted ones
     const particleCount = isHighlighted ? 2 : 1;
-    const speed = isHighlighted ? 0.4 : 0.2;
+    const speed = isHighlighted ? 0.35 : 0.18;
     const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
-    const alpha = isHighlighted ? 0.7 : 0.3;
-    const radius = isHighlighted ? 2 : 1.2;
+    const alpha = isHighlighted ? 0.5 : 0.2;
+    const radius = isHighlighted ? 1.8 : 1;
 
     for (let pi = 0; pi < particleCount; pi++) {
       const t = ((time * speed + ei * 0.37 + pi * 0.5) % 1);
@@ -282,11 +277,11 @@ function drawNodes(
       : node.isMutual ? NODE_GLOW.mutual
       : NODE_GLOW[node.type] || NODE_GLOW.user;
 
-    // Glow
-    const glowRadius = nodeRadius * (1.8 + pulse * 0.3);
+    // Glow — subtle and premium
+    const glowRadius = nodeRadius * (1.6 + pulse * 0.2);
     const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowRadius);
-    gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.18 * nodeOpacity) + ")"));
-    gradient.addColorStop(0.5, glowColor.replace(/[\d.]+\)$/, (0.06 * nodeOpacity) + ")"));
+    gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.12 * nodeOpacity) + ")"));
+    gradient.addColorStop(0.5, glowColor.replace(/[\d.]+\)$/, (0.04 * nodeOpacity) + ")"));
     gradient.addColorStop(1, "rgba(0,0,0,0)");
     ctx.beginPath();
     ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
@@ -295,32 +290,27 @@ function drawNodes(
 
     // Self node rings
     if (node.type === "self") {
-      const ringRadius = nodeRadius + 6 + pulse * 3;
+      const ringRadius = nodeRadius + 5 + pulse * 2;
       ctx.beginPath();
       ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${0.2 + pulse * 0.1})`;
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = `rgba(99, 102, 241, ${0.15 + pulse * 0.06})`;
+      ctx.lineWidth = 2;
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(node.x, node.y, ringRadius + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${0.08 + pulse * 0.04})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, ringRadius + 12, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${0.03 + pulse * 0.02})`;
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = `rgba(99, 102, 241, ${0.05 + pulse * 0.03})`;
+      ctx.lineWidth = 0.8;
       ctx.stroke();
     }
 
     // Activity pulse for online users
     if (node.status === "online" && node.type === "user") {
-      const activityPulse = Math.sin(time * 2 + node.pulsePhase) * 0.5 + 0.5;
-      const activityRadius = nodeRadius + 3 + activityPulse * 4;
+      const activityPulse = Math.sin(time * 1.5 + node.pulsePhase) * 0.5 + 0.5;
+      const activityRadius = nodeRadius + 3 + activityPulse * 2.5;
       ctx.beginPath();
       ctx.arc(node.x, node.y, activityRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(34, 197, 94, ${0.08 + activityPulse * 0.06})`;
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = `rgba(34, 197, 94, ${0.06 + activityPulse * 0.04})`;
+      ctx.lineWidth = 0.8;
       ctx.stroke();
     }
 

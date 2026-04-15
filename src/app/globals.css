@@ -660,3 +660,84 @@ select {
   padding-left: max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
 }
+
+/* ─── Responsive Layout Helpers ─── */
+
+/* Container that adapts to all viewports */
+.responsive-container {
+  width: 100%;
+  max-width: 100%;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 640px) {
+  .responsive-container { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container { padding-left: 2rem; padding-right: 2rem; }
+}
+
+/* Responsive text that scales smoothly */
+.text-responsive-xl {
+  font-size: clamp(1.25rem, 4vw, 2rem);
+  line-height: 1.2;
+}
+
+.text-responsive-lg {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  line-height: 1.3;
+}
+
+/* Bottom-safe padding for mobile nav overlap */
+.pb-safe {
+  padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom)));
+}
+
+/* Responsive grid that doesn't break on small screens */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 1rem;
+}
+
+/* Scrollable horizontal lists on mobile */
+.scroll-x-mobile {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-x-mobile::-webkit-scrollbar {
+  display: none;
+}
+
+/* Full-width card on mobile, constrained on desktop */
+.card-responsive {
+  width: 100%;
+  border-radius: 1rem;
+}
+
+@media (min-width: 640px) {
+  .card-responsive { border-radius: 1.25rem; }
+}
+
+/* Prevent layout shift from scrollbar */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Dynamic viewport height for mobile browsers */
+.min-h-dvh {
+  min-height: 100dvh;
+}
+
+/* Landscape mode adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-compact {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}

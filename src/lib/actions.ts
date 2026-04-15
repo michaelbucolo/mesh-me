@@ -171,6 +171,83 @@ export async function signOut() {
   redirect("/");
 }
 
+// ─── Password Reset ─────────────────────────────────────────
+
+export async function requestPasswordReset(email: string) {
+  const rl = rateLimit(`reset:${email.toLowerCase()}`, 3, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many reset requests. Please try again later." };
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+
+  // Always return success to prevent email enumeration
+  if (!user) return { success: true };
+
+  // Generate a secure reset token
+  const crypto = await import("crypto");
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { resetToken: token, resetTokenExpiry: expiry },
+  });
+
+  // In production, send email with reset link containing the token
+  // For now, store the token — the email service integration will send:
+  // https://meshme.vercel.app/reset-password?token={token}
+  console.log(`Password reset requested for ${user.email}`);
+
+  return { success: true };
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  if (!token || !newPassword) {
+    return { error: "Invalid request" };
+  }
+
+  const rl = rateLimit(`reset-verify:${token.slice(0, 16)}`, 5, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many attempts. Please try again later." };
+  }
+
+  if (newPassword.length < 8) {
+    return { error: "Password must be at least 8 characters" };
+  }
+
+  if (newPassword.length > 128) {
+    return { error: "Password is too long" };
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      resetToken: token,
+      resetTokenExpiry: { gt: new Date() },
+    },
+  });
+
+  if (!user) {
+    return { error: "Invalid or expired reset link. Please request a new one." };
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash,
+      resetToken: null,
+      resetTokenExpiry: null,
+    },
+  });
+
+  // Invalidate all existing sessions for security
+  await invalidateAllUserSessions(user.id);
+
+  return { success: true };
+}
+
 // ─── Onboarding Actions ──────────────────────────────────────
 
 export async function completeOnboarding(formData: FormData) {
@@ -992,10 +1069,13 @@ export async function updatePrivacy(formData: FormData) {
   if (!user) return { error: "Not authenticated" };
 
   const isPublic = formData.get("isPublic") === "true";
+  const showInDiscovery = formData.get("showInDiscovery") !== "false";
+  const hideActivityStatus = formData.get("hideActivityStatus") === "true";
+  const readReceipts = formData.get("readReceipts") !== "false";
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { isPublic },
+    data: { isPublic, showInDiscovery, hideActivityStatus, readReceipts },
   });
 
   revalidatePath("/settings");
