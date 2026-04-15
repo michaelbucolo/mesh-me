@@ -21,6 +21,7 @@ export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
       <img
         src={src}
         alt={alt}
+        loading="lazy"
         className={cn(
           "rounded-full object-cover ring-2 ring-[var(--border-primary)] flex-shrink-0",
           sizeMap[size],

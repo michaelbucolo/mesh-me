@@ -243,7 +243,7 @@ export default function OnboardingPage() {
         <p className="text-[var(--text-tertiary)]">Link your accounts to build your mesh — you can always add more later</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
         {SOCIAL_PLATFORMS.map((platform) => (
           <button
             key={platform.id}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { updatePrivacy, deleteAccount, signOut } from "@/lib/actions";
+import { updatePrivacy, deleteAccount } from "@/lib/actions";
 import { useTransition, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity } from "lucide-react";
