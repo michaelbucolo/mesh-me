@@ -8,6 +8,16 @@ function getStripe() {
   return new Stripe(key);
 }
 
+// Errors that should NOT trigger Stripe retry (permanent failures)
+function isPermanentError(err: unknown): boolean {
+  if (err && typeof err === "object" && "code" in err) {
+    const code = (err as { code: string }).code;
+    // Prisma "record not found" — user was deleted, retrying won't help
+    return code === "P2025";
+  }
+  return false;
+}
+
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
@@ -72,16 +82,20 @@ export async function POST(req: Request) {
       }
     }
   } catch (dbError) {
-    // Log error with context for manual resolution, but acknowledge receipt
-    // so Stripe doesn't keep retrying a permanently failing webhook
     console.error("Webhook DB operation failed:", {
       eventType: event.type,
       eventId: event.id,
       error: dbError,
     });
+
+    // Permanent errors (e.g. user deleted) — acknowledge so Stripe stops retrying
+    if (isPermanentError(dbError)) {
+      return NextResponse.json({ received: true, error: "permanent failure" });
+    }
+
+    // Transient errors (DB timeout, connection issues) — return 500 so Stripe retries
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 
-  // Always return 200 to acknowledge receipt — even if DB fails,
-  // we don't want Stripe retrying indefinitely
   return NextResponse.json({ received: true });
 }
