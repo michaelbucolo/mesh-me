@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { plan, successUrl, cancelUrl } = await req.json();
+    const { plan } = await req.json();
 
     if (!plan || !["monthly", "yearly"].includes(plan)) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
@@ -41,13 +41,15 @@ export async function POST(req: Request) {
       );
     }
 
+    const baseUrl = process.env.NEXTAUTH_URL || "https://meshme.vercel.app";
+
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: user.email,
-      success_url: successUrl || `${process.env.NEXTAUTH_URL}/settings?tab=meshpro&payment=success`,
-      cancel_url: cancelUrl || `${process.env.NEXTAUTH_URL}/settings?tab=meshpro&payment=cancelled`,
+      success_url: `${baseUrl}/settings?tab=meshpro&payment=success`,
+      cancel_url: `${baseUrl}/settings?tab=meshpro&payment=cancelled`,
       metadata: {
         userId: user.id,
         plan,

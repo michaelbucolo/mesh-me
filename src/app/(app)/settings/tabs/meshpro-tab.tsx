@@ -25,11 +25,7 @@ function PaymentModal({ plan, onClose }: { plan: PaymentPlan; onClose: () => voi
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan,
-          successUrl: `${window.location.origin}/settings?tab=meshpro&payment=success`,
-          cancelUrl: `${window.location.origin}/settings?tab=meshpro&payment=cancelled`,
-        }),
+        body: JSON.stringify({ plan }),
       });
       const data = await res.json();
       if (!res.ok) {
