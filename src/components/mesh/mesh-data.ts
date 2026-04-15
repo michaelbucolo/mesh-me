@@ -77,6 +77,8 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     pulsePhase: 0,
     connections: [],
     status: "online",
+    followerCount: data.stats.followerCount,
+    postCount: data.stats.postCount,
     engagementScore: computeEngagement({
       followerCount: data.stats.followerCount,
       postCount: data.stats.postCount,
@@ -497,23 +499,6 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       }
     }
   });
-
-  // Connect platforms to users on those platforms (if platform data available)
-  for (const acct of platforms) {
-    const platformNodeId = "platform-" + acct.id;
-    const platformKey = acct.platform?.toLowerCase() || "";
-    // Connect platform to users who have matching connected accounts on that platform
-    for (const person of peopleToDraw) {
-      if (person.connectedPlatforms?.includes(platformKey)) {
-        edges.push({
-          source: platformNodeId,
-          target: person.id,
-          strength: 0.1,
-          type: "platform",
-        });
-      }
-    }
-  }
 
   // Update self node connections
   const selfNode = nodes[0];
