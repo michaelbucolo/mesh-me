@@ -11,11 +11,17 @@ import type { TransparencyData } from "./types";
 interface PrivacyTabProps {
   isPublic: boolean;
   setIsPublic: (v: boolean) => void;
+  showInDiscovery: boolean;
+  setShowInDiscovery: (v: boolean) => void;
+  hideActivityStatus: boolean;
+  setHideActivityStatus: (v: boolean) => void;
+  readReceipts: boolean;
+  setReadReceipts: (v: boolean) => void;
   showSuccess: (msg: string) => void;
   showError: (msg: string) => void;
 }
 
-export function PrivacyTab({ isPublic, setIsPublic, showSuccess }: PrivacyTabProps) {
+export function PrivacyTab({ isPublic, setIsPublic, showInDiscovery, setShowInDiscovery, hideActivityStatus, setHideActivityStatus, readReceipts, setReadReceipts, showSuccess }: PrivacyTabProps) {
   const [isPending, startTransition] = useTransition();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [transparencyData, setTransparencyData] = useState<TransparencyData>(null);
@@ -34,6 +40,24 @@ export function PrivacyTab({ isPublic, setIsPublic, showSuccess }: PrivacyTabPro
     setIsPublic(val);
     const formData = new FormData();
     formData.set("isPublic", val.toString());
+    formData.set("showInDiscovery", showInDiscovery.toString());
+    formData.set("hideActivityStatus", hideActivityStatus.toString());
+    formData.set("readReceipts", readReceipts.toString());
+    startTransition(async () => {
+      await updatePrivacy(formData);
+      showSuccess("Privacy settings updated");
+    });
+  };
+
+  const handleToggleSetting = (field: string, val: boolean) => {
+    if (field === "showInDiscovery") setShowInDiscovery(val);
+    else if (field === "hideActivityStatus") setHideActivityStatus(val);
+    else if (field === "readReceipts") setReadReceipts(val);
+    const formData = new FormData();
+    formData.set("isPublic", isPublic.toString());
+    formData.set("showInDiscovery", (field === "showInDiscovery" ? val : showInDiscovery).toString());
+    formData.set("hideActivityStatus", (field === "hideActivityStatus" ? val : hideActivityStatus).toString());
+    formData.set("readReceipts", (field === "readReceipts" ? val : readReceipts).toString());
     startTransition(async () => {
       await updatePrivacy(formData);
       showSuccess("Privacy settings updated");
@@ -75,8 +99,12 @@ export function PrivacyTab({ isPublic, setIsPublic, showSuccess }: PrivacyTabPro
             <span className="text-sm text-[var(--text-primary)] block font-medium">Show in discovery</span>
             <span className="text-xs text-[var(--text-muted)]">Allow others to find you through explore</span>
           </div>
-          <button type="button" className="relative w-11 h-6 bg-[var(--accent)] rounded-full transition-colors">
-            <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+          <button
+            type="button"
+            onClick={() => handleToggleSetting("showInDiscovery", !showInDiscovery)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${showInDiscovery ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${showInDiscovery ? "right-0.5" : "left-0.5"}`} />
           </button>
         </div>
         <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
@@ -84,8 +112,12 @@ export function PrivacyTab({ isPublic, setIsPublic, showSuccess }: PrivacyTabPro
             <span className="text-sm text-[var(--text-primary)] block font-medium">Hide activity status</span>
             <span className="text-xs text-[var(--text-muted)]">Others won&apos;t see when you&apos;re online</span>
           </div>
-          <button type="button" className="relative w-11 h-6 bg-[var(--bg-hover)] rounded-full transition-colors">
-            <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+          <button
+            type="button"
+            onClick={() => handleToggleSetting("hideActivityStatus", !hideActivityStatus)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${hideActivityStatus ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${hideActivityStatus ? "right-0.5" : "left-0.5"}`} />
           </button>
         </div>
         <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
@@ -93,8 +125,12 @@ export function PrivacyTab({ isPublic, setIsPublic, showSuccess }: PrivacyTabPro
             <span className="text-sm text-[var(--text-primary)] block font-medium">Read receipts</span>
             <span className="text-xs text-[var(--text-muted)]">Show when you&apos;ve read messages</span>
           </div>
-          <button type="button" className="relative w-11 h-6 bg-[var(--accent)] rounded-full transition-colors">
-            <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+          <button
+            type="button"
+            onClick={() => handleToggleSetting("readReceipts", !readReceipts)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${readReceipts ? "bg-[var(--accent)]" : "bg-[var(--bg-hover)]"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${readReceipts ? "right-0.5" : "left-0.5"}`} />
           </button>
         </div>
       </div>
