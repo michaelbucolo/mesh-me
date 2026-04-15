@@ -1,0 +1,221 @@
+"use client";
+
+import { useRef, useCallback, useEffect } from "react";
+import type { MeshEngine } from "./mesh-engine";
+import type { MeshNode, FilterType } from "./mesh-types";
+import { renderMesh } from "./mesh-renderer";
+
+interface MeshCanvasProps {
+  engine: MeshEngine;
+  filter: FilterType;
+  showLabels: boolean;
+  zoom: number;
+  pan: { x: number; y: number };
+  hoveredNode: MeshNode | null;
+  selectedNode: MeshNode | null;
+  imageCache: React.RefObject<Map<string, HTMLImageElement | null>>;
+  loading: boolean;
+  onZoomChange: (zoom: number) => void;
+  onPanChange: (pan: { x: number; y: number }) => void;
+  onHoverChange: (node: MeshNode | null) => void;
+  onClick: (node: MeshNode | null) => void;
+  onDoubleClick: (node: MeshNode | null) => void;
+}
+
+export function MeshCanvas({
+  engine, filter, showLabels, zoom, pan,
+  hoveredNode, selectedNode, imageCache, loading,
+  onZoomChange, onPanChange, onHoverChange, onClick, onDoubleClick,
+}: MeshCanvasProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>(0);
+  const isDraggingRef = useRef(false);
+  const dragActiveRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const lastTouchRef = useRef<{ x: number; y: number; dist?: number } | null>(null);
+
+  // Keep refs in sync for the render loop
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
+  const filterRef = useRef(filter);
+  const showLabelsRef = useRef(showLabels);
+  const hoveredRef = useRef(hoveredNode);
+  const selectedRef = useRef(selectedNode);
+
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { panRef.current = pan; }, [pan]);
+  useEffect(() => { filterRef.current = filter; }, [filter]);
+  useEffect(() => { showLabelsRef.current = showLabels; }, [showLabels]);
+  useEffect(() => { hoveredRef.current = hoveredNode; }, [hoveredNode]);
+  useEffect(() => { selectedRef.current = selectedNode; }, [selectedNode]);
+
+  // World coordinate conversion
+  const getWorldCoords = useCallback((clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const mx = clientX - rect.left;
+    const my = clientY - rect.top;
+    const z = zoomRef.current;
+    const p = panRef.current;
+    const center = engine.getCenter();
+    return {
+      x: (mx - canvas.offsetWidth / 2 - p.x) / z + center.x,
+      y: (my - canvas.offsetHeight / 2 - p.y) / z + center.y,
+    };
+  }, [engine]);
+
+  // Canvas resize
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = canvas.offsetHeight * dpr;
+      const cx = canvas.offsetWidth / 2;
+      const cy = canvas.offsetHeight / 2;
+      engine.setCenter(cx, cy);
+      // Move pinned self node to new center and restart physics
+      const selfNode = engine.nodes.find((n) => n.type === "self");
+      if (selfNode) { selfNode.x = cx; selfNode.y = cy; }
+      engine.wake();
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [engine, loading]);
+
+  // Render loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || loading) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const render = () => {
+      // Tick physics
+      engine.tick();
+
+      const cache = imageCache.current;
+      renderMesh(ctx, engine.nodes, engine.edges, {
+        zoom: zoomRef.current,
+        pan: panRef.current,
+        center: engine.getCenter(),
+        filter: filterRef.current,
+        showLabels: showLabelsRef.current,
+        time: engine.time,
+      }, {
+        hoveredNode: hoveredRef.current,
+        selectedNode: selectedRef.current,
+      }, cache);
+
+      animationRef.current = requestAnimationFrame(render);
+    };
+
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width === 0 || canvas.height === 0) {
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = canvas.offsetHeight * dpr;
+      engine.setCenter(canvas.offsetWidth / 2, canvas.offsetHeight / 2);
+    }
+
+    render();
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [engine, loading, imageCache]);
+
+  // --- Mouse handlers ---
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isDraggingRef.current = true;
+    dragActiveRef.current = false;
+    dragStartRef.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
+    if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isDraggingRef.current) {
+      dragActiveRef.current = true;
+      const newPan = { x: e.clientX - dragStartRef.current.x, y: e.clientY - dragStartRef.current.y };
+      onPanChange(newPan);
+      return;
+    }
+    const coords = getWorldCoords(e.clientX, e.clientY);
+    const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
+    onHoverChange(node);
+    if (canvasRef.current) canvasRef.current.style.cursor = node ? "pointer" : "grab";
+  }, [engine, getWorldCoords, onHoverChange, onPanChange]);
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false;
+    if (canvasRef.current) canvasRef.current.style.cursor = "grab";
+    setTimeout(() => { dragActiveRef.current = false; }, 50);
+  }, []);
+
+  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (dragActiveRef.current) return;
+    const coords = getWorldCoords(e.clientX, e.clientY);
+    const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
+    onClick(node);
+  }, [engine, getWorldCoords, onClick]);
+
+  const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const coords = getWorldCoords(e.clientX, e.clientY);
+    const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
+    onDoubleClick(node);
+  }, [engine, getWorldCoords, onDoubleClick]);
+
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const delta = -e.deltaY * 0.001;
+    const newZoom = Math.max(0.2, Math.min(4, zoomRef.current + delta));
+    onZoomChange(newZoom);
+  }, [onZoomChange]);
+
+  // --- Touch handlers ---
+
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1) {
+      lastTouchRef.current = { x: e.touches[0].clientX - panRef.current.x, y: e.touches[0].clientY - panRef.current.y };
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchRef.current = { x: 0, y: 0, dist: Math.sqrt(dx * dx + dy * dy) };
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && lastTouchRef.current && lastTouchRef.current.dist === undefined) {
+      const newPan = { x: e.touches[0].clientX - lastTouchRef.current.x, y: e.touches[0].clientY - lastTouchRef.current.y };
+      onPanChange(newPan);
+    } else if (e.touches.length === 2 && lastTouchRef.current && lastTouchRef.current.dist) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.sqrt(dx * dx + dy * dy);
+      const newZoom = Math.max(0.2, Math.min(4, zoomRef.current * (newDist / lastTouchRef.current.dist)));
+      onZoomChange(newZoom);
+      lastTouchRef.current.dist = newDist;
+    }
+  }, [onPanChange, onZoomChange]);
+
+  const handleTouchEnd = useCallback(() => { lastTouchRef.current = null; }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="w-full h-full"
+      style={{ cursor: "grab" }}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    />
+  );
+}
