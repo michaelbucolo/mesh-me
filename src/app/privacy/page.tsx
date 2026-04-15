@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { MeshBackground } from "@/components/mesh-background";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy — mesh.me",
+  description: "Privacy Policy for mesh.me. Your data belongs to you. We never sell your information.",
+};
 
 export default function PrivacyPage() {
   return (

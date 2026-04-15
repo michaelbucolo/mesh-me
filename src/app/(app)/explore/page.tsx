@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getExplorePosts, getDiscoverUsers, getTrendingCommunities, getTrendingTags } from "@/lib/queries";
 import { PostCard } from "@/components/feed/post-card";
@@ -5,6 +6,8 @@ import { Compass, TrendingUp, Sparkles, Hash, Star, ArrowRight } from "lucide-re
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { ExploreUsersGrid } from "./explore-users";
+
+export const metadata: Metadata = { title: "Explore" };
 
 export default async function ExplorePage() {
   const user = await getCurrentUser();

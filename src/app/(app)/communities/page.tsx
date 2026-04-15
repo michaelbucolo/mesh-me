@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunities } from "@/lib/queries";
 import { CommunityCard } from "@/components/shared/community-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users, Plus } from "lucide-react";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "Communities" };
 
 export default async function CommunitiesPage() {
   const user = await getCurrentUser();

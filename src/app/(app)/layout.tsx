@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -10,6 +11,13 @@ import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper"
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
 import { prisma } from "@/lib/prisma";
 import { Search, MessageCircle, Bell } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: {
+    template: "%s — mesh.me",
+    default: "mesh.me",
+  },
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();

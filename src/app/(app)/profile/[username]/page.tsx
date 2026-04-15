@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserProfile, getUserPosts } from "@/lib/queries";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,11 @@ import { formatCount } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { ProfileTabs } from "./profile-tabs";
 import { ProfileCompleteness } from "@/components/profile/profile-completeness";
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  return { title: `@${username}` };
+}
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;

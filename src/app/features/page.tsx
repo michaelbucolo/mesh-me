@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Sparkles, Users, MessageCircle, Palette, Compass, Shield, Zap, Heart, Globe, Waypoints } from "lucide-react";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { MeshBackground } from "@/components/mesh-background";
+
+export const metadata: Metadata = {
+  title: "Features — mesh.me",
+  description: "Explore mesh.me features: The Mesh, MeChat, Meshi companion, Communities, and more.",
+};
 
 export default function FeaturesPage() {
   const features = [

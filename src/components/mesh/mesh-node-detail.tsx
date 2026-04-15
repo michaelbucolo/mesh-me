@@ -14,7 +14,6 @@ import {
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
 import type { MeshNode, MeshEdge } from "./mesh-types";
-import { STATUS_COLORS } from "./mesh-types";
 
 interface MeshNodeDetailProps {
   node: MeshNode;
