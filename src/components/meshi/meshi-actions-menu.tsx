@@ -7,7 +7,7 @@ import {
   ChevronRight, Palette, Settings, HelpCircle,
   PenSquare, Compass, Users, Link2, Crown, MessageSquarePlus,
 } from "lucide-react";
-import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat } from "./meshi-mascot";
+import { MeshiMascot, type MeshiColor, type MeshiHat } from "./meshi-mascot";
 
 interface MeshiActionsMenuProps {
   meshiColor: MeshiColor;
