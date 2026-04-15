@@ -30,42 +30,58 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.userId;
-      if (userId) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            isMeshPro: true,
-            meshProSince: new Date(),
-            stripeCustomerId: session.customer as string,
-            stripeSubscriptionId: session.subscription as string,
-          },
-        });
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.metadata?.userId;
+        if (userId) {
+          // Idempotency: skip if already activated
+          const existing = await prisma.user.findUnique({ where: { id: userId } });
+          if (existing && !existing.isMeshPro) {
+            await prisma.user.update({
+              where: { id: userId },
+              data: {
+                isMeshPro: true,
+                meshProSince: new Date(),
+                stripeCustomerId: session.customer as string,
+                stripeSubscriptionId: session.subscription as string,
+              },
+            });
+          }
+        }
+        break;
       }
-      break;
-    }
-    case "customer.subscription.deleted": {
-      const subscription = event.data.object as Stripe.Subscription;
-      const customerId = subscription.customer as string;
-      const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
-      if (user) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { isMeshPro: false, stripeSubscriptionId: null },
-        });
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
+        if (user) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { isMeshPro: false, stripeSubscriptionId: null },
+          });
+        }
+        break;
       }
-      break;
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+        console.error("Payment failed for customer:", customerId);
+        break;
+      }
     }
-    case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice;
-      const customerId = invoice.customer as string;
-      console.error("Payment failed for customer:", customerId);
-      break;
-    }
+  } catch (dbError) {
+    // Log error with context for manual resolution, but acknowledge receipt
+    // so Stripe doesn't keep retrying a permanently failing webhook
+    console.error("Webhook DB operation failed:", {
+      eventType: event.type,
+      eventId: event.id,
+      error: dbError,
+    });
   }
 
+  // Always return 200 to acknowledge receipt — even if DB fails,
+  // we don't want Stripe retrying indefinitely
   return NextResponse.json({ received: true });
 }
