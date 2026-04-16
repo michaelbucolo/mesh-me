@@ -83,6 +83,15 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
 - Uses safe area insets for iOS
 - Z-index: z-50 (above Meshi at z-40)
 
+### Connected Accounts (/connected-accounts)
+- **Path**: Sidebar → MANAGE → Connected Accounts
+- **Platform logos**: All 16 platforms show official SVG brand logos via `PLATFORM_LOGO_MAP` from `src/components/platform-logos.tsx`. Each logo renders inside a colored square matching the platform's brand color.
+- **Platforms** (10 active + 6 coming soon):
+  - Active (with Connect button): GitHub, Discord, Spotify, YouTube, X/Twitter, TikTok, Twitch, SoundCloud, Threads, Bluesky
+  - Coming Soon (grayed out): Instagram, LinkedIn, Reddit, Facebook, Pinterest, Snapchat
+- **Key assertion**: Verify SVG logos render (not text fallbacks like "GH", "DC", "SP"). If `PLATFORM_LOGO_MAP` import is broken or keys don't match platform IDs, fallback text icons appear instead.
+- **Connect dialog**: Clicking Connect opens a dialog showing the platform logo, import options, and username input.
+
 ### Forgot Password Flow
 - **Path**: Landing page → "Sign in" → enter username → Continue → password screen → "Forgot password?" link
 - **Reset password screen**: Heading "Reset password", email input with mail icon and "you@example.com" placeholder, "Send reset link" button
@@ -91,13 +100,20 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
 - **Testing note**: Email is not actually sent in dev (console.log only). Verify the transition from reset form to success screen.
 - **Gotcha**: On the password screen, the first click on "Forgot password?" might dismiss a Meshi speech bubble instead of navigating. Click again if needed.
 
-### MeshPro Payment Modal
+### MeshPro Payment Flow
 - **Path**: Settings → MeshPro tab → click "Subscribe" on Monthly ($4.99) or Yearly ($39.99)
-- **Modal content**: Price confirmation, 3 payment methods (Apple Pay dark button, Google Pay light button, Card outlined button)
-- **Card entry**: Fields for Card number, MM/YY, CVC, Name on card
-- **Card formatting**: Number auto-formats with spaces every 4 digits ("4242 4242 4242 4242"), expiry as MM/YY ("12/28")
-- **Flow**: Fill card → Pay → 2-second processing spinner → "Welcome to MeshPro!" success screen
-- **Testing note**: Payment is mock (setTimeout). No real Stripe integration yet.
+- **Modal content**: "Subscribe to MeshPro" heading, price/period, feature checklist (6 items), "Continue to payment" button
+- **Footer text**: "Apple Pay, Google Pay, and all major cards accepted. Cancel anytime."
+- **Real Stripe integration**: The checkout button calls `POST /api/stripe/checkout` which creates a real Stripe Checkout session and redirects to Stripe's hosted payment page.
+- **Without Stripe keys**: When `STRIPE_SECRET_KEY` is not configured (typical in local dev), clicking "Continue to payment" shows a red error: **"Payment is not configured yet. Please check back soon."** The button resets from loading state, and the close button (X) remains functional.
+- **With Stripe keys**: User is redirected to Stripe Checkout with Apple Pay, Google Pay, and card options enabled.
+- **Webhook handling**: `POST /api/stripe/webhook` handles `checkout.session.completed`, `customer.subscription.deleted`, and `invoice.payment_failed` events. Distinguishes transient errors (returns 500 for Stripe retry) from permanent errors (returns 200).
+- **Key assertions**:
+  - Modal shows correct price ($4.99/month or $39.99/year)
+  - Error message appears when Stripe not configured
+  - Loading state resets after error (button not stuck spinning)
+  - Close button (X) works after error
+  - **Backdrop click guard**: Backdrop `onClick` should check `loading` state — if loading, backdrop click should be a no-op to prevent dismissing the modal while checkout is in flight
 
 ### Privacy Toggle Persistence
 - **Path**: Settings → Privacy & Safety tab
@@ -190,9 +206,19 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
 - **Multi-user exploration**: Double-click user node → loading overlay → their mesh loads → "Back to my mesh" button at top center
 - **Edge rendering**: Edges between nodes vary in thickness based on interactionCount
 - **Node sizing**: Nodes scale in radius based on connection count
+- **Label rendering**: Labels have dark semi-transparent pill backgrounds (`rgba(0,0,0,0.5)`) behind white bold (600 weight) text for readability against any canvas background. The `drawLabel()` function in `mesh-renderer.ts` measures text width and draws a rounded rect pill behind it.
+- **Tooltip rendering**: `drawTooltip()` shows stats (followers, posts, platforms), emoji prefixes for platform nodes, shared communities, online status. Tooltips have drop shadow and accent border. Only visible at zoom >= 0.5x.
 - **Zoom controls**: Vertically centered on the right edge of the canvas (top-1/2 -translate-y-1/2). Contains Zoom in, Zoom out, Reset view, Hide labels, Hide stats buttons.
 - **Action bar**: Bottom-left contains Create Post, Content Hub, Privacy buttons.
 - **Stats bar**: Shows node counts (people, communities, interests, posts) and zoom percentage above the action bar.
+
+### Meshi Singleton on Mesh Page
+- **Critical rule**: Only ONE Meshi should be visible on /mesh at any time
+- **Current implementation**: The floating Meshi (`meshi-float.tsx`) is the singleton — it shows on ALL pages including /mesh
+- **Canvas does NOT draw local Meshi**: `mesh-renderer.ts` line 72 has comment "Local user's Meshi is the floating UI component (meshi-float.tsx) — not drawn on canvas". `mesh-canvas.tsx` passes `meshiState: null` to the renderer.
+- **Remote Meshis**: Other users' Meshis DO appear on the canvas via `drawRemoteMeshis()` for live presence
+- **How to verify**: On /mesh, check bottom-right for floating Meshi, then zoom into the self node area — there should be NO second Meshi character drawn on the canvas near "Alex Rivera"
+- **Common regression**: If someone re-adds `drawMeshi` import or passes `meshiStateRef.current` instead of `null`, a canvas Meshi will appear as a duplicate
 
 ### MeshNodeDetail Panel
 - Click any user node → panel slides in from right
@@ -220,6 +246,7 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
   - Mobile (<1024px): 16px from right edge, 80px from bottom (above mobile nav)
 - **Drag behavior**: Meshi is draggable. Drag bounds respect safe zones. Releasing near bottom-right corner snaps back to safe position.
 - **Z-index hierarchy**: Mobile nav (z-50) > Meshi actions menu (z-50) > Meshi (z-40) > zoom controls (z-10)
+- **Cross-page persistence**: Meshi should remain visible when navigating between ALL pages. No page-specific hiding logic should exist in `meshi-float.tsx`.
 
 ## Page Consistency
 
@@ -253,6 +280,7 @@ npx next build
 - Local dev DB has ~18 seed posts across multiple users and communities
 - Privacy fields on User model: `showInDiscovery` (default true), `hideActivityStatus` (default false), `readReceipts` (default true)
 - Password reset fields: `resetToken` (unique, nullable), `resetTokenExpiry` (nullable DateTime)
+- Stripe fields on User model: `stripeCustomerId` (unique, nullable), `stripeSubscriptionId` (nullable)
 
 ## Common Issues
 
@@ -267,3 +295,4 @@ npx next build
 - **DB schema mismatch**: If you see "Something went wrong" on pages after a schema update, check browser console for `SQLITE_ERROR: no such column` errors. This means the DB needs to be synced with the Prisma schema (see Schema Sync section above).
 - **Forgot password first click**: On the password screen, the first click on "Forgot password?" may dismiss a Meshi speech bubble overlay. Click the link again to navigate.
 - **Privacy toggle tab jump**: After clicking a privacy toggle, the Settings page might briefly show the MeshPro tab. Navigate back to Privacy & Safety to verify the change before reloading.
+- **Stripe not configured**: When testing MeshPro payment locally without `STRIPE_SECRET_KEY`, the checkout API returns a 500 error. The frontend should show "Payment is not configured yet. Please check back soon." If it doesn't show this message, the error handling in `meshpro-tab.tsx` may be broken.
