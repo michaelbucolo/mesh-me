@@ -12,6 +12,52 @@ interface MeshPrivacyTabProps {
   showError: (msg: string) => void;
 }
 
+function parseRecord(value: unknown): Record<string, string> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return Object.fromEntries(
+      Object.entries(value).filter(
+        (entry): entry is [string, string] => typeof entry[0] === "string" && typeof entry[1] === "string"
+      )
+    );
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return Object.fromEntries(
+          Object.entries(parsed).filter(
+            (entry): entry is [string, string] => typeof entry[0] === "string" && typeof entry[1] === "string"
+          )
+        );
+      }
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
+function parseStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === "string");
+      }
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
 export function MeshPrivacyTab({ showSuccess, showError }: MeshPrivacyTabProps) {
   const [isPending, startTransition] = useTransition();
   const [meshVisibility, setMeshVisibility] = useState<string>("friends");
@@ -27,13 +73,13 @@ export function MeshPrivacyTab({ showSuccess, showError }: MeshPrivacyTabProps) 
       Promise.all([getMeshPrivacy(), getGlobalMeshStatus()]).then(([privacy, globalStatus]) => {
         if (privacy) {
           setMeshVisibility(privacy.meshVisibility);
-          setBranchOverrides(typeof privacy.branchOverrides === "string" ? JSON.parse(privacy.branchOverrides) : privacy.branchOverrides || {});
+          setBranchOverrides(parseRecord(privacy.branchOverrides));
           setShowConnections(privacy.showConnections);
           setShowStats(privacy.showStats);
         }
         if (globalStatus) {
           setGlobalMeshActive(globalStatus.isActive);
-          setGlobalMeshBranches(typeof globalStatus.sharedBranches === "string" ? JSON.parse(globalStatus.sharedBranches) : globalStatus.sharedBranches || []);
+          setGlobalMeshBranches(parseStringArray(globalStatus.sharedBranches));
         }
         setLoaded(true);
       }).catch(() => setLoaded(true));
