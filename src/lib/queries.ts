@@ -3,6 +3,23 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 
+function parseStoredRecord(value: string | null | undefined): Record<string, string> {
+  if (!value) return {};
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, string] => typeof entry[0] === "string" && typeof entry[1] === "string"
+      )
+    );
+  } catch {
+    return {};
+  }
+}
+
 export async function getFeedPosts(page = 1, limit = 20) {
   const user = await getCurrentUser();
   if (!user) return [];
@@ -1019,7 +1036,7 @@ export async function getFriendMeshData(username: string): Promise<{
     return { ...emptyResult, privacyLevel: "friends-only" };
   }
 
-  const branchOverrides: Record<string, string> = privacy?.branchOverrides ? JSON.parse(privacy.branchOverrides) : {};
+  const branchOverrides = parseStoredRecord(privacy?.branchOverrides);
 
   const [following, followers, communities, interests, connectedAccounts, postCount, meshiPref] = await Promise.all([
     prisma.follow.findMany({
