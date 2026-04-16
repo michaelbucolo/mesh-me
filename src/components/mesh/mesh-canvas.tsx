@@ -144,6 +144,16 @@ export function MeshCanvas({
 
       // Tick Meshi wandering behavior
       if (meshiStateRef.current) {
+        // Make Meshi look at whatever node the user is focused on
+        const focusNode = selectedRef.current || hoveredRef.current;
+        if (focusNode) {
+          meshiStateRef.current.lookAtX = focusNode.x;
+          meshiStateRef.current.lookAtY = focusNode.y;
+        } else {
+          meshiStateRef.current.lookAtX = null;
+          meshiStateRef.current.lookAtY = null;
+        }
+
         tickMeshi(meshiStateRef.current, engine.nodes, dt);
 
         // Report position every 2 seconds for presence system
