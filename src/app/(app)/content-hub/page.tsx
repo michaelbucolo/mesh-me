@@ -1596,7 +1596,7 @@ function PostCard({ post, compact, onDelete, onPostAction }: {
                 </button>
                 <button
                   onClick={() => {
-                    const next = post.visibility === "public" ? "private" : "public";
+                    const next = post.visibility === "public" ? "private" : post.visibility === "private" ? "public" : "private";
                     onPostAction?.("visibility", post.id, { visibility: next });
                     setShowActions(false);
                   }}

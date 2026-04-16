@@ -178,6 +178,19 @@ export async function GET(
 
     // Upsert the connected account
     // With multi-account support, find existing by userId + platform + platformId
+    // If platformId is null (profile fetch failed), check if user has multiple accounts
+    // on this platform — if so, we can't reliably determine which to update
+    if (!platformId) {
+      const accountCount = await prisma.connectedAccount.count({
+        where: { userId: user.id, platform },
+      });
+      if (accountCount > 1) {
+        return NextResponse.redirect(
+          `${connectedAccountsUrl}?error=Could+not+identify+which+${encodedPlatform}+account+to+update.+Please+try+again.`
+        );
+      }
+    }
+
     const existingAccount = await prisma.connectedAccount.findFirst({
       where: { userId: user.id, platform, ...(platformId ? { platformId } : {}) },
     });
