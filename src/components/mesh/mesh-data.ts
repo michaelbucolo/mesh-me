@@ -90,7 +90,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Alter Egos (ring 1: close to self) ---
   const alterEgos = data.alterEgos || [];
   alterEgos.forEach((ego: any, i: number) => {
-    const pos = ringPosition(cx, cy, 100, i, alterEgos.length, Math.PI / 6);
+    const pos = ringPosition(cx, cy, 120, i, alterEgos.length, Math.PI / 6);
     nodes.push({
       id: "alter-ego-" + ego.id,
       type: "alter-ego",
@@ -116,7 +116,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Connected Platforms (ring 2) with sub-nodes ---
   const platforms = data.connectedAccounts || [];
   platforms.forEach((acct: any, i: number) => {
-    const pos = ringPosition(cx, cy, 180, i, platforms.length, Math.PI / 4);
+    const pos = ringPosition(cx, cy, 240, i, platforms.length, Math.PI / 4);
     const platformKey = acct.platform?.toLowerCase() || "";
     const analytics = acct.analytics || null;
     const totalPosts = acct.counts?.platformPosts || 0;
@@ -156,7 +156,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     // --- Platform top posts as sub-nodes orbiting the platform ---
     const topPosts = acct.topPosts || [];
     topPosts.forEach((pp: any, pi: number) => {
-      const subPos = ringPosition(pos.x, pos.y, 50 + pi * 8, pi, topPosts.length, Math.PI / 3 + i);
+      const subPos = ringPosition(pos.x, pos.y, 55 + pi * 8, pi, topPosts.length, Math.PI / 3 + i);
       const ppId = "pp-" + pp.id;
       const ppEngagement = (pp.likeCount || 0) + (pp.commentCount || 0) * 2 + (pp.viewCount || 0) * 0.01;
       nodes.push({
@@ -189,7 +189,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     // --- Platform top followers as sub-nodes ---
     const topFollowers = acct.topFollowers || [];
     topFollowers.slice(0, 6).forEach((pf: any, fi: number) => {
-      const subPos = ringPosition(pos.x, pos.y, 70 + fi * 6, fi, Math.min(topFollowers.length, 6), -Math.PI / 4 + i);
+      const subPos = ringPosition(pos.x, pos.y, 75 + fi * 6, fi, Math.min(topFollowers.length, 6), -Math.PI / 4 + i);
       const pfId = "pf-" + pf.id;
       nodes.push({
         id: pfId,
@@ -242,14 +242,14 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     return (b.interactionCount || 0) - (a.interactionCount || 0);
   });
 
-  const maxPeople = 80;
+  const maxPeople = 40;
   const peopleToDraw = allPeople.slice(0, maxPeople);
 
   peopleToDraw.forEach((f, i) => {
     const isMutual = !!f.isMutual;
     const interactionCount = f.interactionCount || 0;
     // Mutuals closer, high-interaction users even closer
-    const baseDist = isMutual ? 240 : 340;
+    const baseDist = isMutual ? 340 : 440;
     const interactionPull = Math.min(interactionCount * 4, 60);
     const ringRadius = baseDist - interactionPull;
     const pos = ringPosition(cx, cy, ringRadius, i, peopleToDraw.length);
@@ -308,8 +308,8 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   for (const commId of Object.keys(communityUserMap)) {
     const users = communityUserMap[commId];
     // Connect pairs of users in this community (limited to avoid too many edges)
-    for (let i = 0; i < Math.min(users.length, 6); i++) {
-      for (let j = i + 1; j < Math.min(users.length, 6); j++) {
+    for (let i = 0; i < Math.min(users.length, 4); i++) {
+      for (let j = i + 1; j < Math.min(users.length, 4); j++) {
         const edgeKey = [users[i], users[j]].sort().join("|");
         if (!crossEdgeSet.has(edgeKey)) {
           crossEdgeSet.add(edgeKey);
@@ -331,8 +331,8 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
 
   // --- Cross-follow edges: mutual follows between other users ---
   const mutualPeople = peopleToDraw.filter((p) => p.isMutual);
-  for (let i = 0; i < Math.min(mutualPeople.length, 15); i++) {
-    for (let j = i + 1; j < Math.min(mutualPeople.length, 15); j++) {
+  for (let i = 0; i < Math.min(mutualPeople.length, 8); i++) {
+    for (let j = i + 1; j < Math.min(mutualPeople.length, 8); j++) {
       const edgeKey = [mutualPeople[i].id, mutualPeople[j].id].sort().join("|");
       if (!crossEdgeSet.has(edgeKey)) {
         crossEdgeSet.add(edgeKey);
@@ -353,7 +353,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Communities (ring 4) ---
   const communities = data.communities || [];
   communities.forEach((c: any, i: number) => {
-    const pos = ringPosition(cx, cy, 420, i, communities.length, Math.PI / 5);
+    const pos = ringPosition(cx, cy, 560, i, communities.length, Math.PI / 5);
     const communityId = "community-" + c.id;
     nodes.push({
       id: communityId,
@@ -400,7 +400,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Interests (ring 5) ---
   const interests = data.interests || [];
   interests.forEach((tag: string, i: number) => {
-    const pos = ringPosition(cx, cy, 520, i, interests.length, Math.PI / 8);
+    const pos = ringPosition(cx, cy, 680, i, interests.length, Math.PI / 8);
     const tagId = "tag-" + tag;
     nodes.push({
       id: tagId,
@@ -439,9 +439,9 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
 
   // --- Posts (ring 6: outermost) ---
   const posts = data.posts || [];
-  const maxPosts = 40;
+  const maxPosts = 24;
   posts.slice(0, maxPosts).forEach((p: any, i: number) => {
-    const pos = ringPosition(cx, cy, 620, i, Math.min(posts.length, maxPosts), Math.PI / 10);
+    const pos = ringPosition(cx, cy, 820, i, Math.min(posts.length, maxPosts), Math.PI / 10);
     const postId = "post-" + p.id;
     // Size posts by engagement
     const postEngagement = (p.likeCount || 0) + (p.commentCount || 0) * 2 + (p.repostCount || 0) * 3;
