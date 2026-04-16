@@ -1057,6 +1057,24 @@ export async function deleteAccount() {
     }
   }
 
+  // Cancel active Stripe subscription if exists
+  if (user.stripeSubscriptionId) {
+    try {
+      const key = process.env.STRIPE_SECRET_KEY;
+      if (key) {
+        const Stripe = (await import("stripe")).default;
+        const stripe = new Stripe(key);
+        await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+      }
+    } catch {
+      // Continue with deletion even if Stripe cancellation fails
+    }
+  }
+
+  // Clean up orphaned records that don't have cascade rules
+  await prisma.accountMergeRequest.deleteMany({ where: { primaryUserId: user.id } });
+
+  // Delete the user — all related records cascade automatically via schema rules
   await prisma.user.delete({ where: { id: user.id } });
   await destroySession();
   redirect("/");
