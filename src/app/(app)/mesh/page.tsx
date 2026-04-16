@@ -122,6 +122,19 @@ export default function MeshPage() {
     });
   }, [engine.nodes, hiddenNodes, hiddenBranches]);
 
+  // --- User nodes for presence system (generates offline sleeping Meshis) ---
+  const userNodeInfos = useMemo(() => {
+    return engine.nodes
+      .filter((n) => n.type === "user")
+      .map((n) => ({
+        userId: n.id,
+        username: n.sublabel?.replace("@", "") || n.label,
+        displayName: n.label,
+        x: n.x,
+        y: n.y,
+      }));
+  }, [engine.nodes]);
+
   // --- Fetch mesh data ---
   useEffect(() => {
     (async () => {
@@ -491,6 +504,7 @@ export default function MeshPage() {
         myMeshiHat={myMeshiHat}
         myMeshiPosition={meshiPosition}
         myMeshiMood={meshiMood}
+        userNodes={userNodeInfos}
         onRemoteMeshisChange={handleRemoteMeshisChange}
         onInteract={(presence) => {
           if (!viewingUserMesh) return;
