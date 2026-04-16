@@ -11,6 +11,8 @@ const presenceStore = new Map<string, {
   meshiHat: string;
   meshiMood: string;
   position: { x: number; y: number };
+  // Viewport-relative position (0-1 range) — where Meshi sits on the user's screen
+  viewportPosition: { vx: number; vy: number };
   viewingMesh: string | null; // userId of mesh being viewed, null = own mesh
   lastSeen: number;
 }>();
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { meshiColor, meshiHat, meshiMood, position, viewingMesh } = body;
+    const { meshiColor, meshiHat, meshiMood, position, viewportPosition, viewingMesh } = body;
 
     presenceStore.set(user.id, {
       userId: user.id,
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
       meshiHat: meshiHat || "none",
       meshiMood: meshiMood || "happy",
       position: position || { x: 0, y: 0 },
+      viewportPosition: viewportPosition || { vx: 0.5, vy: 0.5 },
       viewingMesh: viewingMesh || null,
       lastSeen: Date.now(),
     });
@@ -75,6 +78,7 @@ export async function GET(request: Request) {
     meshiHat: string;
     meshiMood: string;
     position: { x: number; y: number };
+    viewportPosition: { vx: number; vy: number };
     isOnline: boolean;
   }> = [];
 
@@ -103,6 +107,7 @@ export async function GET(request: Request) {
       meshiHat: entry.meshiHat,
       meshiMood: entry.meshiMood,
       position: entry.position,
+      viewportPosition: entry.viewportPosition,
       isOnline,
     });
   }

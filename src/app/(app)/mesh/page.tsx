@@ -135,6 +135,20 @@ export default function MeshPage() {
       }));
   }, [engine.nodes]);
 
+  // --- Viewport info for presence coordinate conversion ---
+  const viewportInfo = useMemo(() => {
+    const center = engine.getCenter();
+    return {
+      zoom,
+      panX: pan.x,
+      panY: pan.y,
+      centerX: center.x,
+      centerY: center.y,
+      canvasWidth: typeof window !== "undefined" ? window.innerWidth : 800,
+      canvasHeight: typeof window !== "undefined" ? (window.innerHeight - 64) : 600, // subtract header
+    };
+  }, [zoom, pan, engine]);
+
   // --- Fetch mesh data ---
   useEffect(() => {
     (async () => {
@@ -504,6 +518,7 @@ export default function MeshPage() {
         myMeshiHat={myMeshiHat}
         myMeshiPosition={meshiPosition}
         myMeshiMood={meshiMood}
+        viewportInfo={viewportInfo}
         userNodes={userNodeInfos}
         onRemoteMeshisChange={handleRemoteMeshisChange}
         onInteract={(presence) => {
