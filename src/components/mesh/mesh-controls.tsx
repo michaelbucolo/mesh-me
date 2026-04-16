@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ZoomIn, ZoomOut, Maximize2, Eye, EyeOff, Info,
+  ZoomIn, ZoomOut, Maximize2,
   Search, Fingerprint, Plus, Layers, Shield,
   Users, Hash, Globe, MessageCircle, FileText, Link2, Sparkles,
 } from "lucide-react";
@@ -38,7 +38,7 @@ export function MeshFilterBar({ filter, nodes, onFilterChange, onSearchOpen, sho
   return (
     <div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-2xl p-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] overflow-x-auto scrollbar-hide">
+        <div className="flex gap-1 rounded-2xl p-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] overflow-x-auto scrollbar-hide shadow-lg shadow-black/20">
           {FILTER_OPTIONS.filter((fItem) => getCounts(fItem.id) > 0 || fItem.id === "all").map((fItem) => {
             const IconComp = fItem.icon;
             const isActive = filter === fItem.id;
@@ -47,10 +47,10 @@ export function MeshFilterBar({ filter, nodes, onFilterChange, onSearchOpen, sho
               <button
                 key={fItem.id}
                 onClick={() => onFilterChange(fItem.id)}
-                className={"flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all duration-200 whitespace-nowrap " + (
+                className={"flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-semibold transition-all duration-300 whitespace-nowrap " + (
                   isActive
-                    ? "bg-white/15 text-white shadow-sm"
-                    : "text-white/50 hover:text-white/80 hover:bg-white/[0.06]"
+                    ? "bg-white/15 text-white shadow-sm shadow-white/5"
+                    : "text-white/45 hover:text-white/85 hover:bg-white/[0.07] active:scale-95"
                 )}
                 title={fItem.label}
               >
@@ -64,15 +64,15 @@ export function MeshFilterBar({ filter, nodes, onFilterChange, onSearchOpen, sho
           })}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onSearchOpen} className="p-2.5 rounded-xl bg-black/30 backdrop-blur-xl border border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200" title="Search mesh (Cmd+K)">
+          <button onClick={onSearchOpen} className="p-2.5 rounded-xl bg-black/35 backdrop-blur-2xl border border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-95 shadow-lg shadow-black/20" title="Search mesh (Cmd+K)">
             <Search className="h-4 w-4" />
           </button>
           <button
             onClick={onToggleFootprint}
-            className={"p-2.5 rounded-xl backdrop-blur-xl border transition-all duration-200 " + (
+            className={"p-2.5 rounded-xl backdrop-blur-2xl border transition-all duration-300 active:scale-95 shadow-lg shadow-black/20 " + (
               showFootprint
                 ? "bg-indigo-500/30 border-indigo-400/30 text-indigo-300"
-                : "bg-black/30 border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10"
+                : "bg-black/35 border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12"
             )}
             title="Digital Footprint"
           >
@@ -95,12 +95,14 @@ interface ZoomControlsProps {
   onToggleStats: () => void;
 }
 
-export function MeshZoomControls({ showLabels, showStats, onZoom, onReset, onToggleLabels, onToggleStats }: ZoomControlsProps) {
+export function MeshZoomControls({ onZoom, onReset }: ZoomControlsProps) {
   return (
-    <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-3 z-10 flex flex-col gap-1 bg-black/30 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-1.5">
-      <button onClick={() => onZoom(0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
-      <button onClick={() => onZoom(-0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
-      <button onClick={onReset} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
+    <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-3 z-10 flex flex-col gap-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-1.5 shadow-lg shadow-black/20">
+      <button onClick={() => onZoom(0.3)} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
+      <div className="h-px bg-white/[0.06] mx-1" />
+      <button onClick={() => onZoom(-0.3)} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
+      <div className="h-px bg-white/[0.06] mx-1" />
+      <button onClick={onReset} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
     </div>
   );
 }
@@ -187,14 +189,14 @@ interface ActionBarProps {
 export function MeshActionBar({ showContentHub, showNodePrivacy, hiddenCount, onCreatePost, onToggleContentHub, onTogglePrivacy }: ActionBarProps) {
   return (
     <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-2">
-      <button onClick={onCreatePost} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all duration-200 active:scale-95 shadow-lg bg-indigo-500 hover:bg-indigo-400 hover:shadow-indigo-500/30">
+      <button onClick={onCreatePost} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all duration-300 active:scale-95 shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-400 hover:shadow-indigo-500/30">
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Create Post</span>
       </button>
       <button
         onClick={onToggleContentHub}
-        className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-200 active:scale-95 backdrop-blur-xl border " + (
-          showContentHub ? "bg-cyan-500/20 border-cyan-400/30 text-cyan-300" : "bg-black/30 border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10"
+        className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-300 active:scale-95 backdrop-blur-2xl border shadow-lg shadow-black/20 " + (
+          showContentHub ? "bg-cyan-500/20 border-cyan-400/30 text-cyan-300" : "bg-black/35 border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12"
         )}
       >
         <Layers className="h-3.5 w-3.5" />
@@ -202,8 +204,8 @@ export function MeshActionBar({ showContentHub, showNodePrivacy, hiddenCount, on
       </button>
       <button
         onClick={onTogglePrivacy}
-        className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-200 active:scale-95 backdrop-blur-xl border " + (
-          showNodePrivacy ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-300" : "bg-black/30 border-white/[0.06] text-white/60 hover:text-white hover:bg-white/10"
+        className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-300 active:scale-95 backdrop-blur-2xl border shadow-lg shadow-black/20 " + (
+          showNodePrivacy ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-300" : "bg-black/35 border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12"
         )}
       >
         <Shield className="h-3.5 w-3.5" />

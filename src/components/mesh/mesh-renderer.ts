@@ -135,19 +135,19 @@ export function renderMesh(
 
 function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
   const rings = [
-    { radius: 180, alpha: 0.025, dashLen: 8 },
-    { radius: 340, alpha: 0.018, dashLen: 10 },
-    { radius: 500, alpha: 0.012, dashLen: 14 },
+    { radius: 180, alpha: 0.03, dashLen: 6 },
+    { radius: 340, alpha: 0.022, dashLen: 8 },
+    { radius: 500, alpha: 0.015, dashLen: 12 },
   ];
 
   for (const ring of rings) {
-    const pulse = Math.sin(time * 0.2 + ring.radius * 0.01) * 0.005;
+    const pulse = Math.sin(time * 0.15 + ring.radius * 0.008) * 0.006;
     ctx.beginPath();
     ctx.arc(self.x, self.y, ring.radius, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(99, 102, 241, ${ring.alpha + pulse})`;
-    ctx.setLineDash([ring.dashLen, ring.dashLen * 2.5]);
-    ctx.lineDashOffset = -time * 5;
-    ctx.lineWidth = 0.5;
+    ctx.setLineDash([ring.dashLen, ring.dashLen * 3]);
+    ctx.lineDashOffset = -time * 3;
+    ctx.lineWidth = 0.6;
     ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -222,10 +222,10 @@ function drawEdges(
       || (selected && (selected.id === source.id || selected.id === target.id));
 
     const isCross = edge.type === "shared-community" || edge.type === "cross-follow";
-    const baseAlpha = isHighlighted ? 0.3
-      : isCross ? 0.02 + edge.strength * 0.04
-      : 0.04 + edge.strength * 0.06;
-    const pulseAlpha = Math.sin(time * 0.8 + edge.strength * 5) * 0.008;
+    const baseAlpha = isHighlighted ? 0.35
+      : isCross ? 0.025 + edge.strength * 0.05
+      : 0.05 + edge.strength * 0.08;
+    const pulseAlpha = Math.sin(time * 0.6 + edge.strength * 4) * 0.01;
 
     ctx.beginPath();
     ctx.moveTo(source.x, source.y);
@@ -244,10 +244,10 @@ function drawEdges(
 
     const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
     ctx.strokeStyle = `rgba(${edgeColor}, ${baseAlpha + pulseAlpha})`;
-    const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.3, 2.5) : 0;
-    ctx.lineWidth = isHighlighted ? 2 + interactionBoost
-      : isCross ? 0.3 + edge.strength * 0.3
-      : 0.5 + edge.strength * 0.5 + interactionBoost;
+    const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.25, 2) : 0;
+    ctx.lineWidth = isHighlighted ? 2.5 + interactionBoost
+      : isCross ? 0.4 + edge.strength * 0.4
+      : 0.6 + edge.strength * 0.6 + interactionBoost;
     ctx.stroke();
   }
 }
@@ -287,8 +287,8 @@ function drawDataParticles(
     const particleCount = isHighlighted ? 2 : 1;
     const speed = isHighlighted ? 0.35 : 0.18;
     const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
-    const alpha = isHighlighted ? 0.5 : 0.2;
-    const radius = isHighlighted ? 1.8 : 1;
+    const alpha = isHighlighted ? 0.6 : 0.25;
+    const radius = isHighlighted ? 2 : 1.2;
 
     for (let pi = 0; pi < particleCount; pi++) {
       const t = ((time * speed + ei * 0.37 + pi * 0.5) % 1);
@@ -407,16 +407,29 @@ function drawNodes(
       : node.isMutual ? NODE_GLOW.mutual
       : NODE_GLOW[node.type] || NODE_GLOW.user;
 
-    // Glow — subtle and premium
-    const glowRadius = nodeRadius * (1.6 + pulse * 0.2);
-    const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowRadius);
-    gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.12 * nodeOpacity) + ")"));
-    gradient.addColorStop(0.5, glowColor.replace(/[\d.]+\)$/, (0.04 * nodeOpacity) + ")"));
+    // Glow — smooth multi-layer premium glow
+    const glowRadius = nodeRadius * (1.7 + pulse * 0.15);
+    const gradient = ctx.createRadialGradient(node.x, node.y, nodeRadius * 0.5, node.x, node.y, glowRadius);
+    gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.15 * nodeOpacity) + ")"));
+    gradient.addColorStop(0.4, glowColor.replace(/[\d.]+\)$/, (0.06 * nodeOpacity) + ")"));
+    gradient.addColorStop(0.8, glowColor.replace(/[\d.]+\)$/, (0.02 * nodeOpacity) + ")"));
     gradient.addColorStop(1, "rgba(0,0,0,0)");
     ctx.beginPath();
     ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
     ctx.fillStyle = gradient;
     ctx.fill();
+    // Extra highlight halo for hovered/selected nodes
+    if (isHovered || isSelected) {
+      const haloR = nodeRadius * (isSelected ? 2.2 : 1.9);
+      const halo = ctx.createRadialGradient(node.x, node.y, nodeRadius, node.x, node.y, haloR);
+      halo.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.18 * nodeOpacity) + ")"));
+      halo.addColorStop(0.5, glowColor.replace(/[\d.]+\)$/, (0.06 * nodeOpacity) + ")"));
+      halo.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, haloR, 0, Math.PI * 2);
+      ctx.fillStyle = halo;
+      ctx.fill();
+    }
 
     // Self node rings
     if (node.type === "self") {
@@ -433,14 +446,14 @@ function drawNodes(
       ctx.stroke();
     }
 
-    // Activity pulse for online users
+    // Activity pulse for online users — smooth breathing
     if (node.status === "online" && node.type === "user") {
-      const activityPulse = Math.sin(time * 1.5 + node.pulsePhase) * 0.5 + 0.5;
-      const activityRadius = nodeRadius + 3 + activityPulse * 2.5;
+      const activityPulse = Math.sin(time * 1.2 + node.pulsePhase) * 0.5 + 0.5;
+      const activityRadius = nodeRadius + 3.5 + activityPulse * 3;
       ctx.beginPath();
       ctx.arc(node.x, node.y, activityRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(34, 197, 94, ${0.06 + activityPulse * 0.04})`;
-      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = `rgba(34, 197, 94, ${0.08 + activityPulse * 0.05})`;
+      ctx.lineWidth = 1;
       ctx.stroke();
     }
 
@@ -625,13 +638,12 @@ function drawLabel(
   nodeOpacity: number,
   showSublabel: boolean,
 ) {
-  const fontSize = Math.max(10, Math.min(14, nodeRadius * 0.65));
+  const fontSize = Math.max(10, Math.min(14, nodeRadius * 0.7));
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
 
-  // Text shadow for readability on any background
-  const labelY = node.y + nodeRadius + 8;
-  const maxLabelWidth = 120;
+  const labelY = node.y + nodeRadius + 10;
+  const maxLabelWidth = 130;
   let labelText = node.label;
   ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
   if (ctx.measureText(labelText).width > maxLabelWidth) {
@@ -641,22 +653,28 @@ function drawLabel(
     labelText += "...";
   }
 
-  // Dark background pill behind label for contrast
+  // Dark background pill behind label — softer rounded appearance
   const tw = ctx.measureText(labelText).width;
-  const pillPadX = 6, pillPadY = 2;
-  ctx.fillStyle = `rgba(0, 0, 0, ${0.5 * nodeOpacity})`;
+  const pillPadX = 7, pillPadY = 3;
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * nodeOpacity})`;
   ctx.beginPath();
-  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 4);
+  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 6);
   ctx.fill();
+  // Subtle border on pill for depth
+  ctx.strokeStyle = `rgba(255, 255, 255, ${0.04 * nodeOpacity})`;
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 6);
+  ctx.stroke();
 
-  ctx.fillStyle = `rgba(240, 240, 245, ${0.95 * nodeOpacity})`;
+  ctx.fillStyle = `rgba(245, 245, 250, ${0.93 * nodeOpacity})`;
   ctx.fillText(labelText, node.x, labelY);
 
   if (node.sublabel && showSublabel) {
-    const subFontSize = Math.max(9, fontSize * 0.8);
+    const subFontSize = Math.max(9, fontSize * 0.82);
     ctx.font = `${subFontSize}px system-ui, -apple-system, sans-serif`;
-    ctx.fillStyle = `rgba(180, 180, 195, ${0.8 * nodeOpacity})`;
-    ctx.fillText(node.sublabel, node.x, labelY + fontSize + pillPadY * 2 + 2);
+    ctx.fillStyle = `rgba(190, 190, 210, ${0.75 * nodeOpacity})`;
+    ctx.fillText(node.sublabel, node.x, labelY + fontSize + pillPadY * 2 + 3);
   }
 }
 
