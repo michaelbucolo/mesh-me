@@ -127,7 +127,7 @@ export function MeshiFloat() {
   const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
   const [isMeshTransition, setIsMeshTransition] = useState(false);
-  const [prevPathname, setPrevPathname] = useState("");
+  const prevPathnameRef = useRef("");
   const [isFirstTimeMeshi, setIsFirstTimeMeshi] = useState(() => {
     if (typeof window === "undefined") return false;
     return !localStorage.getItem("meshiInteracted");
@@ -213,23 +213,22 @@ export function MeshiFloat() {
   // Mesh page transition — animate Meshi toward canvas center when entering /mesh
   useEffect(() => {
     if (!meshiEnabled) return;
-    const enteringMesh = pathname === "/mesh" && prevPathname !== "/mesh" && prevPathname !== "";
-    const leavingMesh = pathname !== "/mesh" && prevPathname === "/mesh";
+    const prev = prevPathnameRef.current;
+    const enteringMesh = pathname === "/mesh" && prev !== "/mesh" && prev !== "";
+    const leavingMesh = pathname !== "/mesh" && prev === "/mesh";
 
     if (enteringMesh) {
-      // Animate Meshi toward center of screen (into the canvas)
-      setIsMeshTransition(true);
+      queueMicrotask(() => setIsMeshTransition(true));
       const centerX = window.innerWidth / 2 - MESHI_SIZE / 2;
       const centerY = window.innerHeight / 2 - MESHI_SIZE / 2;
       meshiX.set(centerX);
       meshiY.set(centerY);
       const timer = setTimeout(() => setIsMeshTransition(false), 600);
+      prevPathnameRef.current = pathname;
       return () => clearTimeout(timer);
     } else if (leavingMesh) {
-      // Coming back from mesh — start at center and float to corner
-      setIsMeshTransition(true);
+      queueMicrotask(() => setIsMeshTransition(true));
       const safe = getSafePosition();
-      // Briefly start at center, then spring to safe zone
       const centerX = window.innerWidth / 2 - MESHI_SIZE / 2;
       const centerY = window.innerHeight / 2 - MESHI_SIZE / 2;
       meshiX.set(centerX);
@@ -239,16 +238,12 @@ export function MeshiFloat() {
         meshiY.set(safe.y);
       });
       const timer = setTimeout(() => setIsMeshTransition(false), 600);
+      prevPathnameRef.current = pathname;
       return () => clearTimeout(timer);
     }
 
-    setPrevPathname(pathname);
-  }, [pathname, prevPathname, meshiEnabled, meshiX, meshiY]);
-
-  // Track previous pathname
-  useEffect(() => {
-    setPrevPathname(pathname);
-  }, [pathname]);
+    prevPathnameRef.current = pathname;
+  }, [pathname, meshiEnabled, meshiX, meshiY]);
   useEffect(() => {
     if (!meshiEnabled || hasGreetedThisPage || view !== "closed") return;
     const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));

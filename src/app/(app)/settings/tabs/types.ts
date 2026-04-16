@@ -14,6 +14,7 @@ export interface SettingsData {
   isPublic: boolean;
   interests: { id: string; tag: string }[];
   links: { id: string; label: string; url: string }[];
+  isMeshPro?: boolean;
 }
 
 export interface BlockedUser {

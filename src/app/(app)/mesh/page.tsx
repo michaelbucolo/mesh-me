@@ -332,7 +332,7 @@ export default function MeshPage() {
     if (node.type === "user" && node.sublabel) {
       // Smooth zoom into user node first, then load their mesh
       zoomToNode(node.id);
-      setTimeout(() => enterUserMesh(node), 400);
+      setTimeout(() => enterUserMesh(node), 650);
     } else if (node.href) {
       window.location.href = node.href;
     }
