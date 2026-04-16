@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { updatePrivacy, deleteAccount } from "@/lib/actions";
 import { useTransition, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity, Check } from "lucide-react";
+import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity } from "lucide-react";
 import { getPrivacyTransparencyData } from "@/lib/queries";
 import type { TransparencyData } from "./types";
 

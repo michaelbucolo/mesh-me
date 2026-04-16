@@ -3,7 +3,7 @@
 
 import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
 import { NODE_GLOW, STATUS_COLORS, hexAlpha } from "./mesh-types";
-import { drawMeshi, drawRemoteMeshis, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
+import { drawRemoteMeshis, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 export interface ViewportState {
   zoom: number;
@@ -30,7 +30,7 @@ export function renderMesh(
   imageCache: Map<string, HTMLImageElement | null>,
 ) {
   const { zoom: z, pan: p, center, filter: f, showLabels: labels, time } = viewport;
-  const { hoveredNode: hovered, selectedNode: selected, meshiState, remoteMeshis } = interaction;
+  const { hoveredNode: hovered, selectedNode: selected, remoteMeshis } = interaction;
 
   const dpr = window.devicePixelRatio || 1;
   const w = ctx.canvas.width;
@@ -65,15 +65,13 @@ export function renderMesh(
   drawDataParticles(ctx, nodes, edges, f, time, hovered, selected);
   drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache);
 
-  // Draw Meshi avatars on the mesh (after nodes, before tooltip)
+  // Draw remote Meshis on the mesh (other users' presence)
   if (remoteMeshis && remoteMeshis.length > 0) {
     drawRemoteMeshis(ctx, remoteMeshis, time);
   }
-  if (meshiState) {
-    drawMeshi(ctx, meshiState, time);
-  }
+  // Local user's Meshi is the floating UI component (meshi-float.tsx) — not drawn on canvas
 
-  drawTooltip(ctx, hovered, z, time);
+  drawTooltip(ctx, hovered, z);
 
   ctx.restore();
 }
@@ -352,8 +350,8 @@ function drawNodes(
       ctx.fill();
     }
 
-    // Labels
-    if (labels && nodeOpacity > 0.3) {
+    // Labels — always show for readability, larger font
+    if (labels && nodeOpacity > 0.2) {
       drawLabel(ctx, node, nodeRadius, nodeOpacity, isHovered || isSelected);
     }
 
@@ -457,24 +455,38 @@ function drawLabel(
   nodeOpacity: number,
   showSublabel: boolean,
 ) {
-  ctx.fillStyle = `rgba(228, 228, 231, ${0.85 * nodeOpacity})`;
-  ctx.font = `${Math.max(9, Math.min(12, nodeRadius * 0.55))}px system-ui, -apple-system, sans-serif`;
+  const fontSize = Math.max(10, Math.min(14, nodeRadius * 0.65));
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  const maxLabelWidth = 100;
+
+  // Text shadow for readability on any background
+  const labelY = node.y + nodeRadius + 8;
+  const maxLabelWidth = 120;
   let labelText = node.label;
+  ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
   if (ctx.measureText(labelText).width > maxLabelWidth) {
     while (ctx.measureText(labelText + "...").width > maxLabelWidth && labelText.length > 3) {
       labelText = labelText.slice(0, -1);
     }
     labelText += "...";
   }
-  ctx.fillText(labelText, node.x, node.y + nodeRadius + 6);
+
+  // Dark background pill behind label for contrast
+  const tw = ctx.measureText(labelText).width;
+  const pillPadX = 6, pillPadY = 2;
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.5 * nodeOpacity})`;
+  ctx.beginPath();
+  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 4);
+  ctx.fill();
+
+  ctx.fillStyle = `rgba(240, 240, 245, ${0.95 * nodeOpacity})`;
+  ctx.fillText(labelText, node.x, labelY);
 
   if (node.sublabel && showSublabel) {
-    ctx.fillStyle = `rgba(161, 161, 170, ${0.7 * nodeOpacity})`;
-    ctx.font = `${Math.max(8, nodeRadius * 0.4)}px system-ui, -apple-system, sans-serif`;
-    ctx.fillText(node.sublabel, node.x, node.y + nodeRadius + 20);
+    const subFontSize = Math.max(9, fontSize * 0.8);
+    ctx.font = `${subFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = `rgba(180, 180, 195, ${0.8 * nodeOpacity})`;
+    ctx.fillText(node.sublabel, node.x, labelY + fontSize + pillPadY * 2 + 2);
   }
 }
 
@@ -484,13 +496,12 @@ function drawTooltip(
   ctx: CanvasRenderingContext2D,
   hovered: MeshNode | null,
   zoom: number,
-  _time: number,
 ) {
   if (!hovered || zoom < 0.5) return;
 
   const ttX = hovered.x;
   const ttY = hovered.y - hovered.radius - 14;
-  const ttPadX = 10, ttPadY = 6, ttLineH = 14;
+  const ttPadX = 10, ttPadY = 6;
   const ttLines: string[] = [];
 
   // Platform nodes get emoji-prefixed label; others get plain label + sublabel
@@ -562,43 +573,62 @@ function drawTooltip(
     ttLines.push(hovered.connections.length + " mesh connections");
   }
 
-  ctx.font = "11px system-ui, -apple-system, sans-serif";
+  const ttFontSize = 12;
+  const ttSubFontSize = 11;
+  const ttLineSpacing = 16;
+  ctx.font = `${ttFontSize}px system-ui, -apple-system, sans-serif`;
   let maxW = 0;
   for (const line of ttLines) { maxW = Math.max(maxW, ctx.measureText(line).width); }
-  const boxW = maxW + ttPadX * 2;
-  const boxH = ttLines.length * ttLineH + ttPadY * 2;
+  const boxW = Math.min(maxW + ttPadX * 2 + 4, 280);
+  const boxH = ttLines.length * ttLineSpacing + ttPadY * 2 + 4;
   const bx = ttX - boxW / 2;
-  const by = ttY - boxH;
+  const by = ttY - boxH - 4;
 
-  ctx.fillStyle = "rgba(12, 12, 18, 0.94)";
+  // Drop shadow
+  ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 4;
+  ctx.fillStyle = "rgba(8, 8, 16, 0.96)";
   ctx.beginPath();
-  ctx.roundRect(bx, by, boxW, boxH, 8);
+  ctx.roundRect(bx, by, boxW, boxH, 10);
   ctx.fill();
-  ctx.strokeStyle = hovered.color + "40";
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Accent top edge
+  ctx.fillStyle = hovered.color + "90";
+  ctx.beginPath();
+  ctx.roundRect(bx, by, boxW, 2.5, [10, 10, 0, 0]);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
   ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, boxW, boxH, 10);
   ctx.stroke();
 
   // Arrow
   ctx.beginPath();
-  ctx.moveTo(ttX - 5, ttY - 1);
-  ctx.lineTo(ttX, ttY + 5);
-  ctx.lineTo(ttX + 5, ttY - 1);
-  ctx.fillStyle = "rgba(12, 12, 18, 0.94)";
+  ctx.moveTo(ttX - 6, ttY - 4);
+  ctx.lineTo(ttX, ttY + 3);
+  ctx.lineTo(ttX + 6, ttY - 4);
+  ctx.fillStyle = "rgba(8, 8, 16, 0.96)";
   ctx.fill();
 
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   for (let li = 0; li < ttLines.length; li++) {
     if (li === 0) {
-      ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.font = `bold ${ttFontSize}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.98)";
     } else if (li === ttLines.length - 1 && ttLines[li].includes("mesh connections")) {
-      ctx.font = "10px system-ui, -apple-system, sans-serif";
-      ctx.fillStyle = "rgba(99, 102, 241, 0.7)";
+      ctx.font = `${ttSubFontSize}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = hovered.color + "a0";
     } else {
-      ctx.font = "10px system-ui, -apple-system, sans-serif";
-      ctx.fillStyle = "rgba(200, 200, 210, 0.8)";
+      ctx.font = `${ttSubFontSize}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = "rgba(210, 210, 220, 0.85)";
     }
-    ctx.fillText(ttLines[li], bx + ttPadX, by + ttPadY + li * ttLineH);
+    ctx.fillText(ttLines[li], bx + ttPadX + 2, by + ttPadY + 4 + li * ttLineSpacing);
   }
 }

@@ -168,7 +168,7 @@ export function MeshCanvas({
       }, {
         hoveredNode: hoveredRef.current,
         selectedNode: selectedRef.current,
-        meshiState: meshiStateRef.current,
+        meshiState: null, // Local Meshi is the floating UI component, not canvas-drawn
         remoteMeshis: remoteMeshisRef.current,
       }, cache);
 

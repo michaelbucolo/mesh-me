@@ -18,6 +18,7 @@ import {
   Loader2,
   Clock,
 } from "lucide-react";
+import { PLATFORM_LOGO_MAP } from "@/components/platform-logos";
 
 interface ConnectedAccount {
   id: string;
@@ -332,12 +333,17 @@ function ConnectedAccountsContent() {
               }`}
             >
               <div className="flex items-center gap-4 p-4">
-                <div
-                  className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                  style={{ backgroundColor: platform.color }}
-                >
-                  {platform.icon}
-                </div>
+                {(() => {
+                  const LogoComponent = PLATFORM_LOGO_MAP[platform.id];
+                  return (
+                    <div
+                      className="h-10 w-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
+                      style={{ backgroundColor: platform.color }}
+                    >
+                      {LogoComponent ? <LogoComponent size={20} /> : <span className="font-bold text-xs">{platform.icon}</span>}
+                    </div>
+                  );
+                })()}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">{platform.name}</h3>
@@ -513,9 +519,14 @@ function ConnectedAccountsContent() {
               <div className="h-1.5 w-full" style={{ background: platform.color }} />
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: platform.color }}>
-                    {platform.icon}
-                  </div>
+                  {(() => {
+                    const LogoComponent = PLATFORM_LOGO_MAP[platform.id];
+                    return (
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: platform.color }}>
+                        {LogoComponent ? <LogoComponent size={20} /> : <span className="font-bold text-sm">{platform.icon}</span>}
+                      </div>
+                    );
+                  })()}
                   <div>
                     <h3 className="text-base font-bold text-[var(--text-primary)]">{platform.name} Connected!</h3>
                     <p className="text-xs text-[var(--text-muted)]">Would you like to import your existing data?</p>

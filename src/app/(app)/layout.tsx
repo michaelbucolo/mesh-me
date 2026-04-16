@@ -49,10 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const needsPhoneVerification = accountOldEnough && !user.phoneVerified;
 
   // Get user email for the verification banner
-  const userEmail = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { email: true },
-  }).then((u) => u?.email || "");
+  const userEmail = user.email;
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)]">
