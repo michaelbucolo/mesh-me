@@ -23,11 +23,15 @@ export interface OAuthConfig {
   profileDataPath?: string;
 }
 
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/$/, "");
+}
+
 export function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
-  return "http://localhost:3333";
+  if (process.env.NEXT_PUBLIC_APP_URL) return normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
+  if (process.env.VERCEL_URL) return normalizeBaseUrl(`https://${process.env.VERCEL_URL}`);
+  if (process.env.NEXTAUTH_URL) return normalizeBaseUrl(process.env.NEXTAUTH_URL);
+  return "http://localhost:3000";
 }
 
 export function getCallbackUrl(platform: string): string {
