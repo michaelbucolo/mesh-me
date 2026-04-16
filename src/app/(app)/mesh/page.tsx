@@ -509,7 +509,7 @@ export default function MeshPage() {
 
       {/* Hint bar */}
       {engine.nodes.length > 0 && !selectedNode && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/25 backdrop-blur-xl border border-white/[0.04] rounded-full px-4 py-1.5 text-[10px] text-white/35 pointer-events-none hidden md:block">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/30 backdrop-blur-2xl border border-white/[0.06] rounded-full px-5 py-2 text-[10px] text-white/30 pointer-events-none hidden md:block shadow-lg shadow-black/20 animate-content-fade">
           {viewingUserMesh
             ? "Click to explore deeper \u00b7 Click back to return"
             : "Click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
