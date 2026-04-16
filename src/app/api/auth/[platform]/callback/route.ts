@@ -44,17 +44,22 @@ export async function GET(
   }
 
   const cookieStore = await cookies();
+  const oauthStateCookie = `__Host-oauth_state_${platform}`;
+  const legacyOauthStateCookie = `oauth_state_${platform}`;
+  const oauthPkceCookie = `__Host-oauth_pkce_${platform}`;
+  const legacyOauthPkceCookie = `oauth_pkce_${platform}`;
 
   // Verify state for CSRF protection
-  const storedState = cookieStore.get(`oauth_state_${platform}`)?.value;
+  const storedState = cookieStore.get(oauthStateCookie)?.value || cookieStore.get(legacyOauthStateCookie)?.value;
   if (!storedState || storedState !== state) {
     return NextResponse.redirect(
       `${connectedAccountsUrl}?error=${encodeURIComponent("Invalid state parameter. Please try again.")}&platform=${encodedPlatform}`
     );
   }
 
-  // Clear the state cookie
-  cookieStore.delete(`oauth_state_${platform}`);
+  // Clear the state cookies
+  cookieStore.delete(oauthStateCookie);
+  cookieStore.delete(legacyOauthStateCookie);
 
   const config = OAUTH_CONFIGS[platform];
   const clientId = process.env[config.clientIdEnv];
@@ -78,10 +83,11 @@ export async function GET(
     };
 
     // Add PKCE verifier if needed
-    const pkceVerifier = cookieStore.get(`oauth_pkce_${platform}`)?.value;
+    const pkceVerifier = cookieStore.get(oauthPkceCookie)?.value || cookieStore.get(legacyOauthPkceCookie)?.value;
     if (pkceVerifier) {
       tokenParams.code_verifier = pkceVerifier;
-      cookieStore.delete(`oauth_pkce_${platform}`);
+      cookieStore.delete(oauthPkceCookie);
+      cookieStore.delete(legacyOauthPkceCookie);
     }
 
     // Add extra token params
@@ -109,8 +115,6 @@ export async function GET(
     });
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error(`Token exchange failed for ${platform}:`, errorText);
       return NextResponse.redirect(
         `${connectedAccountsUrl}?error=${encodeURIComponent("Failed to authenticate with " + config.name)}&platform=${encodedPlatform}`
       );
@@ -226,8 +230,7 @@ export async function GET(
     return NextResponse.redirect(
       `${connectedAccountsUrl}?connected=${encodedPlatform}`
     );
-  } catch (err) {
-    console.error(`OAuth callback error for ${platform}:`, err);
+  } catch {
     return NextResponse.redirect(
       `${connectedAccountsUrl}?error=${encodeURIComponent("Something went wrong. Please try again.")}&platform=${encodedPlatform}`
     );
