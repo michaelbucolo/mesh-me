@@ -264,7 +264,7 @@ export default function SettingsPage() {
             <BlockedTab blockedUsers={blockedUsers} setBlockedUsers={setBlockedUsers} showSuccess={showSuccess} />
           )}
           {activeTab === "achievements" && <AchievementsTab showSuccess={showSuccess} />}
-          {activeTab === "meshi" && <MeshiTab showSuccess={showSuccess} />}
+          {activeTab === "meshi" && <MeshiTab showSuccess={showSuccess} isMeshPro={settings?.isMeshPro === true} />}
           {activeTab === "alter-egos" && <AlterEgosTab showSuccess={showSuccess} />}
           {activeTab === "meshpro" && <MeshProTab />}
 

@@ -54,6 +54,13 @@ export const MESHI_COLORS: Record<string, string> = {
   white: "#e2e8f0",
   gold: "#eab308",
   rainbow: "#ec4899",
+  // MeshPro exclusive colors
+  crimson: "#dc2626",
+  midnight: "#1e1b4b",
+  rose: "#f43f5e",
+  emerald: "#059669",
+  arctic: "#7dd3fc",
+  obsidian: "#18181b",
 };
 
 // How frequently Meshi picks a new node to visit (seconds)
