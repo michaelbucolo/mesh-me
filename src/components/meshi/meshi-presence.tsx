@@ -14,6 +14,7 @@ interface MeshiPresence {
   meshiHat: string;
   meshiMood: string;
   position: { x: number; y: number };
+  viewportPosition: { vx: number; vy: number };
   isOnline?: boolean;
 }
 
@@ -26,21 +27,58 @@ interface UserNodeInfo {
   y: number;
 }
 
+/** Viewport conversion info — needed to map viewport-relative positions to world coords */
+interface ViewportInfo {
+  zoom: number;
+  panX: number;
+  panY: number;
+  centerX: number;
+  centerY: number;
+  canvasWidth: number;
+  canvasHeight: number;
+}
+
 interface LiveMeshiPresenceProps {
   viewingMesh: string | null;
   myMeshiColor: MeshiColor;
   myMeshiHat: MeshiHat;
   myMeshiPosition?: { x: number; y: number };
   myMeshiMood?: string;
+  /** Viewport info for converting between world and viewport-relative coords */
+  viewportInfo?: ViewportInfo;
   /** User nodes on the mesh — used to generate offline sleeping Meshis */
   userNodes?: UserNodeInfo[];
   onInteract?: (presence: MeshiPresence) => void;
   onRemoteMeshisChange?: (meshis: RemoteMeshi[]) => void;
 }
 
+/** Convert world coordinates to viewport-relative (0-1 range) */
+function worldToViewport(
+  worldX: number, worldY: number, vp: ViewportInfo,
+): { vx: number; vy: number } {
+  const screenX = (worldX - vp.centerX) * vp.zoom + vp.canvasWidth / 2 + vp.panX;
+  const screenY = (worldY - vp.centerY) * vp.zoom + vp.canvasHeight / 2 + vp.panY;
+  return {
+    vx: vp.canvasWidth > 0 ? screenX / vp.canvasWidth : 0.5,
+    vy: vp.canvasHeight > 0 ? screenY / vp.canvasHeight : 0.5,
+  };
+}
+
+/** Convert viewport-relative (0-1 range) to world coordinates */
+function viewportToWorld(
+  vx: number, vy: number, vp: ViewportInfo,
+): { x: number; y: number } {
+  const screenX = vx * vp.canvasWidth;
+  const screenY = vy * vp.canvasHeight;
+  return {
+    x: (screenX - vp.canvasWidth / 2 - vp.panX) / vp.zoom + vp.centerX,
+    y: (screenY - vp.canvasHeight / 2 - vp.panY) / vp.zoom + vp.centerY,
+  };
+}
+
 export function LiveMeshiPresence({
   viewingMesh, myMeshiColor, myMeshiHat,
-  myMeshiPosition, myMeshiMood, userNodes,
+  myMeshiPosition, myMeshiMood, viewportInfo, userNodes,
   onInteract, onRemoteMeshisChange,
 }: LiveMeshiPresenceProps) {
   const [presences, setPresences] = useState<MeshiPresence[]>([]);
@@ -49,6 +87,9 @@ export function LiveMeshiPresence({
   const positionRef = useRef(myMeshiPosition || { x: 400, y: 300 });
   const moodRef = useRef(myMeshiMood || "exploring");
   const userNodesRef = useRef<UserNodeInfo[]>(userNodes || []);
+  const viewportInfoRef = useRef<ViewportInfo>(viewportInfo || {
+    zoom: 0.65, panX: 0, panY: 0, centerX: 400, centerY: 300, canvasWidth: 800, canvasHeight: 600,
+  });
 
   // Keep refs in sync
   useEffect(() => {
@@ -60,10 +101,18 @@ export function LiveMeshiPresence({
   useEffect(() => {
     if (userNodes) userNodesRef.current = userNodes;
   }, [userNodes]);
+  useEffect(() => {
+    if (viewportInfo) viewportInfoRef.current = viewportInfo;
+  }, [viewportInfo]);
 
-  // Send heartbeat with actual Meshi canvas coordinates
+  // Send heartbeat with viewport-relative position
   const sendHeartbeat = useCallback(async () => {
     try {
+      const vp = viewportInfoRef.current;
+      const pos = positionRef.current;
+      // Convert world position to viewport-relative (0-1)
+      const vpPos = worldToViewport(pos.x, pos.y, vp);
+
       await fetch("/api/mesh/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,7 +120,8 @@ export function LiveMeshiPresence({
           meshiColor: myMeshiColor,
           meshiHat: myMeshiHat,
           meshiMood: moodRef.current,
-          position: positionRef.current,
+          position: pos,
+          viewportPosition: vpPos,
           viewingMesh,
         }),
       });
@@ -96,20 +146,27 @@ export function LiveMeshiPresence({
 
         // Build remote Meshis: online users from presence + offline sleeping Meshis from nodes
         if (onRemoteMeshisChange) {
+          const vp = viewportInfoRef.current;
           const onlineUserIds = new Set(list.map((p) => p.userId));
 
-          // Online Meshis from presence API
-          const onlineMeshis: RemoteMeshi[] = list.map((p) => ({
-            userId: p.userId,
-            username: p.username,
-            displayName: p.displayName,
-            x: p.position.x,
-            y: p.position.y,
-            color: p.meshiColor,
-            hat: p.meshiHat,
-            mood: (p.meshiMood as RemoteMeshi["mood"]) || "happy",
-            isOnline: p.isOnline !== false,
-          }));
+          // Online Meshis — convert viewport-relative position to world coords
+          const onlineMeshis: RemoteMeshi[] = list.map((p) => {
+            // Use viewport-relative position to place Meshi at the same screen position
+            const vpPos = p.viewportPosition || { vx: 0.5, vy: 0.5 };
+            const worldPos = viewportToWorld(vpPos.vx, vpPos.vy, vp);
+
+            return {
+              userId: p.userId,
+              username: p.username,
+              displayName: p.displayName,
+              x: worldPos.x,
+              y: worldPos.y,
+              color: p.meshiColor,
+              hat: p.meshiHat,
+              mood: (p.meshiMood as RemoteMeshi["mood"]) || "happy",
+              isOnline: p.isOnline !== false,
+            };
+          });
 
           // Offline sleeping Meshis — positioned near their user node
           const offlineMeshis: RemoteMeshi[] = nodes
@@ -133,10 +190,10 @@ export function LiveMeshiPresence({
     } catch { /* silently fail */ }
   }, [viewingMesh, onRemoteMeshisChange]);
 
-  // Start heartbeat and polling — restarts when callbacks change (prop updates)
+  // Start heartbeat (3s) and polling (2s) — faster for more real-time feel
   useEffect(() => {
-    const heartbeat = setInterval(sendHeartbeat, 10000);
-    const poll = setInterval(pollPresences, 5000);
+    const heartbeat = setInterval(sendHeartbeat, 3000);
+    const poll = setInterval(pollPresences, 2000);
     heartbeatRef.current = heartbeat;
     pollRef.current = poll;
 
