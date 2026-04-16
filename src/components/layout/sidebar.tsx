@@ -121,10 +121,10 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         key={item.href}
         href={getHref(item.href)}
         className={cn(
-          "group flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all",
+          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
           active
-            ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]"
-            : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+            ? "bg-[var(--accent-subtle)] text-[var(--text-primary)] shadow-sm"
+            : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] active:scale-[0.98]"
         )}
       >
         <item.icon className={cn("h-[17px] w-[17px] shrink-0", active && "text-[var(--accent)]")} />
