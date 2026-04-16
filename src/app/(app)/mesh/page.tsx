@@ -31,7 +31,7 @@ export default function MeshPage() {
   const [engine] = useState(() => new MeshEngine());
   const [selectedNode, setSelectedNode] = useState<MeshNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<MeshNode | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.65);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [filter, setFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
@@ -71,7 +71,7 @@ export default function MeshPage() {
   const [viewingUserMeshiPrefs, setViewingUserMeshiPrefs] = useState<{ color: MeshiColor; hat: MeshiHat } | null>(null);
 
   // --- Refs for canvas component ---
-  const zoomRef = useRef(1);
+  const zoomRef = useRef(0.65);
   const panRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -171,7 +171,7 @@ export default function MeshPage() {
   }, []);
 
   const resetView = useCallback(() => {
-    setZoom(1); zoomRef.current = 1;
+    setZoom(0.65); zoomRef.current = 0.65;
     setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 };
     setSelectedNode(null);
     setHoveredNode(null);
