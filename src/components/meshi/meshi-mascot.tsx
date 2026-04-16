@@ -200,6 +200,52 @@ const HATS: Record<string, React.ReactNode> = {
       ))}
     </g>
   ),
+  // MeshPro exclusive hats
+  headphones: (
+    <g transform="translate(0, -12)">
+      <path d="M-12,4 Q-12,-10 0,-12 Q12,-10 12,4" fill="none" stroke="#6b7280" strokeWidth="3" strokeLinecap="round" />
+      <rect x="-15" y="0" width="6" height="8" rx="2" fill="#374151" />
+      <rect x="9" y="0" width="6" height="8" rx="2" fill="#374151" />
+    </g>
+  ),
+  halo: (
+    <g transform="translate(0, -20)">
+      <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fbbf24" strokeWidth="2.5" opacity="0.9" />
+      <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fde68a" strokeWidth="1" opacity="0.4" />
+    </g>
+  ),
+  wizard: (
+    <g transform="translate(0, -16)">
+      <polygon points="0,-18 -10,2 10,2" fill="#6366f1" />
+      <rect x="-14" y="0" width="28" height="4" rx="2" fill="#6366f1" opacity="0.8" />
+      <circle cx="0" cy="-14" r="2" fill="#fbbf24" />
+      <circle cx="-4" cy="-6" r="1.2" fill="#fbbf24" opacity="0.6" />
+      <circle cx="3" cy="-9" r="1" fill="#fbbf24" opacity="0.5" />
+    </g>
+  ),
+  astronaut: (
+    <g transform="translate(0, -14)">
+      <ellipse cx="0" cy="0" rx="16" ry="12" fill="none" stroke="#e2e8f0" strokeWidth="2.5" />
+      <ellipse cx="0" cy="0" rx="16" ry="12" fill="rgba(148, 163, 184, 0.15)" />
+      <ellipse cx="-4" cy="-2" rx="3" ry="2" fill="rgba(255,255,255,0.2)" />
+    </g>
+  ),
+  pirate: (
+    <g transform="translate(0, -14)">
+      <path d="M-14,2 Q-14,-6 0,-8 Q14,-6 14,2 Z" fill="#1e1e2e" />
+      <rect x="-16" y="0" width="32" height="3" rx="1" fill="#1e1e2e" />
+      <path d="M-4,-4 L0,-6 L4,-4 L2,-2 L-2,-2 Z" fill="#e2e8f0" opacity="0.8" />
+    </g>
+  ),
+  chef: (
+    <g transform="translate(0, -16)">
+      <ellipse cx="0" cy="0" rx="12" ry="10" fill="#f8fafc" />
+      <circle cx="-6" cy="-4" r="5" fill="#f8fafc" />
+      <circle cx="6" cy="-4" r="5" fill="#f8fafc" />
+      <circle cx="0" cy="-8" r="5" fill="#f8fafc" />
+      <rect x="-12" y="0" width="24" height="3" rx="1" fill="#e2e8f0" />
+    </g>
+  ),
 };
 
 // Meshi color themes
@@ -212,6 +258,29 @@ const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }
   cyan: { primary: "#06b6d4", glow: "rgba(6, 182, 212, 0.4)", bg: "rgba(6, 182, 212, 0.1)" },
   gold: { primary: "#eab308", glow: "rgba(234, 179, 8, 0.4)", bg: "rgba(234, 179, 8, 0.1)" },
   rainbow: { primary: "#ec4899", glow: "rgba(236, 72, 153, 0.4)", bg: "rgba(139, 92, 246, 0.1)" },
+  // MeshPro exclusive colors
+  crimson: { primary: "#dc2626", glow: "rgba(220, 38, 38, 0.4)", bg: "rgba(220, 38, 38, 0.1)" },
+  midnight: { primary: "#312e81", glow: "rgba(49, 46, 129, 0.4)", bg: "rgba(49, 46, 129, 0.15)" },
+  rose: { primary: "#f43f5e", glow: "rgba(244, 63, 94, 0.4)", bg: "rgba(244, 63, 94, 0.1)" },
+  emerald: { primary: "#059669", glow: "rgba(5, 150, 105, 0.4)", bg: "rgba(5, 150, 105, 0.1)" },
+  arctic: { primary: "#7dd3fc", glow: "rgba(125, 211, 252, 0.4)", bg: "rgba(125, 211, 252, 0.1)" },
+  obsidian: { primary: "#475569", glow: "rgba(71, 85, 105, 0.4)", bg: "rgba(71, 85, 105, 0.15)" },
+};
+
+// Which hats are MeshPro exclusive
+export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef"]);
+export const MESHPRO_COLORS: Set<string> = new Set(["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]);
+
+// Achievement titles — earned through milestones
+export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: string; requirement: string }> = {
+  explorer: { title: "Explorer", description: "Connected 3+ platforms", requirement: "3_platforms" },
+  socialite: { title: "Socialite", description: "100+ followers across platforms", requirement: "100_followers" },
+  creator: { title: "Creator", description: "50+ posts on the mesh", requirement: "50_posts" },
+  connector: { title: "Connector", description: "Joined 5+ communities", requirement: "5_communities" },
+  pioneer: { title: "Pioneer", description: "Early mesh.me adopter", requirement: "early_adopter" },
+  influencer: { title: "Influencer", description: "1000+ total engagement", requirement: "1000_engagement" },
+  meshmaster: { title: "Mesh Master", description: "Fully customized Meshi", requirement: "full_customization" },
+  guardian: { title: "Guardian", description: "Verified email and phone", requirement: "verified" },
 };
 
 export type MeshiMood = keyof typeof FACES;

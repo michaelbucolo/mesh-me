@@ -777,6 +777,7 @@ export async function getUserSettings() {
     links: user.links,
     activeTitle: userWithEmail?.activeTitle ?? null,
     achievements: achievements.map((a) => ({ slug: a.achievement.slug })),
+    isMeshPro: user.isMeshPro,
   };
 }
 
