@@ -61,6 +61,7 @@ export default function MeshPage() {
   const [meshiMood, setMeshiMood] = useState("exploring");
   const [remoteMeshis, setRemoteMeshis] = useState<import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]>([]);
   const [myUsername, setMyUsername] = useState("You");
+  const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
 
   // --- Multi-user mesh exploration ---
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
@@ -297,25 +298,37 @@ export default function MeshPage() {
     setRemoteMeshis(meshis);
   }, []);
 
+  // Click debounce ref to prevent double-fire on double-click
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleCanvasClick = useCallback((node: MeshNode | null) => {
     if (!node) {
       setSelectedNode(null);
       return;
     }
-    // Single-click on user nodes zooms into their mesh directly
-    if (node.type === "user" && node.sublabel) {
-      zoomToNode(node.id);
-      setTimeout(() => enterUserMesh(node), 650);
-    } else if (node.href) {
-      window.location.href = node.href;
-    } else {
-      setSelectedNode(node);
-    }
+    // Debounce: wait 250ms to distinguish single-click from double-click
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null;
+      // Single-click on user nodes zooms into their mesh directly
+      if (node.type === "user" && node.sublabel) {
+        zoomToNode(node.id);
+        setTimeout(() => enterUserMesh(node), 650);
+      } else if (node.href) {
+        window.location.href = node.href;
+      } else {
+        setSelectedNode(node);
+      }
+    }, 250);
   }, [enterUserMesh, zoomToNode]);
 
   const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
+    // Cancel pending single-click action
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
     if (!node) return;
-    // Double-click navigates to the node's page if available
     if (node.href) {
       window.location.href = node.href;
     }
@@ -423,6 +436,7 @@ export default function MeshPage() {
         meshiHat={myMeshiHat}
         meshiUsername={myUsername}
         remoteMeshis={remoteMeshis}
+        syncPulseTime={syncPulseTime}
         onMeshiPositionChange={handleMeshiPositionChange}
         onZoomChange={(z) => { setZoom(z); zoomRef.current = z; }}
         onPanChange={(p) => { setPan(p); panRef.current = p; }}
@@ -497,8 +511,8 @@ export default function MeshPage() {
       {engine.nodes.length > 0 && !selectedNode && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/25 backdrop-blur-xl border border-white/[0.04] rounded-full px-4 py-1.5 text-[10px] text-white/35 pointer-events-none hidden md:block">
           {viewingUserMesh
-            ? "Double-click to explore deeper \u00b7 Click back to return"
-            : "Click to inspect \u00b7 Double-click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
+            ? "Click to explore deeper \u00b7 Click back to return"
+            : "Click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
           }
         </div>
       )}

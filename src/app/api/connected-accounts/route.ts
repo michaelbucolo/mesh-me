@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { platform, username } = await request.json();
+  const { platform, username, alterEgoId, accountLabel } = await request.json();
 
   if (!platform) {
     return NextResponse.json({ error: "Platform is required" }, { status: 400 });
@@ -67,22 +67,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Username is required for this platform" }, { status: 400 });
   }
 
-  // Check if already connected
-  const existing = await prisma.connectedAccount.findUnique({
-    where: { userId_platform: { userId: user.id, platform } },
+  // Validate alter ego belongs to this user if provided
+  if (alterEgoId) {
+    const alterEgo = await prisma.alterEgo.findFirst({
+      where: { id: alterEgoId, userId: user.id, isActive: true },
+    });
+    if (!alterEgo) {
+      return NextResponse.json({ error: "Alter ego not found" }, { status: 400 });
+    }
+  }
+
+  // Check if this exact username is already connected on this platform
+  const existing = await prisma.connectedAccount.findFirst({
+    where: { userId: user.id, platform, platformUsername: trimmedUsername },
   });
 
   if (existing) {
-    return NextResponse.json({ error: "Platform already connected" }, { status: 400 });
+    return NextResponse.json({ error: "This account is already connected" }, { status: 400 });
   }
 
-  // Create the connection with the provided or default username
+  // Create the connection with optional alter ego association
   const account = await prisma.connectedAccount.create({
     data: {
       userId: user.id,
       platform,
-      platformUsername: trimmedUsername || user.username,
+      platformUsername: trimmedUsername,
       isActive: true,
+      alterEgoId: alterEgoId || null,
+      accountLabel: accountLabel || null,
     },
   });
 
