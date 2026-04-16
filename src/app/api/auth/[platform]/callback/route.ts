@@ -177,30 +177,38 @@ export async function GET(
     }
 
     // Upsert the connected account
-    await prisma.connectedAccount.upsert({
-      where: {
-        userId_platform: { userId: user.id, platform },
-      },
-      update: {
-        accessToken,
-        refreshToken,
-        expiresAt,
-        platformUsername,
-        platformId,
-        isActive: true,
-        updatedAt: new Date(),
-      },
-      create: {
-        userId: user.id,
-        platform,
-        accessToken,
-        refreshToken,
-        expiresAt,
-        platformUsername,
-        platformId,
-        isActive: true,
-      },
+    // With multi-account support, find existing by userId + platform + platformId
+    const existingAccount = await prisma.connectedAccount.findFirst({
+      where: { userId: user.id, platform, ...(platformId ? { platformId } : {}) },
     });
+
+    if (existingAccount) {
+      await prisma.connectedAccount.update({
+        where: { id: existingAccount.id },
+        data: {
+          accessToken,
+          refreshToken,
+          expiresAt,
+          platformUsername,
+          platformId,
+          isActive: true,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      await prisma.connectedAccount.create({
+        data: {
+          userId: user.id,
+          platform,
+          accessToken,
+          refreshToken,
+          expiresAt,
+          platformUsername,
+          platformId,
+          isActive: true,
+        },
+      });
+    }
 
     return NextResponse.redirect(
       `${connectedAccountsUrl}?connected=${encodedPlatform}`

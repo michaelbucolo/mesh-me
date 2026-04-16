@@ -251,7 +251,9 @@ export async function GET() {
       syncStatus: acct.syncStatus,
       counts: acct._count,
       analytics: acct.platformAnalytics[0] || null,
-      topPosts: acct.platformPosts.map((p) => ({
+      topPosts: acct.platformPosts
+        .filter((p) => p.visibility === "public")
+        .map((p) => ({
         id: p.id,
         title: p.title,
         content: (p.content || "").slice(0, 150),
@@ -263,6 +265,7 @@ export async function GET() {
         viewCount: p.viewCount,
         thumbnailUrl: p.thumbnailUrl,
         publishedAt: p.publishedAt,
+        visibility: p.visibility,
       })),
       topFollowers: acct.platformFollowers.map((f) => ({
         id: f.id,

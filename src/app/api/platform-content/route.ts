@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getPlatformContent, getPlatformAnalyticsSummary, deletePlatformPost, crossPostContent } from "@/lib/platform-sync";
+import {
+  getPlatformContent,
+  getPlatformAnalyticsSummary,
+  deletePlatformPost,
+  crossPostContent,
+  editPlatformPost,
+  likePlatformPost,
+  unlikePlatformPost,
+  followPlatformUser,
+  unfollowPlatformUser,
+  sharePlatformPost,
+  pinPlatformPost,
+  unpinPlatformPost,
+  updatePlatformPostVisibility,
+  replyToPlatformComment,
+  getPlatformPostDetails,
+  getConnectedAccountDetails,
+} from "@/lib/platform-sync";
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,13 +54,31 @@ export async function GET(request: NextRequest) {
           skip: (page - 1) * limit,
           take: limit,
           include: {
-            connectedAccount: { select: { platform: true, platformUsername: true } },
+            connectedAccount: { select: { platform: true, platformUsername: true, id: true } },
           },
         }),
         prisma.platformFollower.count({ where }),
       ]);
 
       return NextResponse.json({ followers, total });
+    }
+
+    // Post details view
+    if (view === "post-details") {
+      const postId = searchParams.get("postId");
+      if (!postId) return NextResponse.json({ error: "postId required" }, { status: 400 });
+      const result = await getPlatformPostDetails(postId);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json(result);
+    }
+
+    // Account details view
+    if (view === "account-details") {
+      const accountId = searchParams.get("accountId");
+      if (!accountId) return NextResponse.json({ error: "accountId required" }, { status: 400 });
+      const result = await getConnectedAccountDetails(accountId);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json(result);
     }
 
     const platform = searchParams.get("platform") || undefined;
@@ -65,18 +100,74 @@ export async function POST(request: NextRequest) {
 
     if (action === "delete") {
       const result = await deletePlatformPost(body.postId);
-      if (result.error) {
-        return NextResponse.json({ error: result.error }, { status: 400 });
-      }
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
       return NextResponse.json({ success: true });
     }
 
     if (action === "cross-post") {
       const result = await crossPostContent(body.content, body.platforms, body.mediaUrls);
-      if (result.error) {
-        return NextResponse.json({ error: result.error }, { status: 400 });
-      }
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
       return NextResponse.json(result);
+    }
+
+    if (action === "edit") {
+      const result = await editPlatformPost(body.postId, body.content);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "like") {
+      const result = await likePlatformPost(body.postId);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "unlike") {
+      const result = await unlikePlatformPost(body.postId);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "follow") {
+      const result = await followPlatformUser(body.connectedAccountId, body.platformUserId);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "unfollow") {
+      const result = await unfollowPlatformUser(body.connectedAccountId, body.platformUserId);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "share") {
+      const result = await sharePlatformPost(body.postId, body.comment);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "pin") {
+      const result = await pinPlatformPost(body.postId);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "unpin") {
+      const result = await unpinPlatformPost(body.postId);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "visibility") {
+      const result = await updatePlatformPostVisibility(body.postId, body.visibility);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "reply") {
+      const result = await replyToPlatformComment(body.postId, body.content);
+      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json({ success: true, comment: "comment" in result ? result.comment : undefined });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
