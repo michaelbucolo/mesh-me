@@ -913,10 +913,9 @@ function drawLegend(
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     const iy = boxY + padY + i * lineH + lineH / 2;
-    const filterKey = item.label.toLowerCase().replace(" ", "-");
-    const isActive = activeFilter === "all" || filterKey.startsWith(activeFilter);
-    const alpha = isActive ? 0.9 : 0.4;
     const nodeType = TYPE_MAP[item.label];
+    const isActive = activeFilter === "all" || activeFilter === nodeType;
+    const alpha = isActive ? 0.9 : 0.4;
     const count = nodes ? nodes.filter((n) => n.type === nodeType).length : 0;
 
     // Dot — shape matches node type
