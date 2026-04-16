@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/security";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -20,6 +21,8 @@ export async function GET() {
       syncStatus: true,
       syncError: true,
       lastSyncAt: true,
+      alterEgoId: true,
+      accountLabel: true,
       _count: {
         select: {
           platformPosts: true,
@@ -38,6 +41,11 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const rl = rateLimit(`connect-manual:${user.id}`, 10, 10 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many connection attempts. Please try again later." }, { status: 429 });
   }
 
   const { platform, username, alterEgoId, accountLabel } = await request.json();
@@ -67,6 +75,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Username is required for this platform" }, { status: 400 });
   }
 
+  const trimmedAccountLabel = typeof accountLabel === "string" ? accountLabel.trim() : "";
+
   // Validate alter ego belongs to this user if provided
   if (alterEgoId) {
     const alterEgo = await prisma.alterEgo.findFirst({
@@ -94,7 +104,16 @@ export async function POST(request: Request) {
       platformUsername: trimmedUsername,
       isActive: true,
       alterEgoId: alterEgoId || null,
-      accountLabel: accountLabel || null,
+      accountLabel: trimmedAccountLabel || null,
+    },
+    select: {
+      id: true,
+      platform: true,
+      platformUsername: true,
+      isActive: true,
+      alterEgoId: true,
+      accountLabel: true,
+      createdAt: true,
     },
   });
 
