@@ -256,7 +256,7 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
       >
         {/* Backdrop */}
         <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/60 backdrop-blur-md"
           onClick={onClose}
         />
 
@@ -265,8 +265,8 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
-          transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="absolute right-0 top-0 bottom-0 w-full max-w-lg bg-[var(--bg-primary)] border-l border-[var(--border-primary)] shadow-2xl flex flex-col overflow-hidden"
+          transition={{ type: "spring", damping: 32, stiffness: 350 }}
+          className="absolute right-0 top-0 bottom-0 w-full max-w-lg bg-[var(--bg-primary)]/95 backdrop-blur-2xl border-l border-[var(--border-primary)] shadow-2xl shadow-black/40 flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="flex-shrink-0 p-4 border-b border-[var(--border-primary)]">
@@ -282,7 +282,7 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all"
+                className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200 active:scale-90"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -642,7 +642,7 @@ function ContentPostCard({
 
           {/* Actions */}
           {!isEditing && (
-            <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 mt-2.5 pt-2 border-t border-[var(--border-primary)]/50 opacity-0 group-hover:opacity-100 transition-all duration-300">
               <button
                 onClick={onEditStart}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-all"

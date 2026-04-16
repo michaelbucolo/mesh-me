@@ -38,8 +38,8 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
               href={item.href}
               onClick={() => impactFeedback("LIGHT")}
               className={cn(
-                "relative flex flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition-all active:scale-95",
-                isActive ? "text-[var(--accent)]" : "text-[var(--text-muted)]"
+                "relative flex flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition-all duration-200 active:scale-90",
+                isActive ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-tertiary)]"
               )}
             >
               <item.icon className={cn("h-[18px] w-[18px]", isActive && "drop-shadow-[0_0_6px_var(--accent)]")} />
