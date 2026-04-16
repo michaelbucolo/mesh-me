@@ -12,6 +12,8 @@ export interface ViewportState {
   filter: FilterType;
   showLabels: boolean;
   time: number;
+  /** Delta-time in seconds for frame-rate-independent animations */
+  dt: number;
   /** 0→1 progress of the mesh formation animation. 1 = fully formed. */
   formationProgress?: number;
   /** Timestamp of a sync pulse ripple (performance.now), or null. */
@@ -33,7 +35,7 @@ export function renderMesh(
   interaction: InteractionState,
   imageCache: Map<string, HTMLImageElement | null>,
 ) {
-  const { zoom: z, pan: p, center, filter: f, showLabels: labels, time } = viewport;
+  const { zoom: z, pan: p, center, filter: f, showLabels: labels, time, dt } = viewport;
   const { hoveredNode: hovered, selectedNode: selected, remoteMeshis } = interaction;
   const formationProgress = viewport.formationProgress ?? 1;
 
@@ -81,14 +83,14 @@ export function renderMesh(
     drawOrbitRings(ctx, selfNode, time);
   }
 
-  drawEdges(ctx, nodes, edges, f, hovered, selected, time);
-  drawDataParticles(ctx, nodes, edges, f, time, hovered, selected);
+  drawEdges(ctx, nodes, edges, f, hovered, selected, time, dt);
+  drawDataParticles(ctx, nodes, edges, f, time, hovered, selected, dt);
 
   // Reset alpha for nodes
   ctx.globalAlpha = 1;
 
   drawSectionLabels(ctx, selfNode, z, nodes);
-  drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache, formationProgress);
+  drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache, formationProgress, dt);
 
   // Sync pulse ripple effect
   if (viewport.syncPulseTime != null && selfNode) {
@@ -135,22 +137,29 @@ export function renderMesh(
 
 function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
   const rings = [
-    { radius: 120, alpha: 0.04, dashLen: 4, label: "Alter Egos" },
-    { radius: 240, alpha: 0.035, dashLen: 5, label: "Platforms" },
-    { radius: 390, alpha: 0.03, dashLen: 6, label: "People" },
+    { radius: 120, alpha: 0.055, dashLen: 4, label: "Alter Egos" },
+    { radius: 240, alpha: 0.045, dashLen: 5, label: "Platforms" },
+    { radius: 390, alpha: 0.035, dashLen: 6, label: "People" },
     { radius: 560, alpha: 0.025, dashLen: 8, label: "Communities" },
-    { radius: 680, alpha: 0.02, dashLen: 10, label: "Interests" },
-    { radius: 820, alpha: 0.015, dashLen: 12, label: "Posts" },
+    { radius: 680, alpha: 0.018, dashLen: 10, label: "Interests" },
+    { radius: 820, alpha: 0.012, dashLen: 12, label: "Posts" },
   ];
 
-  for (const ring of rings) {
-    const pulse = Math.sin(time * 0.15 + ring.radius * 0.008) * 0.006;
+  for (let ri = 0; ri < rings.length; ri++) {
+    const ring = rings[ri];
+    // Each ring pulses at a slightly different rate for organic feel
+    const pulse = Math.sin(time * (0.12 + ri * 0.03) + ring.radius * 0.008) * 0.008;
+    // Subtle radial gradient on each ring — brighter near the label angle
+    const labelAngle = -Math.PI / 2 + (ri % 2 === 0 ? -0.15 : 0.15);
+    const arcStart = labelAngle - Math.PI;
+    const arcEnd = labelAngle + Math.PI;
     ctx.beginPath();
-    ctx.arc(self.x, self.y, ring.radius, 0, Math.PI * 2);
+    ctx.arc(self.x, self.y, ring.radius, arcStart, arcEnd);
     ctx.strokeStyle = `rgba(99, 102, 241, ${ring.alpha + pulse})`;
-    ctx.setLineDash([ring.dashLen, ring.dashLen * 3]);
-    ctx.lineDashOffset = -time * 3;
-    ctx.lineWidth = 0.6;
+    ctx.setLineDash([ring.dashLen, ring.dashLen * 2.5]);
+    // Smoother rotation — delta-time independent visual
+    ctx.lineDashOffset = -time * 2.5;
+    ctx.lineWidth = ri < 2 ? 0.8 : 0.5;
     ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -221,12 +230,10 @@ function drawSectionLabels(
 
     // Count in slightly dimmer color
     if (count > 0) {
-      ctx.font = `500 ${fontSize - 1}px system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = `rgba(255, 255, 255, 0.4)`;
-      const labelW = ctx.measureText(sec.label).width;
       ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
       const fullW = ctx.measureText(fullLabel).width;
       ctx.font = `500 ${fontSize - 1}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = `rgba(255, 255, 255, 0.4)`;
       ctx.fillText(countText, lx + fullW / 2 - ctx.measureText(countText).width / 2, ly);
     }
   }
@@ -240,6 +247,7 @@ function drawEdges(
   hovered: MeshNode | null,
   selected: MeshNode | null,
   time: number,
+  /* dt passed for future use */ _dt: number,
 ) {
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
@@ -256,9 +264,25 @@ function drawEdges(
     const isCross = edge.type === "shared-community" || edge.type === "cross-follow";
     // Hide cross-edges unless one of their nodes is highlighted — reduces clutter
     if (isCross && !isHighlighted) continue;
-    const baseAlpha = isHighlighted ? 0.35
-      : 0.04 + edge.strength * 0.06;
-    const pulseAlpha = Math.sin(time * 0.6 + edge.strength * 4) * 0.008;
+
+    // Smoother alpha transitions — highlighted edges glow softly
+    const baseAlpha = isHighlighted ? 0.4
+      : 0.035 + edge.strength * 0.055;
+    const pulseAlpha = Math.sin(time * 0.5 + edge.strength * 4) * 0.006;
+
+    const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
+    const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.15, 1.2) : 0;
+
+    // Gradient edge — flows from source to target for visual direction
+    if (isHighlighted) {
+      const grad = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+      grad.addColorStop(0, `rgba(${edgeColor}, ${(baseAlpha + pulseAlpha) * 0.6})`);
+      grad.addColorStop(0.5, `rgba(${edgeColor}, ${baseAlpha + pulseAlpha})`);
+      grad.addColorStop(1, `rgba(${edgeColor}, ${(baseAlpha + pulseAlpha) * 0.6})`);
+      ctx.strokeStyle = grad;
+    } else {
+      ctx.strokeStyle = `rgba(${edgeColor}, ${baseAlpha + pulseAlpha})`;
+    }
 
     ctx.beginPath();
     ctx.moveTo(source.x, source.y);
@@ -275,11 +299,8 @@ function drawEdges(
       ctx.lineTo(target.x, target.y);
     }
 
-    const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
-    ctx.strokeStyle = `rgba(${edgeColor}, ${baseAlpha + pulseAlpha})`;
-    const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.2, 1.5) : 0;
-    ctx.lineWidth = isHighlighted ? 2 + interactionBoost
-      : 0.5 + edge.strength * 0.5 + interactionBoost;
+    ctx.lineWidth = isHighlighted ? 1.8 + interactionBoost
+      : 0.4 + edge.strength * 0.4 + interactionBoost;
     ctx.stroke();
   }
 }
@@ -294,6 +315,7 @@ function drawDataParticles(
   time: number,
   hovered: MeshNode | null,
   selected: MeshNode | null,
+  /* dt passed for future use */ _dt: number,
 ) {
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
@@ -313,16 +335,29 @@ function drawDataParticles(
       continue;
     }
 
-    const particleCount = 2;
-    const speed = 0.35;
+    const particleCount = 3;
+    const speed = 0.3;
     const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
-    const alpha = 0.6;
-    const radius = 2;
 
     for (let pi = 0; pi < particleCount; pi++) {
-      const t = ((time * speed + ei * 0.37 + pi * 0.5) % 1);
+      const t = ((time * speed + ei * 0.37 + pi * (1 / particleCount)) % 1);
       const px = source.x + (target.x - source.x) * t;
       const py = source.y + (target.y - source.y) * t;
+
+      // Smooth fade in/out at edges for satisfying flow
+      const fadeIn = Math.min(1, t * 4);
+      const fadeOut = Math.min(1, (1 - t) * 4);
+      const alpha = 0.55 * fadeIn * fadeOut;
+      const radius = 1.5 + fadeIn * fadeOut * 1;
+
+      // Soft glow around particle
+      const glow = ctx.createRadialGradient(px, py, 0, px, py, radius * 2.5);
+      glow.addColorStop(0, `rgba(${edgeColor}, ${alpha * 0.4})`);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(px, py, radius * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
 
       ctx.beginPath();
       ctx.arc(px, py, radius, 0, Math.PI * 2);
@@ -368,6 +403,9 @@ const PLATFORM_ICONS: Record<string, string> = {
 
 // --- Nodes ---
 
+// Per-node animated scale for smooth hover transitions (persists across frames)
+const nodeScaleMap = new Map<string, number>();
+
 function drawNodes(
   ctx: CanvasRenderingContext2D,
   nodes: MeshNode[],
@@ -379,6 +417,7 @@ function drawNodes(
   time: number,
   imageCache: Map<string, HTMLImageElement | null>,
   formationProgress: number = 1,
+  dt: number = 0.016,
 ) {
   // Find center for formation animation
   const selfNode = nodes.find((n) => n.type === "self");
@@ -426,10 +465,18 @@ function drawNodes(
     const highlight = isHovered || isSelected || isConnectedToHovered || isConnectedToSelected;
     const dimmed = (hovered || selected) && !highlight && node.type !== "self";
 
+    // Smooth elastic hover scale — interpolate toward target instead of instant jump
+    const targetScale = isHovered ? 1.15 : isSelected ? 1.08 : 1.0;
+    const currentScale = nodeScaleMap.get(node.id) ?? 1.0;
+    // Spring-like interpolation: fast approach with slight overshoot feel
+    const lerpSpeed = 12;
+    const newScale = currentScale + (targetScale - currentScale) * Math.min(1, lerpSpeed * dt);
+    nodeScaleMap.set(node.id, newScale);
+
     const nodeOpacity = (dimmed ? 0.2 : node.opacity) * nodeFormation;
     const connectionBoost = node.connections.length > 0 ? Math.min(node.connections.length * 0.6, 6) : 0;
     const baseNodeRadius = (node.radius + connectionBoost) * (0.3 + 0.7 * nodeFormation);
-    const nodeRadius = isHovered ? baseNodeRadius * 1.15 : baseNodeRadius;
+    const nodeRadius = baseNodeRadius * newScale;
     const pulse = Math.sin(time * 1.5 + node.pulsePhase) * 0.5 + 0.5;
 
     const glowColor = node.type === "self" ? NODE_GLOW.self

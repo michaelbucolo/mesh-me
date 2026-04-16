@@ -13,11 +13,11 @@ export interface SimulationConfig {
 }
 
 const DEFAULT_CONFIG: SimulationConfig = {
-  repulsionForce: 0.0015,
-  attractionForce: 0.001,
-  centerGravity: 0.00008,
-  damping: 0.92,
-  settleThreshold: 0.05,
+  repulsionForce: 0.0014,
+  attractionForce: 0.0009,
+  centerGravity: 0.00007,
+  damping: 0.93,
+  settleThreshold: 0.04,
   maxRepulsionDist: 2.5,
 };
 

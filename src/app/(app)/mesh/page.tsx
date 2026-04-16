@@ -215,13 +215,16 @@ export default function MeshPage() {
     const offsetY = -(targetNode.y - center.y) * targetZoom;
     const startPan = { ...panRef.current };
     const startZoom = zoomRef.current;
-    const duration = 600;
+    const duration = 700;
     const startTime = performance.now();
 
     const animate = (now: number) => {
       const elapsed = now - startTime;
       const t = Math.min(1, elapsed / duration);
-      const ease = 1 - Math.pow(1 - t, 3);
+      // Smooth ease-out with slight overshoot for satisfying snap
+      const ease = t < 0.8
+        ? 1 - Math.pow(1 - t / 0.8, 3.5)
+        : 1 + Math.sin((t - 0.8) / 0.2 * Math.PI) * 0.015;
       const newZoom = startZoom + (targetZoom - startZoom) * ease;
       const newPanX = startPan.x + (offsetX - startPan.x) * ease;
       const newPanY = startPan.y + (offsetY - startPan.y) * ease;
