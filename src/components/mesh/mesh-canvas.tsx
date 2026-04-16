@@ -4,7 +4,7 @@ import { useRef, useCallback, useEffect } from "react";
 import type { MeshEngine } from "./mesh-engine";
 import type { MeshNode, FilterType } from "./mesh-types";
 import { renderMesh } from "./mesh-renderer";
-import { createMeshiState, tickMeshi, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
+import { createMeshiState, tickMeshi, updateMeshiCursor, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 interface MeshCanvasProps {
   engine: MeshEngine;
@@ -125,8 +125,8 @@ export function MeshCanvas({
       const dt = Math.min((now - lastTime) / 1000, 0.1); // Cap delta to avoid jumps
       lastTime = now;
 
-      // Tick physics
-      engine.tick();
+      // Tick physics (pass dt for frame-rate independent simulation)
+      engine.tick(dt);
 
       // Initialize Meshi at self node position once nodes are loaded
       if (!meshiInitializedRef.current && engine.nodes.length > 0) {
@@ -154,7 +154,7 @@ export function MeshCanvas({
           meshiStateRef.current.lookAtY = null;
         }
 
-        tickMeshi(meshiStateRef.current, engine.nodes, dt);
+        tickMeshi(meshiStateRef.current, engine.nodes, dt, canvas.offsetWidth, canvas.offsetHeight);
 
         // Report position every 2 seconds for presence system
         if (onMeshiPositionChange && now - lastPositionReportRef.current > 2000) {
@@ -216,6 +216,11 @@ export function MeshCanvas({
     const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
     onHoverChange(node);
     if (canvasRef.current) canvasRef.current.style.cursor = node ? "pointer" : "grab";
+
+    // Update Meshi cursor position for following behavior
+    if (meshiStateRef.current) {
+      updateMeshiCursor(meshiStateRef.current, coords.x, coords.y);
+    }
   }, [engine, getWorldCoords, onHoverChange, onPanChange]);
 
   const handleMouseUp = useCallback(() => {
