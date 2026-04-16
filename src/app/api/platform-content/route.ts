@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    if (action === "crosspost") {
+    if (action === "cross-post") {
       const result = await crossPostContent(body.content, body.platforms, body.mediaUrls);
       if (result.error) {
         return NextResponse.json({ error: result.error }, { status: 400 });
