@@ -59,7 +59,17 @@ export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { alterEgoId } = await req.json();
+  // Support both query param (?id=xxx) and request body ({ alterEgoId: xxx })
+  const url = new URL(req.url);
+  let alterEgoId = url.searchParams.get("id");
+  if (!alterEgoId) {
+    try {
+      const body = await req.json();
+      alterEgoId = body.alterEgoId;
+    } catch {
+      // No body provided
+    }
+  }
   if (!alterEgoId) return NextResponse.json({ error: "alterEgoId required" }, { status: 400 });
 
   const alterEgo = await prisma.alterEgo.findUnique({ where: { id: alterEgoId } });
