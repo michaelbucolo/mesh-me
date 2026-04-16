@@ -42,6 +42,10 @@ export function MeshCanvas({
   const dragActiveRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const lastTouchRef = useRef<{ x: number; y: number; dist?: number } | null>(null);
+  // Momentum panning state
+  const velocityRef = useRef({ x: 0, y: 0 });
+  const lastMousePosRef = useRef({ x: 0, y: 0, time: 0 });
+  const momentumRafRef = useRef<number>(0);
 
   // Formation animation state
   const formationStartRef = useRef<number | null>(null);
@@ -192,6 +196,7 @@ export function MeshCanvas({
         filter: filterRef.current,
         showLabels: showLabelsRef.current,
         time: engine.time,
+        dt,
         formationProgress,
         syncPulseTime: syncPulseTimeRef.current,
       }, {
@@ -221,6 +226,9 @@ export function MeshCanvas({
     isDraggingRef.current = true;
     dragActiveRef.current = false;
     dragStartRef.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY, time: performance.now() };
+    velocityRef.current = { x: 0, y: 0 };
+    cancelAnimationFrame(momentumRafRef.current);
     if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
   }, []);
 
@@ -229,6 +237,14 @@ export function MeshCanvas({
       dragActiveRef.current = true;
       const newPan = { x: e.clientX - dragStartRef.current.x, y: e.clientY - dragStartRef.current.y };
       onPanChange(newPan);
+      // Track velocity for momentum
+      const now = performance.now();
+      const dt = Math.max(1, now - lastMousePosRef.current.time) / 1000;
+      velocityRef.current = {
+        x: (e.clientX - lastMousePosRef.current.x) / dt,
+        y: (e.clientY - lastMousePosRef.current.y) / dt,
+      };
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY, time: now };
       return;
     }
     const coords = getWorldCoords(e.clientX, e.clientY);
@@ -243,10 +259,32 @@ export function MeshCanvas({
   }, [engine, getWorldCoords, onHoverChange, onPanChange]);
 
   const handleMouseUp = useCallback(() => {
+    const wasDragging = isDraggingRef.current;
     isDraggingRef.current = false;
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
     setTimeout(() => { dragActiveRef.current = false; }, 50);
-  }, []);
+
+    // Momentum panning — apply deceleration after drag release
+    if (wasDragging && (Math.abs(velocityRef.current.x) > 50 || Math.abs(velocityRef.current.y) > 50)) {
+      let vx = velocityRef.current.x * 0.15;
+      let vy = velocityRef.current.y * 0.15;
+      const decay = 0.92;
+      let lastT = performance.now();
+      const animateMomentum = () => {
+        const now = performance.now();
+        const frameDt = (now - lastT) / 1000;
+        lastT = now;
+        vx *= Math.pow(decay, frameDt * 60);
+        vy *= Math.pow(decay, frameDt * 60);
+        if (Math.abs(vx) < 0.5 && Math.abs(vy) < 0.5) return;
+        const curPan = panRef.current;
+        const newPan = { x: curPan.x + vx, y: curPan.y + vy };
+        onPanChange(newPan);
+        momentumRafRef.current = requestAnimationFrame(animateMomentum);
+      };
+      momentumRafRef.current = requestAnimationFrame(animateMomentum);
+    }
+  }, [onPanChange]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (dragActiveRef.current) return;
@@ -263,7 +301,8 @@ export function MeshCanvas({
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const delta = -e.deltaY * 0.001;
+    // Smoother zoom with smaller increments for satisfying scroll feel
+    const delta = -e.deltaY * 0.0008;
     const newZoom = Math.max(0.2, Math.min(4, zoomRef.current + delta));
     onZoomChange(newZoom);
   }, [onZoomChange]);

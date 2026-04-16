@@ -71,14 +71,14 @@ export const MESHI_COLORS: Record<string, string> = {
 };
 
 // How frequently Meshi picks a new node to visit (seconds)
-const WANDER_INTERVAL_MIN = 4;
-const WANDER_INTERVAL_MAX = 9;
+const WANDER_INTERVAL_MIN = 5;
+const WANDER_INTERVAL_MAX = 10;
 // Movement speed (pixels per second at 60fps baseline)
-const MOVE_SPEED = 108;
+const MOVE_SPEED = 100;
 // Idle threshold — after this many seconds of no cursor movement, Meshi explores freely
 const IDLE_THRESHOLD = 5;
 // Cursor follow offset — Meshi hovers near cursor, not exactly on it
-const CURSOR_OFFSET = 30;
+const CURSOR_OFFSET = 28;
 
 export function createMeshiState(
   cx: number,
@@ -256,25 +256,27 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number, canv
     }
   }
 
-  // Move toward target
+  // Move toward target with smooth easing
   const dx = state.targetX - state.x;
   const dy = state.targetY - state.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
 
   // Faster follow speed when tracking cursor, normal speed when exploring
-  const effectiveSpeed = state.followingCursor ? MOVE_SPEED * 2 : MOVE_SPEED;
+  const effectiveSpeed = state.followingCursor ? MOVE_SPEED * 2.2 : MOVE_SPEED;
 
   if (dist > state.radius + 5) {
-    const speed = Math.min(effectiveSpeed, dist * 3.6) * dt;
+    // Smooth ease-out: faster when far, decelerates as Meshi approaches
+    const approachFactor = state.followingCursor ? 4.5 : 3.0;
+    const speed = Math.min(effectiveSpeed, dist * approachFactor) * dt;
     state.x += (dx / dist) * speed;
     state.y += (dy / dist) * speed;
     state.isMoving = true;
 
     // Leave trail (less frequent when following cursor)
-    const trailChance = state.followingCursor ? 0.15 : 0.3;
+    const trailChance = state.followingCursor ? 0.12 : 0.25;
     if (state.trailPoints.length === 0 || Math.random() < trailChance) {
-      state.trailPoints.push({ x: state.x, y: state.y, alpha: 0.4 });
-      if (state.trailPoints.length > 12) state.trailPoints.shift();
+      state.trailPoints.push({ x: state.x, y: state.y, alpha: 0.35 });
+      if (state.trailPoints.length > 10) state.trailPoints.shift();
     }
   } else if (state.isMoving && state.targetNode && !state.followingCursor) {
     // Arrived at target node — react
@@ -296,12 +298,12 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number, canv
     state.mood = "happy";
   }
 
-  // Fade trail (frame-rate independent)
-  const trailFade = Math.pow(0.96, dt * 60);
+  // Fade trail (frame-rate independent) — smoother exponential decay
+  const trailFade = Math.pow(0.94, dt * 60);
   for (const pt of state.trailPoints) {
     pt.alpha *= trailFade;
   }
-  state.trailPoints = state.trailPoints.filter((pt) => pt.alpha > 0.02);
+  state.trailPoints = state.trailPoints.filter((pt) => pt.alpha > 0.015);
 }
 
 // --- SVG-based Meshi rendering (matches MeshiMascot component exactly) ---
@@ -524,17 +526,26 @@ function colorKeyFromHex(hex: string): string {
 }
 
 /** Draw Meshi on the canvas using the same SVG model as the floating Meshi */
-export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState, time: number): void {
-  const bob = Math.sin(state.bobPhase) * 3;
-  const mx = state.x;
-  const my = state.y + bob;
+export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState, _time: number): void {
+  // Figure-8 bob pattern for more organic, satisfying movement
+  const bobY = Math.sin(state.bobPhase) * 2.5;
+  const bobX = Math.sin(state.bobPhase * 0.5) * 1.2;
+  const mx = state.x + bobX;
+  const my = state.y + bobY;
   const drawSize = state.radius * 3; // SVG rendered at 3x radius for detail
 
-  // Trail sparkles
+  // Trail sparkles with soft glow
   for (const pt of state.trailPoints) {
+    const sparkleGlow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 3);
+    sparkleGlow.addColorStop(0, `rgba(99, 102, 241, ${pt.alpha * 0.4})`);
+    sparkleGlow.addColorStop(1, "rgba(99, 102, 241, 0)");
+    ctx.fillStyle = sparkleGlow;
     ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(99, 102, 241, ${pt.alpha * 0.5})`;
+    ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(99, 102, 241, ${pt.alpha * 0.55})`;
     ctx.fill();
   }
 
