@@ -101,9 +101,6 @@ export function MeshZoomControls({ showLabels, showStats, onZoom, onReset, onTog
       <button onClick={() => onZoom(0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
       <button onClick={() => onZoom(-0.3)} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
       <button onClick={onReset} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
-      <div className="h-px bg-white/[0.08] mx-1" />
-      <button onClick={onToggleLabels} className={"p-2 rounded-xl transition-all duration-200 " + (showLabels ? "text-indigo-400 bg-indigo-500/15" : "text-white/40 hover:text-white/70")} title={showLabels ? "Hide labels" : "Show labels"}>{showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
-      <button onClick={onToggleStats} className={"p-2 rounded-xl transition-all duration-200 " + (showStats ? "text-indigo-400 bg-indigo-500/15" : "text-white/40 hover:text-white/70")} title={showStats ? "Hide stats" : "Show stats"}><Info className="h-4 w-4" /></button>
     </div>
   );
 }

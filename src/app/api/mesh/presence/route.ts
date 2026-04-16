@@ -63,6 +63,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const meshOwner = searchParams.get("meshOwner"); // filter to users viewing a specific mesh
 
+  const now = Date.now();
   const presences: Array<{
     userId: string;
     username: string;
@@ -72,6 +73,7 @@ export async function GET(request: Request) {
     meshiHat: string;
     meshiMood: string;
     position: { x: number; y: number };
+    isOnline: boolean;
   }> = [];
 
   for (const [, entry] of presenceStore) {
@@ -86,6 +88,9 @@ export async function GET(request: Request) {
       if (entry.viewingMesh !== user.id) continue;
     }
 
+    // Consider online if heartbeat received in last 15 seconds
+    const isOnline = (now - entry.lastSeen) < 15000;
+
     presences.push({
       userId: entry.userId,
       username: entry.username,
@@ -95,6 +100,7 @@ export async function GET(request: Request) {
       meshiHat: entry.meshiHat,
       meshiMood: entry.meshiMood,
       position: entry.position,
+      isOnline,
     });
   }
 

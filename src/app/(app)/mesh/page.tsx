@@ -17,7 +17,6 @@ import type { MeshNode, MeshEdge, FilterType } from "@/components/mesh/mesh-type
 
 // Lazy-load overlay panels — only rendered when user opens them
 const ContentHub = lazy(() => import("@/components/mesh/content-hub").then(m => ({ default: m.ContentHub })));
-const MeshNodeDetail = lazy(() => import("@/components/mesh/mesh-node-detail").then(m => ({ default: m.MeshNodeDetail })));
 const MeshCommandPalette = lazy(() => import("@/components/mesh/mesh-command-palette").then(m => ({ default: m.MeshCommandPalette })));
 const MeshFootprint = lazy(() => import("@/components/mesh/mesh-footprint").then(m => ({ default: m.MeshFootprint })));
 const MeshPrivacyPanel = lazy(() => import("@/components/mesh/mesh-privacy-panel").then(m => ({ default: m.MeshPrivacyPanel })));
@@ -48,12 +47,9 @@ export default function MeshPage() {
   const [showNodePrivacy, setShowNodePrivacy] = useState(false);
   const [showContentHub, setShowContentHub] = useState(false);
   const [showMeshiMeet, setShowMeshiMeet] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
   // --- Privacy state ---
   const [hiddenNodes, setHiddenNodes] = useState<Set<string>>(new Set());
   const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set());
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
   // --- Mesh data ---
   const [meshStats, setMeshStats] = useState<MeshApiResponse["stats"] | null>(null);
@@ -65,6 +61,7 @@ export default function MeshPage() {
   const [meshiMood, setMeshiMood] = useState("exploring");
   const [remoteMeshis, setRemoteMeshis] = useState<import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]>([]);
   const [myUsername, setMyUsername] = useState("You");
+  const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
 
   // --- Multi-user mesh exploration ---
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
@@ -106,29 +103,11 @@ export default function MeshPage() {
   }, [hiddenBranches]);
 
   // --- Toggle helpers ---
-  const toggleNodeHidden = (nodeId: string) => {
-    setHiddenNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
-      return next;
-    });
-  };
-
   const toggleBranchHidden = (branchType: string) => {
     setHiddenBranches((prev) => {
       const next = new Set(prev);
       if (next.has(branchType)) next.delete(branchType);
       else next.add(branchType);
-      return next;
-    });
-  };
-
-  const toggleLike = (postId: string) => {
-    setLikedPosts((prev) => {
-      const next = new Set(prev);
-      if (next.has(postId)) next.delete(postId);
-      else next.add(postId);
       return next;
     });
   };
@@ -319,24 +298,41 @@ export default function MeshPage() {
     setRemoteMeshis(meshis);
   }, []);
 
+  // Click debounce ref to prevent double-fire on double-click
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleCanvasClick = useCallback((node: MeshNode | null) => {
-    if (node) {
-      setSelectedNode(node);
-    } else {
+    if (!node) {
       setSelectedNode(null);
+      return;
     }
-  }, []);
+    // Debounce: wait 250ms to distinguish single-click from double-click
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null;
+      // Single-click on user nodes zooms into their mesh directly
+      if (node.type === "user" && node.sublabel) {
+        zoomToNode(node.id);
+        setTimeout(() => enterUserMesh(node), 650);
+      } else if (node.href) {
+        window.location.href = node.href;
+      } else {
+        setSelectedNode(node);
+      }
+    }, 250);
+  }, [enterUserMesh, zoomToNode]);
 
   const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
+    // Cancel pending single-click action
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
     if (!node) return;
-    if (node.type === "user" && node.sublabel) {
-      // Smooth zoom into user node first, then load their mesh
-      zoomToNode(node.id);
-      setTimeout(() => enterUserMesh(node), 650);
-    } else if (node.href) {
+    if (node.href) {
       window.location.href = node.href;
     }
-  }, [enterUserMesh, zoomToNode]);
+  }, []);
 
   // --- Connected platforms for post composer ---
   const connectedPlatforms = useMemo(() => {
@@ -440,6 +436,7 @@ export default function MeshPage() {
         meshiHat={myMeshiHat}
         meshiUsername={myUsername}
         remoteMeshis={remoteMeshis}
+        syncPulseTime={syncPulseTime}
         onMeshiPositionChange={handleMeshiPositionChange}
         onZoomChange={(z) => { setZoom(z); zoomRef.current = z; }}
         onPanChange={(p) => { setPan(p); panRef.current = p; }}
@@ -514,33 +511,13 @@ export default function MeshPage() {
       {engine.nodes.length > 0 && !selectedNode && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/25 backdrop-blur-xl border border-white/[0.04] rounded-full px-4 py-1.5 text-[10px] text-white/35 pointer-events-none hidden md:block">
           {viewingUserMesh
-            ? "Double-click to explore deeper \u00b7 Click back to return"
-            : "Click to inspect \u00b7 Double-click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
+            ? "Click to explore deeper \u00b7 Click back to return"
+            : "Click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
           }
         </div>
       )}
 
-      {/* Selected node detail panel */}
-      <AnimatePresence>
-        {selectedNode && (
-          <Suspense fallback={null}>
-          <MeshNodeDetail
-            node={selectedNode}
-            edges={engine.edges}
-            hiddenNodes={hiddenNodes}
-            hiddenBranches={hiddenBranches}
-            likedPosts={likedPosts}
-            actionLoading={actionLoading}
-            onClose={() => setSelectedNode(null)}
-            onToggleNodeHidden={toggleNodeHidden}
-            onToggleBranchHidden={toggleBranchHidden}
-            onToggleLike={toggleLike}
-            onSetActionLoading={setActionLoading}
-            onZoomToNode={zoomToNode}
-          />
-          </Suspense>
-        )}
-      </AnimatePresence>
+
 
       {/* Footprint dashboard */}
       <AnimatePresence>

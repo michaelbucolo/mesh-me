@@ -177,30 +177,51 @@ export async function GET(
     }
 
     // Upsert the connected account
-    await prisma.connectedAccount.upsert({
-      where: {
-        userId_platform: { userId: user.id, platform },
-      },
-      update: {
-        accessToken,
-        refreshToken,
-        expiresAt,
-        platformUsername,
-        platformId,
-        isActive: true,
-        updatedAt: new Date(),
-      },
-      create: {
-        userId: user.id,
-        platform,
-        accessToken,
-        refreshToken,
-        expiresAt,
-        platformUsername,
-        platformId,
-        isActive: true,
-      },
+    // With multi-account support, find existing by userId + platform + platformId
+    // If platformId is null (profile fetch failed), check if user has multiple accounts
+    // on this platform — if so, we can't reliably determine which to update
+    if (!platformId) {
+      const accountCount = await prisma.connectedAccount.count({
+        where: { userId: user.id, platform },
+      });
+      if (accountCount > 1) {
+        return NextResponse.redirect(
+          `${connectedAccountsUrl}?error=Could+not+identify+which+${encodedPlatform}+account+to+update.+Please+try+again.`
+        );
+      }
+    }
+
+    const existingAccount = await prisma.connectedAccount.findFirst({
+      where: { userId: user.id, platform, ...(platformId ? { platformId } : {}) },
     });
+
+    if (existingAccount) {
+      await prisma.connectedAccount.update({
+        where: { id: existingAccount.id },
+        data: {
+          accessToken,
+          refreshToken,
+          expiresAt,
+          platformUsername,
+          platformId,
+          isActive: true,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      await prisma.connectedAccount.create({
+        data: {
+          userId: user.id,
+          platform,
+          accessToken,
+          refreshToken,
+          expiresAt,
+          platformUsername,
+          platformId,
+          isActive: true,
+        },
+      });
+    }
 
     return NextResponse.redirect(
       `${connectedAccountsUrl}?connected=${encodedPlatform}`

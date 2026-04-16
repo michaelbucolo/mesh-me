@@ -14,6 +14,7 @@ interface MeshiPresence {
   meshiHat: string;
   meshiMood: string;
   position: { x: number; y: number };
+  isOnline?: boolean;
 }
 
 interface LiveMeshiPresenceProps {
@@ -84,6 +85,7 @@ export function LiveMeshiPresence({
             color: p.meshiColor,
             hat: p.meshiHat,
             mood: (p.meshiMood as RemoteMeshi["mood"]) || "happy",
+            isOnline: p.isOnline !== false,
           }));
           onRemoteMeshisChange(remoteMeshis);
         }

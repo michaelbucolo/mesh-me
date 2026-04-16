@@ -93,6 +93,16 @@ interface PlatformAdapter {
   deletePost(accessToken: string, postId: string): Promise<boolean>;
   createComment(accessToken: string, postId: string, content: string): Promise<PlatformCommentData | null>;
   deleteComment(accessToken: string, commentId: string): Promise<boolean>;
+  // Full control methods
+  editPost(accessToken: string, postId: string, content: string): Promise<boolean>;
+  likePost(accessToken: string, postId: string): Promise<boolean>;
+  unlikePost(accessToken: string, postId: string): Promise<boolean>;
+  followUser(accessToken: string, userId: string): Promise<boolean>;
+  unfollowUser(accessToken: string, userId: string): Promise<boolean>;
+  sharePost(accessToken: string, postId: string, comment?: string): Promise<boolean>;
+  pinPost(accessToken: string, postId: string): Promise<boolean>;
+  unpinPost(accessToken: string, postId: string): Promise<boolean>;
+  updateVisibility(accessToken: string, postId: string, visibility: string): Promise<boolean>;
 }
 
 // ─── GitHub Adapter ─────────────────────────────────────────
@@ -187,6 +197,31 @@ const githubAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser(accessToken, userId) {
+    try {
+      const res = await fetch(`https://api.github.com/user/following/${userId}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
+  async unfollowUser(accessToken, userId) {
+    try {
+      const res = await fetch(`https://api.github.com/user/following/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── YouTube Adapter ────────────────────────────────────────
@@ -317,6 +352,15 @@ const youtubeAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── Twitter/X Adapter ──────────────────────────────────────
@@ -407,6 +451,15 @@ const twitterAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── Discord Adapter ────────────────────────────────────────
@@ -442,6 +495,15 @@ const discordAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── Spotify Adapter ────────────────────────────────────────
@@ -493,6 +555,15 @@ const spotifyAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── Twitch Adapter ─────────────────────────────────────────
@@ -579,6 +650,15 @@ const twitchAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── TikTok Adapter ─────────────────────────────────────────
@@ -618,6 +698,15 @@ const tiktokAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── Generic / Manual Adapter (SoundCloud, Threads, Bluesky) ──
@@ -632,6 +721,15 @@ const manualAdapter: PlatformAdapter = {
   async deletePost() { return false; },
   async createComment() { return null; },
   async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
 };
 
 // ─── Adapter Registry ───────────────────────────────────────
@@ -970,15 +1068,47 @@ export async function deletePlatformPost(postId: string) {
   return { success: true };
 }
 
-export async function crossPostContent(content: string, platforms: string[], mediaUrls?: string[]) {
+export async function crossPostContent(content: string, platforms: string[], mediaUrls?: string[], accountIds?: string[]) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
   const results: Record<string, { success: boolean; error?: string }> = {};
 
+  // If account IDs are provided, use them directly; otherwise fall back to platform names
+  if (accountIds && accountIds.length > 0) {
+    for (const accountId of accountIds) {
+      const account = await prisma.connectedAccount.findUnique({
+        where: { id: accountId },
+      });
+      if (!account || account.userId !== user.id || !account.isActive) {
+        results[accountId] = { success: false, error: "Account not found or inactive" };
+        continue;
+      }
+      if (!account.accessToken) {
+        results[accountId] = { success: false, error: "No access token" };
+        continue;
+      }
+      try {
+        const adapter = getAdapter(account.platform);
+        const post = await adapter.createPost(account.accessToken, content, mediaUrls);
+        if (post) {
+          await prisma.platformPost.create({
+            data: { connectedAccountId: account.id, ...post, isFromMesh: true },
+          });
+          results[account.platformUsername || account.platform] = { success: true };
+        } else {
+          results[account.platformUsername || account.platform] = { success: false, error: "Platform API returned no result" };
+        }
+      } catch (err) {
+        results[account.platformUsername || account.platform] = { success: false, error: err instanceof Error ? err.message : "Failed" };
+      }
+    }
+    return { results };
+  }
+
   for (const platform of platforms) {
-    const account = await prisma.connectedAccount.findUnique({
-      where: { userId_platform: { userId: user.id, platform } },
+    const account = await prisma.connectedAccount.findFirst({
+      where: { userId: user.id, platform, isActive: true },
     });
 
     if (!account || !account.accessToken) {
@@ -1007,4 +1137,290 @@ export async function crossPostContent(content: string, platforms: string[], med
   }
 
   return { results };
+}
+
+// ─── Full Platform Control Actions ──────────────────────────
+
+/** Edit an existing platform post's content */
+export async function editPlatformPost(postId: string, content: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.editPost(post.connectedAccount.accessToken, post.platformPostId, content);
+  if (!ok) return { error: "Platform does not support editing or the request failed" };
+
+  await prisma.platformPost.update({ where: { id: postId }, data: { content } });
+  return { success: true };
+}
+
+/** Like a platform post */
+export async function likePlatformPost(postId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+
+  if (post.connectedAccount.accessToken) {
+    const adapter = getAdapter(post.connectedAccount.platform);
+    const ok = await adapter.likePost(post.connectedAccount.accessToken, post.platformPostId);
+    if (!ok) return { error: "Platform does not support liking or the request failed" };
+  }
+
+  await prisma.platformPost.update({
+    where: { id: postId },
+    data: { likeCount: { increment: 1 } },
+  });
+  return { success: true };
+}
+
+/** Unlike a platform post */
+export async function unlikePlatformPost(postId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+
+  if (post.connectedAccount.accessToken) {
+    const adapter = getAdapter(post.connectedAccount.platform);
+    const ok = await adapter.unlikePost(post.connectedAccount.accessToken, post.platformPostId);
+    if (!ok) return { error: "Platform does not support unliking or the request failed" };
+  }
+
+  // Use atomic decrement, then clamp
+  await prisma.platformPost.update({
+    where: { id: postId },
+    data: { likeCount: { decrement: 1 } },
+  });
+  // Clamp to 0 if it went negative
+  await prisma.platformPost.updateMany({
+    where: { id: postId, likeCount: { lt: 0 } },
+    data: { likeCount: 0 },
+  });
+  return { success: true };
+}
+
+/** Follow a user on a connected platform */
+export async function followPlatformUser(connectedAccountId: string, platformUserId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const account = await prisma.connectedAccount.findUnique({
+    where: { id: connectedAccountId },
+  });
+  if (!account || account.userId !== user.id) return { error: "Account not found" };
+  if (!account.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(account.platform);
+  const ok = await adapter.followUser(account.accessToken, platformUserId);
+  if (!ok) return { error: "Follow failed — platform may not support this action" };
+
+  // Update mutual status in our DB
+  await prisma.platformFollower.updateMany({
+    where: { connectedAccountId, platformUserId },
+    data: { isMutual: true, relationshipType: "mutual" },
+  });
+
+  return { success: true };
+}
+
+/** Unfollow a user on a connected platform */
+export async function unfollowPlatformUser(connectedAccountId: string, platformUserId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const account = await prisma.connectedAccount.findUnique({
+    where: { id: connectedAccountId },
+  });
+  if (!account || account.userId !== user.id) return { error: "Account not found" };
+  if (!account.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(account.platform);
+  const ok = await adapter.unfollowUser(account.accessToken, platformUserId);
+  if (!ok) return { error: "Unfollow failed — platform may not support this action" };
+
+  await prisma.platformFollower.updateMany({
+    where: { connectedAccountId, platformUserId },
+    data: { isMutual: false, relationshipType: "follower" },
+  });
+
+  return { success: true };
+}
+
+/** Share / repost a platform post */
+export async function sharePlatformPost(postId: string, comment?: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.sharePost(post.connectedAccount.accessToken, post.platformPostId, comment);
+  if (!ok) return { error: "Share failed — platform may not support this action" };
+
+  await prisma.platformPost.update({
+    where: { id: postId },
+    data: { shareCount: { increment: 1 } },
+  });
+  return { success: true };
+}
+
+/** Pin a platform post */
+export async function pinPlatformPost(postId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.pinPost(post.connectedAccount.accessToken, post.platformPostId);
+  if (!ok) return { error: "Pin failed — platform may not support this action" };
+
+  await prisma.platformPost.update({
+    where: { id: postId },
+    data: { isPinned: true },
+  });
+  return { success: true };
+}
+
+/** Unpin a platform post */
+export async function unpinPlatformPost(postId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.unpinPost(post.connectedAccount.accessToken, post.platformPostId);
+  if (!ok) return { error: "Unpin failed — platform may not support this action" };
+
+  await prisma.platformPost.update({
+    where: { id: postId },
+    data: { isPinned: false },
+  });
+  return { success: true };
+}
+
+/** Update a platform post's visibility (public/private/unlisted) */
+export async function updatePlatformPostVisibility(postId: string, visibility: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.updateVisibility(post.connectedAccount.accessToken, post.platformPostId, visibility);
+  if (!ok) return { error: "Visibility update failed — platform may not support this action" };
+
+  await prisma.platformPost.update({
+    where: { id: postId },
+    data: { visibility },
+  });
+  return { success: true };
+}
+
+/** Reply to a comment on a platform post */
+export async function replyToPlatformComment(postId: string, content: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: { connectedAccount: true },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const comment = await adapter.createComment(post.connectedAccount.accessToken, post.platformPostId, content);
+
+  if (comment) {
+    await prisma.platformComment.create({
+      data: {
+        connectedAccountId: post.connectedAccountId,
+        postId: post.id,
+        ...comment,
+        isOwnComment: true,
+      },
+    });
+    return { success: true, comment };
+  }
+
+  return { error: "Failed to create comment on platform" };
+}
+
+/** Get full post details including comments */
+export async function getPlatformPostDetails(postId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.platformPost.findUnique({
+    where: { id: postId },
+    include: {
+      connectedAccount: { select: { platform: true, platformUsername: true, userId: true } },
+      comments: {
+        orderBy: { publishedAt: "desc" },
+        take: 50,
+      },
+      media: true,
+    },
+  });
+  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+
+  return { post };
+}
+
+/** Get connected account details with sync status */
+export async function getConnectedAccountDetails(accountId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const account = await prisma.connectedAccount.findUnique({
+    where: { id: accountId },
+    include: {
+      platformPosts: { orderBy: { publishedAt: "desc" }, take: 5 },
+      platformFollowers: { orderBy: { followerCount: "desc" }, take: 10 },
+      syncJobs: { orderBy: { createdAt: "desc" }, take: 5 },
+      platformAnalytics: { orderBy: { date: "desc" }, take: 1 },
+    },
+  });
+  if (!account || account.userId !== user.id) return { error: "Account not found" };
+
+  return { account };
 }

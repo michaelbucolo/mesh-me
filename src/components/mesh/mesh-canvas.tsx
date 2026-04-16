@@ -4,7 +4,7 @@ import { useRef, useCallback, useEffect } from "react";
 import type { MeshEngine } from "./mesh-engine";
 import type { MeshNode, FilterType } from "./mesh-types";
 import { renderMesh } from "./mesh-renderer";
-import { createMeshiState, tickMeshi, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
+import { createMeshiState, tickMeshi, updateMeshiCursor, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 interface MeshCanvasProps {
   engine: MeshEngine;
@@ -20,6 +20,7 @@ interface MeshCanvasProps {
   meshiHat?: string;
   meshiUsername?: string;
   remoteMeshis?: RemoteMeshi[];
+  syncPulseTime?: number | null;
   onMeshiPositionChange?: (x: number, y: number, mood: string) => void;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: { x: number; y: number }) => void;
@@ -31,7 +32,7 @@ interface MeshCanvasProps {
 export function MeshCanvas({
   engine, filter, showLabels, zoom, pan,
   hoveredNode, selectedNode, imageCache, loading,
-  meshiColor, meshiHat, meshiUsername, remoteMeshis,
+  meshiColor, meshiHat, meshiUsername, remoteMeshis, syncPulseTime,
   onMeshiPositionChange,
   onZoomChange, onPanChange, onHoverChange, onClick, onDoubleClick,
 }: MeshCanvasProps) {
@@ -41,6 +42,10 @@ export function MeshCanvas({
   const dragActiveRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const lastTouchRef = useRef<{ x: number; y: number; dist?: number } | null>(null);
+
+  // Formation animation state
+  const formationStartRef = useRef<number | null>(null);
+  const formationDuration = 2000; // 2 seconds for full formation
 
   // Meshi state
   const meshiStateRef = useRef<MeshiState | null>(null);
@@ -63,6 +68,10 @@ export function MeshCanvas({
   useEffect(() => { hoveredRef.current = hoveredNode; }, [hoveredNode]);
   useEffect(() => { selectedRef.current = selectedNode; }, [selectedNode]);
   useEffect(() => { remoteMeshisRef.current = remoteMeshis || []; }, [remoteMeshis]);
+
+  // Keep syncPulseTime in a ref for the render loop
+  const syncPulseTimeRef = useRef<number | null>(syncPulseTime ?? null);
+  useEffect(() => { syncPulseTimeRef.current = syncPulseTime ?? null; }, [syncPulseTime]);
 
   // Patch Meshi appearance when user prefs change without destroying position/trail state
   useEffect(() => {
@@ -125,8 +134,8 @@ export function MeshCanvas({
       const dt = Math.min((now - lastTime) / 1000, 0.1); // Cap delta to avoid jumps
       lastTime = now;
 
-      // Tick physics
-      engine.tick();
+      // Tick physics (pass dt for frame-rate independent simulation)
+      engine.tick(dt);
 
       // Initialize Meshi at self node position once nodes are loaded
       if (!meshiInitializedRef.current && engine.nodes.length > 0) {
@@ -154,7 +163,7 @@ export function MeshCanvas({
           meshiStateRef.current.lookAtY = null;
         }
 
-        tickMeshi(meshiStateRef.current, engine.nodes, dt);
+        tickMeshi(meshiStateRef.current, engine.nodes, dt, canvas.offsetWidth, canvas.offsetHeight);
 
         // Report position every 2 seconds for presence system
         if (onMeshiPositionChange && now - lastPositionReportRef.current > 2000) {
@@ -168,6 +177,14 @@ export function MeshCanvas({
       }
 
       const cache = imageCache.current;
+
+      // Compute formation progress (0→1 over formationDuration)
+      if (formationStartRef.current === null) {
+        formationStartRef.current = now;
+      }
+      const formationElapsed = now - formationStartRef.current;
+      const formationProgress = Math.min(1, formationElapsed / formationDuration);
+
       renderMesh(ctx, engine.nodes, engine.edges, {
         zoom: zoomRef.current,
         pan: panRef.current,
@@ -175,6 +192,8 @@ export function MeshCanvas({
         filter: filterRef.current,
         showLabels: showLabelsRef.current,
         time: engine.time,
+        formationProgress,
+        syncPulseTime: syncPulseTimeRef.current,
       }, {
         hoveredNode: hoveredRef.current,
         selectedNode: selectedRef.current,
@@ -216,6 +235,11 @@ export function MeshCanvas({
     const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
     onHoverChange(node);
     if (canvasRef.current) canvasRef.current.style.cursor = node ? "pointer" : "grab";
+
+    // Update Meshi cursor position for following behavior
+    if (meshiStateRef.current) {
+      updateMeshiCursor(meshiStateRef.current, coords.x, coords.y);
+    }
   }, [engine, getWorldCoords, onHoverChange, onPanChange]);
 
   const handleMouseUp = useCallback(() => {

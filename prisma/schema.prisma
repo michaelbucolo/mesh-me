@@ -358,10 +358,15 @@ model ConnectedAccount {
   // Sync status: "idle" | "syncing" | "error" | "rate_limited"
   syncStatus   String   @default("idle")
   syncError    String?
+  // Optional association with an alter ego / persona
+  alterEgoId   String?
+  // Label to distinguish multiple accounts on the same platform
+  accountLabel String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alterEgo     AlterEgo? @relation(fields: [alterEgoId], references: [id], onDelete: SetNull)
   platformPosts PlatformPost[]
   platformComments PlatformComment[]
   platformMedia PlatformMedia[]
@@ -369,8 +374,9 @@ model ConnectedAccount {
   syncJobs     SyncJob[]
   platformAnalytics PlatformAnalytics[]
 
-  @@unique([userId, platform])
+  @@index([userId, platform])
   @@index([platform])
+  @@index([alterEgoId])
 }
 
 // ─── Cross-Platform Content Sync ────────────────────────────
@@ -716,6 +722,7 @@ model AlterEgo {
   updatedAt   DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccounts ConnectedAccount[]
 
   @@index([userId])
 }
