@@ -1143,7 +1143,8 @@ export async function likePlatformPost(postId: string) {
 
   if (post.connectedAccount.accessToken) {
     const adapter = getAdapter(post.connectedAccount.platform);
-    await adapter.likePost(post.connectedAccount.accessToken, post.platformPostId);
+    const ok = await adapter.likePost(post.connectedAccount.accessToken, post.platformPostId);
+    if (!ok) return { error: "Platform does not support liking or the request failed" };
   }
 
   await prisma.platformPost.update({
@@ -1166,12 +1167,15 @@ export async function unlikePlatformPost(postId: string) {
 
   if (post.connectedAccount.accessToken) {
     const adapter = getAdapter(post.connectedAccount.platform);
-    await adapter.unlikePost(post.connectedAccount.accessToken, post.platformPostId);
+    const ok = await adapter.unlikePost(post.connectedAccount.accessToken, post.platformPostId);
+    if (!ok) return { error: "Platform does not support unliking or the request failed" };
   }
 
+  // Clamp to 0 minimum
+  const newCount = Math.max(0, (post.likeCount || 0) - 1);
   await prisma.platformPost.update({
     where: { id: postId },
-    data: { likeCount: { decrement: 1 } },
+    data: { likeCount: newCount },
   });
   return { success: true };
 }
