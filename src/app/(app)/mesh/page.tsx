@@ -22,9 +22,17 @@ const MeshFootprint = lazy(() => import("@/components/mesh/mesh-footprint").then
 const MeshPrivacyPanel = lazy(() => import("@/components/mesh/mesh-privacy-panel").then(m => ({ default: m.MeshPrivacyPanel })));
 const MeshPostComposer = lazy(() => import("@/components/mesh/mesh-post-composer").then(m => ({ default: m.MeshPostComposer })));
 
+type CachedUserMeshResponse = {
+  user: { id: string; username: string; displayName: string; avatarUrl: string | null };
+  following?: unknown[];
+  communities?: unknown[];
+  meshiPreference?: { colorTheme?: string; hatStyle?: string } | null;
+};
+
 export default function MeshPage() {
   const router = useRouter();
   const imageCache = useRef<Map<string, HTMLImageElement | null>>(new Map());
+  const userMeshCacheRef = useRef<Map<string, CachedUserMeshResponse>>(new Map());
   const zoomToNodeRef = useRef<(nodeId: string) => void>(() => {});
 
   // --- Core state ---
@@ -277,11 +285,16 @@ export default function MeshPage() {
         setMyNodes([...engine.nodes]);
         setMyEdges([...engine.edges]);
       }
-      const res = await fetch(`/api/users/${username}/mesh`);
-      if (!res.ok) { if (node.href) router.push(node.href); return; }
-      const data = await res.json();
 
       const center = engine.getCenter();
+      const cachedUserMesh = userMeshCacheRef.current.get(username);
+      const data = cachedUserMesh ?? await fetch(`/api/users/${username}/mesh`).then(async (res) => {
+        if (!res.ok) throw new Error("Failed to load user mesh");
+        const payload: CachedUserMeshResponse = await res.json();
+        userMeshCacheRef.current.set(username, payload);
+        return payload;
+      });
+
       const { nodes: userNodes, edges: userEdges } = buildUserMeshData(data, center.x, center.y);
 
       engine.setData(userNodes, userEdges);
@@ -345,12 +358,12 @@ export default function MeshPage() {
         zoomToNode(node.id);
         setTimeout(() => enterUserMesh(node), 750);
       } else if (node.href) {
-        window.location.href = node.href;
+        router.push(node.href);
       } else {
         setSelectedNode(node);
       }
     }, 250);
-  }, [enterUserMesh, zoomToNode]);
+  }, [enterUserMesh, router, zoomToNode]);
 
   const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
     // Cancel pending single-click action
@@ -360,9 +373,9 @@ export default function MeshPage() {
     }
     if (!node) return;
     if (node.href) {
-      window.location.href = node.href;
+      router.push(node.href);
     }
-  }, []);
+  }, [router]);
 
   // --- Connected platforms for post composer ---
   const connectedPlatforms = useMemo(() => {
@@ -548,8 +561,6 @@ export default function MeshPage() {
           }
         </div>
       )}
-
-
 
       {/* Footprint dashboard */}
       <AnimatePresence>
