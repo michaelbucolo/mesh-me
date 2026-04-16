@@ -87,7 +87,7 @@ export function renderMesh(
   // Reset alpha for nodes
   ctx.globalAlpha = 1;
 
-  drawSectionLabels(ctx, selfNode, z);
+  drawSectionLabels(ctx, selfNode, z, nodes);
   drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache, formationProgress);
 
   // Sync pulse ripple effect
@@ -128,16 +128,19 @@ export function renderMesh(
   ctx.restore();
 
   // Draw mini legend in bottom-left corner (screen space)
-  drawLegend(ctx, logicalW, logicalH, f);
+  drawLegend(ctx, logicalW, logicalH, f, nodes);
 }
 
 // --- Orbit rings around self ---
 
 function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
   const rings = [
-    { radius: 180, alpha: 0.03, dashLen: 6 },
-    { radius: 340, alpha: 0.022, dashLen: 8 },
-    { radius: 500, alpha: 0.015, dashLen: 12 },
+    { radius: 120, alpha: 0.04, dashLen: 4, label: "Alter Egos" },
+    { radius: 240, alpha: 0.035, dashLen: 5, label: "Platforms" },
+    { radius: 390, alpha: 0.03, dashLen: 6, label: "People" },
+    { radius: 560, alpha: 0.025, dashLen: 8, label: "Communities" },
+    { radius: 680, alpha: 0.02, dashLen: 10, label: "Interests" },
+    { radius: 820, alpha: 0.015, dashLen: 12, label: "Posts" },
   ];
 
   for (const ring of rings) {
@@ -159,44 +162,73 @@ function drawSectionLabels(
   ctx: CanvasRenderingContext2D,
   self: MeshNode | undefined,
   zoom: number,
+  nodes?: MeshNode[],
 ) {
-  if (!self || zoom < 0.35) return;
+  if (!self || zoom < 0.25) return;
+
+  const TYPE_MAP: Record<string, string> = {
+    "Alter Egos": "alter-ego",
+    "Platforms": "platform",
+    "People": "user",
+    "Communities": "community",
+    "Interests": "tag",
+    "Posts": "post",
+  };
 
   const sections = [
-    { radius: 100, label: "Alter Egos", angle: -Math.PI / 2 - 0.3 },
-    { radius: 180, label: "Platforms", angle: -Math.PI / 2 + 0.15 },
-    { radius: 290, label: "People", angle: -Math.PI / 2 - 0.1 },
-    { radius: 420, label: "Communities", angle: -Math.PI / 2 + 0.25 },
-    { radius: 520, label: "Interests", angle: -Math.PI / 2 - 0.2 },
-    { radius: 620, label: "Posts", angle: -Math.PI / 2 + 0.05 },
+    { radius: 120, label: "Alter Egos", angle: -Math.PI / 2 - 0.3, color: "192, 132, 252" },
+    { radius: 240, label: "Platforms", angle: -Math.PI / 2 + 0.15, color: "245, 158, 11" },
+    { radius: 390, label: "People", angle: -Math.PI / 2 - 0.1, color: "129, 140, 248" },
+    { radius: 560, label: "Communities", angle: -Math.PI / 2 + 0.25, color: "236, 72, 153" },
+    { radius: 680, label: "Interests", angle: -Math.PI / 2 - 0.2, color: "6, 182, 212" },
+    { radius: 820, label: "Posts", angle: -Math.PI / 2 + 0.05, color: "16, 185, 129" },
   ];
 
-  const fontSize = Math.max(9, Math.min(13, 11 / zoom));
-  ctx.font = `500 ${fontSize}px system-ui, -apple-system, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  const fontSize = Math.max(11, Math.min(15, 13 / zoom));
 
   for (const sec of sections) {
     const lx = self.x + Math.cos(sec.angle) * sec.radius;
     const ly = self.y + Math.sin(sec.angle) * sec.radius;
 
-    // Pill background
-    const tw = ctx.measureText(sec.label).width;
-    const px = 8, py = 3;
-    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    // Count nodes of this type
+    const nodeType = TYPE_MAP[sec.label];
+    const count = nodes ? nodes.filter((n) => n.type === nodeType).length : 0;
+    const countText = count > 0 ? ` (${count})` : "";
+    const fullLabel = sec.label + countText;
+
+    ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Pill background — stronger contrast
+    const tw = ctx.measureText(fullLabel).width;
+    const px = 10, py = 5;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
     ctx.beginPath();
-    ctx.roundRect(lx - tw / 2 - px, ly - fontSize / 2 - py, tw + px * 2, fontSize + py * 2, 8);
+    ctx.roundRect(lx - tw / 2 - px, ly - fontSize / 2 - py, tw + px * 2, fontSize + py * 2, 10);
     ctx.fill();
 
-    // Border
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
-    ctx.lineWidth = 0.5;
+    // Colored accent border
+    ctx.strokeStyle = `rgba(${sec.color}, 0.25)`;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(lx - tw / 2 - px, ly - fontSize / 2 - py, tw + px * 2, fontSize + py * 2, 8);
+    ctx.roundRect(lx - tw / 2 - px, ly - fontSize / 2 - py, tw + px * 2, fontSize + py * 2, 10);
     ctx.stroke();
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-    ctx.fillText(sec.label, lx, ly);
+    // Label text — brighter with color tint
+    ctx.fillStyle = `rgba(${sec.color}, 0.7)`;
+    ctx.fillText(sec.label, lx - (count > 0 ? ctx.measureText(countText).width / 2 : 0), ly);
+
+    // Count in slightly dimmer color
+    if (count > 0) {
+      ctx.font = `500 ${fontSize - 1}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = `rgba(255, 255, 255, 0.4)`;
+      const labelW = ctx.measureText(sec.label).width;
+      ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
+      const fullW = ctx.measureText(fullLabel).width;
+      ctx.font = `500 ${fontSize - 1}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(countText, lx + fullW / 2 - ctx.measureText(countText).width / 2, ly);
+    }
   }
 }
 
@@ -222,10 +254,11 @@ function drawEdges(
       || (selected && (selected.id === source.id || selected.id === target.id));
 
     const isCross = edge.type === "shared-community" || edge.type === "cross-follow";
+    // Hide cross-edges unless one of their nodes is highlighted — reduces clutter
+    if (isCross && !isHighlighted) continue;
     const baseAlpha = isHighlighted ? 0.35
-      : isCross ? 0.025 + edge.strength * 0.05
-      : 0.05 + edge.strength * 0.08;
-    const pulseAlpha = Math.sin(time * 0.6 + edge.strength * 4) * 0.01;
+      : 0.04 + edge.strength * 0.06;
+    const pulseAlpha = Math.sin(time * 0.6 + edge.strength * 4) * 0.008;
 
     ctx.beginPath();
     ctx.moveTo(source.x, source.y);
@@ -244,10 +277,9 @@ function drawEdges(
 
     const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
     ctx.strokeStyle = `rgba(${edgeColor}, ${baseAlpha + pulseAlpha})`;
-    const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.25, 2) : 0;
-    ctx.lineWidth = isHighlighted ? 2.5 + interactionBoost
-      : isCross ? 0.4 + edge.strength * 0.4
-      : 0.6 + edge.strength * 0.6 + interactionBoost;
+    const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.2, 1.5) : 0;
+    ctx.lineWidth = isHighlighted ? 2 + interactionBoost
+      : 0.5 + edge.strength * 0.5 + interactionBoost;
     ctx.stroke();
   }
 }
@@ -275,20 +307,17 @@ function drawDataParticles(
 
     const isHighlighted = (hovered && (hovered.id === source.id || hovered.id === target.id))
       || (selected && (selected.id === source.id || selected.id === target.id));
-    const isCross = edge.type === "shared-community" || edge.type === "cross-follow";
 
-    // Show particles only on highlighted and mutual edges for a cleaner look
-    const showParticle = isHighlighted || (edge.type === "mutual" && ei % 2 === 0);
-    if (!showParticle && !isCross) {
+    // Show particles only on highlighted edges for a cleaner look
+    if (!isHighlighted) {
       continue;
     }
-    if (isCross && !isHighlighted) continue; // Skip particles on cross edges unless highlighted
 
-    const particleCount = isHighlighted ? 2 : 1;
-    const speed = isHighlighted ? 0.35 : 0.18;
+    const particleCount = 2;
+    const speed = 0.35;
     const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
-    const alpha = isHighlighted ? 0.6 : 0.25;
-    const radius = isHighlighted ? 2 : 1.2;
+    const alpha = 0.6;
+    const radius = 2;
 
     for (let pi = 0; pi < particleCount; pi++) {
       const t = ((time * speed + ei * 0.37 + pi * 0.5) % 1);
@@ -638,12 +667,12 @@ function drawLabel(
   nodeOpacity: number,
   showSublabel: boolean,
 ) {
-  const fontSize = Math.max(10, Math.min(14, nodeRadius * 0.7));
+  const fontSize = Math.max(11, Math.min(15, nodeRadius * 0.75));
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
 
-  const labelY = node.y + nodeRadius + 10;
-  const maxLabelWidth = 130;
+  const labelY = node.y + nodeRadius + 12;
+  const maxLabelWidth = 160;
   let labelText = node.label;
   ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
   if (ctx.measureText(labelText).width > maxLabelWidth) {
@@ -653,28 +682,28 @@ function drawLabel(
     labelText += "...";
   }
 
-  // Dark background pill behind label — softer rounded appearance
+  // Dark background pill behind label — stronger contrast for readability
   const tw = ctx.measureText(labelText).width;
-  const pillPadX = 7, pillPadY = 3;
-  ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * nodeOpacity})`;
+  const pillPadX = 9, pillPadY = 4;
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.6 * nodeOpacity})`;
   ctx.beginPath();
-  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 6);
+  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 8);
   ctx.fill();
   // Subtle border on pill for depth
-  ctx.strokeStyle = `rgba(255, 255, 255, ${0.04 * nodeOpacity})`;
+  ctx.strokeStyle = `rgba(255, 255, 255, ${0.06 * nodeOpacity})`;
   ctx.lineWidth = 0.5;
   ctx.beginPath();
-  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 6);
+  ctx.roundRect(node.x - tw / 2 - pillPadX, labelY - pillPadY, tw + pillPadX * 2, fontSize + pillPadY * 2, 8);
   ctx.stroke();
 
-  ctx.fillStyle = `rgba(245, 245, 250, ${0.93 * nodeOpacity})`;
+  ctx.fillStyle = `rgba(255, 255, 255, ${0.95 * nodeOpacity})`;
   ctx.fillText(labelText, node.x, labelY);
 
   if (node.sublabel && showSublabel) {
-    const subFontSize = Math.max(9, fontSize * 0.82);
-    ctx.font = `${subFontSize}px system-ui, -apple-system, sans-serif`;
-    ctx.fillStyle = `rgba(190, 190, 210, ${0.75 * nodeOpacity})`;
-    ctx.fillText(node.sublabel, node.x, labelY + fontSize + pillPadY * 2 + 3);
+    const subFontSize = Math.max(10, fontSize * 0.82);
+    ctx.font = `500 ${subFontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = `rgba(200, 200, 220, ${0.8 * nodeOpacity})`;
+    ctx.fillText(node.sublabel, node.x, labelY + fontSize + pillPadY * 2 + 4);
   }
 }
 
@@ -828,7 +857,17 @@ function drawLegend(
   w: number,
   h: number,
   activeFilter: FilterType,
+  nodes?: MeshNode[],
 ) {
+  const TYPE_MAP: Record<string, string> = {
+    "People": "user",
+    "Platforms": "platform",
+    "Communities": "community",
+    "Interests": "tag",
+    "Posts": "post",
+    "Alter Egos": "alter-ego",
+  };
+
   const items = [
     { color: "#818cf8", label: "People" },
     { color: "#f59e0b", label: "Platforms" },
@@ -838,27 +877,34 @@ function drawLegend(
     { color: "#c084fc", label: "Alter Egos" },
   ];
 
-  const fontSize = 9;
-  const dotR = 3.5;
-  const lineH = 16;
-  const padX = 10, padY = 6;
-  const boxX = 12;
-  const boxY = h - padY * 2 - items.length * lineH - 50;
+  const fontSize = 11;
+  const dotR = 4.5;
+  const lineH = 22;
+  const padX = 12, padY = 10;
+  const boxX = 14;
+  const boxY = h - padY * 2 - items.length * lineH - 55;
 
-  ctx.font = `${fontSize}px system-ui, -apple-system, sans-serif`;
-  const maxTextW = Math.max(...items.map((it) => ctx.measureText(it.label).width));
-  const boxW = dotR * 2 + 8 + maxTextW + padX * 2;
+  // Measure max width including counts
+  ctx.font = `500 ${fontSize}px system-ui, -apple-system, sans-serif`;
+  let maxTextW = 0;
+  for (const it of items) {
+    const nodeType = TYPE_MAP[it.label];
+    const count = nodes ? nodes.filter((n) => n.type === nodeType).length : 0;
+    const text = count > 0 ? `${it.label}  ${count}` : it.label;
+    maxTextW = Math.max(maxTextW, ctx.measureText(text).width);
+  }
+  const boxW = dotR * 2 + 10 + maxTextW + padX * 2;
   const boxH = items.length * lineH + padY * 2;
 
-  // Background
-  ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+  // Background — stronger
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
   ctx.beginPath();
-  ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+  ctx.roundRect(boxX, boxY, boxW, boxH, 10);
   ctx.fill();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+  ctx.roundRect(boxX, boxY, boxW, boxH, 10);
   ctx.stroke();
 
   ctx.textAlign = "left";
@@ -867,18 +913,49 @@ function drawLegend(
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     const iy = boxY + padY + i * lineH + lineH / 2;
-    const isActive = activeFilter === "all" || item.label.toLowerCase().replace(" ", "-").startsWith(activeFilter);
-    const alpha = isActive ? 0.8 : 0.35;
+    const filterKey = item.label.toLowerCase().replace(" ", "-");
+    const isActive = activeFilter === "all" || filterKey.startsWith(activeFilter);
+    const alpha = isActive ? 0.9 : 0.4;
+    const nodeType = TYPE_MAP[item.label];
+    const count = nodes ? nodes.filter((n) => n.type === nodeType).length : 0;
 
-    // Dot
-    ctx.beginPath();
-    ctx.arc(boxX + padX + dotR, iy, dotR, 0, Math.PI * 2);
-    ctx.fillStyle = item.color + (isActive ? "cc" : "55");
-    ctx.fill();
+    // Dot — shape matches node type
+    if (item.label === "Communities") {
+      // Rounded square
+      const s = dotR * 1.4;
+      ctx.fillStyle = item.color + (isActive ? "dd" : "55");
+      ctx.beginPath();
+      ctx.roundRect(boxX + padX + dotR - s / 2, iy - s / 2, s, s, 2);
+      ctx.fill();
+    } else if (item.label === "Interests") {
+      // Diamond
+      ctx.fillStyle = item.color + (isActive ? "dd" : "55");
+      ctx.beginPath();
+      ctx.moveTo(boxX + padX + dotR, iy - dotR);
+      ctx.lineTo(boxX + padX + dotR + dotR, iy);
+      ctx.lineTo(boxX + padX + dotR, iy + dotR);
+      ctx.lineTo(boxX + padX + dotR - dotR, iy);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // Circle
+      ctx.beginPath();
+      ctx.arc(boxX + padX + dotR, iy, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = item.color + (isActive ? "dd" : "55");
+      ctx.fill();
+    }
 
     // Label
-    ctx.font = `${fontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `500 ${fontSize}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-    ctx.fillText(item.label, boxX + padX + dotR * 2 + 8, iy);
+    ctx.fillText(item.label, boxX + padX + dotR * 2 + 10, iy);
+
+    // Count badge
+    if (count > 0) {
+      const labelW = ctx.measureText(item.label).width;
+      ctx.font = `500 ${fontSize - 1}px system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${isActive ? 0.45 : 0.25})`;
+      ctx.fillText(`${count}`, boxX + padX + dotR * 2 + 10 + labelW + 8, iy);
+    }
   }
 }

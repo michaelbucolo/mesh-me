@@ -94,7 +94,7 @@ export class MeshEngine {
         const dx = other.x - node.x;
         const dy = other.y - node.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const minDist = node.radius + other.radius + 60;
+        const minDist = node.radius + other.radius + 80;
         if (dist < minDist * config.maxRepulsionDist) {
           const force = (minDist * config.maxRepulsionDist - dist) * config.repulsionForce;
           const fx = (dx / dist) * force * dtNorm;
@@ -122,7 +122,7 @@ export class MeshEngine {
 
       const interactions = edge.interactionCount || 0;
       const interactionProximity = 1 / (1 + interactions * 0.1);
-      const baseIdealDist = source.radius + target.radius + 80 + (1 - edge.strength) * 120;
+      const baseIdealDist = source.radius + target.radius + 100 + (1 - edge.strength) * 140;
       const idealDist = edge.type === "alter-ego"
         ? source.radius + target.radius + 40
         : baseIdealDist * interactionProximity;
