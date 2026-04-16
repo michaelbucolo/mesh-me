@@ -95,13 +95,11 @@ export async function GET() {
         },
       },
     }),
-    // Fetch alter egos for this user
     prisma.alterEgo.findMany({
       where: { userId: user.id, isActive: true },
       select: { id: true, username: true, displayName: true, bio: true, avatarUrl: true },
       orderBy: { createdAt: "asc" },
     }),
-    // Fetch user's Meshi customization preferences
     prisma.meshiPreference.findUnique({
       where: { userId: user.id },
       select: { colorTheme: true, hatStyle: true, faceStyle: true },
@@ -111,12 +109,15 @@ export async function GET() {
   // Find mutual follows (people the user follows who also follow them back)
   const followingIds = new Set(followingData.map((f) => f.following.id));
   const followerIds = new Set(followersData.map((f) => f.follower.id));
-  const mutualIds = [...followingIds].filter((id) => followerIds.has(id));
+  const mutualSet = new Set<string>();
+  for (const id of followingIds) {
+    if (followerIds.has(id)) mutualSet.add(id);
+  }
 
   // Find which users share communities with the current user
   const communityIds = communitiesData.map((cm) => cm.community.id);
-  const allUserIds = [...new Set([...followingIds, ...followerIds])];
-  const sharedCommunityMembers = communityIds.length > 0
+  const allUserIds = Array.from(new Set([...followingIds, ...followerIds]));
+  const sharedCommunityMembers = communityIds.length > 0 && allUserIds.length > 0
     ? await prisma.communityMember.findMany({
         where: {
           communityId: { in: communityIds },
@@ -156,8 +157,8 @@ export async function GET() {
     const commentInteractions = await prisma.comment.findMany({
       where: {
         OR: [
-          { authorId: user.id, post: { authorId: { in: [...allUserIds] } } },
-          { authorId: { in: [...allUserIds] }, post: { authorId: user.id } },
+          { authorId: user.id, post: { authorId: { in: allUserIds } } },
+          { authorId: { in: allUserIds }, post: { authorId: user.id } },
         ],
       },
       select: {
@@ -175,8 +176,8 @@ export async function GET() {
     const reactionInteractions = await prisma.reaction.findMany({
       where: {
         OR: [
-          { userId: user.id, post: { authorId: { in: [...allUserIds] } } },
-          { userId: { in: [...allUserIds] }, post: { authorId: user.id } },
+          { userId: user.id, post: { authorId: { in: allUserIds } } },
+          { userId: { in: allUserIds }, post: { authorId: user.id } },
         ],
       },
       select: {
@@ -191,7 +192,7 @@ export async function GET() {
     }
 
     // Mutual follows count as extra interaction weight
-    for (const id of mutualIds) {
+    for (const id of mutualSet) {
       interactionCounts[id] = (interactionCounts[id] || 0) + 3;
     }
   }
@@ -203,7 +204,7 @@ export async function GET() {
     },
     following: followingData.map((f) => ({
       ...f.following,
-      isMutual: mutualIds.includes(f.following.id),
+      isMutual: mutualSet.has(f.following.id),
       sharedCommunities: userCommunityLinks[f.following.id] || [],
       sharedInterests: userSharedInterests[f.following.id] || [],
       lastSeenAt: f.following.lastSeenAt,
@@ -214,7 +215,7 @@ export async function GET() {
     })),
     followers: followersData.map((f) => ({
       ...f.follower,
-      isMutual: mutualIds.includes(f.follower.id),
+      isMutual: mutualSet.has(f.follower.id),
       sharedCommunities: userCommunityLinks[f.follower.id] || [],
       sharedInterests: userSharedInterests[f.follower.id] || [],
       followerCount: f.follower._count.followers,
@@ -282,7 +283,7 @@ export async function GET() {
     stats: {
       followingCount: followingData.length,
       followerCount: followersData.length,
-      mutualCount: mutualIds.length,
+      mutualCount: mutualSet.size,
       communityCount: communitiesData.length,
       postCount: postsData.length,
       interestCount: interestsData.length,
