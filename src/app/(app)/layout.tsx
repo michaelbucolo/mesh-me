@@ -52,10 +52,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const userEmail = user.email;
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-primary)]">
+    <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-primary)]">
       <MeshBackground density={30} className="opacity-30" />
 
-      <div className="relative z-10 flex min-h-screen">
+      <div className="relative z-10 flex h-full">
         <Sidebar
           user={{
             id: user.id,
@@ -68,9 +68,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           unreadMessages={unreadMessages}
         />
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div className="flex h-full min-w-0 flex-1 flex-col">
           {/* Minimal top bar — just quick actions, no redundant text */}
-          <header className="sticky top-0 z-30 hidden h-12 items-center justify-end gap-1.5 border-b border-[var(--glass-border)] bg-[var(--glass-bg)] px-5 backdrop-blur-2xl lg:flex">
+          <header className="sticky top-0 z-30 hidden h-12 shrink-0 items-center justify-end gap-1.5 border-b border-[var(--glass-border)] bg-[var(--glass-bg)] px-5 backdrop-blur-2xl lg:flex">
             <Link
               href="/search"
               className="inline-flex items-center justify-center rounded-full p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
@@ -104,7 +104,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
           </header>
 
-          <main className="min-h-[calc(100vh-3rem)] flex-1 px-4 pb-24 pt-5 md:px-6 lg:pb-6">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-5 md:px-6 lg:pb-6">
             {(needsEmailVerification || needsPhoneVerification) && (
               <VerificationBanner
                 needsEmailVerification={needsEmailVerification}

@@ -52,15 +52,34 @@ type MeshiView = "closed" | "actions" | "speech" | "chat";
 const MESHI_SIZE = 48;
 
 // Safe insets: Meshi docks bottom-right but must never overlap UI.
-// Desktop: 16px from right, 16px from bottom
-// Mobile: 16px from right, 80px from bottom (above mobile nav)
+// Detects sidebar, header, mobile nav, and any data-meshi-zone elements to avoid.
 function getSafePosition() {
   if (typeof window === "undefined") return { x: 900, y: 600 };
   const isMobile = window.innerWidth < 1024;
   const safeBottom = isMobile ? 80 : 16; // mobile nav is ~60px + gap
+  const safeRight = 16;
+
+  // Check for sidebar width on desktop
+  const sidebar = document.querySelector("[data-sidebar]");
+  const sidebarWidth = sidebar ? sidebar.getBoundingClientRect().right : 0;
+
+  // Check for any UI zones Meshi should avoid
+  const zones = document.querySelectorAll("[data-meshi-zone]");
+  let maxBlockedRight = window.innerWidth - MESHI_SIZE - safeRight;
+  let maxBlockedBottom = window.innerHeight - MESHI_SIZE - safeBottom;
+
+  zones.forEach((zone) => {
+    const rect = (zone as HTMLElement).getBoundingClientRect();
+    // If a zone is near bottom-right, push Meshi above/left of it
+    if (rect.right > window.innerWidth - 120 && rect.bottom > window.innerHeight - 120) {
+      maxBlockedRight = Math.min(maxBlockedRight, rect.left - MESHI_SIZE - 8);
+      maxBlockedBottom = Math.min(maxBlockedBottom, rect.top - MESHI_SIZE - 8);
+    }
+  });
+
   return {
-    x: window.innerWidth - MESHI_SIZE - 16,
-    y: window.innerHeight - MESHI_SIZE - safeBottom,
+    x: Math.max(sidebarWidth + 8, maxBlockedRight),
+    y: Math.max(48, maxBlockedBottom), // never above header
   };
 }
 
@@ -107,6 +126,8 @@ export function MeshiFloat() {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
+  const [isMeshTransition, setIsMeshTransition] = useState(false);
+  const [prevPathname, setPrevPathname] = useState("");
   const [isFirstTimeMeshi, setIsFirstTimeMeshi] = useState(() => {
     if (typeof window === "undefined") return false;
     return !localStorage.getItem("meshiInteracted");
@@ -189,7 +210,45 @@ export function MeshiFloat() {
     if (lastPath === "") queueMicrotask(() => setLastPath(pathname));
   }, [pathname, lastPath, meshiEnabled]);
 
-  // Contextual greeting
+  // Mesh page transition — animate Meshi toward canvas center when entering /mesh
+  useEffect(() => {
+    if (!meshiEnabled) return;
+    const enteringMesh = pathname === "/mesh" && prevPathname !== "/mesh" && prevPathname !== "";
+    const leavingMesh = pathname !== "/mesh" && prevPathname === "/mesh";
+
+    if (enteringMesh) {
+      // Animate Meshi toward center of screen (into the canvas)
+      setIsMeshTransition(true);
+      const centerX = window.innerWidth / 2 - MESHI_SIZE / 2;
+      const centerY = window.innerHeight / 2 - MESHI_SIZE / 2;
+      meshiX.set(centerX);
+      meshiY.set(centerY);
+      const timer = setTimeout(() => setIsMeshTransition(false), 600);
+      return () => clearTimeout(timer);
+    } else if (leavingMesh) {
+      // Coming back from mesh — start at center and float to corner
+      setIsMeshTransition(true);
+      const safe = getSafePosition();
+      // Briefly start at center, then spring to safe zone
+      const centerX = window.innerWidth / 2 - MESHI_SIZE / 2;
+      const centerY = window.innerHeight / 2 - MESHI_SIZE / 2;
+      meshiX.set(centerX);
+      meshiY.set(centerY);
+      requestAnimationFrame(() => {
+        meshiX.set(safe.x);
+        meshiY.set(safe.y);
+      });
+      const timer = setTimeout(() => setIsMeshTransition(false), 600);
+      return () => clearTimeout(timer);
+    }
+
+    setPrevPathname(pathname);
+  }, [pathname, prevPathname, meshiEnabled, meshiX, meshiY]);
+
+  // Track previous pathname
+  useEffect(() => {
+    setPrevPathname(pathname);
+  }, [pathname]);
   useEffect(() => {
     if (!meshiEnabled || hasGreetedThisPage || view !== "closed") return;
     const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
@@ -515,8 +574,10 @@ export function MeshiFloat() {
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
 
-  // Hide floating Meshi on /mesh — the canvas Meshi represents the user there
-  if (!meshiEnabled || pathname === "/mesh") return null;
+  // On /mesh page: show transition animation then hide; on other pages: show normally
+  const isOnMeshPage = pathname === "/mesh";
+
+  if (!meshiEnabled) return null;
 
   return (
     <>
@@ -564,8 +625,12 @@ export function MeshiFloat() {
 
       {/* THE ONE MESHI - standalone floating entity */}
       <AnimatePresence>
-        {!isSearching && (
-          <motion.div className="fixed z-40" style={{ left: springX, top: springY }}>
+        {!isSearching && (!isOnMeshPage || isMeshTransition) && (
+          <motion.div className="fixed z-40" style={{ left: springX, top: springY }}
+            initial={isOnMeshPage ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }}
+            animate={isOnMeshPage ? { opacity: 0, scale: 0.6 } : { opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}>
             {/* Speech bubbles above Meshi */}
             {view === "speech" && (
               <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-2 w-[280px]">
@@ -702,9 +767,9 @@ export function MeshiFloat() {
         )}
       </AnimatePresence>
 
-      {/* Actions Menu */}
+      {/* Actions Menu — hidden on mesh page */}
       <AnimatePresence>
-        {view === "actions" && (
+        {view === "actions" && !isOnMeshPage && (
           <MeshiActionsMenu
             meshiColor={meshiColor}
             meshiHat={meshiHat}
