@@ -217,7 +217,10 @@ export function MeshCanvas({
     }
 
     render();
-    return () => cancelAnimationFrame(animationRef.current);
+    return () => {
+      cancelAnimationFrame(animationRef.current);
+      cancelAnimationFrame(momentumRafRef.current);
+    };
   }, [engine, loading, imageCache, meshiColor, meshiHat, meshiUsername, onMeshiPositionChange]);
 
   // --- Mouse handlers ---
@@ -266,6 +269,9 @@ export function MeshCanvas({
 
     // Momentum panning — apply deceleration after drag release
     if (wasDragging && (Math.abs(velocityRef.current.x) > 50 || Math.abs(velocityRef.current.y) > 50)) {
+      // Discard stale velocity if mouse hasn't moved recently (drag-pause-release)
+      const timeSinceLastMove = performance.now() - lastMousePosRef.current.time;
+      if (timeSinceLastMove > 100) { velocityRef.current = { x: 0, y: 0 }; }
       let vx = velocityRef.current.x * 0.15;
       let vy = velocityRef.current.y * 0.15;
       const decay = 0.92;

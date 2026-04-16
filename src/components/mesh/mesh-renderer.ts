@@ -419,6 +419,14 @@ function drawNodes(
   formationProgress: number = 1,
   dt: number = 0.016,
 ) {
+  // Prune stale entries from nodeScaleMap to prevent memory leaks across mesh navigations
+  if (nodeScaleMap.size > nodes.length * 2) {
+    const currentIds = new Set(nodes.map((n) => n.id));
+    for (const id of nodeScaleMap.keys()) {
+      if (!currentIds.has(id)) nodeScaleMap.delete(id);
+    }
+  }
+
   // Find center for formation animation
   const selfNode = nodes.find((n) => n.type === "self");
   const cx = selfNode?.x ?? 0;
