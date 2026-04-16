@@ -590,18 +590,19 @@ export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: Re
   for (const rm of remoteMeshis) {
     const isOffline = !rm.isOnline;
     // Offline Meshis bob very slowly (sleeping), online ones bob normally
-    const bobSpeed = isOffline ? 0.6 : 2;
-    const bobAmplitude = isOffline ? 1 : 2;
-    const bob = Math.sin(time * bobSpeed + rm.userId.charCodeAt(0)) * bobAmplitude;
+    const bobSpeed = isOffline ? 0.4 : 2;
+    const bobAmplitude = isOffline ? 0.8 : 2;
+    const phaseOffset = rm.userId.charCodeAt(0) + (rm.userId.charCodeAt(1) || 0) * 0.3;
+    const bob = Math.sin(time * bobSpeed + phaseOffset) * bobAmplitude;
     const mx = rm.x;
     const my = rm.y + bob;
-    const drawSize = 30;
+    const drawSize = isOffline ? 22 : 30;
 
     // Subtle glow (dimmer for offline)
     const color = MESHI_COLORS[rm.color] || MESHI_COLORS.blue;
     const colorKey = Object.entries(MESHI_COLORS).find(([, v]) => v === color)?.[0] || rm.color || "blue";
     const theme = SVG_COLOR_THEMES[colorKey] || SVG_COLOR_THEMES.blue;
-    const glowAlpha = isOffline ? "10" : "20";
+    const glowAlpha = isOffline ? "08" : "20";
     const glowGrad = ctx.createRadialGradient(mx, my, 0, mx, my, drawSize);
     glowGrad.addColorStop(0, `${theme.primary}${glowAlpha}`);
     glowGrad.addColorStop(1, "transparent");
@@ -614,8 +615,26 @@ export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: Re
     const displayMood: MeshiMoodCanvas = isOffline ? "sleeping" : rm.mood;
     const img = getMeshiImage(colorKey, rm.hat, displayMood);
     if (img) {
-      ctx.globalAlpha = isOffline ? 0.4 : 0.75;
+      ctx.globalAlpha = isOffline ? 0.35 : 0.75;
       ctx.drawImage(img, mx - drawSize / 2, my - drawSize / 2, drawSize, drawSize);
+      ctx.globalAlpha = 1;
+    }
+
+    // Floating "zzz" sleep bubbles for offline Meshis
+    if (isOffline) {
+      const zPhase = time * 0.8 + phaseOffset;
+      for (let zi = 0; zi < 3; zi++) {
+        const zProgress = ((zPhase + zi * 1.2) % 3.6) / 3.6; // 0→1 lifecycle
+        const zAlpha = zProgress < 0.2 ? zProgress * 5 : zProgress > 0.7 ? (1 - zProgress) * 3.33 : 1;
+        const zSize = 5 + zi * 1.5 + zProgress * 2;
+        const zx = mx + drawSize / 2 + 3 + zi * 5 + zProgress * 4;
+        const zy = my - drawSize / 2 - zProgress * 14 - zi * 3;
+        ctx.globalAlpha = zAlpha * 0.4;
+        ctx.font = `bold ${zSize}px system-ui, -apple-system, sans-serif`;
+        ctx.fillStyle = "rgba(180, 180, 220, 0.8)";
+        ctx.textAlign = "center";
+        ctx.fillText("z", zx, zy);
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -642,7 +661,7 @@ export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: Re
     ctx.fillStyle = isOffline ? "rgba(100, 100, 100, 0.6)" : "#22c55e";
     ctx.fill();
 
-    ctx.fillStyle = isOffline ? "rgba(255, 255, 255, 0.35)" : "rgba(255, 255, 255, 0.6)";
+    ctx.fillStyle = isOffline ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.6)";
     ctx.fillText(labelText, mx + dotSize / 2 + 1, labelY);
   }
 }
