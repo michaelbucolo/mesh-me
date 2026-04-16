@@ -17,19 +17,30 @@ interface MeshiPresence {
   isOnline?: boolean;
 }
 
+/** Node position info for generating offline sleeping Meshis */
+interface UserNodeInfo {
+  userId: string;
+  username: string;
+  displayName: string;
+  x: number;
+  y: number;
+}
+
 interface LiveMeshiPresenceProps {
   viewingMesh: string | null;
   myMeshiColor: MeshiColor;
   myMeshiHat: MeshiHat;
   myMeshiPosition?: { x: number; y: number };
   myMeshiMood?: string;
+  /** User nodes on the mesh — used to generate offline sleeping Meshis */
+  userNodes?: UserNodeInfo[];
   onInteract?: (presence: MeshiPresence) => void;
   onRemoteMeshisChange?: (meshis: RemoteMeshi[]) => void;
 }
 
 export function LiveMeshiPresence({
   viewingMesh, myMeshiColor, myMeshiHat,
-  myMeshiPosition, myMeshiMood,
+  myMeshiPosition, myMeshiMood, userNodes,
   onInteract, onRemoteMeshisChange,
 }: LiveMeshiPresenceProps) {
   const [presences, setPresences] = useState<MeshiPresence[]>([]);
@@ -37,14 +48,18 @@ export function LiveMeshiPresence({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const positionRef = useRef(myMeshiPosition || { x: 400, y: 300 });
   const moodRef = useRef(myMeshiMood || "exploring");
+  const userNodesRef = useRef<UserNodeInfo[]>(userNodes || []);
 
-  // Keep position/mood refs in sync
+  // Keep refs in sync
   useEffect(() => {
     if (myMeshiPosition) positionRef.current = myMeshiPosition;
   }, [myMeshiPosition]);
   useEffect(() => {
     if (myMeshiMood) moodRef.current = myMeshiMood;
   }, [myMeshiMood]);
+  useEffect(() => {
+    if (userNodes) userNodesRef.current = userNodes;
+  }, [userNodes]);
 
   // Send heartbeat with actual Meshi canvas coordinates
   const sendHeartbeat = useCallback(async () => {
@@ -63,20 +78,28 @@ export function LiveMeshiPresence({
     } catch { /* silently fail */ }
   }, [myMeshiColor, myMeshiHat, viewingMesh]);
 
-  // Poll for other users' presences
+  // Poll for other users' presences and merge with offline Meshis from nodes
   const pollPresences = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (viewingMesh) params.set("meshOwner", viewingMesh);
+      // Pass connected user IDs so API can return any online connected user
+      const nodes = userNodesRef.current;
+      if (nodes.length > 0) {
+        params.set("connectedIds", nodes.map((n) => n.userId).join(","));
+      }
       const res = await fetch(`/api/mesh/presence?${params}`);
       if (res.ok) {
         const data = await res.json();
         const list: MeshiPresence[] = data.presences || [];
-        setPresences(list);
+        setPresences(list.filter((p) => p.isOnline));
 
-        // Convert to RemoteMeshi format for canvas rendering
+        // Build remote Meshis: online users from presence + offline sleeping Meshis from nodes
         if (onRemoteMeshisChange) {
-          const remoteMeshis: RemoteMeshi[] = list.map((p) => ({
+          const onlineUserIds = new Set(list.map((p) => p.userId));
+
+          // Online Meshis from presence API
+          const onlineMeshis: RemoteMeshi[] = list.map((p) => ({
             userId: p.userId,
             username: p.username,
             displayName: p.displayName,
@@ -87,7 +110,24 @@ export function LiveMeshiPresence({
             mood: (p.meshiMood as RemoteMeshi["mood"]) || "happy",
             isOnline: p.isOnline !== false,
           }));
-          onRemoteMeshisChange(remoteMeshis);
+
+          // Offline sleeping Meshis — positioned near their user node
+          const offlineMeshis: RemoteMeshi[] = nodes
+            .filter((n) => !onlineUserIds.has(n.userId))
+            .map((n) => ({
+              userId: n.userId,
+              username: n.username,
+              displayName: n.displayName,
+              // Position slightly below-right of their node (sleeping at home)
+              x: n.x + 12,
+              y: n.y + 18,
+              color: "blue",
+              hat: "none",
+              mood: "sleeping" as RemoteMeshi["mood"],
+              isOnline: false,
+            }));
+
+          onRemoteMeshisChange([...onlineMeshis, ...offlineMeshis]);
         }
       }
     } catch { /* silently fail */ }
@@ -120,7 +160,9 @@ export function LiveMeshiPresence({
     };
   }, []);
 
-  if (presences.length === 0) return null;
+  const onlinePresences = presences.filter((p) => p.isOnline);
+
+  if (onlinePresences.length === 0) return null;
 
   return (
     <div className="pointer-events-none fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
@@ -128,13 +170,13 @@ export function LiveMeshiPresence({
       <div className="pointer-events-auto flex items-center gap-2 rounded-2xl px-3 py-1.5 glass-card text-xs">
         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
         <span className="text-[var(--text-secondary)] font-medium">
-          {presences.length} {presences.length === 1 ? "Meshi" : "Meshis"} nearby
+          {onlinePresences.length} {onlinePresences.length === 1 ? "Meshi" : "Meshis"} online
         </span>
       </div>
 
       {/* Individual Meshi presences */}
       <AnimatePresence>
-        {presences.slice(0, 5).map((presence, i) => (
+        {onlinePresences.slice(0, 5).map((presence, i) => (
           <motion.div
             key={presence.userId}
             initial={{ opacity: 0, x: 20, scale: 0.8 }}
@@ -171,9 +213,9 @@ export function LiveMeshiPresence({
         ))}
       </AnimatePresence>
 
-      {presences.length > 5 && (
+      {onlinePresences.length > 5 && (
         <div className="text-[10px] text-[var(--text-muted)] pr-2">
-          +{presences.length - 5} more
+          +{onlinePresences.length - 5} more
         </div>
       )}
     </div>

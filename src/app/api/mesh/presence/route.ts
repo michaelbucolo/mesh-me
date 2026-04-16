@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   }
 }
 
-// GET: Get all active presences (optionally filtered by mesh being viewed)
+// GET: Get all active presences — shows any connected user who is online
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -62,6 +62,8 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const meshOwner = searchParams.get("meshOwner"); // filter to users viewing a specific mesh
+  // Comma-separated user IDs of people connected to the viewer
+  const connectedIds = searchParams.get("connectedIds")?.split(",").filter(Boolean) || [];
 
   const now = Date.now();
   const presences: Array<{
@@ -76,17 +78,18 @@ export async function GET(request: Request) {
     isOnline: boolean;
   }> = [];
 
+  const connectedSet = new Set(connectedIds);
+
   for (const [, entry] of presenceStore) {
     // Don't include the requesting user's own presence
     if (entry.userId === user.id) continue;
 
-    // If filtering by mesh owner, only include users viewing that mesh
-    if (meshOwner) {
-      if (entry.viewingMesh !== meshOwner) continue;
-    } else {
-      // On own mesh, show users who are viewing our mesh
-      if (entry.viewingMesh !== user.id) continue;
-    }
+    // Include if: viewing our mesh, viewing the same mesh we are, OR is a connected user who is online anywhere
+    const isViewingOurMesh = !meshOwner && entry.viewingMesh === user.id;
+    const isViewingSameMesh = meshOwner && entry.viewingMesh === meshOwner;
+    const isConnectedAndOnline = connectedSet.has(entry.userId);
+
+    if (!isViewingOurMesh && !isViewingSameMesh && !isConnectedAndOnline) continue;
 
     // Consider online if heartbeat received in last 15 seconds
     const isOnline = (now - entry.lastSeen) < 15000;
