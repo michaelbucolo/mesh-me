@@ -53,6 +53,14 @@ function computeEngagement(node: { followerCount?: number; postCount?: number; i
 export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): BuildResult {
   const nodes: MeshNode[] = [];
   const edges: MeshEdge[] = [];
+  const nodeMap = new Map<string, MeshNode>();
+  const nodeIds = new Set<string>();
+
+  const addNode = (node: MeshNode) => {
+    nodes.push(node);
+    nodeMap.set(node.id, node);
+    nodeIds.add(node.id);
+  };
 
   const userId = data.user.id;
 
@@ -63,7 +71,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   }
 
   // --- Self node (center) ---
-  nodes.push({
+  addNode({
     id: userId,
     type: "self",
     label: data.user.displayName || data.user.username,
@@ -91,7 +99,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   const alterEgos = data.alterEgos || [];
   alterEgos.forEach((ego: any, i: number) => {
     const pos = ringPosition(cx, cy, 120, i, alterEgos.length, Math.PI / 6);
-    nodes.push({
+    addNode({
       id: "alter-ego-" + ego.id,
       type: "alter-ego",
       label: ego.displayName || ego.username,
@@ -121,9 +129,10 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     const analytics = acct.analytics || null;
     const totalPosts = acct.counts?.platformPosts || 0;
     const totalFollowers = acct.counts?.platformFollowers || 0;
+    const platformNodeId = "platform-" + acct.id;
 
-    nodes.push({
-      id: "platform-" + acct.id,
+    addNode({
+      id: platformNodeId,
       type: "platform",
       label: acct.platform,
       sublabel: acct.platformUsername ? "@" + acct.platformUsername : undefined,
@@ -148,7 +157,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     });
     edges.push({
       source: userId,
-      target: "platform-" + acct.id,
+      target: platformNodeId,
       strength: 0.7,
       type: "platform",
     });
@@ -159,7 +168,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       const subPos = ringPosition(pos.x, pos.y, 55 + pi * 8, pi, topPosts.length, Math.PI / 3 + i);
       const ppId = "pp-" + pp.id;
       const ppEngagement = (pp.likeCount || 0) + (pp.commentCount || 0) * 2 + (pp.viewCount || 0) * 0.01;
-      nodes.push({
+      addNode({
         id: ppId,
         type: "post",
         label: (pp.title || pp.content || pp.postType || "Post").slice(0, 35) + ((pp.title || pp.content || "").length > 35 ? "..." : ""),
@@ -171,7 +180,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
         color: PLATFORM_COLORS[platformKey] || NODE_COLORS.post,
         opacity: 0.75,
         pulsePhase: pi * 0.6 + i,
-        connections: ["platform-" + acct.id],
+        connections: [platformNodeId],
         likeCount: pp.likeCount,
         commentCount: pp.commentCount,
         repostCount: pp.shareCount,
@@ -179,7 +188,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
         lastActiveAt: pp.publishedAt || null,
       });
       edges.push({
-        source: "platform-" + acct.id,
+        source: platformNodeId,
         target: ppId,
         strength: 0.35,
         type: "platform-content",
@@ -191,7 +200,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     topFollowers.slice(0, 6).forEach((pf: any, fi: number) => {
       const subPos = ringPosition(pos.x, pos.y, 75 + fi * 6, fi, Math.min(topFollowers.length, 6), -Math.PI / 4 + i);
       const pfId = "pf-" + pf.id;
-      nodes.push({
+      addNode({
         id: pfId,
         type: "user",
         label: pf.displayName || pf.username || "User",
@@ -203,13 +212,13 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
         color: PLATFORM_COLORS[platformKey] || NODE_COLORS.user,
         opacity: 0.7,
         pulsePhase: fi * 0.7 + i,
-        connections: ["platform-" + acct.id],
+        connections: [platformNodeId],
         isMutual: pf.isMutual,
         followerCount: pf.followerCount,
         platform: acct.platform,
       });
       edges.push({
-        source: "platform-" + acct.id,
+        source: platformNodeId,
         target: pfId,
         strength: 0.25,
         type: "platform-follower",
@@ -258,7 +267,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     // Scale radius by engagement — more engaged users are bigger
     const engagementBoost = Math.min(engagement * 0.02, 6);
 
-    nodes.push({
+    addNode({
       id: f.id,
       type: "user",
       label: f.displayName || f.username,
@@ -319,9 +328,8 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
             strength: 0.15,
             type: "shared-community",
           });
-          // Update connections arrays
-          const nodeA = nodes.find((n) => n.id === users[i]);
-          const nodeB = nodes.find((n) => n.id === users[j]);
+          const nodeA = nodeMap.get(users[i]);
+          const nodeB = nodeMap.get(users[j]);
           if (nodeA && !nodeA.connections.includes(users[j])) nodeA.connections.push(users[j]);
           if (nodeB && !nodeB.connections.includes(users[i])) nodeB.connections.push(users[i]);
         }
@@ -342,8 +350,8 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
           strength: 0.1,
           type: "cross-follow",
         });
-        const nodeA = nodes.find((n) => n.id === mutualPeople[i].id);
-        const nodeB = nodes.find((n) => n.id === mutualPeople[j].id);
+        const nodeA = nodeMap.get(mutualPeople[i].id);
+        const nodeB = nodeMap.get(mutualPeople[j].id);
         if (nodeA && !nodeA.connections.includes(mutualPeople[j].id)) nodeA.connections.push(mutualPeople[j].id);
         if (nodeB && !nodeB.connections.includes(mutualPeople[i].id)) nodeB.connections.push(mutualPeople[i].id);
       }
@@ -355,7 +363,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   communities.forEach((c: any, i: number) => {
     const pos = ringPosition(cx, cy, 560, i, communities.length, Math.PI / 5);
     const communityId = "community-" + c.id;
-    nodes.push({
+    addNode({
       id: communityId,
       type: "community",
       label: c.name,
@@ -389,7 +397,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
           strength: 0.2,
           type: "community",
         });
-        const personNode = nodes.find((n) => n.id === person.id);
+        const personNode = nodeMap.get(person.id);
         if (personNode && !personNode.connections.includes(communityId)) {
           personNode.connections.push(communityId);
         }
@@ -402,7 +410,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   interests.forEach((tag: string, i: number) => {
     const pos = ringPosition(cx, cy, 680, i, interests.length, Math.PI / 8);
     const tagId = "tag-" + tag;
-    nodes.push({
+    addNode({
       id: tagId,
       type: "tag",
       label: "#" + tag,
@@ -429,7 +437,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
           strength: 0.15,
           type: "interest",
         });
-        const personNode = nodes.find((n) => n.id === person.id);
+        const personNode = nodeMap.get(person.id);
         if (personNode && !personNode.connections.includes(tagId)) {
           personNode.connections.push(tagId);
         }
@@ -447,7 +455,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     const postEngagement = (p.likeCount || 0) + (p.commentCount || 0) * 2 + (p.repostCount || 0) * 3;
     const engagementRadius = Math.min(postEngagement * 0.5, 8);
 
-    nodes.push({
+    addNode({
       id: postId,
       type: "post",
       label: (p.content || "Post").slice(0, 40) + ((p.content || "").length > 40 ? "..." : ""),
@@ -474,7 +482,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     // Connect post to its community if in one
     if (p.communityId) {
       const communityNodeId = "community-" + p.communityId;
-      if (nodes.some((n) => n.id === communityNodeId)) {
+      if (nodeIds.has(communityNodeId)) {
         edges.push({
           source: communityNodeId,
           target: postId,
@@ -488,7 +496,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     if (p.tags) {
       for (const tag of p.tags) {
         const tagNodeId = "tag-" + tag;
-        if (nodes.some((n) => n.id === tagNodeId)) {
+        if (nodeIds.has(tagNodeId)) {
           edges.push({
             source: tagNodeId,
             target: postId,
@@ -501,8 +509,10 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   });
 
   // Update self node connections
-  const selfNode = nodes[0];
-  selfNode.connections = nodes.filter((n) => n.type !== "self").map((n) => n.id);
+  const selfNode = nodeMap.get(userId);
+  if (selfNode) {
+    selfNode.connections = nodes.filter((n) => n.type !== "self").map((n) => n.id);
+  }
 
   return { nodes, edges };
 }
