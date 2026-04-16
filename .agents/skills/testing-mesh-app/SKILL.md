@@ -45,10 +45,53 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
   node -e "const b=require('bcryptjs');console.log(b.hashSync('testpass123',12));"
   sqlite3 dev.db "UPDATE User SET passwordHash='<hash>' WHERE username='alexcreates';"
   ```
-- Login flow: Go to /login → enter username → enter password → redirects to /mesh
+- Login flow: Go to / → click "Sign in" → enter username → click "Continue" → enter password → click "Sign in" → redirects to /mesh
 - Test accounts: `alexcreates/password123` (admin), `demouser/password123`, `mayamusic/password123`
 - The production site (meshme.vercel.app) uses Turso DB, not local SQLite
 - **Important**: Vercel preview deployments may fail with server-side errors if the preview branch uses `file:./dev.db` (local SQLite) instead of Turso. Test locally when preview deployment has DB errors.
+
+### Playwright Headless Login Flow
+
+When GUI tools (computer, recording, browser_console) are unavailable, use Playwright headless chromium for automated testing:
+
+```javascript
+const { chromium } = require('playwright');
+const browser = await chromium.launch({ headless: true });
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+
+// Login flow (3-step: welcome → credentials → password)
+await page.goto('http://localhost:3333', { waitUntil: 'networkidle', timeout: 15000 });
+await page.waitForTimeout(2000);
+
+// Step 1: Click "Sign in" on welcome page
+await page.locator('button:has-text("Sign in")').first().click();
+await page.waitForTimeout(1000);
+
+// Step 2: Fill username and click Continue
+await page.locator('input[type="text"]').first().fill('alexcreates');
+await page.locator('button:has-text("Continue")').first().click();
+await page.waitForTimeout(1500);
+
+// Step 3: Fill password and submit
+await page.locator('input[type="password"]').first().fill('password123');
+await page.locator('button[type="submit"]:has-text("Sign in")').first().click();
+await page.waitForTimeout(4000);
+
+// Verify: URL should now be /mesh
+console.log(page.url()); // http://localhost:3333/mesh
+```
+
+**Key selector details** (from `src/components/mesh-entry.tsx`):
+- Welcome page has TWO buttons: "Join the Mesh" (signup) and "Sign in" (login)
+- Credentials step: username input is `input[type="text"]` with placeholder "username or email" (login mode)
+- Credentials step: submit button text is "Continue" (not "Sign in")
+- Login-password step: password input is `input[type="password"]` with placeholder "Password"
+- Login-password step: submit button is `button[type="submit"]` with text "Sign in"
+
+**Common login failures**:
+- If you try `input[name="username"]` or `input[placeholder*="username" i]` — these may not match because the input has no `name` attribute and placeholder text changes based on login vs signup mode
+- The landing page (/) uses `min-h-screen` layout; the authenticated app uses `h-[100dvh]`. If your viewport test finds `min-h-screen`, login failed.
+- After successful login, app redirects to `/mesh` (page.tsx line 8: `if (user?.onboarded) redirect("/mesh")`)
 
 ## Devin Secrets Needed
 
@@ -151,9 +194,22 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
   - Profile: avatar/banner upload, display name, bio, location, website, accent color picker (15 options)
   - Customize: 4 themes (Midnight, Deep Ocean, Dark Violet, Charcoal), 4 feed layouts, background mesh toggle
   - MeshPro: Pricing ($4.99/mo monthly, $39.99/yr yearly = $3.33/mo), 10 feature descriptions, redeem code
-  - Meshi (Beta): Expression selector (8), hat selector (7), color selector (8), enable toggle, app logo customization (MeshPro)
+  - Meshi (Beta): Expression selector (8), hat selector (7 free + 6 MeshPro), color selector (8 free + 6 MeshPro), enable toggle, achievement titles (8), app logo customization (MeshPro)
 - **Desktop sidebar**: Left nav with all 14 tabs + Sign out button at bottom
 - **Mobile tabs**: Horizontal scrollable tab bar above content, Sign out at bottom of content
+
+### Meshi Tab — MeshPro Cosmetics Gating
+- **Path**: `/settings?tab=meshi`
+- **MeshPro-exclusive hats** (6): headphones, halo, wizard, astronaut, pirate, chef
+  - Non-MeshPro users see these with Lock icons, `opacity-50`, and `disabled` attribute
+  - MeshPro users see them fully enabled
+- **MeshPro-exclusive colors** (6): crimson, midnight, rose, emerald, arctic, obsidian
+  - Same Lock icon + opacity-50 + disabled gating as hats
+  - Each color button renders a Meshi mascot SVG preview in the selected color
+- **"MeshPro Exclusive" labels**: 2 section labels (one for hats, one for colors)
+- **isMeshPro prop chain**: `getUserSettings()` query → `settings/page.tsx` → `MeshiTab` component. If `isMeshPro` is not threaded properly, cosmetics may default to all-locked or all-unlocked incorrectly.
+- **Achievement Titles section**: h3 "Title" heading, 8 titles (Explorer, Socialite, Creator, Connector, Pioneer, Influencer, Mesh Master, Guardian), "No title" default option. Each title has a Trophy/Lock icon.
+- **Playwright assertion**: Count `button[disabled]` elements — should be >= 12 for a non-MeshPro user (6 hats + 6 colors). All should have `opacity-50` class.
 
 ### Feed (/feed)
 - **Navigation**: Sidebar → "Feed"
@@ -214,11 +270,31 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
 
 ### Meshi Singleton on Mesh Page
 - **Critical rule**: Only ONE Meshi should be visible on /mesh at any time
-- **Current implementation**: The floating Meshi (`meshi-float.tsx`) is the singleton — it shows on ALL pages including /mesh
-- **Canvas does NOT draw local Meshi**: `mesh-renderer.ts` line 72 has comment "Local user's Meshi is the floating UI component (meshi-float.tsx) — not drawn on canvas". `mesh-canvas.tsx` passes `meshiState: null` to the renderer.
-- **Remote Meshis**: Other users' Meshis DO appear on the canvas via `drawRemoteMeshis()` for live presence
-- **How to verify**: On /mesh, check bottom-right for floating Meshi, then zoom into the self node area — there should be NO second Meshi character drawn on the canvas near "Alex Rivera"
-- **Common regression**: If someone re-adds `drawMeshi` import or passes `meshiStateRef.current` instead of `null`, a canvas Meshi will appear as a duplicate
+- **Current implementation**: The floating Meshi (`meshi-float.tsx`) HIDES on /mesh page. It is visible on all other pages (settings, feed, etc.) but transitions out when entering /mesh.
+- **How it works**: `isOnMeshPage` detects `/mesh` route. When `isOnMeshPage` is true AND `isMeshTransition` is false, the floating Meshi's AnimatePresence removes it from the DOM entirely.
+- **isMeshTransition**: A brief 600ms flag that keeps the floating Meshi visible during the transition animation when entering/leaving /mesh. Uses `useRef` for `prevPathname` (NOT `useState`) to avoid competing useEffect cleanup bugs.
+- **Canvas Meshi**: The mesh canvas does NOT draw the local user's Meshi. Remote users' Meshis appear via `drawRemoteMeshis()`.
+- **How to verify (Playwright)**:
+  1. Navigate to `/settings` → check `.fixed.z-40` exists (floating Meshi visible)
+  2. Navigate to `/mesh` → wait 2000ms → check `.fixed.z-40` is absent from DOM
+  3. If `.fixed.z-40` is still present on /mesh with opacity:1, `isMeshTransition` is stuck true (regression)
+- **Common regression**: If `prevPathname` is converted back to `useState`, the competing useEffect cleanup will clear the 600ms timer, leaving `isMeshTransition` permanently true and the floating Meshi visible as an invisible overlay on /mesh.
+
+### Viewport Constraint
+- **Layout**: The authenticated app layout (`src/app/(app)/layout.tsx:55`) uses `h-[100dvh] overflow-hidden` to prevent page scrolling
+- **Unauthenticated pages** (landing, terms, privacy, etc.) use `min-h-screen` instead
+- **How to verify (Playwright)**: After login, check for a `div` with class containing `100dvh`:
+  ```javascript
+  const result = await page.evaluate(() => {
+    const divs = document.querySelectorAll('div');
+    for (const div of divs) {
+      if ((div.className || '').includes('100dvh')) return div.className;
+    }
+    return null;
+  });
+  // Should find: "relative h-[100dvh] overflow-hidden bg-[var(--bg-primary)]"
+  ```
+- **Known issue**: The `window.scrollY` listener for Meshi scroll mood reactions may not work correctly with `overflow-hidden` on the root since the page itself doesn't scroll. The scroll event should listen on `<main>` instead.
 
 ### MeshNodeDetail Panel
 - Click any user node → panel slides in from right
@@ -246,7 +322,7 @@ If the Prisma schema has been updated with new fields but the local SQLite DB ha
   - Mobile (<1024px): 16px from right edge, 80px from bottom (above mobile nav)
 - **Drag behavior**: Meshi is draggable. Drag bounds respect safe zones. Releasing near bottom-right corner snaps back to safe position.
 - **Z-index hierarchy**: Mobile nav (z-50) > Meshi actions menu (z-50) > Meshi (z-40) > zoom controls (z-10)
-- **Cross-page persistence**: Meshi should remain visible when navigating between ALL pages. No page-specific hiding logic should exist in `meshi-float.tsx`.
+- **Page-specific visibility**: Meshi is visible on ALL pages EXCEPT /mesh (where it hides to maintain singleton with the canvas representation). See "Meshi Singleton on Mesh Page" section.
 
 ## Page Consistency
 
@@ -258,10 +334,10 @@ All app pages should have:
 ## Testing Meshi Positioning
 
 When testing Meshi layout changes:
-1. **Desktop Mesh page**: Verify zoom controls are vertically centered on right edge (NOT bottom-right), Meshi is at bottom-right with ~16px clearance, clear vertical separation between them
+1. **Desktop Mesh page**: Verify zoom controls are vertically centered on right edge (NOT bottom-right), Meshi is HIDDEN on /mesh page (not visible at all)
 2. **Mobile viewport**: Use Chrome DevTools device toolbar (Ctrl+Shift+M) to switch to 375-400px width. Verify Meshi sits ABOVE the bottom nav bar (6 items: Mesh, Feed, Explore, Chat, Alerts, Profile)
 3. **Actions menu**: Click Meshi → menu should open above it without covering zoom controls or extending below viewport
-4. **Other pages**: Navigate to Feed, Settings, etc. and verify Meshi doesn't cover interactive elements like buttons or form inputs
+4. **Other pages**: Navigate to Feed, Settings, etc. and verify Meshi IS visible and doesn't cover interactive elements
 5. **Zoom functionality**: Click each zoom button and verify the mesh actually zooms (check percentage indicator changes)
 
 ## Build & Lint
@@ -281,6 +357,7 @@ npx next build
 - Privacy fields on User model: `showInDiscovery` (default true), `hideActivityStatus` (default false), `readReceipts` (default true)
 - Password reset fields: `resetToken` (unique, nullable), `resetTokenExpiry` (nullable DateTime)
 - Stripe fields on User model: `stripeCustomerId` (unique, nullable), `stripeSubscriptionId` (nullable)
+- MeshPro field: `isMeshPro` (boolean, default false) — controls access to premium cosmetics in Meshi tab
 
 ## Common Issues
 
@@ -296,3 +373,5 @@ npx next build
 - **Forgot password first click**: On the password screen, the first click on "Forgot password?" may dismiss a Meshi speech bubble overlay. Click the link again to navigate.
 - **Privacy toggle tab jump**: After clicking a privacy toggle, the Settings page might briefly show the MeshPro tab. Navigate back to Privacy & Safety to verify the change before reloading.
 - **Stripe not configured**: When testing MeshPro payment locally without `STRIPE_SECRET_KEY`, the checkout API returns a 500 error. The frontend should show "Payment is not configured yet. Please check back soon." If it doesn't show this message, the error handling in `meshpro-tab.tsx` may be broken.
+- **Two canvases on /mesh**: The mesh page has TWO canvas elements — a background `MeshBackground` (class `absolute inset-0 w-full h-full opacity-30`, pointer-events-none) and the actual mesh canvas (class `w-full h-full`). When checking if the mesh canvas is interactive via `elementFromPoint`, make sure to test the mesh canvas specifically (the one without `opacity-30` or `absolute inset-0`).
+- **Playwright login selectors**: The login form uses React state transitions (welcome → credentials → login-password). Do NOT use `input[name="username"]` — the input has no `name` attribute. Use `input[type="text"]` for username and `input[type="password"]` for password. Wait 1-2s between steps for AnimatePresence transitions.
