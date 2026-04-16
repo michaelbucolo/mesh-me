@@ -30,14 +30,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     where: { recipientId: user.id, read: false },
   });
 
-  // Single aggregated query for unread messages across all threads
-  const unreadMessages = await prisma.$queryRawUnsafe<[{ count: bigint }]>(
-    `SELECT COUNT(*) as count FROM Message m
-     INNER JOIN ThreadMember tm ON tm.threadId = m.threadId
-     WHERE tm.userId = ? AND m.senderId != ? AND m.createdAt > tm.lastRead`,
-    user.id,
-    user.id
-  ).then((rows) => Number(rows[0]?.count ?? 0)).catch(() => 0);
+  const unreadMessages = await prisma
+    .$queryRaw<Array<{ count: bigint | number }>>`
+      SELECT COUNT(*) as count
+      FROM "Message" m
+      INNER JOIN "ThreadMember" tm ON tm."threadId" = m."threadId"
+      WHERE tm."userId" = ${user.id}
+        AND m."senderId" != ${user.id}
+        AND m."createdAt" > tm."lastRead"
+    `
+    .then((rows) => Number(rows[0]?.count ?? 0))
+    .catch(() => 0);
 
   // Check if user needs verification (after 1 month of signup)
   const now = new Date();
