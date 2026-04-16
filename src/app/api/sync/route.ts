@@ -1,63 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { syncPlatform, syncComments, getSyncJobs } from "@/lib/platform-sync";
+import { syncPlatform } from "@/lib/platform-sync";
 
-// GET /api/sync — get sync status and jobs
-export async function GET(req: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+// GET — load accounts with sync status + recent sync jobs
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const accountId = searchParams.get("accountId");
-
-  const jobs = await getSyncJobs(accountId || undefined);
-  
-  const accounts = await prisma.connectedAccount.findMany({
-    where: { userId: user.id, isActive: true },
-    select: {
-      id: true,
-      platform: true,
-      platformUsername: true,
-      syncStatus: true,
-      syncError: true,
-      lastSyncAt: true,
-      scopes: true,
-      _count: {
+    const [accounts, jobs] = await Promise.all([
+      prisma.connectedAccount.findMany({
+        where: { userId: user.id, isActive: true },
         select: {
-          platformPosts: true,
-          platformComments: true,
-          platformFollowers: true,
-          platformMedia: true,
+          id: true,
+          platform: true,
+          platformUsername: true,
+          syncStatus: true,
+          syncError: true,
+          lastSyncAt: true,
+          scopes: true,
+          _count: {
+            select: {
+              platformPosts: true,
+              platformComments: true,
+              platformFollowers: true,
+              platformMedia: true,
+            },
+          },
         },
-      },
-    },
-  });
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.syncJob.findMany({
+        where: {
+          connectedAccount: { userId: user.id },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          connectedAccount: { select: { platform: true } },
+        },
+      }),
+    ]);
 
-  return NextResponse.json({ accounts, jobs });
+    return NextResponse.json({ accounts, jobs });
+  } catch {
+    return NextResponse.json({ error: "Failed to load sync data" }, { status: 500 });
+  }
 }
 
-// POST /api/sync — trigger a sync
-export async function POST(req: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+// POST — trigger sync for a specific account
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { connectedAccountId, syncType = "full" } = body;
 
-  const body = await req.json();
-  const { connectedAccountId, syncType, platformPostId } = body;
+    if (!connectedAccountId) {
+      return NextResponse.json({ error: "connectedAccountId is required" }, { status: 400 });
+    }
 
-  if (!connectedAccountId) {
-    return NextResponse.json({ error: "connectedAccountId is required" }, { status: 400 });
-  }
+    const result = await syncPlatform(connectedAccountId, syncType);
 
-  // If syncing comments for a specific post
-  if (syncType === "comments" && platformPostId) {
-    const result = await syncComments(connectedAccountId, platformPostId);
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
     return NextResponse.json(result);
+  } catch {
+    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   }
-  if (syncType === "comments") {
-    return NextResponse.json({ error: "platformPostId is required for comment sync" }, { status: 400 });
-  }
-
-  const result = await syncPlatform(connectedAccountId, syncType || "full");
-  return NextResponse.json(result);
 }

@@ -121,10 +121,10 @@ function ConnectedAccountsContent() {
   const handleSyncPlatform = async (accountId: string) => {
     setSyncing(accountId);
     try {
-      const res = await fetch("/api/sync", {
+      const res = await fetch(`/api/connected-accounts/${accountId}/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ connectedAccountId: accountId, syncType: "full" }),
+        body: JSON.stringify({ syncType: "full" }),
       });
       const data = await res.json();
       if (data.success) {
