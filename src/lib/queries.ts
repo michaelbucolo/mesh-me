@@ -942,6 +942,26 @@ export async function getGlobalMeshStatus() {
   return member || { isActive: false, sharedBranches: "[]" };
 }
 
+type FriendMeshPublicPost = {
+  id: string;
+  title: string | null;
+  content: string;
+  url: string | null;
+  postType: string;
+  likeCount: number;
+  commentCount: number;
+  viewCount: number;
+  thumbnailUrl: string | null;
+  publishedAt: Date | null;
+};
+
+type FriendMeshPlatform = {
+  id: string;
+  platform: string;
+  platformUsername: string | null;
+  publicPosts: FriendMeshPublicPost[];
+};
+
 // ─── Friend Mesh Viewing ────────────────────────────────────
 
 export async function getFriendMeshData(username: string): Promise<{
@@ -952,7 +972,7 @@ export async function getFriendMeshData(username: string): Promise<{
   }>;
   communities: Array<{ id: string; name: string; slug: string; memberCount: number }>;
   interests: string[];
-  platforms: Array<{ id: string; platform: string; platformUsername: string | null }>;
+  platforms: FriendMeshPlatform[];
   meshiPreference: { colorTheme: string; hatStyle: string; faceStyle: string } | null;
   stats: { followers: number; following: number; posts: number; communities: number; platforms: number };
   privacyLevel: string;
@@ -986,7 +1006,7 @@ export async function getFriendMeshData(username: string): Promise<{
     following: [] as Array<{ id: string; username: string; displayName: string; avatarUrl: string | null; isMutual: boolean; followerCount: number; postCount: number }>,
     communities: [] as Array<{ id: string; name: string; slug: string; memberCount: number }>,
     interests: [] as string[],
-    platforms: [] as Array<{ id: string; platform: string; platformUsername: string | null }>,
+    platforms: [] as FriendMeshPlatform[],
     meshiPreference: null,
     stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 },
   };
