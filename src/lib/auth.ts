@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 
-const SESSION_COOKIE = "mesh_session";
+const SESSION_COOKIE = "__Host-mesh_session";
+const LEGACY_SESSION_COOKIE = "mesh_session";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export async function hashPassword(password: string): Promise<string> {
@@ -36,12 +37,15 @@ export async function createSession(userId: string): Promise<string> {
     path: "/",
   });
 
+  // Clear legacy cookie name if it still exists
+  cookieStore.delete(LEGACY_SESSION_COOKIE);
+
   return sessionId;
 }
 
 export async function getSession() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
 
   if (!sessionId) return null;
 
@@ -87,12 +91,14 @@ export async function getCurrentUser() {
 
 export async function destroySession() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
 
   if (sessionId) {
     await prisma.session.delete({ where: { id: sessionId } }).catch(() => {});
-    cookieStore.delete(SESSION_COOKIE);
   }
+
+  cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete(LEGACY_SESSION_COOKIE);
 }
 
 export async function invalidateAllUserSessions(userId: string): Promise<number> {
