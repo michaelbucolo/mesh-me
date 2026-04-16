@@ -330,11 +330,13 @@ export default function MeshPage() {
   const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
     if (!node) return;
     if (node.type === "user" && node.sublabel) {
-      enterUserMesh(node);
+      // Smooth zoom into user node first, then load their mesh
+      zoomToNode(node.id);
+      setTimeout(() => enterUserMesh(node), 650);
     } else if (node.href) {
       window.location.href = node.href;
     }
-  }, [enterUserMesh]);
+  }, [enterUserMesh, zoomToNode]);
 
   // --- Connected platforms for post composer ---
   const connectedPlatforms = useMemo(() => {
@@ -347,32 +349,36 @@ export default function MeshPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
-        <div className="text-center">
+      <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
+        {/* Subtle loading overlay that feels like mesh is forming */}
+        <motion.div
+          className="absolute inset-0 z-10 flex items-center justify-center"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8 }}
+        >
           <motion.div
-            className="relative mx-auto mb-8"
-            animate={{ y: [0, -12, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="relative"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            <MeshiMascot size={80} mood="searching" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
+            <MeshiMascot size={64} mood="searching" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
           </motion.div>
-          <motion.p
-            className="text-[var(--text-primary)] font-semibold text-lg mb-1"
-            animate={{ opacity: [1, 0.7, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
+          <motion.div
+            className="absolute bottom-1/3 w-32 h-0.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
+            transition={{ delay: 0.3 }}
           >
-            Building your mesh
-          </motion.p>
-          <p className="text-[var(--text-muted)] text-sm">Mapping your digital universe</p>
-          <div className="mt-6 mx-auto w-48 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
             <motion.div
-              className="h-full rounded-full bg-indigo-500"
+              className="h-full rounded-full bg-indigo-500/60"
               animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
               style={{ width: "40%" }}
             />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     );
   }
@@ -457,17 +463,16 @@ export default function MeshPage() {
         )}
       </AnimatePresence>
 
-      {/* Loading overlay when entering another user's mesh */}
+      {/* Loading overlay when entering another user's mesh — smooth transition */}
       <AnimatePresence>
         {loadingUserMesh && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="glass-dropdown rounded-2xl p-6 shadow-2xl text-center">
-              <motion.div animate={{ x: [0, 50, -30, 40, -20, 0], y: [0, -20, 10, -30, 15, 0], rotate: [0, 10, -10, 5, 0] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} className="mx-auto mb-3">
-                <MeshiMascot size={56} mood="excited" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
-              </motion.div>
-              <p className="text-sm text-[var(--text-primary)] font-medium">Meshi is exploring...</p>
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">Entering their mesh</p>
-            </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+            <motion.div
+              animate={{ y: [0, -6, 0], rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <MeshiMascot size={48} mood="excited" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
