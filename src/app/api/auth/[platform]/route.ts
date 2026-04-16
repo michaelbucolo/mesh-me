@@ -33,10 +33,13 @@ export async function GET(
     );
   }
 
+  const oauthStateCookie = `__Host-oauth_state_${platform}`;
+  const oauthPkceCookie = `__Host-oauth_pkce_${platform}`;
+
   // Generate state token for CSRF protection
   const state = uuidv4();
   const cookieStore = await cookies();
-  cookieStore.set(`oauth_state_${platform}`, state, {
+  cookieStore.set(oauthStateCookie, state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -63,7 +66,7 @@ export async function GET(
         authParams.set("code_challenge", pkce.challenge);
         authParams.set("code_challenge_method", "S256");
         // Store verifier in cookie for callback
-        cookieStore.set(`oauth_pkce_${platform}`, pkce.verifier, {
+        cookieStore.set(oauthPkceCookie, pkce.verifier, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
