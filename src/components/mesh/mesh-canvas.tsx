@@ -57,6 +57,9 @@ export function MeshCanvas({
   const remoteMeshisRef = useRef<RemoteMeshi[]>([]);
   const lastPositionReportRef = useRef(0);
 
+  // Interpolation map for smooth remote Meshi movement between polls
+  const remoteLerpMapRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
   // Keep refs in sync for the render loop
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
@@ -180,6 +183,33 @@ export function MeshCanvas({
         }
       }
 
+      // Smoothly interpolate remote Meshi positions each frame (lerp toward target)
+      const lerpMap = remoteLerpMapRef.current;
+      const rawRemotes = remoteMeshisRef.current;
+      const interpolatedRemotes: RemoteMeshi[] = rawRemotes.map((rm) => {
+        if (!rm.isOnline) return rm; // Offline Meshis stay at their node — no interpolation
+
+        const existing = lerpMap.get(rm.userId);
+        if (!existing) {
+          // First time seeing this remote Meshi — snap to position
+          lerpMap.set(rm.userId, { x: rm.x, y: rm.y });
+          return rm;
+        }
+
+        // Smooth lerp: 6x/s for responsive but smooth movement
+        const lerpT = Math.min(1, 6 * dt);
+        existing.x += (rm.x - existing.x) * lerpT;
+        existing.y += (rm.y - existing.y) * lerpT;
+
+        return { ...rm, x: existing.x, y: existing.y };
+      });
+
+      // Clean up stale lerp entries for users no longer in the list
+      const currentIds = new Set(rawRemotes.filter((r) => r.isOnline).map((r) => r.userId));
+      for (const id of lerpMap.keys()) {
+        if (!currentIds.has(id)) lerpMap.delete(id);
+      }
+
       const cache = imageCache.current;
 
       // Compute formation progress (0→1 over formationDuration)
@@ -203,7 +233,7 @@ export function MeshCanvas({
         hoveredNode: hoveredRef.current,
         selectedNode: selectedRef.current,
         meshiState: meshiStateRef.current,
-        remoteMeshis: remoteMeshisRef.current,
+        remoteMeshis: interpolatedRemotes,
       }, cache);
 
       animationRef.current = requestAnimationFrame(render);
