@@ -1068,11 +1068,43 @@ export async function deletePlatformPost(postId: string) {
   return { success: true };
 }
 
-export async function crossPostContent(content: string, platforms: string[], mediaUrls?: string[]) {
+export async function crossPostContent(content: string, platforms: string[], mediaUrls?: string[], accountIds?: string[]) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
   const results: Record<string, { success: boolean; error?: string }> = {};
+
+  // If account IDs are provided, use them directly; otherwise fall back to platform names
+  if (accountIds && accountIds.length > 0) {
+    for (const accountId of accountIds) {
+      const account = await prisma.connectedAccount.findUnique({
+        where: { id: accountId },
+      });
+      if (!account || account.userId !== user.id || !account.isActive) {
+        results[accountId] = { success: false, error: "Account not found or inactive" };
+        continue;
+      }
+      if (!account.accessToken) {
+        results[accountId] = { success: false, error: "No access token" };
+        continue;
+      }
+      try {
+        const adapter = getAdapter(account.platform);
+        const post = await adapter.createPost(account.accessToken, content, mediaUrls);
+        if (post) {
+          await prisma.platformPost.create({
+            data: { connectedAccountId: account.id, ...post, isFromMesh: true },
+          });
+          results[account.platformUsername || account.platform] = { success: true };
+        } else {
+          results[account.platformUsername || account.platform] = { success: false, error: "Platform API returned no result" };
+        }
+      } catch (err) {
+        results[account.platformUsername || account.platform] = { success: false, error: err instanceof Error ? err.message : "Failed" };
+      }
+    }
+    return { results };
+  }
 
   for (const platform of platforms) {
     const account = await prisma.connectedAccount.findFirst({
@@ -1119,12 +1151,11 @@ export async function editPlatformPost(postId: string, content: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
 
-  if (post.connectedAccount.accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    const ok = await adapter.editPost(post.connectedAccount.accessToken, post.platformPostId, content);
-    if (!ok) return { error: "Platform does not support editing or the request failed" };
-  }
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.editPost(post.connectedAccount.accessToken, post.platformPostId, content);
+  if (!ok) return { error: "Platform does not support editing or the request failed" };
 
   await prisma.platformPost.update({ where: { id: postId }, data: { content } });
   return { success: true };
@@ -1171,11 +1202,15 @@ export async function unlikePlatformPost(postId: string) {
     if (!ok) return { error: "Platform does not support unliking or the request failed" };
   }
 
-  // Clamp to 0 minimum
-  const newCount = Math.max(0, (post.likeCount || 0) - 1);
+  // Use atomic decrement, then clamp
   await prisma.platformPost.update({
     where: { id: postId },
-    data: { likeCount: newCount },
+    data: { likeCount: { decrement: 1 } },
+  });
+  // Clamp to 0 if it went negative
+  await prisma.platformPost.updateMany({
+    where: { id: postId, likeCount: { lt: 0 } },
+    data: { likeCount: 0 },
   });
   return { success: true };
 }
@@ -1237,12 +1272,11 @@ export async function sharePlatformPost(postId: string, comment?: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
 
-  if (post.connectedAccount.accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    const ok = await adapter.sharePost(post.connectedAccount.accessToken, post.platformPostId, comment);
-    if (!ok) return { error: "Share failed — platform may not support this action" };
-  }
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.sharePost(post.connectedAccount.accessToken, post.platformPostId, comment);
+  if (!ok) return { error: "Share failed — platform may not support this action" };
 
   await prisma.platformPost.update({
     where: { id: postId },
@@ -1261,11 +1295,11 @@ export async function pinPlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
 
-  if (post.connectedAccount.accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    await adapter.pinPost(post.connectedAccount.accessToken, post.platformPostId);
-  }
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.pinPost(post.connectedAccount.accessToken, post.platformPostId);
+  if (!ok) return { error: "Pin failed — platform may not support this action" };
 
   await prisma.platformPost.update({
     where: { id: postId },
@@ -1284,11 +1318,11 @@ export async function unpinPlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
 
-  if (post.connectedAccount.accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    await adapter.unpinPost(post.connectedAccount.accessToken, post.platformPostId);
-  }
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.unpinPost(post.connectedAccount.accessToken, post.platformPostId);
+  if (!ok) return { error: "Unpin failed — platform may not support this action" };
 
   await prisma.platformPost.update({
     where: { id: postId },
@@ -1307,11 +1341,11 @@ export async function updatePlatformPostVisibility(postId: string, visibility: s
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post.connectedAccount.accessToken) return { error: "No access token" };
 
-  if (post.connectedAccount.accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    await adapter.updateVisibility(post.connectedAccount.accessToken, post.platformPostId, visibility);
-  }
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.updateVisibility(post.connectedAccount.accessToken, post.platformPostId, visibility);
+  if (!ok) return { error: "Visibility update failed — platform may not support this action" };
 
   await prisma.platformPost.update({
     where: { id: postId },
