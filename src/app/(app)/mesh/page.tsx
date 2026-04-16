@@ -17,7 +17,6 @@ import type { MeshNode, MeshEdge, FilterType } from "@/components/mesh/mesh-type
 
 // Lazy-load overlay panels — only rendered when user opens them
 const ContentHub = lazy(() => import("@/components/mesh/content-hub").then(m => ({ default: m.ContentHub })));
-const MeshNodeDetail = lazy(() => import("@/components/mesh/mesh-node-detail").then(m => ({ default: m.MeshNodeDetail })));
 const MeshCommandPalette = lazy(() => import("@/components/mesh/mesh-command-palette").then(m => ({ default: m.MeshCommandPalette })));
 const MeshFootprint = lazy(() => import("@/components/mesh/mesh-footprint").then(m => ({ default: m.MeshFootprint })));
 const MeshPrivacyPanel = lazy(() => import("@/components/mesh/mesh-privacy-panel").then(m => ({ default: m.MeshPrivacyPanel })));
@@ -48,12 +47,9 @@ export default function MeshPage() {
   const [showNodePrivacy, setShowNodePrivacy] = useState(false);
   const [showContentHub, setShowContentHub] = useState(false);
   const [showMeshiMeet, setShowMeshiMeet] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
   // --- Privacy state ---
   const [hiddenNodes, setHiddenNodes] = useState<Set<string>>(new Set());
   const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set());
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
   // --- Mesh data ---
   const [meshStats, setMeshStats] = useState<MeshApiResponse["stats"] | null>(null);
@@ -106,29 +102,11 @@ export default function MeshPage() {
   }, [hiddenBranches]);
 
   // --- Toggle helpers ---
-  const toggleNodeHidden = (nodeId: string) => {
-    setHiddenNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
-      return next;
-    });
-  };
-
   const toggleBranchHidden = (branchType: string) => {
     setHiddenBranches((prev) => {
       const next = new Set(prev);
       if (next.has(branchType)) next.delete(branchType);
       else next.add(branchType);
-      return next;
-    });
-  };
-
-  const toggleLike = (postId: string) => {
-    setLikedPosts((prev) => {
-      const next = new Set(prev);
-      if (next.has(postId)) next.delete(postId);
-      else next.add(postId);
       return next;
     });
   };
@@ -320,23 +298,28 @@ export default function MeshPage() {
   }, []);
 
   const handleCanvasClick = useCallback((node: MeshNode | null) => {
-    if (node) {
-      setSelectedNode(node);
-    } else {
+    if (!node) {
       setSelectedNode(null);
+      return;
     }
-  }, []);
-
-  const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
-    if (!node) return;
+    // Single-click on user nodes zooms into their mesh directly
     if (node.type === "user" && node.sublabel) {
-      // Smooth zoom into user node first, then load their mesh
       zoomToNode(node.id);
       setTimeout(() => enterUserMesh(node), 650);
     } else if (node.href) {
       window.location.href = node.href;
+    } else {
+      setSelectedNode(node);
     }
   }, [enterUserMesh, zoomToNode]);
+
+  const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
+    if (!node) return;
+    // Double-click navigates to the node's page if available
+    if (node.href) {
+      window.location.href = node.href;
+    }
+  }, []);
 
   // --- Connected platforms for post composer ---
   const connectedPlatforms = useMemo(() => {
@@ -520,27 +503,7 @@ export default function MeshPage() {
         </div>
       )}
 
-      {/* Selected node detail panel */}
-      <AnimatePresence>
-        {selectedNode && (
-          <Suspense fallback={null}>
-          <MeshNodeDetail
-            node={selectedNode}
-            edges={engine.edges}
-            hiddenNodes={hiddenNodes}
-            hiddenBranches={hiddenBranches}
-            likedPosts={likedPosts}
-            actionLoading={actionLoading}
-            onClose={() => setSelectedNode(null)}
-            onToggleNodeHidden={toggleNodeHidden}
-            onToggleBranchHidden={toggleBranchHidden}
-            onToggleLike={toggleLike}
-            onSetActionLoading={setActionLoading}
-            onZoomToNode={zoomToNode}
-          />
-          </Suspense>
-        )}
-      </AnimatePresence>
+
 
       {/* Footprint dashboard */}
       <AnimatePresence>

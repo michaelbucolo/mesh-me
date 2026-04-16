@@ -4,7 +4,7 @@
 
 import type { MeshNode } from "./mesh-types";
 
-export type MeshiMoodCanvas = "happy" | "excited" | "searching" | "love" | "celebrating" | "thinking" | "wink";
+export type MeshiMoodCanvas = "happy" | "excited" | "searching" | "love" | "celebrating" | "thinking" | "wink" | "sleeping";
 
 export interface MeshiState {
   x: number;
@@ -29,6 +29,12 @@ export interface MeshiState {
   username: string;
   lookAtX: number | null; // When set, Meshi's eyes look toward this point
   lookAtY: number | null;
+  // Cursor-following state
+  cursorX: number | null;
+  cursorY: number | null;
+  idleTimer: number; // Seconds since last cursor movement
+  isTouch: boolean;  // True on touch-enabled devices
+  followingCursor: boolean; // True when following cursor, false when exploring
 }
 
 export interface RemoteMeshi {
@@ -40,6 +46,7 @@ export interface RemoteMeshi {
   color: string;
   hat: string;
   mood: MeshiMoodCanvas;
+  isOnline: boolean;
 }
 
 export const MESHI_COLORS: Record<string, string> = {
@@ -66,8 +73,12 @@ export const MESHI_COLORS: Record<string, string> = {
 // How frequently Meshi picks a new node to visit (seconds)
 const WANDER_INTERVAL_MIN = 4;
 const WANDER_INTERVAL_MAX = 9;
-// Movement speed (pixels per tick)
-const MOVE_SPEED = 1.8;
+// Movement speed (pixels per second at 60fps baseline)
+const MOVE_SPEED = 108;
+// Idle threshold — after this many seconds of no cursor movement, Meshi explores freely
+const IDLE_THRESHOLD = 5;
+// Cursor follow offset — Meshi hovers near cursor, not exactly on it
+const CURSOR_OFFSET = 30;
 
 export function createMeshiState(
   cx: number,
@@ -76,6 +87,7 @@ export function createMeshiState(
   hat: string,
   username: string,
 ): MeshiState {
+  const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
   return {
     x: cx,
     y: cy,
@@ -99,6 +111,11 @@ export function createMeshiState(
     username,
     lookAtX: null,
     lookAtY: null,
+    cursorX: null,
+    cursorY: null,
+    idleTimer: IDLE_THRESHOLD + 1, // Start in exploring mode
+    isTouch,
+    followingCursor: false,
   };
 }
 
@@ -153,26 +170,90 @@ function getReactionForNode(node: MeshNode): { mood: MeshiMoodCanvas; reaction: 
   }
 }
 
+/** Update Meshi's cursor position — call from mousemove handler */
+export function updateMeshiCursor(state: MeshiState, canvasX: number, canvasY: number): void {
+  state.cursorX = canvasX;
+  state.cursorY = canvasY;
+  state.idleTimer = 0;
+  state.followingCursor = true;
+}
+
 /** Tick Meshi state — call each frame */
-export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number): void {
+export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number, canvasWidth?: number, canvasHeight?: number): void {
   state.bobPhase += dt * 2.5;
-  state.moveTimer -= dt;
   if (state.reactionTimer > 0) state.reactionTimer -= dt;
   else { state.currentReaction = null; }
   if (state.propTimer > 0) state.propTimer -= dt;
   else { state.prop = "none"; }
 
-  // Pick new target when timer expires
-  if (state.moveTimer <= 0) {
-    const next = pickNextTarget(state, nodes);
-    if (next) {
-      state.targetNode = next;
-      state.targetX = next.x;
-      state.targetY = next.y;
-      state.isMoving = true;
-      state.mood = "searching";
+  // Track idle time
+  state.idleTimer += dt;
+  const isIdle = state.idleTimer > IDLE_THRESHOLD;
+
+  // Determine behavior mode
+  if (state.isTouch) {
+    // Touch devices: stay near center, avoid UI edges
+    const cx = (canvasWidth || 800) / 2;
+    const cy = (canvasHeight || 600) / 2;
+    // Offset slightly from dead center to feel natural
+    const offsetX = Math.sin(state.bobPhase * 0.3) * 40;
+    const offsetY = Math.cos(state.bobPhase * 0.2) * 30;
+    state.targetX = cx + offsetX;
+    state.targetY = cy + offsetY;
+    state.followingCursor = false;
+
+    // If idle long enough on touch, explore nearby visible nodes
+    if (isIdle && state.moveTimer <= 0) {
+      const visibleNodes = nodes.filter((n) => {
+        if (n.type === "self") return false;
+        const w = canvasWidth || 800;
+        const h = canvasHeight || 600;
+        // Only pick nodes roughly in the visible viewport
+        return n.x > -w * 0.3 && n.x < w * 1.3 && n.y > -h * 0.3 && n.y < h * 1.3;
+      });
+      const next = visibleNodes.length > 0 ? pickNextTarget(state, visibleNodes) : null;
+      if (next) {
+        state.targetNode = next;
+        state.targetX = next.x;
+        state.targetY = next.y;
+        state.isMoving = true;
+        state.mood = "searching";
+      }
+      state.moveTimer = WANDER_INTERVAL_MIN + Math.random() * (WANDER_INTERVAL_MAX - WANDER_INTERVAL_MIN);
+    } else {
+      state.moveTimer -= dt;
     }
-    state.moveTimer = WANDER_INTERVAL_MIN + Math.random() * (WANDER_INTERVAL_MAX - WANDER_INTERVAL_MIN);
+  } else if (!isIdle && state.cursorX !== null && state.cursorY !== null) {
+    // Desktop: follow cursor with a slight offset below-right
+    state.targetX = state.cursorX + CURSOR_OFFSET;
+    state.targetY = state.cursorY + CURSOR_OFFSET;
+    state.followingCursor = true;
+    state.targetNode = null;
+    state.moveTimer = 2; // Reset wander timer while following
+    if (!state.isMoving) state.mood = "happy";
+  } else {
+    // Desktop idle: explore freely (original wander behavior)
+    state.followingCursor = false;
+    state.moveTimer -= dt;
+
+    if (state.moveTimer <= 0) {
+      // Only pick nodes within the visible area
+      const visibleNodes = nodes.filter((n) => {
+        if (n.type === "self") return false;
+        const w = canvasWidth || 800;
+        const h = canvasHeight || 600;
+        return n.x > -w * 0.3 && n.x < w * 1.3 && n.y > -h * 0.3 && n.y < h * 1.3;
+      });
+      const next = visibleNodes.length > 0 ? pickNextTarget(state, visibleNodes) : pickNextTarget(state, nodes);
+      if (next) {
+        state.targetNode = next;
+        state.targetX = next.x;
+        state.targetY = next.y;
+        state.isMoving = true;
+        state.mood = "searching";
+      }
+      state.moveTimer = WANDER_INTERVAL_MIN + Math.random() * (WANDER_INTERVAL_MAX - WANDER_INTERVAL_MIN);
+    }
   }
 
   // Move toward target
@@ -180,18 +261,22 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number): voi
   const dy = state.targetY - state.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
 
+  // Faster follow speed when tracking cursor, normal speed when exploring
+  const effectiveSpeed = state.followingCursor ? MOVE_SPEED * 2 : MOVE_SPEED;
+
   if (dist > state.radius + 5) {
-    const speed = Math.min(MOVE_SPEED, dist * 0.06) * dt * 60;
+    const speed = Math.min(effectiveSpeed, dist * 3.6) * dt;
     state.x += (dx / dist) * speed;
     state.y += (dy / dist) * speed;
     state.isMoving = true;
 
-    // Leave trail
-    if (state.trailPoints.length === 0 || Math.random() < 0.3) {
+    // Leave trail (less frequent when following cursor)
+    const trailChance = state.followingCursor ? 0.15 : 0.3;
+    if (state.trailPoints.length === 0 || Math.random() < trailChance) {
       state.trailPoints.push({ x: state.x, y: state.y, alpha: 0.4 });
       if (state.trailPoints.length > 12) state.trailPoints.shift();
     }
-  } else if (state.isMoving && state.targetNode) {
+  } else if (state.isMoving && state.targetNode && !state.followingCursor) {
     // Arrived at target node — react
     state.isMoving = false;
     state.visitedNodes.add(state.targetNode.id);
@@ -206,20 +291,244 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number): voi
     if (state.visitedNodes.size > nodes.length * 0.7) {
       state.visitedNodes.clear();
     }
+  } else if (state.followingCursor && dist <= state.radius + 5) {
+    state.isMoving = false;
+    state.mood = "happy";
   }
 
-  // Fade trail
+  // Fade trail (frame-rate independent)
+  const trailFade = Math.pow(0.96, dt * 60);
   for (const pt of state.trailPoints) {
-    pt.alpha *= 0.96;
+    pt.alpha *= trailFade;
   }
   state.trailPoints = state.trailPoints.filter((pt) => pt.alpha > 0.02);
 }
 
-/** Draw Meshi on the canvas */
+// --- SVG-based Meshi rendering (matches MeshiMascot component exactly) ---
+
+// Color themes matching meshi-mascot.tsx COLOR_THEMES
+const SVG_COLOR_THEMES: Record<string, { primary: string; bg: string }> = {
+  blue: { primary: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" },
+  purple: { primary: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
+  pink: { primary: "#ec4899", bg: "rgba(236, 72, 153, 0.1)" },
+  green: { primary: "#22c55e", bg: "rgba(34, 197, 94, 0.1)" },
+  orange: { primary: "#f97316", bg: "rgba(249, 115, 22, 0.1)" },
+  cyan: { primary: "#06b6d4", bg: "rgba(6, 182, 212, 0.1)" },
+  gold: { primary: "#eab308", bg: "rgba(234, 179, 8, 0.1)" },
+  rainbow: { primary: "#ec4899", bg: "rgba(139, 92, 246, 0.1)" },
+  crimson: { primary: "#dc2626", bg: "rgba(220, 38, 38, 0.1)" },
+  midnight: { primary: "#312e81", bg: "rgba(49, 46, 129, 0.15)" },
+  rose: { primary: "#f43f5e", bg: "rgba(244, 63, 94, 0.1)" },
+  emerald: { primary: "#059669", bg: "rgba(5, 150, 105, 0.1)" },
+  arctic: { primary: "#7dd3fc", bg: "rgba(125, 211, 252, 0.1)" },
+  obsidian: { primary: "#475569", bg: "rgba(71, 85, 105, 0.15)" },
+};
+
+// SVG eye markup matching MeshiMascot's SVG_FACES
+function svgEyesForMood(mood: MeshiMoodCanvas, primary: string): string {
+  switch (mood) {
+    case "happy":
+      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
+              <ellipse cx="5" cy="0" rx="2.5" ry="3" fill="${primary}"/>`;
+    case "excited":
+      return `<text x="-5" y="1" text-anchor="middle" dominant-baseline="central" font-size="8" fill="${primary}" font-family="system-ui">★</text>
+              <text x="5" y="1" text-anchor="middle" dominant-baseline="central" font-size="8" fill="${primary}" font-family="system-ui">★</text>`;
+    case "love":
+      return `<text x="-5" y="1" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${primary}" font-family="system-ui">♥</text>
+              <text x="5" y="1" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${primary}" font-family="system-ui">♥</text>`;
+    case "searching":
+      return `<ellipse cx="-5" cy="0" rx="3" ry="1.5" fill="${primary}"/>
+              <ellipse cx="5" cy="0" rx="3" ry="1.5" fill="${primary}"/>
+              <circle cx="-4" cy="0" r="0.8" fill="white"/>
+              <circle cx="6" cy="0" r="0.8" fill="white"/>`;
+    case "celebrating":
+      return `<path d="M -7.5 0 Q -5 -3 -2.5 0" fill="none" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 2.5 0 Q 5 -3 7.5 0" fill="none" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>`;
+    case "thinking":
+      return `<ellipse cx="-5" cy="-0.5" rx="2.2" ry="2.8" fill="${primary}"/>
+              <ellipse cx="5" cy="-0.5" rx="2.8" ry="2.2" fill="${primary}"/>`;
+    case "sleeping":
+      return `<path d="M -7 0 L -3 0" fill="none" stroke="${primary}" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M 3 0 L 7 0" fill="none" stroke="${primary}" stroke-width="1.8" stroke-linecap="round"/>
+              <text x="10" y="-6" text-anchor="middle" font-size="6" fill="${primary}" font-family="system-ui" opacity="0.6">z</text>
+              <text x="13" y="-10" text-anchor="middle" font-size="5" fill="${primary}" font-family="system-ui" opacity="0.4">z</text>`;
+    case "wink":
+      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
+              <path d="M 2.5 0.5 Q 5 -2.5 7.5 0.5" fill="none" stroke="${primary}" stroke-width="1.8" stroke-linecap="round"/>`;
+    default:
+      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
+              <ellipse cx="5" cy="0" rx="2.5" ry="3" fill="${primary}"/>`;
+  }
+}
+
+// SVG hat markup matching MeshiMascot's HATS
+function svgHatMarkup(hat: string, primary: string): string {
+  switch (hat) {
+    case "tophat":
+      return `<g transform="translate(0, -18)">
+        <rect x="-12" y="-8" width="24" height="12" rx="2" fill="${primary}" opacity="0.9"/>
+        <rect x="-16" y="2" width="32" height="4" rx="2" fill="${primary}" opacity="0.9"/>
+      </g>`;
+    case "crown":
+      return `<g transform="translate(0, -16)">
+        <polygon points="-12,4 -12,-4 -8,-1 -4,-8 0,-1 4,-8 8,-1 12,-4 12,4" fill="#fbbf24"/>
+        <circle cx="-4" cy="-5" r="1.5" fill="#ef4444"/>
+        <circle cx="4" cy="-5" r="1.5" fill="#3b82f6"/>
+        <circle cx="0" cy="-2" r="1.5" fill="#22c55e"/>
+      </g>`;
+    case "beanie":
+      return `<g transform="translate(0, -14)">
+        <ellipse cx="0" cy="0" rx="14" ry="8" fill="${primary}" opacity="0.9"/>
+        <circle cx="0" cy="-6" r="3" fill="${primary}" opacity="0.7"/>
+      </g>`;
+    case "cap":
+      return `<g transform="translate(0, -12)">
+        <path d="M-14,2 Q-14,-8 0,-10 Q14,-8 14,2 Z" fill="${primary}" opacity="0.9"/>
+        <path d="M10,0 Q18,0 20,4 L14,4 Q12,2 10,2 Z" fill="${primary}" opacity="0.7"/>
+      </g>`;
+    case "party":
+      return `<g transform="translate(0, -16)">
+        <polygon points="0,-14 -8,2 8,2" fill="#ec4899"/>
+        <circle cx="0" cy="-14" r="2" fill="#fbbf24"/>
+        <circle cx="-3" cy="-6" r="1" fill="#3b82f6"/>
+        <circle cx="3" cy="-4" r="1" fill="#22c55e"/>
+        <circle cx="1" cy="-10" r="1" fill="#f97316"/>
+      </g>`;
+    case "flower":
+      return `<g transform="translate(6, -14)">
+        <circle cx="0" cy="0" r="3" fill="#fbbf24"/>
+        ${[0, 60, 120, 180, 240, 300].map(deg => {
+          const cx = Math.round(Math.cos(deg * Math.PI / 180) * 4 * 1000) / 1000;
+          const cy = Math.round(Math.sin(deg * Math.PI / 180) * 4 * 1000) / 1000;
+          return `<circle cx="${cx}" cy="${cy}" r="2.5" fill="#ec4899" opacity="0.8"/>`;
+        }).join("")}
+      </g>`;
+    case "headphones":
+      return `<g transform="translate(0, -12)">
+        <path d="M-12,4 Q-12,-10 0,-12 Q12,-10 12,4" fill="none" stroke="#6b7280" stroke-width="3" stroke-linecap="round"/>
+        <rect x="-15" y="0" width="6" height="8" rx="2" fill="#374151"/>
+        <rect x="9" y="0" width="6" height="8" rx="2" fill="#374151"/>
+      </g>`;
+    case "halo":
+      return `<g transform="translate(0, -20)">
+        <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fbbf24" stroke-width="2.5" opacity="0.9"/>
+        <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fde68a" stroke-width="1" opacity="0.4"/>
+      </g>`;
+    case "wizard":
+      return `<g transform="translate(0, -16)">
+        <polygon points="0,-18 -10,2 10,2" fill="#6366f1"/>
+        <rect x="-14" y="0" width="28" height="4" rx="2" fill="#6366f1" opacity="0.8"/>
+        <circle cx="0" cy="-14" r="2" fill="#fbbf24"/>
+        <circle cx="-4" cy="-6" r="1.2" fill="#fbbf24" opacity="0.6"/>
+        <circle cx="3" cy="-9" r="1" fill="#fbbf24" opacity="0.5"/>
+      </g>`;
+    case "astronaut":
+      return `<g transform="translate(0, -14)">
+        <ellipse cx="0" cy="0" rx="16" ry="12" fill="none" stroke="#e2e8f0" stroke-width="2.5"/>
+        <ellipse cx="0" cy="0" rx="16" ry="12" fill="rgba(148, 163, 184, 0.15)"/>
+        <ellipse cx="-4" cy="-2" rx="3" ry="2" fill="rgba(255,255,255,0.2)"/>
+      </g>`;
+    case "pirate":
+      return `<g transform="translate(0, -14)">
+        <path d="M-14,2 Q-14,-6 0,-8 Q14,-6 14,2 Z" fill="#1e1e2e"/>
+        <rect x="-16" y="0" width="32" height="3" rx="1" fill="#1e1e2e"/>
+        <path d="M-4,-4 L0,-6 L4,-4 L2,-2 L-2,-2 Z" fill="#e2e8f0" opacity="0.8"/>
+      </g>`;
+    case "chef":
+      return `<g transform="translate(0, -16)">
+        <ellipse cx="0" cy="0" rx="12" ry="10" fill="#f8fafc"/>
+        <circle cx="-6" cy="-4" r="5" fill="#f8fafc"/>
+        <circle cx="6" cy="-4" r="5" fill="#f8fafc"/>
+        <circle cx="0" cy="-8" r="5" fill="#f8fafc"/>
+        <rect x="-12" y="0" width="24" height="3" rx="1" fill="#e2e8f0"/>
+      </g>`;
+    default:
+      return "";
+  }
+}
+
+// SVG prop markup matching MeshiMascot's PROP_SVGS
+function svgPropMarkup(prop: string, primary: string): string {
+  switch (prop) {
+    case "magnifying-glass":
+      return `<g transform="translate(12, -8) scale(0.6)">
+        <circle cx="0" cy="0" r="6" fill="none" stroke="${primary}" stroke-width="2.5"/>
+        <line x1="4" y1="4" x2="10" y2="10" stroke="${primary}" stroke-width="2.5" stroke-linecap="round"/>
+      </g>`;
+    case "compass":
+      return `<g transform="translate(12, -6) scale(0.55)">
+        <circle cx="0" cy="0" r="7" fill="none" stroke="${primary}" stroke-width="2"/>
+        <polygon points="0,-5 2,0 0,5 -2,0" fill="${primary}" opacity="0.7"/>
+        <circle cx="0" cy="0" r="1.5" fill="${primary}"/>
+      </g>`;
+    case "heart":
+      return `<g transform="translate(12, -6) scale(0.55)">
+        <path d="M 0 3 C -8 -2 -8 -8 -4 -8 C -1 -8 0 -5 0 -5 C 0 -5 1 -8 4 -8 C 8 -8 8 -2 0 3 Z" fill="${primary}" opacity="0.8"/>
+      </g>`;
+    default:
+      return "";
+  }
+}
+
+/** Generate a complete SVG string that matches MeshiMascot component exactly */
+function generateMeshiSvg(colorKey: string, hat: string, mood: MeshiMoodCanvas, prop?: string): string {
+  const theme = SVG_COLOR_THEMES[colorKey] || SVG_COLOR_THEMES.blue;
+  const primary = theme.primary;
+  const bg = theme.bg;
+  const hatSvg = hat && hat !== "none" ? svgHatMarkup(hat, primary) : "";
+  const eyesSvg = svgEyesForMood(mood, primary);
+  const propSvg = prop && prop !== "none" ? svgPropMarkup(prop, primary) : "";
+  // Use unique clip-path ID per SVG variant to avoid collisions
+  const clipId = `mc-${colorKey}-${hat}-${mood}`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-32 -32 64 64">
+    <defs>
+      <clipPath id="${clipId}"><circle cx="0" cy="0" r="22"/></clipPath>
+    </defs>
+    <circle cx="0" cy="0" r="20" fill="none" stroke="${primary}" stroke-width="1.5" opacity="0.2"/>
+    <g clip-path="url(#${clipId})">
+      <circle cx="0" cy="0" r="16" fill="${bg}" stroke="${primary}" stroke-width="2"/>
+      <g>${eyesSvg}</g>
+    </g>
+    <g style="color:${primary}">${hatSvg}</g>
+    ${propSvg}
+  </svg>`;
+}
+
+// Image cache for rendered SVG Meshis
+const meshiImageCache = new Map<string, HTMLImageElement>();
+
+function getMeshiImage(colorKey: string, hat: string, mood: MeshiMoodCanvas, prop?: string): HTMLImageElement | null {
+  const key = `${colorKey}-${hat}-${mood}-${prop || "none"}`;
+  const cached = meshiImageCache.get(key);
+  if (cached && cached.complete) return cached;
+  if (cached) return null; // Still loading
+
+  const svg = generateMeshiSvg(colorKey, hat, mood, prop);
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => URL.revokeObjectURL(url);
+  img.onerror = () => { meshiImageCache.delete(key); URL.revokeObjectURL(url); };
+  img.src = url;
+  meshiImageCache.set(key, img);
+  return null; // Will be ready next frame
+}
+
+/** Resolve color key name from hex value */
+function colorKeyFromHex(hex: string): string {
+  for (const [key, val] of Object.entries(MESHI_COLORS)) {
+    if (val === hex) return key;
+  }
+  return "blue";
+}
+
+/** Draw Meshi on the canvas using the same SVG model as the floating Meshi */
 export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState, time: number): void {
   const bob = Math.sin(state.bobPhase) * 3;
   const mx = state.x;
   const my = state.y + bob;
+  const drawSize = state.radius * 3; // SVG rendered at 3x radius for detail
 
   // Trail sparkles
   for (const pt of state.trailPoints) {
@@ -229,419 +538,102 @@ export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState, time
     ctx.fill();
   }
 
-  // Glow
-  const glowGrad = ctx.createRadialGradient(mx, my, 0, mx, my, state.radius * 2.5);
-  glowGrad.addColorStop(0, `${state.color}40`);
-  glowGrad.addColorStop(0.5, `${state.color}15`);
+  // Subtle glow
+  const glowGrad = ctx.createRadialGradient(mx, my, 0, mx, my, drawSize);
+  const colorKey = colorKeyFromHex(state.color);
+  const theme = SVG_COLOR_THEMES[colorKey] || SVG_COLOR_THEMES.blue;
+  glowGrad.addColorStop(0, `${theme.primary}30`);
+  glowGrad.addColorStop(0.6, `${theme.primary}10`);
   glowGrad.addColorStop(1, "transparent");
   ctx.fillStyle = glowGrad;
   ctx.beginPath();
-  ctx.arc(mx, my, state.radius * 2.5, 0, Math.PI * 2);
+  ctx.arc(mx, my, drawSize, 0, Math.PI * 2);
   ctx.fill();
 
-  // Body
-  ctx.beginPath();
-  ctx.arc(mx, my, state.radius, 0, Math.PI * 2);
-  const bodyGrad = ctx.createRadialGradient(mx - 3, my - 3, 0, mx, my, state.radius);
-  bodyGrad.addColorStop(0, lightenColor(state.color, 30));
-  bodyGrad.addColorStop(1, state.color);
-  ctx.fillStyle = bodyGrad;
-  ctx.fill();
-  ctx.strokeStyle = `${state.color}80`;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Shine highlight
-  ctx.beginPath();
-  ctx.arc(mx - state.radius * 0.25, my - state.radius * 0.3, state.radius * 0.35, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
-  ctx.fill();
-
-  // Eyes
-  drawMeshiEyes(ctx, mx, my, state.mood, state.radius, time, state.lookAtX, state.lookAtY);
-
-  // Hat
-  if (state.hat && state.hat !== "none") {
-    drawMeshiHat(ctx, mx, my, state.hat, state.radius, state.hatColor);
-  }
-
-  // Prop (magnifying glass, compass, etc.)
-  if (state.prop !== "none" && state.propTimer > 0) {
-    drawMeshiProp(ctx, mx, my, state.prop, state.radius, state.color);
+  // Draw SVG image
+  const activeProp = state.prop !== "none" && state.propTimer > 0 ? state.prop : undefined;
+  const img = getMeshiImage(colorKey, state.hat, state.mood, activeProp);
+  if (img) {
+    ctx.drawImage(img, mx - drawSize / 2, my - drawSize / 2, drawSize, drawSize);
   }
 
   // Username label
   ctx.font = "bold 8px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-  ctx.fillText(state.username, mx, my + state.radius + 4);
+  // Dark pill background for readability
+  const textMetrics = ctx.measureText(state.username);
+  const labelX = mx;
+  const labelY = my + drawSize / 2 + 2;
+  const padding = 4;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.beginPath();
+  ctx.roundRect(labelX - textMetrics.width / 2 - padding, labelY - 1, textMetrics.width + padding * 2, 12, 4);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.fillText(state.username, labelX, labelY + 1);
 }
 
-/** Draw remote Meshi presences on the canvas */
+/** Draw remote Meshi presences on the canvas using the same SVG model */
 export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: RemoteMeshi[], time: number): void {
   for (const rm of remoteMeshis) {
-    const bob = Math.sin(time * 2 + rm.userId.charCodeAt(0)) * 2;
+    const isOffline = !rm.isOnline;
+    // Offline Meshis bob very slowly (sleeping), online ones bob normally
+    const bobSpeed = isOffline ? 0.6 : 2;
+    const bobAmplitude = isOffline ? 1 : 2;
+    const bob = Math.sin(time * bobSpeed + rm.userId.charCodeAt(0)) * bobAmplitude;
     const mx = rm.x;
     const my = rm.y + bob;
-    const radius = 11;
-    const color = MESHI_COLORS[rm.color] || MESHI_COLORS.blue;
+    const drawSize = 30;
 
-    // Semi-transparent glow
-    const glowGrad = ctx.createRadialGradient(mx, my, 0, mx, my, radius * 2);
-    glowGrad.addColorStop(0, `${color}25`);
+    // Subtle glow (dimmer for offline)
+    const color = MESHI_COLORS[rm.color] || MESHI_COLORS.blue;
+    const colorKey = Object.entries(MESHI_COLORS).find(([, v]) => v === color)?.[0] || rm.color || "blue";
+    const theme = SVG_COLOR_THEMES[colorKey] || SVG_COLOR_THEMES.blue;
+    const glowAlpha = isOffline ? "10" : "20";
+    const glowGrad = ctx.createRadialGradient(mx, my, 0, mx, my, drawSize);
+    glowGrad.addColorStop(0, `${theme.primary}${glowAlpha}`);
     glowGrad.addColorStop(1, "transparent");
     ctx.fillStyle = glowGrad;
     ctx.beginPath();
-    ctx.arc(mx, my, radius * 2, 0, Math.PI * 2);
+    ctx.arc(mx, my, drawSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // Body (slightly transparent)
-    ctx.globalAlpha = 0.75;
-    ctx.beginPath();
-    ctx.arc(mx, my, radius, 0, Math.PI * 2);
-    const bodyGrad = ctx.createRadialGradient(mx - 2, my - 2, 0, mx, my, radius);
-    bodyGrad.addColorStop(0, lightenColor(color, 25));
-    bodyGrad.addColorStop(1, color);
-    ctx.fillStyle = bodyGrad;
-    ctx.fill();
-    ctx.strokeStyle = `${color}60`;
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-
-    // Eyes
-    drawMeshiEyes(ctx, mx, my, rm.mood, radius, time);
-
-    // Hat
-    if (rm.hat && rm.hat !== "none") {
-      drawMeshiHat(ctx, mx, my, rm.hat, radius, color);
+    // Draw SVG image — offline Meshis are dimmer and always sleeping
+    const displayMood: MeshiMoodCanvas = isOffline ? "sleeping" : rm.mood;
+    const img = getMeshiImage(colorKey, rm.hat, displayMood);
+    if (img) {
+      ctx.globalAlpha = isOffline ? 0.4 : 0.75;
+      ctx.drawImage(img, mx - drawSize / 2, my - drawSize / 2, drawSize, drawSize);
+      ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = 1;
 
-    // Username
+    // Username label with online/offline indicator
     ctx.font = "bold 7px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.fillText(rm.displayName, mx, my + radius + 3);
+    const labelText = rm.displayName;
+    const textMetrics = ctx.measureText(labelText);
+    const labelY = my + drawSize / 2 + 1;
+    const padding = 3;
+    const dotSize = 3;
+    const totalWidth = dotSize + 3 + textMetrics.width + padding * 2;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+    ctx.beginPath();
+    ctx.roundRect(mx - totalWidth / 2, labelY - 1, totalWidth, 10, 3);
+    ctx.fill();
+
+    // Status dot
+    const dotX = mx - totalWidth / 2 + padding + dotSize / 2;
+    const dotY = labelY + 4;
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, dotSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = isOffline ? "rgba(100, 100, 100, 0.6)" : "#22c55e";
+    ctx.fill();
+
+    ctx.fillStyle = isOffline ? "rgba(255, 255, 255, 0.35)" : "rgba(255, 255, 255, 0.6)";
+    ctx.fillText(labelText, mx + dotSize / 2 + 1, labelY);
   }
-}
-
-// --- Drawing helpers ---
-
-function drawMeshiEyes(ctx: CanvasRenderingContext2D, x: number, y: number, mood: MeshiMoodCanvas, radius: number, time: number, lookAtX?: number | null, lookAtY?: number | null) {
-  const eyeSpacing = radius * 0.35;
-  const eyeY = y - radius * 0.1;
-  const eyeRadius = radius * 0.18;
-
-  // Calculate pupil offset if Meshi is looking at something
-  let pupilOffX = 0;
-  let pupilOffY = 0;
-  if (lookAtX != null && lookAtY != null) {
-    const dx = lookAtX - x;
-    const dy = lookAtY - y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > 5) {
-      const maxOff = eyeRadius * 0.5;
-      pupilOffX = (dx / dist) * maxOff;
-      pupilOffY = (dy / dist) * maxOff;
-    }
-  }
-
-  switch (mood) {
-    case "happy":
-      ctx.fillStyle = "white";
-      ctx.beginPath();
-      ctx.ellipse(x - eyeSpacing, eyeY, eyeRadius, eyeRadius * 1.2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(x + eyeSpacing, eyeY, eyeRadius, eyeRadius * 1.2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Pupils that track lookAt target
-      if (pupilOffX !== 0 || pupilOffY !== 0) {
-        ctx.fillStyle = "#1e1b4b";
-        ctx.beginPath();
-        ctx.arc(x - eyeSpacing + pupilOffX, eyeY + pupilOffY, eyeRadius * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x + eyeSpacing + pupilOffX, eyeY + pupilOffY, eyeRadius * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      break;
-    case "excited":
-      ctx.font = `${radius * 0.5}px system-ui`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "white";
-      ctx.fillText("★", x - eyeSpacing, eyeY);
-      ctx.fillText("★", x + eyeSpacing, eyeY);
-      break;
-    case "love":
-      ctx.font = `${radius * 0.55}px system-ui`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#ff6b9d";
-      ctx.fillText("♥", x - eyeSpacing, eyeY);
-      ctx.fillText("♥", x + eyeSpacing, eyeY);
-      break;
-    case "searching": {
-      // Squinting eyes that look around
-      const lookX = Math.sin(time * 3) * 1.5;
-      ctx.fillStyle = "white";
-      ctx.beginPath();
-      ctx.ellipse(x - eyeSpacing + lookX, eyeY, eyeRadius * 1.3, eyeRadius * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(x + eyeSpacing + lookX, eyeY, eyeRadius * 1.3, eyeRadius * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Pupils
-      ctx.fillStyle = state_color_for_mood();
-      ctx.beginPath();
-      ctx.arc(x - eyeSpacing + lookX + 0.5, eyeY, eyeRadius * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x + eyeSpacing + lookX + 0.5, eyeY, eyeRadius * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case "celebrating":
-      // Happy curved lines
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.arc(x - eyeSpacing, eyeY + 1, eyeRadius, Math.PI, 0);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(x + eyeSpacing, eyeY + 1, eyeRadius, Math.PI, 0);
-      ctx.stroke();
-      break;
-    case "thinking":
-      ctx.fillStyle = "white";
-      ctx.beginPath();
-      ctx.ellipse(x - eyeSpacing - 1, eyeY, eyeRadius * 0.9, eyeRadius * 1.1, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(x + eyeSpacing + 1, eyeY, eyeRadius * 1.1, eyeRadius * 0.9, 0, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    case "wink":
-      // One open eye, one closed
-      ctx.fillStyle = "white";
-      ctx.beginPath();
-      ctx.ellipse(x - eyeSpacing, eyeY, eyeRadius, eyeRadius * 1.2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.arc(x + eyeSpacing, eyeY + 1, eyeRadius, Math.PI * 0.8, Math.PI * 0.2, true);
-      ctx.stroke();
-      break;
-  }
-}
-
-function state_color_for_mood(): string {
-  return "rgba(30, 30, 50, 0.8)";
-}
-
-function drawMeshiHat(ctx: CanvasRenderingContext2D, x: number, y: number, hat: string, radius: number, color: string) {
-  const hatY = y - radius - 1;
-  switch (hat) {
-    case "beanie":
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.ellipse(x, hatY, radius * 0.85, radius * 0.5, 0, Math.PI, 0);
-      ctx.fill();
-      // Pom pom
-      ctx.beginPath();
-      ctx.arc(x, hatY - radius * 0.45, radius * 0.18, 0, Math.PI * 2);
-      ctx.fillStyle = lightenColor(color, 40);
-      ctx.fill();
-      break;
-    case "crown":
-      ctx.fillStyle = "#fbbf24";
-      ctx.beginPath();
-      ctx.moveTo(x - radius * 0.6, hatY);
-      ctx.lineTo(x - radius * 0.5, hatY - radius * 0.5);
-      ctx.lineTo(x - radius * 0.2, hatY - radius * 0.25);
-      ctx.lineTo(x, hatY - radius * 0.55);
-      ctx.lineTo(x + radius * 0.2, hatY - radius * 0.25);
-      ctx.lineTo(x + radius * 0.5, hatY - radius * 0.5);
-      ctx.lineTo(x + radius * 0.6, hatY);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case "flower":
-      // Flower on top
-      const petalR = radius * 0.15;
-      ctx.fillStyle = "#f472b6";
-      for (let i = 0; i < 5; i++) {
-        const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
-        ctx.beginPath();
-        ctx.arc(x + Math.cos(angle) * petalR * 1.5, hatY - radius * 0.15 + Math.sin(angle) * petalR * 1.5, petalR, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.fillStyle = "#fbbf24";
-      ctx.beginPath();
-      ctx.arc(x, hatY - radius * 0.15, petalR * 0.7, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    case "cap":
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.ellipse(x, hatY + 1, radius * 0.8, radius * 0.35, 0, Math.PI, 0);
-      ctx.fill();
-      // Brim
-      ctx.beginPath();
-      ctx.ellipse(x + radius * 0.3, hatY + 1, radius * 0.65, radius * 0.12, 0.15, 0, Math.PI * 2);
-      ctx.fillStyle = darkenColor(color, 20);
-      ctx.fill();
-      break;
-    case "tophat":
-      ctx.fillStyle = "#1e1e2e";
-      ctx.fillRect(x - radius * 0.45, hatY - radius * 0.7, radius * 0.9, radius * 0.7);
-      ctx.fillRect(x - radius * 0.65, hatY, radius * 1.3, radius * 0.12);
-      break;
-    case "party":
-      ctx.fillStyle = "#ec4899";
-      ctx.beginPath();
-      ctx.moveTo(x, hatY - radius * 0.7);
-      ctx.lineTo(x - radius * 0.4, hatY);
-      ctx.lineTo(x + radius * 0.4, hatY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x, hatY - radius * 0.7, radius * 0.1, 0, Math.PI * 2);
-      ctx.fillStyle = "#fbbf24";
-      ctx.fill();
-      break;
-    case "headphones":
-      ctx.strokeStyle = "#6b7280";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, hatY + radius * 0.2, radius * 0.7, Math.PI, 0);
-      ctx.stroke();
-      // Ear cups
-      ctx.fillStyle = "#374151";
-      ctx.fillRect(x - radius * 0.85, hatY + radius * 0.05, radius * 0.3, radius * 0.4);
-      ctx.fillRect(x + radius * 0.55, hatY + radius * 0.05, radius * 0.3, radius * 0.4);
-      break;
-    case "halo":
-      ctx.strokeStyle = "#fbbf24";
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.ellipse(x, hatY - radius * 0.4, radius * 0.75, radius * 0.2, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.strokeStyle = "#fde68a";
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-      break;
-    case "wizard":
-      ctx.fillStyle = "#6366f1";
-      ctx.beginPath();
-      ctx.moveTo(x, hatY - radius * 0.9);
-      ctx.lineTo(x - radius * 0.5, hatY);
-      ctx.lineTo(x + radius * 0.5, hatY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillRect(x - radius * 0.7, hatY, radius * 1.4, radius * 0.15);
-      ctx.fillStyle = "#fbbf24";
-      ctx.beginPath();
-      ctx.arc(x, hatY - radius * 0.75, radius * 0.1, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    case "astronaut":
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.ellipse(x, hatY, radius * 0.9, radius * 0.65, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = "rgba(148, 163, 184, 0.1)";
-      ctx.fill();
-      break;
-    case "pirate":
-      ctx.fillStyle = "#1e1e2e";
-      ctx.beginPath();
-      ctx.ellipse(x, hatY + 1, radius * 0.8, radius * 0.35, 0, Math.PI, 0);
-      ctx.fill();
-      ctx.fillRect(x - radius * 0.85, hatY, radius * 1.7, radius * 0.12);
-      ctx.fillStyle = "#e2e8f0";
-      ctx.beginPath();
-      ctx.moveTo(x - radius * 0.2, hatY - radius * 0.2);
-      ctx.lineTo(x, hatY - radius * 0.35);
-      ctx.lineTo(x + radius * 0.2, hatY - radius * 0.2);
-      ctx.lineTo(x + radius * 0.1, hatY - radius * 0.05);
-      ctx.lineTo(x - radius * 0.1, hatY - radius * 0.05);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case "chef":
-      ctx.fillStyle = "#f8fafc";
-      ctx.beginPath();
-      ctx.arc(x, hatY - radius * 0.15, radius * 0.55, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x - radius * 0.3, hatY - radius * 0.05, radius * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x + radius * 0.3, hatY - radius * 0.05, radius * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#e2e8f0";
-      ctx.fillRect(x - radius * 0.6, hatY, radius * 1.2, radius * 0.1);
-      break;
-  }
-}
-
-function drawMeshiProp(ctx: CanvasRenderingContext2D, x: number, y: number, prop: string, radius: number, color: string) {
-  const px = x + radius + 4;
-  const py = y - 4;
-  const scale = radius * 0.06;
-
-  ctx.save();
-  ctx.translate(px, py);
-  ctx.scale(scale, scale);
-
-  switch (prop) {
-    case "magnifying-glass":
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5 / scale;
-      ctx.beginPath();
-      ctx.arc(0, 0, 6, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(4, 4);
-      ctx.lineTo(10, 10);
-      ctx.stroke();
-      break;
-    case "compass":
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2 / scale;
-      ctx.beginPath();
-      ctx.arc(0, 0, 7, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(0, -5);
-      ctx.lineTo(2, 0);
-      ctx.lineTo(0, 5);
-      ctx.lineTo(-2, 0);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case "heart":
-      ctx.fillStyle = "#ef4444";
-      ctx.beginPath();
-      ctx.moveTo(0, 3);
-      ctx.bezierCurveTo(-8, -2, -8, -8, -4, -8);
-      ctx.bezierCurveTo(-1, -8, 0, -5, 0, -5);
-      ctx.bezierCurveTo(0, -5, 1, -8, 4, -8);
-      ctx.bezierCurveTo(8, -8, 8, -2, 0, 3);
-      ctx.fill();
-      break;
-  }
-
-  ctx.restore();
 }
 
 function lightenColor(hex: string, percent: number): string {

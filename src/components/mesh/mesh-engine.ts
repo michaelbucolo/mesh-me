@@ -74,8 +74,8 @@ export class MeshEngine {
   }
 
   /** Run one tick of the physics simulation. Returns true if still active. */
-  tick(): boolean {
-    this.time += 0.016;
+  tick(dt: number = 0.016): boolean {
+    this.time += dt;
     if (this._isSettled) return false;
 
     const { nodes, edges, config, center } = this;
@@ -136,12 +136,15 @@ export class MeshEngine {
     }
 
     // Phase 2: Apply damping, update positions, compute kinetic energy
+    // Normalize dt to 60fps baseline so forces feel consistent
+    const dtNorm = dt / 0.016;
+    const dampingFactor = Math.pow(config.damping, dtNorm);
     for (const node of nodes) {
-      node.vx *= config.damping;
-      node.vy *= config.damping;
+      node.vx *= dampingFactor;
+      node.vy *= dampingFactor;
       if (node.type !== "self") {
-        node.x += node.vx;
-        node.y += node.vy;
+        node.x += node.vx * dtNorm;
+        node.y += node.vy * dtNorm;
       }
       totalKineticEnergy += node.vx * node.vx + node.vy * node.vy;
     }
