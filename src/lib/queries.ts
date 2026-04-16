@@ -1023,7 +1023,22 @@ export async function getFriendMeshData(username: string): Promise<{
       },
     }),
     prisma.userInterest.findMany({ where: { userId: targetUser.id } }),
-    prisma.connectedAccount.findMany({ where: { userId: targetUser.id, isActive: true } }),
+    prisma.connectedAccount.findMany({
+      where: { userId: targetUser.id, isActive: true },
+      select: {
+        id: true, platform: true, platformUsername: true,
+        platformPosts: {
+          where: { visibility: "public" },
+          select: {
+            id: true, title: true, content: true, url: true, postType: true,
+            likeCount: true, commentCount: true, viewCount: true,
+            thumbnailUrl: true, publishedAt: true, visibility: true,
+          },
+          orderBy: { likeCount: "desc" },
+          take: 5,
+        },
+      },
+    }),
     prisma.post.count({ where: { authorId: targetUser.id } }),
     prisma.meshiPreference.findUnique({ where: { userId: targetUser.id } }),
   ]);
@@ -1079,6 +1094,18 @@ export async function getFriendMeshData(username: string): Promise<{
         id: a.id,
         platform: a.platform,
         platformUsername: a.platformUsername,
+        publicPosts: a.platformPosts.map((p) => ({
+          id: p.id,
+          title: p.title,
+          content: (p.content || "").slice(0, 150),
+          url: p.url,
+          postType: p.postType,
+          likeCount: p.likeCount,
+          commentCount: p.commentCount,
+          viewCount: p.viewCount,
+          thumbnailUrl: p.thumbnailUrl,
+          publishedAt: p.publishedAt,
+        })),
       }))
     : [];
 

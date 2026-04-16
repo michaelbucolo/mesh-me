@@ -12,6 +12,10 @@ export interface ViewportState {
   filter: FilterType;
   showLabels: boolean;
   time: number;
+  /** 0→1 progress of the mesh formation animation. 1 = fully formed. */
+  formationProgress?: number;
+  /** Timestamp of a sync pulse ripple (performance.now), or null. */
+  syncPulseTime?: number | null;
 }
 
 export interface InteractionState {
@@ -31,6 +35,7 @@ export function renderMesh(
 ) {
   const { zoom: z, pan: p, center, filter: f, showLabels: labels, time } = viewport;
   const { hoveredNode: hovered, selectedNode: selected, remoteMeshis } = interaction;
+  const formationProgress = viewport.formationProgress ?? 1;
 
   const dpr = window.devicePixelRatio || 1;
   const w = ctx.canvas.width;
@@ -50,10 +55,25 @@ export function renderMesh(
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, logicalW, logicalH);
 
+  // Formation flash — brief bright pulse at the start
+  if (formationProgress > 0 && formationProgress < 0.3) {
+    const flashAlpha = Math.sin((formationProgress / 0.3) * Math.PI) * 0.08;
+    const flashGrad = ctx.createRadialGradient(logicalW / 2, logicalH / 2, 0, logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.5);
+    flashGrad.addColorStop(0, `rgba(99, 102, 241, ${flashAlpha})`);
+    flashGrad.addColorStop(1, "transparent");
+    ctx.fillStyle = flashGrad;
+    ctx.fillRect(0, 0, logicalW, logicalH);
+  }
+
   ctx.save();
   ctx.translate(logicalW / 2 + p.x, logicalH / 2 + p.y);
   ctx.scale(z, z);
   ctx.translate(-center.x, -center.y);
+
+  // During formation, apply global alpha to edges and particles
+  if (formationProgress < 1) {
+    ctx.globalAlpha = Math.max(0, formationProgress * 1.5 - 0.3);
+  }
 
   // Draw orbit rings around self node
   const selfNode = nodes.find((n) => n.type === "self");
@@ -63,7 +83,36 @@ export function renderMesh(
 
   drawEdges(ctx, nodes, edges, f, hovered, selected, time);
   drawDataParticles(ctx, nodes, edges, f, time, hovered, selected);
-  drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache);
+
+  // Reset alpha for nodes
+  ctx.globalAlpha = 1;
+
+  drawSectionLabels(ctx, selfNode, z);
+  drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache, formationProgress);
+
+  // Sync pulse ripple effect
+  if (viewport.syncPulseTime != null && selfNode) {
+    const elapsed = (performance.now() - viewport.syncPulseTime) / 1000;
+    if (elapsed < 2.5) {
+      const rippleRadius = elapsed * 400;
+      const rippleAlpha = Math.max(0, 1 - elapsed / 2.5) * 0.25;
+      ctx.beginPath();
+      ctx.arc(selfNode.x, selfNode.y, rippleRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(99, 102, 241, ${rippleAlpha})`;
+      ctx.lineWidth = 3 - elapsed;
+      ctx.stroke();
+      // Second ripple, delayed
+      if (elapsed > 0.3) {
+        const r2 = (elapsed - 0.3) * 400;
+        const a2 = Math.max(0, 1 - (elapsed - 0.3) / 2.2) * 0.15;
+        ctx.beginPath();
+        ctx.arc(selfNode.x, selfNode.y, r2, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(139, 92, 246, ${a2})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+  }
 
   // Draw remote Meshis on the mesh (other users' presence)
   if (remoteMeshis && remoteMeshis.length > 0) {
@@ -77,6 +126,9 @@ export function renderMesh(
   drawTooltip(ctx, hovered, z);
 
   ctx.restore();
+
+  // Draw mini legend in bottom-left corner (screen space)
+  drawLegend(ctx, logicalW, logicalH, f);
 }
 
 // --- Orbit rings around self ---
@@ -101,7 +153,52 @@ function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: num
   ctx.setLineDash([]);
 }
 
-// --- Edges ---
+// --- Section labels along orbit rings ---
+
+function drawSectionLabels(
+  ctx: CanvasRenderingContext2D,
+  self: MeshNode | undefined,
+  zoom: number,
+) {
+  if (!self || zoom < 0.35) return;
+
+  const sections = [
+    { radius: 100, label: "Alter Egos", angle: -Math.PI / 2 - 0.3 },
+    { radius: 180, label: "Platforms", angle: -Math.PI / 2 + 0.15 },
+    { radius: 290, label: "People", angle: -Math.PI / 2 - 0.1 },
+    { radius: 420, label: "Communities", angle: -Math.PI / 2 + 0.25 },
+    { radius: 520, label: "Interests", angle: -Math.PI / 2 - 0.2 },
+    { radius: 620, label: "Posts", angle: -Math.PI / 2 + 0.05 },
+  ];
+
+  const fontSize = Math.max(9, Math.min(13, 11 / zoom));
+  ctx.font = `500 ${fontSize}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for (const sec of sections) {
+    const lx = self.x + Math.cos(sec.angle) * sec.radius;
+    const ly = self.y + Math.sin(sec.angle) * sec.radius;
+
+    // Pill background
+    const tw = ctx.measureText(sec.label).width;
+    const px = 8, py = 3;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.beginPath();
+    ctx.roundRect(lx - tw / 2 - px, ly - fontSize / 2 - py, tw + px * 2, fontSize + py * 2, 8);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.roundRect(lx - tw / 2 - px, ly - fontSize / 2 - py, tw + px * 2, fontSize + py * 2, 8);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.fillText(sec.label, lx, ly);
+  }
+}
 
 function drawEdges(
   ctx: CanvasRenderingContext2D,
@@ -252,9 +349,41 @@ function drawNodes(
   labels: boolean,
   time: number,
   imageCache: Map<string, HTMLImageElement | null>,
+  formationProgress: number = 1,
 ) {
-  for (const node of nodes) {
+  // Find center for formation animation
+  const selfNode = nodes.find((n) => n.type === "self");
+  const cx = selfNode?.x ?? 0;
+  const cy = selfNode?.y ?? 0;
+
+  for (let idx = 0; idx < nodes.length; idx++) {
+    const node = nodes[idx];
     if (filter !== "all" && node.type !== filter && node.type !== "self") continue;
+
+    // Per-node formation: stagger by index with easing
+    let nodeFormation = 1;
+    if (formationProgress < 1 && node.type !== "self") {
+      const stagger = idx / Math.max(nodes.length, 1);
+      const nodeStart = stagger * 0.4; // nodes start appearing at different times
+      const raw = Math.max(0, (formationProgress - nodeStart) / (1 - nodeStart));
+      nodeFormation = 1 - Math.pow(1 - Math.min(raw, 1), 3); // ease-out cubic
+    }
+
+    // During formation, interpolate position from center → target
+    let drawX = node.x;
+    let drawY = node.y;
+    if (nodeFormation < 1) {
+      drawX = cx + (node.x - cx) * nodeFormation;
+      drawY = cy + (node.y - cy) * nodeFormation;
+    }
+
+    // During formation, temporarily override node position for all sub-drawing
+    const origX = node.x;
+    const origY = node.y;
+    if (nodeFormation < 1) {
+      node.x = drawX;
+      node.y = drawY;
+    }
 
     const isHovered = hovered?.id === node.id;
     const isSelected = selected?.id === node.id;
@@ -268,9 +397,9 @@ function drawNodes(
     const highlight = isHovered || isSelected || isConnectedToHovered || isConnectedToSelected;
     const dimmed = (hovered || selected) && !highlight && node.type !== "self";
 
-    const nodeOpacity = dimmed ? 0.2 : node.opacity;
+    const nodeOpacity = (dimmed ? 0.2 : node.opacity) * nodeFormation;
     const connectionBoost = node.connections.length > 0 ? Math.min(node.connections.length * 0.6, 6) : 0;
-    const baseNodeRadius = node.radius + connectionBoost;
+    const baseNodeRadius = (node.radius + connectionBoost) * (0.3 + 0.7 * nodeFormation);
     const nodeRadius = isHovered ? baseNodeRadius * 1.15 : baseNodeRadius;
     const pulse = Math.sin(time * 1.5 + node.pulsePhase) * 0.5 + 0.5;
 
@@ -373,6 +502,12 @@ function drawNodes(
       ctx.fillStyle = statusColor;
       ctx.fill();
     }
+
+    // Restore original positions after formation drawing
+    if (nodeFormation < 1) {
+      node.x = origX;
+      node.y = origY;
+    }
   }
 }
 
@@ -410,16 +545,48 @@ function drawNodeBody(
       ctx.stroke();
     }
   } else {
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
-    const fillGrad = ctx.createRadialGradient(node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0, node.x, node.y, nodeRadius);
-    fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
-    fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
-    ctx.fillStyle = fillGrad;
-    ctx.fill();
-    ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
-    ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
-    ctx.stroke();
+    // Different shapes per node type for visual differentiation
+    if (node.type === "community") {
+      // Rounded square for communities
+      ctx.beginPath();
+      ctx.roundRect(node.x - nodeRadius, node.y - nodeRadius, nodeRadius * 2, nodeRadius * 2, nodeRadius * 0.35);
+      const fillGrad = ctx.createRadialGradient(node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0, node.x, node.y, nodeRadius);
+      fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
+      fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+      ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
+      ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
+      ctx.stroke();
+    } else if (node.type === "tag") {
+      // Diamond shape for interest tags
+      ctx.beginPath();
+      ctx.moveTo(node.x, node.y - nodeRadius);
+      ctx.lineTo(node.x + nodeRadius, node.y);
+      ctx.lineTo(node.x, node.y + nodeRadius);
+      ctx.lineTo(node.x - nodeRadius, node.y);
+      ctx.closePath();
+      const fillGrad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeRadius);
+      fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
+      fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+      ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
+      ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
+      ctx.stroke();
+    } else {
+      // Default circle for all other node types
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+      const fillGrad = ctx.createRadialGradient(node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0, node.x, node.y, nodeRadius);
+      fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
+      fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+      ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
+      ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
+      ctx.stroke();
+    }
 
     // Platform nodes get emoji icons handled above; skip letter fallback for them
     if (node.type === "platform") return;
@@ -633,5 +800,67 @@ function drawTooltip(
       ctx.fillStyle = "rgba(210, 210, 220, 0.85)";
     }
     ctx.fillText(ttLines[li], bx + ttPadX + 2, by + ttPadY + 4 + li * ttLineSpacing);
+  }
+}
+
+// --- Mini legend ---
+
+function drawLegend(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  activeFilter: FilterType,
+) {
+  const items = [
+    { color: "#818cf8", label: "People" },
+    { color: "#f59e0b", label: "Platforms" },
+    { color: "#ec4899", label: "Communities" },
+    { color: "#06b6d4", label: "Interests" },
+    { color: "#10b981", label: "Posts" },
+    { color: "#c084fc", label: "Alter Egos" },
+  ];
+
+  const fontSize = 9;
+  const dotR = 3.5;
+  const lineH = 16;
+  const padX = 10, padY = 6;
+  const boxX = 12;
+  const boxY = h - padY * 2 - items.length * lineH - 50;
+
+  ctx.font = `${fontSize}px system-ui, -apple-system, sans-serif`;
+  const maxTextW = Math.max(...items.map((it) => ctx.measureText(it.label).width));
+  const boxW = dotR * 2 + 8 + maxTextW + padX * 2;
+  const boxH = items.length * lineH + padY * 2;
+
+  // Background
+  ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+  ctx.stroke();
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const iy = boxY + padY + i * lineH + lineH / 2;
+    const isActive = activeFilter === "all" || item.label.toLowerCase().replace(" ", "-").startsWith(activeFilter);
+    const alpha = isActive ? 0.8 : 0.35;
+
+    // Dot
+    ctx.beginPath();
+    ctx.arc(boxX + padX + dotR, iy, dotR, 0, Math.PI * 2);
+    ctx.fillStyle = item.color + (isActive ? "cc" : "55");
+    ctx.fill();
+
+    // Label
+    ctx.font = `${fontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.fillText(item.label, boxX + padX + dotR * 2 + 8, iy);
   }
 }

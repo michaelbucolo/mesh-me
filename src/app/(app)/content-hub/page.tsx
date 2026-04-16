@@ -30,7 +30,15 @@ import {
   ArrowUpRight,
   Zap,
   X,
+  Edit3,
+  Pin,
+  EyeOff,
+  UserPlus,
+  UserMinus,
+  MoreHorizontal,
+  Reply,
 } from "lucide-react";
+import { PLATFORM_LOGO_MAP } from "@/components/platform-logos";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -84,7 +92,7 @@ interface FollowerItem {
   isMutual: boolean;
   relationshipType: string;
   profileUrl: string | null;
-  connectedAccount: { platform: string };
+  connectedAccount: { platform: string; id: string };
 }
 
 interface AnalyticsSummary {
@@ -116,24 +124,32 @@ interface SyncJob {
 
 // ─── Platform Config ────────────────────────────────────────
 
-const PLATFORM_CONFIG: Record<string, { name: string; color: string; icon: string }> = {
-  github: { name: "GitHub", color: "#333333", icon: "GH" },
-  discord: { name: "Discord", color: "#5865F2", icon: "DC" },
-  spotify: { name: "Spotify", color: "#1DB954", icon: "SP" },
-  youtube: { name: "YouTube", color: "#FF0000", icon: "YT" },
-  twitter: { name: "X / Twitter", color: "#1DA1F2", icon: "X" },
-  tiktok: { name: "TikTok", color: "#000000", icon: "TT" },
-  twitch: { name: "Twitch", color: "#9146FF", icon: "TW" },
-  soundcloud: { name: "SoundCloud", color: "#FF5500", icon: "SC" },
-  threads: { name: "Threads", color: "#000000", icon: "TH" },
-  bluesky: { name: "Bluesky", color: "#0085FF", icon: "BS" },
-  instagram: { name: "Instagram", color: "#E4405F", icon: "IG" },
-  linkedin: { name: "LinkedIn", color: "#0A66C2", icon: "IN" },
-  reddit: { name: "Reddit", color: "#FF4500", icon: "RD" },
-  facebook: { name: "Facebook", color: "#1877F2", icon: "FB" },
-  pinterest: { name: "Pinterest", color: "#BD081C", icon: "PN" },
-  snapchat: { name: "Snapchat", color: "#FFFC00", icon: "SN" },
+const PLATFORM_CONFIG: Record<string, { name: string; color: string }> = {
+  github: { name: "GitHub", color: "#333333" },
+  discord: { name: "Discord", color: "#5865F2" },
+  spotify: { name: "Spotify", color: "#1DB954" },
+  youtube: { name: "YouTube", color: "#FF0000" },
+  twitter: { name: "X / Twitter", color: "#1DA1F2" },
+  tiktok: { name: "TikTok", color: "#000000" },
+  twitch: { name: "Twitch", color: "#9146FF" },
+  soundcloud: { name: "SoundCloud", color: "#FF5500" },
+  threads: { name: "Threads", color: "#000000" },
+  bluesky: { name: "Bluesky", color: "#0085FF" },
+  instagram: { name: "Instagram", color: "#E4405F" },
+  linkedin: { name: "LinkedIn", color: "#0A66C2" },
+  reddit: { name: "Reddit", color: "#FF4500" },
+  facebook: { name: "Facebook", color: "#1877F2" },
+  pinterest: { name: "Pinterest", color: "#BD081C" },
+  snapchat: { name: "Snapchat", color: "#FFFC00" },
 };
+
+// Render actual SVG platform logo or fallback to initials
+function PlatformLogo({ platform, size = 16, className }: { platform: string; size?: number; className?: string }) {
+  const LogoComponent = PLATFORM_LOGO_MAP[platform];
+  if (LogoComponent) return <LogoComponent size={size} className={className} />;
+  const config = PLATFORM_CONFIG[platform];
+  return <span className={className} style={{ fontSize: size * 0.5, fontWeight: 700 }}>{config?.name?.slice(0, 2).toUpperCase() || "??"}</span>;
+}
 
 const POST_TYPE_ICONS: Record<string, typeof FileText> = {
   text: FileText,
@@ -172,10 +188,11 @@ export default function ContentHubPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCrossPost, setShowCrossPost] = useState(false);
   const [crossPostContent, setCrossPostContent] = useState("");
-  const [crossPostPlatforms, setCrossPostPlatforms] = useState<string[]>([]);
+  const [crossPostPlatforms, setCrossPostPlatforms] = useState<string[]>([]); // stores account IDs
   const [crossPosting, setCrossPosting] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [syncPulseActive, setSyncPulseActive] = useState(false);
   const initialLoadDone = useRef(false);
 
   // Load sync status and accounts
@@ -283,6 +300,9 @@ export default function ContentHubPage() {
       const data = await res.json();
       if (data.success) {
         setNotification({ type: "success", message: `Synced ${data.itemsSynced || 0} items successfully` });
+        // Trigger sync pulse animation
+        setSyncPulseActive(true);
+        setTimeout(() => setSyncPulseActive(false), 1500);
         await loadSyncData();
         await loadPosts();
         await loadAnalytics();
@@ -325,6 +345,52 @@ export default function ContentHubPage() {
     }
   };
 
+  // ─── Full Platform Control Actions ────────────────────────────
+
+  const handlePostAction = async (action: string, postId: string, extra?: Record<string, string>) => {
+    try {
+      const res = await fetch("/api/platform-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, postId, ...extra }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Refresh posts after action
+        await loadPosts();
+        const labels: Record<string, string> = {
+          like: "Liked", unlike: "Unliked", pin: "Pinned", unpin: "Unpinned",
+          share: "Shared", edit: "Updated", visibility: "Visibility changed",
+          reply: "Reply posted",
+        };
+        setNotification({ type: "success", message: labels[action] || "Done" });
+      } else {
+        setNotification({ type: "error", message: data.error || "Action failed" });
+      }
+    } catch {
+      setNotification({ type: "error", message: "Action failed" });
+    }
+  };
+
+  const handleFollowerAction = async (action: "follow" | "unfollow", connectedAccountId: string, platformUserId: string) => {
+    try {
+      const res = await fetch("/api/platform-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, connectedAccountId, platformUserId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotification({ type: "success", message: action === "follow" ? "Followed" : "Unfollowed" });
+        await loadFollowers();
+      } else {
+        setNotification({ type: "error", message: data.error || `${action} failed` });
+      }
+    } catch {
+      setNotification({ type: "error", message: `${action} failed` });
+    }
+  };
+
   // Cross-post
   const handleCrossPost = async () => {
     if (!crossPostContent.trim() || crossPostPlatforms.length === 0) return;
@@ -333,7 +399,7 @@ export default function ContentHubPage() {
       const res = await fetch("/api/platform-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cross-post", content: crossPostContent, platforms: crossPostPlatforms }),
+        body: JSON.stringify({ action: "cross-post", content: crossPostContent, platforms: [], accountIds: crossPostPlatforms }),
       });
       const data = await res.json();
       if (data.results) {
@@ -446,6 +512,38 @@ export default function ContentHubPage() {
         )}
       </AnimatePresence>
 
+      {/* Sync pulse animation overlay */}
+      <AnimatePresence>
+        {syncPulseActive && (
+          <motion.div
+            className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div
+              className="rounded-full border-2 border-indigo-500/40"
+              initial={{ width: 0, height: 0, opacity: 0.6 }}
+              animate={{ width: 600, height: 600, opacity: 0 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+            />
+            <motion.div
+              className="absolute rounded-full border border-purple-500/30"
+              initial={{ width: 0, height: 0, opacity: 0.4 }}
+              animate={{ width: 400, height: 400, opacity: 0 }}
+              transition={{ duration: 1, ease: "easeOut", delay: 0.15 }}
+            />
+            <motion.div
+              className="absolute rounded-full bg-indigo-500/5"
+              initial={{ width: 0, height: 0, opacity: 0.8 }}
+              animate={{ width: 200, height: 200, opacity: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -541,6 +639,7 @@ export default function ContentHubPage() {
               onFilterPostType={setFilterPostType}
               onSearchChange={setSearchQuery}
               onDelete={handleDeletePost}
+              onPostAction={handlePostAction}
               onSync={(accountId) => handleSync(accountId, "posts")}
             />
           )}
@@ -557,6 +656,7 @@ export default function ContentHubPage() {
               onPageChange={setPage}
               onFilterPlatform={setFilterPlatform}
               onSync={(accountId) => handleSync(accountId, "followers")}
+              onFollowerAction={handleFollowerAction}
             />
           )}
           {activeTab === "cross-post" && (
@@ -567,7 +667,7 @@ export default function ContentHubPage() {
               posting={crossPosting}
               showForm={showCrossPost}
               onContentChange={setCrossPostContent}
-              onTogglePlatform={(p) => setCrossPostPlatforms((prev) => prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p])}
+              onTogglePlatform={(id) => setCrossPostPlatforms((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
               onPost={handleCrossPost}
               onShowForm={setShowCrossPost}
             />
@@ -611,16 +711,16 @@ function OverviewTab({ accounts, analytics, posts, syncing, onSync, onTabChange 
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {accounts.map((account) => {
-            const config = PLATFORM_CONFIG[account.platform] || { name: account.platform, color: "#666", icon: "?" };
+            const config = PLATFORM_CONFIG[account.platform] || { name: account.platform, color: "#666" };
             const analyticsItem = analytics.find((a) => a.platform === account.platform);
             return (
               <div key={account.id} className="glass-card rounded-xl p-4 hover-lift">
                 <div className="flex items-center gap-3 mb-3">
                   <div
-                    className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                    className="h-10 w-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
                     style={{ backgroundColor: config.color }}
                   >
-                    {config.icon}
+                    <PlatformLogo platform={account.platform} size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate">{config.name}</h3>
@@ -717,7 +817,7 @@ function OverviewTab({ accounts, analytics, posts, syncing, onSync, onTabChange 
 
 // ─── Posts Tab ──────────────────────────────────────────────
 
-function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, searchQuery, accounts, onPageChange, onFilterPlatform, onFilterPostType, onSearchChange, onDelete, onSync }: {
+function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, searchQuery, accounts, onPageChange, onFilterPlatform, onFilterPostType, onSearchChange, onDelete, onPostAction, onSync }: {
   posts: PlatformPostItem[];
   totalPosts: number;
   page: number;
@@ -730,6 +830,7 @@ function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, sea
   onFilterPostType: (p: string) => void;
   onSearchChange: (q: string) => void;
   onDelete: (id: string) => void;
+  onPostAction: (action: string, postId: string, extra?: Record<string, string>) => void;
   onSync: (accountId: string) => void;
 }) {
   const totalPages = Math.ceil(totalPosts / 20);
@@ -788,7 +889,7 @@ function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, sea
           <p className="text-sm text-[var(--text-secondary)] mb-4">Sync your connected platforms to import all your posts, videos, and more.</p>
           <div className="flex flex-wrap justify-center gap-2">
             {accounts.map((a) => {
-              const config = PLATFORM_CONFIG[a.platform] || { name: a.platform, color: "#666", icon: "?" };
+              const config = PLATFORM_CONFIG[a.platform] || { name: a.platform, color: "#666" };
               return (
                 <button
                   key={a.id}
@@ -808,7 +909,7 @@ function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, sea
       {/* Posts List */}
       <div className="space-y-3">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} onDelete={onDelete} />
+          <PostCard key={post.id} post={post} onDelete={onDelete} onPostAction={onPostAction} />
         ))}
       </div>
 
@@ -886,16 +987,16 @@ function AnalyticsTab({ analytics }: {
             </div>
           ) : (
             analytics.map((item) => {
-              const config = PLATFORM_CONFIG[item.platform] || { name: item.platform, color: "#666", icon: "?" };
+              const config = PLATFORM_CONFIG[item.platform] || { name: item.platform, color: "#666" };
               const maxFollowers = Math.max(...analytics.map((a) => a.followerCount), 1);
               return (
                 <div key={item.platform} className="glass-card rounded-xl p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <div
-                      className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs"
+                      className="h-10 w-10 rounded-xl flex items-center justify-center text-white"
                       style={{ backgroundColor: config.color }}
                     >
-                      {config.icon}
+                      <PlatformLogo platform={item.platform} size={20} />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-sm font-semibold text-[var(--text-primary)]">{config.name}</h3>
@@ -934,7 +1035,7 @@ function AnalyticsTab({ analytics }: {
 
 // ─── Followers Tab ──────────────────────────────────────────
 
-function FollowersTab({ followers, totalFollowers, page, filterPlatform, accounts, onPageChange, onFilterPlatform, onSync }: {
+function FollowersTab({ followers, totalFollowers, page, filterPlatform, accounts, onPageChange, onFilterPlatform, onSync, onFollowerAction }: {
   followers: FollowerItem[];
   totalFollowers: number;
   page: number;
@@ -943,6 +1044,7 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
   onPageChange: (p: number) => void;
   onFilterPlatform: (p: string) => void;
   onSync: (accountId: string) => void;
+  onFollowerAction: (action: "follow" | "unfollow", connectedAccountId: string, platformUserId: string) => void;
 }) {
   const totalPages = Math.ceil(totalFollowers / 20);
 
@@ -974,7 +1076,7 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
           <p className="text-sm text-[var(--text-secondary)] mb-4">Sync your platforms to import your audience data.</p>
           <div className="flex flex-wrap justify-center gap-2">
             {accounts.map((a) => {
-              const config = PLATFORM_CONFIG[a.platform] || { name: a.platform, color: "#666", icon: "?" };
+              const config = PLATFORM_CONFIG[a.platform] || { name: a.platform, color: "#666" };
               return (
                 <button
                   key={a.id}
@@ -992,7 +1094,7 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {followers.map((f) => {
-            const config = PLATFORM_CONFIG[f.connectedAccount.platform] || { name: f.connectedAccount.platform, color: "#666", icon: "?" };
+            const config = PLATFORM_CONFIG[f.connectedAccount.platform] || { name: f.connectedAccount.platform, color: "#666" };
             return (
               <div key={f.id} className="glass-card rounded-xl p-4 flex items-center gap-3 hover-lift">
                 <div className="relative">
@@ -1004,10 +1106,10 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
                     </div>
                   )}
                   <div
-                    className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full flex items-center justify-center text-white text-[7px] font-bold border border-[var(--bg-primary)]"
+                    className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full flex items-center justify-center text-white border border-[var(--bg-primary)]"
                     style={{ backgroundColor: config.color }}
                   >
-                    {config.icon}
+                    <PlatformLogo platform={f.connectedAccount.platform} size={10} />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1018,8 +1120,24 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  {f.isMutual && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400">Mutual</span>
+                  {f.isMutual ? (
+                    <button
+                      onClick={() => onFollowerAction("unfollow", f.connectedAccount.id, f.platformUserId)}
+                      className="text-[10px] px-2 py-1 rounded-lg flex items-center gap-1 bg-green-500/10 text-green-400 hover:bg-red-500/10 hover:text-red-400 transition-colors group/btn"
+                    >
+                      <UserMinus className="h-3 w-3 hidden group-hover/btn:block" />
+                      <UserPlus className="h-3 w-3 group-hover/btn:hidden" />
+                      <span className="group-hover/btn:hidden">Mutual</span>
+                      <span className="hidden group-hover/btn:inline">Unfollow</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onFollowerAction("follow", f.connectedAccount.id, f.platformUserId)}
+                      className="text-[10px] px-2 py-1 rounded-lg flex items-center gap-1 bg-[var(--accent-subtle)] text-[var(--accent)] hover:bg-[var(--accent-muted)] transition-colors"
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      Follow Back
+                    </button>
                   )}
                   {f.profileUrl && (
                     <a href={f.profileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
@@ -1094,21 +1212,21 @@ function CrossPostTab({ accounts, content, selectedPlatforms, posting, onContent
           <p className="text-xs font-semibold text-[var(--text-secondary)] mb-2">Select Platforms</p>
           <div className="flex flex-wrap gap-2">
             {accounts.map((a) => {
-              const config = PLATFORM_CONFIG[a.platform] || { name: a.platform, color: "#666", icon: "?" };
-              const selected = selectedPlatforms.includes(a.platform);
+              const config = PLATFORM_CONFIG[a.platform] || { name: a.platform, color: "#666" };
+              const selected = selectedPlatforms.includes(a.id);
               return (
                 <button
                   key={a.id}
-                  onClick={() => onTogglePlatform(a.platform)}
+                  onClick={() => onTogglePlatform(a.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
                     selected ? "border-transparent text-white" : "border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]"
                   }`}
                   style={selected ? { backgroundColor: config.color } : undefined}
                 >
-                  <span className={`h-5 w-5 rounded flex items-center justify-center text-[8px] font-bold ${selected ? "bg-white/20 text-white" : ""}`}
+                  <span className={`h-5 w-5 rounded flex items-center justify-center ${selected ? "bg-white/20 text-white" : ""}`}
                     style={!selected ? { backgroundColor: `${config.color}20`, color: config.color } : undefined}
                   >
-                    {config.icon}
+                    <PlatformLogo platform={a.platform} size={12} />
                   </span>
                   {config.name}
                   {selected && <CheckCircle2 className="h-3 w-3" />}
@@ -1182,16 +1300,16 @@ function SyncTab({ accounts, syncJobs, syncing, syncingAll, onSync, onSyncAll, o
       {/* Per-platform sync */}
       <div className="space-y-3">
         {accounts.map((account) => {
-          const config = PLATFORM_CONFIG[account.platform] || { name: account.platform, color: "#666", icon: "?" };
+          const config = PLATFORM_CONFIG[account.platform] || { name: account.platform, color: "#666" };
           const isSyncing = syncing === account.id || account.syncStatus === "syncing";
           return (
             <div key={account.id} className="glass-card rounded-xl p-4">
               <div className="flex items-center gap-4">
                 <div
-                  className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                  className="h-10 w-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
                   style={{ backgroundColor: config.color }}
                 >
-                  {config.icon}
+                  <PlatformLogo platform={account.platform} size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -1254,14 +1372,14 @@ function SyncTab({ accounts, syncJobs, syncing, syncingAll, onSync, onSyncAll, o
         ) : (
           <div className="space-y-2">
             {syncJobs.map((job) => {
-              const config = PLATFORM_CONFIG[job.connectedAccount.platform] || { name: job.connectedAccount.platform, color: "#666", icon: "?" };
+              const config = PLATFORM_CONFIG[job.connectedAccount.platform] || { name: job.connectedAccount.platform, color: "#666" };
               return (
                 <div key={job.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "var(--bg-secondary)" }}>
                   <div
-                    className="h-7 w-7 rounded-lg flex items-center justify-center text-white font-bold text-[8px]"
+                    className="h-7 w-7 rounded-lg flex items-center justify-center text-white"
                     style={{ backgroundColor: config.color }}
                   >
-                    {config.icon}
+                    <PlatformLogo platform={job.connectedAccount.platform} size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-[var(--text-primary)]">
@@ -1296,14 +1414,21 @@ function SyncTab({ accounts, syncJobs, syncing, syncingAll, onSync, onSyncAll, o
 
 // ─── Post Card Component ────────────────────────────────────
 
-function PostCard({ post, compact, onDelete }: {
+function PostCard({ post, compact, onDelete, onPostAction }: {
   post: PlatformPostItem;
   compact?: boolean;
   onDelete?: (id: string) => void;
+  onPostAction?: (action: string, postId: string, extra?: Record<string, string>) => void;
 }) {
-  const config = PLATFORM_CONFIG[post.connectedAccount.platform] || { name: post.connectedAccount.platform, color: "#666", icon: "?" };
+  const config = PLATFORM_CONFIG[post.connectedAccount.platform] || { name: post.connectedAccount.platform, color: "#666" };
   const TypeIcon = POST_TYPE_ICONS[post.postType] || FileText;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
+  const [replyMode, setReplyMode] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [liked, setLiked] = useState(false);
 
   return (
     <div className={`glass-card rounded-xl ${compact ? "p-3" : "p-4"} hover-lift group`}>
@@ -1319,10 +1444,10 @@ function PostCard({ post, compact, onDelete }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <div
-              className="h-5 w-5 rounded flex items-center justify-center text-white text-[7px] font-bold"
+              className="h-5 w-5 rounded flex items-center justify-center text-white"
               style={{ backgroundColor: config.color }}
             >
-              {config.icon}
+              <PlatformLogo platform={post.connectedAccount.platform} size={12} />
             </div>
             <span className="text-[10px] text-[var(--text-muted)]">{config.name}</span>
             <TypeIcon className="h-3 w-3 text-[var(--text-muted)]" />
@@ -1334,7 +1459,9 @@ function PostCard({ post, compact, onDelete }: {
               <span className="text-[10px] px-1.5 py-0 rounded-full bg-[var(--accent-muted)] text-[var(--accent)]">from mesh.me</span>
             )}
             {post.isPinned && (
-              <span className="text-[10px] px-1.5 py-0 rounded-full bg-blue-500/10 text-blue-400">Pinned</span>
+              <span className="text-[10px] px-1.5 py-0 rounded-full bg-blue-500/10 text-blue-400 flex items-center gap-0.5">
+                <Pin className="h-2.5 w-2.5" /> Pinned
+              </span>
             )}
           </div>
 
@@ -1343,13 +1470,37 @@ function PostCard({ post, compact, onDelete }: {
               {post.title}
             </h3>
           )}
-          {post.content && (
-            <p className={`text-[var(--text-secondary)] ${compact ? "text-xs line-clamp-1" : "text-sm line-clamp-2"}`}>
-              {post.content}
-            </p>
+
+          {/* Editable content */}
+          {editMode ? (
+            <div className="mt-1 space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full rounded-lg p-2 text-sm bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-primary)] resize-none focus:outline-none focus:border-[var(--accent)]"
+                rows={3}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { onPostAction?.("edit", post.id, { content: editContent }); setEditMode(false); }}
+                  className="px-3 py-1 rounded-lg text-[10px] font-medium text-white bg-[var(--accent)] hover:opacity-80 transition-opacity"
+                >
+                  Save
+                </button>
+                <button onClick={() => { setEditMode(false); setEditContent(post.content || ""); }} className="px-3 py-1 rounded-lg text-[10px] font-medium text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            post.content && (
+              <p className={`text-[var(--text-secondary)] ${compact ? "text-xs line-clamp-1" : "text-sm line-clamp-2"}`}>
+                {post.content}
+              </p>
+            )
           )}
 
-          {/* Metrics */}
+          {/* Interactive Metrics — clickable like, comment, share */}
           <div className={`flex items-center gap-3 ${compact ? "mt-1" : "mt-2"}`}>
             {post.viewCount > 0 && (
               <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
@@ -1357,60 +1508,135 @@ function PostCard({ post, compact, onDelete }: {
                 {formatNumber(post.viewCount)}
               </span>
             )}
-            <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
-              <Heart className="h-3 w-3" />
+            <button
+              onClick={() => {
+                const action = liked ? "unlike" : "like";
+                onPostAction?.(action, post.id);
+                setLiked(!liked);
+              }}
+              className={`flex items-center gap-1 text-[10px] transition-colors ${liked ? "text-pink-400" : "text-[var(--text-muted)] hover:text-pink-400"}`}
+            >
+              <Heart className={`h-3 w-3 ${liked ? "fill-current" : ""}`} />
               {formatNumber(post.likeCount)}
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+            </button>
+            <button
+              onClick={() => setReplyMode(!replyMode)}
+              className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-blue-400 transition-colors"
+            >
               <MessageSquare className="h-3 w-3" />
               {formatNumber(post.commentCount)}
-            </span>
-            {post.shareCount > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
-                <Share2 className="h-3 w-3" />
-                {formatNumber(post.shareCount)}
-              </span>
-            )}
+            </button>
+            <button
+              onClick={() => onPostAction?.("share", post.id)}
+              className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-green-400 transition-colors"
+            >
+              <Share2 className="h-3 w-3" />
+              {post.shareCount > 0 ? formatNumber(post.shareCount) : "Share"}
+            </button>
             {post.publishedAt && (
               <span className="text-[10px] text-[var(--text-muted)]">
                 {timeAgo(post.publishedAt)}
               </span>
             )}
           </div>
+
+          {/* Reply input */}
+          {replyMode && (
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder="Write a reply..."
+                className="flex-1 rounded-lg px-3 py-1.5 text-xs bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && replyContent.trim()) {
+                    onPostAction?.("reply", post.id, { content: replyContent });
+                    setReplyContent("");
+                    setReplyMode(false);
+                  }
+                }}
+              />
+              <button
+                onClick={() => { if (replyContent.trim()) { onPostAction?.("reply", post.id, { content: replyContent }); setReplyContent(""); setReplyMode(false); } }}
+                disabled={!replyContent.trim()}
+                className="px-3 py-1.5 rounded-lg text-[10px] font-medium text-white bg-[var(--accent)] disabled:opacity-50 hover:opacity-80 transition-opacity"
+              >
+                <Reply className="h-3 w-3" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Actions */}
+        {/* Actions Menu */}
         {!compact && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 relative">
             {post.url && (
               <a href={post.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-subtle)] transition-colors">
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
-            {onDelete && (
-              confirmDelete ? (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => { onDelete(post.id); setConfirmDelete(false); }}
-                    className="px-2 py-1 rounded-lg text-[10px] font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors"
-                  >
-                    Confirm
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="px-2 py-1 rounded-lg text-[10px] font-medium text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
+
+            {/* More actions dropdown */}
+            <button
+              onClick={() => setShowActions(!showActions)}
+              className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+
+            {showActions && (
+              <div className="absolute right-0 top-10 z-30 min-w-[160px] rounded-xl glass-dropdown shadow-xl border border-[var(--border-primary)] py-1">
                 <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  onClick={() => { setEditMode(true); setShowActions(false); }}
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Edit3 className="h-3.5 w-3.5" /> Edit
                 </button>
-              )
+                <button
+                  onClick={() => { onPostAction?.(post.isPinned ? "unpin" : "pin", post.id); setShowActions(false); }}
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  <Pin className="h-3.5 w-3.5" /> {post.isPinned ? "Unpin" : "Pin"}
+                </button>
+                <button
+                  onClick={() => {
+                    const next = post.visibility === "public" ? "private" : "public";
+                    onPostAction?.("visibility", post.id, { visibility: next });
+                    setShowActions(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  {post.visibility === "public" ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {post.visibility === "public" ? "Make Private" : "Make Public"}
+                </button>
+                <div className="border-t border-[var(--border-primary)] my-1" />
+                {onDelete && (
+                  confirmDelete ? (
+                    <div className="px-3 py-2 flex items-center gap-2">
+                      <button
+                        onClick={() => { onDelete(post.id); setConfirmDelete(false); setShowActions(false); }}
+                        className="px-2 py-1 rounded-lg text-[10px] font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                      >
+                        Confirm Delete
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        className="px-2 py-1 rounded-lg text-[10px] font-medium text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  )
+                )}
+              </div>
             )}
           </div>
         )}

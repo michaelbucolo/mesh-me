@@ -45,10 +45,10 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
     });
   }, []);
 
-  const FREE_HATS: MeshiHat[] = ["none", "tophat", "crown", "beanie", "cap", "party", "flower"];
-  const PRO_HATS: MeshiHat[] = ["headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
-  const FREE_COLORS: MeshiColor[] = ["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow"];
-  const PRO_COLORS: MeshiColor[] = ["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"];
+  const FREE_HATS: MeshiHat[] = ["none", "tophat", "beanie", "cap", "party"];
+  const PRO_HATS: MeshiHat[] = ["crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
+  const FREE_COLORS: MeshiColor[] = ["blue", "purple", "pink", "green", "orange"];
+  const PRO_COLORS: MeshiColor[] = ["cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"];
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">

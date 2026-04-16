@@ -74,8 +74,8 @@ export class MeshEngine {
   }
 
   /** Run one tick of the physics simulation. Returns true if still active. */
-  tick(): boolean {
-    this.time += 0.016;
+  tick(dt: number = 0.016): boolean {
+    this.time += dt;
     if (this._isSettled) return false;
 
     const { nodes, edges, config, center } = this;
@@ -83,6 +83,8 @@ export class MeshEngine {
     let totalKineticEnergy = 0;
 
     // Phase 1: Apply all forces to velocities
+    // Normalize dt to 60fps baseline so forces feel consistent across frame rates
+    const dtNorm = dt / 0.016;
 
     // Node-node repulsion + center gravity
     for (let i = 0; i < nodes.length; i++) {
@@ -95,16 +97,16 @@ export class MeshEngine {
         const minDist = node.radius + other.radius + 60;
         if (dist < minDist * config.maxRepulsionDist) {
           const force = (minDist * config.maxRepulsionDist - dist) * config.repulsionForce;
-          const fx = (dx / dist) * force;
-          const fy = (dy / dist) * force;
+          const fx = (dx / dist) * force * dtNorm;
+          const fy = (dy / dist) * force * dtNorm;
           if (node.type !== "self") { node.vx -= fx; node.vy -= fy; }
           if (other.type !== "self") { other.vx += fx; other.vy += fy; }
         }
       }
 
       if (node.type !== "self") {
-        node.vx += (center.x - node.x) * config.centerGravity;
-        node.vy += (center.y - node.y) * config.centerGravity;
+        node.vx += (center.x - node.x) * config.centerGravity * dtNorm;
+        node.vy += (center.y - node.y) * config.centerGravity * dtNorm;
       }
     }
 
@@ -128,20 +130,21 @@ export class MeshEngine {
       const diff = dist - idealDist;
       if (Math.abs(diff) > 5) {
         const force = diff * config.attractionForce * edge.strength;
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
+        const fx = (dx / dist) * force * dtNorm;
+        const fy = (dy / dist) * force * dtNorm;
         if (target.type !== "self") { target.vx -= fx; target.vy -= fy; }
         if (source.type !== "self") { source.vx += fx; source.vy += fy; }
       }
     }
 
     // Phase 2: Apply damping, update positions, compute kinetic energy
+    const dampingFactor = Math.pow(config.damping, dtNorm);
     for (const node of nodes) {
-      node.vx *= config.damping;
-      node.vy *= config.damping;
+      node.vx *= dampingFactor;
+      node.vy *= dampingFactor;
       if (node.type !== "self") {
-        node.x += node.vx;
-        node.y += node.vy;
+        node.x += node.vx * dtNorm;
+        node.y += node.vy * dtNorm;
       }
       totalKineticEnergy += node.vx * node.vx + node.vy * node.vy;
     }

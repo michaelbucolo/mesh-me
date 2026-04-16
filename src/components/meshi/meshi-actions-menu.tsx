@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   X, Sparkles, MessageCircle, Search,
-  ChevronRight, Palette, Settings, HelpCircle,
-  PenSquare, Compass, Users, Link2, Crown, MessageSquarePlus,
+  ChevronRight, Palette, Settings,
+  PenSquare,
 } from "lucide-react";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "./meshi-mascot";
 
@@ -47,23 +47,11 @@ export function MeshiActionsMenu({
 
       {/* Menu Items */}
       <div className="p-2 space-y-0.5 overflow-y-auto flex-1">
-        <p className="px-3 pt-1 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quick Actions</p>
         <MenuItem icon={MessageCircle} iconColor="var(--accent)" label="Ask Meshi" onClick={onAskMeshi} />
-        <MenuItem icon={PenSquare} iconColor="#22c55e" label="Create Post" onClick={() => navigate("/feed?compose=true")} />
         <MenuItem icon={Search} iconColor="#f59e0b" label="Search Mesh" onClick={onSearchMesh} />
-
-        <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Navigate</p>
-        <MenuItem icon={Compass} iconColor="#0ea5e9" label="Explore" onClick={() => navigate("/explore")} />
-        <MenuItem icon={MessageCircle} iconColor="#10b981" label="Messages" onClick={() => navigate("/messages")} />
-        <MenuItem icon={Users} iconColor="#f472b6" label="Communities" onClick={() => navigate("/communities")} />
-        <MenuItem icon={Link2} iconColor="#a78bfa" label="Connected Accounts" onClick={() => navigate("/connected-accounts")} />
-
-        <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Settings & More</p>
+        <MenuItem icon={PenSquare} iconColor="#22c55e" label="Create Post" onClick={() => navigate("/feed?compose=true")} />
         <MenuItem icon={Palette} iconColor="#06b6d4" label="Customize Meshi" onClick={() => navigate("/settings?tab=meshi")} />
         <MenuItem icon={Settings} iconColor="#38bdf8" label="Settings" onClick={() => navigate("/settings")} />
-        <MenuItem icon={Crown} iconColor="#f59e0b" label="MeshPro" onClick={() => navigate("/meshpro")} />
-        <MenuItem icon={MessageSquarePlus} iconColor="#8b5cf6" label="Send Feedback" onClick={() => navigate("/feedback")} />
-        <MenuItem icon={HelpCircle} iconColor="#ec4899" label="Full Chat with Meshi" onClick={onOpenChat} />
       </div>
 
       {/* Footer */}
