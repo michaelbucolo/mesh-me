@@ -3,7 +3,7 @@
 
 import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
 import { NODE_GLOW, STATUS_COLORS, hexAlpha } from "./mesh-types";
-import { drawRemoteMeshis, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
+import { drawMeshi, drawRemoteMeshis, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 export interface ViewportState {
   zoom: number;
@@ -69,7 +69,10 @@ export function renderMesh(
   if (remoteMeshis && remoteMeshis.length > 0) {
     drawRemoteMeshis(ctx, remoteMeshis, time);
   }
-  // Local user's Meshi is the floating UI component (meshi-float.tsx) — not drawn on canvas
+  // Draw local user's Meshi on the mesh canvas
+  if (interaction.meshiState) {
+    drawMeshi(ctx, interaction.meshiState, time);
+  }
 
   drawTooltip(ctx, hovered, z);
 
