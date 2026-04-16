@@ -188,7 +188,7 @@ export default function ContentHubPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCrossPost, setShowCrossPost] = useState(false);
   const [crossPostContent, setCrossPostContent] = useState("");
-  const [crossPostPlatforms, setCrossPostPlatforms] = useState<string[]>([]);
+  const [crossPostPlatforms, setCrossPostPlatforms] = useState<string[]>([]); // stores account IDs
   const [crossPosting, setCrossPosting] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
@@ -399,7 +399,7 @@ export default function ContentHubPage() {
       const res = await fetch("/api/platform-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cross-post", content: crossPostContent, platforms: crossPostPlatforms }),
+        body: JSON.stringify({ action: "cross-post", content: crossPostContent, platforms: [], accountIds: crossPostPlatforms }),
       });
       const data = await res.json();
       if (data.results) {
@@ -667,7 +667,7 @@ export default function ContentHubPage() {
               posting={crossPosting}
               showForm={showCrossPost}
               onContentChange={setCrossPostContent}
-              onTogglePlatform={(p) => setCrossPostPlatforms((prev) => prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p])}
+              onTogglePlatform={(id) => setCrossPostPlatforms((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
               onPost={handleCrossPost}
               onShowForm={setShowCrossPost}
             />
@@ -1213,11 +1213,11 @@ function CrossPostTab({ accounts, content, selectedPlatforms, posting, onContent
           <div className="flex flex-wrap gap-2">
             {accounts.map((a) => {
               const config = PLATFORM_CONFIG[a.platform] || { name: a.platform, color: "#666" };
-              const selected = selectedPlatforms.includes(a.platform);
+              const selected = selectedPlatforms.includes(a.id);
               return (
                 <button
                   key={a.id}
-                  onClick={() => onTogglePlatform(a.platform)}
+                  onClick={() => onTogglePlatform(a.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
                     selected ? "border-transparent text-white" : "border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]"
                   }`}
@@ -1428,6 +1428,7 @@ function PostCard({ post, compact, onDelete, onPostAction }: {
   const [editContent, setEditContent] = useState(post.content || "");
   const [replyMode, setReplyMode] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [liked, setLiked] = useState(false);
 
   return (
     <div className={`glass-card rounded-xl ${compact ? "p-3" : "p-4"} hover-lift group`}>
@@ -1508,10 +1509,14 @@ function PostCard({ post, compact, onDelete, onPostAction }: {
               </span>
             )}
             <button
-              onClick={() => onPostAction?.("like", post.id)}
-              className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-pink-400 transition-colors"
+              onClick={() => {
+                const action = liked ? "unlike" : "like";
+                onPostAction?.(action, post.id);
+                setLiked(!liked);
+              }}
+              className={`flex items-center gap-1 text-[10px] transition-colors ${liked ? "text-pink-400" : "text-[var(--text-muted)] hover:text-pink-400"}`}
             >
-              <Heart className="h-3 w-3" />
+              <Heart className={`h-3 w-3 ${liked ? "fill-current" : ""}`} />
               {formatNumber(post.likeCount)}
             </button>
             <button
@@ -1596,7 +1601,7 @@ function PostCard({ post, compact, onDelete, onPostAction }: {
                 </button>
                 <button
                   onClick={() => {
-                    const next = post.visibility === "public" ? "private" : post.visibility === "private" ? "public" : "private";
+                    const next = post.visibility === "public" ? "private" : "public";
                     onPostAction?.("visibility", post.id, { visibility: next });
                     setShowActions(false);
                   }}
