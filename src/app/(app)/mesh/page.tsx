@@ -316,7 +316,7 @@ export default function MeshPage() {
       // Single-click on user nodes zooms into their mesh directly
       if (node.type === "user" && node.sublabel) {
         zoomToNode(node.id);
-        setTimeout(() => enterUserMesh(node), 650);
+        setTimeout(() => enterUserMesh(node), 750);
       } else if (node.href) {
         window.location.href = node.href;
       } else {
