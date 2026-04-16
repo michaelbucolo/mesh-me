@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect, useRef } from "react";
 import { searchAll } from "@/lib/queries";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,27 +31,61 @@ export default function SearchPage() {
   const [isPending, startTransition] = useTransition();
   const [recentSearches, setRecentSearches] = useState<string[]>(getInitialRecentSearches);
   const [activeTab, setActiveTab] = useState<"all" | "people" | "posts" | "communities">("all");
+  const searchRequestId = useRef(0);
 
   const saveSearch = useCallback((q: string) => {
-    const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 8);
+    const trimmed = q.trim();
+    if (trimmed.length < 2) return;
+
+    const updated = [trimmed, ...recentSearches.filter((s) => s !== trimmed)].slice(0, 8);
     setRecentSearches(updated);
     try { localStorage.setItem("mesh_recent_searches", JSON.stringify(updated)); } catch {}
   }, [recentSearches]);
+
+  const runSearch = useCallback((value: string) => {
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
+      setResults(null);
+      return;
+    }
+
+    const requestId = ++searchRequestId.current;
+    startTransition(async () => {
+      const data = await searchAll(trimmed);
+      if (searchRequestId.current === requestId) {
+        setResults(data as SearchResults);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setResults(null);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      runSearch(query);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [query, runSearch]);
 
   const clearRecentSearches = () => {
     setRecentSearches([]);
     try { localStorage.removeItem("mesh_recent_searches"); } catch {}
   };
 
-  const handleSearch = (value: string) => {
-    setQuery(value);
-    if (value.trim().length < 2) { setResults(null); return; }
-    startTransition(async () => {
-      const data = await searchAll(value);
-      setResults(data as SearchResults);
-      saveSearch(value.trim());
-    });
-  };
+  const commitSearch = useCallback((value: string) => {
+    const trimmed = value.trim();
+    if (trimmed.length < 2) return;
+
+    setQuery(trimmed);
+    runSearch(trimmed);
+    saveSearch(trimmed);
+  }, [runSearch, saveSearch]);
 
   const hasResults = results && (results.users.length > 0 || results.posts.length > 0 || results.communities.length > 0);
   const totalResults = results ? results.users.length + results.posts.length + results.communities.length : 0;
@@ -70,7 +104,13 @@ export default function SearchPage() {
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)]" />
           <input
             value={query}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitSearch(query);
+              }
+            }}
             placeholder="Search people, posts, communities, tags..."
             className="w-full glass-surface rounded-xl pl-12 pr-10 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-muted)] focus:border-[var(--accent)] transition-all"
             autoFocus
@@ -198,7 +238,7 @@ export default function SearchPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {recentSearches.map((search) => (
-                  <button key={search} onClick={() => handleSearch(search)} className="px-3 py-1.5 rounded-lg glass-surface text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-secondary)] transition-colors">{search}</button>
+                  <button key={search} onClick={() => commitSearch(search)} className="px-3 py-1.5 rounded-lg glass-surface text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-secondary)] transition-colors">{search}</button>
                 ))}
               </div>
             </div>
@@ -210,7 +250,7 @@ export default function SearchPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {SUGGESTED_SEARCHES.map((tag) => (
-                <button key={tag} onClick={() => handleSearch(tag)} className="px-3 py-1.5 rounded-lg glass-surface text-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors">
+                <button key={tag} onClick={() => commitSearch(tag)} className="px-3 py-1.5 rounded-lg glass-surface text-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors">
                   <Hash className="h-3 w-3 inline mr-1" />{tag}
                 </button>
               ))}
