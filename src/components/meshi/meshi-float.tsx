@@ -515,7 +515,8 @@ export function MeshiFloat() {
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
 
-  if (!meshiEnabled) return null;
+  // Hide floating Meshi on /mesh — the canvas Meshi represents the user there
+  if (!meshiEnabled || pathname === "/mesh") return null;
 
   return (
     <>

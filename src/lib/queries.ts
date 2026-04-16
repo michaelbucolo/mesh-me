@@ -967,7 +967,7 @@ export async function getFriendMeshData(username: string): Promise<{
     where: { userId: targetUser.id },
   });
 
-  const visibility = privacy?.meshVisibility || "friends";
+  const visibility = privacy?.meshVisibility || "public";
 
   // Check if we're friends (mutual follow)
   const [followToTarget, followFromTarget] = await Promise.all([
