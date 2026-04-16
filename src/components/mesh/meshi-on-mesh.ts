@@ -27,6 +27,8 @@ export interface MeshiState {
   prop: "none" | "magnifying-glass" | "heart" | "compass";
   propTimer: number;
   username: string;
+  lookAtX: number | null; // When set, Meshi's eyes look toward this point
+  lookAtY: number | null;
 }
 
 export interface RemoteMeshi {
@@ -88,6 +90,8 @@ export function createMeshiState(
     prop: "none",
     propTimer: 0,
     username,
+    lookAtX: null,
+    lookAtY: null,
   };
 }
 
@@ -247,7 +251,7 @@ export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState, time
   ctx.fill();
 
   // Eyes
-  drawMeshiEyes(ctx, mx, my, state.mood, state.radius, time);
+  drawMeshiEyes(ctx, mx, my, state.mood, state.radius, time, state.lookAtX, state.lookAtY);
 
   // Hat
   if (state.hat && state.hat !== "none") {
@@ -318,10 +322,24 @@ export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: Re
 
 // --- Drawing helpers ---
 
-function drawMeshiEyes(ctx: CanvasRenderingContext2D, x: number, y: number, mood: MeshiMoodCanvas, radius: number, time: number) {
+function drawMeshiEyes(ctx: CanvasRenderingContext2D, x: number, y: number, mood: MeshiMoodCanvas, radius: number, time: number, lookAtX?: number | null, lookAtY?: number | null) {
   const eyeSpacing = radius * 0.35;
   const eyeY = y - radius * 0.1;
   const eyeRadius = radius * 0.18;
+
+  // Calculate pupil offset if Meshi is looking at something
+  let pupilOffX = 0;
+  let pupilOffY = 0;
+  if (lookAtX != null && lookAtY != null) {
+    const dx = lookAtX - x;
+    const dy = lookAtY - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 5) {
+      const maxOff = eyeRadius * 0.5;
+      pupilOffX = (dx / dist) * maxOff;
+      pupilOffY = (dy / dist) * maxOff;
+    }
+  }
 
   switch (mood) {
     case "happy":
@@ -332,6 +350,16 @@ function drawMeshiEyes(ctx: CanvasRenderingContext2D, x: number, y: number, mood
       ctx.beginPath();
       ctx.ellipse(x + eyeSpacing, eyeY, eyeRadius, eyeRadius * 1.2, 0, 0, Math.PI * 2);
       ctx.fill();
+      // Pupils that track lookAt target
+      if (pupilOffX !== 0 || pupilOffY !== 0) {
+        ctx.fillStyle = "#1e1b4b";
+        ctx.beginPath();
+        ctx.arc(x - eyeSpacing + pupilOffX, eyeY + pupilOffY, eyeRadius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + eyeSpacing + pupilOffX, eyeY + pupilOffY, eyeRadius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
       break;
     case "excited":
       ctx.font = `${radius * 0.5}px system-ui`;

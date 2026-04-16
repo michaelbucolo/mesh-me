@@ -330,11 +330,13 @@ export default function MeshPage() {
   const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
     if (!node) return;
     if (node.type === "user" && node.sublabel) {
-      enterUserMesh(node);
+      // Smooth zoom into user node first, then load their mesh
+      zoomToNode(node.id);
+      setTimeout(() => enterUserMesh(node), 400);
     } else if (node.href) {
       window.location.href = node.href;
     }
-  }, [enterUserMesh]);
+  }, [enterUserMesh, zoomToNode]);
 
   // --- Connected platforms for post composer ---
   const connectedPlatforms = useMemo(() => {
@@ -461,17 +463,16 @@ export default function MeshPage() {
         )}
       </AnimatePresence>
 
-      {/* Loading overlay when entering another user's mesh */}
+      {/* Loading overlay when entering another user's mesh — smooth transition */}
       <AnimatePresence>
         {loadingUserMesh && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="glass-dropdown rounded-2xl p-6 shadow-2xl text-center">
-              <motion.div animate={{ x: [0, 50, -30, 40, -20, 0], y: [0, -20, 10, -30, 15, 0], rotate: [0, 10, -10, 5, 0] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} className="mx-auto mb-3">
-                <MeshiMascot size={56} mood="excited" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
-              </motion.div>
-              <p className="text-sm text-[var(--text-primary)] font-medium">Meshi is exploring...</p>
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">Entering their mesh</p>
-            </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+            <motion.div
+              animate={{ y: [0, -6, 0], rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <MeshiMascot size={48} mood="excited" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
