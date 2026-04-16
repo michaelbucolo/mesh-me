@@ -278,7 +278,7 @@ export function MeshCanvas({
         vy *= Math.pow(decay, frameDt * 60);
         if (Math.abs(vx) < 0.5 && Math.abs(vy) < 0.5) return;
         const curPan = panRef.current;
-        const newPan = { x: curPan.x + vx, y: curPan.y + vy };
+        const newPan = { x: curPan.x + vx * frameDt, y: curPan.y + vy * frameDt };
         onPanChange(newPan);
         momentumRafRef.current = requestAnimationFrame(animateMomentum);
       };
