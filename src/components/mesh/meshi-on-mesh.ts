@@ -118,25 +118,25 @@ function pickNextTarget(state: MeshiState, nodes: MeshNode[]): MeshNode | null {
   return pool[pool.length - 1];
 }
 
-/** Choose reaction based on node type */
+/** Choose reaction based on node type — eyes-only expressions, no emojis */
 function getReactionForNode(node: MeshNode): { mood: MeshiMoodCanvas; reaction: string | null; prop: MeshiState["prop"] } {
   switch (node.type) {
     case "post":
-      return { mood: "searching", reaction: node.likeCount && node.likeCount > 5 ? "🔥" : "📝", prop: "magnifying-glass" };
+      return { mood: "searching", reaction: null, prop: "magnifying-glass" };
     case "user":
       return {
         mood: node.isMutual ? "love" : node.status === "online" ? "excited" : "wink",
-        reaction: node.isMutual ? "✨" : node.status === "online" ? "👋" : null,
+        reaction: null,
         prop: "none",
       };
     case "community":
-      return { mood: "celebrating", reaction: "🎉", prop: "none" };
+      return { mood: "celebrating", reaction: null, prop: "none" };
     case "platform":
-      return { mood: "excited", reaction: "🔗", prop: "compass" };
+      return { mood: "excited", reaction: null, prop: "compass" };
     case "tag":
-      return { mood: "thinking", reaction: "#", prop: "none" };
+      return { mood: "thinking", reaction: null, prop: "none" };
     case "alter-ego":
-      return { mood: "wink", reaction: "🎭", prop: "none" };
+      return { mood: "wink", reaction: null, prop: "none" };
     default:
       return { mood: "happy", reaction: null, prop: "none" };
   }
@@ -257,18 +257,6 @@ export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState, time
   // Prop (magnifying glass, compass, etc.)
   if (state.prop !== "none" && state.propTimer > 0) {
     drawMeshiProp(ctx, mx, my, state.prop, state.radius, state.color);
-  }
-
-  // Reaction emoji
-  if (state.currentReaction && state.reactionTimer > 0) {
-    const rAlpha = Math.min(1, state.reactionTimer / 0.5);
-    const rY = my - state.radius - 10 - (2.5 - state.reactionTimer) * 4;
-    ctx.globalAlpha = rAlpha;
-    ctx.font = "14px system-ui, -apple-system, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(state.currentReaction, mx, rY);
-    ctx.globalAlpha = 1;
   }
 
   // Username label
@@ -503,6 +491,69 @@ function drawMeshiHat(ctx: CanvasRenderingContext2D, x: number, y: number, hat: 
       ctx.fillStyle = "#374151";
       ctx.fillRect(x - radius * 0.85, hatY + radius * 0.05, radius * 0.3, radius * 0.4);
       ctx.fillRect(x + radius * 0.55, hatY + radius * 0.05, radius * 0.3, radius * 0.4);
+      break;
+    case "halo":
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.ellipse(x, hatY - radius * 0.4, radius * 0.75, radius * 0.2, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "#fde68a";
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+      break;
+    case "wizard":
+      ctx.fillStyle = "#6366f1";
+      ctx.beginPath();
+      ctx.moveTo(x, hatY - radius * 0.9);
+      ctx.lineTo(x - radius * 0.5, hatY);
+      ctx.lineTo(x + radius * 0.5, hatY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(x - radius * 0.7, hatY, radius * 1.4, radius * 0.15);
+      ctx.fillStyle = "#fbbf24";
+      ctx.beginPath();
+      ctx.arc(x, hatY - radius * 0.75, radius * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "astronaut":
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(x, hatY, radius * 0.9, radius * 0.65, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(148, 163, 184, 0.1)";
+      ctx.fill();
+      break;
+    case "pirate":
+      ctx.fillStyle = "#1e1e2e";
+      ctx.beginPath();
+      ctx.ellipse(x, hatY + 1, radius * 0.8, radius * 0.35, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillRect(x - radius * 0.85, hatY, radius * 1.7, radius * 0.12);
+      ctx.fillStyle = "#e2e8f0";
+      ctx.beginPath();
+      ctx.moveTo(x - radius * 0.2, hatY - radius * 0.2);
+      ctx.lineTo(x, hatY - radius * 0.35);
+      ctx.lineTo(x + radius * 0.2, hatY - radius * 0.2);
+      ctx.lineTo(x + radius * 0.1, hatY - radius * 0.05);
+      ctx.lineTo(x - radius * 0.1, hatY - radius * 0.05);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case "chef":
+      ctx.fillStyle = "#f8fafc";
+      ctx.beginPath();
+      ctx.arc(x, hatY - radius * 0.15, radius * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x - radius * 0.3, hatY - radius * 0.05, radius * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + radius * 0.3, hatY - radius * 0.05, radius * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillRect(x - radius * 0.6, hatY, radius * 1.2, radius * 0.1);
       break;
   }
 }

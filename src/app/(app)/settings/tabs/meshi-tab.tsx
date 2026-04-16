@@ -3,14 +3,15 @@
 import { updateMeshiPreference, getMeshiPreference, getUserUnlockedCosmetics } from "@/lib/actions";
 import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Crown, ArrowRight } from "lucide-react";
-import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor } from "@/components/meshi/meshi-mascot";
+import { Sparkles, Crown, ArrowRight, Lock, Trophy } from "lucide-react";
+import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor, ACHIEVEMENT_TITLES } from "@/components/meshi/meshi-mascot";
 
 interface MeshiTabProps {
   showSuccess: (msg: string) => void;
+  isMeshPro?: boolean;
 }
 
-export function MeshiTab({ showSuccess }: MeshiTabProps) {
+export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
   const [, startTransition] = useTransition();
   const [meshiHat, setMeshiHat] = useState<MeshiHat>("none");
   const [meshiFace, setMeshiFace] = useState<MeshiMood>("happy");
@@ -22,6 +23,11 @@ export function MeshiTab({ showSuccess }: MeshiTabProps) {
     return true;
   });
   const [unlockedFaces, setUnlockedFaces] = useState<string[]>([]);
+  const [unlockedTitles, setUnlockedTitles] = useState<string[]>([]);
+  const [activeTitle, setActiveTitle] = useState<string>(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("meshiTitle") || "";
+    return "";
+  });
 
   useEffect(() => {
     getMeshiPreference().then((pref) => {
@@ -34,9 +40,15 @@ export function MeshiTab({ showSuccess }: MeshiTabProps) {
     getUserUnlockedCosmetics().then((result) => {
       if (result.cosmetics) {
         setUnlockedFaces(result.cosmetics.filter((c) => c.type === "face").map((c) => c.value));
+        setUnlockedTitles(result.cosmetics.filter((c) => c.type === "title").map((c) => c.value));
       }
     });
   }, []);
+
+  const FREE_HATS: MeshiHat[] = ["none", "tophat", "crown", "beanie", "cap", "party", "flower"];
+  const PRO_HATS: MeshiHat[] = ["headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
+  const FREE_COLORS: MeshiColor[] = ["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow"];
+  const PRO_COLORS: MeshiColor[] = ["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"];
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -99,7 +111,7 @@ export function MeshiTab({ showSuccess }: MeshiTabProps) {
           <div className="glass-card rounded-2xl p-5">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Hat</h3>
             <div className="grid grid-cols-4 gap-3">
-              {(["none", "tophat", "crown", "beanie", "cap", "party", "flower"] as MeshiHat[]).map((hat) => (
+              {FREE_HATS.map((hat) => (
                 <button
                   key={hat}
                   onClick={() => { setMeshiHat(hat); localStorage.setItem("meshiHat", hat); }}
@@ -110,13 +122,40 @@ export function MeshiTab({ showSuccess }: MeshiTabProps) {
                 </button>
               ))}
             </div>
+            {/* MeshPro exclusive hats */}
+            <div className="mt-4 pt-4 border-t border-[var(--border-primary)]">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="h-3.5 w-3.5 text-amber-400" />
+                <span className="text-xs font-semibold text-amber-400">MeshPro Exclusive</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {PRO_HATS.map((hat) => (
+                  <button
+                    key={hat}
+                    onClick={() => {
+                      if (!isMeshPro) return;
+                      setMeshiHat(hat); localStorage.setItem("meshiHat", hat);
+                    }}
+                    disabled={!isMeshPro}
+                    className={`relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
+                      !isMeshPro ? "opacity-50 cursor-not-allowed" :
+                      meshiHat === hat ? "ring-2 ring-amber-400 bg-amber-400/10" : "glass-surface hover:bg-[var(--bg-tertiary)]"
+                    }`}
+                  >
+                    {!isMeshPro && <Lock className="absolute top-1.5 right-1.5 h-3 w-3 text-[var(--text-muted)]" />}
+                    <MeshiMascot size={36} mood={meshiFace} hat={hat} color={meshiColor} animate={false} showGlow={false} />
+                    <span className="text-[10px] text-[var(--text-secondary)] capitalize">{hat}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Color theme */}
           <div className="glass-card rounded-2xl p-5">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Color</h3>
             <div className="grid grid-cols-4 gap-3">
-              {(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow"] as MeshiColor[]).map((color) => (
+              {FREE_COLORS.map((color) => (
                 <button
                   key={color}
                   onClick={() => { setMeshiColor(color); localStorage.setItem("meshiColor", color); }}
@@ -126,6 +165,76 @@ export function MeshiTab({ showSuccess }: MeshiTabProps) {
                   <span className="text-[10px] text-[var(--text-secondary)] capitalize">{color}</span>
                 </button>
               ))}
+            </div>
+            {/* MeshPro exclusive colors */}
+            <div className="mt-4 pt-4 border-t border-[var(--border-primary)]">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="h-3.5 w-3.5 text-amber-400" />
+                <span className="text-xs font-semibold text-amber-400">MeshPro Exclusive</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {PRO_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => {
+                      if (!isMeshPro) return;
+                      setMeshiColor(color); localStorage.setItem("meshiColor", color);
+                    }}
+                    disabled={!isMeshPro}
+                    className={`relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
+                      !isMeshPro ? "opacity-50 cursor-not-allowed" :
+                      meshiColor === color ? "ring-2 ring-amber-400 bg-amber-400/10" : "glass-surface hover:bg-[var(--bg-tertiary)]"
+                    }`}
+                  >
+                    {!isMeshPro && <Lock className="absolute top-1.5 right-1.5 h-3 w-3 text-[var(--text-muted)]" />}
+                    <MeshiMascot size={36} mood={meshiFace} hat={meshiHat} color={color} animate={false} showGlow={false} />
+                    <span className="text-[10px] text-[var(--text-secondary)] capitalize">{color}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Achievement Titles */}
+          <div className="glass-card rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Trophy className="h-4 w-4 text-amber-400" />
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Title</h3>
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mb-4">Earn titles through achievements. Your title appears below your Meshi.</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => { setActiveTitle(""); localStorage.removeItem("meshiTitle"); showSuccess("Title removed"); }}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${!activeTitle ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+              >
+                <span className="text-xs text-[var(--text-secondary)]">No title</span>
+              </button>
+              {Object.entries(ACHIEVEMENT_TITLES).map(([key, info]) => {
+                const unlocked = unlockedTitles.includes(key);
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      if (!unlocked) return;
+                      setActiveTitle(key);
+                      localStorage.setItem("meshiTitle", key);
+                      showSuccess(`Title set to "${info.title}"`);
+                    }}
+                    disabled={!unlocked}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+                      !unlocked ? "opacity-40 cursor-not-allowed" :
+                      activeTitle === key ? "ring-2 ring-amber-400 bg-amber-400/10" : "glass-surface hover:bg-[var(--bg-tertiary)]"
+                    }`}
+                  >
+                    {!unlocked && <Lock className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />}
+                    {unlocked && <Trophy className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-[var(--text-primary)] block">{info.title}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">{info.description}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
