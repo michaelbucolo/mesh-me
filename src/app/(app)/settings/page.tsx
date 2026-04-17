@@ -13,7 +13,7 @@ import {
   ProfileTab, InterestsTab, CustomizeTab, NotificationsTab,
   PrivacyTab, MeshPrivacyTab, SecurityTab, SecurityHubTab,
   FootprintTab, BlockedTab, AchievementsTab, MeshiTab,
-  AlterEgosTab, MeshProTab,
+  AlterEgosTab, MeshProTab, DeleteAccountTab,
   type SettingsData, type BlockedUser,
 } from "./tabs";
 
@@ -32,6 +32,7 @@ const tabs = [
   { id: "achievements", label: "Achievements", icon: Trophy },
   { id: "meshi", label: "Meshi (Beta)", icon: Sparkles },
   { id: "meshpro", label: "MeshPro", icon: Crown },
+  { id: "danger", label: "Danger Zone", icon: AlertTriangle },
 ];
 
 const tabIds = tabs.map((t) => t.id);
@@ -165,8 +166,12 @@ export default function SettingsPage() {
                   activeTab === tab.id
                     ? tab.id === "meshpro"
                       ? "glass-surface font-medium text-[var(--accent)]"
-                      : "glass-surface text-[var(--text-primary)] font-medium"
-                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                      : tab.id === "danger"
+                        ? "bg-red-500/10 text-red-400 font-medium"
+                        : "glass-surface text-[var(--text-primary)] font-medium"
+                    : tab.id === "danger"
+                      ? "text-red-400/80 hover:text-red-300 hover:bg-red-500/10"
+                      : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                 }`}
               >
                 <tab.icon className="h-4 w-4" style={tab.id === "meshpro" ? { color: "var(--accent)" } : undefined} />
@@ -198,8 +203,12 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                   activeTab === tab.id
-                    ? "glass-surface text-[var(--text-primary)]"
-                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                    ? tab.id === "danger"
+                      ? "bg-red-500/10 text-red-400"
+                      : "glass-surface text-[var(--text-primary)]"
+                    : tab.id === "danger"
+                      ? "text-red-400/80 hover:text-red-300"
+                      : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 <tab.icon className="h-3.5 w-3.5" />
@@ -267,6 +276,7 @@ export default function SettingsPage() {
           {activeTab === "meshi" && <MeshiTab showSuccess={showSuccess} isMeshPro={settings?.isMeshPro === true} />}
           {activeTab === "alter-egos" && <AlterEgosTab showSuccess={showSuccess} />}
           {activeTab === "meshpro" && <MeshProTab />}
+          {activeTab === "danger" && <DeleteAccountTab showError={showError} />}
 
           {/* Mobile sign out */}
           <div className="mt-8 pt-4 border-t border-[var(--border-primary)] md:hidden">
