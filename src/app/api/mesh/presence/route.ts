@@ -13,7 +13,7 @@ const presenceStore = new Map<string, {
   position: { x: number; y: number };
   // Viewport-relative position (0-1 range) — where Meshi sits on the user's screen
   viewportPosition: { vx: number; vy: number };
-  viewingMesh: string | null; // userId of mesh being viewed, null = own mesh
+  viewingMesh: string; // userId of mesh being viewed (always normalized)
   lastSeen: number;
 }>();
 
@@ -46,7 +46,8 @@ export async function POST(request: Request) {
       meshiMood: meshiMood || "happy",
       position: position || { x: 0, y: 0 },
       viewportPosition: viewportPosition || { vx: 0.5, vy: 0.5 },
-      viewingMesh: viewingMesh || null,
+      // Normalize own-mesh views to the current user id so all viewers of the same mesh match.
+      viewingMesh: (typeof viewingMesh === "string" && viewingMesh.length > 0) ? viewingMesh : user.id,
       lastSeen: Date.now(),
     });
 
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
   cleanStale();
 
   const { searchParams } = new URL(request.url);
-  const meshOwner = searchParams.get("meshOwner"); // filter to users viewing a specific mesh
+  const meshOwner = searchParams.get("meshOwner"); // filter to users viewing a specific mesh owner id
   // Comma-separated user IDs of people connected to the viewer
   const connectedIds = searchParams.get("connectedIds")?.split(",").filter(Boolean) || [];
 

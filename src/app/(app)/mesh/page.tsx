@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { X, RotateCcw, Layers } from "lucide-react";
+import { X, RotateCcw, Layers, Sparkles, Activity, Compass, Radar, Workflow, Users2, Globe2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
@@ -46,6 +46,7 @@ export default function MeshPage() {
   const [error, setError] = useState<string | null>(null);
   const [showLabels, setShowLabels] = useState(true);
   const [showStats, setShowStats] = useState(true);
+  const [meshMode, setMeshMode] = useState<"explore" | "focus" | "social">("explore");
 
   // --- Overlay state ---
   const [showFootprint, setShowFootprint] = useState(false);
@@ -288,12 +289,19 @@ export default function MeshPage() {
 
       const center = engine.getCenter();
       const cachedUserMesh = userMeshCacheRef.current.get(username);
-      const data = cachedUserMesh ?? await fetch(`/api/users/${username}/mesh`).then(async (res) => {
+      let data: CachedUserMeshResponse;
+      if (cachedUserMesh) {
+        data = cachedUserMesh;
+      } else {
+        const res = await fetch(`/api/users/${username}/mesh`, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error("Failed to load user mesh");
-        const payload: CachedUserMeshResponse = await res.json();
-        userMeshCacheRef.current.set(username, payload);
-        return payload;
-      });
+        data = await res.json() as CachedUserMeshResponse;
+        userMeshCacheRef.current.set(username, data);
+      }
 
       const { nodes: userNodes, edges: userEdges } = buildUserMeshData(data, center.x, center.y);
 
@@ -339,6 +347,7 @@ export default function MeshPage() {
 
   const handleRemoteMeshisChange = useCallback((meshis: import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]) => {
     setRemoteMeshis(meshis);
+    setSyncPulseTime(performance.now());
   }, []);
 
   // Click debounce ref to prevent double-fire on double-click
@@ -383,6 +392,17 @@ export default function MeshPage() {
       id: n.id, label: n.label, color: n.color,
     }));
   }, [engine.nodes]);
+
+  const onlineMeshiCount = useMemo(() => remoteMeshis.filter((m) => m.isOnline).length, [remoteMeshis]);
+  const explorationLabel = viewingUserMesh
+    ? `Exploring ${viewingUserMesh.label}'s mesh`
+    : "Exploring your living mesh";
+  const hiddenCount = hiddenNodes.size + hiddenBranches.size;
+  const modeDescription = meshMode === "focus"
+    ? "Deep detail mode with less noise"
+    : meshMode === "social"
+      ? "Social pulse mode with people-first context"
+      : "Explore mode with balanced discovery";
 
   // --- Render ---
 
@@ -441,6 +461,103 @@ export default function MeshPage() {
 
   return (
     <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] h-24 bg-gradient-to-b from-[var(--bg-primary)]/85 to-transparent" />
+
+      {/* Meshi identity deck: makes Meshi the core representation of the user */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="absolute left-4 top-4 z-20 rounded-2xl border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-xl shadow-2xl"
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <MeshiMascot size={34} color={myMeshiColor} hat={myMeshiHat} mood={(meshiMood as MeshiMood) || "happy"} animate showGlow />
+            <span className="absolute -right-1 -bottom-1 inline-flex h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-black/40" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold text-white/90 flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-indigo-300" /> Meshi is you on the mesh
+            </p>
+            <p className="text-[10px] text-white/65">{explorationLabel}</p>
+            <div className="flex items-center gap-3 text-[9px] text-white/55">
+              <span className="inline-flex items-center gap-1"><Activity className="h-3 w-3" /> Mood: {meshiMood}</span>
+              <span className="inline-flex items-center gap-1"><Compass className="h-3 w-3" /> {onlineMeshiCount} live nearby</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Mesh cockpit: reorganized command surface for the full mesh experience */}
+      <motion.div
+        initial={{ opacity: 0, x: -16 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="absolute left-4 top-24 z-20 w-[260px] rounded-2xl border border-white/10 bg-black/35 p-3 backdrop-blur-xl shadow-2xl"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-wider text-white/60">Mesh cockpit</p>
+          <span className="rounded-full border border-white/15 px-2 py-0.5 text-[9px] text-white/70">{meshMode}</span>
+        </div>
+        <p className="mb-3 text-[10px] text-white/65">{modeDescription}</p>
+
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <button
+            onClick={() => { setMeshMode("explore"); setFilter("all"); setShowLabels(true); }}
+            className={`rounded-xl px-2 py-2 text-[10px] transition ${meshMode === "explore" ? "bg-white/15 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"}`}
+          >
+            <Globe2 className="mx-auto mb-1 h-3.5 w-3.5" />
+            Explore
+          </button>
+          <button
+            onClick={() => { setMeshMode("focus"); setFilter("platform"); setShowLabels(false); }}
+            className={`rounded-xl px-2 py-2 text-[10px] transition ${meshMode === "focus" ? "bg-white/15 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"}`}
+          >
+            <Radar className="mx-auto mb-1 h-3.5 w-3.5" />
+            Focus
+          </button>
+          <button
+            onClick={() => { setMeshMode("social"); setFilter("user"); setShowLabels(true); }}
+            className={`rounded-xl px-2 py-2 text-[10px] transition ${meshMode === "social" ? "bg-white/15 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"}`}
+          >
+            <Users2 className="mx-auto mb-1 h-3.5 w-3.5" />
+            Social
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-[10px]">
+          <div className="rounded-xl bg-white/5 p-2">
+            <p className="text-white/50">Visible</p>
+            <p className="text-white font-semibold">{visibleNodes.length}</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-2">
+            <p className="text-white/50">Hidden</p>
+            <p className="text-white font-semibold">{hiddenCount}</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-2">
+            <p className="text-white/50">Remote</p>
+            <p className="text-white font-semibold">{remoteMeshis.length}</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-2">
+            <p className="text-white/50">Connections</p>
+            <p className="text-white font-semibold">{engine.edges.length}</p>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.08 }}
+        className="absolute top-4 left-1/2 z-20 w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-xl"
+      >
+        <div className="flex items-center justify-between gap-3 text-[11px] text-white/75">
+          <span className="inline-flex items-center gap-1"><Workflow className="h-3.5 w-3.5 text-indigo-300" /> {explorationLabel}</span>
+          <span className="inline-flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-cyan-300" /> {visibleNodes.length} nodes visible</span>
+          <button onClick={() => setShowCommandPalette(true)} className="rounded-lg bg-white/10 px-2.5 py-1 text-[10px] text-white hover:bg-white/20 transition">⌘K Command</button>
+        </div>
+      </motion.div>
+
       {/* Filter bar + search/footprint buttons */}
       <MeshFilterBar
         filter={filter}
@@ -556,8 +673,8 @@ export default function MeshPage() {
       {engine.nodes.length > 0 && !selectedNode && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/30 backdrop-blur-2xl border border-white/[0.06] rounded-full px-5 py-2 text-[10px] text-white/30 pointer-events-none hidden md:block shadow-lg shadow-black/20 animate-content-fade">
           {viewingUserMesh
-            ? "Click to explore deeper \u00b7 Click back to return"
-            : "Click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
+            ? "Meshi follows your focus · Click deeper to keep exploring"
+            : "You are Meshi here · Click nodes to travel · Scroll to zoom"
           }
         </div>
       )}
