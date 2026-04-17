@@ -3,8 +3,9 @@
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createPost } from "@/lib/actions";
-import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info } from "lucide-react";
+import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 
 // Connected platforms for cross-posting
 const CROSS_POST_PLATFORMS = [
@@ -26,12 +27,15 @@ interface PostComposerProps {
 }
 
 export function PostComposer({ user, communityId }: PostComposerProps) {
+  const router = useRouter();
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [showTags, setShowTags] = useState(false);
   const [showCrossPost, setShowCrossPost] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
   const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
   // Load connected accounts
@@ -48,6 +52,15 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
     }
     loadAccounts();
   }, []);
+
+  useEffect(() => {
+    if (!successMessage && !errorMessage) return;
+    const timeout = window.setTimeout(() => {
+      setSuccessMessage("");
+      setErrorMessage("");
+    }, 3000);
+    return () => window.clearTimeout(timeout);
+  }, [successMessage, errorMessage]);
 
   const togglePlatform = (id: string) => {
     setSelectedPlatforms((prev) => {
@@ -70,6 +83,8 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
     }
 
     startTransition(async () => {
+      setSuccessMessage("");
+      setErrorMessage("");
       const result = await createPost(formData);
       if (result?.success) {
         setContent("");
@@ -77,6 +92,10 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
         setShowTags(false);
         setSelectedPlatforms(new Set());
         setShowCrossPost(false);
+        setSuccessMessage(selectedPlatforms.size > 0 ? "Post created and queued for cross-posting" : "Post created");
+        router.refresh();
+      } else {
+        setErrorMessage(result?.error || "Could not create post");
       }
     });
   };
@@ -88,6 +107,13 @@ export function PostComposer({ user, communityId }: PostComposerProps) {
       <div className="flex gap-3">
         <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
         <div className="flex-1">
+          {(successMessage || errorMessage) && (
+            <div className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${successMessage ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border border-red-500/20 bg-red-500/10 text-red-400"}`}>
+              {successMessage ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+              {successMessage || errorMessage}
+            </div>
+          )}
+
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
