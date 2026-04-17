@@ -22,17 +22,9 @@ const MeshFootprint = lazy(() => import("@/components/mesh/mesh-footprint").then
 const MeshPrivacyPanel = lazy(() => import("@/components/mesh/mesh-privacy-panel").then(m => ({ default: m.MeshPrivacyPanel })));
 const MeshPostComposer = lazy(() => import("@/components/mesh/mesh-post-composer").then(m => ({ default: m.MeshPostComposer })));
 
-type CachedUserMeshResponse = {
-  user: { id: string; username: string; displayName: string; avatarUrl: string | null };
-  following?: unknown[];
-  communities?: unknown[];
-  meshiPreference?: { colorTheme?: string; hatStyle?: string } | null;
-};
-
 export default function MeshPage() {
   const router = useRouter();
   const imageCache = useRef<Map<string, HTMLImageElement | null>>(new Map());
-  const userMeshCacheRef = useRef<Map<string, CachedUserMeshResponse>>(new Map());
   const zoomToNodeRef = useRef<(nodeId: string) => void>(() => {});
 
   // --- Core state ---
@@ -285,16 +277,11 @@ export default function MeshPage() {
         setMyNodes([...engine.nodes]);
         setMyEdges([...engine.edges]);
       }
+      const res = await fetch(`/api/users/${username}/mesh`);
+      if (!res.ok) { if (node.href) router.push(node.href); return; }
+      const data = await res.json();
 
       const center = engine.getCenter();
-      const cachedUserMesh = userMeshCacheRef.current.get(username);
-      const data = cachedUserMesh ?? await fetch(`/api/users/${username}/mesh`).then(async (res) => {
-        if (!res.ok) throw new Error("Failed to load user mesh");
-        const payload: CachedUserMeshResponse = await res.json();
-        userMeshCacheRef.current.set(username, payload);
-        return payload;
-      });
-
       const { nodes: userNodes, edges: userEdges } = buildUserMeshData(data, center.x, center.y);
 
       engine.setData(userNodes, userEdges);
@@ -358,12 +345,12 @@ export default function MeshPage() {
         zoomToNode(node.id);
         setTimeout(() => enterUserMesh(node), 750);
       } else if (node.href) {
-        router.push(node.href);
+        window.location.href = node.href;
       } else {
         setSelectedNode(node);
       }
     }, 250);
-  }, [enterUserMesh, router, zoomToNode]);
+  }, [enterUserMesh, zoomToNode]);
 
   const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
     // Cancel pending single-click action
@@ -373,9 +360,9 @@ export default function MeshPage() {
     }
     if (!node) return;
     if (node.href) {
-      router.push(node.href);
+      window.location.href = node.href;
     }
-  }, [router]);
+  }, []);
 
   // --- Connected platforms for post composer ---
   const connectedPlatforms = useMemo(() => {
@@ -556,8 +543,8 @@ export default function MeshPage() {
       {engine.nodes.length > 0 && !selectedNode && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/30 backdrop-blur-2xl border border-white/[0.06] rounded-full px-5 py-2 text-[10px] text-white/30 pointer-events-none hidden md:block shadow-lg shadow-black/20 animate-content-fade">
           {viewingUserMesh
-            ? "Click to explore deeper \u00b7 Click back to return"
-            : "Click to enter mesh \u00b7 Scroll to zoom \u00b7 \u2318K search"
+            ? "Click to explore deeper · Click back to return"
+            : "Click to enter mesh · Scroll to zoom · ⌘K search"
           }
         </div>
       )}
