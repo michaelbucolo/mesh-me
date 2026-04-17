@@ -59,6 +59,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   const [copied, setCopied] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [saveAnimating, setSaveAnimating] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
   const shareRef = useRef<HTMLDivElement>(null);
@@ -75,24 +76,39 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   const handleLike = () => {
     if (!currentUserId) return;
     const newLiked = !liked;
+    const previousLiked = liked;
+    const previousCount = likeCount;
+
     setLiked(newLiked);
-    setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+    setLikeCount((prev) => (newLiked ? prev + 1 : prev - 1));
     if (newLiked) {
       setLikeAnimating(true);
       setTimeout(() => setLikeAnimating(false), 400);
     }
-    startTransition(async () => { await toggleReaction(post.id); });
+    startTransition(async () => {
+      const result = await toggleReaction(post.id);
+      if (result && "error" in result) {
+        setLiked(previousLiked);
+        setLikeCount(previousCount);
+      }
+    });
   };
 
   const handleSave = () => {
     if (!currentUserId) return;
     const newSaved = !saved;
+    const previousSaved = saved;
     setSaved(newSaved);
     if (newSaved) {
       setSaveAnimating(true);
       setTimeout(() => setSaveAnimating(false), 300);
     }
-    startTransition(async () => { await toggleSavePost(post.id); });
+    startTransition(async () => {
+      const result = await toggleSavePost(post.id);
+      if (result && "error" in result) {
+        setSaved(previousSaved);
+      }
+    });
   };
 
   const handleRepost = () => {
@@ -107,7 +123,12 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
   const handleDelete = () => {
     if (!currentUserId) return;
-    startTransition(async () => { await deletePost(post.id); });
+    startTransition(async () => {
+      const result = await deletePost(post.id);
+      if (result?.success) {
+        setDeleted(true);
+      }
+    });
     setShowMenu(false);
   };
 
@@ -119,6 +140,8 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   };
 
   const isOwner = currentUserId === post.author.id;
+
+  if (deleted) return null;
 
   return (
     <article className={cn(
@@ -146,9 +169,9 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                   {post.author.displayName}
                 </Link>
                 {post.author.isVerified && (
-                                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent)" }}>
-                                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent)" }}>
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-xs flex-wrap" style={{ color: "var(--text-muted)" }}>
@@ -196,7 +219,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
           {/* More menu */}
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100" style={{ color: "var(--text-muted)" }}>
+            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-lg transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100" style={{ color: "var(--text-muted)" }}>
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {showMenu && (
