@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
-  Send, Search,
+  Send, Search, History, ChevronRight,
 } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type MeshiProp, PAGE_PROPS } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
@@ -97,7 +97,17 @@ export function MeshiFloat() {
   const [lastPath, setLastPath] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchingText, setSearchingText] = useState("");
-  const [, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>([]);
+  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem("meshi-chat-history");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as Array<{ q: string; a: string; time: string }>;
+      return parsed.map((entry) => ({ ...entry, time: new Date(entry.time) }));
+    } catch {
+      return [];
+    }
+  });
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
@@ -151,6 +161,19 @@ export function MeshiFloat() {
       }
     }).catch(() => {});
   }, []);
+
+  // Persist Meshi conversation memory
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(
+        "meshi-chat-history",
+        JSON.stringify(chatHistory.map((entry) => ({ ...entry, time: entry.time.toISOString() })))
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [chatHistory]);
 
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
@@ -568,6 +591,18 @@ export function MeshiFloat() {
   }, [meshiX, meshiY]);
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
+
+  // Keyboard shortcut: Cmd/Ctrl + M toggles Meshi menu
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        setView((prev) => (prev === "closed" ? "actions" : "closed"));
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
 
   // On /mesh page: show transition animation then hide; on other pages: show normally
   const isOnMeshPage = pathname === "/mesh";
