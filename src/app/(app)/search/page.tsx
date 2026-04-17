@@ -77,10 +77,7 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setResults(null);
-      return;
-    }
+    if (query.trim().length < 2) return;
 
     const timeoutId = window.setTimeout(() => {
       runSearch(query);
@@ -122,7 +119,13 @@ export default function SearchPage() {
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--text-muted)]" />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const nextValue = e.target.value;
+              setQuery(nextValue);
+              if (nextValue.trim().length < 2) {
+                setResults(null);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
