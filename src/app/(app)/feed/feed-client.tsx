@@ -5,7 +5,7 @@ import { PostComposer } from "@/components/feed/post-composer";
 import { PostCard } from "@/components/feed/post-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare, Loader2, Heart, MessageCircle,
+  FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare, Loader2, Heart, MessageCircle, ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -51,7 +51,7 @@ interface FeedClientProps {
 }
 
 export function FeedClient({ user, initialPosts }: FeedClientProps) {
-  const [layout, setLayout] = useState<FeedLayout>("reels");
+  const [layout, setLayout] = useState<FeedLayout>("cards");
   const [source, setSource] = useState<FeedSource>("all");
   const [posts, setPosts] = useState(initialPosts);
   const [page, setPage] = useState(1);
@@ -273,15 +273,22 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                     {post.content && <p className="text-white/90 text-sm line-clamp-2">{post.content}</p>}
                   </div>
                   {/* Side action bar */}
-                  <div className="absolute right-3 bottom-20 flex flex-col items-center gap-4">
-                    <Link href={`/feed/${post.id}`} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition-all">
-                      <Heart className="h-4 w-4" />
+                  <div className="absolute right-3 bottom-16 flex flex-col items-center gap-4">
+                    <Link href={`/feed/${post.id}`} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition-all" aria-label="Open post">
+                      <ExternalLink className="h-4 w-4" />
                     </Link>
-                    <span className="text-white text-[10px]">{post._count.reactions}</span>
-                    <Link href={`/feed/${post.id}`} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition-all">
-                      <MessageCircle className="h-4 w-4" />
-                    </Link>
-                    <span className="text-white text-[10px]">{post._count.comments}</span>
+                    <div className="flex flex-col items-center gap-1 text-white/90">
+                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                        <Heart className="h-4 w-4" />
+                      </div>
+                      <span className="text-[10px]">{post._count.reactions}</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 text-white/90">
+                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                        <MessageCircle className="h-4 w-4" />
+                      </div>
+                      <span className="text-[10px]">{post._count.comments}</span>
+                    </div>
                   </div>
                 </motion.div>
               ))}
