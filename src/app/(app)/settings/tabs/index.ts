@@ -12,4 +12,5 @@ export { AchievementsTab } from "./achievements-tab";
 export { MeshiTab } from "./meshi-tab";
 export { AlterEgosTab } from "./alter-egos-tab";
 export { MeshProTab } from "./meshpro-tab";
+export { DeleteAccountTab } from "./delete-account-tab";
 export type { SettingsData, BlockedUser } from "./types";
