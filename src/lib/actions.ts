@@ -5,7 +5,13 @@ import { getCurrentUser, hashPassword, createSession, destroySession, verifyPass
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
+import { getBaseUrl } from "./oauth";
 import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePostContent } from "./security";
+
+async function hashResetTokenValue(token: string) {
+  const crypto = await import("crypto");
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
 
 // ─── Auth Actions ────────────────────────────────────────────
 
@@ -174,31 +180,36 @@ export async function signOut() {
 // ─── Password Reset ─────────────────────────────────────────
 
 export async function requestPasswordReset(email: string) {
-  const rl = rateLimit(`reset:${email.toLowerCase()}`, 3, 15 * 60 * 1000);
+  const normalizedEmail = email.trim().toLowerCase();
+  const rl = rateLimit(`reset:${normalizedEmail}`, 3, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many reset requests. Please try again later." };
   }
 
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
   // Always return success to prevent email enumeration
   if (!user) return { success: true };
 
-  // Generate a secure reset token
   const crypto = await import("crypto");
   const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = await hashResetTokenValue(token);
   const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { resetToken: token, resetTokenExpiry: expiry },
+    data: { resetToken: tokenHash, resetTokenExpiry: expiry },
   });
 
-  // In production, send email with reset link containing the token
-  // For now, store the token — the email service integration will send:
-  // https://meshme.vercel.app/reset-password?token={token}
-  console.log(`Password reset requested for ${user.email}`);
+  const resetUrl = `${getBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
 
+  // Email delivery integration should send resetUrl.
+  // In development, return it to speed up local/staging testing.
+  if (process.env.NODE_ENV !== "production") {
+    return { success: true, resetUrl };
+  }
+
+  console.log(`Password reset requested for ${user.email}`);
   return { success: true };
 }
 
@@ -220,9 +231,11 @@ export async function resetPassword(token: string, newPassword: string) {
     return { error: "Password is too long" };
   }
 
+  const tokenHash = await hashResetTokenValue(token);
+
   const user = await prisma.user.findFirst({
     where: {
-      resetToken: token,
+      resetToken: tokenHash,
       resetTokenExpiry: { gt: new Date() },
     },
   });
