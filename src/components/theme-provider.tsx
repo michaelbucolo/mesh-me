@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
-const SURFACE_THEME_STORAGE_KEY = "mesh-surface-theme";
 
 interface ThemeContextType {
   mode: ThemeMode;
@@ -29,10 +28,6 @@ function applyTheme(resolved: ResolvedTheme) {
   root.classList.add(resolved);
 }
 
-function applySurfaceTheme(themeId: string) {
-  document.documentElement.setAttribute("data-surface-theme", themeId);
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
@@ -51,8 +46,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const resolved = resolve(initial);
       setResolvedTheme(resolved);
       applyTheme(resolved);
-      const storedSurfaceTheme = localStorage.getItem(SURFACE_THEME_STORAGE_KEY) || "midnight";
-      applySurfaceTheme(storedSurfaceTheme);
     }, 0);
     return () => clearTimeout(initTimer);
   }, [resolve]);

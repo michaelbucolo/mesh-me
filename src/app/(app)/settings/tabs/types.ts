@@ -47,7 +47,6 @@ export const FEED_LAYOUTS = [
 
 export const THEME_OPTIONS = [
   { id: "midnight", label: "Midnight", bg: "#09090b", accent: "#3b82f6" },
-  { id: "oled", label: "OLED Black", bg: "#000000", accent: "#60a5fa" },
   { id: "deep-ocean", label: "Deep Ocean", bg: "#0c1222", accent: "#06b6d4" },
   { id: "dark-violet", label: "Dark Violet", bg: "#0f0720", accent: "#8b5cf6" },
   { id: "charcoal", label: "Charcoal", bg: "#171717", accent: "#3b82f6" },
