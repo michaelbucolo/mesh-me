@@ -91,7 +91,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     authUrl: "https://id.twitch.tv/oauth2/authorize",
     tokenUrl: "https://id.twitch.tv/oauth2/token",
     profileUrl: "https://api.twitch.tv/helix/users",
-    scopes: ["user:read:email"],
+    scopes: ["user:read:email", "user:read:follows"],
     clientIdEnv: "TWITCH_CLIENT_ID",
     clientSecretEnv: "TWITCH_CLIENT_SECRET",
     usernameField: "login",
