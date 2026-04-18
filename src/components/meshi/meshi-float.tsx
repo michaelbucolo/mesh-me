@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
-  Send, Search, History, ChevronRight,
+  Send, Search,
 } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type MeshiProp, PAGE_PROPS } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
