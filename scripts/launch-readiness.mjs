@@ -29,7 +29,14 @@ const checks = [
     description: "DATABASE_URL is configured",
     severity: "P0",
     run: () => Boolean(process.env.DATABASE_URL),
-    fix: "Set DATABASE_URL for production database.",
+    fix: "Set DATABASE_URL for the production database.",
+  },
+  {
+    id: "env-example",
+    description: ".env.example exists",
+    severity: "P1",
+    run: () => fs.existsSync(path.join(root, ".env.example")),
+    fix: "Commit a current .env.example so teammates and deploy targets stay aligned.",
   },
   {
     id: "docs-launch-guide",
@@ -63,22 +70,36 @@ const checks = [
     id: "api-health",
     description: "Health endpoint exists",
     severity: "P0",
-    run: () => fs.existsSync(path.join(root, "src", "app", "api", "status", "route.ts")),
-    fix: "Create /api/status endpoint for uptime checks.",
+    run: () => fs.existsSync(path.join(root, "src", "app", "api", "health", "route.ts")),
+    fix: "Create /api/health so uptime checks do not depend on an authenticated route.",
   },
   {
     id: "api-feedback",
     description: "Feedback endpoint exists",
     severity: "P1",
     run: () => fs.existsSync(path.join(root, "src", "app", "api", "feedback", "route.ts")),
-    fix: "Create /api/feedback endpoint to capture user issues.",
+    fix: "Create /api/feedback to capture user issues.",
   },
   {
     id: "payments-webhook",
     description: "Stripe webhook endpoint exists",
     severity: "P1",
     run: () => fs.existsSync(path.join(root, "src", "app", "api", "stripe", "webhook", "route.ts")),
-    fix: "Add Stripe webhook handler before monetization launch.",
+    fix: "Add a Stripe webhook handler before monetization launch.",
+  },
+  {
+    id: "seo-robots",
+    description: "Robots configuration exists",
+    severity: "P1",
+    run: () => fs.existsSync(path.join(root, "public", "robots.txt")) || fs.existsSync(path.join(root, "src", "app", "robots.ts")),
+    fix: "Add robots.txt or src/app/robots.ts so crawlers get explicit instructions.",
+  },
+  {
+    id: "seo-sitemap",
+    description: "Sitemap configuration exists",
+    severity: "P1",
+    run: () => fs.existsSync(path.join(root, "src", "app", "sitemap.ts")) || fs.existsSync(path.join(root, "public", "sitemap.xml")),
+    fix: "Add src/app/sitemap.ts or a static sitemap.xml.",
   },
   {
     id: "security-lib",
@@ -125,13 +146,10 @@ const severityRank = {
 
 checks.sort((a, b) => severityRank[a.severity] - severityRank[b.severity]);
 
-const rows = checks.map((check) => {
-  const passed = safeRun(check.run);
-  return {
-    ...check,
-    passed,
-  };
-});
+const rows = checks.map((check) => ({
+  ...check,
+  passed: safeRun(check.run),
+}));
 
 function safeRun(fn) {
   try {
