@@ -16,10 +16,29 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+function getSiteUrl() {
+  const fallback = "https://mesh.me";
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  if (!raw) return fallback;
+
+  try {
+    return new URL(raw).toString().replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
+const siteUrl = getSiteUrl();
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "mesh.me — Your digital universe, remixed",
   description: "A creator-first social operating system that unifies identity, communities, and conversations in one private graph.",
   keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network", "universal social"],
+  alternates: {
+    canonical: "/",
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/meshi-favicon.svg",
@@ -36,6 +55,7 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   openGraph: {
+    url: siteUrl,
     title: "mesh.me — Your digital universe, remixed",
     description: "Unify identity, communities, and conversations in one privacy-first social operating system.",
     siteName: "mesh.me",
@@ -46,6 +66,7 @@ export const metadata: Metadata = {
     title: "mesh.me — Your digital universe, remixed",
     description: "A creator-first social operating system for your full digital footprint.",
   },
+  category: "technology",
 };
 
 export const viewport: Viewport = {
