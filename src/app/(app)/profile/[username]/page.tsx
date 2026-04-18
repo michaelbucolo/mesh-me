@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
 import { MapPin, Link as LinkIcon, Calendar, MessageCircle, MoreHorizontal, Link2, Crown, Trophy } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { FollowButton } from "./follow-button";
 import { formatCount } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
@@ -60,7 +61,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
       {/* Banner */}
       <div className="h-48 relative" style={{ background: "linear-gradient(135deg, rgba(45,127,249,0.3) 0%, rgba(0,198,251,0.3) 100%)" }}>
         {profile.bannerUrl && (
-          <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
+          <Image src={profile.bannerUrl} alt="" fill sizes="(max-width: 768px) 100vw, 768px" className="object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/80 to-transparent" />
       </div>

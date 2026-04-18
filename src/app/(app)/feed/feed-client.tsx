@@ -8,6 +8,7 @@ import {
   FileText, LayoutGrid, LayoutList, Smartphone, MessageSquare, Loader2, Heart, MessageCircle, ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 // Feed layout modes inspired by popular platforms
@@ -223,7 +224,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                     className="aspect-square bg-[var(--bg-secondary)] relative group cursor-pointer overflow-hidden"
                   >
                     {post.media.length > 0 ? (
-                      <img src={post.media[0].url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <Image src={post.media[0].url} alt="" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center p-3">
                         <p className="text-[11px] text-[var(--text-secondary)] text-center line-clamp-5 leading-relaxed">{post.content}</p>
@@ -253,7 +254,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                   style={{ minHeight: "calc(100vh - 10rem)" }}
                 >
                   {post.media.length > 0 ? (
-                    <img src={post.media[0].url} alt="" className="w-full h-full object-cover absolute inset-0" loading="lazy" />
+                    <Image src={post.media[0].url} alt="" fill sizes="100vw" className="object-cover absolute inset-0" />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg-secondary)] to-[var(--bg-tertiary)] flex items-center justify-center p-8">
                       <p className="text-lg text-[var(--text-primary)] text-center leading-relaxed font-medium">{post.content}</p>
@@ -333,8 +334,8 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                     </div>
                     {/* Thumbnail */}
                     {post.media.length > 0 && (
-                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={post.media[0].url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative">
+                        <Image src={post.media[0].url} alt="" fill sizes="64px" className="object-cover" />
                       </div>
                     )}
                   </div>
