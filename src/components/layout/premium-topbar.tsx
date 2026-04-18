@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarDays, Command, MessageCircle, Search, Sparkles } from "lucide-react";
+import { Bell, CalendarDays, Command, MessageCircle, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PremiumTopbarProps {
@@ -19,7 +19,6 @@ const routeMeta: Record<string, { title: string; subtitle: string }> = {
   "/messages": { title: "MeChat", subtitle: "Conversations that keep your network alive" },
   "/notifications": { title: "Notifications", subtitle: "Signals that deserve your attention" },
   "/communities": { title: "Communities", subtitle: "Your spaces for intentional growth" },
-  "/innovation": { title: "Innovation Studio", subtitle: "Plan bold experiments and scale what works" },
   "/settings": { title: "Settings", subtitle: "Tune every layer of your experience" },
 };
 
@@ -70,14 +69,6 @@ export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenComma
             <CalendarDays className="h-3.5 w-3.5" />
             {today}
           </span>
-
-          <Link
-            href="/innovation"
-            className="inline-flex items-center gap-1 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-200 transition hover:bg-violet-500/20"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Lab
-          </Link>
 
           {[{ href: "/messages", icon: MessageCircle, count: unreadMessages }, { href: "/notifications", icon: Bell, count: unreadNotifications }].map((item) => (
             <Link
