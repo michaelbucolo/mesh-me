@@ -139,12 +139,11 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   };
 
   return (
-    <aside className="hidden h-screen w-[16rem] shrink-0 flex-col border-r border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-4 backdrop-blur-2xl lg:flex">
-      {/* Brand */}
+    <aside data-sidebar className="hidden h-screen w-[16rem] shrink-0 flex-col border-r border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-4 backdrop-blur-2xl lg:flex">
       <Link href="/mesh" className="group mb-5 flex items-center gap-3 px-3 py-1">
         <MeshiMascot
           size={30}
-          color={meshiPrefs.appLogo === "custom" ? meshiPrefs.color : "blue"}
+          color={meshiPrefs.appLogo === "custom" ? meshiPrefs.appLogoColor : "blue"}
           mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
           hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
           animate
@@ -156,7 +155,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         </p>
       </Link>
 
-      {/* Grouped navigation */}
       <nav className="flex-1 space-y-4 overflow-y-auto">
         {navGroups.map((group) => {
           const isCollapsed = group.collapsible && collapsedGroups.has(group.label);
@@ -212,7 +210,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         )}
       </nav>
 
-      {/* Bottom nav items */}
       <div className="mb-3 space-y-0.5">
         {bottomItems.map(renderNavItem)}
         <Link
@@ -229,7 +226,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         </Link>
       </div>
 
-      {/* User card */}
       <div className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-3">
         <div className="flex items-center gap-2.5">
           <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
