@@ -36,6 +36,7 @@ const tabs = [
 ];
 
 const tabIds = tabs.map((t) => t.id);
+const SURFACE_THEME_STORAGE_KEY = "mesh-surface-theme";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -110,6 +111,21 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem(SURFACE_THEME_STORAGE_KEY);
+    if (storedTheme) {
+      setSelectedTheme(storedTheme);
+      document.documentElement.setAttribute("data-surface-theme", storedTheme);
+      return;
+    }
+    document.documentElement.setAttribute("data-surface-theme", "midnight");
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-surface-theme", selectedTheme);
+    localStorage.setItem(SURFACE_THEME_STORAGE_KEY, selectedTheme);
+  }, [selectedTheme]);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
