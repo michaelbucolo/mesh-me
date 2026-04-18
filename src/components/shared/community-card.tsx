@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { toggleCommunityMembership } from "@/lib/actions";
 import { useTransition } from "react";
 
@@ -37,7 +38,7 @@ export function CommunityCard({ community, currentUserId }: CommunityCardProps) 
       <div className="flex items-start gap-3">
         <div className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
           {community.iconUrl ? (
-            <img src={community.iconUrl} alt={community.name} className="h-12 w-12 rounded-xl object-cover" />
+            <Image src={community.iconUrl} alt={community.name} width={48} height={48} className="h-12 w-12 rounded-xl object-cover" />
           ) : (
             <Users className="h-5 w-5" style={{ color: "var(--accent)" }} />
           )}

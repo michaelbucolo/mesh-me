@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
 import { Heart, MessageCircle, Repeat2, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useTransition, useRef, useEffect } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
 
@@ -255,7 +256,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
           <div className={cn("rounded-xl overflow-hidden mb-3", post.media.length === 1 && "max-h-96", post.media.length >= 2 && "grid grid-cols-2 gap-1")}>
             {post.media.slice(0, 4).map((media, idx) => (
               <div key={media.id} className={cn("relative overflow-hidden", post.media.length === 3 && idx === 0 && "row-span-2", post.media.length >= 4 && "aspect-square")}>
-                <img src={media.url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
+                <Image src={media.url} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover hover:scale-105 transition-transform duration-300" />
                 {idx === 3 && post.media.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <span className="text-white font-bold text-lg">+{post.media.length - 4}</span>
