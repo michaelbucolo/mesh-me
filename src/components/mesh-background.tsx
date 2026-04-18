@@ -18,6 +18,13 @@ interface Star {
   twinkleSpeed: number;
 }
 
+const MAX_STARS = 180;
+const MAX_DEVICE_PIXEL_RATIO = 1.5;
+const CONSTELLATION_DIST = 120;
+const CONSTELLATION_DIST_SQ = CONSTELLATION_DIST * CONSTELLATION_DIST;
+const MOUSE_GLOW_RADIUS = 180;
+const MOUSE_GLOW_RADIUS_SQ = MOUSE_GLOW_RADIUS * MOUSE_GLOW_RADIUS;
+
 export function MeshBackground({
   density = 80,
   className = "",
@@ -32,12 +39,18 @@ export function MeshBackground({
   const burstRef = useRef(0);
   const meshiPosRef = useRef<{ x: number; y: number } | null>(null);
   const convergeRef = useRef(0);
+  const canvasRectRef = useRef<DOMRect | null>(null);
+  const positionsRef = useRef<{ x: number; y: number }[]>([]);
+  const timeMsRef = useRef(0);
+  const frameSkipRef = useRef(0);
+  const frameCountRef = useRef(0);
+  const lastFpsSampleTsRef = useRef(0);
 
   const initStars = useCallback(
     (width: number, height: number) => {
       const count = Math.floor((width * height) / (10000 / (density / 80)));
       const stars: Star[] = [];
-      for (let i = 0; i < Math.min(count, 200); i++) {
+      for (let i = 0; i < Math.min(count, MAX_STARS); i++) {
         stars.push({
           x: Math.random() * width,
           y: Math.random() * height,
@@ -48,6 +61,7 @@ export function MeshBackground({
         });
       }
       starsRef.current = stars;
+      positionsRef.current = new Array(stars.length).fill(null).map(() => ({ x: 0, y: 0 }));
     },
     [density]
   );
@@ -60,19 +74,21 @@ export function MeshBackground({
     if (!ctx) return;
 
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
       canvas.width = canvas.offsetWidth * dpr;
       canvas.height = canvas.offsetHeight * dpr;
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvasRectRef.current = canvas.getBoundingClientRect();
       initStars(canvas.offsetWidth, canvas.offsetHeight);
     };
 
     resize();
     window.addEventListener("resize", resize);
+    window.addEventListener("scroll", resize, { passive: true });
 
     // Track mouse for glow effect (nodes stay in place, just glow brighter)
     const handleMouse = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
+      const rect = canvasRectRef.current ?? canvas.getBoundingClientRect();
       mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
     const handleMouseLeave = () => {
@@ -106,10 +122,28 @@ export function MeshBackground({
     };
     window.addEventListener("mesh-converge", handleConverge);
 
-    const draw = () => {
+    const draw = (now: number) => {
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
-      timeRef.current += 1;
+      if (!w || !h) {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
+      const lastTime = timeRef.current || now;
+      const delta = Math.max(8, Math.min(40, now - lastTime));
+      timeRef.current = now;
+      timeMsRef.current += delta;
+      frameCountRef.current += 1;
+
+      if (lastFpsSampleTsRef.current === 0) {
+        lastFpsSampleTsRef.current = now;
+      } else if (now - lastFpsSampleTsRef.current >= 1000) {
+        const fps = (frameCountRef.current * 1000) / (now - lastFpsSampleTsRef.current);
+        frameSkipRef.current = fps < 105 ? 1 : 0;
+        frameCountRef.current = 0;
+        lastFpsSampleTsRef.current = now;
+      }
 
       ctx.clearRect(0, 0, w, h);
 
@@ -118,8 +152,6 @@ export function MeshBackground({
       const activity = activityRef.current;
       const isTyping = fieldRef.current !== null && activity > 0;
       const burst = burstRef.current;
-      const mouseGlowRadius = 180;
-
       // Decay burst
       if (burstRef.current > 0) {
         burstRef.current *= 0.95;
@@ -134,61 +166,88 @@ export function MeshBackground({
       }
 
       // Meshi target position
-      const canvasRect = canvas.getBoundingClientRect();
+      const canvasRect = canvasRectRef.current ?? canvas.getBoundingClientRect();
       const meshi = meshiPosRef.current;
       const mx = meshi ? meshi.x - canvasRect.left : w / 2;
       const my = meshi ? meshi.y - canvasRect.top : h / 2;
-
-      // Constellation line distance
-      const constellationDist = 120;
       // String range to Meshi grows with typing
       const stringRange = 250 + activity * 6;
+      const stringRangeSq = stringRange * stringRange;
 
       // Compute display positions (static, or converging to Meshi on login)
-      const positions: { x: number; y: number }[] = [];
-      for (const star of stars) {
+      const positions = positionsRef.current;
+      for (let idx = 0; idx < stars.length; idx++) {
+        const star = stars[idx];
         if (converge > 0) {
           const ease = converge * converge * (3 - 2 * converge);
-          positions.push({
-            x: star.x + (mx - star.x) * ease,
-            y: star.y + (my - star.y) * ease,
-          });
+          positions[idx].x = star.x + (mx - star.x) * ease;
+          positions[idx].y = star.y + (my - star.y) * ease;
         } else {
-          positions.push({ x: star.x, y: star.y });
+          positions[idx].x = star.x;
+          positions[idx].y = star.y;
         }
       }
 
-      // --- Draw constellation lines between nearby stars ---
-      for (let i = 0; i < stars.length; i++) {
-        for (let j = i + 1; j < stars.length; j++) {
-          const dx = positions[i].x - positions[j].x;
-          const dy = positions[i].y - positions[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+      // --- Draw constellation lines between nearby stars using a grid ---
+      const cellSize = CONSTELLATION_DIST;
+      const grid = new Map<string, number[]>();
+      for (let i = 0; i < positions.length; i++) {
+        const gx = (positions[i].x / cellSize) | 0;
+        const gy = (positions[i].y / cellSize) | 0;
+        const key = `${gx},${gy}`;
+        const bucket = grid.get(key);
+        if (bucket) {
+          bucket.push(i);
+        } else {
+          grid.set(key, [i]);
+        }
+      }
 
-          if (dist < constellationDist) {
-            let alpha = (1 - dist / constellationDist) * 0.1;
+      for (const [key, bucket] of grid.entries()) {
+        const [gx, gy] = key.split(",").map(Number);
+        for (let ox = -1; ox <= 1; ox++) {
+          for (let oy = -1; oy <= 1; oy++) {
+            const neighborKey = `${gx + ox},${gy + oy}`;
+            const other = grid.get(neighborKey);
+            if (!other) continue;
+            for (let bi = 0; bi < bucket.length; bi++) {
+              const i = bucket[bi];
+              for (let bj = 0; bj < other.length; bj++) {
+                const j = other[bj];
+                if (j <= i) continue;
+                const dx = positions[i].x - positions[j].x;
+                const dy = positions[i].y - positions[j].y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq > CONSTELLATION_DIST_SQ) continue;
+                const dist = Math.sqrt(distSq);
+                let alpha = (1 - dist / CONSTELLATION_DIST) * 0.1;
 
-            // Glow brighter near mouse
-            if (mouse.x > 0) {
-              const midX = (positions[i].x + positions[j].x) / 2;
-              const midY = (positions[i].y + positions[j].y) / 2;
-              const mouseDist = Math.sqrt((mouse.x - midX) ** 2 + (mouse.y - midY) ** 2);
-              if (mouseDist < mouseGlowRadius) {
-                alpha += (1 - mouseDist / mouseGlowRadius) * 0.15;
+                // Glow brighter near mouse
+                if (mouse.x > 0) {
+                  const midX = (positions[i].x + positions[j].x) / 2;
+                  const midY = (positions[i].y + positions[j].y) / 2;
+                  const mouseDx = mouse.x - midX;
+                  const mouseDy = mouse.y - midY;
+                  const mouseDistSq = mouseDx * mouseDx + mouseDy * mouseDy;
+                  if (mouseDistSq < MOUSE_GLOW_RADIUS_SQ) {
+                    const mouseDist = Math.sqrt(mouseDistSq);
+                    alpha += (1 - mouseDist / MOUSE_GLOW_RADIUS) * 0.15;
+                  }
+                }
+
+                // Fade during converge
+                if (converge > 0.3) {
+                  alpha *= Math.max(0, 1 - (converge - 0.3) / 0.4);
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(positions[i].x, positions[i].y);
+                ctx.lineTo(positions[j].x, positions[j].y);
+                ctx.strokeStyle = "rgba(59, 130, 246, " + Math.min(alpha, 0.35).toFixed(3) + ")";
+                ctx.lineWidth = 0.4;
+                ctx.stroke();
               }
             }
-
-            // Fade during converge
-            if (converge > 0.3) {
-              alpha *= Math.max(0, 1 - (converge - 0.3) / 0.4);
-            }
-
-            ctx.beginPath();
-            ctx.moveTo(positions[i].x, positions[i].y);
-            ctx.lineTo(positions[j].x, positions[j].y);
-            ctx.strokeStyle = "rgba(59, 130, 246, " + Math.min(alpha, 0.35).toFixed(3) + ")";
-            ctx.lineWidth = 0.4;
-            ctx.stroke();
           }
         }
       }
@@ -199,23 +258,27 @@ export function MeshBackground({
           const pos = positions[i];
           const dx = mx - pos.x;
           const dy = my - pos.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const distSq = dx * dx + dy * dy;
 
-          if (dist < stringRange) {
+          if (distSq < stringRangeSq) {
+            const dist = Math.sqrt(distSq);
             const proximity = 1 - dist / stringRange;
             let alpha = proximity * (0.06 + activity * 0.004) + burst * 0.04;
 
             // Glow brighter near mouse
             if (mouse.x > 0) {
-              const mouseDist = Math.sqrt((mouse.x - pos.x) ** 2 + (mouse.y - pos.y) ** 2);
-              if (mouseDist < mouseGlowRadius) {
-                alpha += (1 - mouseDist / mouseGlowRadius) * 0.1;
+              const mouseDx = mouse.x - pos.x;
+              const mouseDy = mouse.y - pos.y;
+              const mouseDistSq = mouseDx * mouseDx + mouseDy * mouseDy;
+              if (mouseDistSq < MOUSE_GLOW_RADIUS_SQ) {
+                const mouseDist = Math.sqrt(mouseDistSq);
+                alpha += (1 - mouseDist / MOUSE_GLOW_RADIUS) * 0.1;
               }
             }
 
             // Gentle curve for organic string feel
-            const midX = (pos.x + mx) / 2 + Math.sin(timeRef.current * 0.012 + stars[i].twinklePhase) * 10;
-            const midY = (pos.y + my) / 2 + Math.cos(timeRef.current * 0.012 + stars[i].twinklePhase) * 10;
+            const midX = (pos.x + mx) / 2 + Math.sin(timeMsRef.current * 0.00072 + stars[i].twinklePhase) * 10;
+            const midY = (pos.y + my) / 2 + Math.cos(timeMsRef.current * 0.00072 + stars[i].twinklePhase) * 10;
 
             ctx.beginPath();
             ctx.moveTo(pos.x, pos.y);
@@ -272,14 +335,17 @@ export function MeshBackground({
         const pos = positions[i];
 
         // Twinkle shimmer
-        const twinkle = Math.sin(timeRef.current * star.twinkleSpeed + star.twinklePhase) * 0.35 + 0.65;
+        const twinkle = Math.sin(timeMsRef.current * star.twinkleSpeed * 0.06 + star.twinklePhase) * 0.35 + 0.65;
         let alpha = star.opacity * twinkle;
 
         // Glow brighter near mouse
         if (mouse.x > 0) {
-          const mouseDist = Math.sqrt((mouse.x - pos.x) ** 2 + (mouse.y - pos.y) ** 2);
-          if (mouseDist < mouseGlowRadius) {
-            const boost = (1 - mouseDist / mouseGlowRadius) * 0.5;
+          const mouseDx = mouse.x - pos.x;
+          const mouseDy = mouse.y - pos.y;
+          const mouseDistSq = mouseDx * mouseDx + mouseDy * mouseDy;
+          if (mouseDistSq < MOUSE_GLOW_RADIUS_SQ) {
+            const mouseDist = Math.sqrt(mouseDistSq);
+            const boost = (1 - mouseDist / MOUSE_GLOW_RADIUS) * 0.5;
             alpha = Math.min(alpha + boost, 1);
           }
         }
@@ -290,7 +356,7 @@ export function MeshBackground({
         }
 
         // Glow halo
-        const glowSize = star.radius * (2.5 + Math.sin(timeRef.current * 0.008 + star.twinklePhase * 2) * 0.4);
+        const glowSize = star.radius * (2.5 + Math.sin(timeMsRef.current * 0.00048 + star.twinklePhase * 2) * 0.4);
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, glowSize, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(59, 130, 246, " + (alpha * 0.07).toFixed(3) + ")";
@@ -303,6 +369,13 @@ export function MeshBackground({
         ctx.fill();
       }
 
+      if (frameSkipRef.current === 1) {
+        frameSkipRef.current = 2;
+      } else if (frameSkipRef.current === 2) {
+        frameSkipRef.current = 1;
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
       animFrameRef.current = requestAnimationFrame(draw);
     };
 
@@ -310,6 +383,7 @@ export function MeshBackground({
 
     return () => {
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", resize);
       window.removeEventListener("mesh-activity", handleActivity);
       window.removeEventListener("mesh-converge", handleConverge);
       document.removeEventListener("mousemove", handleMouse);
