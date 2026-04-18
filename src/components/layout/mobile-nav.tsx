@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Waypoints, MessageCircle, Bell, User, Compass, Rss } from "lucide-react";
+import { Waypoints, MessageCircle, Bell, User, Sparkles, Rss } from "lucide-react";
 import { impactFeedback } from "@/lib/native/haptics";
 
 interface MobileNavProps {
@@ -18,7 +18,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   const items = [
     { href: "/mesh", icon: Waypoints, label: "Mesh" },
     { href: "/feed", icon: Rss, label: "Feed" },
-    { href: "/explore", icon: Compass, label: "Explore" },
+    { href: "/innovation", icon: Sparkles, label: "Lab" },
     { href: "/messages", icon: MessageCircle, label: "Chat", badge: unreadMessages },
     { href: "/notifications", icon: Bell, label: "Alerts", badge: unreadNotifications },
     { href: username ? `/profile/${username}` : "/profile", icon: User, label: "Me" },
