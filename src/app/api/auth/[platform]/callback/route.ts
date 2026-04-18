@@ -20,7 +20,10 @@ export async function GET(
 
   // Handle OAuth errors
   if (error) {
-    const errorDesc = url.searchParams.get("error_description") || error;
+    let errorDesc = url.searchParams.get("error_description") || error;
+    if (platform === "youtube" && /not completed the google verification process|unverified|access blocked/i.test(errorDesc)) {
+      errorDesc = "YouTube connection is restricted to approved Google OAuth test users right now. Please contact support to be added.";
+    }
     return NextResponse.redirect(
       `${connectedAccountsUrl}?error=${encodeURIComponent(errorDesc)}&platform=${encodedPlatform}`
     );

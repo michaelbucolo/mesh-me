@@ -568,20 +568,28 @@ const spotifyAdapter: PlatformAdapter = {
 
 // ─── Twitch Adapter ─────────────────────────────────────────
 
+async function fetchTwitchCurrentUser(accessToken: string): Promise<{ id: string; login?: string; viewCount?: number } | null> {
+  const userRes = await fetch("https://api.twitch.tv/helix/users", {
+    headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+  });
+  if (!userRes.ok) return null;
+  const user = (await userRes.json()).data?.[0];
+  if (!user?.id) return null;
+  return {
+    id: user.id as string,
+    login: user.login as string | undefined,
+    viewCount: (user.view_count as number) || 0,
+  };
+}
+
 const twitchAdapter: PlatformAdapter = {
   async fetchPosts(accessToken) {
     try {
-      // Get user first
-      const userRes = await fetch("https://api.twitch.tv/helix/users", {
-        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
-      });
-      if (!userRes.ok) return { posts: [] };
-      const userData = await userRes.json();
-      const userId = userData.data?.[0]?.id;
-      if (!userId) return { posts: [] };
+      const currentUser = await fetchTwitchCurrentUser(accessToken);
+      if (!currentUser) return { posts: [] };
 
       // Get videos (VODs, highlights, uploads)
-      const res = await fetch(`https://api.twitch.tv/helix/videos?user_id=${userId}&first=50`, {
+      const res = await fetch(`https://api.twitch.tv/helix/videos?user_id=${currentUser.id}&first=50`, {
         headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
       });
       if (!res.ok) return { posts: [] };
@@ -605,19 +613,15 @@ const twitchAdapter: PlatformAdapter = {
   async fetchComments() { return { comments: [] }; },
   async fetchFollowers(accessToken) {
     try {
-      const userRes = await fetch("https://api.twitch.tv/helix/users", {
-        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
-      });
-      if (!userRes.ok) return { followers: [] };
-      const userId = (await userRes.json()).data?.[0]?.id;
-      if (!userId) return { followers: [] };
+      const currentUser = await fetchTwitchCurrentUser(accessToken);
+      if (!currentUser) return { followers: [] };
 
-      const res = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=100`, {
+      const followersRes = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${currentUser.id}&first=100`, {
         headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
       });
-      if (!res.ok) return { followers: [] };
-      const data = await res.json();
-      const followers: PlatformFollowerData[] = (data.data || []).map((f: Record<string, unknown>) => ({
+      if (!followersRes.ok) return { followers: [] };
+      const followerData = await followersRes.json();
+      const followers: PlatformFollowerData[] = (followerData.data || []).map((f: Record<string, unknown>) => ({
         platformUserId: f.user_id as string,
         username: f.user_login as string,
         displayName: f.user_name as string,
@@ -625,23 +629,62 @@ const twitchAdapter: PlatformAdapter = {
         relationshipType: "follower",
         profileUrl: `https://twitch.tv/${f.user_login}`,
       }));
-      return { followers };
+
+      const followingRes = await fetch(`https://api.twitch.tv/helix/channels/followed?user_id=${currentUser.id}&first=100`, {
+        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+      });
+
+      const followByUserId = new Map<string, PlatformFollowerData>();
+      for (const follower of followers) {
+        followByUserId.set(follower.platformUserId, follower);
+      }
+
+      if (followingRes.ok) {
+        const followingData = await followingRes.json();
+        for (const f of (followingData.data || []) as Record<string, unknown>[]) {
+          const followedUserId = f.broadcaster_id as string;
+          const existing = followByUserId.get(followedUserId);
+          const followingUser: PlatformFollowerData = {
+            platformUserId: followedUserId,
+            username: f.broadcaster_login as string,
+            displayName: f.broadcaster_name as string,
+            isMutual: existing?.relationshipType === "follower",
+            relationshipType: existing ? "follower" : "following",
+            profileUrl: `https://twitch.tv/${f.broadcaster_login}`,
+          };
+          if (existing) {
+            existing.isMutual = true;
+          } else {
+            followByUserId.set(followedUserId, followingUser);
+          }
+        }
+      }
+      return { followers: Array.from(followByUserId.values()) };
     } catch { return { followers: [] }; }
   },
   async fetchMedia() { return { media: [] }; },
   async fetchAnalytics(accessToken) {
     try {
-      const res = await fetch("https://api.twitch.tv/helix/users", {
+      const currentUser = await fetchTwitchCurrentUser(accessToken);
+      if (!currentUser) return defaultAnalytics();
+
+      const followersRes = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${currentUser.id}&first=1`, {
         headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
       });
-      if (!res.ok) return defaultAnalytics();
-      const user = (await res.json()).data?.[0] || {};
+      const followingRes = await fetch(`https://api.twitch.tv/helix/channels/followed?user_id=${currentUser.id}&first=1`, {
+        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+      });
+
+      const followerCount = followersRes.ok ? ((await followersRes.json()).total as number) || 0 : 0;
+      const followingCount = followingRes.ok ? ((await followingRes.json()).total as number) || 0 : 0;
+
       return {
         date: new Date(),
-        followerCount: 0, followingCount: 0,
+        followerCount,
+        followingCount,
         postCount: 0,
         totalLikes: 0, totalComments: 0,
-        totalViews: user.view_count || 0,
+        totalViews: currentUser.viewCount || 0,
         totalShares: 0, newFollowers: 0, lostFollowers: 0,
       };
     } catch { return defaultAnalytics(); }
@@ -856,6 +899,8 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
             avatarUrl: follower.avatarUrl,
             followerCount: follower.followerCount,
             isMutual: follower.isMutual,
+            relationshipType: follower.relationshipType,
+            profileUrl: follower.profileUrl,
           },
         });
         itemsSynced++;
