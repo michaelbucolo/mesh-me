@@ -781,8 +781,93 @@ function OverviewTab({ accounts, analytics, posts, syncing, onSync, onTabChange 
   onSync: (id: string) => void;
   onTabChange: (tab: TabType) => void;
 }) {
+  const [snapshotNow] = useState(() => Date.now());
+  const analyticsByPlatform = new Map(analytics.map((item) => [item.platform, item]));
+  const platformRows = accounts.map((account) => {
+    const analyticsItem = analyticsByPlatform.get(account.platform);
+    const followerCount = analyticsItem?.followerCount ?? account._count.platformFollowers;
+    const postCount = analyticsItem?.postCount ?? account._count.platformPosts;
+    const views = analyticsItem?.totalViews ?? 0;
+    const likes = analyticsItem?.totalLikes ?? 0;
+    return {
+      account,
+      followerCount,
+      postCount,
+      views,
+      likes,
+      engagementRate: analyticsItem?.engagementRate ?? null,
+    };
+  });
+
+  const topPlatform = [...platformRows].sort((a, b) => (b.followerCount + b.views) - (a.followerCount + a.views))[0];
+  const totalFollowers = platformRows.reduce((sum, row) => sum + row.followerCount, 0);
+  const totalViews = platformRows.reduce((sum, row) => sum + row.views, 0);
+  const totalLikes = platformRows.reduce((sum, row) => sum + row.likes, 0);
+
+  const postsLast7d = posts.filter((post) => {
+    if (!post.publishedAt) return false;
+    return snapshotNow - new Date(post.publishedAt).getTime() <= 7 * 24 * 60 * 60 * 1000;
+  });
+
+  const contentMix = posts.reduce<Record<string, number>>((acc, post) => {
+    const key = post.postType || "other";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const topContentTypes = Object.entries(contentMix)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  const actionItems = [
+    topPlatform
+      ? `Double down on ${PLATFORM_CONFIG[topPlatform.account.platform]?.name || topPlatform.account.platform}: it leads your current reach.`
+      : "Connect more platforms to unlock better recommendations.",
+    postsLast7d.length < 3
+      ? "Publish at least 3 times this week to improve algorithmic consistency."
+      : `Great cadence: ${postsLast7d.length} pieces published in the last 7 days.`,
+    totalFollowers > 0 && totalViews > 0
+      ? `Your view-to-follower ratio is ${Math.max(1, Math.round(totalViews / Math.max(totalFollowers, 1)))}:1. Keep posting native-format content.`
+      : "Run a full sync to refresh views/follower insights and track performance.",
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Creator Command Center */}
+      <div className="glass-card rounded-xl p-5 border border-[var(--border-primary)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Creator Command Center</h2>
+            <p className="text-xs text-[var(--text-muted)] mt-1">Live insights based on your latest synced footprint.</p>
+          </div>
+          {topPlatform && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)]">
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="text-xs text-[var(--text-secondary)]">
+                Top platform: <span className="font-semibold text-[var(--text-primary)]">{PLATFORM_CONFIG[topPlatform.account.platform]?.name || topPlatform.account.platform}</span>
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-xl p-3 bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
+            <p className="text-[11px] text-[var(--text-muted)]">Followers tracked</p>
+            <p className="text-xl font-bold text-[var(--text-primary)] mt-1">{formatNumber(totalFollowers)}</p>
+          </div>
+          <div className="rounded-xl p-3 bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
+            <p className="text-[11px] text-[var(--text-muted)]">Views captured</p>
+            <p className="text-xl font-bold text-[var(--text-primary)] mt-1">{formatNumber(totalViews)}</p>
+          </div>
+          <div className="rounded-xl p-3 bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
+            <p className="text-[11px] text-[var(--text-muted)]">Likes captured</p>
+            <p className="text-xl font-bold text-[var(--text-primary)] mt-1">{formatNumber(totalLikes)}</p>
+          </div>
+          <div className="rounded-xl p-3 bg-[var(--bg-secondary)] border border-[var(--border-primary)]">
+            <p className="text-[11px] text-[var(--text-muted)]">Posts (last 7 days)</p>
+            <p className="text-xl font-bold text-[var(--text-primary)] mt-1">{formatNumber(postsLast7d.length)}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Platform Cards */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -892,6 +977,53 @@ function OverviewTab({ accounts, analytics, posts, syncing, onSync, onTabChange 
             <p className="text-sm font-semibold text-[var(--text-primary)]">{action.label}</p>
           </button>
         ))}
+      </div>
+
+      {/* Content Mix + Recommendations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="glass-card rounded-xl p-4">
+          <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Content Mix</h3>
+          {topContentTypes.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">No synced content yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {topContentTypes.map(([type, count]) => {
+                const pct = posts.length ? Math.round((count / posts.length) * 100) : 0;
+                return (
+                  <div key={type}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-[var(--text-secondary)] capitalize">{type}</span>
+                      <span className="text-[var(--text-primary)] font-semibold">{count} ({pct}%)</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                      <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="glass-card rounded-xl p-4">
+          <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Suggested Next Moves</h3>
+          <div className="space-y-2">
+            {actionItems.map((item, idx) => (
+              <div key={idx} className="flex items-start gap-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)] p-2.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-[var(--text-secondary)]">{item}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button onClick={() => onTabChange("cross-post")} className="px-3 py-2 rounded-lg text-xs font-semibold text-white brand-button">
+              Publish Now
+            </button>
+            <button onClick={() => onTabChange("analytics")} className="px-3 py-2 rounded-lg text-xs font-semibold border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              Deep Analytics
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
