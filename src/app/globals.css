@@ -768,3 +768,37 @@ html {
     padding-bottom: 0.5rem;
   }
 }
+
+/* ─── Premium polish additions ─── */
+.premium-surface {
+  position: relative;
+  border: 1px solid var(--glass-border);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 40%),
+    var(--glass-card-bg);
+  box-shadow: var(--glass-shadow);
+}
+
+.premium-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.04) 48%, transparent 75%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.premium-surface:hover::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
