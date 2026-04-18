@@ -47,12 +47,12 @@ export function PremiumCommandCenter({ open, onClose, username }: PremiumCommand
   }, [onClose, open]);
 
   const links = useMemo(() => {
-    const allLinks = [...baseLinks, {
+    const allLinks: QuickLink[] = [...baseLinks, {
       label: "Profile",
       description: "View your public presence",
       href: `/profile/${username}`,
       icon: UserRound,
-    } satisfies QuickLink];
+    }];
 
     if (!query.trim()) return allLinks;
     const q = query.toLowerCase();
