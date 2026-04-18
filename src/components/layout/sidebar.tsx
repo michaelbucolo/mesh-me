@@ -19,7 +19,6 @@ import {
   LayoutDashboard,
   Crown,
   ChevronDown,
-  Sparkles,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
@@ -74,7 +73,6 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/content-hub", icon: LayoutDashboard, label: "Content Hub" },
       { href: "/connected-accounts", icon: Link2, label: "Connected Accounts" },
-      { href: "/innovation", icon: Sparkles, label: "Innovation Studio" },
     ],
   },
 ];
@@ -162,7 +160,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
       <nav className="flex-1 space-y-4 overflow-y-auto">
         {navGroups.map((group) => {
           const isCollapsed = group.collapsible && collapsedGroups.has(group.label);
-          // Check if any item in this group has a badge
           const groupHasBadge = group.items.some((item) => getBadgeCount(item.badgeKey) > 0);
 
           return (
