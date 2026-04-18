@@ -23,6 +23,9 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const view = searchParams.get("view");
 
@@ -52,9 +55,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (view === "followers") {
-      const user = await getCurrentUser();
-      if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
       const platform = searchParams.get("platform") || undefined;
       const page = parseInt(searchParams.get("page") || "1");
       const limit = parseInt(searchParams.get("limit") || "20");
@@ -116,6 +116,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await getCurrentUser())) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
     const body = await request.json();
     const { action } = body;
 

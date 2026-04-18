@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MeshiMascot, type MeshiMood, type MeshiProp } from "./meshi-mascot";
+import { MeshiMascot, type MeshiHat, type MeshiMood, type MeshiProp } from "./meshi-mascot";
 import { useEffect, useMemo, useState } from "react";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
@@ -77,15 +77,56 @@ interface MeshiFunLoadingScreenProps {
   title: string;
   subtitle?: string;
   className?: string;
+  mode?: "default" | "mesh-building" | "message-writing";
 }
 
-export function MeshiFunLoadingScreen({ title, subtitle = "Tap Meshi for a surprise reaction.", className = "" }: MeshiFunLoadingScreenProps) {
+const LOADING_MODES: Record<NonNullable<MeshiFunLoadingScreenProps["mode"]>, {
+  tips: string[];
+  moods: MeshiMood[];
+  props: MeshiProp[];
+  hatOverride?: MeshiHat;
+}> = {
+  default: {
+    tips: LOADING_TIPS,
+    moods: PLAYFUL_MOODS,
+    props: PLAYFUL_PROPS,
+  },
+  "mesh-building": {
+    tips: [
+      "Meshi is welding fresh connections",
+      "Meshi is placing nodes with laser precision",
+      "Meshi is tightening every edge bolt",
+      "Meshi is leveling your social scaffolding",
+    ],
+    moods: ["thinking", "excited", "celebrating", "learning"],
+    props: ["wrench", "clipboard", "compass"],
+    hatOverride: "hardhat",
+  },
+  "message-writing": {
+    tips: [
+      "Meshi is drafting your latest chats",
+      "Meshi is sorting threads into neat stacks",
+      "Meshi is jotting quick replies",
+      "Meshi is proofreading your inbox vibes",
+    ],
+    moods: ["thinking", "love", "wink", "giggle"],
+    props: ["notebook", "clipboard", "heart"],
+  },
+};
+
+export function MeshiFunLoadingScreen({
+  title,
+  subtitle = "Tap Meshi for a surprise reaction.",
+  className = "",
+  mode = "default",
+}: MeshiFunLoadingScreenProps) {
   const { color, hat } = useMeshiPreferences();
   const [dots, setDots] = useState("");
   const [tipIndex, setTipIndex] = useState(0);
   const [moodIndex, setMoodIndex] = useState(0);
   const [propIndex, setPropIndex] = useState(0);
   const [boostCount, setBoostCount] = useState(0);
+  const selectedMode = LOADING_MODES[mode];
 
   useEffect(() => {
     const dotTimer = setInterval(() => {
@@ -93,18 +134,18 @@ export function MeshiFunLoadingScreen({ title, subtitle = "Tap Meshi for a surpr
     }, 360);
 
     const tipTimer = setInterval(() => {
-      setTipIndex((i) => (i + 1) % LOADING_TIPS.length);
+      setTipIndex((i) => (i + 1) % selectedMode.tips.length);
     }, 2200);
 
     return () => {
       clearInterval(dotTimer);
       clearInterval(tipTimer);
     };
-  }, []);
+  }, [selectedMode.tips.length]);
 
   const onMeshiTap = () => {
-    setMoodIndex((i) => (i + 1) % PLAYFUL_MOODS.length);
-    setPropIndex((i) => (i + 1) % PLAYFUL_PROPS.length);
+    setMoodIndex((i) => (i + 1) % selectedMode.moods.length);
+    setPropIndex((i) => (i + 1) % selectedMode.props.length);
     setBoostCount((count) => count + 1);
   };
 
@@ -137,10 +178,10 @@ export function MeshiFunLoadingScreen({ title, subtitle = "Tap Meshi for a surpr
         >
           <MeshiMascot
             size={92}
-            mood={PLAYFUL_MOODS[moodIndex]}
+            mood={selectedMode.moods[moodIndex]}
             color={color}
-            hat={hat}
-            prop={PLAYFUL_PROPS[propIndex]}
+            hat={selectedMode.hatOverride || hat}
+            prop={selectedMode.props[propIndex]}
             showGlow
             animate
           />
@@ -150,7 +191,7 @@ export function MeshiFunLoadingScreen({ title, subtitle = "Tap Meshi for a surpr
       <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] mb-2">{title}</h2>
       <p className="text-sm text-[var(--text-muted)] mb-2">{subtitle}</p>
       <p className="text-sm font-medium text-[var(--text-secondary)] min-h-[1.5rem]">
-        {LOADING_TIPS[tipIndex]}
+        {selectedMode.tips[tipIndex]}
         {dots}
       </p>
     </div>

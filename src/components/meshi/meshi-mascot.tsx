@@ -82,7 +82,7 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
 };
 
 // Meshi prop types — contextual items Meshi holds
-export type MeshiProp = "none" | "magnifying-glass" | "clipboard" | "paintbrush" | "megaphone" | "shield" | "compass" | "bell" | "heart" | "wrench";
+export type MeshiProp = "none" | "magnifying-glass" | "clipboard" | "paintbrush" | "megaphone" | "shield" | "compass" | "bell" | "heart" | "wrench" | "notebook";
 
 // SVG props rendered near Meshi
 const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
@@ -144,6 +144,14 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
       <circle cx="0" cy="-2" r="3" fill="none" stroke={color} strokeWidth="2" />
     </g>
   ),
+  notebook: (color: string) => (
+    <g transform="translate(12, -7) scale(0.55)">
+      <rect x="-6" y="-2" width="12" height="14" rx="1.5" fill="none" stroke={color} strokeWidth="2" />
+      <line x1="-2" y1="-2" x2="-2" y2="12" stroke={color} strokeWidth="1.4" opacity="0.7" />
+      <line x1="0" y1="3" x2="4" y2="-1" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="0.5" y1="3.5" x2="3" y2="6" stroke={color} strokeWidth="1.4" strokeLinecap="round" opacity="0.75" />
+    </g>
+  ),
 };
 
 
@@ -174,6 +182,14 @@ const HATS: Record<string, React.ReactNode> = {
     <g transform="translate(0, -12)">
       <path d="M-14,2 Q-14,-8 0,-10 Q14,-8 14,2 Z" fill="currentColor" opacity="0.9" />
       <path d="M10,0 Q18,0 20,4 L14,4 Q12,2 10,2 Z" fill="currentColor" opacity="0.7" />
+    </g>
+  ),
+  hardhat: (
+    <g transform="translate(0, -13)">
+      <path d="M-14,3 Q-14,-8 0,-10 Q14,-8 14,3 Z" fill="#f59e0b" />
+      <path d="M-3,-7 L3,-7 L3,1 L-3,1 Z" fill="#fbbf24" opacity="0.85" />
+      <rect x="-16" y="2" width="32" height="3.5" rx="1.7" fill="#d97706" />
+      <path d="M-9,0 Q0,-2 9,0" fill="none" stroke="#fcd34d" strokeWidth="1.2" opacity="0.7" />
     </g>
   ),
   party: (

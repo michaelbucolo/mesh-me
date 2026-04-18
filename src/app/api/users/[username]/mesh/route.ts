@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { getFriendMeshData } from "@/lib/queries";
 
 export async function GET(
@@ -6,6 +7,10 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> },
 ) {
   try {
+    if (!(await getCurrentUser())) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const { username } = await params;
 
     if (!username || typeof username !== "string") {
