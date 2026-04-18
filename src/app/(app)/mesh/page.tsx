@@ -1,26 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { X, RotateCcw, Layers, Sparkles, Activity, Compass, Radar, Workflow, Users2, Globe2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "@/components/meshi/meshi-mascot";
-import { MeshiMeetOverlay, MeshiVisitorBadge } from "@/components/meshi/meshi-interactions";
-import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, RotateCcw, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
 import { MeshEngine } from "@/components/mesh/mesh-engine";
 import { MeshCanvas } from "@/components/mesh/mesh-canvas";
-import { MeshFilterBar, MeshZoomControls, MeshStatsBar, MeshActionBar } from "@/components/mesh/mesh-controls";
 import { buildMeshData, buildUserMeshData, preloadNodeImages, type MeshApiResponse } from "@/components/mesh/mesh-data";
-import type { MeshNode, MeshEdge, FilterType } from "@/components/mesh/mesh-types";
-
-// Lazy-load overlay panels — only rendered when user opens them
-const ContentHub = lazy(() => import("@/components/mesh/content-hub").then(m => ({ default: m.ContentHub })));
-const MeshCommandPalette = lazy(() => import("@/components/mesh/mesh-command-palette").then(m => ({ default: m.MeshCommandPalette })));
-const MeshFootprint = lazy(() => import("@/components/mesh/mesh-footprint").then(m => ({ default: m.MeshFootprint })));
-const MeshPrivacyPanel = lazy(() => import("@/components/mesh/mesh-privacy-panel").then(m => ({ default: m.MeshPrivacyPanel })));
-const MeshPostComposer = lazy(() => import("@/components/mesh/mesh-post-composer").then(m => ({ default: m.MeshPostComposer })));
+import type { MeshNode, MeshEdge } from "@/components/mesh/mesh-types";
 
 type CachedUserMeshResponse = {
   user: { id: string; username: string; displayName: string; avatarUrl: string | null };
@@ -33,132 +23,30 @@ export default function MeshPage() {
   const router = useRouter();
   const imageCache = useRef<Map<string, HTMLImageElement | null>>(new Map());
   const userMeshCacheRef = useRef<Map<string, CachedUserMeshResponse>>(new Map());
-  const zoomToNodeRef = useRef<(nodeId: string) => void>(() => {});
 
-  // --- Core state ---
   const [engine] = useState(() => new MeshEngine());
   const [selectedNode, setSelectedNode] = useState<MeshNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<MeshNode | null>(null);
   const [zoom, setZoom] = useState(0.65);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [filter, setFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
+  const [loadingUserMesh, setLoadingUserMesh] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showLabels, setShowLabels] = useState(true);
-  const [showStats, setShowStats] = useState(true);
-  const [meshMode, setMeshMode] = useState<"explore" | "focus" | "social">("explore");
 
-  // --- Overlay state ---
-  const [showFootprint, setShowFootprint] = useState(false);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [commandSearch, setCommandSearch] = useState("");
-  const [showPostComposer, setShowPostComposer] = useState(false);
-  const [showNodePrivacy, setShowNodePrivacy] = useState(false);
-  const [showContentHub, setShowContentHub] = useState(false);
-  const [showMeshiMeet, setShowMeshiMeet] = useState(false);
-  // --- Privacy state ---
-  const [hiddenNodes, setHiddenNodes] = useState<Set<string>>(new Set());
-  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set());
-
-  // --- Mesh data ---
-  const [meshStats, setMeshStats] = useState<MeshApiResponse["stats"] | null>(null);
   const [myMeshiColor, setMyMeshiColor] = useState<MeshiColor>("blue");
   const [myMeshiHat, setMyMeshiHat] = useState<MeshiHat>("none");
-
-  // --- Meshi on mesh state ---
-  const [meshiPosition, setMeshiPosition] = useState<{ x: number; y: number }>({ x: 400, y: 300 });
-  const [meshiMood, setMeshiMood] = useState("exploring");
-  const [remoteMeshis, setRemoteMeshis] = useState<import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]>([]);
   const [myUsername, setMyUsername] = useState("You");
-  const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
 
-  // --- Multi-user mesh exploration ---
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
   const [myNodes, setMyNodes] = useState<MeshNode[]>([]);
   const [myEdges, setMyEdges] = useState<MeshEdge[]>([]);
-  const [loadingUserMesh, setLoadingUserMesh] = useState(false);
-  const [viewingUserMeshiPrefs, setViewingUserMeshiPrefs] = useState<{ color: MeshiColor; hat: MeshiHat } | null>(null);
 
-  // --- Refs for canvas component ---
   const zoomRef = useRef(0.65);
   const panRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { panRef.current = pan; }, [pan]);
 
-  // --- Load hidden nodes + Meshi prefs from localStorage ---
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("meshHiddenNodes");
-      if (saved) setHiddenNodes(new Set(JSON.parse(saved)));
-      const savedBranches = localStorage.getItem("meshHiddenBranches");
-      if (savedBranches) setHiddenBranches(new Set(JSON.parse(savedBranches)));
-      const color = localStorage.getItem("meshiColor");
-      if (color) setMyMeshiColor(color as MeshiColor);
-      const hat = localStorage.getItem("meshiHat");
-      if (hat) setMyMeshiHat(hat as MeshiHat);
-    } catch { /* ignore */ }
-  }, []);
-
-  // Persist hidden nodes
-  useEffect(() => {
-    if (hiddenNodes.size > 0) localStorage.setItem("meshHiddenNodes", JSON.stringify([...hiddenNodes]));
-    else localStorage.removeItem("meshHiddenNodes");
-  }, [hiddenNodes]);
-
-  useEffect(() => {
-    if (hiddenBranches.size > 0) localStorage.setItem("meshHiddenBranches", JSON.stringify([...hiddenBranches]));
-    else localStorage.removeItem("meshHiddenBranches");
-  }, [hiddenBranches]);
-
-  // --- Toggle helpers ---
-  const toggleBranchHidden = (branchType: string) => {
-    setHiddenBranches((prev) => {
-      const next = new Set(prev);
-      if (next.has(branchType)) next.delete(branchType);
-      else next.add(branchType);
-      return next;
-    });
-  };
-
-  // --- Visible nodes (filtered by privacy settings) ---
-  const visibleNodes = useMemo(() => {
-    return engine.nodes.filter((n) => {
-      if (n.type === "self" || n.type === "alter-ego") return true;
-      if (hiddenNodes.has(n.id)) return false;
-      if (hiddenBranches.has(n.type)) return false;
-      return true;
-    });
-  }, [engine.nodes, hiddenNodes, hiddenBranches]);
-
-  // --- User nodes for presence system (generates offline sleeping Meshis) ---
-  const userNodeInfos = useMemo(() => {
-    return engine.nodes
-      .filter((n) => n.type === "user")
-      .map((n) => ({
-        userId: n.id,
-        username: n.sublabel?.replace("@", "") || n.label,
-        displayName: n.label,
-        x: n.x,
-        y: n.y,
-      }));
-  }, [engine.nodes]);
-
-  // --- Viewport info for presence coordinate conversion ---
-  const viewportInfo = useMemo(() => {
-    const center = engine.getCenter();
-    return {
-      zoom,
-      panX: pan.x,
-      panY: pan.y,
-      centerX: center.x,
-      centerY: center.y,
-      canvasWidth: typeof window !== "undefined" ? window.innerWidth : 800,
-      canvasHeight: typeof window !== "undefined" ? (window.innerHeight - 64) : 600, // subtract header
-    };
-  }, [zoom, pan, engine]);
-
-  // --- Fetch mesh data ---
   useEffect(() => {
     (async () => {
       try {
@@ -167,7 +55,6 @@ export default function MeshPage() {
         if (!res.ok) throw new Error("Failed to load mesh data");
         const data: MeshApiResponse = await res.json();
 
-        // Set center from window dimensions
         const cx = window.innerWidth / 2;
         const cy = window.innerHeight / 2;
         engine.setCenter(cx, cy);
@@ -176,19 +63,12 @@ export default function MeshPage() {
         engine.setData(nodes, edges);
         preloadNodeImages(nodes, imageCache.current);
 
-        // Store for returning from user-mesh exploration
         setMyNodes(nodes);
         setMyEdges(edges);
+        setMyUsername(data.user.displayName || data.user.username || "You");
 
-        // Set stats and Meshi prefs
-        setMeshStats(data.stats);
-        setMyUsername(data.user.displayName || data.user.username);
-        if (data.meshiPreference) {
-          const c = data.meshiPreference.colorTheme as MeshiColor;
-          const h = data.meshiPreference.hatStyle as MeshiHat;
-          if (c) setMyMeshiColor(c);
-          if (h) setMyMeshiHat(h);
-        }
+        if (data.meshiPreference?.colorTheme) setMyMeshiColor(data.meshiPreference.colorTheme as MeshiColor);
+        if (data.meshiPreference?.hatStyle) setMyMeshiHat(data.meshiPreference.hatStyle as MeshiHat);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load mesh");
       } finally {
@@ -197,102 +77,29 @@ export default function MeshPage() {
     })();
   }, [engine]);
 
-  // --- View helpers ---
-  const handleZoom = useCallback((delta: number) => {
-    setZoom((z) => {
-      const next = Math.max(0.2, Math.min(4, z + delta));
-      zoomRef.current = next;
-      return next;
-    });
-  }, []);
-
   const resetView = useCallback(() => {
-    setZoom(0.65); zoomRef.current = 0.65;
-    setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 };
+    setZoom(0.65);
+    zoomRef.current = 0.65;
+    setPan({ x: 0, y: 0 });
+    panRef.current = { x: 0, y: 0 };
     setSelectedNode(null);
     setHoveredNode(null);
   }, []);
 
-  // --- Keyboard shortcuts (after handleZoom/resetView are defined) ---
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setShowCommandPalette((prev) => !prev);
-        return;
-      }
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      switch (e.key) {
-        case "r": case "R": resetView(); break;
-        case "l": case "L": setShowLabels((v) => !v); break;
-        case "s": case "S": setShowStats((v) => !v); break;
-        case "f": case "F": setShowFootprint((v) => !v); break;
-        case "=": case "+": handleZoom(0.3); break;
-        case "-": handleZoom(-0.3); break;
-        case "1": setFilter("all"); break;
-        case "2": setFilter("user"); break;
-        case "3": setFilter("alter-ego"); break;
-        case "4": setFilter("community"); break;
-        case "5": setFilter("tag"); break;
-        case "6": setFilter("post"); break;
-        case "7": setFilter("platform"); break;
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleZoom, resetView]);
-
-  const zoomToNode = useCallback((nodeId: string) => {
-    const targetNode = engine.getNode(nodeId);
-    if (!targetNode) return;
-    const center = engine.getCenter();
-    const targetZoom = 2.0;
-    const offsetX = -(targetNode.x - center.x) * targetZoom;
-    const offsetY = -(targetNode.y - center.y) * targetZoom;
-    const startPan = { ...panRef.current };
-    const startZoom = zoomRef.current;
-    const duration = 700;
-    const startTime = performance.now();
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const t = Math.min(1, elapsed / duration);
-      // Smooth ease-out with slight overshoot for satisfying snap
-      const ease = t < 0.8
-        ? 1 - Math.pow(1 - t / 0.8, 3.5)
-        : 1 + Math.sin((t - 0.8) / 0.2 * Math.PI) * 0.015;
-      const newZoom = startZoom + (targetZoom - startZoom) * ease;
-      const newPanX = startPan.x + (offsetX - startPan.x) * ease;
-      const newPanY = startPan.y + (offsetY - startPan.y) * ease;
-      setZoom(newZoom); zoomRef.current = newZoom;
-      setPan({ x: newPanX, y: newPanY }); panRef.current = { x: newPanX, y: newPanY };
-      if (t < 1) requestAnimationFrame(animate);
-      else setSelectedNode(targetNode);
-    };
-    requestAnimationFrame(animate);
-  }, [engine]);
-
-  zoomToNodeRef.current = zoomToNode;
-
-  // --- Multi-user mesh exploration ---
   const enterUserMesh = useCallback(async (node: MeshNode) => {
     const username = node.sublabel?.replace("@", "");
     if (!username) return;
 
     try {
       setLoadingUserMesh(true);
-      // Save current mesh only on first exploration
       if (!viewingUserMesh) {
         setMyNodes([...engine.nodes]);
         setMyEdges([...engine.edges]);
       }
 
       const center = engine.getCenter();
-      const cachedUserMesh = userMeshCacheRef.current.get(username);
-      let data: CachedUserMeshResponse;
-      if (cachedUserMesh) {
-        data = cachedUserMesh;
-      } else {
+      let data = userMeshCacheRef.current.get(username);
+      if (!data) {
         const res = await fetch(`/api/users/${username}/mesh`, {
           method: "GET",
           headers: { Accept: "application/json" },
@@ -304,53 +111,26 @@ export default function MeshPage() {
       }
 
       const { nodes: userNodes, edges: userEdges } = buildUserMeshData(data, center.x, center.y);
-
       engine.setData(userNodes, userEdges);
       preloadNodeImages(userNodes, imageCache.current);
 
-      if (data.meshiPreference) {
-        setViewingUserMeshiPrefs({
-          color: (data.meshiPreference.colorTheme || "blue") as MeshiColor,
-          hat: (data.meshiPreference.hatStyle || "none") as MeshiHat,
-        });
-      } else {
-        setViewingUserMeshiPrefs({ color: "blue", hat: "none" });
-      }
-
       setViewingUserMesh(node);
       setSelectedNode(null);
-      setShowMeshiMeet(false);
       resetView();
     } catch {
       if (node.href) router.push(node.href);
     } finally {
       setLoadingUserMesh(false);
     }
-  }, [viewingUserMesh, router, engine, resetView]);
+  }, [engine, router, resetView, viewingUserMesh]);
 
   const returnToMyMesh = useCallback(() => {
-    if (myNodes.length > 0) {
-      engine.setData(myNodes, myEdges);
-    }
+    if (myNodes.length > 0) engine.setData(myNodes, myEdges);
     setViewingUserMesh(null);
-    setViewingUserMeshiPrefs(null);
-    setShowMeshiMeet(false);
     setSelectedNode(null);
     resetView();
-  }, [myNodes, myEdges, engine, resetView]);
+  }, [engine, myEdges, myNodes, resetView]);
 
-  // --- Canvas interaction handlers ---
-  const handleMeshiPositionChange = useCallback((x: number, y: number, mood: string) => {
-    setMeshiPosition({ x, y });
-    setMeshiMood(mood);
-  }, []);
-
-  const handleRemoteMeshisChange = useCallback((meshis: import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]) => {
-    setRemoteMeshis(meshis);
-    setSyncPulseTime(performance.now());
-  }, []);
-
-  // Click debounce ref to prevent double-fire on double-click
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCanvasClick = useCallback((node: MeshNode | null) => {
@@ -358,85 +138,33 @@ export default function MeshPage() {
       setSelectedNode(null);
       return;
     }
-    // Debounce: wait 250ms to distinguish single-click from double-click
+
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     clickTimerRef.current = setTimeout(() => {
       clickTimerRef.current = null;
-      // Single-click on user nodes zooms into their mesh directly
       if (node.type === "user" && node.sublabel) {
-        zoomToNode(node.id);
-        setTimeout(() => enterUserMesh(node), 750);
+        void enterUserMesh(node);
       } else if (node.href) {
         router.push(node.href);
       } else {
         setSelectedNode(node);
       }
-    }, 250);
-  }, [enterUserMesh, router, zoomToNode]);
+    }, 220);
+  }, [enterUserMesh, router]);
 
   const handleCanvasDoubleClick = useCallback((node: MeshNode | null) => {
-    // Cancel pending single-click action
     if (clickTimerRef.current) {
       clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;
     }
-    if (!node) return;
-    if (node.href) {
-      router.push(node.href);
-    }
+    if (node?.href) router.push(node.href);
   }, [router]);
-
-  // --- Connected platforms for post composer ---
-  const connectedPlatforms = useMemo(() => {
-    return engine.nodes.filter((n) => n.type === "platform").map((n) => ({
-      id: n.id, label: n.label, color: n.color,
-    }));
-  }, [engine.nodes]);
-
-  const onlineMeshiCount = useMemo(() => remoteMeshis.filter((m) => m.isOnline).length, [remoteMeshis]);
-  const explorationLabel = viewingUserMesh
-    ? `Exploring ${viewingUserMesh.label}'s mesh`
-    : "Exploring your living mesh";
-  const hiddenCount = hiddenNodes.size + hiddenBranches.size;
-  const modeDescription = meshMode === "focus"
-    ? "Deep detail mode with less noise"
-    : meshMode === "social"
-      ? "Social pulse mode with people-first context"
-      : "Explore mode with balanced discovery";
-
-  // --- Render ---
 
   if (loading) {
     return (
-      <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
-        {/* Subtle loading overlay that feels like mesh is forming */}
-        <motion.div
-          className="absolute inset-0 z-10 flex items-center justify-center"
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <motion.div
-            className="relative"
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <MeshiMascot size={64} mood="searching" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
-          </motion.div>
-          <motion.div
-            className="absolute bottom-1/3 w-32 h-0.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            transition={{ delay: 0.3 }}
-          >
-            <motion.div
-              className="h-full rounded-full bg-indigo-500/60"
-              animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              style={{ width: "40%" }}
-            />
-          </motion.div>
+      <div className="relative h-[calc(100dvh-4rem)] overflow-hidden bg-[var(--bg-primary)] rounded-2xl md:rounded-3xl flex items-center justify-center">
+        <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}>
+          <MeshiMascot size={64} mood="searching" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
         </motion.div>
       </div>
     );
@@ -444,8 +172,8 @@ export default function MeshPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-[var(--bg-primary)]">
-        <div className="text-center max-w-sm">
+      <div className="flex items-center justify-center h-[calc(100dvh-4rem)] bg-[var(--bg-primary)]">
+        <div className="text-center max-w-sm px-4">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
             <X className="h-8 w-8 text-red-400" />
           </div>
@@ -460,133 +188,11 @@ export default function MeshPage() {
   }
 
   return (
-    <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100dvh-4rem)] overflow-hidden bg-[var(--bg-primary)] rounded-2xl md:rounded-3xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] h-24 bg-gradient-to-b from-[var(--bg-primary)]/85 to-transparent" />
-
-      {/* Meshi identity deck: makes Meshi the core representation of the user */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="absolute left-2 right-2 top-[max(0.5rem,env(safe-area-inset-top))] z-20 rounded-2xl border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-xl shadow-2xl sm:left-4 sm:right-auto sm:top-4"
-      >
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <MeshiMascot size={34} color={myMeshiColor} hat={myMeshiHat} mood={(meshiMood as MeshiMood) || "happy"} animate showGlow />
-            <span className="absolute -right-1 -bottom-1 inline-flex h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-black/40" />
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold text-white/90 flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-indigo-300" /> Meshi is you on the mesh
-            </p>
-            <p className="text-[10px] text-white/65">{explorationLabel}</p>
-            <div className="flex items-center gap-3 text-[9px] text-white/55">
-              <span className="inline-flex items-center gap-1"><Activity className="h-3 w-3" /> Mood: {meshiMood}</span>
-              <span className="inline-flex items-center gap-1"><Compass className="h-3 w-3" /> {onlineMeshiCount} live nearby</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Mesh cockpit: reorganized command surface for the full mesh experience */}
-      <motion.div
-        initial={{ opacity: 0, x: -16 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="absolute left-4 top-24 z-20 hidden w-[260px] rounded-2xl border border-white/10 bg-black/35 p-3 backdrop-blur-xl shadow-2xl md:block"
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-wider text-white/60">Mesh cockpit</p>
-          <span className="rounded-full border border-white/15 px-2 py-0.5 text-[9px] text-white/70">{meshMode}</span>
-        </div>
-        <p className="mb-3 text-[10px] text-white/65">{modeDescription}</p>
-
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <button
-            onClick={() => { setMeshMode("explore"); setFilter("all"); setShowLabels(true); }}
-            className={`rounded-xl px-2 py-2 text-[10px] transition ${meshMode === "explore" ? "bg-white/15 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"}`}
-          >
-            <Globe2 className="mx-auto mb-1 h-3.5 w-3.5" />
-            Explore
-          </button>
-          <button
-            onClick={() => { setMeshMode("focus"); setFilter("platform"); setShowLabels(false); }}
-            className={`rounded-xl px-2 py-2 text-[10px] transition ${meshMode === "focus" ? "bg-white/15 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"}`}
-          >
-            <Radar className="mx-auto mb-1 h-3.5 w-3.5" />
-            Focus
-          </button>
-          <button
-            onClick={() => { setMeshMode("social"); setFilter("user"); setShowLabels(true); }}
-            className={`rounded-xl px-2 py-2 text-[10px] transition ${meshMode === "social" ? "bg-white/15 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"}`}
-          >
-            <Users2 className="mx-auto mb-1 h-3.5 w-3.5" />
-            Social
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-[10px]">
-          <div className="rounded-xl bg-white/5 p-2">
-            <p className="text-white/50">Visible</p>
-            <p className="text-white font-semibold">{visibleNodes.length}</p>
-          </div>
-          <div className="rounded-xl bg-white/5 p-2">
-            <p className="text-white/50">Hidden</p>
-            <p className="text-white font-semibold">{hiddenCount}</p>
-          </div>
-          <div className="rounded-xl bg-white/5 p-2">
-            <p className="text-white/50">Remote</p>
-            <p className="text-white font-semibold">{remoteMeshis.length}</p>
-          </div>
-          <div className="rounded-xl bg-white/5 p-2">
-            <p className="text-white/50">Connections</p>
-            <p className="text-white font-semibold">{engine.edges.length}</p>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.08 }}
-        className="absolute top-4 left-1/2 z-20 hidden w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-xl lg:block"
-      >
-        <div className="flex items-center justify-between gap-3 text-[11px] text-white/75">
-          <span className="inline-flex items-center gap-1"><Workflow className="h-3.5 w-3.5 text-indigo-300" /> {explorationLabel}</span>
-          <span className="inline-flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-cyan-300" /> {visibleNodes.length} nodes visible</span>
-          <button onClick={() => setShowCommandPalette(true)} className="rounded-lg bg-white/10 px-2.5 py-1 text-[10px] text-white hover:bg-white/20 transition">⌘K Command</button>
-        </div>
-      </motion.div>
-
-      {/* Filter bar + search/footprint buttons */}
-      <MeshFilterBar
-        filter={filter}
-        nodes={visibleNodes}
-        onFilterChange={setFilter}
-        onSearchOpen={() => setShowCommandPalette(true)}
-        showFootprint={showFootprint}
-        onToggleFootprint={() => setShowFootprint((v) => !v)}
-        className="top-[calc(5.25rem+env(safe-area-inset-top))] md:top-0"
-      />
-
-      {/* Zoom controls (right side) */}
-      <MeshZoomControls
-        showLabels={showLabels}
-        showStats={showStats}
-        onZoom={handleZoom}
-        onReset={resetView}
-        onToggleLabels={() => setShowLabels((v) => !v)}
-        onToggleStats={() => setShowStats((v) => !v)}
-      />
-
-      {/* Stats bar (bottom left, above action bar) */}
-      <MeshStatsBar nodes={visibleNodes} zoom={zoom} visible={showStats} />
-
-      {/* Canvas */}
+    <div className="relative h-[calc(100dvh-4rem)] overflow-hidden bg-[var(--bg-primary)] rounded-2xl md:rounded-3xl">
       <MeshCanvas
         engine={engine}
-        filter={filter}
-        showLabels={showLabels}
+        filter="all"
+        showLabels={true}
         zoom={zoom}
         pan={pan}
         hoveredNode={hoveredNode}
@@ -596,9 +202,8 @@ export default function MeshPage() {
         meshiColor={myMeshiColor}
         meshiHat={myMeshiHat}
         meshiUsername={myUsername}
-        remoteMeshis={remoteMeshis}
-        syncPulseTime={syncPulseTime}
-        onMeshiPositionChange={handleMeshiPositionChange}
+        remoteMeshis={[]}
+        syncPulseTime={null}
         onZoomChange={(z) => { setZoom(z); zoomRef.current = z; }}
         onPanChange={(p) => { setPan(p); panRef.current = p; }}
         onHoverChange={setHoveredNode}
@@ -606,166 +211,36 @@ export default function MeshPage() {
         onDoubleClick={handleCanvasDoubleClick}
       />
 
-      {/* Back to my mesh button */}
       <AnimatePresence>
         {viewingUserMesh && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-[calc(8.5rem+env(safe-area-inset-top))] md:top-16 left-1/2 -translate-x-1/2 z-20">
-            <button onClick={returnToMyMesh} className="flex items-center gap-2 px-4 py-2 glass-dropdown rounded-xl text-xs font-medium text-[var(--text-primary)] shadow-xl hover:bg-[var(--bg-tertiary)] transition-all active:scale-95">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+            <button onClick={returnToMyMesh} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/55 text-white text-xs font-medium backdrop-blur-md">
               <RotateCcw className="h-3.5 w-3.5" />
-              <span>Back to my mesh</span>
-              <span className="text-[var(--text-muted)]">&middot;</span>
-              {viewingUserMeshiPrefs && <MeshiMini size={18} color={viewingUserMeshiPrefs.color} hat={viewingUserMeshiPrefs.hat} mood="happy" />}
-              <span className="text-[var(--text-muted)]">Viewing {viewingUserMesh.label}&apos;s mesh</span>
+              Back to my mesh
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Loading overlay when entering another user's mesh — smooth transition */}
       <AnimatePresence>
         {loadingUserMesh && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-            <motion.div
-              animate={{ y: [0, -6, 0], rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+            <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
               <MeshiMascot size={48} mood="excited" color={myMeshiColor} hat={myMeshiHat} showGlow animate />
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Meshi visitor badge */}
-      <AnimatePresence>
-        {viewingUserMesh && !loadingUserMesh && (
-          <MeshiVisitorBadge viewingUsername={viewingUserMesh.label} onInteract={() => setShowMeshiMeet(true)} />
-        )}
-      </AnimatePresence>
-
-      {/* Live Meshi presence */}
-      <LiveMeshiPresence
-        viewingMesh={viewingUserMesh ? viewingUserMesh.id : null}
-        myMeshiColor={myMeshiColor}
-        myMeshiHat={myMeshiHat}
-        myMeshiPosition={meshiPosition}
-        myMeshiMood={meshiMood}
-        viewportInfo={viewportInfo}
-        userNodes={userNodeInfos}
-        onRemoteMeshisChange={handleRemoteMeshisChange}
-        onInteract={(presence) => {
-          if (!viewingUserMesh) return;
-          setViewingUserMeshiPrefs({ color: presence.meshiColor as MeshiColor, hat: presence.meshiHat as MeshiHat });
-          setShowMeshiMeet(true);
-        }}
-      />
-
-      {/* Meshi-to-Meshi interaction overlay */}
-      <AnimatePresence>
-        {showMeshiMeet && viewingUserMesh && viewingUserMeshiPrefs && (
-          <MeshiMeetOverlay
-            myMeshi={{ color: myMeshiColor, hat: myMeshiHat, mood: "excited" as MeshiMood, username: "You" }}
-            theirMeshi={{ color: viewingUserMeshiPrefs.color, hat: viewingUserMeshiPrefs.hat, mood: "happy" as MeshiMood, username: viewingUserMesh.label }}
-            onClose={() => setShowMeshiMeet(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Hint bar */}
-      {engine.nodes.length > 0 && !selectedNode && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[5] bg-black/30 backdrop-blur-2xl border border-white/[0.06] rounded-full px-5 py-2 text-[10px] text-white/30 pointer-events-none hidden md:block shadow-lg shadow-black/20 animate-content-fade">
-          {viewingUserMesh
-            ? "Meshi follows your focus · Click deeper to keep exploring"
-            : "You are Meshi here · Click nodes to travel · Scroll to zoom"
-          }
-        </div>
-      )}
-
-      {/* Footprint dashboard */}
-      <AnimatePresence>
-        {showFootprint && meshStats && (
-          <Suspense fallback={null}>
-          <MeshFootprint
-            meshStats={meshStats}
-            meshiColor={myMeshiColor}
-            meshiHat={myMeshiHat}
-            onClose={() => setShowFootprint(false)}
-          />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      {/* Command palette */}
-      <AnimatePresence>
-        {showCommandPalette && (
-          <Suspense fallback={null}>
-          <MeshCommandPalette
-            nodes={engine.nodes}
-            searchQuery={commandSearch}
-            onSearchChange={setCommandSearch}
-            onClose={() => setShowCommandPalette(false)}
-            onSelectNode={setSelectedNode}
-            onShowFootprint={() => setShowFootprint(true)}
-            centerRef={{ get current() { return engine.getCenter(); } }}
-            zoomRef={zoomRef}
-            panRef={panRef}
-            onPanChange={(newPan) => { setPan(newPan); panRef.current = newPan; }}
-          />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      {/* Action bar (bottom left) */}
-      <MeshActionBar
-        showContentHub={showContentHub}
-        showNodePrivacy={showNodePrivacy}
-        hiddenCount={hiddenNodes.size + hiddenBranches.size}
-        onCreatePost={() => setShowPostComposer(true)}
-        onToggleContentHub={() => setShowContentHub(true)}
-        onTogglePrivacy={() => setShowNodePrivacy((v) => !v)}
-      />
-
-      {/* Content Hub */}
-      <Suspense fallback={null}>
-        <ContentHub isOpen={showContentHub} onClose={() => setShowContentHub(false)} onDeleteSuccess={() => window.location.reload()} />
-      </Suspense>
-
-      {/* Privacy panel */}
-      <AnimatePresence>
-        {showNodePrivacy && (
-          <Suspense fallback={null}>
-          <MeshPrivacyPanel
-            hiddenNodes={hiddenNodes}
-            hiddenBranches={hiddenBranches}
-            onToggleBranchHidden={toggleBranchHidden}
-            onShowAll={() => { setHiddenNodes(new Set()); setHiddenBranches(new Set()); }}
-            onClose={() => setShowNodePrivacy(false)}
-          />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      {/* Post composer */}
-      <AnimatePresence>
-        {showPostComposer && (
-          <Suspense fallback={null}>
-          <MeshPostComposer
-            connectedPlatforms={connectedPlatforms}
-            onClose={() => setShowPostComposer(false)}
-          />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      {/* Empty state */}
       {engine.nodes.length <= 1 && !loading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <div className="text-center pointer-events-auto">
+          <div className="text-center pointer-events-auto px-4">
             <div className="w-20 h-20 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4">
               <Layers className="h-10 w-10 text-[var(--text-muted)]" />
             </div>
             <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-2">Your mesh is growing</h3>
             <p className="text-sm text-[var(--text-muted)] mb-4 max-w-sm">
-              Follow people, join communities, add interests, and create posts to see your digital universe expand.
+              Follow people, join communities, add interests, and create posts to expand your mesh.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Link href="/explore"><Button variant="gradient" size="sm">Explore</Button></Link>
