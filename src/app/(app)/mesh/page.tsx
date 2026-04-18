@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, RotateCcw, Layers } from "lucide-react";
+import { X, RotateCcw, Layers, Compass, MessageCircle, Network, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
 import { MeshEngine } from "@/components/mesh/mesh-engine";
@@ -18,6 +18,13 @@ type CachedUserMeshResponse = {
   communities?: unknown[];
   meshiPreference?: { colorTheme?: string; hatStyle?: string } | null;
 };
+
+const RELAY_LINKS = [
+  { href: "/explore", label: "Discover people", icon: Compass },
+  { href: "/content-hub", label: "Browse content", icon: Globe },
+  { href: "/connected-accounts", label: "Sync platforms", icon: Network },
+  { href: "/messages", label: "Open MeChat", icon: MessageCircle },
+] as const;
 
 export default function MeshPage() {
   const router = useRouter();
@@ -133,6 +140,14 @@ export default function MeshPage() {
 
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const meshiRelayMessage = viewingUserMesh
+    ? `You're exploring ${viewingUserMesh.label}'s mesh. Meshi is translating their internet map into your view.`
+    : selectedNode
+      ? `Meshi is focusing on ${selectedNode.label} and can route you to the right place in one tap.`
+      : hoveredNode
+        ? `Hovering ${hoveredNode.label}. Meshi is reading context so the next action is easier.`
+        : "Meshi is your relay between you and the internet—people, platforms, communities, and content in one map.";
+
   const handleCanvasClick = useCallback((node: MeshNode | null) => {
     if (!node) {
       setSelectedNode(null);
@@ -240,7 +255,7 @@ export default function MeshPage() {
             </div>
             <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-2">Your mesh is growing</h3>
             <p className="text-sm text-[var(--text-muted)] mb-4 max-w-sm">
-              Follow people, join communities, add interests, and create posts to expand your mesh.
+              Meshi turns your activity into a live map—follow people, join communities, connect platforms, and post to expand your internet view.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Link href="/explore"><Button variant="gradient" size="sm">Explore</Button></Link>
@@ -249,6 +264,30 @@ export default function MeshPage() {
           </div>
         </div>
       )}
+
+      <div className="absolute right-3 bottom-3 md:right-5 md:bottom-5 z-20 w-[min(24rem,calc(100%-1.5rem))] rounded-2xl border border-white/10 bg-black/55 text-white backdrop-blur-md shadow-2xl">
+        <div className="p-3 md:p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <MeshiMascot size={34} mood={selectedNode ? "thinking" : "happy"} color={myMeshiColor} hat={myMeshiHat} animate />
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/60 mb-1">Meshi Relay</p>
+              <p className="text-sm leading-relaxed text-white/90">{meshiRelayMessage}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {RELAY_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-2 rounded-lg bg-white/8 px-3 py-2 text-xs font-medium text-white/90 transition hover:bg-white/15"
+              >
+                <link.icon className="h-3.5 w-3.5" />
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
