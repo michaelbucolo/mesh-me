@@ -8,101 +8,154 @@ export interface MeshiPreferences {
   color: MeshiColor;
   hat: MeshiHat;
   face: MeshiMood;
-  /** App logo style — MeshPro feature. "default" uses the standard Meshi. */
+  enabled: boolean;
   appLogo: "default" | "custom";
-  /** Custom logo color override for MeshPro users */
   appLogoColor: MeshiColor;
+  title: string;
 }
+
+export const MESHI_PREFERENCES_EVENT = "meshi:preferences-updated";
+
+const STORAGE_KEYS = {
+  color: "meshiColor",
+  hat: "meshiHat",
+  face: "meshiFace",
+  enabled: "meshiEnabled",
+  appLogo: "meshiAppLogo",
+  appLogoColor: "meshiAppLogoColor",
+  title: "meshiTitle",
+} as const;
 
 const DEFAULTS: MeshiPreferences = {
   color: "blue",
   hat: "none",
   face: "happy",
+  enabled: true,
   appLogo: "default",
   appLogoColor: "blue",
+  title: "",
 };
 
+function canUseStorage() {
+  return typeof window !== "undefined";
+}
+
+function readMeshiPreferencesFromStorage(): MeshiPreferences {
+  if (!canUseStorage()) return DEFAULTS;
+
+  return {
+    color: (localStorage.getItem(STORAGE_KEYS.color) as MeshiColor) || DEFAULTS.color,
+    hat: (localStorage.getItem(STORAGE_KEYS.hat) as MeshiHat) || DEFAULTS.hat,
+    face: (localStorage.getItem(STORAGE_KEYS.face) as MeshiMood) || DEFAULTS.face,
+    enabled: localStorage.getItem(STORAGE_KEYS.enabled) !== "false",
+    appLogo: (localStorage.getItem(STORAGE_KEYS.appLogo) as "default" | "custom") || DEFAULTS.appLogo,
+    appLogoColor: (localStorage.getItem(STORAGE_KEYS.appLogoColor) as MeshiColor) || DEFAULTS.appLogoColor,
+    title: localStorage.getItem(STORAGE_KEYS.title) || DEFAULTS.title,
+  };
+}
+
+function writeMeshiPreferencesToStorage(prefs: MeshiPreferences) {
+  if (!canUseStorage()) return;
+
+  localStorage.setItem(STORAGE_KEYS.color, prefs.color);
+  localStorage.setItem(STORAGE_KEYS.hat, prefs.hat);
+  localStorage.setItem(STORAGE_KEYS.face, prefs.face);
+  localStorage.setItem(STORAGE_KEYS.enabled, String(prefs.enabled));
+  localStorage.setItem(STORAGE_KEYS.appLogo, prefs.appLogo);
+  localStorage.setItem(STORAGE_KEYS.appLogoColor, prefs.appLogoColor);
+
+  if (prefs.title) localStorage.setItem(STORAGE_KEYS.title, prefs.title);
+  else localStorage.removeItem(STORAGE_KEYS.title);
+}
+
+function broadcastMeshiPreferences(prefs: MeshiPreferences) {
+  if (!canUseStorage()) return;
+  window.dispatchEvent(new CustomEvent<MeshiPreferences>(MESHI_PREFERENCES_EVENT, { detail: prefs }));
+}
+
+export function updateMeshiLocalPreferences(patch: Partial<MeshiPreferences>) {
+  const next = {
+    ...readMeshiPreferencesFromStorage(),
+    ...patch,
+  } satisfies MeshiPreferences;
+
+  writeMeshiPreferencesToStorage(next);
+  broadcastMeshiPreferences(next);
+  return next;
+}
+
+async function hydrateMeshiPreferencesFromServer() {
+  const serverPref = await getMeshiPreference();
+  const local = readMeshiPreferencesFromStorage();
+
+  if (!serverPref) return local;
+
+  const merged: MeshiPreferences = {
+    ...local,
+    color: (serverPref.colorTheme as MeshiColor) || local.color,
+    hat: (serverPref.hatStyle as MeshiHat) || local.hat,
+    face: (serverPref.faceStyle as MeshiMood) || local.face,
+  };
+
+  writeMeshiPreferencesToStorage(merged);
+  broadcastMeshiPreferences(merged);
+  return merged;
+}
+
 /**
- * Shared hook for Meshi preferences. Reads from localStorage first (instant),
- * then hydrates from the server. Listens for storage events so all components
- * update together when the user changes preferences in Settings.
+ * Shared hook for Meshi preferences.
+ *
+ * This is the single client-side source of truth for Meshi customization.
+ * It keeps sidebar Meshi, floating Meshi, mesh-page Meshi, and settings in sync
+ * across the current tab and other tabs.
  */
 export function useMeshiPreferences(): MeshiPreferences & { refresh: () => void } {
-  const [prefs, setPrefs] = useState<MeshiPreferences>(() => {
-    if (typeof window === "undefined") return DEFAULTS;
-    return {
-      color: (localStorage.getItem("meshiColor") as MeshiColor) || DEFAULTS.color,
-      hat: (localStorage.getItem("meshiHat") as MeshiHat) || DEFAULTS.hat,
-      face: (localStorage.getItem("meshiFace") as MeshiMood) || DEFAULTS.face,
-      appLogo: (localStorage.getItem("meshiAppLogo") as "default" | "custom") || DEFAULTS.appLogo,
-      appLogoColor: (localStorage.getItem("meshiAppLogoColor") as MeshiColor) || DEFAULTS.appLogoColor,
-    };
-  });
+  const [prefs, setPrefs] = useState<MeshiPreferences>(() => readMeshiPreferencesFromStorage());
 
-  // Hydrate from server on mount
   useEffect(() => {
-    getMeshiPreference()
-      .then((pref) => {
-        if (pref) {
-          const updated: MeshiPreferences = {
-            color: (pref.colorTheme as MeshiColor) || DEFAULTS.color,
-            hat: (pref.hatStyle as MeshiHat) || DEFAULTS.hat,
-            face: (pref.faceStyle as MeshiMood) || DEFAULTS.face,
-            appLogo: (localStorage.getItem("meshiAppLogo") as "default" | "custom") || DEFAULTS.appLogo,
-            appLogoColor: (localStorage.getItem("meshiAppLogoColor") as MeshiColor) || DEFAULTS.appLogoColor,
-          };
-          setPrefs(updated);
-          // Sync to localStorage for instant access elsewhere
-          localStorage.setItem("meshiColor", updated.color);
-          localStorage.setItem("meshiHat", updated.hat);
-          localStorage.setItem("meshiFace", updated.face);
-        }
+    let mounted = true;
+
+    hydrateMeshiPreferencesFromServer()
+      .then((next) => {
+        if (mounted) setPrefs(next);
       })
       .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Listen for cross-component preference changes via storage events
   useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "meshiColor") setPrefs((p) => ({ ...p, color: (e.newValue as MeshiColor) || DEFAULTS.color }));
-      if (e.key === "meshiHat") setPrefs((p) => ({ ...p, hat: (e.newValue as MeshiHat) || DEFAULTS.hat }));
-      if (e.key === "meshiFace") setPrefs((p) => ({ ...p, face: (e.newValue as MeshiMood) || DEFAULTS.face }));
-      if (e.key === "meshiAppLogo") setPrefs((p) => ({ ...p, appLogo: (e.newValue as "default" | "custom") || DEFAULTS.appLogo }));
-      if (e.key === "meshiAppLogoColor") setPrefs((p) => ({ ...p, appLogoColor: (e.newValue as MeshiColor) || DEFAULTS.appLogoColor }));
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || !Object.values(STORAGE_KEYS).includes(event.key as (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS])) return;
+      setPrefs(readMeshiPreferencesFromStorage());
     };
+
+    const handleMeshiPreferencesUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<MeshiPreferences>;
+      if (customEvent.detail) setPrefs(customEvent.detail);
+      else setPrefs(readMeshiPreferencesFromStorage());
+    };
+
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener(MESHI_PREFERENCES_EVENT, handleMeshiPreferencesUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(MESHI_PREFERENCES_EVENT, handleMeshiPreferencesUpdate as EventListener);
+    };
   }, []);
 
   const refresh = useCallback(() => {
-    getMeshiPreference()
-      .then((pref) => {
-        if (pref) {
-          setPrefs((prev) => ({
-            ...prev,
-            color: (pref.colorTheme as MeshiColor) || prev.color,
-            hat: (pref.hatStyle as MeshiHat) || prev.hat,
-            face: (pref.faceStyle as MeshiMood) || prev.face,
-          }));
-        }
-      })
+    hydrateMeshiPreferencesFromServer()
+      .then((next) => setPrefs(next))
       .catch(() => {});
   }, []);
 
   return { ...prefs, refresh };
 }
 
-/**
- * Static preference reader for components that only need a one-time read
- * (e.g. loading screens). Does NOT listen for updates.
- */
 export function getMeshiPrefsStatic(): MeshiPreferences {
-  if (typeof window === "undefined") return DEFAULTS;
-  return {
-    color: (localStorage.getItem("meshiColor") as MeshiColor) || DEFAULTS.color,
-    hat: (localStorage.getItem("meshiHat") as MeshiHat) || DEFAULTS.hat,
-    face: (localStorage.getItem("meshiFace") as MeshiMood) || DEFAULTS.face,
-    appLogo: (localStorage.getItem("meshiAppLogo") as "default" | "custom") || DEFAULTS.appLogo,
-    appLogoColor: (localStorage.getItem("meshiAppLogoColor") as MeshiColor) || DEFAULTS.appLogoColor,
-  };
+  return readMeshiPreferencesFromStorage();
 }
