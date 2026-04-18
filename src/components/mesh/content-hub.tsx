@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
   X,
   Search,
@@ -601,13 +602,8 @@ function ContentPostCard({
 
           {/* Thumbnail */}
           {post.thumbnailUrl && !isEditing && (
-            <div className="mb-2 rounded-lg overflow-hidden w-full max-w-[200px] aspect-video bg-[var(--bg-tertiary)]">
-              <img
-                src={post.thumbnailUrl}
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+            <div className="mb-2 rounded-lg overflow-hidden w-full max-w-[200px] aspect-video bg-[var(--bg-tertiary)] relative">
+              <Image src={post.thumbnailUrl} alt="" fill sizes="200px" className="object-cover" />
             </div>
           )}
 
