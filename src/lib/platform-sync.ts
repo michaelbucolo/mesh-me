@@ -1385,6 +1385,26 @@ export async function replyToPlatformComment(postId: string, content: string) {
   return { error: "Failed to create comment on platform" };
 }
 
+/** Delete a synced platform comment */
+export async function deletePlatformComment(commentId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const comment = await prisma.platformComment.findUnique({
+    where: { id: commentId },
+    include: { connectedAccount: true },
+  });
+  if (!comment || comment.connectedAccount.userId !== user.id) return { error: "Comment not found" };
+  if (!comment.connectedAccount.accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(comment.connectedAccount.platform);
+  const ok = await adapter.deleteComment(comment.connectedAccount.accessToken, comment.platformCommentId);
+  if (!ok) return { error: "Delete comment failed — platform may not support this action" };
+
+  await prisma.platformComment.delete({ where: { id: commentId } });
+  return { success: true };
+}
+
 /** Get full post details including comments */
 export async function getPlatformPostDetails(postId: string) {
   const user = await getCurrentUser();

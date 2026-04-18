@@ -16,6 +16,7 @@ import {
   unpinPlatformPost,
   updatePlatformPostVisibility,
   replyToPlatformComment,
+  deletePlatformComment,
   getPlatformPostDetails,
   getConnectedAccountDetails,
 } from "@/lib/platform-sync";
@@ -28,6 +29,26 @@ export async function GET(request: NextRequest) {
     if (view === "analytics") {
       const analytics = await getPlatformAnalyticsSummary();
       return NextResponse.json({ analytics: analytics || [] });
+    }
+
+    if (view === "capabilities") {
+      return NextResponse.json({
+        actions: [
+          { id: "cross-post", required: ["content"], optional: ["mediaUrls", "platforms", "accountIds"] },
+          { id: "delete", required: ["postId"] },
+          { id: "edit", required: ["postId", "content"] },
+          { id: "like", required: ["postId"] },
+          { id: "unlike", required: ["postId"] },
+          { id: "share", required: ["postId"], optional: ["comment"] },
+          { id: "pin", required: ["postId"] },
+          { id: "unpin", required: ["postId"] },
+          { id: "visibility", required: ["postId", "visibility"] },
+          { id: "reply", required: ["postId", "content"] },
+          { id: "delete-comment", required: ["commentId"] },
+          { id: "follow", required: ["connectedAccountId", "platformUserId"] },
+          { id: "unfollow", required: ["connectedAccountId", "platformUserId"] },
+        ],
+      });
     }
 
     if (view === "followers") {
@@ -98,79 +119,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action } = body;
 
-    if (action === "delete") {
-      const result = await deletePlatformPost(body.postId);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
+    type ActionResult = { error?: string } & Record<string, unknown>;
+    const handlers: Record<string, () => Promise<ActionResult>> = {
+      delete: async () => deletePlatformPost(body.postId),
+      "cross-post": async () => crossPostContent(body.content, body.platforms, body.mediaUrls, body.accountIds),
+      edit: async () => editPlatformPost(body.postId, body.content),
+      like: async () => likePlatformPost(body.postId),
+      unlike: async () => unlikePlatformPost(body.postId),
+      follow: async () => followPlatformUser(body.connectedAccountId, body.platformUserId),
+      unfollow: async () => unfollowPlatformUser(body.connectedAccountId, body.platformUserId),
+      share: async () => sharePlatformPost(body.postId, body.comment),
+      pin: async () => pinPlatformPost(body.postId),
+      unpin: async () => unpinPlatformPost(body.postId),
+      visibility: async () => updatePlatformPostVisibility(body.postId, body.visibility),
+      reply: async () => replyToPlatformComment(body.postId, body.content),
+      "delete-comment": async () => deletePlatformComment(body.commentId),
+    };
+
+    const handler = handlers[action];
+    if (!handler) {
+      return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
 
-    if (action === "cross-post") {
-      const result = await crossPostContent(body.content, body.platforms, body.mediaUrls, body.accountIds);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json(result);
+    const result = await handler();
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
-
-    if (action === "edit") {
-      const result = await editPlatformPost(body.postId, body.content);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "like") {
-      const result = await likePlatformPost(body.postId);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "unlike") {
-      const result = await unlikePlatformPost(body.postId);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "follow") {
-      const result = await followPlatformUser(body.connectedAccountId, body.platformUserId);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "unfollow") {
-      const result = await unfollowPlatformUser(body.connectedAccountId, body.platformUserId);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "share") {
-      const result = await sharePlatformPost(body.postId, body.comment);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "pin") {
-      const result = await pinPlatformPost(body.postId);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "unpin") {
-      const result = await unpinPlatformPost(body.postId);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "visibility") {
-      const result = await updatePlatformPostVisibility(body.postId, body.visibility);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === "reply") {
-      const result = await replyToPlatformComment(body.postId, body.content);
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 });
-      return NextResponse.json({ success: true, comment: "comment" in result ? result.comment : undefined });
-    }
-
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    return NextResponse.json({ success: true, ...result });
   } catch {
     return NextResponse.json({ error: "Action failed" }, { status: 500 });
   }
