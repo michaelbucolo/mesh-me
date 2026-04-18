@@ -37,6 +37,7 @@ import {
   UserMinus,
   MoreHorizontal,
   Reply,
+  Terminal,
 } from "lucide-react";
 import { PLATFORM_LOGO_MAP } from "@/components/platform-logos";
 
@@ -167,7 +168,7 @@ const POST_TYPE_ICONS: Record<string, typeof FileText> = {
 
 // ─── Tab Types ──────────────────────────────────────────────
 
-type TabType = "overview" | "posts" | "analytics" | "followers" | "cross-post" | "sync";
+type TabType = "overview" | "posts" | "analytics" | "followers" | "cross-post" | "control" | "sync";
 
 // ─── Main Component ─────────────────────────────────────────
 
@@ -193,6 +194,11 @@ export default function ContentHubPage() {
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
   const [syncPulseActive, setSyncPulseActive] = useState(false);
+  const [capabilities, setCapabilities] = useState<Array<{ id: string; required: string[]; optional?: string[] }>>([]);
+  const [controlAction, setControlAction] = useState("like");
+  const [controlPayload, setControlPayload] = useState("{\n  \"postId\": \"\"\n}");
+  const [controlLoading, setControlLoading] = useState(false);
+  const [controlResult, setControlResult] = useState<string>("");
   const initialLoadDone = useRef(false);
 
   // Load sync status and accounts
@@ -255,12 +261,24 @@ export default function ContentHubPage() {
     }
   }, [page, filterPlatform]);
 
+  const loadCapabilities = useCallback(async () => {
+    try {
+      const res = await fetch("/api/platform-content?view=capabilities");
+      if (res.ok) {
+        const data = await res.json();
+        setCapabilities(data.actions || []);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Initial load (only shows full-page spinner once)
   useEffect(() => {
     if (initialLoadDone.current) return;
     async function init() {
       setLoading(true);
-      await Promise.all([loadSyncData(), loadPosts(), loadAnalytics()]);
+      await Promise.all([loadSyncData(), loadPosts(), loadAnalytics(), loadCapabilities()]);
       setLoading(false);
       initialLoadDone.current = true;
     }
@@ -445,8 +463,59 @@ export default function ContentHubPage() {
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "followers", label: "Audience", icon: Users },
     { id: "cross-post", label: "Publish", icon: Send },
+    { id: "control", label: "Control", icon: Terminal },
     { id: "sync", label: "Sync", icon: RefreshCw },
   ];
+
+  const controlActionTemplates: Record<string, string> = {
+    delete: '{\n  "postId": ""\n}',
+    "cross-post": '{\n  "content": "",\n  "accountIds": []\n}',
+    edit: '{\n  "postId": "",\n  "content": ""\n}',
+    like: '{\n  "postId": ""\n}',
+    unlike: '{\n  "postId": ""\n}',
+    follow: '{\n  "connectedAccountId": "",\n  "platformUserId": ""\n}',
+    unfollow: '{\n  "connectedAccountId": "",\n  "platformUserId": ""\n}',
+    share: '{\n  "postId": "",\n  "comment": ""\n}',
+    pin: '{\n  "postId": ""\n}',
+    unpin: '{\n  "postId": ""\n}',
+    visibility: '{\n  "postId": "",\n  "visibility": "public"\n}',
+    reply: '{\n  "postId": "",\n  "content": ""\n}',
+    "delete-comment": '{\n  "commentId": ""\n}',
+  };
+
+  const handleControlActionChange = (nextAction: string) => {
+    setControlAction(nextAction);
+    setControlPayload(controlActionTemplates[nextAction] || "{\n}");
+    setControlResult("");
+  };
+
+  const handleRunControlAction = async () => {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(controlPayload);
+    } catch {
+      setControlResult("Invalid JSON payload");
+      return;
+    }
+    setControlLoading(true);
+    setControlResult("");
+    try {
+      const res = await fetch("/api/platform-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: controlAction, ...parsed }),
+      });
+      const data = await res.json();
+      setControlResult(JSON.stringify(data, null, 2));
+      if (data.success) {
+        await Promise.all([loadPosts(), loadFollowers(), loadAnalytics(), loadSyncData()]);
+      }
+    } catch {
+      setControlResult("Request failed");
+    } finally {
+      setControlLoading(false);
+    }
+  };
 
   // ─── Loading State ────────────────────────────────────────
 
@@ -670,6 +739,18 @@ export default function ContentHubPage() {
               onTogglePlatform={(id) => setCrossPostPlatforms((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
               onPost={handleCrossPost}
               onShowForm={setShowCrossPost}
+            />
+          )}
+          {activeTab === "control" && (
+            <ControlTab
+              action={controlAction}
+              payload={controlPayload}
+              loading={controlLoading}
+              result={controlResult}
+              capabilities={capabilities}
+              onActionChange={handleControlActionChange}
+              onPayloadChange={setControlPayload}
+              onRun={handleRunControlAction}
             />
           )}
           {activeTab === "sync" && (
@@ -1640,6 +1721,87 @@ function PostCard({ post, compact, onDelete, onPostAction }: {
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ControlTab({
+  action,
+  payload,
+  loading,
+  result,
+  capabilities,
+  onActionChange,
+  onPayloadChange,
+  onRun,
+}: {
+  action: string;
+  payload: string;
+  loading: boolean;
+  result: string;
+  capabilities: Array<{ id: string; required: string[]; optional?: string[] }>;
+  onActionChange: (value: string) => void;
+  onPayloadChange: (value: string) => void;
+  onRun: () => void;
+}) {
+  const capability = capabilities.find((item) => item.id === action);
+
+  return (
+    <div className="space-y-4">
+      <div className="glass-card rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Mesh Control Center</h3>
+        <p className="text-xs text-[var(--text-muted)]">
+          Run any connected-account action that mesh.me exposes through the platform-content API.
+        </p>
+      </div>
+
+      <div className="glass-card rounded-xl p-4 space-y-3">
+        <label className="block">
+          <span className="text-xs text-[var(--text-muted)]">Action</span>
+          <select
+            value={action}
+            onChange={(e) => onActionChange(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)]"
+          >
+            {capabilities.map((item) => (
+              <option key={item.id} value={item.id}>{item.id}</option>
+            ))}
+          </select>
+        </label>
+
+        {capability && (
+          <div className="text-[11px] text-[var(--text-muted)] space-y-1">
+            <p>Required: {capability.required.join(", ") || "none"}</p>
+            <p>Optional: {capability.optional?.join(", ") || "none"}</p>
+          </div>
+        )}
+
+        <label className="block">
+          <span className="text-xs text-[var(--text-muted)]">Payload (JSON)</span>
+          <textarea
+            value={payload}
+            onChange={(e) => onPayloadChange(e.target.value)}
+            rows={10}
+            className="mt-1 w-full rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2 font-mono text-xs text-[var(--text-primary)]"
+          />
+        </label>
+
+        <button
+          onClick={onRun}
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-white brand-button disabled:opacity-60"
+        >
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Terminal className="h-3.5 w-3.5" />}
+          {loading ? "Running..." : "Run API Action"}
+        </button>
+      </div>
+
+      <div className="glass-card rounded-xl p-4">
+        <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Response</h4>
+        <pre className="rounded-lg bg-[var(--bg-secondary)] p-3 text-[11px] text-[var(--text-secondary)] overflow-auto whitespace-pre-wrap">
+          {result || "No response yet."}
+        </pre>
       </div>
     </div>
   );
