@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -9,10 +8,8 @@ import { DynamicFavicon } from "@/components/dynamic-favicon";
 import { MeshiFloat } from "@/components/meshi/meshi-float";
 import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
-import { VerificationBanner } from "@/components/verification/verification-banner";
-import { AppContentShell } from "@/components/layout/app-content-shell";
 import { prisma } from "@/lib/prisma";
-import { Search, MessageCircle, Bell } from "lucide-react";
+import { AppChrome } from "@/components/layout/app-chrome";
 
 export const metadata: Metadata = {
   title: {
@@ -73,51 +70,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         />
 
         <div className="flex h-full min-w-0 flex-1 flex-col">
-          {/* Minimal top bar — just quick actions, no redundant text */}
-          <header className="sticky top-0 z-30 hidden h-12 shrink-0 items-center justify-end gap-1.5 border-b border-[var(--glass-border)] bg-[var(--glass-bg)] px-5 backdrop-blur-2xl lg:flex">
-            <Link
-              href="/search"
-              className="inline-flex items-center justify-center rounded-full p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-              title="Search"
-            >
-              <Search className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/messages"
-              className="relative inline-flex items-center justify-center rounded-full p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-              title="Messages"
-            >
-              <MessageCircle className="h-4 w-4" />
-              {unreadMessages > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[8px] font-bold text-white">
-                  {unreadMessages > 99 ? "99+" : unreadMessages}
-                </span>
-              )}
-            </Link>
-            <Link
-              href="/notifications"
-              className="relative inline-flex items-center justify-center rounded-full p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-              title="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
-          </header>
-
-          <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-5 md:px-6 lg:pb-6">
-            {(needsEmailVerification || needsPhoneVerification) && (
-              <VerificationBanner
-                needsEmailVerification={needsEmailVerification}
-                needsPhoneVerification={needsPhoneVerification}
-                userEmail={userEmail}
-              />
-            )}
-            <AppContentShell>{children}</AppContentShell>
-          </main>
+          <AppChrome
+            unreadNotifications={unreadCount}
+            unreadMessages={unreadMessages}
+            username={user.username}
+            needsEmailVerification={needsEmailVerification}
+            needsPhoneVerification={needsPhoneVerification}
+            userEmail={userEmail}
+          >
+            {children}
+          </AppChrome>
         </div>
       </div>
 
