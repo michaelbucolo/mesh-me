@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Compass, Layers3, MessageSquare, Rss, Settings, Sparkles, UserRound, Waypoints } from "lucide-react";
+import { ArrowRight, Compass, Layers3, MessageSquare, Rss, Settings, UserRound, Waypoints } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,6 @@ const baseLinks: QuickLink[] = [
   { label: "The Mesh", description: "Spatial identity view", href: "/mesh", icon: Waypoints },
   { label: "Feed", description: "Your creator timeline", href: "/feed", icon: Rss },
   { label: "Explore", description: "Discover people and communities", href: "/explore", icon: Compass },
-  { label: "Innovation Studio", description: "Simulate growth experiments", href: "/innovation", icon: Sparkles, spotlight: true },
   { label: "Messages", description: "Open MeChat instantly", href: "/messages", icon: MessageSquare },
   { label: "Communities", description: "Collaborative spaces", href: "/communities", icon: Layers3 },
   { label: "Settings", description: "Control your experience", href: "/settings", icon: Settings },
