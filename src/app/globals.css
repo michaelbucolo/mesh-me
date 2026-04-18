@@ -12,19 +12,19 @@
 :root, .dark {
   --font-inter: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --bg-primary: #09090b;
-  --bg-secondary: #18181b;
-  --bg-tertiary: #27272a;
-  --bg-elevated: rgba(24, 24, 27, 0.8);
-  --bg-card: rgba(24, 24, 27, 0.5);
-  --bg-hover: rgba(39, 39, 42, 0.5);
-  --bg-input: rgba(39, 39, 42, 0.4);
-  --bg-overlay: rgba(0, 0, 0, 0.6);
+  --bg-primary: #000000;
+  --bg-secondary: #050505;
+  --bg-tertiary: #0d0d0d;
+  --bg-elevated: rgba(0, 0, 0, 0.94);
+  --bg-card: rgba(8, 8, 8, 0.9);
+  --bg-hover: rgba(17, 17, 17, 0.8);
+  --bg-input: rgba(14, 14, 14, 0.9);
+  --bg-overlay: rgba(0, 0, 0, 0.74);
 
-  --border-primary: rgba(63, 63, 70, 0.3);
-  --border-secondary: rgba(63, 63, 70, 0.15);
-  --border-hover: rgba(63, 63, 70, 0.5);
-  --border-focus: rgba(59, 130, 246, 0.5);
+  --border-primary: rgba(115, 115, 115, 0.34);
+  --border-secondary: rgba(82, 82, 91, 0.22);
+  --border-hover: rgba(161, 161, 170, 0.44);
+  --border-focus: rgba(0, 210, 255, 0.52);
 
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
@@ -32,39 +32,39 @@
   --text-muted: #52525b;
   --text-inverse: #09090b;
 
-  --accent: #2d7ff9;
-  --accent-hover: #5b9bff;
-  --accent-muted: rgba(45, 127, 249, 0.15);
-  --accent-subtle: rgba(45, 127, 249, 0.08);
-  --accent-glow: rgba(45, 127, 249, 0.35);
-  --brand-gradient: linear-gradient(135deg, #2d7ff9 0%, #00c6fb 100%);
-  --brand-gradient-vibrant: linear-gradient(135deg, #1a6dff 0%, #00c6fb 50%, #2d7ff9 100%);
+  --accent: #00d2ff;
+  --accent-hover: #58e5ff;
+  --accent-muted: rgba(0, 210, 255, 0.2);
+  --accent-subtle: rgba(0, 210, 255, 0.1);
+  --accent-glow: rgba(0, 210, 255, 0.4);
+  --brand-gradient: linear-gradient(135deg, #00d2ff 0%, #8a5bff 100%);
+  --brand-gradient-vibrant: linear-gradient(135deg, #00f0ff 0%, #006eff 45%, #9f5eff 100%);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 20px rgba(45, 127, 249, 0.15);
 
-  --ring-color: rgba(45, 127, 249, 0.3);
-  --scrollbar-thumb: linear-gradient(180deg, #2d7ff9 0%, #18181b 100%);
-  --scrollbar-hover: linear-gradient(180deg, #5b9bff 0%, #27272a 100%);
-  --selection-bg: rgba(45, 127, 249, 0.3);
+  --ring-color: rgba(0, 210, 255, 0.32);
+  --scrollbar-thumb: linear-gradient(180deg, #00d2ff 0%, #0b0b0b 100%);
+  --scrollbar-hover: linear-gradient(180deg, #58e5ff 0%, #141414 100%);
+  --selection-bg: rgba(0, 210, 255, 0.32);
 
-  --shimmer-1: #18181b;
-  --shimmer-2: #27272a;
-  --shimmer-3: #3f3f46;
+  --shimmer-1: #060606;
+  --shimmer-2: #101010;
+  --shimmer-3: #1b1b1b;
 
-  --glass-bg: rgba(9, 9, 11, 0.6);
+  --glass-bg: rgba(0, 0, 0, 0.86);
   --glass-border: rgba(255, 255, 255, 0.06);
   --glass-blur: blur(24px) saturate(180%);
   --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --glass-card-bg: rgba(24, 24, 27, 0.45);
+  --glass-shadow: 0 10px 36px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --glass-card-bg: rgba(8, 8, 8, 0.88);
   --glass-card-border: rgba(255, 255, 255, 0.05);
-  --glass-card-hover: rgba(39, 39, 42, 0.5);
-  --glass-elevated: rgba(24, 24, 27, 0.7);
-  --glass-surface: rgba(24, 24, 27, 0.55);
-  --glass-input: rgba(39, 39, 42, 0.35);
+  --glass-card-hover: rgba(16, 16, 16, 0.9);
+  --glass-elevated: rgba(0, 0, 0, 0.95);
+  --glass-surface: rgba(5, 5, 5, 0.9);
+  --glass-input: rgba(12, 12, 12, 0.92);
 }
 
 /* ─── Light Theme ─── */
@@ -617,9 +617,9 @@ select:focus-visible {
 /* ─── 2026 Refresh Utilities ─── */
 .app-shell-gradient {
   background-image:
-    radial-gradient(circle at 10% 15%, rgba(45, 127, 249, 0.2), transparent 35%),
-    radial-gradient(circle at 90% 10%, rgba(0, 198, 251, 0.15), transparent 30%),
-    linear-gradient(180deg, transparent, rgba(9, 9, 11, 0.22));
+    radial-gradient(circle at 10% 15%, rgba(0, 210, 255, 0.14), transparent 30%),
+    radial-gradient(circle at 90% 10%, rgba(138, 91, 255, 0.14), transparent 30%),
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.3));
 }
 
 .soft-outline {
