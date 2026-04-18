@@ -83,8 +83,8 @@ export function renderMesh(
     drawOrbitRings(ctx, selfNode, time);
   }
 
-  drawEdges(ctx, nodes, edges, f, hovered, selected, time, dt);
-  drawDataParticles(ctx, nodes, edges, f, time, hovered, selected, dt);
+  drawEdges(ctx, nodes, edges, f, hovered, selected, time);
+  drawDataParticles(ctx, nodes, edges, f, time, hovered, selected);
 
   // Reset alpha for nodes
   ctx.globalAlpha = 1;
@@ -122,7 +122,7 @@ export function renderMesh(
   }
   // Draw local user's Meshi on the mesh canvas
   if (interaction.meshiState) {
-    drawMeshi(ctx, interaction.meshiState, time);
+    drawMeshi(ctx, interaction.meshiState);
   }
 
   drawTooltip(ctx, hovered, z);
@@ -247,7 +247,6 @@ function drawEdges(
   hovered: MeshNode | null,
   selected: MeshNode | null,
   time: number,
-  /* dt passed for future use */ _dt: number,
 ) {
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
@@ -315,7 +314,6 @@ function drawDataParticles(
   time: number,
   hovered: MeshNode | null,
   selected: MeshNode | null,
-  /* dt passed for future use */ _dt: number,
 ) {
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
