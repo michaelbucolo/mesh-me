@@ -17,6 +17,7 @@ interface FilterBarProps {
   onSearchOpen: () => void;
   showFootprint: boolean;
   onToggleFootprint: () => void;
+  className?: string;
 }
 
 const FILTER_OPTIONS: { id: FilterType; label: string; icon: React.ElementType }[] = [
@@ -29,14 +30,14 @@ const FILTER_OPTIONS: { id: FilterType; label: string; icon: React.ElementType }
   { id: "platform", label: "Platforms", icon: Link2 },
 ];
 
-export function MeshFilterBar({ filter, nodes, onFilterChange, onSearchOpen, showFootprint, onToggleFootprint }: FilterBarProps) {
+export function MeshFilterBar({ filter, nodes, onFilterChange, onSearchOpen, showFootprint, onToggleFootprint, className }: FilterBarProps) {
   const getCounts = (type: FilterType) => {
     if (type === "all") return nodes.length;
     return nodes.filter((n) => n.type === type).length;
   };
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-10 p-2 sm:p-4">
+    <div className={"absolute left-0 right-0 z-10 p-2 sm:p-4 " + (className || "top-0")}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-1 rounded-2xl p-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] overflow-x-auto scrollbar-hide shadow-lg shadow-black/20">
           {FILTER_OPTIONS.filter((fItem) => getCounts(fItem.id) > 0 || fItem.id === "all").map((fItem) => {
@@ -97,7 +98,7 @@ interface ZoomControlsProps {
 
 export function MeshZoomControls({ onZoom, onReset }: ZoomControlsProps) {
   return (
-    <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-3 z-10 flex flex-col gap-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-1.5 shadow-lg shadow-black/20">
+    <div className="absolute right-2 sm:right-3 z-10 flex flex-col gap-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-1.5 shadow-lg shadow-black/20 top-[max(8rem,calc(4.5rem+env(safe-area-inset-top)))] md:top-1/2 md:-translate-y-1/2">
       <button onClick={() => onZoom(0.3)} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
       <div className="h-px bg-white/[0.06] mx-1" />
       <button onClick={() => onZoom(-0.3)} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
@@ -140,7 +141,7 @@ export function MeshStatsBar({ nodes, zoom, visible }: StatsBarProps & { edges?:
     <AnimatePresence>
       {visible && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-          className="absolute bottom-16 sm:bottom-[4.5rem] left-2 sm:left-4 z-10 flex flex-col gap-1.5 max-w-[calc(100vw-6rem)]"
+          className="absolute bottom-[calc(7.5rem+env(safe-area-inset-bottom))] md:bottom-[4.5rem] left-2 sm:left-4 z-10 flex flex-col gap-1.5 max-w-[calc(100vw-6rem)]"
         >
           {/* Mesh insights row */}
           <div className="flex gap-1.5 flex-wrap">
@@ -188,7 +189,7 @@ interface ActionBarProps {
 
 export function MeshActionBar({ showContentHub, showNodePrivacy, hiddenCount, onCreatePost, onToggleContentHub, onTogglePrivacy }: ActionBarProps) {
   return (
-    <div className="absolute bottom-3 sm:bottom-4 left-2 sm:left-4 z-10 flex gap-2">
+    <div className="absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2 sm:left-4 z-10 flex gap-2">
       <button onClick={onCreatePost} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all duration-300 active:scale-95 shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-400 hover:shadow-indigo-500/30">
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Create Post</span>

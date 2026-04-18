@@ -18,6 +18,9 @@ import { rateLimit } from "./security";
 type QueryIntent =
   | { type: "person_lookup"; name: string }
   | { type: "person_posts"; name: string }
+  | { type: "person_post_topics"; name: string }
+  | { type: "person_channels"; name: string }
+  | { type: "person_platform_created"; name: string; platform: string }
   | { type: "shared_posts"; name: string }
   | { type: "post_search"; topic: string }
   | { type: "post_count"; name?: string }
@@ -64,6 +67,35 @@ function detectIntent(query: string): QueryIntent {
       const preservedMessage = msgMatchOriginal?.[2] || msgMatchLower[2];
       return { type: "send_message", recipient: msgMatchLower[1], message: preservedMessage };
     }
+  }
+
+  // ── Person platform creation date ──
+  const personPlatformCreatedMatch =
+    q.match(/when did\s+(?:@)?(\w+)\s+(?:make|create|start|join|open)\s+(?:their|his|her)?\s*(instagram|youtube|tiktok|twitter|x|twitch|spotify|soundcloud|linkedin|github|discord|snapchat|pinterest|reddit|facebook|threads|bluesky)/i)
+    || q.match(/when (?:did|was)\s+(?:@)?(\w+)(?:'s)?\s+(instagram|youtube|tiktok|twitter|x|twitch|spotify|soundcloud|linkedin|github|discord|snapchat|pinterest|reddit|facebook|threads|bluesky)\s+(?:created|made|started|opened|joined)/i);
+  if (personPlatformCreatedMatch && personPlatformCreatedMatch[1] && personPlatformCreatedMatch[2]) {
+    return { type: "person_platform_created", name: personPlatformCreatedMatch[1], platform: personPlatformCreatedMatch[2] };
+  }
+
+  // ── Person channels / connected accounts ──
+  const personChannelsMatch =
+    q.match(/(?:what|which)\s+(?:channels?|platforms?|accounts?)\s+(?:does|do|has|have)\s+(?:@)?(\w+)\s+(?:have|use|own|connected)?/i)
+    || q.match(/(?:@)?(\w+)(?:'s)?\s+(?:channels?|platforms?|accounts?)/i);
+  if (personChannelsMatch && personChannelsMatch[1]) {
+    const name = personChannelsMatch[1].toLowerCase();
+    const skip = ["i", "me", "my", "you", "we", "our", "their", "his", "her"];
+    if (!skip.includes(name)) {
+      return { type: "person_channels", name };
+    }
+  }
+
+  // ── Person post style/topics ──
+  const personTopicsMatch =
+    q.match(/what kind of posts?\s+(?:does|do)\s+(?:@)?(\w+)\s+post/i)
+    || q.match(/what does\s+(?:@)?(\w+)\s+post\s+about/i)
+    || q.match(/what topics?\s+(?:does|do)\s+(?:@)?(\w+)\s+post/i);
+  if (personTopicsMatch && personTopicsMatch[1]) {
+    return { type: "person_post_topics", name: personTopicsMatch[1] };
   }
 
   // ── Shared posts ──
@@ -353,6 +385,181 @@ async function getPersonPosts(name: string): Promise<MeshiAnswer> {
   }
 
   return { content: parts.join(" "), mood: "excited" };
+}
+
+async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
+  const user = await getCurrentUser();
+  if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+
+  const searchTerm = name.toLowerCase().replace(/^@/, "");
+  const person = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: { contains: searchTerm } },
+        { displayName: { contains: searchTerm } },
+      ],
+    },
+    select: { id: true, username: true, displayName: true },
+  });
+
+  if (!person) {
+    return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
+  }
+
+  const [meshPosts, platformPosts] = await Promise.all([
+    prisma.post.findMany({
+      where: { authorId: person.id },
+      select: {
+        content: true,
+        tags: { select: { tag: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 80,
+    }),
+    prisma.platformPost.findMany({
+      where: { connectedAccount: { userId: person.id } },
+      select: { postType: true, content: true, title: true, connectedAccount: { select: { platform: true } } },
+      orderBy: { publishedAt: "desc" },
+      take: 80,
+    }),
+  ]);
+
+  const topicCounts = new Map<string, number>();
+  const addTopic = (topic: string) => {
+    const key = topic.toLowerCase();
+    if (!key || key.length < 2) return;
+    topicCounts.set(key, (topicCounts.get(key) || 0) + 1);
+  };
+
+  for (const post of meshPosts) {
+    for (const tag of post.tags) addTopic(tag.tag);
+  }
+
+  for (const post of platformPosts) {
+    addTopic(post.postType);
+    addTopic(post.connectedAccount.platform);
+  }
+
+  const topTopics = Array.from(topicCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([topic]) => topic);
+
+  if (meshPosts.length === 0 && platformPosts.length === 0) {
+    return {
+      content: `${person.displayName} (@${person.username}) hasn't posted anything yet, so I don't have a posting pattern to analyze.`,
+      mood: "thinking",
+    };
+  }
+
+  const hasTags = meshPosts.some((p) => p.tags.length > 0);
+  const topText = topTopics.length > 0 ? ` Their main content patterns are: ${topTopics.join(", ")}.` : "";
+  const tagHint = hasTags ? " I used mesh tags and synced platform post types for this summary." : " I used synced platform post types for this summary.";
+
+  return {
+    content: `${person.displayName} (@${person.username}) posts across ${meshPosts.length} mesh.me posts and ${platformPosts.length} synced platform posts.${topText}${tagHint}`,
+    mood: "excited",
+  };
+}
+
+async function getPersonChannels(name: string): Promise<MeshiAnswer> {
+  const user = await getCurrentUser();
+  if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+
+  const searchTerm = name.toLowerCase().replace(/^@/, "");
+  const person = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: { contains: searchTerm } },
+        { displayName: { contains: searchTerm } },
+      ],
+    },
+    select: { id: true, username: true, displayName: true },
+  });
+
+  if (!person) {
+    return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
+  }
+
+  const accounts = await prisma.connectedAccount.findMany({
+    where: { userId: person.id, isActive: true },
+    select: {
+      platform: true,
+      platformUsername: true,
+      accountLabel: true,
+      alterEgo: { select: { username: true, displayName: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (accounts.length === 0) {
+    return {
+      content: `${person.displayName} (@${person.username}) hasn't connected any public channels yet.`,
+      mood: "thinking",
+    };
+  }
+
+  const lines = accounts.map((a) => {
+    const username = a.platformUsername ? `@${a.platformUsername}` : "username hidden";
+    const label = a.accountLabel ? ` (${a.accountLabel})` : "";
+    const persona = a.alterEgo?.username
+      ? ` via persona ${a.alterEgo.displayName || a.alterEgo.username} (@${a.alterEgo.username})`
+      : "";
+    return `- ${a.platform}: ${username}${label}${persona}`;
+  });
+
+  return {
+    content: `${person.displayName} has ${accounts.length} connected channel${accounts.length === 1 ? "" : "s"}:\n${lines.join("\n")}`,
+    mood: "happy",
+  };
+}
+
+async function getPersonPlatformCreated(name: string, platform: string): Promise<MeshiAnswer> {
+  const user = await getCurrentUser();
+  if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+
+  const searchTerm = name.toLowerCase().replace(/^@/, "");
+  const normalizedPlatform = platform === "x" ? "twitter" : platform.toLowerCase();
+  const person = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: { contains: searchTerm } },
+        { displayName: { contains: searchTerm } },
+      ],
+    },
+    select: { id: true, username: true, displayName: true },
+  });
+
+  if (!person) {
+    return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
+  }
+
+  const account = await prisma.connectedAccount.findFirst({
+    where: {
+      userId: person.id,
+      isActive: true,
+      platform: { contains: normalizedPlatform },
+    },
+    select: {
+      platform: true,
+      platformUsername: true,
+      createdAt: true,
+      lastSyncAt: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!account) {
+    return {
+      content: `${person.displayName} doesn't appear to have ${platform} connected on mesh.me.`,
+      mood: "thinking",
+    };
+  }
+
+  return {
+    content: `${person.displayName}'s ${account.platform} channel${account.platformUsername ? ` (@${account.platformUsername})` : ""} was connected on ${account.createdAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.${account.lastSyncAt ? ` Last synced ${getTimeAgo(account.lastSyncAt)}.` : ""}`,
+    mood: "happy",
+  };
 }
 
 async function searchPosts(topic: string): Promise<MeshiAnswer> {
@@ -879,6 +1086,12 @@ export async function meshiQuery(question: string): Promise<MeshiAnswer> {
       return lookupPerson(intent.name);
     case "person_posts":
       return getPersonPosts(intent.name);
+    case "person_post_topics":
+      return getPersonPostTopics(intent.name);
+    case "person_channels":
+      return getPersonChannels(intent.name);
+    case "person_platform_created":
+      return getPersonPlatformCreated(intent.name, intent.platform);
     case "shared_posts":
       return getSharedPosts(intent.name);
     case "post_search":

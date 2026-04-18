@@ -460,7 +460,7 @@ export default function MeshPage() {
   }
 
   return (
-    <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[var(--bg-primary)]">
+    <div data-meshi-zone="mesh-canvas" className="relative h-[calc(100dvh-4rem)] overflow-hidden bg-[var(--bg-primary)] rounded-2xl md:rounded-3xl">
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] h-24 bg-gradient-to-b from-[var(--bg-primary)]/85 to-transparent" />
 
       {/* Meshi identity deck: makes Meshi the core representation of the user */}
@@ -468,7 +468,7 @@ export default function MeshPage() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="absolute left-4 top-4 z-20 rounded-2xl border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-xl shadow-2xl"
+        className="absolute left-2 right-2 top-[max(0.5rem,env(safe-area-inset-top))] z-20 rounded-2xl border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-xl shadow-2xl sm:left-4 sm:right-auto sm:top-4"
       >
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -493,7 +493,7 @@ export default function MeshPage() {
         initial={{ opacity: 0, x: -16 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="absolute left-4 top-24 z-20 w-[260px] rounded-2xl border border-white/10 bg-black/35 p-3 backdrop-blur-xl shadow-2xl"
+        className="absolute left-4 top-24 z-20 hidden w-[260px] rounded-2xl border border-white/10 bg-black/35 p-3 backdrop-blur-xl shadow-2xl md:block"
       >
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-wider text-white/60">Mesh cockpit</p>
@@ -549,7 +549,7 @@ export default function MeshPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.08 }}
-        className="absolute top-4 left-1/2 z-20 w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-xl"
+        className="absolute top-4 left-1/2 z-20 hidden w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-xl lg:block"
       >
         <div className="flex items-center justify-between gap-3 text-[11px] text-white/75">
           <span className="inline-flex items-center gap-1"><Workflow className="h-3.5 w-3.5 text-indigo-300" /> {explorationLabel}</span>
@@ -566,6 +566,7 @@ export default function MeshPage() {
         onSearchOpen={() => setShowCommandPalette(true)}
         showFootprint={showFootprint}
         onToggleFootprint={() => setShowFootprint((v) => !v)}
+        className="top-[calc(5.25rem+env(safe-area-inset-top))] md:top-0"
       />
 
       {/* Zoom controls (right side) */}
@@ -608,7 +609,7 @@ export default function MeshPage() {
       {/* Back to my mesh button */}
       <AnimatePresence>
         {viewingUserMesh && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-16 left-1/2 -translate-x-1/2 z-20">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-[calc(8.5rem+env(safe-area-inset-top))] md:top-16 left-1/2 -translate-x-1/2 z-20">
             <button onClick={returnToMyMesh} className="flex items-center gap-2 px-4 py-2 glass-dropdown rounded-xl text-xs font-medium text-[var(--text-primary)] shadow-xl hover:bg-[var(--bg-tertiary)] transition-all active:scale-95">
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Back to my mesh</span>
