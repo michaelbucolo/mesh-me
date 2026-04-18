@@ -45,3 +45,16 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 ## Deploy on Vercel
 
 The easiest way to deploy is via [Vercel](https://vercel.com).
+
+## Launch Readiness
+
+Before public release, run:
+
+```bash
+npm run launch:check
+```
+
+This validates critical launch blockers and warns on non-blocking launch tasks.
+
+Use `PUBLIC_LAUNCH_MASTER_CHECKLIST.md` for a complete owner-based go-live checklist (1300+ lines).
+
