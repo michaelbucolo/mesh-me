@@ -10,6 +10,7 @@ import { MeshiFloat } from "@/components/meshi/meshi-float";
 import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
 import { VerificationBanner } from "@/components/verification/verification-banner";
+import { AppContentShell } from "@/components/layout/app-content-shell";
 import { prisma } from "@/lib/prisma";
 import { Search, MessageCircle, Bell } from "lucide-react";
 
@@ -115,7 +116,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 userEmail={userEmail}
               />
             )}
-            <div className="mx-auto w-full max-w-5xl animate-page-enter">{children}</div>
+            <AppContentShell>{children}</AppContentShell>
           </main>
         </div>
       </div>
