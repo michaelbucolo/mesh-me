@@ -79,7 +79,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     avatarUrl: data.user.avatarUrl,
     href: "/profile/" + data.user.username,
     x: cx, y: cy, vx: 0, vy: 0,
-    radius: 32,
+    radius: 36,
     color: NODE_COLORS.self,
     opacity: 1,
     pulsePhase: 0,
@@ -98,7 +98,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Alter Egos (ring 1: close to self) ---
   const alterEgos = data.alterEgos || [];
   alterEgos.forEach((ego: any, i: number) => {
-    const pos = ringPosition(cx, cy, 120, i, alterEgos.length, Math.PI / 6);
+    const pos = ringPosition(cx, cy, 150, i, alterEgos.length, Math.PI / 6);
     addNode({
       id: "alter-ego-" + ego.id,
       type: "alter-ego",
@@ -106,7 +106,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       sublabel: "@" + ego.username,
       avatarUrl: ego.avatarUrl,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 18,
+      radius: 21,
       color: NODE_COLORS["alter-ego"],
       opacity: 1,
       pulsePhase: i * 1.2,
@@ -124,7 +124,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Connected Platforms (ring 2) with sub-nodes ---
   const platforms = data.connectedAccounts || [];
   platforms.forEach((acct: any, i: number) => {
-    const pos = ringPosition(cx, cy, 240, i, platforms.length, Math.PI / 4);
+    const pos = ringPosition(cx, cy, 285, i, platforms.length, Math.PI / 4);
     const platformKey = acct.platform?.toLowerCase() || "";
     const analytics = acct.analytics || null;
     const totalPosts = acct.counts?.platformPosts || 0;
@@ -138,7 +138,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       sublabel: acct.platformUsername ? "@" + acct.platformUsername : undefined,
       href: "/connected-accounts",
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 16 + Math.min(totalPosts * 0.2, 8),
+      radius: 19 + Math.min(totalPosts * 0.2, 10),
       color: PLATFORM_COLORS[platformKey] || NODE_COLORS.platform,
       opacity: 0.9,
       pulsePhase: i * 0.8,
@@ -165,7 +165,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     // --- Platform top posts as sub-nodes orbiting the platform ---
     const topPosts = acct.topPosts || [];
     topPosts.forEach((pp: any, pi: number) => {
-      const subPos = ringPosition(pos.x, pos.y, 55 + pi * 8, pi, topPosts.length, Math.PI / 3 + i);
+      const subPos = ringPosition(pos.x, pos.y, 68 + pi * 9, pi, topPosts.length, Math.PI / 3 + i);
       const ppId = "pp-" + pp.id;
       const ppEngagement = (pp.likeCount || 0) + (pp.commentCount || 0) * 2 + (pp.viewCount || 0) * 0.01;
       addNode({
@@ -176,7 +176,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
         href: pp.url || undefined,
         imageUrl: pp.thumbnailUrl || null,
         x: subPos.x, y: subPos.y, vx: 0, vy: 0,
-        radius: 7 + Math.min(ppEngagement * 0.3, 6),
+        radius: 9 + Math.min(ppEngagement * 0.3, 7),
         color: PLATFORM_COLORS[platformKey] || NODE_COLORS.post,
         opacity: 0.75,
         pulsePhase: pi * 0.6 + i,
@@ -198,7 +198,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     // --- Platform top followers as sub-nodes ---
     const topFollowers = acct.topFollowers || [];
     topFollowers.slice(0, 6).forEach((pf: any, fi: number) => {
-      const subPos = ringPosition(pos.x, pos.y, 75 + fi * 6, fi, Math.min(topFollowers.length, 6), -Math.PI / 4 + i);
+      const subPos = ringPosition(pos.x, pos.y, 95 + fi * 8, fi, Math.min(topFollowers.length, 6), -Math.PI / 4 + i);
       const pfId = "pf-" + pf.id;
       addNode({
         id: pfId,
@@ -208,7 +208,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
         avatarUrl: pf.avatarUrl,
         href: pf.profileUrl || undefined,
         x: subPos.x, y: subPos.y, vx: 0, vy: 0,
-        radius: 9 + Math.min((pf.followerCount || 0) * 0.001, 4),
+        radius: 11 + Math.min((pf.followerCount || 0) * 0.001, 5),
         color: PLATFORM_COLORS[platformKey] || NODE_COLORS.user,
         opacity: 0.7,
         pulsePhase: fi * 0.7 + i,
@@ -258,14 +258,14 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     const isMutual = !!f.isMutual;
     const interactionCount = f.interactionCount || 0;
     // Mutuals closer, high-interaction users even closer
-    const baseDist = isMutual ? 340 : 440;
-    const interactionPull = Math.min(interactionCount * 4, 60);
+    const baseDist = isMutual ? 410 : 540;
+    const interactionPull = Math.min(interactionCount * 4, 80);
     const ringRadius = baseDist - interactionPull;
     const pos = ringPosition(cx, cy, ringRadius, i, peopleToDraw.length);
 
     const engagement = computeEngagement(f);
     // Scale radius by engagement — more engaged users are bigger
-    const engagementBoost = Math.min(engagement * 0.02, 6);
+    const engagementBoost = Math.min(engagement * 0.02, 7);
 
     addNode({
       id: f.id,
@@ -275,7 +275,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       avatarUrl: f.avatarUrl,
       href: "/profile/" + f.username,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: (isMutual ? 18 : 14) + engagementBoost,
+      radius: (isMutual ? 21 : 17) + engagementBoost,
       color: isMutual ? NODE_COLORS.mutual : NODE_COLORS.user,
       opacity: 1,
       pulsePhase: i * 0.4,
@@ -361,7 +361,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Communities (ring 4) ---
   const communities = data.communities || [];
   communities.forEach((c: any, i: number) => {
-    const pos = ringPosition(cx, cy, 560, i, communities.length, Math.PI / 5);
+    const pos = ringPosition(cx, cy, 680, i, communities.length, Math.PI / 5);
     const communityId = "community-" + c.id;
     addNode({
       id: communityId,
@@ -370,7 +370,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       sublabel: c.category || undefined,
       href: "/communities/" + c.slug,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 16 + Math.min((c.memberCount || 0) * 0.3, 8),
+      radius: 19 + Math.min((c.memberCount || 0) * 0.3, 10),
       color: NODE_COLORS.community,
       opacity: 0.9,
       pulsePhase: i * 0.6,
@@ -408,14 +408,14 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Interests (ring 5) ---
   const interests = data.interests || [];
   interests.forEach((tag: string, i: number) => {
-    const pos = ringPosition(cx, cy, 680, i, interests.length, Math.PI / 8);
+    const pos = ringPosition(cx, cy, 820, i, interests.length, Math.PI / 8);
     const tagId = "tag-" + tag;
     addNode({
       id: tagId,
       type: "tag",
       label: "#" + tag,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 10,
+      radius: 12,
       color: NODE_COLORS.tag,
       opacity: 0.85,
       pulsePhase: i * 0.9,
@@ -449,11 +449,11 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   const posts = data.posts || [];
   const maxPosts = 24;
   posts.slice(0, maxPosts).forEach((p: any, i: number) => {
-    const pos = ringPosition(cx, cy, 820, i, Math.min(posts.length, maxPosts), Math.PI / 10);
+    const pos = ringPosition(cx, cy, 980, i, Math.min(posts.length, maxPosts), Math.PI / 10);
     const postId = "post-" + p.id;
     // Size posts by engagement
     const postEngagement = (p.likeCount || 0) + (p.commentCount || 0) * 2 + (p.repostCount || 0) * 3;
-    const engagementRadius = Math.min(postEngagement * 0.5, 8);
+    const engagementRadius = Math.min(postEngagement * 0.5, 10);
 
     addNode({
       id: postId,
@@ -462,7 +462,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       content: p.content,
       href: "/feed/" + p.id,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 10 + engagementRadius,
+      radius: 12 + engagementRadius,
       color: NODE_COLORS.post,
       opacity: 0.8,
       pulsePhase: i * 0.5,
@@ -532,7 +532,7 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
     sublabel: data.user?.username ? "@" + data.user.username : undefined,
     avatarUrl: data.user?.avatarUrl,
     x: cx, y: cy, vx: 0, vy: 0,
-    radius: 28,
+    radius: 32,
     color: NODE_COLORS.self,
     opacity: 1,
     pulsePhase: 0,
@@ -542,7 +542,7 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
   // Following
   (data.following || []).slice(0, 30).forEach((f: any, i: number) => {
     const isMutual = !!f.isMutual;
-    const pos = ringPosition(cx, cy, 160, i, Math.min((data.following || []).length, 30));
+    const pos = ringPosition(cx, cy, 220, i, Math.min((data.following || []).length, 30));
     nodes.push({
       id: f.id,
       type: "user",
@@ -551,7 +551,7 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
       avatarUrl: f.avatarUrl,
       href: "/profile/" + f.username,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: isMutual ? 18 : 14,
+      radius: isMutual ? 21 : 17,
       color: isMutual ? NODE_COLORS.mutual : NODE_COLORS.user,
       opacity: 1,
       pulsePhase: i * 0.4,
@@ -570,14 +570,14 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
 
   // Communities
   (data.communities || []).slice(0, 10).forEach((c: any, i: number) => {
-    const pos = ringPosition(cx, cy, 220, i, Math.min((data.communities || []).length, 10), Math.PI / 3);
+    const pos = ringPosition(cx, cy, 300, i, Math.min((data.communities || []).length, 10), Math.PI / 3);
     const cid = "community-" + c.id;
     nodes.push({
       id: cid,
       type: "community",
       label: c.name,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 14,
+      radius: 17,
       color: NODE_COLORS.community,
       opacity: 0.9,
       pulsePhase: i * 0.6,
