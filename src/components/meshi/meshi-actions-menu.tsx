@@ -47,7 +47,8 @@ export function MeshiActionsMenu({
 
       {/* Menu Items */}
       <div className="p-2 space-y-0.5 overflow-y-auto flex-1">
-        <MenuItem icon={MessageCircle} iconColor="var(--accent)" label="Ask Meshi" onClick={onAskMeshi} />
+        <MenuItem icon={MessageCircle} iconColor="var(--accent)" label="Open Chat" onClick={onOpenChat} />
+        <MenuItem icon={Sparkles} iconColor="#a78bfa" label="Ask Meshi" onClick={onAskMeshi} />
         <MenuItem icon={Search} iconColor="#f59e0b" label="Search Mesh" onClick={onSearchMesh} />
         <MenuItem icon={PenSquare} iconColor="#22c55e" label="Create Post" onClick={() => navigate("/feed?compose=true")} />
         <MenuItem icon={Palette} iconColor="#06b6d4" label="Customize Meshi" onClick={() => navigate("/settings?tab=meshi")} />
