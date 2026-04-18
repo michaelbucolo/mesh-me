@@ -12,7 +12,6 @@ const routeDescriptions: Record<string, { label: string; blurb: string }> = {
   "/notifications": { label: "Notifications", blurb: "Important alerts and activity highlights." },
   "/communities": { label: "Communities", blurb: "Places where your audience and collaborators gather." },
   "/settings": { label: "Settings", blurb: "Personalize mesh.me exactly how you like it." },
-  "/innovation": { label: "Innovation Studio", blurb: "Run premium growth experiments with confidence." },
 };
 
 export function AppContentShell({ children }: { children: React.ReactNode }) {
