@@ -137,12 +137,12 @@ export function renderMesh(
 
 function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
   const rings = [
-    { radius: 120, alpha: 0.055, dashLen: 4, label: "Alter Egos" },
-    { radius: 240, alpha: 0.045, dashLen: 5, label: "Platforms" },
-    { radius: 390, alpha: 0.035, dashLen: 6, label: "People" },
-    { radius: 560, alpha: 0.025, dashLen: 8, label: "Communities" },
-    { radius: 680, alpha: 0.018, dashLen: 10, label: "Interests" },
-    { radius: 820, alpha: 0.012, dashLen: 12, label: "Posts" },
+    { radius: 150, alpha: 0.055, dashLen: 4, label: "Alter Egos" },
+    { radius: 285, alpha: 0.045, dashLen: 5, label: "Platforms" },
+    { radius: 475, alpha: 0.035, dashLen: 6, label: "People" },
+    { radius: 680, alpha: 0.025, dashLen: 8, label: "Communities" },
+    { radius: 820, alpha: 0.018, dashLen: 10, label: "Interests" },
+    { radius: 980, alpha: 0.012, dashLen: 12, label: "Posts" },
   ];
 
   for (let ri = 0; ri < rings.length; ri++) {
@@ -185,12 +185,12 @@ function drawSectionLabels(
   };
 
   const sections = [
-    { radius: 120, label: "Alter Egos", angle: -Math.PI / 2 - 0.3, color: "192, 132, 252" },
-    { radius: 240, label: "Platforms", angle: -Math.PI / 2 + 0.15, color: "245, 158, 11" },
-    { radius: 390, label: "People", angle: -Math.PI / 2 - 0.1, color: "129, 140, 248" },
-    { radius: 560, label: "Communities", angle: -Math.PI / 2 + 0.25, color: "236, 72, 153" },
-    { radius: 680, label: "Interests", angle: -Math.PI / 2 - 0.2, color: "6, 182, 212" },
-    { radius: 820, label: "Posts", angle: -Math.PI / 2 + 0.05, color: "16, 185, 129" },
+    { radius: 150, label: "Alter Egos", angle: -Math.PI / 2 - 0.3, color: "192, 132, 252" },
+    { radius: 285, label: "Platforms", angle: -Math.PI / 2 + 0.15, color: "245, 158, 11" },
+    { radius: 475, label: "People", angle: -Math.PI / 2 - 0.1, color: "129, 140, 248" },
+    { radius: 680, label: "Communities", angle: -Math.PI / 2 + 0.25, color: "236, 72, 153" },
+    { radius: 820, label: "Interests", angle: -Math.PI / 2 - 0.2, color: "6, 182, 212" },
+    { radius: 980, label: "Posts", angle: -Math.PI / 2 + 0.05, color: "16, 185, 129" },
   ];
 
   const fontSize = Math.max(11, Math.min(15, 13 / zoom));
