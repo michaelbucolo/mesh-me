@@ -6,6 +6,7 @@ import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, Trash2 } from "lucide-react";
 import type { AlterEgo } from "./types";
+import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
 interface AlterEgosTabProps {
   showSuccess: (msg: string) => void;
@@ -77,8 +78,8 @@ export function AlterEgosTab({ showSuccess }: AlterEgosTabProps) {
       </div>
 
       {/* Create new alter ego */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Create New Persona</h3>
+      <SettingsCard>
+        <SettingsCardHeader title="Create New Persona" />
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">Username</label>
@@ -95,13 +96,14 @@ export function AlterEgosTab({ showSuccess }: AlterEgosTabProps) {
           {alterEgoError && <p className="text-xs text-red-400">{alterEgoError}</p>}
           <Button onClick={handleCreate} variant="gradient" className="w-full" disabled={isPending}>Create Alter Ego</Button>
         </div>
-      </div>
+      </SettingsCard>
 
       {/* Existing alter egos */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">
-          Your Personas {alterEgos.length > 0 && <span className="text-[var(--text-muted)] font-normal">({alterEgos.length})</span>}
-        </h3>
+      <SettingsCard>
+        <SettingsCardHeader
+          title={`Your Personas${alterEgos.length > 0 ? ` (${alterEgos.length})` : ""}`}
+          className="mb-4"
+        />
         {!loaded ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
@@ -138,7 +140,7 @@ export function AlterEgosTab({ showSuccess }: AlterEgosTabProps) {
             ))}
           </div>
         )}
-      </div>
+      </SettingsCard>
 
       <div className="rounded-2xl p-4 text-center" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
         <p className="text-xs text-[var(--text-muted)]">
