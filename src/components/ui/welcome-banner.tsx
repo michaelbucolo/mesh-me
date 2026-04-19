@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +21,14 @@ export function WelcomeBanner({
   children,
   className,
 }: WelcomeBannerProps) {
-  const [dismissed, setDismissed] = useState(() => {
-    if (!dismissKey || typeof window === "undefined") return false;
-    return localStorage.getItem(`banner-${dismissKey}`) === "true";
-  });
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (dismissKey) {
+      const wasDismissed = localStorage.getItem(`banner-${dismissKey}`) === "true";
+      if (wasDismissed) setDismissed(true);
+    }
+  }, [dismissKey]);
 
   if (dismissed) return null;
 

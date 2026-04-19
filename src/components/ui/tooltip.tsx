@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface TooltipProps {
@@ -21,11 +21,15 @@ export function Tooltip({
   storageKey,
 }: TooltipProps) {
   const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(() => {
-    if (!showOnce || !storageKey || typeof window === "undefined") return false;
-    return localStorage.getItem(`tooltip-${storageKey}`) === "true";
-  });
+  const [dismissed, setDismissed] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (showOnce && storageKey) {
+      const seen = localStorage.getItem(`tooltip-${storageKey}`);
+      if (seen === "true") setDismissed(true);
+    }
+  }, [showOnce, storageKey]);
 
   const show = () => {
     if (dismissed) return;

@@ -244,7 +244,7 @@ export function LiveMeshiPresence({
           >
             <button
               onClick={() => onInteract?.(presence)}
-              className="flex items-center gap-2 rounded-2xl px-3 py-2 glass-card hover:bg-[var(--glass-card-hover)] transition-all cursor-pointer"
+              className="flex items-center gap-2 rounded-2xl px-3 py-2 glass-card hover:bg-[var(--bg-hover)] transition-all cursor-pointer"
             >
               <motion.div
                 animate={{ y: [0, -3, 0] }}
