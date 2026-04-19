@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const routeDescriptions: Record<string, { label: string; blurb: string }> = {
   "/feed": { label: "Feed", blurb: "Curated stories, signals, and updates from your network." },
@@ -43,7 +44,7 @@ export function AppContentShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-5xl animate-page-enter">
       {routeInfo && (
-        <section className="premium-surface mb-5 rounded-3xl p-5">
+        <section className={cn("premium-surface mb-5 rounded-2xl p-4 sm:rounded-3xl sm:p-5", "hidden lg:block")}>
           {crumbs && (
             <nav className="mb-2 flex flex-wrap items-center gap-1 text-[11px] capitalize text-[var(--text-muted)]">
               <Link href="/mesh" className="hover:text-[var(--text-secondary)]">mesh</Link>
