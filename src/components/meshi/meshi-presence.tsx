@@ -15,6 +15,8 @@ interface MeshiPresence {
   meshiMood: string;
   position: { x: number; y: number };
   viewportPosition: { vx: number; vy: number };
+  velocity?: number;
+  activity?: "idle" | "traveling" | "exploring";
   isOnline?: boolean;
 }
 
@@ -48,8 +50,10 @@ interface LiveMeshiPresenceProps {
   viewportInfo?: ViewportInfo;
   /** User nodes on the mesh — used to generate offline sleeping Meshis */
   userNodes?: UserNodeInfo[];
+  enabled?: boolean;
   onInteract?: (presence: MeshiPresence) => void;
   onRemoteMeshisChange?: (meshis: RemoteMeshi[]) => void;
+  onSummaryChange?: (summary: { totalOnline: number; sameMeshOnline: number; connectedOnline: number }) => void;
 }
 
 /** Convert world coordinates to viewport-relative (0-1 range) */
@@ -79,9 +83,15 @@ function viewportToWorld(
 export function LiveMeshiPresence({
   viewingMesh, myMeshiColor, myMeshiHat,
   myMeshiPosition, myMeshiMood, viewportInfo, userNodes,
-  onInteract, onRemoteMeshisChange,
+  enabled = true,
+  onInteract, onRemoteMeshisChange, onSummaryChange,
 }: LiveMeshiPresenceProps) {
   const [presences, setPresences] = useState<MeshiPresence[]>([]);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [isOnline, setIsOnline] = useState(
+    () => (typeof navigator === "undefined" ? true : navigator.onLine),
+  );
+  const [syncHealth, setSyncHealth] = useState<"live" | "degraded" | "offline">("live");
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const positionRef = useRef(myMeshiPosition || { x: 400, y: 300 });
@@ -90,6 +100,8 @@ export function LiveMeshiPresence({
   const viewportInfoRef = useRef<ViewportInfo>(viewportInfo || {
     zoom: 0.65, panX: 0, panY: 0, centerX: 400, centerY: 300, canvasWidth: 800, canvasHeight: 600,
   });
+  const failureCountRef = useRef(0);
+  const lastHeartbeatRef = useRef<{ x: number; y: number; at: number } | null>(null);
 
   // Keep refs in sync
   useEffect(() => {
@@ -110,6 +122,16 @@ export function LiveMeshiPresence({
     try {
       const vp = viewportInfoRef.current;
       const pos = positionRef.current;
+      const now = Date.now();
+      const last = lastHeartbeatRef.current;
+      let velocity = 0;
+      if (last) {
+        const dt = Math.max(1, now - last.at) / 1000;
+        const dx = pos.x - last.x;
+        const dy = pos.y - last.y;
+        velocity = Math.sqrt(dx * dx + dy * dy) / dt;
+      }
+      const activity: "idle" | "traveling" | "exploring" = velocity > 85 ? "traveling" : velocity > 12 ? "exploring" : "idle";
       // Convert world position to viewport-relative (0-1)
       const vpPos = worldToViewport(pos.x, pos.y, vp);
 
@@ -123,9 +145,17 @@ export function LiveMeshiPresence({
           position: pos,
           viewportPosition: vpPos,
           viewingMesh,
+          velocity,
+          activity,
         }),
       });
-    } catch { /* silently fail */ }
+      lastHeartbeatRef.current = { x: pos.x, y: pos.y, at: now };
+      failureCountRef.current = 0;
+      setSyncHealth("live");
+    } catch {
+      failureCountRef.current += 1;
+      setSyncHealth(failureCountRef.current > 2 ? "degraded" : "live");
+    }
   }, [myMeshiColor, myMeshiHat, viewingMesh]);
 
   // Poll for other users' presences and merge with offline Meshis from nodes
@@ -142,6 +172,7 @@ export function LiveMeshiPresence({
       if (res.ok) {
         const data = await res.json();
         const list: MeshiPresence[] = data.presences || [];
+        if (data.summary && onSummaryChange) onSummaryChange(data.summary);
         setPresences(list.filter((p) => p.isOnline));
 
         // Build remote Meshis: online users from presence + offline sleeping Meshis from nodes
@@ -186,14 +217,26 @@ export function LiveMeshiPresence({
 
           onRemoteMeshisChange([...onlineMeshis, ...offlineMeshis]);
         }
+        failureCountRef.current = 0;
+        setSyncHealth("live");
       }
-    } catch { /* silently fail */ }
-  }, [viewingMesh, onRemoteMeshisChange]);
+    } catch {
+      failureCountRef.current += 1;
+      setSyncHealth(failureCountRef.current > 2 ? "degraded" : "live");
+    }
+  }, [viewingMesh, onRemoteMeshisChange, onSummaryChange]);
 
   // Start heartbeat (3s) and polling (2s) — faster for more real-time feel
   useEffect(() => {
-    const heartbeat = setInterval(sendHeartbeat, 3000);
-    const poll = setInterval(pollPresences, 2000);
+    if (!enabled || !isPageVisible || !isOnline) {
+      return;
+    }
+    const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
+    const isSlowNetwork = connection?.effectiveType === "2g" || connection?.effectiveType === "slow-2g";
+    const heartbeatMs = isSlowNetwork ? 5500 : 3000;
+    const pollMs = isSlowNetwork ? 3800 : 2000;
+    const heartbeat = setInterval(sendHeartbeat, heartbeatMs);
+    const poll = setInterval(pollPresences, pollMs);
     heartbeatRef.current = heartbeat;
     pollRef.current = poll;
 
@@ -208,7 +251,31 @@ export function LiveMeshiPresence({
       clearInterval(heartbeat);
       clearInterval(poll);
     };
-  }, [sendHeartbeat, pollPresences]);
+  }, [enabled, isOnline, isPageVisible, sendHeartbeat, pollPresences]);
+
+  useEffect(() => {
+    const onVisibility = () => setIsPageVisible(document.visibilityState === "visible");
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setSyncHealth("live");
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setSyncHealth("offline");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Clean up presence only on true component unmount (empty deps)
   useEffect(() => {
@@ -219,7 +286,7 @@ export function LiveMeshiPresence({
 
   const onlinePresences = presences.filter((p) => p.isOnline);
 
-  if (onlinePresences.length === 0) return null;
+  if (!enabled || onlinePresences.length === 0) return null;
 
   return (
     <div className="pointer-events-none fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
@@ -228,6 +295,19 @@ export function LiveMeshiPresence({
         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
         <span className="text-[var(--text-secondary)] font-medium">
           {onlinePresences.length} {onlinePresences.length === 1 ? "Meshi" : "Meshis"} online
+        </span>
+        <span
+          className={
+            "text-[9px] uppercase tracking-wide " + (
+              syncHealth === "live"
+                ? "text-green-400"
+                : syncHealth === "degraded"
+                  ? "text-amber-400"
+                  : "text-red-400"
+            )
+          }
+        >
+          {syncHealth}
         </span>
       </div>
 
@@ -262,7 +342,8 @@ export function LiveMeshiPresence({
                   {presence.displayName}
                 </span>
                 <span className="text-[9px] text-[var(--text-muted)] leading-tight">
-                  @{presence.username}
+                  @{presence.username}{" "}
+                  {presence.activity ? `· ${presence.activity}` : ""}
                 </span>
               </div>
             </button>
