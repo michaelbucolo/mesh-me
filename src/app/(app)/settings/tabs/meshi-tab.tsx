@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Sparkles, Crown, ArrowRight, Lock, Trophy } from "lucide-react";
 import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor, ACHIEVEMENT_TITLES } from "@/components/meshi/meshi-mascot";
 import { updateMeshiLocalPreferences, useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
 interface MeshiTabProps {
   showSuccess: (msg: string) => void;
@@ -55,7 +56,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
         <p className="text-sm text-[var(--text-muted)]">Your personal assistant for navigating the mesh</p>
       </div>
 
-      <div className="glass-card rounded-2xl p-5">
+      <SettingsCard>
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">Enable Meshi</h3>
@@ -73,7 +74,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${meshiEnabled ? "translate-x-6" : "translate-x-1"}`} />
           </button>
         </div>
-      </div>
+      </SettingsCard>
 
       {meshiEnabled && (
         <>
@@ -84,8 +85,8 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
             </p>
           </div>
 
-          <div className="glass-card rounded-2xl p-5">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Expression</h3>
+          <SettingsCard>
+            <SettingsCardHeader title="Expression" className="mb-3" />
             <div className="grid grid-cols-4 gap-3">
               {(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", ...(unlockedFaces.includes("synergy1017") ? ["synergy1017" as MeshiMood] : [])] as MeshiMood[]).map((faceOption) => (
                 <button
@@ -101,10 +102,10 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
                 </button>
               ))}
             </div>
-          </div>
+          </SettingsCard>
 
-          <div className="glass-card rounded-2xl p-5">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Hat</h3>
+          <SettingsCard>
+            <SettingsCardHeader title="Hat" className="mb-3" />
             <div className="grid grid-cols-4 gap-3">
               {FREE_HATS.map((hatOption) => (
                 <button
@@ -147,10 +148,10 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
                 ))}
               </div>
             </div>
-          </div>
+          </SettingsCard>
 
-          <div className="glass-card rounded-2xl p-5">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Color</h3>
+          <SettingsCard>
+            <SettingsCardHeader title="Color" className="mb-3" />
             <div className="grid grid-cols-4 gap-3">
               {FREE_COLORS.map((colorOption) => (
                 <button
@@ -193,9 +194,9 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
                 ))}
               </div>
             </div>
-          </div>
+          </SettingsCard>
 
-          <div className="glass-card rounded-2xl p-5">
+          <SettingsCard>
             <div className="flex items-center gap-2 mb-3">
               <Trophy className="h-4 w-4 text-amber-400" />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">Title</h3>
@@ -239,7 +240,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
                 );
               })}
             </div>
-          </div>
+          </SettingsCard>
 
           <div className="flex items-center gap-2">
             <button
@@ -264,7 +265,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
             </button>
           </div>
 
-          <div className="glass-card rounded-2xl p-5 mt-6">
+          <SettingsCard className="mt-6">
             <div className="flex items-center gap-2 mb-1">
               <Crown className="h-4 w-4 text-amber-400" />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">App Logo</h3>
@@ -308,7 +309,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
             >
               Reset to Default Logo
             </button>
-          </div>
+          </SettingsCard>
         </>
       )}
     </motion.div>

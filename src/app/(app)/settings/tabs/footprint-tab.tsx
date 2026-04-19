@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Fingerprint, Search, Mail, Phone, UserCheck, Globe, Shield, Activity, AlertTriangle, Users, BarChart3, TrendingUp, Scan } from "lucide-react";
+import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
 export function FootprintTab() {
   return (
@@ -19,13 +20,12 @@ export function FootprintTab() {
       </div>
 
       {/* Scanner */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <Search className="h-4 w-4" style={{ color: "var(--accent)" }} /> Identity Scanner
-        </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-4">
-          Scan the web for accounts and data associated with your email, phone number, name, and usernames. Similar to services like Incogni but more comprehensive.
-        </p>
+      <SettingsCard>
+        <SettingsCardHeader
+          title="Identity Scanner"
+          icon={<Search className="h-4 w-4" style={{ color: "var(--accent)" }} />}
+          description="Scan the web for accounts and data associated with your email, phone number, name, and usernames. Similar to services like Incogni but more comprehensive."
+        />
         <div className="space-y-3 mb-4">
           {[
             { icon: Mail, label: "Email addresses", desc: "Find accounts registered with your emails", status: "Not scanned" },
@@ -48,13 +48,11 @@ export function FootprintTab() {
         <Button variant="gradient" className="w-full">
           <Scan className="h-4 w-4 mr-2" /> Run Full Scan
         </Button>
-      </div>
+      </SettingsCard>
 
       {/* Footprint overview */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <BarChart3 className="h-4 w-4" style={{ color: "var(--accent)" }} /> Footprint Overview
-        </h3>
+      <SettingsCard>
+        <SettingsCardHeader title="Footprint Overview" icon={<BarChart3 className="h-4 w-4" style={{ color: "var(--accent)" }} />} />
         <div className="grid grid-cols-2 gap-3 mb-4">
           {[
             { label: "Known accounts", value: "--", icon: Users, color: "text-[var(--accent)]" },
@@ -70,16 +68,16 @@ export function FootprintTab() {
           ))}
         </div>
         <p className="text-xs text-[var(--text-muted)] text-center">Run a scan to populate your footprint overview</p>
-      </div>
+      </SettingsCard>
 
       {/* Cross-platform analytics */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" style={{ color: "var(--accent)" }} /> Cross-Platform Analytics
-        </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-3">
-          In-depth stats on your digital presence across all connected platforms — engagement trends, follower growth, content performance, and audience demographics.
-        </p>
+      <SettingsCard>
+        <SettingsCardHeader
+          title="Cross-Platform Analytics"
+          icon={<TrendingUp className="h-4 w-4" style={{ color: "var(--accent)" }} />}
+          description="In-depth stats on your digital presence across all connected platforms — engagement trends, follower growth, content performance, and audience demographics."
+          className="mb-3"
+        />
         <div className="space-y-2">
           {[
             { label: "Total reach across platforms", value: "--" },
@@ -93,7 +91,7 @@ export function FootprintTab() {
             </div>
           ))}
         </div>
-      </div>
+      </SettingsCard>
     </motion.div>
   );
 }

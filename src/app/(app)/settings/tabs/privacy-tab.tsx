@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity } from "lucide-react";
 import { getPrivacyTransparencyData } from "@/lib/queries";
 import type { TransparencyData } from "./types";
+import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
 interface PrivacyTabProps {
   isPublic: boolean;
@@ -168,16 +169,16 @@ export function PrivacyTab({ isPublic, setIsPublic, showInDiscovery, setShowInDi
       </div>
 
       {/* Data Transparency Dashboard */}
-      <div className="mt-6 glass-card rounded-2xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-            <Eye className="h-3.5 w-3.5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Data Transparency Report</h3>
-            <p className="text-[10px] text-[var(--text-muted)]">Everything mesh.me knows about you — no hidden data</p>
-          </div>
-        </div>
+      <SettingsCard className="mt-6">
+        <SettingsCardHeader
+          title="Your Data Transparency Report"
+          icon={
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <Eye className="h-3.5 w-3.5 text-white" />
+            </div>
+          }
+          description="Everything mesh.me knows about you — no hidden data"
+        />
 
         {transparencyData ? (
           <div className="space-y-4">
@@ -272,7 +273,7 @@ export function PrivacyTab({ isPublic, setIsPublic, showInDiscovery, setShowInDi
             <div className="h-5 w-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
-      </div>
+      </SettingsCard>
 
       <div className="mt-8 pt-6 border-t border-[var(--border-primary)]">
         <h3 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-2">
