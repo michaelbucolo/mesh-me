@@ -9,13 +9,28 @@
 "use client";
 
 import { useEffect } from "react";
-import { isNative } from "@/lib/native/platform";
+import { isIOS, isNative } from "@/lib/native/platform";
 import { setStatusBarLight, setStatusBarOverlay } from "@/lib/native/status-bar";
 import { setAccessoryBarVisible } from "@/lib/native/keyboard";
 
 export function NativeInit() {
   useEffect(() => {
-    if (!isNative()) return;
+    const body = document.body;
+    body.classList.add("platform-web");
+
+    if (isNative()) {
+      body.classList.add("platform-native");
+      body.classList.remove("platform-web");
+    }
+
+    if (isIOS()) body.classList.add("platform-ios");
+    else body.classList.add("platform-android");
+
+    if (!isNative()) {
+      return () => {
+        body.classList.remove("platform-web", "platform-native", "platform-ios", "platform-android");
+      };
+    }
 
     // Configure status bar for dark theme
     setStatusBarLight();
@@ -37,13 +52,11 @@ export function NativeInit() {
         // Handle deep links
         const urlHandle = await App.addListener("appUrlOpen", (event) => {
           const url = new URL(event.url);
-          // Navigate to the path from the deep link
           if (url.pathname) {
             window.location.href = url.pathname;
           }
         });
 
-        // Handle back button (Android, but good to have)
         const backHandle = await App.addListener("backButton", () => {
           window.history.back();
         });
@@ -57,9 +70,9 @@ export function NativeInit() {
 
     return () => {
       cleanup?.();
+      body.classList.remove("platform-web", "platform-native", "platform-ios", "platform-android");
     };
   }, []);
 
-  // Render nothing — this is a side-effect-only component
   return null;
 }

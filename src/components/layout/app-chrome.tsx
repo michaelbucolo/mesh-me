@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PremiumTopbar } from "@/components/layout/premium-topbar";
 import { PremiumCommandCenter } from "@/components/layout/premium-command-center";
 import { AppContentShell } from "@/components/layout/app-content-shell";
+import { MobileTopbar } from "@/components/layout/mobile-topbar";
 import { VerificationBanner } from "@/components/verification/verification-banner";
 import { ComplianceBanner } from "@/components/layout/compliance-banner";
 
@@ -47,18 +48,21 @@ export function AppChrome({
         unreadMessages={unreadMessages}
         onOpenCommandCenter={() => setCommandOpen(true)}
       />
+      <MobileTopbar username={username} />
 
-      <main className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-5 md:px-6 lg:pb-6">
+      <main className="mobile-app-chrome relative flex-1 overflow-y-auto overflow-x-hidden px-4 pb-32 pt-4 md:px-6 lg:pb-6 lg:pt-5">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(ellipse_at_top,rgba(92,168,255,0.14),transparent_70%)]" />
-        {(needsEmailVerification || needsPhoneVerification) && (
-          <VerificationBanner
-            needsEmailVerification={needsEmailVerification}
-            needsPhoneVerification={needsPhoneVerification}
-            userEmail={userEmail}
-          />
-        )}
-        <ComplianceBanner username={username} />
-        <AppContentShell>{children}</AppContentShell>
+        <div className="mx-auto w-full max-w-5xl">
+          {(needsEmailVerification || needsPhoneVerification) && (
+            <VerificationBanner
+              needsEmailVerification={needsEmailVerification}
+              needsPhoneVerification={needsPhoneVerification}
+              userEmail={userEmail}
+            />
+          )}
+          <ComplianceBanner username={username} />
+          <AppContentShell>{children}</AppContentShell>
+        </div>
       </main>
 
       <PremiumCommandCenter open={commandOpen} onClose={() => setCommandOpen(false)} username={username} />
