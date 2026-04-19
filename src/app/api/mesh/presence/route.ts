@@ -14,6 +14,8 @@ const presenceStore = new Map<string, {
   // Viewport-relative position (0-1 range) — where Meshi sits on the user's screen
   viewportPosition: { vx: number; vy: number };
   viewingMesh: string; // userId of mesh being viewed (always normalized)
+  velocity: number;
+  activity: "idle" | "traveling" | "exploring";
   lastSeen: number;
 }>();
 
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { meshiColor, meshiHat, meshiMood, position, viewportPosition, viewingMesh } = body;
+    const { meshiColor, meshiHat, meshiMood, position, viewportPosition, viewingMesh, velocity, activity } = body;
 
     presenceStore.set(user.id, {
       userId: user.id,
@@ -48,6 +50,8 @@ export async function POST(request: Request) {
       viewportPosition: viewportPosition || { vx: 0.5, vy: 0.5 },
       // Normalize own-mesh views to the current user id so all viewers of the same mesh match.
       viewingMesh: (typeof viewingMesh === "string" && viewingMesh.length > 0) ? viewingMesh : user.id,
+      velocity: typeof velocity === "number" ? velocity : 0,
+      activity: activity === "traveling" || activity === "exploring" ? activity : "idle",
       lastSeen: Date.now(),
     });
 
@@ -70,6 +74,9 @@ export async function GET(request: Request) {
   const connectedIds = searchParams.get("connectedIds")?.split(",").filter(Boolean) || [];
 
   const now = Date.now();
+  let totalOnline = 0;
+  let sameMeshOnline = 0;
+  let connectedOnline = 0;
   const presences: Array<{
     userId: string;
     username: string;
@@ -80,6 +87,8 @@ export async function GET(request: Request) {
     meshiMood: string;
     position: { x: number; y: number };
     viewportPosition: { vx: number; vy: number };
+    velocity: number;
+    activity: "idle" | "traveling" | "exploring";
     isOnline: boolean;
   }> = [];
 
@@ -98,6 +107,9 @@ export async function GET(request: Request) {
 
     // Consider online if heartbeat received in last 15 seconds
     const isOnline = (now - entry.lastSeen) < 15000;
+    if (isOnline) totalOnline += 1;
+    if (isOnline && isViewingSameMesh) sameMeshOnline += 1;
+    if (isOnline && isConnectedAndOnline) connectedOnline += 1;
 
     presences.push({
       userId: entry.userId,
@@ -109,11 +121,20 @@ export async function GET(request: Request) {
       meshiMood: entry.meshiMood,
       position: entry.position,
       viewportPosition: entry.viewportPosition,
+      velocity: entry.velocity,
+      activity: entry.activity,
       isOnline,
     });
   }
 
-  return NextResponse.json({ presences });
+  return NextResponse.json({
+    presences,
+    summary: {
+      totalOnline,
+      sameMeshOnline,
+      connectedOnline,
+    },
+  });
 }
 
 // DELETE: Remove my presence (leaving mesh)
