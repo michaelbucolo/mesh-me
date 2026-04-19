@@ -802,3 +802,35 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ─── Mobile UX Overhaul ─── */
+@media (max-width: 1023px) {
+  body {
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-app-chrome {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .mobile-app-chrome [data-meshi-zone] {
+    padding-top: 1rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .mobile-app-chrome .card,
+  .mobile-app-chrome .premium-surface {
+    border-radius: 1.15rem;
+  }
+
+  .platform-ios .mobile-app-chrome {
+    scroll-behavior: smooth;
+  }
+
+  .platform-android .mobile-app-chrome {
+    overscroll-behavior-y: contain;
+  }
+}
