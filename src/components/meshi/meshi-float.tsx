@@ -771,7 +771,6 @@ export function MeshiFloat() {
             onClose={closeAll}
             onAskMeshi={() => setView("speech")}
             onSearchMesh={() => triggerSearch()}
-            onOpenChat={() => setView("chat")}
           />
         )}
       </AnimatePresence>

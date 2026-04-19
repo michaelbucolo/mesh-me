@@ -15,11 +15,10 @@ interface MeshiActionsMenuProps {
   onClose: () => void;
   onAskMeshi: () => void;
   onSearchMesh: () => void;
-  onOpenChat: () => void;
 }
 
 export function MeshiActionsMenu({
-  meshiColor, meshiHat, onClose, onAskMeshi, onSearchMesh, onOpenChat,
+  meshiColor, meshiHat, onClose, onAskMeshi, onSearchMesh,
 }: MeshiActionsMenuProps) {
   const router = useRouter();
 

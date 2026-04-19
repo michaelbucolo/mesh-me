@@ -61,7 +61,7 @@ export default function MeshPage() {
   const [meshiMood, setMeshiMood] = useState("exploring");
   const [remoteMeshis, setRemoteMeshis] = useState<import("@/components/mesh/meshi-on-mesh").RemoteMeshi[]>([]);
   const [myUsername, setMyUsername] = useState("You");
-  const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
+  const [syncPulseTime] = useState<number | null>(null);
 
   // --- Multi-user mesh exploration ---
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);

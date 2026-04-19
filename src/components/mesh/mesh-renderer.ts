@@ -247,8 +247,9 @@ function drawEdges(
   hovered: MeshNode | null,
   selected: MeshNode | null,
   time: number,
-  /* dt passed for future use */ _dt: number,
+  _dt: number,
 ) {
+  void _dt;
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
 
@@ -315,8 +316,9 @@ function drawDataParticles(
   time: number,
   hovered: MeshNode | null,
   selected: MeshNode | null,
-  /* dt passed for future use */ _dt: number,
+  _dt: number,
 ) {
+  void _dt;
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
 

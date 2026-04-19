@@ -527,6 +527,7 @@ function colorKeyFromHex(hex: string): string {
 
 /** Draw Meshi on the canvas using the same SVG model as the floating Meshi */
 export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState, _time: number): void {
+  void _time;
   // Figure-8 bob pattern for more organic, satisfying movement
   const bobY = Math.sin(state.bobPhase) * 2.5;
   const bobX = Math.sin(state.bobPhase * 0.5) * 1.2;
@@ -664,20 +665,4 @@ export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: Re
     ctx.fillStyle = isOffline ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.6)";
     ctx.fillText(labelText, mx + dotSize / 2 + 1, labelY);
   }
-}
-
-function lightenColor(hex: string, percent: number): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const r = Math.min(255, (num >> 16) + Math.round(255 * percent / 100));
-  const g = Math.min(255, ((num >> 8) & 0xff) + Math.round(255 * percent / 100));
-  const b = Math.min(255, (num & 0xff) + Math.round(255 * percent / 100));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function darkenColor(hex: string, percent: number): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const r = Math.max(0, (num >> 16) - Math.round(255 * percent / 100));
-  const g = Math.max(0, ((num >> 8) & 0xff) - Math.round(255 * percent / 100));
-  const b = Math.max(0, (num & 0xff) - Math.round(255 * percent / 100));
-  return `rgb(${r}, ${g}, ${b})`;
 }
