@@ -48,19 +48,21 @@ export function AppChrome({
         unreadMessages={unreadMessages}
         onOpenCommandCenter={() => setCommandOpen(true)}
       />
-      <MobileTopbar unreadNotifications={unreadNotifications} unreadMessages={unreadMessages} />
+      <MobileTopbar username={username} />
 
-      <main className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 pb-28 pt-4 md:px-6 lg:pb-6 lg:pt-5">
+      <main className="mobile-app-chrome relative flex-1 overflow-y-auto overflow-x-hidden px-4 pb-32 pt-4 md:px-6 lg:pb-6 lg:pt-5">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(ellipse_at_top,rgba(92,168,255,0.14),transparent_70%)]" />
-        {(needsEmailVerification || needsPhoneVerification) && (
-          <VerificationBanner
-            needsEmailVerification={needsEmailVerification}
-            needsPhoneVerification={needsPhoneVerification}
-            userEmail={userEmail}
-          />
-        )}
-        <ComplianceBanner username={username} />
-        <AppContentShell>{children}</AppContentShell>
+        <div className="mx-auto w-full max-w-5xl">
+          {(needsEmailVerification || needsPhoneVerification) && (
+            <VerificationBanner
+              needsEmailVerification={needsEmailVerification}
+              needsPhoneVerification={needsPhoneVerification}
+              userEmail={userEmail}
+            />
+          )}
+          <ComplianceBanner username={username} />
+          <AppContentShell>{children}</AppContentShell>
+        </div>
       </main>
 
       <PremiumCommandCenter open={commandOpen} onClose={() => setCommandOpen(false)} username={username} />
