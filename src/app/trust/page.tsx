@@ -66,9 +66,14 @@ export default function TrustCenterPage() {
           <Link href="/settings?tab=privacy" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-primary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
             Privacy Controls <ExternalLink className="h-3 w-3" />
           </Link>
+          <Link href="/api/trust/status" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-primary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+            Trust Status API <ExternalLink className="h-3 w-3" />
+          </Link>
+          <Link href="/.well-known/security.txt" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-primary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+            security.txt <ExternalLink className="h-3 w-3" />
+          </Link>
         </div>
       </div>
     </div>
   );
 }
-
