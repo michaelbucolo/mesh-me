@@ -1,0 +1,7 @@
+Contact: mailto:security@mesh.me
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://mesh.me/.well-known/security.txt
+Policy: https://mesh.me/trust
+Hiring: https://mesh.me/about
+Acknowledgments: https://mesh.me/trust

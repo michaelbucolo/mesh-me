@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarDays, Command, MessageCircle, Search } from "lucide-react";
+import { Bell, CalendarDays, Command, MessageCircle, Search, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PremiumTopbarProps {
@@ -24,6 +24,10 @@ const routeMeta: Record<string, { title: string; subtitle: string }> = {
 
 export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenCommandCenter }: PremiumTopbarProps) {
   const pathname = usePathname();
+  const [trustReady, setTrustReady] = useState(false);
+  const [secureContext] = useState(
+    () => (typeof window === "undefined" ? true : window.location.protocol === "https:"),
+  );
 
   const meta = useMemo(() => {
     const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
@@ -42,6 +46,13 @@ export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenComma
       }).format(new Date()),
     [],
   );
+
+  useEffect(() => {
+    fetch("/api/trust/status", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then(() => setTrustReady(true))
+      .catch(() => setTrustReady(false));
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 hidden shrink-0 border-b border-[var(--glass-border)] bg-[var(--glass-bg)]/80 px-5 py-3 backdrop-blur-2xl lg:block">
@@ -69,6 +80,21 @@ export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenComma
             <CalendarDays className="h-3.5 w-3.5" />
             {today}
           </span>
+
+          <Link
+            href="/trust"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs transition",
+              secureContext
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15",
+            )}
+            title="Trust Center"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {secureContext ? "HTTPS secure" : "Insecure transport"}
+            {trustReady && <span className="text-[10px] opacity-70">· verified</span>}
+          </Link>
 
           {[{ href: "/messages", icon: MessageCircle, count: unreadMessages }, { href: "/notifications", icon: Bell, count: unreadNotifications }].map((item) => (
             <Link
