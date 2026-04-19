@@ -4,27 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  MessageCircle,
-  Bell,
-  User,
-  LogOut,
-  Waypoints,
-  Shield,
-  Compass,
-  Settings,
-  Link2,
-  Users,
-  Rss,
-  LayoutDashboard,
-  Crown,
-  ChevronDown,
-  Activity,
-} from "lucide-react";
+import { LogOut, Shield, Crown, ChevronDown, Activity } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { desktopBottomItems, desktopNavGroups, getBadgeCount, isNavItemActive, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
 
 interface SidebarProps {
   user: {
@@ -38,51 +23,6 @@ interface SidebarProps {
   unreadMessages?: number;
 }
 
-interface NavItem {
-  href: string;
-  icon: typeof Waypoints;
-  label: string;
-  badgeKey?: "messages" | "notifications";
-}
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-  collapsible?: boolean;
-}
-
-const navGroups: NavGroup[] = [
-  {
-    label: "Core",
-    items: [
-      { href: "/mesh", icon: Waypoints, label: "The Mesh" },
-      { href: "/feed", icon: Rss, label: "Feed" },
-      { href: "/explore", icon: Compass, label: "Explore" },
-    ],
-  },
-  {
-    label: "Social",
-    items: [
-      { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
-      { href: "/notifications", icon: Bell, label: "Notifications", badgeKey: "notifications" },
-      { href: "/communities", icon: Users, label: "Communities" },
-    ],
-  },
-  {
-    label: "Manage",
-    collapsible: true,
-    items: [
-      { href: "/content-hub", icon: LayoutDashboard, label: "Content Hub" },
-      { href: "/connected-accounts", icon: Link2, label: "Connected Accounts" },
-      { href: "/trust", icon: Shield, label: "Trust Center" },
-    ],
-  },
-];
-
-const bottomItems: NavItem[] = [
-  { href: "/profile", icon: User, label: "Profile" },
-  { href: "/settings", icon: Settings, label: "Settings" },
-];
 
 export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: SidebarProps) {
   const pathname = usePathname();
@@ -98,22 +38,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
       else next.add(label);
       return next;
     });
-  };
-
-  const getBadgeCount = (key?: "messages" | "notifications") => {
-    if (key === "messages") return unreadMessages;
-    if (key === "notifications") return unreadNotifications;
-    return 0;
-  };
-
-  const isActive = (href: string) => {
-    if (href === "/profile") return pathname.includes(`/profile/${user.username}`);
-    return pathname.startsWith(href);
-  };
-
-  const getHref = (href: string) => {
-    if (href === "/profile") return `/profile/${user.username}`;
-    return href;
   };
 
   useEffect(() => {
@@ -143,13 +67,13 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   }, []);
 
   const renderNavItem = (item: NavItem) => {
-    const active = isActive(item.href);
-    const badgeCount = getBadgeCount(item.badgeKey);
+    const active = isNavItemActive(pathname, item.href, user.username);
+    const badgeCount = getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages);
 
     return (
       <Link
         key={item.href}
-        href={getHref(item.href)}
+        href={resolveNavHref(item.href, user.username)}
         className={cn(
           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
           active
@@ -211,9 +135,9 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto">
-        {navGroups.map((group) => {
+        {desktopNavGroups.map((group) => {
           const isCollapsed = group.collapsible && collapsedGroups.has(group.label);
-          const groupHasBadge = group.items.some((item) => getBadgeCount(item.badgeKey) > 0);
+          const groupHasBadge = group.items.some((item) => getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages) > 0);
 
           return (
             <div key={group.label}>
@@ -266,7 +190,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
       </nav>
 
       <div className="mb-3 space-y-0.5">
-        {bottomItems.map(renderNavItem)}
+        {desktopBottomItems.map(renderNavItem)}
         <Link
           href="/meshpro"
           className={cn(

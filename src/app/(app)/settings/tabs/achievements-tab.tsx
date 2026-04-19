@@ -5,6 +5,7 @@ import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Award, Crown } from "lucide-react";
 import { AchievementList } from "@/components/achievements/achievement-badges";
+import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
 interface AchievementsTabProps {
   showSuccess: (msg: string) => void;
@@ -50,11 +51,13 @@ export function AchievementsTab({ showSuccess }: AchievementsTabProps) {
       </div>
 
       {/* Active title selector */}
-      <div className="glass-card rounded-2xl p-5 mb-6">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-          <Award className="h-4 w-4" style={{ color: "var(--accent)" }} /> Active Title
-        </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-3">Choose a title to display on your profile</p>
+      <SettingsCard className="mb-6">
+        <SettingsCardHeader
+          title="Active Title"
+          icon={<Award className="h-4 w-4" style={{ color: "var(--accent)" }} />}
+          description="Choose a title to display on your profile"
+          className="mb-3"
+        />
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => { startTransition(async () => { await setActiveTitle(null); setUserActiveTitle(null); showSuccess("Title removed"); }); }}
@@ -66,7 +69,7 @@ export function AchievementsTab({ showSuccess }: AchievementsTabProps) {
             <p className="text-xs text-[var(--text-muted)] py-1.5">Earn achievements to unlock titles!</p>
           )}
         </div>
-      </div>
+      </SettingsCard>
 
       {/* Achievement list */}
       {loading ? (
@@ -79,7 +82,7 @@ export function AchievementsTab({ showSuccess }: AchievementsTabProps) {
       )}
 
       {/* Pioneer callout */}
-      <div className="glass-card rounded-2xl p-5 border border-amber-400/20 bg-amber-400/5">
+      <SettingsCard className="border border-amber-400/20 bg-amber-400/5">
         <div className="flex items-center gap-3 mb-2">
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-400/20 to-yellow-600/20 flex items-center justify-center border-2 border-amber-400/40">
             <Crown className="h-5 w-5 text-amber-400" />
@@ -93,7 +96,7 @@ export function AchievementsTab({ showSuccess }: AchievementsTabProps) {
           The Pioneer title is a limited edition achievement awarded to the first 1 million fully verified mesh.me users.
           Once all 1 million spots are claimed, this title can never be earned again. Verify your account to claim yours!
         </p>
-      </div>
+      </SettingsCard>
     </motion.div>
   );
 }
