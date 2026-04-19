@@ -44,6 +44,14 @@ export function AppContentShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-5xl animate-page-enter">
       {routeInfo && (
+        <section className="mb-4 lg:hidden">
+          <div className="inline-flex items-center rounded-full border border-[var(--border-secondary)] bg-[var(--bg-secondary)]/70 px-3 py-1 text-xs text-[var(--text-secondary)]">
+            {routeInfo.label}
+          </div>
+        </section>
+      )}
+
+      {routeInfo && (
         <section className={cn("premium-surface mb-5 rounded-2xl p-4 sm:rounded-3xl sm:p-5", "hidden lg:block")}>
           {crumbs && (
             <nav className="mb-2 flex flex-wrap items-center gap-1 text-[11px] capitalize text-[var(--text-muted)]">
