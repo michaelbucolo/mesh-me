@@ -6,6 +6,7 @@ import { redeemCode } from "@/lib/actions";
 import { useState, useTransition, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Crown, Check, Sparkles, Eye, Palette, Fingerprint, BarChart3, TrendingUp, ShieldCheck, Layout, Gift, X, Loader2 } from "lucide-react";
+import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
 type PaymentPlan = "monthly" | "yearly" | null;
 
@@ -176,14 +177,14 @@ export function MeshProTab() {
 
       {/* Pricing */}
       <div className="grid md:grid-cols-2 gap-4 mb-8">
-        <div className="glass-card rounded-2xl p-6">
+        <SettingsCard className="p-6">
           <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Monthly</h3>
           <div className="flex items-baseline gap-1 mb-4">
             <span className="text-3xl font-bold text-[var(--text-primary)]">$4.99</span>
             <span className="text-sm text-[var(--text-muted)]">/month</span>
           </div>
           <Button variant="secondary" className="w-full" onClick={() => setSelectedPlan("monthly")}>Subscribe</Button>
-        </div>
+        </SettingsCard>
         <div className="border-2 rounded-2xl p-6 relative" style={{ borderColor: "var(--accent-muted)", background: "var(--accent-subtle)" }}>
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-3 py-1 rounded-full" style={{ background: "var(--brand-gradient)" }}>
             BEST VALUE
@@ -235,11 +236,13 @@ export function MeshProTab() {
       </div>
 
       {/* Redeem Code */}
-      <div className="mt-8 glass-card rounded-2xl p-6">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1 flex items-center gap-2">
-          <Gift className="h-4 w-4" style={{ color: "var(--accent)" }} /> Redeem a Code
-        </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-4">Have a special code? Enter it below to unlock exclusive rewards.</p>
+      <SettingsCard className="mt-8 p-6">
+        <SettingsCardHeader
+          title="Redeem a Code"
+          icon={<Gift className="h-4 w-4" style={{ color: "var(--accent)" }} />}
+          description="Have a special code? Enter it below to unlock exclusive rewards."
+          className="mb-4"
+        />
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -265,7 +268,7 @@ export function MeshProTab() {
             {redeemStatus.message}
           </p>
         )}
-      </div>
+      </SettingsCard>
 
       {/* Payment Modal */}
       <AnimatePresence>

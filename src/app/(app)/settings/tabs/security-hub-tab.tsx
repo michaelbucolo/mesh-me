@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ShieldCheck, FileText, Video, MessageSquare, ExternalLink, Activity, Scan } from "lucide-react";
+import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
 export function SecurityHubTab() {
   return (
@@ -18,13 +19,12 @@ export function SecurityHubTab() {
       </div>
 
       {/* Cross-platform content management */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <FileText className="h-4 w-4" style={{ color: "var(--accent)" }} /> Content Management
-        </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-4">
-          Delete posts, comments, videos, or entire channels across your connected platforms directly from mesh.me.
-        </p>
+      <SettingsCard>
+        <SettingsCardHeader
+          title="Content Management"
+          icon={<FileText className="h-4 w-4" style={{ color: "var(--accent)" }} />}
+          description="Delete posts, comments, videos, or entire channels across your connected platforms directly from mesh.me."
+        />
         <div className="space-y-3">
           {[
             { icon: FileText, label: "Posts & Photos", desc: "Review and delete posts across platforms", count: 0 },
@@ -43,13 +43,11 @@ export function SecurityHubTab() {
             </button>
           ))}
         </div>
-      </div>
+      </SettingsCard>
 
       {/* Active sessions */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <Activity className="h-4 w-4" style={{ color: "var(--accent)" }} /> Active Sessions
-        </h3>
+      <SettingsCard>
+        <SettingsCardHeader title="Active Sessions" icon={<Activity className="h-4 w-4" style={{ color: "var(--accent)" }} />} />
         <div className="space-y-2">
           <div className="flex items-center justify-between p-3 rounded-xl glass-surface">
             <div className="flex items-center gap-3">
@@ -65,18 +63,18 @@ export function SecurityHubTab() {
         <Button variant="secondary" size="sm" className="mt-3 w-full">
           Sign out all other sessions
         </Button>
-      </div>
+      </SettingsCard>
 
       {/* Data export */}
-      <div className="glass-card rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
-          <Scan className="h-4 w-4" style={{ color: "var(--accent)" }} /> Data Export
-        </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-3">
-          Download a complete copy of all your mesh.me data including posts, messages, and account info.
-        </p>
+      <SettingsCard>
+        <SettingsCardHeader
+          title="Data Export"
+          icon={<Scan className="h-4 w-4" style={{ color: "var(--accent)" }} />}
+          description="Download a complete copy of all your mesh.me data including posts, messages, and account info."
+          className="mb-3"
+        />
         <Button variant="secondary" size="sm">Request data export</Button>
-      </div>
+      </SettingsCard>
     </motion.div>
   );
 }
