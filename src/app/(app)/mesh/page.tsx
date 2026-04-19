@@ -7,10 +7,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, RotateCcw, Layers, Compass, MessageCircle, Network, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
+import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
 import { MeshEngine } from "@/components/mesh/mesh-engine";
 import { MeshCanvas } from "@/components/mesh/mesh-canvas";
 import { buildMeshData, buildUserMeshData, preloadNodeImages, type MeshApiResponse } from "@/components/mesh/mesh-data";
 import type { MeshNode, MeshEdge } from "@/components/mesh/mesh-types";
+import type { RemoteMeshi } from "@/components/mesh/meshi-on-mesh";
 
 type CachedUserMeshResponse = {
   user: { id: string; username: string; displayName: string; avatarUrl: string | null };
@@ -43,6 +45,26 @@ export default function MeshPage() {
   const [myMeshiColor, setMyMeshiColor] = useState<MeshiColor>("blue");
   const [myMeshiHat, setMyMeshiHat] = useState<MeshiHat>("none");
   const [myUsername, setMyUsername] = useState("You");
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [myMeshiPosition, setMyMeshiPosition] = useState({ x: 0, y: 0 });
+  const [myMeshiMood, setMyMeshiMood] = useState("happy");
+  const [remoteMeshis, setRemoteMeshis] = useState<RemoteMeshi[]>([]);
+  const [presenceEnabled, setPresenceEnabled] = useState(true);
+  const [travelLog, setTravelLog] = useState<Array<{ mesh: string; at: number }>>([]);
+  const [presenceSummary, setPresenceSummary] = useState({
+    totalOnline: 0,
+    sameMeshOnline: 0,
+    connectedOnline: 0,
+  });
+  const [viewportInfo, setViewportInfo] = useState({
+    zoom: 0.65,
+    panX: 0,
+    panY: 0,
+    centerX: 400,
+    centerY: 300,
+    canvasWidth: 800,
+    canvasHeight: 600,
+  });
 
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
   const [myNodes, setMyNodes] = useState<MeshNode[]>([]);
@@ -73,6 +95,7 @@ export default function MeshPage() {
         setMyNodes(nodes);
         setMyEdges(edges);
         setMyUsername(data.user.displayName || data.user.username || "You");
+        setMyUserId(data.user.id);
 
         if (data.meshiPreference?.colorTheme) setMyMeshiColor(data.meshiPreference.colorTheme as MeshiColor);
         if (data.meshiPreference?.hatStyle) setMyMeshiHat(data.meshiPreference.hatStyle as MeshiHat);
@@ -122,6 +145,7 @@ export default function MeshPage() {
       preloadNodeImages(userNodes, imageCache.current);
 
       setViewingUserMesh(node);
+      setTravelLog((prev) => [{ mesh: node.label, at: Date.now() }, ...prev].slice(0, 8));
       setSelectedNode(null);
       resetView();
     } catch {
@@ -134,6 +158,7 @@ export default function MeshPage() {
   const returnToMyMesh = useCallback(() => {
     if (myNodes.length > 0) engine.setData(myNodes, myEdges);
     setViewingUserMesh(null);
+    setTravelLog((prev) => [{ mesh: "Your mesh", at: Date.now() }, ...prev].slice(0, 8));
     setSelectedNode(null);
     resetView();
   }, [engine, myEdges, myNodes, resetView]);
@@ -217,14 +242,94 @@ export default function MeshPage() {
         meshiColor={myMeshiColor}
         meshiHat={myMeshiHat}
         meshiUsername={myUsername}
-        remoteMeshis={[]}
+        remoteMeshis={remoteMeshis}
         syncPulseTime={null}
+        onMeshiPositionChange={(x, y, mood) => {
+          setMyMeshiPosition({ x, y });
+          setMyMeshiMood(mood);
+        }}
+        onViewportInfoChange={setViewportInfo}
         onZoomChange={(z) => { setZoom(z); zoomRef.current = z; }}
         onPanChange={(p) => { setPan(p); panRef.current = p; }}
         onHoverChange={setHoveredNode}
         onClick={handleCanvasClick}
         onDoubleClick={handleCanvasDoubleClick}
       />
+      <LiveMeshiPresence
+        viewingMesh={viewingUserMesh?.id || myUserId}
+        myMeshiColor={myMeshiColor}
+        myMeshiHat={myMeshiHat}
+        myMeshiPosition={myMeshiPosition}
+        myMeshiMood={myMeshiMood}
+        viewportInfo={viewportInfo}
+        enabled={presenceEnabled}
+        userNodes={engine.nodes
+          .filter((n) => n.type === "user")
+          .map((n) => ({
+            userId: n.id,
+            username: n.sublabel?.replace("@", "") || n.label,
+            displayName: n.label,
+            x: n.x,
+            y: n.y,
+          }))}
+        onRemoteMeshisChange={setRemoteMeshis}
+        onSummaryChange={setPresenceSummary}
+        onInteract={(presence) => {
+          const existingNode = engine.nodes.find((n) => n.type === "user" && n.id === presence.userId);
+          if (existingNode?.sublabel) {
+            void enterUserMesh(existingNode);
+            return;
+          }
+          router.push(`/profile/${presence.username}`);
+        }}
+      />
+
+      <div className="absolute left-3 bottom-3 md:left-5 md:bottom-5 z-20 w-[min(20rem,calc(100%-1.5rem))] rounded-2xl border border-white/10 bg-black/55 text-white backdrop-blur-md shadow-2xl">
+        <div className="p-3 md:p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Mesh Ops</p>
+            <button
+              onClick={() => setPresenceEnabled((v) => !v)}
+              className={
+                "rounded-full px-2.5 py-1 text-[10px] font-semibold transition " + (
+                  presenceEnabled ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/70"
+                )
+              }
+            >
+              {presenceEnabled ? "Live Presence On" : "Live Presence Off"}
+            </button>
+          </div>
+          <div>
+            <p className="text-[10px] text-white/60 mb-1">Recent mesh travel</p>
+            <div className="space-y-1.5">
+              {travelLog.length === 0 ? (
+                <p className="text-xs text-white/55">No hops yet. Enter a user mesh to start a travel trail.</p>
+              ) : (
+                travelLog.map((item, index) => (
+                  <div key={`${item.mesh}-${item.at}-${index}`} className="flex items-center justify-between text-xs text-white/80">
+                    <span className="truncate pr-3">{item.mesh}</span>
+                    <span className="text-white/50">{new Date(item.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="rounded-lg bg-white/5 px-2 py-1.5">
+              <p className="text-[9px] text-white/50 uppercase">Online</p>
+              <p className="text-sm font-semibold">{presenceSummary.totalOnline}</p>
+            </div>
+            <div className="rounded-lg bg-white/5 px-2 py-1.5">
+              <p className="text-[9px] text-white/50 uppercase">This Mesh</p>
+              <p className="text-sm font-semibold">{presenceSummary.sameMeshOnline}</p>
+            </div>
+            <div className="rounded-lg bg-white/5 px-2 py-1.5">
+              <p className="text-[9px] text-white/50 uppercase">Connected</p>
+              <p className="text-sm font-semibold">{presenceSummary.connectedOnline}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <AnimatePresence>
         {viewingUserMesh && (

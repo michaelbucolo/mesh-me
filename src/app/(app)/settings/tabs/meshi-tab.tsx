@@ -25,14 +25,6 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
   const [activeTitle, setActiveTitle] = useState<string>(title);
 
   useEffect(() => {
-    setMeshiHat(hat);
-    setMeshiFace(face);
-    setMeshiColor(color);
-    setMeshiEnabled(enabled);
-    setActiveTitle(title);
-  }, [color, enabled, face, hat, title]);
-
-  useEffect(() => {
     getUserUnlockedCosmetics().then((result) => {
       if (result.cosmetics) {
         setUnlockedFaces(result.cosmetics.filter((c) => c.type === "face").map((c) => c.value));
@@ -45,6 +37,15 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
   const PRO_HATS: MeshiHat[] = ["crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
   const FREE_COLORS: MeshiColor[] = ["blue", "purple", "pink", "green", "orange"];
   const PRO_COLORS: MeshiColor[] = ["cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"];
+
+  const resetToSaved = () => {
+    setMeshiHat(hat);
+    setMeshiFace(face);
+    setMeshiColor(color);
+    setMeshiEnabled(enabled);
+    setActiveTitle(title);
+    showSuccess("Reset to your saved Meshi settings");
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -240,20 +241,28 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              startTransition(async () => {
-                await updateMeshiPreference({ faceStyle: meshiFace, hatStyle: meshiHat, colorTheme: meshiColor });
-                updateMeshiLocalPreferences({ face: meshiFace, hat: meshiHat, color: meshiColor });
-                refresh();
-                showSuccess("Meshi preferences saved!");
-              });
-            }}
-            className="w-full py-3 rounded-xl brand-button text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
-          >
-            <Sparkles className="h-4 w-4" />
-            Save Meshi Preferences
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={resetToSaved}
+              className="flex-1 py-3 rounded-xl border border-[var(--border-primary)] text-[var(--text-secondary)] font-semibold text-sm hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all"
+            >
+              Reset to Saved
+            </button>
+            <button
+              onClick={() => {
+                startTransition(async () => {
+                  await updateMeshiPreference({ faceStyle: meshiFace, hatStyle: meshiHat, colorTheme: meshiColor });
+                  updateMeshiLocalPreferences({ face: meshiFace, hat: meshiHat, color: meshiColor });
+                  refresh();
+                  showSuccess("Meshi preferences saved!");
+                });
+              }}
+              className="flex-[1.25] py-3 rounded-xl brand-button text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
+            >
+              <Sparkles className="h-4 w-4" />
+              Save Meshi Preferences
+            </button>
+          </div>
 
           <div className="glass-card rounded-2xl p-5 mt-6">
             <div className="flex items-center gap-2 mb-1">

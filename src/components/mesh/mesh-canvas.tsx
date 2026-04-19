@@ -4,7 +4,7 @@ import { useRef, useCallback, useEffect } from "react";
 import type { MeshEngine } from "./mesh-engine";
 import type { MeshNode, FilterType } from "./mesh-types";
 import { renderMesh } from "./mesh-renderer";
-import { createMeshiState, tickMeshi, updateMeshiCursor, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
+import { createMeshiState, tickMeshi, updateMeshiCursor, updateMeshiInteraction, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 interface MeshCanvasProps {
   engine: MeshEngine;
@@ -22,6 +22,15 @@ interface MeshCanvasProps {
   remoteMeshis?: RemoteMeshi[];
   syncPulseTime?: number | null;
   onMeshiPositionChange?: (x: number, y: number, mood: string) => void;
+  onViewportInfoChange?: (info: {
+    zoom: number;
+    panX: number;
+    panY: number;
+    centerX: number;
+    centerY: number;
+    canvasWidth: number;
+    canvasHeight: number;
+  }) => void;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: { x: number; y: number }) => void;
   onHoverChange: (node: MeshNode | null) => void;
@@ -34,6 +43,7 @@ export function MeshCanvas({
   hoveredNode, selectedNode, imageCache, loading,
   meshiColor, meshiHat, meshiUsername, remoteMeshis, syncPulseTime,
   onMeshiPositionChange,
+  onViewportInfoChange,
   onZoomChange, onPanChange, onHoverChange, onClick, onDoubleClick,
 }: MeshCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,6 +66,7 @@ export function MeshCanvas({
   const meshiInitializedRef = useRef(false);
   const remoteMeshisRef = useRef<RemoteMeshi[]>([]);
   const lastPositionReportRef = useRef(0);
+  const lastViewportReportRef = useRef(0);
 
   // Interpolation map for smooth remote Meshi movement between polls
   const remoteLerpMapRef = useRef<Map<string, { x: number; y: number }>>(new Map());
@@ -144,6 +155,19 @@ export function MeshCanvas({
       // Tick physics (pass dt for frame-rate independent simulation)
       engine.tick(dt);
 
+      if (onViewportInfoChange && now - lastViewportReportRef.current > 250) {
+        lastViewportReportRef.current = now;
+        onViewportInfoChange({
+          zoom: zoomRef.current,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
+          centerX: engine.getCenter().x,
+          centerY: engine.getCenter().y,
+          canvasWidth: canvas.offsetWidth,
+          canvasHeight: canvas.offsetHeight,
+        });
+      }
+
       // Initialize Meshi at self node position once nodes are loaded
       if (!meshiInitializedRef.current && engine.nodes.length > 0) {
         const selfNode = engine.nodes.find((n) => n.type === "self");
@@ -170,10 +194,18 @@ export function MeshCanvas({
           meshiStateRef.current.lookAtY = null;
         }
 
-        tickMeshi(meshiStateRef.current, engine.nodes, dt, canvas.offsetWidth, canvas.offsetHeight);
+        tickMeshi(
+          meshiStateRef.current,
+          engine.nodes,
+          dt,
+          canvas.offsetWidth,
+          canvas.offsetHeight,
+          remoteMeshisRef.current,
+        );
 
         // Report position every 2 seconds for presence system
-        if (onMeshiPositionChange && now - lastPositionReportRef.current > 2000) {
+        const reportInterval = meshiStateRef.current.isMoving ? 900 : 2000;
+        if (onMeshiPositionChange && now - lastPositionReportRef.current > reportInterval) {
           lastPositionReportRef.current = now;
           onMeshiPositionChange(
             meshiStateRef.current.x,
@@ -251,7 +283,7 @@ export function MeshCanvas({
       cancelAnimationFrame(animationRef.current);
       cancelAnimationFrame(momentumRafRef.current);
     };
-  }, [engine, loading, imageCache, meshiColor, meshiHat, meshiUsername, onMeshiPositionChange]);
+  }, [engine, loading, imageCache, meshiColor, meshiHat, meshiUsername, onMeshiPositionChange, onViewportInfoChange]);
 
   // --- Mouse handlers ---
 
@@ -325,6 +357,9 @@ export function MeshCanvas({
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (dragActiveRef.current) return;
     const coords = getWorldCoords(e.clientX, e.clientY);
+    if (meshiStateRef.current) {
+      updateMeshiInteraction(meshiStateRef.current, coords.x, coords.y);
+    }
     const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
     onClick(node);
   }, [engine, getWorldCoords, onClick]);
@@ -347,17 +382,36 @@ export function MeshCanvas({
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.touches.length === 1) {
+      const coords = getWorldCoords(e.touches[0].clientX, e.touches[0].clientY);
+      if (meshiStateRef.current) {
+        updateMeshiInteraction(meshiStateRef.current, coords.x, coords.y);
+      }
       lastTouchRef.current = { x: e.touches[0].clientX - panRef.current.x, y: e.touches[0].clientY - panRef.current.y };
     } else if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       lastTouchRef.current = { x: 0, y: 0, dist: Math.sqrt(dx * dx + dy * dy) };
     }
-  }, []);
+  }, [getWorldCoords]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "pen") return;
+    const coords = getWorldCoords(e.clientX, e.clientY);
+    if (meshiStateRef.current) {
+      // Apple Pencil hover on iPad maps to pen pointer moves.
+      updateMeshiCursor(meshiStateRef.current, coords.x, coords.y);
+      updateMeshiInteraction(meshiStateRef.current, coords.x, coords.y);
+    }
+  }, [getWorldCoords]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     if (e.touches.length === 1 && lastTouchRef.current && lastTouchRef.current.dist === undefined) {
+      const coords = getWorldCoords(e.touches[0].clientX, e.touches[0].clientY);
+      if (meshiStateRef.current) {
+        // Keep Meshi near what the user is actively interacting with on touch devices.
+        updateMeshiInteraction(meshiStateRef.current, coords.x, coords.y);
+      }
       const newPan = { x: e.touches[0].clientX - lastTouchRef.current.x, y: e.touches[0].clientY - lastTouchRef.current.y };
       onPanChange(newPan);
     } else if (e.touches.length === 2 && lastTouchRef.current && lastTouchRef.current.dist) {
@@ -368,7 +422,7 @@ export function MeshCanvas({
       onZoomChange(newZoom);
       lastTouchRef.current.dist = newDist;
     }
-  }, [onPanChange, onZoomChange]);
+  }, [getWorldCoords, onPanChange, onZoomChange]);
 
   const handleTouchEnd = useCallback(() => { lastTouchRef.current = null; }, []);
 
@@ -383,6 +437,7 @@ export function MeshCanvas({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onPointerMove={handlePointerMove}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

@@ -34,7 +34,28 @@ export interface MeshiState {
   cursorY: number | null;
   idleTimer: number; // Seconds since last cursor movement
   isTouch: boolean;  // True on touch-enabled devices
+  isTablet: boolean; // True on tablet-sized touch devices (iPad-like)
+  isMobile: boolean; // True on phone-sized touch devices
   followingCursor: boolean; // True when following cursor, false when exploring
+  interactionX: number | null;
+  interactionY: number | null;
+  interactionTimer: number; // Seconds since last direct user interaction (tap/click)
+}
+
+function detectDeviceProfile() {
+  if (typeof window === "undefined") {
+    return { isTouch: false, isTablet: false, isMobile: false };
+  }
+
+  const width = window.innerWidth;
+  const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  const coarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+  const hasHover = window.matchMedia?.("(hover: hover)").matches ?? true;
+
+  const isMobile = hasTouch && coarsePointer && width < 768;
+  const isTablet = hasTouch && !isMobile && (coarsePointer || !hasHover);
+
+  return { isTouch: hasTouch, isTablet, isMobile };
 }
 
 export interface RemoteMeshi {
@@ -87,7 +108,7 @@ export function createMeshiState(
   hat: string,
   username: string,
 ): MeshiState {
-  const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  const { isTouch, isTablet, isMobile } = detectDeviceProfile();
   return {
     x: cx,
     y: cy,
@@ -115,7 +136,12 @@ export function createMeshiState(
     cursorY: null,
     idleTimer: IDLE_THRESHOLD + 1, // Start in exploring mode
     isTouch,
+    isTablet,
+    isMobile,
     followingCursor: false,
+    interactionX: null,
+    interactionY: null,
+    interactionTimer: IDLE_THRESHOLD + 1,
   };
 }
 
@@ -178,8 +204,24 @@ export function updateMeshiCursor(state: MeshiState, canvasX: number, canvasY: n
   state.followingCursor = true;
 }
 
+/** Explicit interaction target (tap/click) — especially useful for touch devices */
+export function updateMeshiInteraction(state: MeshiState, canvasX: number, canvasY: number): void {
+  state.interactionX = canvasX;
+  state.interactionY = canvasY;
+  state.interactionTimer = 0;
+  state.idleTimer = 0;
+  state.followingCursor = true;
+}
+
 /** Tick Meshi state — call each frame */
-export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number, canvasWidth?: number, canvasHeight?: number): void {
+export function tickMeshi(
+  state: MeshiState,
+  nodes: MeshNode[],
+  dt: number,
+  canvasWidth?: number,
+  canvasHeight?: number,
+  remoteMeshis: Array<{ x: number; y: number; isOnline: boolean }> = [],
+): void {
   state.bobPhase += dt * 2.5;
   if (state.reactionTimer > 0) state.reactionTimer -= dt;
   else { state.currentReaction = null; }
@@ -188,18 +230,28 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number, canv
 
   // Track idle time
   state.idleTimer += dt;
+  state.interactionTimer += dt;
   const isIdle = state.idleTimer > IDLE_THRESHOLD;
 
   // Determine behavior mode
-  if (state.isTouch) {
-    // Touch devices: stay near center, avoid UI edges
+  if (state.isMobile) {
+    // Mobile touch: stay near center, but bias toward active interactions
     const cx = (canvasWidth || 800) / 2;
     const cy = (canvasHeight || 600) / 2;
     // Offset slightly from dead center to feel natural
     const offsetX = Math.sin(state.bobPhase * 0.3) * 40;
     const offsetY = Math.cos(state.bobPhase * 0.2) * 30;
-    state.targetX = cx + offsetX;
-    state.targetY = cy + offsetY;
+    let targetX = cx + offsetX;
+    let targetY = cy + offsetY;
+    if (state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 3.5) {
+      // Move toward the interaction point, but stay somewhat centered on small screens.
+      targetX = targetX * 0.55 + state.interactionX * 0.45;
+      targetY = targetY * 0.55 + state.interactionY * 0.45;
+    }
+    const w = canvasWidth || 800;
+    const h = canvasHeight || 600;
+    state.targetX = Math.max(-w * 0.15, Math.min(w * 1.15, targetX));
+    state.targetY = Math.max(-h * 0.15, Math.min(h * 1.15, targetY));
     state.followingCursor = false;
 
     // If idle long enough on touch, explore nearby visible nodes
@@ -223,6 +275,22 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number, canv
     } else {
       state.moveTimer -= dt;
     }
+  } else if (state.isTablet && state.cursorX !== null && state.cursorY !== null && !isIdle) {
+    // iPad/tablet with hover-capable input (e.g. Apple Pencil hover): follow hover point.
+    state.targetX = state.cursorX + CURSOR_OFFSET * 0.65;
+    state.targetY = state.cursorY + CURSOR_OFFSET * 0.65;
+    state.followingCursor = true;
+    state.targetNode = null;
+    state.moveTimer = 2;
+    if (!state.isMoving) state.mood = "happy";
+  } else if (state.isTablet && state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 4) {
+    // iPad/tablet: follow recent taps/clicks, and Apple Pencil hover when available.
+    state.targetX = state.interactionX + CURSOR_OFFSET * 0.65;
+    state.targetY = state.interactionY + CURSOR_OFFSET * 0.65;
+    state.followingCursor = true;
+    state.targetNode = null;
+    state.moveTimer = 2;
+    if (!state.isMoving) state.mood = "happy";
   } else if (!isIdle && state.cursorX !== null && state.cursorY !== null) {
     // Desktop: follow cursor with a slight offset below-right
     state.targetX = state.cursorX + CURSOR_OFFSET;
@@ -253,6 +321,20 @@ export function tickMeshi(state: MeshiState, nodes: MeshNode[], dt: number, canv
         state.mood = "searching";
       }
       state.moveTimer = WANDER_INTERVAL_MIN + Math.random() * (WANDER_INTERVAL_MAX - WANDER_INTERVAL_MIN);
+    }
+  }
+
+  // Keep local Meshi from overlapping remote online Meshis (soft separation for readability).
+  for (const rm of remoteMeshis) {
+    if (!rm.isOnline) continue;
+    const dx = state.targetX - rm.x;
+    const dy = state.targetY - rm.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    const minDist = state.radius * 3.2;
+    if (dist < minDist) {
+      const push = (minDist - dist) * 0.55;
+      state.targetX += (dx / dist) * push;
+      state.targetY += (dy / dist) * push;
     }
   }
 
