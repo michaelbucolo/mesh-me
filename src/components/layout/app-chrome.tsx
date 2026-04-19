@@ -5,6 +5,7 @@ import { PremiumTopbar } from "@/components/layout/premium-topbar";
 import { PremiumCommandCenter } from "@/components/layout/premium-command-center";
 import { AppContentShell } from "@/components/layout/app-content-shell";
 import { VerificationBanner } from "@/components/verification/verification-banner";
+import { ComplianceBanner } from "@/components/layout/compliance-banner";
 
 interface AppChromeProps {
   children: React.ReactNode;
@@ -56,6 +57,7 @@ export function AppChrome({
             userEmail={userEmail}
           />
         )}
+        <ComplianceBanner username={username} />
         <AppContentShell>{children}</AppContentShell>
       </main>
 
