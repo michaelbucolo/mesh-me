@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function AppError({
   error,
@@ -17,29 +19,28 @@ export default function AppError({
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 animate-page-enter" data-meshi-zone="error">
       <div className="text-center max-w-md">
-        <div className="text-4xl mb-4">⚡</div>
+        <div className="rounded-2xl bg-red-500/10 p-4 mb-5 mx-auto w-fit">
+          <AlertTriangle className="h-8 w-8 text-red-400" />
+        </div>
 
-        <h2 className="font-display text-2xl font-bold mb-3" style={{ color: "var(--text-primary)" }}>
+        <h2 className="font-display text-2xl font-bold mb-2 text-[var(--text-primary)]">
           Something went wrong
         </h2>
-        <p className="text-sm mb-6" style={{ color: "var(--text-tertiary)" }}>
+        <p className="text-sm text-[var(--text-tertiary)] mb-6">
           This page ran into an issue. Try refreshing or head back to the mesh.
         </p>
 
         <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={reset}
-            className="brand-button text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
-          >
+          <Button onClick={reset} variant="default">
+            <RefreshCw className="h-4 w-4 mr-1.5" />
             Try again
-          </button>
-          <Link
-            href="/mesh"
-            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
-            style={{ border: "1px solid var(--border-primary)", color: "var(--text-secondary)" }}
-          >
-            Back to Mesh
-          </Link>
+          </Button>
+          <Button variant="secondary" asChild>
+            <Link href="/mesh">
+              <Home className="h-4 w-4 mr-1.5" />
+              Back to Mesh
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

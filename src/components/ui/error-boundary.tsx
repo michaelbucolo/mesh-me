@@ -2,24 +2,25 @@
 
 import { Component, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "./button";
 
-interface ErrorBoundaryProps {
+interface Props {
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
@@ -28,25 +29,27 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+        <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="rounded-2xl bg-red-500/10 p-4 mb-4">
             <AlertTriangle className="h-8 w-8 text-red-400" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-1">Something went wrong</h3>
-          <p className="text-sm text-[var(--text-muted)] max-w-sm mb-4">
-            {this.state.error?.message || "An unexpected error occurred"}
+          <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
+            Something went wrong
+          </h3>
+          <p className="text-sm text-[var(--text-muted)] max-w-xs mb-4">
+            {this.state.error?.message || "An unexpected error occurred."}
           </p>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
-              this.setState({ hasError: false, error: null });
+              this.setState({ hasError: false, error: undefined });
               window.location.reload();
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-            style={{ background: "var(--accent)", color: "white" }}
           >
-            <RefreshCw className="h-4 w-4" />
-            Try again
-          </button>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            Reload
+          </Button>
         </div>
       );
     }

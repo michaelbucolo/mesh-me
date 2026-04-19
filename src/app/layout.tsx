@@ -18,8 +18,15 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "mesh.me — Your digital universe, remixed",
-  description: "A creator-first social operating system that unifies identity, communities, and conversations in one private graph.",
-  keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network", "universal social"],
+  description:
+    "A creator-first social operating system that unifies identity, communities, and conversations in one private graph.",
+  keywords: [
+    "mesh.me",
+    "digital identity",
+    "unified social platform",
+    "privacy-first",
+    "social network",
+  ],
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/meshi-favicon.svg",
@@ -37,14 +44,16 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "mesh.me — Your digital universe, remixed",
-    description: "Unify identity, communities, and conversations in one privacy-first social operating system.",
+    description:
+      "Unify identity, communities, and conversations in one privacy-first social operating system.",
     siteName: "mesh.me",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "mesh.me — Your digital universe, remixed",
-    description: "A creator-first social operating system for your full digital footprint.",
+    description:
+      "A creator-first social operating system for your full digital footprint.",
   },
 };
 
@@ -54,7 +63,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#09090b",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -64,7 +73,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jakarta.variable} app-shell-gradient font-sans antialiased`} style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
+      <body
+        className={`${inter.variable} ${jakarta.variable} font-sans antialiased`}
+        style={{
+          backgroundColor: "var(--bg-primary)",
+          color: "var(--text-primary)",
+        }}
+      >
         <ThemeProvider>
           <ToastProvider>
             <NativeInit />

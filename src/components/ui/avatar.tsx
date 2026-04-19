@@ -23,7 +23,7 @@ export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
         alt={alt}
         loading="lazy"
         className={cn(
-          "rounded-full object-cover ring-2 ring-[var(--border-primary)] flex-shrink-0",
+          "rounded-full object-cover ring-1 ring-[var(--border-primary)] flex-shrink-0",
           sizeMap[size],
           className
         )}
@@ -34,8 +34,7 @@ export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-semibold text-white ring-2 ring-[var(--border-primary)] flex-shrink-0",
-        "bg-[var(--accent)]",
+        "rounded-full flex items-center justify-center font-semibold text-white ring-1 ring-[var(--border-primary)] flex-shrink-0 bg-[var(--accent)]",
         sizeMap[size],
         className
       )}

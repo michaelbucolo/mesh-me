@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
 interface ModalProps {
   open: boolean;
@@ -10,37 +10,64 @@ interface ModalProps {
   children: React.ReactNode;
   className?: string;
   title?: string;
+  size?: "sm" | "md" | "lg";
 }
 
-export function Modal({ open, onClose, children, className, title }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  children,
+  className,
+  title,
+  size = "md",
+}: ModalProps) {
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose]
+  );
+
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [open, handleKeyDown]);
 
   if (!open) return null;
 
+  const sizeClasses = {
+    sm: "max-w-sm",
+    md: "max-w-lg",
+    lg: "max-w-2xl",
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
+        onClick={onClose}
+      />
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl glass-dropdown shadow-2xl shadow-black/50 animate-in fade-in zoom-in-95 duration-200",
+          "relative z-10 w-full rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-elevated)] shadow-2xl shadow-black/50 animate-soft-bounce",
+          sizeClasses[size],
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-primary)]">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-secondary)]">
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+              {title}
+            </h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -49,7 +76,7 @@ export function Modal({ open, onClose, children, className, title }: ModalProps)
         {!title && (
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors z-10"
+            className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <X className="h-5 w-5" />
           </button>

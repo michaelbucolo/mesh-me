@@ -62,8 +62,18 @@ const navGroups: NavGroup[] = [
   {
     label: "Social",
     items: [
-      { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
-      { href: "/notifications", icon: Bell, label: "Notifications", badgeKey: "notifications" },
+      {
+        href: "/messages",
+        icon: MessageCircle,
+        label: "MeChat",
+        badgeKey: "messages",
+      },
+      {
+        href: "/notifications",
+        icon: Bell,
+        label: "Notifications",
+        badgeKey: "notifications",
+      },
       { href: "/communities", icon: Users, label: "Communities" },
     ],
   },
@@ -82,10 +92,16 @@ const bottomItems: NavItem[] = [
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
-export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: SidebarProps) {
+export function Sidebar({
+  user,
+  unreadNotifications = 0,
+  unreadMessages = 0,
+}: SidebarProps) {
   const pathname = usePathname();
   const meshiPrefs = useMeshiPreferences();
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const toggleGroup = (label: string) => {
     setCollapsedGroups((prev) => {
@@ -103,7 +119,8 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   };
 
   const isActive = (href: string) => {
-    if (href === "/profile") return pathname.includes(`/profile/${user.username}`);
+    if (href === "/profile")
+      return pathname.includes(`/profile/${user.username}`);
     return pathname.startsWith(href);
   };
 
@@ -121,13 +138,18 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         key={item.href}
         href={getHref(item.href)}
         className={cn(
-          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
+          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150",
           active
-            ? "bg-[var(--accent-subtle)] text-[var(--text-primary)] shadow-sm"
+            ? "bg-[var(--bg-hover)] text-[var(--text-primary)]"
             : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] active:scale-[0.98]"
         )}
       >
-        <item.icon className={cn("h-[17px] w-[17px] shrink-0", active && "text-[var(--accent)]")} />
+        <item.icon
+          className={cn(
+            "h-[18px] w-[18px] shrink-0",
+            active ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]"
+          )}
+        />
         <span className="truncate">{item.label}</span>
         {badgeCount > 0 && (
           <span className="notif-dot ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
@@ -139,11 +161,14 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   };
 
   return (
-    <aside className="hidden h-screen w-[16rem] shrink-0 flex-col border-r border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-4 backdrop-blur-2xl lg:flex">
+    <aside className="hidden h-full w-[15rem] shrink-0 flex-col border-r border-[var(--border-secondary)] bg-[var(--bg-primary)] px-3 py-4 lg:flex">
       {/* Brand */}
-      <Link href="/mesh" className="group mb-5 flex items-center gap-3 px-3 py-1">
+      <Link
+        href="/mesh"
+        className="group mb-6 flex items-center gap-3 px-3 py-1"
+      >
         <MeshiMascot
-          size={30}
+          size={28}
           color={meshiPrefs.appLogo === "custom" ? meshiPrefs.color : "blue"}
           mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
           hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
@@ -156,19 +181,21 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         </p>
       </Link>
 
-      {/* Grouped navigation */}
-      <nav className="flex-1 space-y-4 overflow-y-auto">
+      {/* Navigation groups */}
+      <nav className="flex-1 space-y-5 overflow-y-auto">
         {navGroups.map((group) => {
-          const isCollapsed = group.collapsible && collapsedGroups.has(group.label);
-          // Check if any item in this group has a badge
-          const groupHasBadge = group.items.some((item) => getBadgeCount(item.badgeKey) > 0);
+          const isCollapsed =
+            group.collapsible && collapsedGroups.has(group.label);
+          const groupHasBadge = group.items.some(
+            (item) => getBadgeCount(item.badgeKey) > 0
+          );
 
           return (
             <div key={group.label}>
               {group.collapsible ? (
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className="mb-1 flex w-full items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-tertiary)] transition-colors"
+                  className="mb-1.5 flex w-full items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--text-tertiary)]"
                 >
                   <span className="flex items-center gap-1.5">
                     {group.label}
@@ -176,10 +203,15 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
                       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                     )}
                   </span>
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", isCollapsed && "-rotate-90")} />
+                  <ChevronDown
+                    className={cn(
+                      "h-3 w-3 transition-transform duration-200",
+                      isCollapsed && "-rotate-90"
+                    )}
+                  />
                 </button>
               ) : (
-                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   {group.label}
                 </p>
               )}
@@ -194,54 +226,65 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
 
         {user.isAdmin && (
           <div>
-            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Admin
             </p>
             <Link
               href="/admin"
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150",
                 pathname.startsWith("/admin")
-                  ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
-                  : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+                  ? "bg-[var(--bg-hover)] text-[var(--accent)]"
+                  : "text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
               )}
             >
-              <Shield className="h-[17px] w-[17px]" />
+              <Shield className="h-[18px] w-[18px]" />
               <span>Admin Console</span>
             </Link>
           </div>
         )}
       </nav>
 
-      {/* Bottom nav items */}
-      <div className="mb-3 space-y-0.5">
+      {/* Bottom section */}
+      <div className="mt-auto space-y-0.5 border-t border-[var(--border-secondary)] pt-3">
         {bottomItems.map(renderNavItem)}
         <Link
           href="/meshpro"
           className={cn(
-            "group flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all",
+            "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150",
             pathname.startsWith("/meshpro")
               ? "bg-amber-500/10 text-amber-400"
-              : "text-[var(--text-muted)] hover:bg-amber-500/5 hover:text-amber-400"
+              : "text-[var(--text-tertiary)] hover:bg-amber-500/5 hover:text-amber-400"
           )}
         >
-          <Crown className={cn("h-[17px] w-[17px] shrink-0", pathname.startsWith("/meshpro") ? "text-amber-400" : "text-amber-500/60")} />
+          <Crown
+            className={cn(
+              "h-[18px] w-[18px] shrink-0",
+              pathname.startsWith("/meshpro")
+                ? "text-amber-400"
+                : "text-amber-500/60"
+            )}
+          />
           <span className="truncate">MeshPro</span>
         </Link>
       </div>
 
       {/* User card */}
-      <div className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-3">
+      <div className="mt-3 rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] p-3">
         <div className="flex items-center gap-2.5">
           <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{user.displayName}</p>
-            <p className="truncate text-[10px] text-[var(--text-muted)]">@{user.username}</p>
+            <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+              {user.displayName}
+            </p>
+            <p className="truncate text-[10px] text-[var(--text-muted)]">
+              @{user.username}
+            </p>
           </div>
           <form action={signOut}>
             <button
               type="submit"
-              className="rounded-lg p-1.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-red-400"
+              className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-red-400"
               title="Sign out"
             >
               <LogOut className="h-3.5 w-3.5" />

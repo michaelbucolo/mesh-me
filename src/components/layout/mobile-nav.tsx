@@ -12,7 +12,11 @@ interface MobileNavProps {
   username?: string;
 }
 
-export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, username }: MobileNavProps) {
+export function MobileNav({
+  unreadNotifications = 0,
+  unreadMessages = 0,
+  username,
+}: MobileNavProps) {
   const pathname = usePathname();
 
   const items = [
@@ -25,12 +29,13 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   ];
 
   return (
-    <nav className="safe-area-bottom fixed bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-md -translate-x-1/2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1 shadow-[var(--shadow-lg)] backdrop-blur-2xl lg:hidden">
-      <div className="grid grid-cols-6">
+    <nav className="safe-area-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border-secondary)] bg-[var(--bg-primary)]/90 backdrop-blur-xl lg:hidden">
+      <div className="mx-auto grid max-w-lg grid-cols-6">
         {items.map((item) => {
-          const isActive = item.label === "Me"
-            ? pathname.includes(`/profile/${username}`)
-            : pathname.startsWith(item.href);
+          const isActive =
+            item.label === "Me"
+              ? pathname.includes(`/profile/${username}`)
+              : pathname.startsWith(item.href);
 
           return (
             <Link
@@ -38,19 +43,23 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
               href={item.href}
               onClick={() => impactFeedback("LIGHT")}
               className={cn(
-                "relative flex flex-col items-center justify-center rounded-xl px-1 py-2 text-[9px] font-medium transition-all duration-200 active:scale-90",
-                isActive ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-tertiary)]"
+                "relative flex flex-col items-center justify-center py-2 text-[10px] font-medium transition-colors duration-150 active:scale-90",
+                isActive
+                  ? "text-[var(--text-primary)]"
+                  : "text-[var(--text-muted)]"
               )}
             >
-              <item.icon className={cn("h-[18px] w-[18px]", isActive && "drop-shadow-[0_0_6px_var(--accent)]")} />
+              <item.icon
+                className={cn("h-5 w-5", isActive && "text-[var(--accent)]")}
+              />
               <span className="mt-0.5">{item.label}</span>
-              {item.badge && item.badge > 0 && (
-                <span className="absolute right-1.5 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-red-500 px-0.5 text-[7px] font-bold text-white">
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="absolute right-2 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[7px] font-bold text-white">
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
               )}
               {isActive && (
-                <span className="absolute -bottom-0.5 h-0.5 w-4 rounded-full bg-[var(--accent)]" />
+                <span className="absolute -top-px left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-[var(--accent)]" />
               )}
             </Link>
           );
