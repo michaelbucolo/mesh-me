@@ -6,13 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 interface TooltipProps {
   children: React.ReactNode;
   content: string;
-  /** Position of the tooltip relative to the trigger */
   position?: "top" | "bottom" | "left" | "right";
-  /** Delay before showing (ms) */
   delay?: number;
-  /** Only show tooltip once (persisted via localStorage) */
   showOnce?: boolean;
-  /** Unique key for localStorage persistence (required when showOnce is true) */
   storageKey?: string;
 }
 
@@ -26,17 +22,14 @@ export function Tooltip({
 }: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (showOnce && storageKey) {
       const seen = localStorage.getItem(`tooltip-${storageKey}`);
-      if (seen === "true") {
-        const t = setTimeout(() => setDismissed(true), 0);
-        return () => clearTimeout(t);
-      }
+      if (seen === "true") setDismissed(true);
     }
   }, [showOnce, storageKey]);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = () => {
     if (dismissed) return;
@@ -60,7 +53,10 @@ export function Tooltip({
     right: "left-full top-1/2 -translate-y-1/2 ml-2",
   };
 
-  const motionOrigin: Record<string, { initial: Record<string, number>; animate: Record<string, number> }> = {
+  const motionOrigin: Record<
+    string,
+    { initial: Record<string, number>; animate: Record<string, number> }
+  > = {
     top: { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 } },
     bottom: { initial: { opacity: 0, y: -4 }, animate: { opacity: 1, y: 0 } },
     left: { initial: { opacity: 0, x: 4 }, animate: { opacity: 1, x: 0 } },
@@ -68,7 +64,13 @@ export function Tooltip({
   };
 
   return (
-    <div className="relative inline-flex" onMouseEnter={dismissed ? undefined : show} onMouseLeave={dismissed ? undefined : hide} onFocus={dismissed ? undefined : show} onBlur={dismissed ? undefined : hide}>
+    <div
+      className="relative inline-flex"
+      onMouseEnter={dismissed ? undefined : show}
+      onMouseLeave={dismissed ? undefined : hide}
+      onFocus={dismissed ? undefined : show}
+      onBlur={dismissed ? undefined : hide}
+    >
       {children}
       <AnimatePresence>
         {visible && (
@@ -76,17 +78,10 @@ export function Tooltip({
             initial={motionOrigin[position].initial}
             animate={motionOrigin[position].animate}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.12 }}
             className={`absolute z-50 ${positionClasses[position]} pointer-events-none`}
           >
-            <div
-              className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap shadow-lg"
-              style={{
-                background: "var(--bg-elevated)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border-primary)",
-              }}
-            >
+            <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text-primary)] shadow-lg whitespace-nowrap">
               {content}
             </div>
           </motion.div>
