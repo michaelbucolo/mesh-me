@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CheckCircle, AlertCircle, X } from "lucide-react";
+import { CheckCircle, AlertCircle, Info, X } from "lucide-react";
 import { useState, createContext, useContext, useCallback } from "react";
 
 interface Toast {
@@ -23,40 +23,61 @@ export function useToast() {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = useCallback((message: string, type: "success" | "error" | "info" = "success") => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  }, []);
+  const addToast = useCallback(
+    (message: string, type: "success" | "error" | "info" = "success") => {
+      const id = Math.random().toString(36).slice(2);
+      setToasts((prev) => [...prev, { id, message, type }]);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 4000);
+    },
+    []
+  );
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const icons = {
+    success: <CheckCircle className="h-4 w-4 text-emerald-300" />,
+    error: <AlertCircle className="h-4 w-4 text-red-300" />,
+    info: <Info className="h-4 w-4 text-[var(--accent)]" />,
+  };
+
+  const styles = {
+    success: "border-emerald-500/20 bg-emerald-950/90 text-emerald-100",
+    error: "border-red-500/20 bg-red-950/90 text-red-100",
+    info: "border-[var(--border-primary)] bg-[var(--bg-elevated)] text-[var(--text-primary)]",
+  };
+
+  const closeButtonStyles = {
+    success: "text-emerald-300/80 hover:text-emerald-100",
+    error: "text-red-300/80 hover:text-red-100",
+    info: "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
+  };
+
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+      <div className="fixed bottom-20 right-4 z-[60] flex flex-col gap-2 lg:bottom-4">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={cn(
-              "flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm animate-in slide-in-from-right duration-300",
-              toast.type === "success" && "bg-emerald-950/90 border-emerald-800 text-emerald-200",
-              toast.type === "error" && "bg-red-950/90 border-red-800 text-red-200",
-              toast.type === "info" && "glass-dropdown border-[var(--border-primary)] text-[var(--text-primary)]"
+              "flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-md animate-slide-up",
+              styles[toast.type]
             )}
           >
-            {toast.type === "success" ? (
-              <CheckCircle className="h-5 w-5 text-emerald-400" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-red-400" />
-            )}
-            <span className="text-sm">{toast.message}</span>
-            <button onClick={() => removeToast(toast.id)} className="ml-2 text-zinc-400 hover:text-zinc-200">
-              <X className="h-4 w-4" />
+            {icons[toast.type]}
+            <span className="flex-1">{toast.message}</span>
+            <button
+              onClick={() => removeToast(toast.id)}
+              className={cn(
+                "ml-1 transition-colors",
+                closeButtonStyles[toast.type]
+              )}
+            >
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
