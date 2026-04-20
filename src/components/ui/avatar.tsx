@@ -1,5 +1,4 @@
 import { cn, getInitials } from "@/lib/utils";
-import Image from "next/image";
 
 interface AvatarProps {
   src?: string | null;
@@ -19,23 +18,23 @@ const sizeMap = {
 export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
   if (src) {
     return (
-      <div className={cn("relative overflow-hidden rounded-full ring-2 ring-[var(--border-primary)] flex-shrink-0", sizeMap[size], className)}>
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes="80px"
-          className="object-cover"
-        />
-      </div>
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        className={cn(
+          "rounded-full object-cover ring-1 ring-[var(--border-primary)] flex-shrink-0",
+          sizeMap[size],
+          className
+        )}
+      />
     );
   }
 
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-semibold text-white ring-2 ring-[var(--border-primary)] flex-shrink-0",
-        "bg-[var(--accent)]",
+        "rounded-full flex items-center justify-center font-semibold text-white ring-1 ring-[var(--border-primary)] flex-shrink-0 bg-[var(--accent)]",
         sizeMap[size],
         className
       )}
