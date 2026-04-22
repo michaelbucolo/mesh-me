@@ -1,11 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import type React from "react";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NativeInit } from "@/components/native-init";
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 function getSiteUrl() {
-  const fallback = "https://mesh.me";
+  const fallback = "https://meshme.vercel.app";
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
 
   if (!raw) return fallback;
@@ -21,8 +34,8 @@ const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "mesh.me — Your digital universe, remixed",
-  description: "A creator-first social operating system that unifies identity, communities, and conversations in one private graph.",
+  title: "Mesh.me | Your World, Your Way",
+  description: "A privacy-first social media platform and digital identity hub for your full online world.",
   keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network", "universal social"],
   alternates: {
     canonical: "/",
@@ -44,15 +57,15 @@ export const metadata: Metadata = {
   },
   openGraph: {
     url: siteUrl,
-    title: "mesh.me — Your digital universe, remixed",
-    description: "Unify identity, communities, and conversations in one privacy-first social operating system.",
+    title: "Mesh.me | Your World, Your Way",
+    description: "Unify posts, messages, analytics, privacy, and identity in one consumer-first social platform.",
     siteName: "mesh.me",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "mesh.me — Your digital universe, remixed",
-    description: "A creator-first social operating system for your full digital footprint.",
+    title: "Mesh.me | Your World, Your Way",
+    description: "A privacy-first control center for your full digital footprint.",
   },
   category: "technology",
 };
@@ -71,7 +84,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="app-shell-gradient font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
+      <body
+        className={`${inter.variable} ${jakarta.variable} mesh-app-surface font-sans antialiased`}
+        style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}
+      >
         <ThemeProvider>
           <ToastProvider>
             <NativeInit />

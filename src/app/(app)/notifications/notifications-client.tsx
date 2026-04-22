@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Bell, Heart, MessageCircle, UserPlus, Repeat, AtSign, Sparkles, X } from "lucide-react";
+import { Bell, Heart, MessageCircle, UserPlus, Repeat, AtSign, Sparkles, X, BellOff, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { MarkReadButton } from "./mark-read-button";
@@ -101,6 +101,24 @@ export function NotificationsClient({ categorized, unreadCount, smartSummary }: 
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="mb-4 rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-[var(--accent-subtle)] p-2">
+            <Smartphone className="h-4 w-4 text-[var(--accent)]" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Make Mesh.me your notification hub</h2>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
+              After platforms are connected and syncing reliably, turn off duplicate native app alerts and let Mesh.me organize the activity here.
+            </p>
+            <Link href="/connected-accounts" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)]">
+              <BellOff className="h-3.5 w-3.5" />
+              Review connected platforms
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {/* Category Tabs */}
       <div className="flex gap-1 overflow-x-auto pb-2 mb-4 scrollbar-hide">

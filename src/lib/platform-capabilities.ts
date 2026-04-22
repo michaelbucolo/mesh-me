@@ -1,0 +1,162 @@
+export type PlatformCapability = {
+  platform: string;
+  displayName: string;
+  auth: "oauth" | "manual";
+  importContent: boolean;
+  importAnalytics: boolean;
+  importFollowers: boolean;
+  crossPost: boolean;
+  deleteRemoteContent: boolean;
+  messageSync: boolean;
+  notificationSync: boolean;
+  notes: string;
+};
+
+export const PLATFORM_CAPABILITIES: PlatformCapability[] = [
+  {
+    platform: "github",
+    displayName: "GitHub",
+    auth: "oauth",
+    importContent: true,
+    importAnalytics: true,
+    importFollowers: true,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Repository and profile data are supported. Social DMs and creator-style engagement writeback are not available.",
+  },
+  {
+    platform: "youtube",
+    displayName: "YouTube",
+    auth: "oauth",
+    importContent: true,
+    importAnalytics: true,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Read-only channel/content support is the practical baseline until upload and engagement scopes are approved.",
+  },
+  {
+    platform: "twitter",
+    displayName: "X / Twitter",
+    auth: "oauth",
+    importContent: true,
+    importAnalytics: true,
+    importFollowers: true,
+    crossPost: true,
+    deleteRemoteContent: true,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Posting/deleting requires elevated API access and write scopes.",
+  },
+  {
+    platform: "twitch",
+    displayName: "Twitch",
+    auth: "oauth",
+    importContent: true,
+    importAnalytics: true,
+    importFollowers: true,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Creator/channel analytics depend on granted Twitch scopes.",
+  },
+  {
+    platform: "spotify",
+    displayName: "Spotify",
+    auth: "oauth",
+    importContent: true,
+    importAnalytics: false,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Useful for listening identity and profile context, not social feed replacement.",
+  },
+  {
+    platform: "instagram",
+    displayName: "Instagram",
+    auth: "oauth",
+    importContent: false,
+    importAnalytics: false,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Requires Meta app review and approved graph permissions before real import/writeback.",
+  },
+  {
+    platform: "discord",
+    displayName: "Discord",
+    auth: "oauth",
+    importContent: false,
+    importAnalytics: false,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Universal messaging requires bot/app architecture and explicit server/user permissions.",
+  },
+  {
+    platform: "soundcloud",
+    displayName: "SoundCloud",
+    auth: "manual",
+    importContent: false,
+    importAnalytics: false,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Manual profile linking only until API access is integrated.",
+  },
+  {
+    platform: "threads",
+    displayName: "Threads",
+    auth: "manual",
+    importContent: false,
+    importAnalytics: false,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Manual profile linking only until supported API integration is available.",
+  },
+  {
+    platform: "bluesky",
+    displayName: "Bluesky",
+    auth: "manual",
+    importContent: false,
+    importAnalytics: false,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Manual profile linking only in the current app.",
+  },
+];
+
+export function getPlatformCapability(platform: string): PlatformCapability {
+  return PLATFORM_CAPABILITIES.find((item) => item.platform === platform) || {
+    platform,
+    displayName: platform,
+    auth: "manual",
+    importContent: false,
+    importAnalytics: false,
+    importFollowers: false,
+    crossPost: false,
+    deleteRemoteContent: false,
+    messageSync: false,
+    notificationSync: false,
+    notes: "Capability not configured yet.",
+  };
+}

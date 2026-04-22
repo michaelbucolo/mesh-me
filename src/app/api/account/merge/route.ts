@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       secondaryEmail: normalized,
       status: "pending",
       message: "Verification email sent to " + normalized + ". The account owner must verify to complete the merge.",
+      ...(process.env.MESHME_DEV_SHOW_VERIFY_LINK === "true" ? { verifyToken } : {}),
     },
   });
 }

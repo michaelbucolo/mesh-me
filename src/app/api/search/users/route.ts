@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       ],
       id: { not: user.id },
       isSuspended: false,
+      isPublic: true,
     },
     select: {
       id: true,

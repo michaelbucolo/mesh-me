@@ -1633,7 +1633,9 @@ export async function redeemCode(code: string) {
   for (const known of knownCodes) {
     const exists = await prisma.redeemCode.findUnique({ where: { code: known.code } });
     if (!exists) {
-      await prisma.redeemCode.create({ data: known });
+      await prisma.redeemCode.create({ data: known }).catch((e) => {
+        if (!(e && typeof e === "object" && "code" in e && e.code === "P2002")) throw e;
+      });
     }
   }
 
@@ -1643,19 +1645,17 @@ export async function redeemCode(code: string) {
     return { error: "Invalid code" };
   }
 
-  // Check if already redeemed
-  if (redeemRecord.redeemedBy) {
-    return { error: "This code has already been used" };
-  }
-
-  // Mark the code as redeemed
-  await prisma.redeemCode.update({
-    where: { id: redeemRecord.id },
+  // Atomically claim the code so concurrent redemption attempts cannot both win.
+  const claimed = await prisma.redeemCode.updateMany({
+    where: { id: redeemRecord.id, redeemedBy: null },
     data: {
       redeemedBy: user.id,
       redeemedAt: new Date(),
     },
   });
+  if (claimed.count !== 1) {
+    return { error: "This code has already been used" };
+  }
 
   // Grant the cosmetic reward to the user
   if (redeemRecord.rewardType === "meshi-face") {

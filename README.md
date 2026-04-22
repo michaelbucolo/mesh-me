@@ -1,6 +1,10 @@
 # mesh.me
 
-A next-generation social identity platform built with Next.js, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
+Your World, Your Way.
+
+mesh.me is a privacy-first social media platform and digital identity hub. It is designed to unify a user's posts, comments, likes, followers, messages, connected platforms, analytics, and privacy controls into one consumer-first experience.
+
+See `docs/PRODUCT_VISION.md` and `docs/ENGINEERING_ROADMAP.md` for the product direction and phased implementation plan.
 
 ## Getting Started
 
@@ -30,7 +34,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 - **Framework:** Next.js 16 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
-- **Database:** PostgreSQL / SQLite (dev)
+- **Database:** SQLite/libSQL via Prisma
 - **ORM:** Prisma
 - **Animation:** Framer Motion, HTML5 Canvas
 - **UI:** Custom design system with glass morphism effects
