@@ -79,6 +79,10 @@ model User {
   phones         UserPhone[]
   twoFactorMethods TwoFactorMethod[]
   profileInfo    ProfileInfo?
+  hostedMeChatSessions MeChatSession[] @relation("sessionHost")
+  meChatSessionParticipants MeChatSessionParticipant[] @relation("sessionParticipant")
+  meChatSessionItems MeChatSessionItem[] @relation("sessionItemAuthor")
+  meChatSessionVotes MeChatSessionVote[] @relation("sessionVoteUser")
 }
 
 model UserInterest {
@@ -829,6 +833,76 @@ model ProfileInfo {
 }
 
 // ─── Redeem Codes ────────────────────────────────────────────
+
+// MeChat group browsing sessions
+
+model MeChatSession {
+  id            String   @id @default(cuid())
+  hostId        String
+  title         String
+  status        String   @default("draft")
+  currentItemId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  host          User     @relation("sessionHost", fields: [hostId], references: [id], onDelete: Cascade)
+  participants  MeChatSessionParticipant[]
+  items         MeChatSessionItem[]
+
+  @@index([hostId])
+  @@index([status])
+}
+
+model MeChatSessionParticipant {
+  id         String    @id @default(cuid())
+  sessionId  String
+  userId     String
+  role       String    @default("participant")
+  joinedAt   DateTime  @default(now())
+  lastSeenAt DateTime?
+
+  session    MeChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user       User          @relation("sessionParticipant", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+}
+
+model MeChatSessionItem {
+  id              String   @id @default(cuid())
+  sessionId       String
+  addedById       String
+  sourcePlatform  String   @default("mesh")
+  sourceUrl       String?
+  title           String?
+  content         String?
+  postId          String?
+  platformPostId  String?
+  position        Int      @default(0)
+  status          String   @default("queued")
+  createdAt       DateTime @default(now())
+
+  session         MeChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  addedBy         User          @relation("sessionItemAuthor", fields: [addedById], references: [id], onDelete: Cascade)
+  votes           MeChatSessionVote[]
+
+  @@index([sessionId])
+  @@index([addedById])
+}
+
+model MeChatSessionVote {
+  id        String   @id @default(cuid())
+  itemId    String
+  userId    String
+  vote      String
+  createdAt DateTime @default(now())
+
+  item      MeChatSessionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user      User              @relation("sessionVoteUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, userId])
+  @@index([userId])
+}
 
 model RedeemCode {
   id          String    @id @default(cuid())

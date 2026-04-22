@@ -32,16 +32,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid 2FA method. Must be: " + validMethods.join(", ") }, { status: 400 });
   }
 
-  // For email/sms, just register the method (verification happens during login)
-  // For totp, generate a secret (in production, use a proper TOTP library)
-  // For passkey, the client sends the credential data
+  // Do not create enabled 2FA records until challenge verification and login
+  // enforcement exist. A stored preference without enforcement is false security.
+  if (process.env.MESHME_ENABLE_UNVERIFIED_2FA !== "true") {
+    return NextResponse.json(
+      { error: "2FA enrollment is not available until challenge verification is implemented." },
+      { status: 501 },
+    );
+  }
 
   const twoFactor = await prisma.twoFactorMethod.create({
     data: {
       userId: session.userId,
       method,
       label: label || method.toUpperCase() + " verification",
-      isEnabled: true,
+      isEnabled: false,
     },
   });
 

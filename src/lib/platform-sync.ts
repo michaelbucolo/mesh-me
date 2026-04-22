@@ -2,6 +2,7 @@
 
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { decryptSecret } from "./secret-store";
 
 // ─── Platform Adapter Interface ─────────────────────────────
 
@@ -809,6 +810,12 @@ function defaultAnalytics(): PlatformAnalyticsData {
   };
 }
 
+function getStoredAccessToken(value: string | null): string | null {
+  if (!value) return null;
+  if (value.startsWith("enc:v1:")) return decryptSecret(value);
+  return decryptSecret(value) || value;
+}
+
 // ─── Sync Engine ────────────────────────────────────────────
 
 export async function syncPlatform(connectedAccountId: string, syncType: "full" | "posts" | "comments" | "followers" | "analytics" = "full") {
@@ -819,6 +826,8 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
+  const accessToken = getStoredAccessToken(account.accessToken);
+  if (account.accessToken && !accessToken) return { error: "Token encryption key is missing. Reconnect this platform after configuring MESHME_TOKEN_ENCRYPTION_KEY." };
   if (!account.accessToken) return { error: "No access token — reconnect this platform" };
 
   // Create sync job
@@ -846,7 +855,7 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
       let cursor: string | undefined;
       let page = 0;
       do {
-        const result = await adapter.fetchPosts(account.accessToken, cursor);
+        const result = await adapter.fetchPosts(accessToken, cursor);
         for (const post of result.posts) {
           await prisma.platformPost.upsert({
             where: {
@@ -883,7 +892,7 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
 
     // Sync followers
     if (syncType === "full" || syncType === "followers") {
-      const result = await adapter.fetchFollowers(account.accessToken);
+      const result = await adapter.fetchFollowers(accessToken);
       for (const follower of result.followers) {
         await prisma.platformFollower.upsert({
           where: {
@@ -909,7 +918,7 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
 
     // Sync analytics
     if (syncType === "full" || syncType === "analytics") {
-      const analytics = await adapter.fetchAnalytics(account.accessToken);
+      const analytics = await adapter.fetchAnalytics(accessToken);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       await prisma.platformAnalytics.upsert({
@@ -959,6 +968,8 @@ export async function syncComments(connectedAccountId: string, platformPostId: s
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
+  const accessToken = getStoredAccessToken(account.accessToken);
+  if (account.accessToken && !accessToken) return { error: "Token encryption key is missing. Reconnect this platform after configuring MESHME_TOKEN_ENCRYPTION_KEY." };
   if (!account.accessToken) return { error: "No access token" };
 
   const post = await prisma.platformPost.findFirst({
@@ -968,7 +979,7 @@ export async function syncComments(connectedAccountId: string, platformPostId: s
 
   try {
     const adapter = getAdapter(account.platform);
-    const result = await adapter.fetchComments(account.accessToken, platformPostId);
+    const result = await adapter.fetchComments(accessToken, platformPostId);
 
     for (const comment of result.comments) {
       await prisma.platformComment.upsert({
@@ -1103,9 +1114,10 @@ export async function deletePlatformPost(postId: string) {
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
 
   // Try to delete from platform too
-  if (post.connectedAccount.accessToken) {
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (accessToken) {
     const adapter = getAdapter(post.connectedAccount.platform);
-    await adapter.deletePost(post.connectedAccount.accessToken, post.platformPostId);
+    await adapter.deletePost(accessToken, post.platformPostId);
   }
 
   // Delete from our DB
@@ -1156,14 +1168,15 @@ export async function crossPostContent(content: string, platforms: string[], med
       where: { userId: user.id, platform, isActive: true },
     });
 
-    if (!account || !account.accessToken) {
+    const accessToken = getStoredAccessToken(account?.accessToken || null);
+    if (!account || !accessToken) {
       results[platform] = { success: false, error: "Not connected or no access token" };
       continue;
     }
 
     try {
       const adapter = getAdapter(platform);
-      const post = await adapter.createPost(account.accessToken, content, mediaUrls);
+      const post = await adapter.createPost(accessToken, content, mediaUrls);
       if (post) {
         await prisma.platformPost.create({
           data: {
