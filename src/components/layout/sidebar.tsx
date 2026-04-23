@@ -207,7 +207,19 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
 
       <div className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-3">
         <div className="flex items-center gap-2.5">
-          <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
+          <div className="relative">
+            <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
+            <span className="absolute -bottom-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-[var(--bg-primary)] bg-[var(--bg-elevated)]">
+              <MeshiMascot
+                size={10}
+                color={meshiPrefs.color}
+                hat={meshiPrefs.hat}
+                mood={meshiPrefs.face}
+                showGlow={false}
+                animate={false}
+              />
+            </span>
+          </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{user.displayName}</p>
             <p className="truncate text-[10px] text-[var(--text-muted)]">@{user.username}</p>
