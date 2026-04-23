@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { formatRelativeTime } from "@/lib/utils";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import {
   MessageCircle,
   Search,
@@ -13,12 +18,11 @@ import {
   ChevronRight,
   Send,
   Wifi,
+  Sparkles,
+  Users,
+  Link2,
+  Loader2,
 } from "lucide-react";
-import Link from "next/link";
-import { formatRelativeTime } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
-import { MeshiMascot } from "@/components/meshi/meshi-mascot";
-import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 interface Thread {
   id: string;
@@ -62,9 +66,16 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
   const [searchResults, setSearchResults] = useState<Array<{ id: string; username: string; displayName: string; avatarUrl: string | null }>>([]);
   const meshiPrefs = useMeshiPreferences();
 
-  const filteredThreads = initialThreads.filter((t) => {
-    if (platformFilter !== "all" && (t.platform || "mesh") !== platformFilter) return false;
-    if (searchQuery && t.otherUser && !t.otherUser.displayName.toLowerCase().includes(searchQuery.toLowerCase()) && !t.otherUser.username.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+  const filteredThreads = initialThreads.filter((thread) => {
+    if (platformFilter !== "all" && (thread.platform || "mesh") !== platformFilter) return false;
+    if (
+      searchQuery &&
+      thread.otherUser &&
+      !thread.otherUser.displayName.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !thread.otherUser.username.toLowerCase().includes(searchQuery.toLowerCase())
+    ) {
+      return false;
+    }
     return true;
   });
 
@@ -74,6 +85,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
       setSearchResults([]);
       return;
     }
+
     try {
       const res = await fetch(`/api/search/users?q=${encodeURIComponent(query)}`);
       if (res.ok) {
@@ -81,218 +93,294 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
         setSearchResults(data.users || []);
       }
     } catch {
-      // search failed
+      // ignore search errors
     }
   };
 
-  return (
-    <div data-meshi-zone="messages" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
-      {/* MeChat Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <MeshiMascot
-              size={32}
-              color={meshiPrefs.appLogo === "custom" ? meshiPrefs.color : "blue"}
-              mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
-              hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
-              animate
-              showGlow={false}
-              bouncy
-            />
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">MeChat</h1>
-          </div>
-          <p className="text-sm text-[var(--text-muted)] mt-1">Every conversation. One inbox.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowPlatformFilter(!showPlatformFilter)}
-            className="p-2 rounded-xl glass-surface text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-primary)] transition-colors"
-          >
-            <Filter className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setShowNewChat(true)}
-            className="brand-button flex items-center gap-2 px-3 py-2 rounded-xl text-white text-sm font-medium transition-all active:scale-[0.97]"
-          >
-            <Plus className="h-4 w-4" />
-            New Chat
-          </button>
-        </div>
-      </div>
+  const unreadThreadCount = filteredThreads.filter((thread) => thread.unread > 0).length;
 
-      {/* Platform Filter */}
-      <AnimatePresence>
-        {showPlatformFilter && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden mb-4"
-          >
-            <div className="flex gap-2 flex-wrap pb-2">
-              {(["all", "mesh", "instagram", "twitter", "youtube", "discord"] as PlatformFilter[]).map((p) => {
-                const info = p === "all" ? { color: "#888", label: "All Platforms" } : PLATFORM_ICONS[p];
+  return (
+    <div data-meshi-zone="messages" className="mx-auto max-w-6xl px-4 py-6 animate-page-enter">
+      <section className="mb-6 rounded-[1.75rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-md)]">
+        <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              <MessageCircle className="h-3.5 w-3.5" />
+              Unified communication layer
+            </div>
+            <div className="flex items-center gap-3">
+              <MeshiMascot
+                size={34}
+                color={meshiPrefs.appLogo === "custom" ? meshiPrefs.color : "blue"}
+                mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
+                hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
+                animate
+                showGlow={false}
+                bouncy
+              />
+              <div>
+                <h1 className="text-3xl font-black text-[var(--text-primary)] md:text-4xl">MeChat</h1>
+                <p className="text-sm text-[var(--text-muted)]">Every conversation. One inbox.</p>
+              </div>
+            </div>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
+              MeChat is the universal communication layer for Mesh.me. It is built to keep platform context visible
+              while making messaging, sharing, and future group browsing feel like one coherent experience.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Visible threads</p>
+              <p className="mt-2 text-sm font-bold text-[var(--text-primary)]">{filteredThreads.length}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Unread threads</p>
+              <p className="mt-2 text-sm font-bold text-[var(--text-primary)]">{unreadThreadCount}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Filter</p>
+              <p className="mt-2 text-sm font-bold text-[var(--text-primary)]">
+                {platformFilter === "all" ? "All platforms" : PLATFORM_ICONS[platformFilter]?.label || platformFilter}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="space-y-4">
+          <div className="rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-md)]">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setShowPlatformFilter((value) => !value)}
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                >
+                  <Filter className="h-3.5 w-3.5" />
+                  Filter
+                </button>
+
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">
+                  <Wifi className="h-3.5 w-3.5" />
+                  Connected to mesh.me
+                </div>
+
+                <Link
+                  href="/connected-accounts"
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  Connect platforms
+                </Link>
+              </div>
+
+              <button
+                onClick={() => setShowNewChat(true)}
+                className="brand-button inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <Plus className="h-4 w-4" />
+                New Chat
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {showPlatformFilter && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {(["all", "mesh", "instagram", "twitter", "youtube", "discord"] as PlatformFilter[]).map((platform) => {
+                      const info = platform === "all" ? { color: "#888", label: "All Platforms" } : PLATFORM_ICONS[platform];
+                      const active = platformFilter === platform;
+
+                      return (
+                        <button
+                          key={platform}
+                          onClick={() => setPlatformFilter(platform)}
+                          className={
+                            "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all " +
+                            (active
+                              ? "text-white shadow-lg"
+                              : "border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]")
+                          }
+                          style={active ? { backgroundColor: info.color } : undefined}
+                        >
+                          {platform === "all" ? <Globe className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                          {info.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search conversations..."
+                className="glass-input w-full rounded-xl py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {filteredThreads.length > 0 ? (
+            <div className="space-y-3">
+              {filteredThreads.map((thread) => {
+                const platform = thread.platform || "mesh";
+                const platformInfo = PLATFORM_ICONS[platform] || PLATFORM_ICONS.mesh;
+
                 return (
-                  <button
-                    key={p}
-                    onClick={() => setPlatformFilter(p)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      platformFilter === p
-                        ? "text-white shadow-lg"
-                        : "text-[var(--text-tertiary)] glass-surface hover:border-[var(--glass-border)]"
-                    }`}
-                    style={platformFilter === p ? { backgroundColor: info.color } : undefined}
+                  <Link
+                    key={thread.id}
+                    href={`/messages/${thread.id}`}
+                    className="group flex items-center gap-3 rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 transition hover:border-[var(--border-hover)]"
                   >
-                    {p === "all" ? <Globe className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
-                    {info.label}
-                  </button>
+                    <div className="relative">
+                      <Avatar
+                        src={thread.otherUser?.avatarUrl}
+                        alt={thread.otherUser?.displayName || "User"}
+                        size="md"
+                      />
+                      <div
+                        className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[var(--bg-primary)]"
+                        style={{ backgroundColor: platformInfo.color }}
+                      >
+                        <MessageCircle className="h-2.5 w-2.5 text-white" />
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                          {thread.otherUser?.displayName || "Unknown"}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          {thread.lastMessage && (
+                            <span className="text-xs text-[var(--text-muted)]">
+                              {formatRelativeTime(thread.lastMessage.createdAt)}
+                            </span>
+                          )}
+                          {thread.unread > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs text-white" style={{ background: "var(--accent)" }}>
+                              {thread.unread}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span className="text-xs text-[var(--text-muted)]">{platformInfo.label}</span>
+                        {thread.lastMessage && (
+                          <>
+                            <span className="text-[var(--text-muted)]">·</span>
+                            <p className="truncate text-sm text-[var(--text-secondary)]">
+                              {thread.lastMessage.senderId === currentUserId ? "You: " : ""}
+                              {thread.lastMessage.content}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <ChevronRight className="h-4 w-4 text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100" />
+                  </Link>
                 );
               })}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search conversations..."
-          className="w-full pl-10 pr-4 py-2.5 glass-input rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none transition-colors"
-        />
-      </div>
-
-      {/* Connected platforms indicator */}
-      <div className="flex items-center gap-2 mb-4 px-2">
-        <Wifi className="h-3.5 w-3.5 text-green-500" />
-        <span className="text-xs text-[var(--text-muted)]">Connected to mesh.me</span>
-        <span className="text-xs text-[var(--text-muted)]">&middot;</span>
-        <Link href="/settings" className="text-xs hover:opacity-80" style={{ color: "var(--accent)" }}>
-          Connect more platforms
-        </Link>
-      </div>
-
-      {/* Threads */}
-      {filteredThreads.length > 0 ? (
-        <div className="space-y-1">
-          {filteredThreads.map((thread) => {
-            const platform = thread.platform || "mesh";
-            const platformInfo = PLATFORM_ICONS[platform] || PLATFORM_ICONS.mesh;
-
-            return (
-              <Link
-                key={thread.id}
-                href={`/messages/${thread.id}`}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors group"
-              >
-                <div className="relative">
-                  <Avatar
-                    src={thread.otherUser?.avatarUrl}
-                    alt={thread.otherUser?.displayName || "User"}
-                    size="md"
-                  />
-                  <div
-                    className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-[var(--bg-primary)] flex items-center justify-center"
-                    style={{ backgroundColor: platformInfo.color }}
-                  >
-                    <MessageCircle className="h-2.5 w-2.5 text-white" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                      {thread.otherUser?.displayName || "Unknown"}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {thread.lastMessage && (
-                        <span className="text-xs text-[var(--text-muted)]">
-                          {formatRelativeTime(thread.lastMessage.createdAt)}
-                        </span>
-                      )}
-                      {thread.unread > 0 && (
-                        <span className="h-5 min-w-5 px-1.5 rounded-full text-white text-xs flex items-center justify-center" style={{ background: "var(--accent)" }}>
-                          {thread.unread}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-[var(--text-muted)]">{platformInfo.label}</span>
-                    {thread.lastMessage && (
-                      <>
-                        <span className="text-[var(--text-muted)]">&middot;</span>
-                        <p className="text-sm text-[var(--text-tertiary)] truncate">
-                          {thread.lastMessage.senderId === currentUserId ? "You: " : ""}
-                          {thread.lastMessage.content}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="h-8 w-8 text-[var(--text-muted)]" />
-          </div>
-          <h3 className="text-lg font-semibold text-[var(--text-secondary)] mb-2">
-            {searchQuery || platformFilter !== "all" ? "No matching conversations" : "No messages yet"}
-          </h3>
-          <p className="text-sm text-[var(--text-muted)] mb-4">
-            {searchQuery || platformFilter !== "all"
-              ? "Try a different search or filter"
-              : "Start a conversation by visiting someone's profile or clicking New Chat"
-            }
-          </p>
-          {!searchQuery && platformFilter === "all" && (
-            <Button variant="gradient" onClick={() => setShowNewChat(true)}>
-              Start a conversation
-            </Button>
+          ) : (
+            <div className="rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-10 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-tertiary)]">
+                <MessageCircle className="h-8 w-8 text-[var(--text-muted)]" />
+              </div>
+              <h3 className="text-lg font-semibold text-[var(--text-secondary)]">
+                {searchQuery || platformFilter !== "all" ? "No matching conversations" : "No messages yet"}
+              </h3>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
+                {searchQuery || platformFilter !== "all"
+                  ? "Try a different search or platform filter."
+                  : "Start with a new conversation and MeChat will keep the context in one place."}
+              </p>
+              {!searchQuery && platformFilter === "all" && (
+                <Button variant="gradient" onClick={() => setShowNewChat(true)} className="mt-5">
+                  Start a conversation
+                </Button>
+              )}
+            </div>
           )}
         </div>
-      )}
 
-      {/* New Chat Modal */}
+        <aside className="hidden xl:block">
+          <div className="sticky top-4 space-y-4">
+            <div className="rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Users className="h-4 w-4 text-[var(--accent)]" />
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  Group browsing future
+                </p>
+              </div>
+              <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                MeChat is designed to evolve beyond plain messaging into shared social browsing where everyone can react
+                and interact as themselves.
+              </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[var(--accent)]" />
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  Cross-platform clarity
+                </p>
+              </div>
+              <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                The goal is not to erase where something came from. It is to make the conversation around it easier to follow.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </section>
+
       <AnimatePresence>
         {showNewChat && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
             onClick={() => setShowNewChat(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-dropdown rounded-2xl w-full max-w-md shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              className="glass-dropdown w-full max-w-md rounded-2xl shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-4 border-b border-[var(--border-primary)]">
+              <div className="flex items-center justify-between border-b border-[var(--border-primary)] p-4">
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">New Conversation</h2>
-                <button onClick={() => setShowNewChat(false)} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
+                <button
+                  onClick={() => setShowNewChat(false)}
+                  className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)]"
+                >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <div className="p-4">
-                {/* Platform selector */}
                 <div className="mb-4">
-                  <p className="text-xs text-[var(--text-muted)] mb-2">Send via</p>
-                  <div className="flex gap-2 flex-wrap">
+                  <p className="mb-2 text-xs text-[var(--text-muted)]">Send via</p>
+                  <div className="flex flex-wrap gap-2">
                     {Object.entries(PLATFORM_ICONS).map(([key, info]) => (
                       <button
                         key={key}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:border-[var(--border-secondary)] transition-colors"
+                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-hover)]"
                       >
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: info.color }} />
                         {info.label}
@@ -301,43 +389,48 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                   </div>
                 </div>
 
-                {/* User search */}
                 <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
                     type="text"
                     value={newChatSearch}
-                    onChange={(e) => handleNewChatSearch(e.target.value)}
+                    onChange={(event) => void handleNewChatSearch(event.target.value)}
                     placeholder="Search for a person..."
-                    className="w-full pl-10 pr-4 py-2.5 glass-surface rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                    className="glass-surface w-full rounded-xl py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
                     autoFocus
                   />
                 </div>
 
-                {/* Search results */}
-                <div className="max-h-64 overflow-y-auto space-y-1">
+                <div className="max-h-64 space-y-1 overflow-y-auto">
                   {searchResults.length > 0 ? (
-                    searchResults.map((u) => (
+                    searchResults.map((user) => (
                       <Link
-                        key={u.id}
-                        href={`/messages/${u.id}?new=true`}
+                        key={user.id}
+                        href={`/messages/${user.id}?new=true`}
                         onClick={() => setShowNewChat(false)}
-                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors"
+                        className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--bg-tertiary)]"
                       >
-                        <Avatar src={u.avatarUrl} alt={u.displayName} size="sm" />
+                        <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
                         <div>
-                          <p className="text-sm font-medium text-[var(--text-primary)]">{u.displayName}</p>
-                          <p className="text-xs text-[var(--text-muted)]">@{u.username}</p>
+                          <p className="text-sm font-medium text-[var(--text-primary)]">{user.displayName}</p>
+                          <p className="text-xs text-[var(--text-muted)]">@{user.username}</p>
                         </div>
-                        <Send className="h-4 w-4 text-[var(--text-muted)] ml-auto" />
+                        <Send className="ml-auto h-4 w-4 text-[var(--text-muted)]" />
                       </Link>
                     ))
                   ) : newChatSearch.trim() ? (
-                    <p className="text-center text-sm text-[var(--text-muted)] py-8">No users found</p>
+                    <p className="py-8 text-center text-sm text-[var(--text-muted)]">No users found</p>
                   ) : (
-                    <p className="text-center text-sm text-[var(--text-muted)] py-8">Type a name to search</p>
+                    <p className="py-8 text-center text-sm text-[var(--text-muted)]">Type a name to search</p>
                   )}
                 </div>
+
+                {newChatSearch.trim() && searchResults.length === 0 && (
+                  <div className="mt-4 inline-flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Searching Mesh.me users
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
