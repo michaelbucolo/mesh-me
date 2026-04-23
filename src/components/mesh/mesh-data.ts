@@ -524,8 +524,11 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
   const nodes: MeshNode[] = [];
   const edges: MeshEdge[] = [];
   const nodeId = data.user?.id || "viewed-user";
+  const addNode = (node: MeshNode) => {
+    nodes.push(node);
+  };
 
-  nodes.push({
+  addNode({
     id: nodeId,
     type: "self",
     label: data.user?.displayName || data.user?.username || "User",
@@ -537,13 +540,16 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
     opacity: 1,
     pulsePhase: 0,
     connections: [],
+    followerCount: data.stats?.followers,
+    postCount: data.stats?.posts,
+    platformCount: data.stats?.platforms,
   });
 
-  // Following
-  (data.following || []).slice(0, 30).forEach((f: any, i: number) => {
+  const following = data.following || [];
+  following.slice(0, 30).forEach((f: any, i: number) => {
     const isMutual = !!f.isMutual;
-    const pos = ringPosition(cx, cy, 220, i, Math.min((data.following || []).length, 30));
-    nodes.push({
+    const pos = ringPosition(cx, cy, 250, i, Math.min(following.length, 30));
+    addNode({
       id: f.id,
       type: "user",
       label: f.displayName || f.username,
@@ -551,7 +557,7 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
       avatarUrl: f.avatarUrl,
       href: "/profile/" + f.username,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: isMutual ? 21 : 17,
+      radius: isMutual ? 20 : 17,
       color: isMutual ? NODE_COLORS.mutual : NODE_COLORS.user,
       opacity: 1,
       pulsePhase: i * 0.4,
@@ -568,16 +574,17 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
     });
   });
 
-  // Communities
-  (data.communities || []).slice(0, 10).forEach((c: any, i: number) => {
-    const pos = ringPosition(cx, cy, 300, i, Math.min((data.communities || []).length, 10), Math.PI / 3);
+  (data.communities || []).slice(0, 12).forEach((c: any, i: number) => {
+    const pos = ringPosition(cx, cy, 390, i, Math.min((data.communities || []).length, 12), Math.PI / 5);
     const cid = "community-" + c.id;
-    nodes.push({
+    addNode({
       id: cid,
       type: "community",
       label: c.name,
+      sublabel: c.slug ? `/${c.slug}` : undefined,
+      href: c.slug ? "/communities/" + c.slug : undefined,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
-      radius: 17,
+      radius: 16 + Math.min((c.memberCount || 0) * 0.02, 7),
       color: NODE_COLORS.community,
       opacity: 0.9,
       pulsePhase: i * 0.6,
@@ -592,8 +599,89 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
     });
   });
 
-  // Update self connections
-  nodes[0].connections = nodes.filter((n) => n.type !== "self").map((n) => n.id);
+  (data.platforms || []).slice(0, 8).forEach((platform: any, i: number) => {
+    const pos = ringPosition(cx, cy, 520, i, Math.min((data.platforms || []).length, 8), Math.PI / 6);
+    const platformId = `friend-platform-${platform.id}`;
+    const platformKey = platform.platform?.toLowerCase() || "";
+
+    addNode({
+      id: platformId,
+      type: "platform",
+      label: platform.platform,
+      sublabel: platform.platformUsername ? "@" + platform.platformUsername : undefined,
+      x: pos.x, y: pos.y, vx: 0, vy: 0,
+      radius: 18,
+      color: PLATFORM_COLORS[platformKey] || NODE_COLORS.platform,
+      opacity: 0.88,
+      pulsePhase: i * 0.7,
+      connections: [nodeId],
+      postCount: platform.publicPosts?.length || 0,
+      platform: platform.platform,
+    });
+
+    edges.push({
+      source: nodeId,
+      target: platformId,
+      strength: 0.45,
+      type: "platform",
+    });
+
+    (platform.publicPosts || []).slice(0, 5).forEach((post: any, j: number) => {
+      const postPos = ringPosition(pos.x, pos.y, 80 + j * 8, j, Math.min((platform.publicPosts || []).length, 5), i);
+      const postId = `friend-post-${platform.id}-${post.id}`;
+      addNode({
+        id: postId,
+        type: "post",
+        label: (post.title || post.content || "Post").slice(0, 34) + ((post.title || post.content || "").length > 34 ? "..." : ""),
+        content: post.content,
+        href: post.url || undefined,
+        imageUrl: post.thumbnailUrl,
+        x: postPos.x, y: postPos.y, vx: 0, vy: 0,
+        radius: 10 + Math.min(((post.likeCount || 0) + (post.commentCount || 0) * 2 + (post.viewCount || 0) * 0.01) * 0.06, 6),
+        color: PLATFORM_COLORS[platformKey] || NODE_COLORS.post,
+        opacity: 0.72,
+        pulsePhase: j * 0.45,
+        connections: [platformId],
+        likeCount: post.likeCount,
+        commentCount: post.commentCount,
+        platform: platform.platform,
+        lastActiveAt: post.publishedAt || null,
+      });
+
+      edges.push({
+        source: platformId,
+        target: postId,
+        strength: 0.28,
+        type: "platform-content",
+      });
+    });
+  });
+
+  (data.interests || []).slice(0, 18).forEach((tag: string, i: number) => {
+    const pos = ringPosition(cx, cy, 640, i, Math.min((data.interests || []).length, 18), Math.PI / 8);
+    const tagId = "friend-tag-" + tag;
+    addNode({
+      id: tagId,
+      type: "tag",
+      label: "#" + tag,
+      x: pos.x, y: pos.y, vx: 0, vy: 0,
+      radius: 11,
+      color: NODE_COLORS.tag,
+      opacity: 0.8,
+      pulsePhase: i * 0.4,
+      connections: [nodeId],
+    });
+    edges.push({
+      source: nodeId,
+      target: tagId,
+      strength: 0.22,
+      type: "interest",
+    });
+  });
+
+  if (nodes[0]) {
+    nodes[0].connections = nodes.filter((n) => n.id !== nodeId).map((n) => n.id);
+  }
 
   return { nodes, edges };
 }

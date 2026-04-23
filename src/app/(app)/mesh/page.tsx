@@ -30,6 +30,10 @@ type CachedUserMeshResponse = {
   user: { id: string; username: string; displayName: string; avatarUrl: string | null };
   following?: unknown[];
   communities?: unknown[];
+  interests?: string[];
+  platforms?: Array<{ id: string; platform: string; platformUsername?: string | null; publicPosts?: unknown[] }>;
+  stats?: { followers?: number; following?: number; posts?: number; communities?: number; platforms?: number };
+  privacyLevel?: string;
   meshiPreference?: { colorTheme?: string; hatStyle?: string } | null;
 };
 
@@ -69,6 +73,7 @@ export default function MeshPage() {
     connectedOnline: 0,
   });
   const [activePanel, setActivePanel] = useState<"actions" | "travel" | "presence" | null>(null);
+  const [meshNotice, setMeshNotice] = useState<string | null>(null);
   const [viewportInfo, setViewportInfo] = useState({
     zoom: 0.65,
     panX: 0,
@@ -149,7 +154,7 @@ export default function MeshPage() {
       const center = engine.getCenter();
       let data = userMeshCacheRef.current.get(username);
       if (!data) {
-        const res = await fetch(`/api/users/${username}/mesh`, {
+        const res = await fetch(`/api/users/${encodeURIComponent(username)}/mesh`, {
           method: "GET",
           headers: { Accept: "application/json" },
           cache: "no-store",
@@ -164,6 +169,13 @@ export default function MeshPage() {
       preloadNodeImages(userNodes, imageCache.current);
 
       setViewingUserMesh(node);
+      if (data.privacyLevel === "private") {
+        setMeshNotice("This user keeps their mesh private. You can view their profile but not their full network map.");
+      } else if (data.privacyLevel === "friends-only") {
+        setMeshNotice("This mesh is friends-only. Follow each other to unlock the full map and shared content.");
+      } else {
+        setMeshNotice(null);
+      }
       setTravelLog((prev) => [{ mesh: node.label, at: Date.now() }, ...prev].slice(0, 8));
       setSelectedNode(null);
       resetView();
@@ -177,6 +189,7 @@ export default function MeshPage() {
   const returnToMyMesh = useCallback(() => {
     if (myNodes.length > 0) engine.setData(myNodes, myEdges);
     setViewingUserMesh(null);
+    setMeshNotice(null);
     setTravelLog((prev) => [{ mesh: "Your mesh", at: Date.now() }, ...prev].slice(0, 8));
     setSelectedNode(null);
     resetView();
@@ -326,6 +339,7 @@ export default function MeshPage() {
                 <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">Mesh brief</p>
                   <p className="text-xs md:text-sm text-white/90 leading-relaxed">{meshGuideText}</p>
+                  {meshNotice && <p className="mt-1.5 text-xs text-amber-200/90">{meshNotice}</p>}
                 </div>
               </div>
             </div>
