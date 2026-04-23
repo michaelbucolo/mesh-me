@@ -23,7 +23,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  const updateData: Record<string, string | null> = {};
+  const updateData: {
+    alterEgoId?: string | null;
+    accountLabel?: string | null;
+    scopes?: string | null;
+    isActive?: boolean;
+  } = {};
 
   // Update alter ego association
   if ("alterEgoId" in body) {
@@ -43,6 +48,23 @@ export async function PATCH(
   // Update account label
   if ("accountLabel" in body) {
     updateData.accountLabel = body.accountLabel || null;
+  }
+
+  if ("scopes" in body) {
+    if (body.scopes === null) {
+      updateData.scopes = null;
+    } else if (typeof body.scopes === "string") {
+      updateData.scopes = body.scopes;
+    } else {
+      return NextResponse.json({ error: "Invalid scopes payload" }, { status: 400 });
+    }
+  }
+
+  if ("isActive" in body) {
+    if (typeof body.isActive !== "boolean") {
+      return NextResponse.json({ error: "Invalid isActive payload" }, { status: 400 });
+    }
+    updateData.isActive = body.isActive;
   }
 
   const updated = await prisma.connectedAccount.update({
