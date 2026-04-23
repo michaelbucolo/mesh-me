@@ -6,20 +6,13 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
-  Compass,
-  Globe,
   Layers,
   ListFilter,
-  MessageCircle,
-  Network,
   RotateCcw,
-  Users,
   X,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
-import { LiveMeshiPresence } from "@/components/meshi/meshi-presence";
 import { MeshEngine } from "@/components/mesh/mesh-engine";
 import { MeshCanvas } from "@/components/mesh/mesh-canvas";
 import { buildMeshData, buildUserMeshData, preloadNodeImages, type MeshApiResponse } from "@/components/mesh/mesh-data";
@@ -36,13 +29,6 @@ type CachedUserMeshResponse = {
   privacyLevel?: string;
   meshiPreference?: { colorTheme?: string; hatStyle?: string } | null;
 };
-
-const QUICK_ACTIONS = [
-  { href: "/explore", label: "Discover people", icon: Compass },
-  { href: "/content-hub", label: "Browse content", icon: Globe },
-  { href: "/connected-accounts", label: "Connect platforms", icon: Network },
-  { href: "/messages", label: "Open MeChat", icon: MessageCircle },
-] as const;
 
 export default function MeshPage() {
   const router = useRouter();
@@ -61,28 +47,10 @@ export default function MeshPage() {
   const [myMeshiColor, setMyMeshiColor] = useState<MeshiColor>("blue");
   const [myMeshiHat, setMyMeshiHat] = useState<MeshiHat>("none");
   const [myUsername, setMyUsername] = useState("You");
-  const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [myMeshiPosition, setMyMeshiPosition] = useState({ x: 0, y: 0 });
-  const [myMeshiMood, setMyMeshiMood] = useState("happy");
-  const [remoteMeshis, setRemoteMeshis] = useState<RemoteMeshi[]>([]);
-  const [presenceEnabled, setPresenceEnabled] = useState(true);
+  const [remoteMeshis] = useState<RemoteMeshi[]>([]);
   const [travelLog, setTravelLog] = useState<Array<{ mesh: string; at: number }>>([]);
-  const [presenceSummary, setPresenceSummary] = useState({
-    totalOnline: 0,
-    sameMeshOnline: 0,
-    connectedOnline: 0,
-  });
-  const [activePanel, setActivePanel] = useState<"actions" | "travel" | "presence" | null>(null);
+  const [activePanel, setActivePanel] = useState<"travel" | null>(null);
   const [meshNotice, setMeshNotice] = useState<string | null>(null);
-  const [viewportInfo, setViewportInfo] = useState({
-    zoom: 0.65,
-    panX: 0,
-    panY: 0,
-    centerX: 400,
-    centerY: 300,
-    canvasWidth: 800,
-    canvasHeight: 600,
-  });
 
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
   const [myNodes, setMyNodes] = useState<MeshNode[]>([]);
@@ -119,8 +87,6 @@ export default function MeshPage() {
         setMyNodes(nodes);
         setMyEdges(edges);
         setMyUsername(data.user.displayName || data.user.username || "You");
-        setMyUserId(data.user.id);
-
         if (data.meshiPreference?.colorTheme) setMyMeshiColor(data.meshiPreference.colorTheme as MeshiColor);
         if (data.meshiPreference?.hatStyle) setMyMeshiHat(data.meshiPreference.hatStyle as MeshiHat);
       } catch (err) {
@@ -231,14 +197,6 @@ export default function MeshPage() {
     return { totalNodes, people, communities, platforms };
   }, [engine.nodes]);
 
-  const meshGuideText = viewingUserMesh
-    ? `You are viewing ${viewingUserMesh.label}'s mesh. Click "Back to my mesh" anytime to resume your own view.`
-    : selectedNode
-      ? `Focused on ${selectedNode.label}. Double-click for fast navigation if the node has a destination.`
-      : hoveredNode
-        ? `Hovering ${hoveredNode.label}. Click once to inspect, double-click to jump when available.`
-        : "Start by clicking a node. You can explore people, communities, platforms, and content from one map.";
-
   if (loading) {
     return (
       <div className="relative h-[calc(100dvh-4rem)] overflow-hidden rounded-2xl md:rounded-3xl bg-[var(--bg-primary)] flex items-center justify-center">
@@ -283,11 +241,6 @@ export default function MeshPage() {
         meshiUsername={myUsername}
         remoteMeshis={remoteMeshis}
         syncPulseTime={null}
-        onMeshiPositionChange={(x, y, mood) => {
-          setMyMeshiPosition({ x, y });
-          setMyMeshiMood(mood);
-        }}
-        onViewportInfoChange={setViewportInfo}
         onZoomChange={(z) => {
           setZoom(z);
           zoomRef.current = z;
@@ -301,60 +254,16 @@ export default function MeshPage() {
         onDoubleClick={handleCanvasDoubleClick}
       />
 
-      <LiveMeshiPresence
-        viewingMesh={viewingUserMesh?.id || myUserId}
-        myMeshiColor={myMeshiColor}
-        myMeshiHat={myMeshiHat}
-        myMeshiPosition={myMeshiPosition}
-        myMeshiMood={myMeshiMood}
-        viewportInfo={viewportInfo}
-        enabled={presenceEnabled}
-        userNodes={engine.nodes
-          .filter((n) => n.type === "user")
-          .map((n) => ({
-            userId: n.id,
-            username: n.sublabel?.replace("@", "") || n.label,
-            displayName: n.label,
-            x: n.x,
-            y: n.y,
-          }))}
-        onRemoteMeshisChange={setRemoteMeshis}
-        onSummaryChange={setPresenceSummary}
-        onInteract={(presence) => {
-          const existingNode = engine.nodes.find((n) => n.type === "user" && n.id === presence.userId);
-          if (existingNode?.sublabel) {
-            void enterUserMesh(existingNode);
-            return;
-          }
-          router.push(`/profile/${presence.username}`);
-        }}
-      />
-
       <div className="absolute inset-x-2 top-2 z-20 md:inset-x-4 md:top-4">
         <div className="rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl text-white shadow-2xl">
-          <div className="p-3 md:p-4 flex flex-wrap items-start gap-3 md:gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start gap-3">
-                <MeshiMascot size={34} mood={selectedNode ? "thinking" : "happy"} color={myMeshiColor} hat={myMeshiHat} animate />
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">Mesh brief</p>
-                  <p className="text-xs md:text-sm text-white/90 leading-relaxed">{meshGuideText}</p>
-                  {meshNotice && <p className="mt-1.5 text-xs text-amber-200/90">{meshNotice}</p>}
-                </div>
-              </div>
+          <div className="p-3 md:p-4 flex flex-wrap items-center gap-2 md:gap-3">
+            <div className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-2.5 py-1.5">
+              <MeshiMascot size={28} mood={selectedNode ? "thinking" : "happy"} color={myMeshiColor} hat={myMeshiHat} animate />
+              <p className="text-xs text-white/85">
+                {viewingUserMesh ? `Viewing ${viewingUserMesh.label}'s mesh` : selectedNode ? selectedNode.label : hoveredNode ? hoveredNode.label : "Your mesh"}
+              </p>
             </div>
-
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setPresenceEnabled((value) => !value)}
-                className={
-                  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition " +
-                  (presenceEnabled ? "bg-emerald-500/20 text-emerald-200" : "bg-white/10 text-white/70")
-                }
-              >
-                <Zap className="h-3.5 w-3.5" />
-                {presenceEnabled ? "Presence on" : "Presence off"}
-              </button>
               <button onClick={resetView} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85 hover:bg-white/15 transition">
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset
@@ -365,35 +274,24 @@ export default function MeshPage() {
                   Back to my mesh
                 </button>
               )}
-              <div className="hidden md:grid grid-cols-2 gap-1.5 text-xs w-36">
-                <MetricCard label="People" value={meshStats.people} compact />
-                <MetricCard label="Communities" value={meshStats.communities} compact />
-                <MetricCard label="Platforms" value={meshStats.platforms} compact />
-                <MetricCard label="Nodes" value={meshStats.totalNodes} compact />
-              </div>
             </div>
+            <div className="w-full flex flex-wrap gap-1.5 text-xs md:w-auto md:ml-auto">
+              <MetricCard label="People" value={meshStats.people} compact />
+              <MetricCard label="Communities" value={meshStats.communities} compact />
+              <MetricCard label="Platforms" value={meshStats.platforms} compact />
+              <MetricCard label="Nodes" value={meshStats.totalNodes} compact />
+            </div>
+            {meshNotice && <p className="w-full text-xs text-amber-200/90">{meshNotice}</p>}
           </div>
         </div>
       </div>
 
       <div className="absolute left-2 bottom-2 z-20 md:left-4 md:bottom-4 flex gap-2">
         <PanelButton
-          icon={Compass}
-          label="Actions"
-          active={activePanel === "actions"}
-          onClick={() => setActivePanel((curr) => (curr === "actions" ? null : "actions"))}
-        />
-        <PanelButton
           icon={ListFilter}
           label="Travel"
           active={activePanel === "travel"}
           onClick={() => setActivePanel((curr) => (curr === "travel" ? null : "travel"))}
-        />
-        <PanelButton
-          icon={Users}
-          label="Presence"
-          active={activePanel === "presence"}
-          onClick={() => setActivePanel((curr) => (curr === "presence" ? null : "presence"))}
         />
       </div>
 
@@ -406,20 +304,6 @@ export default function MeshPage() {
             className="absolute left-2 right-2 bottom-14 z-20 md:left-4 md:right-auto md:w-[22rem]"
           >
             <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-xl text-white shadow-2xl p-3 md:p-4">
-              {activePanel === "actions" && (
-                <>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Quick actions</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {QUICK_ACTIONS.map((action) => (
-                      <Link key={action.href} href={action.href} className="rounded-lg bg-white/10 hover:bg-white/15 transition px-2.5 py-2 inline-flex items-center gap-2 text-xs font-medium">
-                        <action.icon className="h-3.5 w-3.5" />
-                        <span>{action.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
-
               {activePanel === "travel" && (
                 <>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Recent travel</p>
@@ -434,17 +318,6 @@ export default function MeshPage() {
                         </div>
                       ))
                     )}
-                  </div>
-                </>
-              )}
-
-              {activePanel === "presence" && (
-                <>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Live presence</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <MetricCard label="Online" value={presenceSummary.totalOnline} compact />
-                    <MetricCard label="This mesh" value={presenceSummary.sameMeshOnline} compact />
-                    <MetricCard label="Connected" value={presenceSummary.connectedOnline} compact />
                   </div>
                 </>
               )}
