@@ -1,10 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { updatePrivacy, deleteAccount } from "@/lib/actions";
+import { updatePrivacy } from "@/lib/actions";
 import { useTransition, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, Lock, Eye, X, AlertTriangle, Trash2, Activity } from "lucide-react";
+import { Shield, Lock, Eye, X, Activity } from "lucide-react";
 import { getPrivacyTransparencyData } from "@/lib/queries";
 import type { TransparencyData } from "./types";
 import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
@@ -19,12 +18,10 @@ interface PrivacyTabProps {
   readReceipts: boolean;
   setReadReceipts: (v: boolean) => void;
   showSuccess: (msg: string) => void;
-  showError: (msg: string) => void;
 }
 
 export function PrivacyTab({ isPublic, setIsPublic, showInDiscovery, setShowInDiscovery, hideActivityStatus, setHideActivityStatus, readReceipts, setReadReceipts, showSuccess }: PrivacyTabProps) {
-  const [isPending, startTransition] = useTransition();
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [, startTransition] = useTransition();
   const [transparencyData, setTransparencyData] = useState<TransparencyData>(null);
   const [transparencyLoaded, setTransparencyLoaded] = useState(false);
 
@@ -66,11 +63,6 @@ export function PrivacyTab({ isPublic, setIsPublic, showInDiscovery, setShowInDi
   };
 
 
-  const handleDeleteAccount = () => {
-    if (!deleteConfirm) { setDeleteConfirm(true); return; }
-    startTransition(async () => { await deleteAccount(); });
-  };
-
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Privacy & Safety</h2>
@@ -87,13 +79,6 @@ export function PrivacyTab({ isPublic, setIsPublic, showInDiscovery, setShowInDi
           >
             <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${isPublic ? "right-0.5" : "left-0.5"}`} />
           </button>
-        </div>
-        <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
-          <div>
-            <span className="text-sm text-[var(--text-primary)] block font-medium">Who can message you</span>
-            <span className="text-xs text-[var(--text-muted)]">Control who can send you direct messages</span>
-          </div>
-          <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>Everyone</span>
         </div>
         <div className="flex items-center justify-between py-3 border-b border-[var(--border-primary)]">
           <div>
@@ -275,28 +260,7 @@ export function PrivacyTab({ isPublic, setIsPublic, showInDiscovery, setShowInDi
         )}
       </SettingsCard>
 
-      <div className="mt-8 pt-6 border-t border-[var(--border-primary)]">
-        <h3 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4" /> Danger zone
-        </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-4">These actions are irreversible. Please be certain.</p>
-        {deleteConfirm ? (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-            <p className="text-sm text-red-300 mb-3">Are you sure? This will permanently delete your account, posts, messages, and all associated data.</p>
-            <div className="flex gap-2">
-              <Button variant="danger" size="sm" onClick={handleDeleteAccount} disabled={isPending}>
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                {isPending ? "Deleting..." : "Yes, delete my account"}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>Cancel</Button>
-            </div>
-          </div>
-        ) : (
-          <Button variant="danger" size="sm" onClick={handleDeleteAccount}>
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete my account
-          </Button>
-        )}
-      </div>
+
     </motion.div>
   );
 }
