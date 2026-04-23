@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
@@ -16,12 +17,22 @@ const sizeMap = {
   xl: "h-20 w-20 text-xl",
 };
 
+const sizePxMap = {
+  xs: 24,
+  sm: 32,
+  md: 40,
+  lg: 56,
+  xl: 80,
+};
+
 export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
   if (src) {
     return (
-      <img
+      <Image
         src={src}
         alt={alt}
+        width={sizePxMap[size]}
+        height={sizePxMap[size]}
         loading="lazy"
         className={cn(
           "rounded-full object-cover ring-1 ring-[var(--border-primary)] flex-shrink-0",
