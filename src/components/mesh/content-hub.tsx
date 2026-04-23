@@ -26,6 +26,7 @@ import {
   Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { InAppBrowser } from "@/components/in-app-browser";
 
 // --- Types ---
 
@@ -153,6 +154,7 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [analytics, setAnalytics] = useState<Record<string, number> | null>(null);
+  const [inAppUrl, setInAppUrl] = useState<string | null>(null);
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -456,6 +458,7 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
                     }}
                     onEditSave={() => handleEditSave(post.id)}
                     onEditChange={setEditContent}
+                    onOpenLink={setInAppUrl}
                   />
                 ))}
               </div>
@@ -487,6 +490,12 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
             </div>
           )}
         </motion.div>
+        <InAppBrowser
+          isOpen={Boolean(inAppUrl)}
+          url={inAppUrl}
+          title="Connected Content"
+          onClose={() => setInAppUrl(null)}
+        />
       </motion.div>}
     </AnimatePresence>
   );
@@ -508,6 +517,7 @@ interface ContentPostCardProps {
   onEditCancel: () => void;
   onEditSave: () => void;
   onEditChange: (val: string) => void;
+  onOpenLink: (url: string) => void;
 }
 
 function ContentPostCard({
@@ -524,6 +534,7 @@ function ContentPostCard({
   onEditCancel,
   onEditSave,
   onEditChange,
+  onOpenLink,
 }: ContentPostCardProps) {
   const platform = post.connectedAccount.platform;
   const color = PLATFORM_COLORS[platform] || "#888";
@@ -646,14 +657,12 @@ function ContentPostCard({
                 <PenLine className="h-3 w-3" /> Edit
               </button>
               {post.url && (
-                <a
-                  href={post.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => onOpenLink(post.url!)}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-all"
                 >
                   <ExternalLink className="h-3 w-3" /> Open
-                </a>
+                </button>
               )}
               {isDeleteConfirm ? (
                 <div className="flex items-center gap-1 ml-auto">
