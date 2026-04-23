@@ -1,4 +1,4 @@
-import { Bell, Compass, LayoutDashboard, Link2, MessageCircle, Rss, Settings, Shield, Sparkles, User, Users, Waypoints, type LucideIcon } from "lucide-react";
+import { BarChart3, Bell, Compass, LayoutDashboard, Link2, MessageCircle, Rss, Settings, Shield, Sparkles, User, Users, Waypoints, type LucideIcon } from "lucide-react";
 
 export type BadgeKey = "messages" | "notifications";
 
@@ -21,14 +21,15 @@ export const desktopNavGroups: NavGroup[] = [
     items: [
       { href: "/mesh", icon: Waypoints, label: "Mesh" },
       { href: "/feed", icon: Rss, label: "Feed" },
-      { href: "/explore", icon: Compass, label: "Explore" },
+      { href: "/analytics", icon: BarChart3, label: "Analytics" },
     ],
   },
   {
     label: "Social",
     items: [
-      { href: "/messages", icon: MessageCircle, label: "Messages", badgeKey: "messages" },
-      { href: "/notifications", icon: Bell, label: "Notifications", badgeKey: "notifications" },
+      { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
+      { href: "/notifications", icon: Bell, label: "Alerts", badgeKey: "notifications" },
+      { href: "/explore", icon: Compass, label: "Explore" },
       { href: "/communities", icon: Users, label: "Communities" },
     ],
   },
@@ -36,8 +37,8 @@ export const desktopNavGroups: NavGroup[] = [
     label: "Manage",
     collapsible: true,
     items: [
-      { href: "/content-hub", icon: LayoutDashboard, label: "Content Hub" },
-      { href: "/connected-accounts", icon: Link2, label: "Connected Accounts" },
+      { href: "/content-hub", icon: LayoutDashboard, label: "Control Center" },
+      { href: "/connected-accounts", icon: Link2, label: "Connections" },
       { href: "/trust", icon: Shield, label: "Trust" },
     ],
   },
@@ -52,7 +53,7 @@ export const mobileNavItems: NavItem[] = [
   { href: "/mesh", icon: Waypoints, label: "Mesh" },
   { href: "/feed", icon: Rss, label: "Feed" },
   { href: "/innovation", icon: Sparkles, label: "Create" },
-  { href: "/messages", icon: MessageCircle, label: "Messages", badgeKey: "messages" },
+  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
   { href: "/notifications", icon: Bell, label: "Alerts", badgeKey: "notifications" },
   { href: "/profile", icon: User, label: "You" },
 ];
