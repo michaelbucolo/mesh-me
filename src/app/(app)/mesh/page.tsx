@@ -9,6 +9,7 @@ import {
   Compass,
   Globe,
   Layers,
+  ListFilter,
   MessageCircle,
   Network,
   RotateCcw,
@@ -67,6 +68,7 @@ export default function MeshPage() {
     sameMeshOnline: 0,
     connectedOnline: 0,
   });
+  const [activePanel, setActivePanel] = useState<"actions" | "travel" | "presence" | null>(null);
   const [viewportInfo, setViewportInfo] = useState({
     zoom: 0.65,
     panX: 0,
@@ -316,89 +318,126 @@ export default function MeshPage() {
       />
 
       <div className="absolute inset-x-2 top-2 z-20 md:inset-x-4 md:top-4">
-        <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-xl text-white shadow-2xl">
-          <div className="p-3 md:p-4 grid gap-3 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-            <div className="min-w-0">
+        <div className="rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl text-white shadow-2xl">
+          <div className="p-3 md:p-4 flex flex-wrap items-start gap-3 md:gap-4">
+            <div className="min-w-0 flex-1">
               <div className="flex items-start gap-3">
-                <MeshiMascot size={36} mood={selectedNode ? "thinking" : "happy"} color={myMeshiColor} hat={myMeshiHat} animate />
+                <MeshiMascot size={34} mood={selectedNode ? "thinking" : "happy"} color={myMeshiColor} hat={myMeshiHat} animate />
                 <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">Mesh brief</p>
-                  <p className="text-sm text-white/90 leading-relaxed">{meshGuideText}</p>
+                  <p className="text-xs md:text-sm text-white/90 leading-relaxed">{meshGuideText}</p>
                 </div>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => setPresenceEnabled((value) => !value)}
-                  className={
-                    "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition " +
-                    (presenceEnabled ? "bg-emerald-500/20 text-emerald-200" : "bg-white/10 text-white/70")
-                  }
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  {presenceEnabled ? "Live presence on" : "Live presence off"}
-                </button>
-                <button onClick={resetView} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85 hover:bg-white/15 transition">
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Reset view
-                </button>
-                {viewingUserMesh && (
-                  <button onClick={returnToMyMesh} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85 hover:bg-white/15 transition">
-                    <ArrowRight className="h-3.5 w-3.5 rotate-180" />
-                    Back to my mesh
-                  </button>
-                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <MetricCard label="Nodes" value={meshStats.totalNodes} />
-              <MetricCard label="People" value={meshStats.people} icon={Users} />
-              <MetricCard label="Communities" value={meshStats.communities} />
-              <MetricCard label="Platforms" value={meshStats.platforms} />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setPresenceEnabled((value) => !value)}
+                className={
+                  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition " +
+                  (presenceEnabled ? "bg-emerald-500/20 text-emerald-200" : "bg-white/10 text-white/70")
+                }
+              >
+                <Zap className="h-3.5 w-3.5" />
+                {presenceEnabled ? "Presence on" : "Presence off"}
+              </button>
+              <button onClick={resetView} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85 hover:bg-white/15 transition">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset
+              </button>
+              {viewingUserMesh && (
+                <button onClick={returnToMyMesh} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85 hover:bg-white/15 transition">
+                  <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+                  Back to my mesh
+                </button>
+              )}
+              <div className="hidden md:grid grid-cols-2 gap-1.5 text-xs w-36">
+                <MetricCard label="People" value={meshStats.people} compact />
+                <MetricCard label="Communities" value={meshStats.communities} compact />
+                <MetricCard label="Platforms" value={meshStats.platforms} compact />
+                <MetricCard label="Nodes" value={meshStats.totalNodes} compact />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="absolute left-2 bottom-2 z-20 w-[min(24rem,calc(100%-1rem))] md:left-4 md:bottom-4 md:w-[22rem]">
-        <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-xl text-white shadow-2xl p-3 md:p-4">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Quick actions</p>
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            {QUICK_ACTIONS.map((action) => (
-              <Link key={action.href} href={action.href} className="rounded-lg bg-white/10 hover:bg-white/15 transition px-2.5 py-2 inline-flex items-center gap-2 text-xs font-medium">
-                <action.icon className="h-3.5 w-3.5" />
-                <span>{action.label}</span>
-              </Link>
-            ))}
-          </div>
-
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Recent travel</p>
-          <div className="space-y-1.5 max-h-24 overflow-auto pr-1">
-            {travelLog.length === 0 ? (
-              <p className="text-xs text-white/60">No mesh hops yet. Enter someone&apos;s mesh to build a trail.</p>
-            ) : (
-              travelLog.map((item, index) => (
-                <div key={`${item.mesh}-${item.at}-${index}`} className="flex items-center justify-between text-xs">
-                  <span className="truncate pr-3 text-white/90">{item.mesh}</span>
-                  <span className="text-white/50">{new Date(item.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      <div className="absolute left-2 bottom-2 z-20 md:left-4 md:bottom-4 flex gap-2">
+        <PanelButton
+          icon={Compass}
+          label="Actions"
+          active={activePanel === "actions"}
+          onClick={() => setActivePanel((curr) => (curr === "actions" ? null : "actions"))}
+        />
+        <PanelButton
+          icon={ListFilter}
+          label="Travel"
+          active={activePanel === "travel"}
+          onClick={() => setActivePanel((curr) => (curr === "travel" ? null : "travel"))}
+        />
+        <PanelButton
+          icon={Users}
+          label="Presence"
+          active={activePanel === "presence"}
+          onClick={() => setActivePanel((curr) => (curr === "presence" ? null : "presence"))}
+        />
       </div>
 
-      <div className="absolute right-2 bottom-2 z-20 w-[min(17rem,calc(100%-1rem))] md:right-4 md:bottom-4">
-        <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-xl text-white shadow-2xl p-3 md:p-4">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Live presence</p>
-          <div className="grid grid-cols-3 gap-2">
-            <MetricCard label="Online" value={presenceSummary.totalOnline} compact />
-            <MetricCard label="This mesh" value={presenceSummary.sameMeshOnline} compact />
-            <MetricCard label="Connected" value={presenceSummary.connectedOnline} compact />
-          </div>
-        </div>
-      </div>
+      <AnimatePresence>
+        {activePanel && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute left-2 right-2 bottom-14 z-20 md:left-4 md:right-auto md:w-[22rem]"
+          >
+            <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-xl text-white shadow-2xl p-3 md:p-4">
+              {activePanel === "actions" && (
+                <>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Quick actions</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {QUICK_ACTIONS.map((action) => (
+                      <Link key={action.href} href={action.href} className="rounded-lg bg-white/10 hover:bg-white/15 transition px-2.5 py-2 inline-flex items-center gap-2 text-xs font-medium">
+                        <action.icon className="h-3.5 w-3.5" />
+                        <span>{action.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
 
+              {activePanel === "travel" && (
+                <>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Recent travel</p>
+                  <div className="space-y-1.5 max-h-44 overflow-auto pr-1">
+                    {travelLog.length === 0 ? (
+                      <p className="text-xs text-white/60">No mesh hops yet. Enter someone&apos;s mesh to build a trail.</p>
+                    ) : (
+                      travelLog.map((item, index) => (
+                        <div key={`${item.mesh}-${item.at}-${index}`} className="flex items-center justify-between text-xs">
+                          <span className="truncate pr-3 text-white/90">{item.mesh}</span>
+                          <span className="text-white/50">{new Date(item.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+
+              {activePanel === "presence" && (
+                <>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Live presence</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <MetricCard label="Online" value={presenceSummary.totalOnline} compact />
+                    <MetricCard label="This mesh" value={presenceSummary.sameMeshOnline} compact />
+                    <MetricCard label="Connected" value={presenceSummary.connectedOnline} compact />
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {loadingUserMesh && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
@@ -427,6 +466,33 @@ export default function MeshPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function PanelButton({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition backdrop-blur-xl border " +
+        (active
+          ? "border-white/30 bg-white/20 text-white"
+          : "border-white/10 bg-black/45 text-white/80 hover:bg-black/60")
+      }
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   );
 }
 
