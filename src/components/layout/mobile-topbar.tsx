@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Bot, Search, Sparkles } from "lucide-react";
+import { Bot, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlatform } from "@/hooks/use-platform";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import { openMeshi } from "@/lib/meshi-events";
 
 interface MobileTopbarProps {
@@ -26,6 +28,7 @@ const routeTitles: Record<string, string> = {
 export function MobileTopbar({ username }: MobileTopbarProps) {
   const pathname = usePathname();
   const { ios } = usePlatform();
+  const meshiPrefs = useMeshiPreferences();
 
   const title = useMemo(() => {
     const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
@@ -66,7 +69,14 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
             className="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 px-3 text-xs font-medium text-[var(--text-secondary)] active:scale-95"
             aria-label="Open profile"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <MeshiMascot
+              size={16}
+              color={meshiPrefs.color}
+              hat={meshiPrefs.hat}
+              mood={meshiPrefs.face}
+              showGlow={false}
+              animate={false}
+            />
             You
           </Link>
         </div>
