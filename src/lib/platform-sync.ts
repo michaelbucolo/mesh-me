@@ -828,7 +828,7 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
   if (!account || account.userId !== user.id) return { error: "Account not found" };
   const accessToken = getStoredAccessToken(account.accessToken);
   if (account.accessToken && !accessToken) return { error: "Token encryption key is missing. Reconnect this platform after configuring MESHME_TOKEN_ENCRYPTION_KEY." };
-  if (!account.accessToken) return { error: "No access token — reconnect this platform" };
+  if (!accessToken) return { error: "No access token - reconnect this platform" };
 
   // Create sync job
   const job = await prisma.syncJob.create({
@@ -970,7 +970,7 @@ export async function syncComments(connectedAccountId: string, platformPostId: s
   if (!account || account.userId !== user.id) return { error: "Account not found" };
   const accessToken = getStoredAccessToken(account.accessToken);
   if (account.accessToken && !accessToken) return { error: "Token encryption key is missing. Reconnect this platform after configuring MESHME_TOKEN_ENCRYPTION_KEY." };
-  if (!account.accessToken) return { error: "No access token" };
+  if (!accessToken) return { error: "No access token" };
 
   const post = await prisma.platformPost.findFirst({
     where: { connectedAccountId: account.id, platformPostId },
@@ -1141,13 +1141,18 @@ export async function crossPostContent(content: string, platforms: string[], med
         results[accountId] = { success: false, error: "Account not found or inactive" };
         continue;
       }
-      if (!account.accessToken) {
+      const accessToken = getStoredAccessToken(account.accessToken);
+      if (account.accessToken && !accessToken) {
+        results[accountId] = { success: false, error: "Token encryption key is missing" };
+        continue;
+      }
+      if (!accessToken) {
         results[accountId] = { success: false, error: "No access token" };
         continue;
       }
       try {
         const adapter = getAdapter(account.platform);
-        const post = await adapter.createPost(account.accessToken, content, mediaUrls);
+        const post = await adapter.createPost(accessToken, content, mediaUrls);
         if (post) {
           await prisma.platformPost.create({
             data: { connectedAccountId: account.id, ...post, isFromMesh: true },
@@ -1209,10 +1214,11 @@ export async function editPlatformPost(postId: string, content: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
-  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
-  const ok = await adapter.editPost(post.connectedAccount.accessToken, post.platformPostId, content);
+  const ok = await adapter.editPost(accessToken, post.platformPostId, content);
   if (!ok) return { error: "Platform does not support editing or the request failed" };
 
   await prisma.platformPost.update({ where: { id: postId }, data: { content } });
@@ -1230,9 +1236,10 @@ export async function likePlatformPost(postId: string) {
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
 
-  if (post.connectedAccount.accessToken) {
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (accessToken) {
     const adapter = getAdapter(post.connectedAccount.platform);
-    const ok = await adapter.likePost(post.connectedAccount.accessToken, post.platformPostId);
+    const ok = await adapter.likePost(accessToken, post.platformPostId);
     if (!ok) return { error: "Platform does not support liking or the request failed" };
   }
 
@@ -1254,9 +1261,10 @@ export async function unlikePlatformPost(postId: string) {
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
 
-  if (post.connectedAccount.accessToken) {
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (accessToken) {
     const adapter = getAdapter(post.connectedAccount.platform);
-    const ok = await adapter.unlikePost(post.connectedAccount.accessToken, post.platformPostId);
+    const ok = await adapter.unlikePost(accessToken, post.platformPostId);
     if (!ok) return { error: "Platform does not support unliking or the request failed" };
   }
 
@@ -1282,10 +1290,11 @@ export async function followPlatformUser(connectedAccountId: string, platformUse
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
-  if (!account.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(account.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(account.platform);
-  const ok = await adapter.followUser(account.accessToken, platformUserId);
+  const ok = await adapter.followUser(accessToken, platformUserId);
   if (!ok) return { error: "Follow failed — platform may not support this action" };
 
   // Update mutual status in our DB
@@ -1306,10 +1315,11 @@ export async function unfollowPlatformUser(connectedAccountId: string, platformU
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
-  if (!account.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(account.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(account.platform);
-  const ok = await adapter.unfollowUser(account.accessToken, platformUserId);
+  const ok = await adapter.unfollowUser(accessToken, platformUserId);
   if (!ok) return { error: "Unfollow failed — platform may not support this action" };
 
   await prisma.platformFollower.updateMany({
@@ -1330,10 +1340,11 @@ export async function sharePlatformPost(postId: string, comment?: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
-  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
-  const ok = await adapter.sharePost(post.connectedAccount.accessToken, post.platformPostId, comment);
+  const ok = await adapter.sharePost(accessToken, post.platformPostId, comment);
   if (!ok) return { error: "Share failed — platform may not support this action" };
 
   await prisma.platformPost.update({
@@ -1353,10 +1364,11 @@ export async function pinPlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
-  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
-  const ok = await adapter.pinPost(post.connectedAccount.accessToken, post.platformPostId);
+  const ok = await adapter.pinPost(accessToken, post.platformPostId);
   if (!ok) return { error: "Pin failed — platform may not support this action" };
 
   await prisma.platformPost.update({
@@ -1376,10 +1388,11 @@ export async function unpinPlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
-  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
-  const ok = await adapter.unpinPost(post.connectedAccount.accessToken, post.platformPostId);
+  const ok = await adapter.unpinPost(accessToken, post.platformPostId);
   if (!ok) return { error: "Unpin failed — platform may not support this action" };
 
   await prisma.platformPost.update({
@@ -1399,10 +1412,11 @@ export async function updatePlatformPostVisibility(postId: string, visibility: s
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
-  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
-  const ok = await adapter.updateVisibility(post.connectedAccount.accessToken, post.platformPostId, visibility);
+  const ok = await adapter.updateVisibility(accessToken, post.platformPostId, visibility);
   if (!ok) return { error: "Visibility update failed — platform may not support this action" };
 
   await prisma.platformPost.update({
@@ -1423,10 +1437,11 @@ export async function replyToPlatformComment(postId: string, content: string) {
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
 
-  if (!post.connectedAccount.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
-  const comment = await adapter.createComment(post.connectedAccount.accessToken, post.platformPostId, content);
+  const comment = await adapter.createComment(accessToken, post.platformPostId, content);
 
   if (comment) {
     await prisma.platformComment.create({
@@ -1453,10 +1468,11 @@ export async function deletePlatformComment(commentId: string) {
     include: { connectedAccount: true },
   });
   if (!comment || comment.connectedAccount.userId !== user.id) return { error: "Comment not found" };
-  if (!comment.connectedAccount.accessToken) return { error: "No access token" };
+  const accessToken = getStoredAccessToken(comment.connectedAccount.accessToken);
+  if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(comment.connectedAccount.platform);
-  const ok = await adapter.deleteComment(comment.connectedAccount.accessToken, comment.platformCommentId);
+  const ok = await adapter.deleteComment(accessToken, comment.platformCommentId);
   if (!ok) return { error: "Delete comment failed — platform may not support this action" };
 
   await prisma.platformComment.delete({ where: { id: commentId } });
