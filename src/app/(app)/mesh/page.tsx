@@ -7,12 +7,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   Compass,
+  Eye,
   Globe,
   Layers,
-  ListFilter,
+  Link2,
   MessageCircle,
   Network,
+  PenSquare,
+  RefreshCw,
   RotateCcw,
+  Send,
+  Trash2,
   Users,
   X,
   Zap,
@@ -37,9 +42,26 @@ type CachedUserMeshResponse = {
   meshiPreference?: { colorTheme?: string; hatStyle?: string } | null;
 };
 
+type MeshMode = "overview" | "posts" | "interactions" | "connections" | "travel" | "presence" | "sync";
+
+const MODE_TABS: Array<{
+  key: MeshMode;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  description: string;
+}> = [
+  { key: "overview", label: "Overview", icon: Eye, description: "Your internet-wide command center" },
+  { key: "posts", label: "Posts", icon: PenSquare, description: "Compose, queue, and remove content" },
+  { key: "interactions", label: "Interactions", icon: MessageCircle, description: "Track likes, comments, reposts" },
+  { key: "connections", label: "Connections", icon: Network, description: "People, communities, and platform graph" },
+  { key: "travel", label: "Travel", icon: Compass, description: "Jump across meshes and return instantly" },
+  { key: "presence", label: "Presence", icon: Users, description: "Live meshi and active users" },
+  { key: "sync", label: "Sync", icon: RefreshCw, description: "Cross-platform two-way sync status" },
+];
+
 const QUICK_ACTIONS = [
+  { href: "/feed", label: "Open feed", icon: Globe },
   { href: "/explore", label: "Discover people", icon: Compass },
-  { href: "/content-hub", label: "Browse content", icon: Globe },
   { href: "/connected-accounts", label: "Connect platforms", icon: Network },
   { href: "/messages", label: "Open MeChat", icon: MessageCircle },
 ] as const;
@@ -72,8 +94,11 @@ export default function MeshPage() {
     sameMeshOnline: 0,
     connectedOnline: 0,
   });
-  const [activePanel, setActivePanel] = useState<"actions" | "travel" | "presence" | null>(null);
   const [meshNotice, setMeshNotice] = useState<string | null>(null);
+  const [activeMode, setActiveMode] = useState<MeshMode>("overview");
+  const [composerText, setComposerText] = useState("");
+  const [deleteQueue, setDeleteQueue] = useState<Array<{ id: string; label: string; scope: string }>>([]);
+  const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
   const [viewportInfo, setViewportInfo] = useState({
     zoom: 0.65,
     panX: 0,
@@ -160,7 +185,7 @@ export default function MeshPage() {
           cache: "no-store",
         });
         if (!res.ok) throw new Error("Failed to load user mesh");
-        data = await res.json() as CachedUserMeshResponse;
+        data = (await res.json()) as CachedUserMeshResponse;
         userMeshCacheRef.current.set(username, data);
       }
 
@@ -170,13 +195,14 @@ export default function MeshPage() {
 
       setViewingUserMesh(node);
       if (data.privacyLevel === "private") {
-        setMeshNotice("This user keeps their mesh private. You can view their profile but not their full network map.");
+        setMeshNotice("Private mesh mode: only high-level map and platform signals are available.");
       } else if (data.privacyLevel === "friends-only") {
-        setMeshNotice("This mesh is friends-only. Follow each other to unlock the full map and shared content.");
+        setMeshNotice("Friends-only mesh: connect mutually to unlock full post and interaction routes.");
       } else {
         setMeshNotice(null);
       }
-      setTravelLog((prev) => [{ mesh: node.label, at: Date.now() }, ...prev].slice(0, 8));
+      setTravelLog((prev) => [{ mesh: node.label, at: Date.now() }, ...prev].slice(0, 10));
+      setActiveMode("travel");
       setSelectedNode(null);
       resetView();
     } catch {
@@ -190,7 +216,7 @@ export default function MeshPage() {
     if (myNodes.length > 0) engine.setData(myNodes, myEdges);
     setViewingUserMesh(null);
     setMeshNotice(null);
-    setTravelLog((prev) => [{ mesh: "Your mesh", at: Date.now() }, ...prev].slice(0, 8));
+    setTravelLog((prev) => [{ mesh: "Your mesh", at: Date.now() }, ...prev].slice(0, 10));
     setSelectedNode(null);
     resetView();
   }, [engine, myEdges, myNodes, resetView]);
@@ -227,17 +253,52 @@ export default function MeshPage() {
     const people = engine.nodes.filter((node) => node.type === "user").length;
     const communities = engine.nodes.filter((node) => node.type === "community").length;
     const platforms = engine.nodes.filter((node) => node.type === "platform").length;
+    const posts = engine.nodes.filter((node) => node.type === "post").length;
+    const interactionSignals = engine.nodes.reduce((sum, node) => {
+      return sum + (node.likeCount || 0) + (node.commentCount || 0) * 2 + (node.repostCount || 0) * 3;
+    }, 0);
 
-    return { totalNodes, people, communities, platforms };
+    return { totalNodes, people, communities, platforms, posts, interactionSignals };
   }, [engine.nodes]);
 
+  const syncCoverage = useMemo(() => {
+    const platformNodes = engine.nodes.filter((node) => node.type === "platform").length;
+    const visiblePostNodes = engine.nodes.filter((node) => node.type === "post").length;
+    const estimatedSync = Math.min(100, Math.round(platformNodes * 18 + visiblePostNodes * 2.5));
+    return { platformNodes, visiblePostNodes, estimatedSync };
+  }, [engine.nodes]);
+
+  const selectedSummary = useMemo(() => {
+    if (!selectedNode) return "Select a node to inspect controls for posting, deleting, and jumping across connected meshes.";
+    const details: string[] = [selectedNode.label];
+    if (selectedNode.platform) details.push(`Platform: ${selectedNode.platform}`);
+    if (selectedNode.followerCount) details.push(`${selectedNode.followerCount.toLocaleString()} followers`);
+    if (selectedNode.likeCount || selectedNode.commentCount || selectedNode.repostCount) {
+      details.push(`${selectedNode.likeCount || 0} likes · ${selectedNode.commentCount || 0} comments · ${selectedNode.repostCount || 0} reposts`);
+    }
+    return details.join(" • ");
+  }, [selectedNode]);
+
   const meshGuideText = viewingUserMesh
-    ? `You are viewing ${viewingUserMesh.label}'s mesh. Click "Back to my mesh" anytime to resume your own view.`
-    : selectedNode
-      ? `Focused on ${selectedNode.label}. Double-click for fast navigation if the node has a destination.`
-      : hoveredNode
-        ? `Hovering ${hoveredNode.label}. Click once to inspect, double-click to jump when available.`
-        : "Start by clicking a node. You can explore people, communities, platforms, and content from one map.";
+    ? `Traveling in ${viewingUserMesh.label}'s mesh. Every visible post, interaction, and connection here can map back to your own command center.`
+    : hoveredNode
+      ? `Hovering ${hoveredNode.label}. Single click to inspect; double click to travel to destination-enabled nodes.`
+      : "The Mesh is your full internet presence map. Organize posts, interactions, connections, and sync all platforms from one surface.";
+
+  const queueDeleteForSelected = useCallback(() => {
+    if (!selectedNode) return;
+    setDeleteQueue((prev) => {
+      const exists = prev.some((item) => item.id === selectedNode.id);
+      if (exists) return prev;
+      return [{ id: selectedNode.id, label: selectedNode.label, scope: selectedNode.type }, ...prev].slice(0, 8);
+    });
+    setActiveMode("posts");
+  }, [selectedNode]);
+
+  const pulseSync = useCallback(() => {
+    setSyncPulseTime(Date.now());
+    setActiveMode("sync");
+  }, []);
 
   if (loading) {
     return (
@@ -282,7 +343,7 @@ export default function MeshPage() {
         meshiHat={myMeshiHat}
         meshiUsername={myUsername}
         remoteMeshis={remoteMeshis}
-        syncPulseTime={null}
+        syncPulseTime={syncPulseTime}
         onMeshiPositionChange={(x, y, mood) => {
           setMyMeshiPosition({ x, y });
           setMyMeshiMood(mood);
@@ -337,7 +398,7 @@ export default function MeshPage() {
               <div className="flex items-start gap-3">
                 <MeshiMascot size={34} mood={selectedNode ? "thinking" : "happy"} color={myMeshiColor} hat={myMeshiHat} animate />
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">Mesh brief</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">The Mesh control plane</p>
                   <p className="text-xs md:text-sm text-white/90 leading-relaxed">{meshGuideText}</p>
                   {meshNotice && <p className="mt-1.5 text-xs text-amber-200/90">{meshNotice}</p>}
                 </div>
@@ -359,99 +420,156 @@ export default function MeshPage() {
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset
               </button>
+              <button onClick={pulseSync} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/25 px-2.5 py-1.5 text-xs font-medium text-indigo-100 hover:bg-indigo-500/35 transition">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Sync now
+              </button>
               {viewingUserMesh && (
                 <button onClick={returnToMyMesh} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85 hover:bg-white/15 transition">
                   <ArrowRight className="h-3.5 w-3.5 rotate-180" />
                   Back to my mesh
                 </button>
               )}
-              <div className="hidden md:grid grid-cols-2 gap-1.5 text-xs w-36">
-                <MetricCard label="People" value={meshStats.people} compact />
-                <MetricCard label="Communities" value={meshStats.communities} compact />
-                <MetricCard label="Platforms" value={meshStats.platforms} compact />
-                <MetricCard label="Nodes" value={meshStats.totalNodes} compact />
-              </div>
+            </div>
+          </div>
+
+          <div className="px-3 pb-3 md:px-4 md:pb-4">
+            <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
+              <MetricCard label="People" value={meshStats.people} compact />
+              <MetricCard label="Communities" value={meshStats.communities} compact />
+              <MetricCard label="Platforms" value={meshStats.platforms} compact />
+              <MetricCard label="Posts" value={meshStats.posts} compact />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="absolute left-2 bottom-2 z-20 md:left-4 md:bottom-4 flex gap-2">
-        <PanelButton
-          icon={Compass}
-          label="Actions"
-          active={activePanel === "actions"}
-          onClick={() => setActivePanel((curr) => (curr === "actions" ? null : "actions"))}
-        />
-        <PanelButton
-          icon={ListFilter}
-          label="Travel"
-          active={activePanel === "travel"}
-          onClick={() => setActivePanel((curr) => (curr === "travel" ? null : "travel"))}
-        />
-        <PanelButton
-          icon={Users}
-          label="Presence"
-          active={activePanel === "presence"}
-          onClick={() => setActivePanel((curr) => (curr === "presence" ? null : "presence"))}
-        />
+      <div className="absolute left-2 right-2 bottom-2 z-20 md:left-4 md:bottom-4 md:right-auto md:w-[30rem]">
+        <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur-xl text-white shadow-2xl p-3 md:p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {MODE_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveMode(tab.key)}
+                className={
+                  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition " +
+                  (activeMode === tab.key ? "bg-white/20 text-white" : "bg-white/10 text-white/75 hover:text-white")
+                }
+              >
+                <tab.icon className="h-3.5 w-3.5" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-black/35 p-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">{MODE_TABS.find((tab) => tab.key === activeMode)?.label}</p>
+            <p className="text-xs text-white/80 mb-3">{MODE_TABS.find((tab) => tab.key === activeMode)?.description}</p>
+
+            {activeMode === "overview" && (
+              <div className="space-y-2 text-xs text-white/85">
+                <p>{selectedSummary}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_ACTIONS.map((action) => (
+                    <Link key={action.href} href={action.href} className="rounded-lg bg-white/10 hover:bg-white/15 transition px-2.5 py-2 inline-flex items-center gap-2 text-xs font-medium">
+                      <action.icon className="h-3.5 w-3.5" />
+                      <span>{action.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeMode === "posts" && (
+              <div className="space-y-2 text-xs text-white/85">
+                <label className="text-white/70">Compose once, publish across connected meshes.</label>
+                <textarea
+                  value={composerText}
+                  onChange={(event) => setComposerText(event.target.value)}
+                  placeholder="Write a post for your entire internet presence..."
+                  className="w-full rounded-lg border border-white/15 bg-black/30 px-2.5 py-2 text-xs text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                  rows={3}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <button onClick={() => router.push("/feed")} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/25 px-2.5 py-1.5 text-xs font-medium text-indigo-100 hover:bg-indigo-500/35 transition">
+                    <Send className="h-3.5 w-3.5" />
+                    Publish from feed
+                  </button>
+                  <button onClick={queueDeleteForSelected} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/20 px-2.5 py-1.5 text-xs font-medium text-red-100 hover:bg-red-500/30 transition">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Queue delete from selection
+                  </button>
+                </div>
+                <div className="space-y-1.5 max-h-24 overflow-auto pr-1">
+                  {deleteQueue.length === 0 ? (
+                    <p className="text-white/50">No deletion queue yet. Select a post/platform/user node and queue an action.</p>
+                  ) : (
+                    deleteQueue.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between rounded-md bg-white/10 px-2 py-1">
+                        <span className="truncate pr-3">{item.label}</span>
+                        <span className="text-[10px] uppercase tracking-wide text-white/60">{item.scope}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeMode === "interactions" && (
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <MetricCard label="Signals" value={meshStats.interactionSignals} compact />
+                <MetricCard label="Comments" value={engine.nodes.reduce((sum, n) => sum + (n.commentCount || 0), 0)} compact />
+                <MetricCard label="Reposts" value={engine.nodes.reduce((sum, n) => sum + (n.repostCount || 0), 0)} compact />
+              </div>
+            )}
+
+            {activeMode === "connections" && (
+              <div className="space-y-2 text-xs text-white/85">
+                <p>{meshStats.people} people and {meshStats.communities} communities are mapped into {meshStats.totalNodes} total nodes.</p>
+                <button onClick={() => router.push("/connected-accounts")} className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-white/15 transition">
+                  <Link2 className="h-3.5 w-3.5" />
+                  Manage linked platforms
+                </button>
+              </div>
+            )}
+
+            {activeMode === "travel" && (
+              <div className="space-y-1.5 max-h-36 overflow-auto pr-1 text-xs">
+                {travelLog.length === 0 ? (
+                  <p className="text-white/50">No mesh hops yet. Enter another person&apos;s mesh to build your travel timeline.</p>
+                ) : (
+                  travelLog.map((item, index) => (
+                    <div key={`${item.mesh}-${item.at}-${index}`} className="flex items-center justify-between rounded-md bg-white/10 px-2 py-1.5">
+                      <span className="truncate pr-3 text-white/90">{item.mesh}</span>
+                      <span className="text-white/50">{new Date(item.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeMode === "presence" && (
+              <div className="grid grid-cols-3 gap-2">
+                <MetricCard label="Online" value={presenceSummary.totalOnline} compact />
+                <MetricCard label="This mesh" value={presenceSummary.sameMeshOnline} compact />
+                <MetricCard label="Connected" value={presenceSummary.connectedOnline} compact />
+              </div>
+            )}
+
+            {activeMode === "sync" && (
+              <div className="space-y-2 text-xs text-white/85">
+                <p>Estimated sync coverage: <span className="font-semibold text-white">{syncCoverage.estimatedSync}%</span> across {syncCoverage.platformNodes} platforms.</p>
+                <p>{syncCoverage.visiblePostNodes} post nodes are currently visible on this mesh surface.</p>
+                <Link href="/connected-accounts" className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/25 px-2.5 py-1.5 text-xs font-medium text-indigo-100 hover:bg-indigo-500/35 transition">
+                  <Globe className="h-3.5 w-3.5" />
+                  Open sync manager
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <AnimatePresence>
-        {activePanel && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute left-2 right-2 bottom-14 z-20 md:left-4 md:right-auto md:w-[22rem]"
-          >
-            <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-xl text-white shadow-2xl p-3 md:p-4">
-              {activePanel === "actions" && (
-                <>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Quick actions</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {QUICK_ACTIONS.map((action) => (
-                      <Link key={action.href} href={action.href} className="rounded-lg bg-white/10 hover:bg-white/15 transition px-2.5 py-2 inline-flex items-center gap-2 text-xs font-medium">
-                        <action.icon className="h-3.5 w-3.5" />
-                        <span>{action.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {activePanel === "travel" && (
-                <>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Recent travel</p>
-                  <div className="space-y-1.5 max-h-44 overflow-auto pr-1">
-                    {travelLog.length === 0 ? (
-                      <p className="text-xs text-white/60">No mesh hops yet. Enter someone&apos;s mesh to build a trail.</p>
-                    ) : (
-                      travelLog.map((item, index) => (
-                        <div key={`${item.mesh}-${item.at}-${index}`} className="flex items-center justify-between text-xs">
-                          <span className="truncate pr-3 text-white/90">{item.mesh}</span>
-                          <span className="text-white/50">{new Date(item.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </>
-              )}
-
-              {activePanel === "presence" && (
-                <>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Live presence</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <MetricCard label="Online" value={presenceSummary.totalOnline} compact />
-                    <MetricCard label="This mesh" value={presenceSummary.sameMeshOnline} compact />
-                    <MetricCard label="Connected" value={presenceSummary.connectedOnline} compact />
-                  </div>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       <AnimatePresence>
         {loadingUserMesh && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
@@ -470,43 +588,16 @@ export default function MeshPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Your mesh is just getting started</h3>
             <p className="text-sm text-white/70 mb-4">
-              Follow people, connect platforms, and join communities to create a richer and more navigable map.
+              Connect platforms, follow people, and map communities to turn this into a full internet presence cockpit.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Link href="/explore"><Button variant="gradient" size="sm">Explore</Button></Link>
-              <Link href="/communities"><Button variant="secondary" size="sm">Join communities</Button></Link>
+              <Link href="/connected-accounts"><Button variant="secondary" size="sm">Connect platforms</Button></Link>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-function PanelButton({
-  icon: Icon,
-  label,
-  active,
-  onClick,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={
-        "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition backdrop-blur-xl border " +
-        (active
-          ? "border-white/30 bg-white/20 text-white"
-          : "border-white/10 bg-black/45 text-white/80 hover:bg-black/60")
-      }
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </button>
   );
 }
 
