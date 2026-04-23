@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <MeshiFunLoadingScreen
       title="Your Mesh"
-      subtitle="Meshi put on a construction hat and is building your mesh."
+      subtitle="Meshi is building your mesh structure."
       mode="mesh-building"
     />
   );
