@@ -834,9 +834,17 @@ function getStoredConnectedAccountTokens(account: { accessToken: string | null; 
   refreshToken: string | null;
 } {
   return {
-    accessToken: getStoredToken(account.accessToken),
-    refreshToken: getStoredToken(account.refreshToken),
+    accessToken: getStoredAccessToken(account.accessToken),
+    refreshToken: getStoredRefreshToken(account.refreshToken),
   };
+}
+
+function getStoredAccessToken(value: string | null): string | null {
+  return getStoredToken(value);
+}
+
+function getStoredRefreshToken(value: string | null): string | null {
+  return getStoredToken(value);
 }
 
 // ─── Sync Engine ────────────────────────────────────────────

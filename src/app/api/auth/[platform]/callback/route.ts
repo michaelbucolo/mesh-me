@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { OAUTH_CONFIGS, getCallbackUrl, getBaseUrl, getNestedField, resolveNestedPath, isPlatformOAuth } from "@/lib/oauth";
-import { encryptSecret } from "@/lib/secret-store";
+import { encryptSecret, hasSecretEncryptionKey } from "@/lib/secret-store";
 import { cookies } from "next/headers";
 
 export async function GET(
@@ -133,6 +133,12 @@ export async function GET(
     if (!accessToken) {
       return NextResponse.redirect(
         `${connectedAccountsUrl}?error=${encodeURIComponent("No access token received")}&platform=${encodedPlatform}`
+      );
+    }
+
+    if (!hasSecretEncryptionKey()) {
+      return NextResponse.redirect(
+        `${connectedAccountsUrl}?error=${encodeURIComponent("Server encryption key is not configured. Please contact support.")}&platform=${encodedPlatform}`
       );
     }
 
