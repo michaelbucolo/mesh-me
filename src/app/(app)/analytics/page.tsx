@@ -25,25 +25,25 @@ export default async function AnalyticsPage() {
     platformCommentCount,
     platformFollowerCount,
   ] = await Promise.all([
-    getPlatformAnalyticsSummary(),
-    getMeshPrivacy(),
-    getGlobalMeshStatus(),
-    prisma.post.count({ where: { authorId: user.id } }),
-    prisma.comment.count({ where: { authorId: user.id } }),
-    prisma.message.count({ where: { senderId: user.id } }),
-    prisma.meChatSession.count({
+    getPlatformAnalyticsSummary().catch(() => []),
+    getMeshPrivacy().catch(() => null),
+    getGlobalMeshStatus().catch(() => null),
+    safeCount(() => prisma.post.count({ where: { authorId: user.id } })),
+    safeCount(() => prisma.comment.count({ where: { authorId: user.id } })),
+    safeCount(() => prisma.message.count({ where: { senderId: user.id } })),
+    safeCount(() => prisma.meChatSession.count({
       where: {
         OR: [
           { hostId: user.id },
           { participants: { some: { userId: user.id } } },
         ],
       },
-    }),
-    prisma.notification.count({ where: { recipientId: user.id } }),
-    prisma.connectedAccount.count({ where: { userId: user.id } }),
-    prisma.platformPost.count({ where: { connectedAccount: { userId: user.id } } }),
-    prisma.platformComment.count({ where: { connectedAccount: { userId: user.id } } }),
-    prisma.platformFollower.count({ where: { connectedAccount: { userId: user.id } } }),
+    })),
+    safeCount(() => prisma.notification.count({ where: { recipientId: user.id } })),
+    safeCount(() => prisma.connectedAccount.count({ where: { userId: user.id } })),
+    safeCount(() => prisma.platformPost.count({ where: { connectedAccount: { userId: user.id } } })),
+    safeCount(() => prisma.platformComment.count({ where: { connectedAccount: { userId: user.id } } })),
+    safeCount(() => prisma.platformFollower.count({ where: { connectedAccount: { userId: user.id } } })),
   ]);
 
   const dataInventory = [
@@ -177,6 +177,14 @@ export default async function AnalyticsPage() {
       </section>
     </div>
   );
+}
+
+async function safeCount(load: () => Promise<number>) {
+  try {
+    return await load();
+  } catch {
+    return 0;
+  }
 }
 
 function HeroMetric({ label, value }: { label: string; value: number }) {
