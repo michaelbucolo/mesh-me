@@ -41,6 +41,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { PLATFORM_LOGO_MAP } from "@/components/platform-logos";
+import { InAppBrowser } from "@/components/in-app-browser";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -200,6 +201,7 @@ export default function ContentHubPage() {
   const [controlPayload, setControlPayload] = useState("{\n  \"postId\": \"\"\n}");
   const [controlLoading, setControlLoading] = useState(false);
   const [controlResult, setControlResult] = useState<string>("");
+  const [inAppUrl, setInAppUrl] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
 
   // Load sync status and accounts
@@ -711,6 +713,7 @@ export default function ContentHubPage() {
               onDelete={handleDeletePost}
               onPostAction={handlePostAction}
               onSync={(accountId) => handleSync(accountId, "posts")}
+              onOpenLink={setInAppUrl}
             />
           )}
           {activeTab === "analytics" && (
@@ -727,6 +730,7 @@ export default function ContentHubPage() {
               onFilterPlatform={setFilterPlatform}
               onSync={(accountId) => handleSync(accountId, "followers")}
               onFollowerAction={handleFollowerAction}
+              onOpenLink={setInAppUrl}
             />
           )}
           {activeTab === "cross-post" && (
@@ -767,6 +771,12 @@ export default function ContentHubPage() {
           )}
         </motion.div>
       </AnimatePresence>
+      <InAppBrowser
+        isOpen={Boolean(inAppUrl)}
+        url={inAppUrl}
+        title="Connected Content"
+        onClose={() => setInAppUrl(null)}
+      />
     </div>
   );
 }
@@ -1031,7 +1041,7 @@ function OverviewTab({ accounts, analytics, posts, syncing, onSync, onTabChange 
 
 // ─── Posts Tab ──────────────────────────────────────────────
 
-function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, searchQuery, accounts, onPageChange, onFilterPlatform, onFilterPostType, onSearchChange, onDelete, onPostAction, onSync }: {
+function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, searchQuery, accounts, onPageChange, onFilterPlatform, onFilterPostType, onSearchChange, onDelete, onPostAction, onSync, onOpenLink }: {
   posts: PlatformPostItem[];
   totalPosts: number;
   page: number;
@@ -1046,6 +1056,7 @@ function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, sea
   onDelete: (id: string) => void;
   onPostAction: (action: string, postId: string, extra?: Record<string, string>) => void;
   onSync: (accountId: string) => void;
+  onOpenLink: (url: string) => void;
 }) {
   const totalPages = Math.ceil(totalPosts / 20);
 
@@ -1123,7 +1134,7 @@ function PostsTab({ posts, totalPosts, page, filterPlatform, filterPostType, sea
       {/* Posts List */}
       <div className="space-y-3">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} onDelete={onDelete} onPostAction={onPostAction} />
+            <PostCard key={post.id} post={post} onDelete={onDelete} onPostAction={onPostAction} onOpenLink={onOpenLink} />
         ))}
       </div>
 
@@ -1249,7 +1260,7 @@ function AnalyticsTab({ analytics }: {
 
 // ─── Followers Tab ──────────────────────────────────────────
 
-function FollowersTab({ followers, totalFollowers, page, filterPlatform, accounts, onPageChange, onFilterPlatform, onSync, onFollowerAction }: {
+function FollowersTab({ followers, totalFollowers, page, filterPlatform, accounts, onPageChange, onFilterPlatform, onSync, onFollowerAction, onOpenLink }: {
   followers: FollowerItem[];
   totalFollowers: number;
   page: number;
@@ -1259,6 +1270,7 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
   onFilterPlatform: (p: string) => void;
   onSync: (accountId: string) => void;
   onFollowerAction: (action: "follow" | "unfollow", connectedAccountId: string, platformUserId: string) => void;
+  onOpenLink: (url: string) => void;
 }) {
   const totalPages = Math.ceil(totalFollowers / 20);
 
@@ -1354,9 +1366,9 @@ function FollowersTab({ followers, totalFollowers, page, filterPlatform, account
                     </button>
                   )}
                   {f.profileUrl && (
-                    <a href={f.profileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
+                    <button onClick={() => onOpenLink(f.profileUrl!)} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
                       <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
@@ -1628,11 +1640,12 @@ function SyncTab({ accounts, syncJobs, syncing, syncingAll, onSync, onSyncAll, o
 
 // ─── Post Card Component ────────────────────────────────────
 
-function PostCard({ post, compact, onDelete, onPostAction }: {
+function PostCard({ post, compact, onDelete, onPostAction, onOpenLink }: {
   post: PlatformPostItem;
   compact?: boolean;
   onDelete?: (id: string) => void;
   onPostAction?: (action: string, postId: string, extra?: Record<string, string>) => void;
+  onOpenLink?: (url: string) => void;
 }) {
   const config = PLATFORM_CONFIG[post.connectedAccount.platform] || { name: post.connectedAccount.platform, color: "#666" };
   const TypeIcon = POST_TYPE_ICONS[post.postType] || FileText;
@@ -1786,9 +1799,9 @@ function PostCard({ post, compact, onDelete, onPostAction }: {
         {!compact && (
           <div className="flex items-center gap-1 relative">
             {post.url && (
-              <a href={post.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-subtle)] transition-colors">
+              <button onClick={() => onOpenLink?.(post.url!)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-subtle)] transition-colors">
                 <ExternalLink className="h-4 w-4" />
-              </a>
+              </button>
             )}
 
             {/* More actions dropdown */}
