@@ -166,12 +166,12 @@ export default function MeshPage() {
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const meshiRelayMessage = viewingUserMesh
-    ? `You're exploring ${viewingUserMesh.label}'s mesh. Meshi is translating their internet map into your view.`
+    ? `You're exploring ${viewingUserMesh.label}'s mesh. You're viewing their map in your own context.`
     : selectedNode
-      ? `Meshi is focusing on ${selectedNode.label} and can route you to the right place in one tap.`
+      ? `Focused on ${selectedNode.label} so you can jump quickly.`
       : hoveredNode
-        ? `Hovering ${hoveredNode.label}. Meshi is reading context so the next action is easier.`
-        : "Meshi is your relay between you and the internet—people, platforms, communities, and content in one map.";
+        ? `Hovering ${hoveredNode.label}. Context is ready so the next action is easier.`
+        : "Your mesh connects people, platforms, communities, and content in one map.";
 
   const handleCanvasClick = useCallback((node: MeshNode | null) => {
     if (!node) {
