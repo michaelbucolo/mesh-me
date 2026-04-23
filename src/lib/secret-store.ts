@@ -3,9 +3,28 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypt
 const PREFIX = "enc:v1";
 
 function getKey(): Buffer | null {
-  const raw = process.env.MESHME_TOKEN_ENCRYPTION_KEY || process.env.MESHME_SECRET_KEY;
+  const raw =
+    process.env.APP_DATA_ENCRYPTION_KEY ||
+    process.env.MESHME_TOKEN_ENCRYPTION_KEY ||
+    process.env.MESHME_SECRET_KEY;
+
   if (!raw || raw === "change-me-please") return null;
+
+  try {
+    const base64Buffer = Buffer.from(raw, "base64");
+    if (base64Buffer.length === 32) return base64Buffer;
+  } catch {
+    // ignore invalid base64 input and try other formats
+  }
+
+  const utf8Buffer = Buffer.from(raw, "utf8");
+  if (utf8Buffer.length === 32) return utf8Buffer;
+
   return createHash("sha256").update(raw).digest();
+}
+
+export function hasSecretEncryptionKey(): boolean {
+  return getKey() !== null;
 }
 
 export function encryptSecret(value: string | null | undefined): string | null {
