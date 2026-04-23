@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { MeshiMascot, type MeshiHat, type MeshiMood, type MeshiProp } from "./meshi-mascot";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 /**
@@ -18,11 +18,11 @@ interface MeshiLoadingProps {
 }
 
 const LOADING_TIPS = [
-  "Meshi is untangling the mesh threads",
-  "Meshi is gathering your latest sparks",
-  "Meshi is polishing tiny pixels",
-  "Meshi is speed-running the loading realm",
-  "Meshi is syncing your vibe map",
+  "Meshi is synchronizing your mesh context",
+  "Meshi is preparing your personalized workspace",
+  "Meshi is validating fresh updates",
+  "Meshi is optimizing your next view",
+  "Meshi is aligning your live signals",
 ];
 
 const PLAYFUL_MOODS: MeshiMood[] = ["thinking", "excited", "giggle", "wink", "celebrating", "love"];
@@ -93,10 +93,10 @@ const LOADING_MODES: Record<NonNullable<MeshiFunLoadingScreenProps["mode"]>, {
   },
   "mesh-building": {
     tips: [
-      "Meshi is welding fresh connections",
-      "Meshi is placing nodes with laser precision",
-      "Meshi is tightening every edge bolt",
-      "Meshi is leveling your social scaffolding",
+      "Meshi is building connection pathways",
+      "Meshi is mapping nodes with precision",
+      "Meshi is balancing your network topology",
+      "Meshi is validating graph integrity",
     ],
     moods: ["thinking", "excited", "celebrating", "learning"],
     props: ["wrench", "clipboard", "compass"],
@@ -104,10 +104,10 @@ const LOADING_MODES: Record<NonNullable<MeshiFunLoadingScreenProps["mode"]>, {
   },
   "message-writing": {
     tips: [
-      "Meshi is drafting your latest chats",
-      "Meshi is sorting threads into neat stacks",
-      "Meshi is jotting quick replies",
-      "Meshi is proofreading your inbox vibes",
+      "Meshi is organizing your conversation threads",
+      "Meshi is indexing recent message history",
+      "Meshi is preparing smart reply context",
+      "Meshi is syncing your inbox status",
     ],
     moods: ["thinking", "love", "wink", "giggle"],
     props: ["notebook", "clipboard", "heart"],
@@ -116,7 +116,7 @@ const LOADING_MODES: Record<NonNullable<MeshiFunLoadingScreenProps["mode"]>, {
 
 export function MeshiFunLoadingScreen({
   title,
-  subtitle = "Tap Meshi for a surprise reaction.",
+  subtitle = "Meshi is preparing this workspace.",
   className = "",
   mode = "default",
 }: MeshiFunLoadingScreenProps) {
@@ -125,7 +125,6 @@ export function MeshiFunLoadingScreen({
   const [tipIndex, setTipIndex] = useState(0);
   const [moodIndex, setMoodIndex] = useState(0);
   const [propIndex, setPropIndex] = useState(0);
-  const [boostCount, setBoostCount] = useState(0);
   const selectedMode = LOADING_MODES[mode];
 
   useEffect(() => {
@@ -137,41 +136,27 @@ export function MeshiFunLoadingScreen({
       setTipIndex((i) => (i + 1) % selectedMode.tips.length);
     }, 2200);
 
+    const moodTimer = setInterval(() => {
+      setMoodIndex((i) => (i + 1) % selectedMode.moods.length);
+      setPropIndex((i) => (i + 1) % selectedMode.props.length);
+    }, 2600);
+
     return () => {
       clearInterval(dotTimer);
       clearInterval(tipTimer);
+      clearInterval(moodTimer);
     };
-  }, [selectedMode.tips.length]);
-
-  const onMeshiTap = () => {
-    setMoodIndex((i) => (i + 1) % selectedMode.moods.length);
-    setPropIndex((i) => (i + 1) % selectedMode.props.length);
-    setBoostCount((count) => count + 1);
-  };
-
-  const hypeLabel = useMemo(() => {
-    if (boostCount >= 12) return "🚀 Hypercharged";
-    if (boostCount >= 7) return "⚡ Turbo loading";
-    if (boostCount >= 3) return "✨ Extra spark";
-    return "🌟 Normal sparkle";
-  }, [boostCount]);
+  }, [selectedMode.moods.length, selectedMode.props.length, selectedMode.tips.length]);
 
   return (
     <div className={`max-w-3xl mx-auto px-4 py-10 flex flex-col items-center text-center ${className}`}>
-      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-muted)] mb-5">
-        <span>{hypeLabel}</span>
+      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1 text-xs font-medium text-[var(--text-muted)] mb-5">
+        <span>Meshi Sync</span>
         <span aria-hidden>•</span>
-        <span>Boost taps: {boostCount}</span>
+        <span>In progress</span>
       </div>
 
-      <motion.button
-        type="button"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.92, rotate: -6 }}
-        onClick={onMeshiTap}
-        className="rounded-3xl p-4 border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-lg shadow-black/5 mb-4"
-        aria-label="Interact with Meshi while loading"
-      >
+      <div className="rounded-3xl p-4 border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-lg shadow-black/5 mb-4">
         <motion.div
           animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
@@ -186,7 +171,7 @@ export function MeshiFunLoadingScreen({
             animate
           />
         </motion.div>
-      </motion.button>
+      </div>
 
       <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] mb-2">{title}</h2>
       <p className="text-sm text-[var(--text-muted)] mb-2">{subtitle}</p>
