@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, Bot, CalendarDays, Command, MessageCircle, Search } from "lucide-react";
+import { Bell, CalendarDays, Command, MessageCircle, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openMeshi } from "@/lib/meshi-events";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 
 interface PremiumTopbarProps {
   unreadNotifications: number;
@@ -25,6 +27,7 @@ const routeMeta: Record<string, { title: string; subtitle: string }> = {
 
 export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenCommandCenter }: PremiumTopbarProps) {
   const pathname = usePathname();
+  const meshiPrefs = useMeshiPreferences();
 
   const meta = useMemo(() => {
     const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
@@ -72,7 +75,14 @@ export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenComma
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-3 py-2 text-xs text-[var(--text-secondary)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
             title="Talk to Meshi"
           >
-            <Bot className="h-3.5 w-3.5" />
+            <MeshiMascot
+              size={16}
+              color={meshiPrefs.color}
+              hat={meshiPrefs.hat}
+              mood={meshiPrefs.face}
+              showGlow={false}
+              animate={false}
+            />
             Ask Meshi
           </button>
 
