@@ -6,12 +6,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { signOut } from "@/lib/actions";
 import {
   Settings, User, Shield, Bell, Lock, LogOut, Palette, Paintbrush,
-  Globe, Fingerprint, UserX, Crown, Sparkles, ShieldCheck, Trophy, Users,
+  Globe, Fingerprint, UserX, Crown, Sparkles, Trophy, Users,
   Check, AlertTriangle,
 } from "lucide-react";
 import {
   ProfileTab, InterestsTab, CustomizeTab, NotificationsTab,
-  PrivacyTab, MeshPrivacyTab, SecurityTab, SecurityHubTab,
+  PrivacyTab, MeshPrivacyTab, SecurityTab,
   FootprintTab, BlockedTab, AchievementsTab, MeshiTab,
   AlterEgosTab, MeshProTab, DeleteAccountTab,
   type SettingsData, type BlockedUser,
@@ -26,7 +26,6 @@ const tabs = [
   { id: "privacy", label: "Privacy & Safety", icon: Shield },
   { id: "mesh-privacy", label: "Mesh Privacy", icon: Globe },
   { id: "security", label: "Security", icon: Lock },
-  { id: "security-hub", label: "Security Hub", icon: ShieldCheck },
   { id: "footprint", label: "Digital Footprint", icon: Fingerprint },
   { id: "blocked", label: "Blocked Users", icon: UserX },
   { id: "achievements", label: "Achievements", icon: Trophy },
@@ -61,12 +60,6 @@ export default function SettingsPage() {
   const [readReceipts, setReadReceipts] = useState(true);
 
   // Notifications
-  const [notifFollowers, setNotifFollowers] = useState(true);
-  const [notifLikes, setNotifLikes] = useState(true);
-  const [notifComments, setNotifComments] = useState(true);
-  const [notifMessages, setNotifMessages] = useState(true);
-  const [notifCommunity, setNotifCommunity] = useState(true);
-  const [notifSmartSummary, setNotifSmartSummary] = useState(true);
 
   // Customization
   const [selectedTheme, setSelectedTheme] = useState("midnight");
@@ -243,14 +236,7 @@ export default function SettingsPage() {
             />
           )}
           {activeTab === "notifications" && (
-            <NotificationsTab
-              notifFollowers={notifFollowers} setNotifFollowers={setNotifFollowers}
-              notifLikes={notifLikes} setNotifLikes={setNotifLikes}
-              notifComments={notifComments} setNotifComments={setNotifComments}
-              notifMessages={notifMessages} setNotifMessages={setNotifMessages}
-              notifCommunity={notifCommunity} setNotifCommunity={setNotifCommunity}
-              notifSmartSummary={notifSmartSummary} setNotifSmartSummary={setNotifSmartSummary}
-            />
+            <NotificationsTab showSuccess={showSuccess} />
           )}
           {activeTab === "privacy" && (
             <PrivacyTab
@@ -258,7 +244,7 @@ export default function SettingsPage() {
               showInDiscovery={showInDiscovery} setShowInDiscovery={setShowInDiscovery}
               hideActivityStatus={hideActivityStatus} setHideActivityStatus={setHideActivityStatus}
               readReceipts={readReceipts} setReadReceipts={setReadReceipts}
-              showSuccess={showSuccess} showError={showError}
+              showSuccess={showSuccess}
             />
           )}
           {activeTab === "mesh-privacy" && (
@@ -267,7 +253,6 @@ export default function SettingsPage() {
           {activeTab === "security" && (
             <SecurityTab showSuccess={showSuccess} showError={showError} />
           )}
-          {activeTab === "security-hub" && <SecurityHubTab />}
           {activeTab === "footprint" && <FootprintTab />}
           {activeTab === "blocked" && (
             <BlockedTab blockedUsers={blockedUsers} setBlockedUsers={setBlockedUsers} showSuccess={showSuccess} />
