@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, type ComponentType } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useTransition, type ComponentType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,6 +30,7 @@ import { MeshCanvas } from "@/components/mesh/mesh-canvas";
 import { buildMeshData, buildUserMeshData, preloadNodeImages, type MeshApiResponse } from "@/components/mesh/mesh-data";
 import type { MeshNode, MeshEdge } from "@/components/mesh/mesh-types";
 import type { RemoteMeshi } from "@/components/mesh/meshi-on-mesh";
+import { createPost, deletePost } from "@/lib/actions";
 
 type CachedUserMeshResponse = {
   user: { id: string; username: string; displayName: string; avatarUrl: string | null };
@@ -99,6 +100,8 @@ export default function MeshPage() {
   const [composerText, setComposerText] = useState("");
   const [deleteQueue, setDeleteQueue] = useState<Array<{ id: string; label: string; scope: string }>>([]);
   const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [viewportInfo, setViewportInfo] = useState({
     zoom: 0.65,
     panX: 0,
@@ -112,6 +115,7 @@ export default function MeshPage() {
   const [viewingUserMesh, setViewingUserMesh] = useState<MeshNode | null>(null);
   const [myNodes, setMyNodes] = useState<MeshNode[]>([]);
   const [myEdges, setMyEdges] = useState<MeshEdge[]>([]);
+  const [isPending, startTransition] = useTransition();
 
   const zoomRef = useRef(0.65);
   const panRef = useRef({ x: 0, y: 0 });
@@ -125,36 +129,38 @@ export default function MeshPage() {
     panRef.current = pan;
   }, [pan]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/mesh");
-        if (!res.ok) throw new Error("Failed to load mesh data");
-        const data: MeshApiResponse = await res.json();
+  const loadMyMesh = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/mesh", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load mesh data");
+      const data: MeshApiResponse = await res.json();
 
-        const cx = window.innerWidth / 2;
-        const cy = window.innerHeight / 2;
-        engine.setCenter(cx, cy);
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      engine.setCenter(cx, cy);
 
-        const { nodes, edges } = buildMeshData(data, cx, cy);
-        engine.setData(nodes, edges);
-        preloadNodeImages(nodes, imageCache.current);
+      const { nodes, edges } = buildMeshData(data, cx, cy);
+      engine.setData(nodes, edges);
+      preloadNodeImages(nodes, imageCache.current);
 
-        setMyNodes(nodes);
-        setMyEdges(edges);
-        setMyUsername(data.user.displayName || data.user.username || "You");
-        setMyUserId(data.user.id);
+      setMyNodes(nodes);
+      setMyEdges(edges);
+      setMyUsername(data.user.displayName || data.user.username || "You");
+      setMyUserId(data.user.id);
 
-        if (data.meshiPreference?.colorTheme) setMyMeshiColor(data.meshiPreference.colorTheme as MeshiColor);
-        if (data.meshiPreference?.hatStyle) setMyMeshiHat(data.meshiPreference.hatStyle as MeshiHat);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load mesh");
-      } finally {
-        setLoading(false);
-      }
-    })();
+      if (data.meshiPreference?.colorTheme) setMyMeshiColor(data.meshiPreference.colorTheme as MeshiColor);
+      if (data.meshiPreference?.hatStyle) setMyMeshiHat(data.meshiPreference.hatStyle as MeshiHat);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load mesh");
+    } finally {
+      setLoading(false);
+    }
   }, [engine]);
+
+  useEffect(() => {
+    void loadMyMesh();
+  }, [loadMyMesh]);
 
   const resetView = useCallback(() => {
     setZoom(0.65);
@@ -287,6 +293,11 @@ export default function MeshPage() {
 
   const queueDeleteForSelected = useCallback(() => {
     if (!selectedNode) return;
+    const isLikelyPlatformPost = selectedNode.id.startsWith("pp-");
+    if (isLikelyPlatformPost) {
+      setActionError("That post is external platform content. Open source platform to remove it.");
+      return;
+    }
     setDeleteQueue((prev) => {
       const exists = prev.some((item) => item.id === selectedNode.id);
       if (exists) return prev;
@@ -299,6 +310,41 @@ export default function MeshPage() {
     setSyncPulseTime(Date.now());
     setActiveMode("sync");
   }, []);
+
+  const handlePublish = useCallback(() => {
+    if (!composerText.trim()) return;
+    setActionFeedback(null);
+    setActionError(null);
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("content", composerText.trim());
+      const result = await createPost(formData);
+      if (result?.success) {
+        setComposerText("");
+        setActionFeedback("Posted to Mesh. Sync workers can now fan this out to connected platforms.");
+        await loadMyMesh();
+        pulseSync();
+      } else {
+        setActionError(result?.error || "Could not publish from Mesh.");
+      }
+    });
+  }, [composerText, loadMyMesh, pulseSync, startTransition]);
+
+  const handleDeleteQueued = useCallback((queuedId: string) => {
+    setActionFeedback(null);
+    setActionError(null);
+    startTransition(async () => {
+      const result = await deletePost(queuedId);
+      if (result?.success) {
+        setDeleteQueue((prev) => prev.filter((item) => item.id !== queuedId));
+        setActionFeedback("Post deleted from Mesh.");
+        await loadMyMesh();
+        pulseSync();
+      } else {
+        setActionError(result?.error || "This item cannot be deleted from Mesh.");
+      }
+    });
+  }, [loadMyMesh, pulseSync, startTransition]);
 
   if (loading) {
     return (
@@ -491,9 +537,13 @@ export default function MeshPage() {
                   rows={3}
                 />
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => router.push("/feed")} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/25 px-2.5 py-1.5 text-xs font-medium text-indigo-100 hover:bg-indigo-500/35 transition">
+                  <button
+                    disabled={isPending || !composerText.trim()}
+                    onClick={handlePublish}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/25 px-2.5 py-1.5 text-xs font-medium text-indigo-100 hover:bg-indigo-500/35 transition disabled:cursor-not-allowed disabled:opacity-50"
+                  >
                     <Send className="h-3.5 w-3.5" />
-                    Publish from feed
+                    Publish from Mesh
                   </button>
                   <button onClick={queueDeleteForSelected} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/20 px-2.5 py-1.5 text-xs font-medium text-red-100 hover:bg-red-500/30 transition">
                     <Trash2 className="h-3.5 w-3.5" />
@@ -505,13 +555,24 @@ export default function MeshPage() {
                     <p className="text-white/50">No deletion queue yet. Select a post/platform/user node and queue an action.</p>
                   ) : (
                     deleteQueue.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between rounded-md bg-white/10 px-2 py-1">
-                        <span className="truncate pr-3">{item.label}</span>
-                        <span className="text-[10px] uppercase tracking-wide text-white/60">{item.scope}</span>
+                      <div key={item.id} className="flex items-center justify-between rounded-md bg-white/10 px-2 py-1 gap-2">
+                        <span className="truncate pr-1">{item.label}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase tracking-wide text-white/60">{item.scope}</span>
+                          <button
+                            disabled={isPending}
+                            onClick={() => handleDeleteQueued(item.id)}
+                            className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] text-red-100 hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}
                 </div>
+                {actionFeedback && <p className="text-[11px] text-emerald-300">{actionFeedback}</p>}
+                {actionError && <p className="text-[11px] text-red-300">{actionError}</p>}
               </div>
             )}
 
