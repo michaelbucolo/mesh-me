@@ -1,29 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
-import { ToastProvider } from "@/components/ui/toast";
-import { ThemeProvider } from "@/components/theme-provider";
+
 import { NativeInit } from "@/components/native-init";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
+import { resolveSiteUrl, SITE_CONFIG } from "@/core/config/site";
 
-function getSiteUrl() {
-  const fallback = "https://mesh.me";
-  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
+import "./globals.css";
 
-  if (!raw) return fallback;
-
-  try {
-    return new URL(raw).toString().replace(/\/$/, "");
-  } catch {
-    return fallback;
-  }
-}
-
-const siteUrl = getSiteUrl();
+const siteUrl = resolveSiteUrl(process.env.NEXT_PUBLIC_APP_URL);
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "mesh.me — Your digital universe, remixed",
-  description: "A creator-first social operating system that unifies identity, communities, and conversations in one private graph.",
-  keywords: ["mesh.me", "digital identity", "unified social platform", "privacy-first", "social network", "universal social"],
+  title: SITE_CONFIG.title,
+  description: SITE_CONFIG.description,
+  keywords: [...SITE_CONFIG.keywords],
   alternates: {
     canonical: "/",
   },
@@ -36,22 +26,23 @@ export const metadata: Metadata = {
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
   },
-  applicationName: "mesh.me",
+  applicationName: SITE_CONFIG.name,
   appleWebApp: {
     capable: true,
-    title: "mesh.me",
+    title: SITE_CONFIG.name,
     statusBarStyle: "black-translucent",
   },
   openGraph: {
     url: siteUrl,
-    title: "mesh.me — Your digital universe, remixed",
-    description: "Unify identity, communities, and conversations in one privacy-first social operating system.",
-    siteName: "mesh.me",
+    title: SITE_CONFIG.title,
+    description:
+      "Unify identity, communities, and conversations in one privacy-first social operating system.",
+    siteName: SITE_CONFIG.name,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "mesh.me — Your digital universe, remixed",
+    title: SITE_CONFIG.title,
     description: "A creator-first social operating system for your full digital footprint.",
   },
   category: "technology",
@@ -71,7 +62,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="app-shell-gradient font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
+      <body
+        className="app-shell-gradient font-sans antialiased"
+        style={{
+          backgroundColor: "var(--bg-primary)",
+          color: "var(--text-primary)",
+        }}
+      >
         <ThemeProvider>
           <ToastProvider>
             <NativeInit />
