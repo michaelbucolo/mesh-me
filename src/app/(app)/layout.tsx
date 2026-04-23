@@ -10,6 +10,7 @@ import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper"
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
 import { prisma } from "@/lib/prisma";
 import { AppChrome } from "@/components/layout/app-chrome";
+import { LiveSyncPulse } from "@/components/live-sync-pulse";
 
 export const metadata: Metadata = {
   title: {
@@ -87,6 +88,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <MeshiFloat />
       <MeshiDeliveryWrapper />
       <AchievementChecker />
+      <LiveSyncPulse />
       <DynamicFavicon />
     </div>
   );

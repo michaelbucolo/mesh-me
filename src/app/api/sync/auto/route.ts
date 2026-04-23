@@ -19,8 +19,8 @@ export async function POST() {
       },
     });
 
-    // Only sync accounts that have access tokens and haven't synced in the last 5 minutes
-    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000);
+    // Keep accounts close to real-time by syncing anything older than 45 seconds.
+    const staleThreshold = new Date(Date.now() - 45 * 1000);
     const staleAccounts = accounts.filter(
       (a) => a.syncStatus !== "syncing" && (!a.lastSyncAt || a.lastSyncAt < staleThreshold),
     );
@@ -39,7 +39,7 @@ export async function POST() {
     for (const batch of batches) {
       const batchResults = await Promise.allSettled(
         batch.map(async (account) => {
-          const result = await syncPlatform(account.id, "posts");
+          const result = await syncPlatform(account.id, "full");
           return { platform: account.platform, success: !result.error, error: result.error };
         }),
       );
