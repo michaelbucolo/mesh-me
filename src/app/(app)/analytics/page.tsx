@@ -6,10 +6,17 @@ import { getGlobalMeshStatus, getMeshPrivacy } from "@/lib/queries";
 import { getPlatformAnalyticsSummary } from "@/lib/platform-sync";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import { PLATFORM_CAPABILITIES } from "@/lib/platform-capabilities";
+import { PrivacyPermissionsManager } from "@/components/analytics/privacy-permissions-manager";
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const params = await searchParams;
+  const activeTab = params?.tab === "privacy" ? "privacy" : "overview";
 
   const [
     platformSummary,
@@ -21,6 +28,7 @@ export default async function AnalyticsPage() {
     meChatSessionCount,
     notificationCount,
     connectedAccountCount,
+    connectedAccounts,
     platformPostCount,
     platformCommentCount,
     platformFollowerCount,
@@ -41,6 +49,25 @@ export default async function AnalyticsPage() {
     })),
     safeCount(() => prisma.notification.count({ where: { recipientId: user.id } })),
     safeCount(() => prisma.connectedAccount.count({ where: { userId: user.id } })),
+    prisma.connectedAccount.findMany({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        platform: true,
+        platformUsername: true,
+        isActive: true,
+        scopes: true,
+        _count: {
+          select: {
+            platformPosts: true,
+            platformComments: true,
+            platformFollowers: true,
+            platformMedia: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
     safeCount(() => prisma.platformPost.count({ where: { connectedAccount: { userId: user.id } } })),
     safeCount(() => prisma.platformComment.count({ where: { connectedAccount: { userId: user.id } } })),
     safeCount(() => prisma.platformFollower.count({ where: { connectedAccount: { userId: user.id } } })),
@@ -84,6 +111,25 @@ export default async function AnalyticsPage() {
         </div>
       </section>
 
+      <section className="mesh-panel flex w-full max-w-sm gap-2 rounded-2xl p-1">
+        <a
+          href="/analytics?tab=overview"
+          className={`flex-1 rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${activeTab === "overview" ? "bg-[var(--accent)] text-black" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+        >
+          Analytics
+        </a>
+        <a
+          href="/analytics?tab=privacy"
+          className={`flex-1 rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${activeTab === "privacy" ? "bg-[var(--accent)] text-black" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+        >
+          Privacy tab
+        </a>
+      </section>
+
+      {activeTab === "privacy" ? (
+        <PrivacyPermissionsManager accounts={connectedAccounts} />
+      ) : (
+        <>
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {trustControls.map((item) => (
           <div key={item.label} className="mesh-stat-card">
@@ -175,6 +221,8 @@ export default async function AnalyticsPage() {
           ))}
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 }
