@@ -997,7 +997,9 @@ export async function getFriendMeshData(username: string): Promise<{
   const currentUser = await getCurrentUser();
   if (!currentUser) return null;
 
-  const targetUser = await prisma.user.findUnique({ where: { username } });
+  const targetUser = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+  });
   if (!targetUser) return null;
 
   // Check privacy settings
