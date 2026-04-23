@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <MeshiFunLoadingScreen
       title="Messages"
-      subtitle="Meshi grabbed pen and paper to prep your conversations."
+      subtitle="Meshi is organizing your conversations."
       mode="message-writing"
     />
   );
