@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { OAUTH_CONFIGS, getCallbackUrl, getBaseUrl, getNestedField, resolveNestedPath, isPlatformOAuth } from "@/lib/oauth";
+import { encryptSecret } from "@/lib/secret-store";
 import { cookies } from "next/headers";
 
 export async function GET(
@@ -135,6 +136,9 @@ export async function GET(
       );
     }
 
+    const encryptedAccessToken = encryptSecret(accessToken);
+    const encryptedRefreshToken = encryptSecret(refreshToken);
+
     // Fetch user profile from the platform
     const profileHeaders: Record<string, string> = {
       Authorization: `Bearer ${accessToken}`,
@@ -206,8 +210,8 @@ export async function GET(
       await prisma.connectedAccount.update({
         where: { id: existingAccount.id },
         data: {
-          accessToken,
-          refreshToken,
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
           expiresAt,
           platformUsername,
           platformId,
@@ -220,8 +224,8 @@ export async function GET(
         data: {
           userId: user.id,
           platform,
-          accessToken,
-          refreshToken,
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
           expiresAt,
           platformUsername,
           platformId,

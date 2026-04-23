@@ -10,20 +10,19 @@ export async function POST() {
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const accounts = await prisma.connectedAccount.findMany({
-      where: { userId: user.id, isActive: true },
+      where: { userId: user.id, isActive: true, accessToken: { not: null } },
       select: {
         id: true,
         platform: true,
         lastSyncAt: true,
         syncStatus: true,
-        accessToken: true,
       },
     });
 
     // Only sync accounts that have access tokens and haven't synced in the last 5 minutes
     const staleThreshold = new Date(Date.now() - 5 * 60 * 1000);
     const staleAccounts = accounts.filter(
-      (a) => a.accessToken && a.syncStatus !== "syncing" && (!a.lastSyncAt || a.lastSyncAt < staleThreshold),
+      (a) => a.syncStatus !== "syncing" && (!a.lastSyncAt || a.lastSyncAt < staleThreshold),
     );
 
     if (staleAccounts.length === 0) {

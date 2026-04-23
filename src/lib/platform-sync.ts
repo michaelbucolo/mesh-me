@@ -810,10 +810,33 @@ function defaultAnalytics(): PlatformAnalyticsData {
   };
 }
 
-function getStoredAccessToken(value: string | null): string | null {
+function isStrictTokenEncryptionEnabled(): boolean {
+  return Boolean(process.env.APP_DATA_ENCRYPTION_KEY);
+}
+
+function getStoredToken(value: string | null): string | null {
   if (!value) return null;
-  if (value.startsWith("enc:v1:")) return decryptSecret(value);
-  return decryptSecret(value) || value;
+
+  if (value.startsWith("enc:v1:")) {
+    try {
+      return decryptSecret(value);
+    } catch {
+      return null;
+    }
+  }
+
+  // Legacy plaintext tokens are only allowed before APP_DATA_ENCRYPTION_KEY is rolled out.
+  return isStrictTokenEncryptionEnabled() ? null : value;
+}
+
+function getStoredConnectedAccountTokens(account: { accessToken: string | null; refreshToken: string | null }): {
+  accessToken: string | null;
+  refreshToken: string | null;
+} {
+  return {
+    accessToken: getStoredToken(account.accessToken),
+    refreshToken: getStoredToken(account.refreshToken),
+  };
 }
 
 // ─── Sync Engine ────────────────────────────────────────────
@@ -826,8 +849,8 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
-  const accessToken = getStoredAccessToken(account.accessToken);
-  if (account.accessToken && !accessToken) return { error: "Token encryption key is missing. Reconnect this platform after configuring MESHME_TOKEN_ENCRYPTION_KEY." };
+  const { accessToken } = getStoredConnectedAccountTokens(account);
+  if (account.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
   if (!accessToken) return { error: "No access token - reconnect this platform" };
 
   // Create sync job
@@ -968,8 +991,8 @@ export async function syncComments(connectedAccountId: string, platformPostId: s
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
-  const accessToken = getStoredAccessToken(account.accessToken);
-  if (account.accessToken && !accessToken) return { error: "Token encryption key is missing. Reconnect this platform after configuring MESHME_TOKEN_ENCRYPTION_KEY." };
+  const { accessToken } = getStoredConnectedAccountTokens(account);
+  if (account.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
   if (!accessToken) return { error: "No access token" };
 
   const post = await prisma.platformPost.findFirst({
