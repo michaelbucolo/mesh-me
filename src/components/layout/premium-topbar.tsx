@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarDays, Command, MessageCircle, Search } from "lucide-react";
+import { Bell, Bot, CalendarDays, Command, MessageCircle, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { openMeshi } from "@/lib/meshi-events";
 
 interface PremiumTopbarProps {
   unreadNotifications: number;
@@ -63,6 +64,16 @@ export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenComma
             <span className="inline-flex items-center gap-1 rounded-md border border-[var(--border-primary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
               <Command className="h-3 w-3" />K
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openMeshi("speech")}
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-3 py-2 text-xs text-[var(--text-secondary)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+            title="Talk to Meshi"
+          >
+            <Bot className="h-3.5 w-3.5" />
+            Ask Meshi
           </button>
 
           <span className="inline-flex items-center gap-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-3 py-2 text-xs text-[var(--text-secondary)]">

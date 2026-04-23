@@ -1,4 +1,5 @@
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 
 interface AvatarProps {
   src?: string | null;
@@ -34,12 +35,12 @@ export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-semibold text-white ring-1 ring-[var(--border-primary)] flex-shrink-0 bg-[var(--accent)]",
+        "rounded-full flex items-center justify-center ring-1 ring-[var(--border-primary)] flex-shrink-0 bg-[var(--bg-secondary)]",
         sizeMap[size],
         className
       )}
     >
-      {getInitials(alt || "?")}
+      <MeshiLogo size={size === "xs" ? 14 : size === "sm" ? 18 : size === "md" ? 20 : size === "lg" ? 28 : 36} color="blue" mood="happy" />
     </div>
   );
 }
