@@ -1,33 +1,61 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ExternalLink, Eye, FileCheck2, KeyRound, Lock, Shield } from "lucide-react";
+import {
+  ExternalLink,
+  Eye,
+  FileCheck2,
+  KeyRound,
+  Lock,
+  ServerCog,
+  Shield,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 
 export const metadata: Metadata = {
   title: "Trust Center | mesh.me",
-  description: "Security, privacy, transparency, and responsible platform use on Mesh.me.",
+  description: "Security, privacy, transparency, and launch trust principles for Mesh.me.",
 };
 
 const trustPillars = [
   {
     icon: Shield,
     title: "Security by default",
-    description: "Secure headers, strict transport security, hardened browser policies, and production readiness checks are part of the launch path.",
+    description: "Launch readiness means hardened defaults, protective headers, minimal exposure, and safer account handling across the stack.",
   },
   {
     icon: Lock,
-    title: "Privacy-first data handling",
-    description: "Users can inspect privacy settings, connected accounts, permission states, and stored-data controls in the product.",
+    title: "Privacy visible in product",
+    description: "Users should not have to trust hidden promises. Mesh.me exposes privacy, permissions, exports, and deletion controls directly in the interface.",
   },
   {
     icon: KeyRound,
-    title: "Token protection",
-    description: "Connected platform tokens are designed to be encrypted and scoped to user-authorized actions.",
+    title: "Scoped platform access",
+    description: "Connected account access is meant to be limited to user-authorized actions instead of broad invisible grabs for data.",
   },
   {
     icon: Eye,
-    title: "Transparent controls",
-    description: "Analytics doubles as a data control center so privacy is an interface, not a hidden policy paragraph.",
+    title: "Transparent ownership",
+    description: "Mesh.me is designed as a user-authorized distribution and management layer, not a system that steals credit or hides what it stores.",
+  },
+];
+
+const controlRows = [
+  {
+    icon: ServerCog,
+    title: "Connected account permissions",
+    copy: "Users should always understand which platforms are linked, what is imported, and what can be disconnected immediately.",
+  },
+  {
+    icon: Trash2,
+    title: "Deletion and export",
+    copy: "Analytics and privacy tooling should let people inspect, export, and remove data without guesswork.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Meshi boundary",
+    copy: "Meshi is the only deeply integrated AI layer so the rest of the product stays clean, predictable, and less invasive.",
   },
 ];
 
@@ -37,10 +65,13 @@ export default function TrustCenterPage() {
       <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <div>
           <p className="mesh-kicker mb-4">mesh.me Trust Center</p>
-          <h1 className="mesh-title text-4xl leading-tight md:text-6xl">Security, privacy, and transparency built into the product.</h1>
+          <h1 className="mesh-title text-4xl leading-tight md:text-6xl">
+            Trust has to be part of the interface, not buried in the fine print.
+          </h1>
         </div>
         <p className="mesh-copy text-base md:text-lg">
-          Mesh.me is designed around user ownership, source credit, no ad-driven exploitation, and clear controls for data access, storage, sync, and deletion.
+          Mesh.me is built around user ownership, source credit, secure connected accounts, clear permission states,
+          and a business model that does not depend on selling the user out.
         </p>
       </section>
 
@@ -56,10 +87,43 @@ export default function TrustCenterPage() {
         ))}
       </section>
 
+      <section className="mt-12 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+        <article className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <FileCheck2 className="h-5 w-5 text-[var(--accent)]" />
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">How the trust model shows up in product</h2>
+          </div>
+          <div className="space-y-3">
+            {controlRows.map((row) => (
+              <div key={row.title} className="rounded-2xl border border-[var(--border-primary)] p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <row.icon className="h-4 w-4 text-[var(--accent)]" />
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">{row.title}</h3>
+                </div>
+                <p className="text-sm leading-6 text-[var(--text-secondary)]">{row.copy}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Source-respecting platform model
+          </p>
+          <p className="text-sm leading-6 text-[var(--text-secondary)]">
+            Mesh.me is intended to feel like a user-authorized control layer for your digital world. When supported,
+            interactions should flow back to the source platform so creators keep credit and origin context stays intact.
+          </p>
+          <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-200">
+            The product goal is simple: safer defaults, clearer controls, less manipulation, and no hidden ad bargain.
+          </div>
+        </article>
+      </section>
+
       <section className="mt-12 rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
         <div className="mb-4 flex items-center gap-2">
           <FileCheck2 className="h-5 w-5 text-[var(--accent)]" />
-          <h2 className="text-base font-bold text-[var(--text-primary)]">Policy and compliance references</h2>
+          <h2 className="text-base font-bold text-[var(--text-primary)]">Policy and launch references</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {[
@@ -69,8 +133,13 @@ export default function TrustCenterPage() {
             ["/api/trust/status", "Trust Status API"],
             ["/.well-known/security.txt", "security.txt"],
           ].map(([href, label]) => (
-            <Link key={href} href={href} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-primary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-              {label} <ExternalLink className="h-3 w-3" />
+            <Link
+              key={href}
+              href={href}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-primary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              {label}
+              <ExternalLink className="h-3 w-3" />
             </Link>
           ))}
         </div>
