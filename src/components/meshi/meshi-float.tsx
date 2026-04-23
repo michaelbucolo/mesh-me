@@ -16,6 +16,7 @@ import {
   getKnowledgeLevelDescription, type MeshiExplorationState,
 } from "@/lib/meshi-knowledge";
 import { impactFeedback } from "@/lib/native/haptics";
+import { MESHI_OPEN_EVENT, type MeshiOpenMode } from "@/lib/meshi-events";
 
 // Meshi is ONE standalone AI entity. No bubble, no home position.
 // Click Meshi to open actions. Meshi floats freely in the bottom-right.
@@ -591,6 +592,27 @@ export function MeshiFloat() {
   }, [meshiX, meshiY]);
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
+
+  // Global Meshi entrypoint so any screen can open Meshi in a specific mode.
+  useEffect(() => {
+    const handleMeshiOpen = (event: Event) => {
+      const customEvent = event as CustomEvent<MeshiOpenMode>;
+      const mode = customEvent.detail || "actions";
+      if (mode === "speech") {
+        setView("speech");
+        setMood("thinking");
+      } else if (mode === "chat") {
+        setView("chat");
+        setMood("happy");
+      } else {
+        setView("actions");
+        setMood("excited");
+      }
+    };
+
+    window.addEventListener(MESHI_OPEN_EVENT, handleMeshiOpen as EventListener);
+    return () => window.removeEventListener(MESHI_OPEN_EVENT, handleMeshiOpen as EventListener);
+  }, []);
 
   // Keyboard shortcut: Cmd/Ctrl + M toggles Meshi menu
   useEffect(() => {

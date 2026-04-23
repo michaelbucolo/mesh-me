@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Search, Sparkles } from "lucide-react";
+import { Bot, Search, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlatform } from "@/hooks/use-platform";
+import { openMeshi } from "@/lib/meshi-events";
 
 interface MobileTopbarProps {
   username: string;
@@ -45,6 +46,14 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => openMeshi("speech")}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-secondary)] active:scale-95"
+            aria-label="Ask Meshi"
+          >
+            <Bot className="h-4 w-4" />
+          </button>
           <Link
             href="/search"
             className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-secondary)] active:scale-95"
