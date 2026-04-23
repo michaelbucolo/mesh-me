@@ -5,7 +5,6 @@ export { NotificationsTab } from "./notifications-tab";
 export { PrivacyTab } from "./privacy-tab";
 export { MeshPrivacyTab } from "./mesh-privacy-tab";
 export { SecurityTab } from "./security-tab";
-export { SecurityHubTab } from "./security-hub-tab";
 export { FootprintTab } from "./footprint-tab";
 export { BlockedTab } from "./blocked-tab";
 export { AchievementsTab } from "./achievements-tab";
