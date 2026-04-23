@@ -998,7 +998,7 @@ export async function getFriendMeshData(username: string): Promise<{
   if (!currentUser) return null;
 
   const targetUser = await prisma.user.findFirst({
-    where: { username: { equals: username, mode: "insensitive" } },
+    where: { username: username.toLowerCase() },
   });
   if (!targetUser) return null;
 
