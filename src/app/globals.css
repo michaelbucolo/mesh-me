@@ -124,13 +124,63 @@
   --glass-input: rgba(244, 244, 245, 0.5);
 }
 
+/* ─── Brand Palette Presets ─── */
+:root[data-theme="default"] {
+  --accent: #00d2ff;
+  --accent-hover: #58e5ff;
+}
+
+:root[data-theme="instagram"] {
+  --accent: #ff2d55;
+  --accent-hover: #ff5f7d;
+  --accent-muted: rgba(255, 45, 85, 0.22);
+  --accent-subtle: rgba(255, 45, 85, 0.14);
+  --brand-gradient: linear-gradient(135deg, #fd1d1d 0%, #fcb045 45%, #833ab4 100%);
+  --brand-gradient-vibrant: linear-gradient(135deg, #fd1d1d 0%, #f77737 35%, #c13584 70%, #5851db 100%);
+}
+
+:root[data-theme="ocean"] {
+  --accent: #22d3ee;
+  --accent-hover: #67e8f9;
+  --accent-muted: rgba(34, 211, 238, 0.2);
+  --accent-subtle: rgba(34, 211, 238, 0.12);
+  --brand-gradient: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%);
+}
+
+:root[data-theme="sunset"] {
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  --accent-muted: rgba(249, 115, 22, 0.22);
+  --accent-subtle: rgba(249, 115, 22, 0.12);
+  --brand-gradient: linear-gradient(135deg, #f97316 0%, #f43f5e 52%, #8b5cf6 100%);
+}
+
+:root[data-theme="forest"] {
+  --accent: #22c55e;
+  --accent-hover: #4ade80;
+  --accent-muted: rgba(34, 197, 94, 0.2);
+  --accent-subtle: rgba(34, 197, 94, 0.12);
+  --brand-gradient: linear-gradient(135deg, #22c55e 0%, #14b8a6 50%, #0ea5e9 100%);
+}
+
+:root[data-theme="mono"] {
+  --accent: #a1a1aa;
+  --accent-hover: #d4d4d8;
+  --accent-muted: rgba(161, 161, 170, 0.25);
+  --accent-subtle: rgba(161, 161, 170, 0.12);
+  --brand-gradient: linear-gradient(135deg, #fafafa 0%, #d4d4d8 100%);
+}
+
 body {
-  background: var(--bg-primary);
+  background:
+    radial-gradient(circle at 18% -5%, var(--accent-subtle), transparent 35%),
+    radial-gradient(circle at 90% -10%, color-mix(in oklab, var(--accent) 25%, transparent), transparent 35%),
+    var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, background-image 0.35s ease;
   letter-spacing: -0.011em;
 }
 
