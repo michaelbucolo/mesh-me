@@ -25,6 +25,114 @@ interface ChatRequest {
   history?: Array<{ role: "user" | "meshi"; content: string }>;
 }
 
+interface MeshiLLMResult {
+  content: string;
+  mood: string;
+  action?: { type: string; content?: string; suggestionType?: string };
+}
+
+function shouldUseLLMFallback(query: string, result: ReasonResult): boolean {
+  if (result.action) return false;
+  if (result.content.includes("That's an interesting question!")) return true;
+  const broadTaskSignals = [
+    "write",
+    "draft",
+    "summarize",
+    "translate",
+    "brainstorm",
+    "plan",
+    "improve",
+    "explain",
+    "code",
+    "email",
+    "outline",
+  ];
+  const q = query.toLowerCase();
+  return broadTaskSignals.some((signal) => q.includes(signal));
+}
+
+async function callMeshiLLM(message: string, context?: ChatRequest["context"], history?: ChatRequest["history"]): Promise<MeshiLLMResult | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const model = process.env.MESHI_LLM_MODEL || "gpt-4.1-mini";
+  const meshContext = context?.meshData
+    ? `Mesh snapshot: followers=${context.meshData.followers ?? 0}, following=${context.meshData.following ?? 0}, posts=${context.meshData.posts ?? 0}, communities=${context.meshData.communities ?? 0}, platforms=${context.meshData.platforms ?? 0}.`
+    : "Mesh snapshot unavailable.";
+
+  const recentHistory = (history ?? []).slice(-6).map((item) => `${item.role}: ${item.content}`).join("\n");
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      input: [
+        {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text: "You are Meshi, a capable LLM assistant inside mesh.me. Answer broad questions clearly and safely. If a user asks you to do something on their behalf, provide an action object. Return strict JSON only with keys: content (string), mood (one of happy/excited/thinking/cool/love/wink/surprised/sleepy), optional action ({type, content?, suggestionType?}). Keep tone concise, practical, and helpful.",
+            },
+          ],
+        },
+        {
+          role: "system",
+          content: [{ type: "input_text", text: `${meshContext}\nRecent conversation:\n${recentHistory || "none"}` }],
+        },
+        {
+          role: "user",
+          content: [{ type: "input_text", text: message }],
+        },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "meshi_response",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              content: { type: "string" },
+              mood: { type: "string", enum: ["happy", "excited", "thinking", "cool", "love", "wink", "surprised", "sleepy"] },
+              action: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  type: { type: "string" },
+                  content: { type: "string" },
+                  suggestionType: { type: "string" },
+                },
+                required: ["type"],
+              },
+            },
+            required: ["content", "mood"],
+          },
+          strict: true,
+        },
+      },
+      max_output_tokens: 280,
+    }),
+  });
+
+  if (!response.ok) return null;
+  const json = await response.json();
+  const raw = json.output_text;
+  if (!raw || typeof raw !== "string") return null;
+
+  try {
+    const parsed = JSON.parse(raw) as MeshiLLMResult;
+    if (!parsed?.content || !parsed?.mood) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 // --- Safe recursive descent math parser (no eval/Function) ---
 // Supports: +, -, *, /, **, %, parentheses, sqrt(), pi, e
 function evaluateMath(expr: string): number | null {
@@ -397,7 +505,7 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
 
   // Catch-all: intelligent default that shows Meshi can think
   return {
-    content: "That's an interesting question! I'm Meshi, and I'm best at helping with mesh.me features, searching your mesh, managing privacy, and navigating the platform. I can also do math, answer general questions, and even post, message, or follow people on your behalf! What would you like help with?",
+    content: "Great question — I can help with that. I can answer general questions, help with mesh.me tasks, and carry out actions on your behalf like drafting posts, messages, and follow workflows. Tell me what you'd like me to do next.",
     mood: "thinking",
   };
 }
@@ -417,7 +525,7 @@ export async function POST(req: Request) {
     }
 
     const body: ChatRequest = await req.json();
-    const { message, context } = body;
+    const { message, context, history } = body;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -439,6 +547,22 @@ export async function POST(req: Request) {
 
     // Fallback to pattern-matching reasoning
     const result = reason(message, context);
+
+    // LLM fallback: broad questions and open-ended tasks
+    if (shouldUseLLMFallback(message, result)) {
+      try {
+        const llmResult = await callMeshiLLM(message, context, history);
+        if (llmResult) {
+          return NextResponse.json({
+            content: llmResult.content,
+            mood: llmResult.mood,
+            action: llmResult.action,
+          });
+        }
+      } catch {
+        // If LLM is unavailable, keep deterministic fallback response
+      }
+    }
 
     return NextResponse.json({
       content: result.content,
