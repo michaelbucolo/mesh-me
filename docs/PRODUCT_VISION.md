@@ -47,7 +47,11 @@ Meshi is the user's minimal character identity inside the Mesh and the platform'
 
 Meshi should be simple: bubbly body, two eyes, no mouth, minimal accessories, and strong customization without visual clutter.
 
-Meshi AI should answer questions about the user's Mesh and platform activity while minimizing cloud dependence and unnecessary data retention.
+Meshi should be powered by an LLM so it can answer broad user questions, not only predefined product FAQs.
+
+Meshi should understand natural language commands and execute user-approved actions on the user's behalf across mesh.me workflows (for example posting, messaging, navigation, and account operations), with clear confirmation and auditability.
+
+Meshi AI should still prioritize privacy, minimize cloud dependence where practical, and avoid unnecessary data retention.
 
 ## Trust Requirements
 
