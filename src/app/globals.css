@@ -12,33 +12,33 @@
 :root, .dark {
   --font-inter: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --bg-primary: #000000;
-  --bg-secondary: #050505;
-  --bg-tertiary: #0d0d0d;
-  --bg-elevated: rgba(0, 0, 0, 0.94);
-  --bg-card: rgba(8, 8, 8, 0.9);
-  --bg-hover: rgba(17, 17, 17, 0.8);
-  --bg-input: rgba(14, 14, 14, 0.9);
+  --bg-primary: #0f1115;
+  --bg-secondary: #151922;
+  --bg-tertiary: #1d2430;
+  --bg-elevated: #151922;
+  --bg-card: #151922;
+  --bg-hover: #1d2430;
+  --bg-input: #10141d;
   --bg-overlay: rgba(0, 0, 0, 0.74);
 
-  --border-primary: rgba(115, 115, 115, 0.34);
-  --border-secondary: rgba(82, 82, 91, 0.22);
-  --border-hover: rgba(161, 161, 170, 0.44);
-  --border-focus: rgba(0, 210, 255, 0.52);
+  --border-primary: #2b3445;
+  --border-secondary: #39465d;
+  --border-hover: #50607c;
+  --border-focus: rgba(96, 165, 250, 0.5);
 
   --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
-  --text-muted: #52525b;
+  --text-secondary: #c3cedf;
+  --text-tertiary: #9ca9be;
+  --text-muted: #7f8ca3;
   --text-inverse: #09090b;
 
-  --accent: #00d2ff;
-  --accent-hover: #58e5ff;
-  --accent-muted: rgba(0, 210, 255, 0.2);
-  --accent-subtle: rgba(0, 210, 255, 0.1);
-  --accent-glow: rgba(0, 210, 255, 0.4);
-  --brand-gradient: linear-gradient(135deg, #00d2ff 0%, #8a5bff 100%);
-  --brand-gradient-vibrant: linear-gradient(135deg, #00f0ff 0%, #006eff 45%, #9f5eff 100%);
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-muted: rgba(96, 165, 250, 0.24);
+  --accent-subtle: rgba(96, 165, 250, 0.12);
+  --accent-glow: rgba(96, 165, 250, 0.28);
+  --brand-gradient: #60a5fa;
+  --brand-gradient-vibrant: #60a5fa;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -54,17 +54,17 @@
   --shimmer-2: #101010;
   --shimmer-3: #1b1b1b;
 
-  --glass-bg: rgba(0, 0, 0, 0.86);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --glass-blur: blur(24px) saturate(180%);
-  --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
-  --glass-shadow: 0 10px 36px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  --glass-card-bg: rgba(8, 8, 8, 0.88);
-  --glass-card-border: rgba(255, 255, 255, 0.05);
-  --glass-card-hover: rgba(16, 16, 16, 0.9);
-  --glass-elevated: rgba(0, 0, 0, 0.95);
-  --glass-surface: rgba(5, 5, 5, 0.9);
-  --glass-input: rgba(12, 12, 12, 0.92);
+  --glass-bg: #151922;
+  --glass-border: #2b3445;
+  --glass-blur: none;
+  --glass-highlight: none;
+  --glass-shadow: var(--shadow-sm);
+  --glass-card-bg: #151922;
+  --glass-card-border: #2b3445;
+  --glass-card-hover: #1d2430;
+  --glass-elevated: #151922;
+  --glass-surface: #151922;
+  --glass-input: #10141d;
 }
 
 /* ─── Light Theme ─── */
@@ -172,15 +172,12 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at 18% -5%, var(--accent-subtle), transparent 35%),
-    radial-gradient(circle at 90% -10%, color-mix(in oklab, var(--accent) 25%, transparent), transparent 35%),
-    var(--bg-primary);
+  background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease, background-image 0.35s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   letter-spacing: -0.011em;
 }
 
@@ -197,12 +194,7 @@ h1, h2, h3, .font-display {
   letter-spacing: -0.035em;
 }
 
-.brand-wordmark-accent {
-  background: var(--brand-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+.brand-wordmark-accent { color: var(--accent); }
 
 /* ─── Brand Logo Glow ─── */
 .brand-logo {
@@ -306,25 +298,25 @@ select:focus-visible {
 /* ─── Glass ─── */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid var(--glass-border);
 }
 
 .glass-card {
   background: var(--glass-card-bg);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid var(--glass-card-border);
-  box-shadow: var(--glass-shadow);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease;
 }
 
 .glass-card:hover {
-  background: var(--glass-card-hover);
-  border-color: var(--glass-border);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-1px);
+  background: var(--glass-card-bg);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+  transform: none;
 }
 
 .glass-panel {
@@ -366,12 +358,9 @@ select:focus-visible {
 
 /* ─── Animated Gradient Text ─── */
 .gradient-text {
-  background: linear-gradient(135deg, #2d7ff9, #5b9bff, #00c6fb, #2d7ff9);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradientShift 8s ease infinite;
+  color: var(--accent);
+  background: none;
+  -webkit-text-fill-color: currentColor;
 }
 
 .gradient-text-static {
@@ -596,31 +585,21 @@ select:focus-visible {
 
 /* ─── Brand Button ─── */
 .brand-button {
-  background: var(--brand-gradient);
+  background: var(--accent);
   color: white;
   font-weight: 600;
-  border: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, black 30%);
   position: relative;
   overflow: hidden;
-  transition: all 0.2s ease;
-}
-.brand-button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.brand-button:hover::before {
-  opacity: 1;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 .brand-button:hover {
-  box-shadow: 0 8px 24px -4px var(--accent-glow), 0 0 0 1px rgba(255,255,255,0.1) inset;
-  transform: translateY(-1px);
+  background: var(--accent-hover);
+  box-shadow: none;
+  transform: none;
 }
 .brand-button:active {
-  transform: translateY(0) scale(0.98);
+  transform: scale(0.99);
 }
 
 /* ─── Satisfying Button Ripple ─── */
