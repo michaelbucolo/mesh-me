@@ -62,7 +62,6 @@ export default function SettingsPage() {
   // Notifications
 
   // Customization
-  const [selectedTheme, setSelectedTheme] = useState("midnight");
   const [selectedLayout, setSelectedLayout] = useState("card");
 
   // Feedback
@@ -231,8 +230,8 @@ export default function SettingsPage() {
           )}
           {activeTab === "customize" && (
             <CustomizeTab
-              selectedTheme={selectedTheme} setSelectedTheme={setSelectedTheme}
               selectedLayout={selectedLayout} setSelectedLayout={setSelectedLayout}
+              isMeshPro={settings?.isMeshPro === true}
             />
           )}
           {activeTab === "notifications" && (

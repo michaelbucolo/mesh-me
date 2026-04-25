@@ -46,8 +46,10 @@ export const FEED_LAYOUTS = [
 ];
 
 export const THEME_OPTIONS = [
-  { id: "midnight", label: "Midnight", bg: "#09090b", accent: "#3b82f6" },
-  { id: "deep-ocean", label: "Deep Ocean", bg: "#0c1222", accent: "#06b6d4" },
-  { id: "dark-violet", label: "Dark Violet", bg: "#0f0720", accent: "#8b5cf6" },
-  { id: "charcoal", label: "Charcoal", bg: "#171717", accent: "#3b82f6" },
+  { id: "default", label: "Midnight", bg: "#09090b", accent: "#00d2ff" },
+  { id: "instagram", label: "Instagram Glow", bg: "#0f0814", accent: "#ff2d55" },
+  { id: "ocean", label: "Deep Ocean", bg: "#061724", accent: "#22d3ee" },
+  { id: "sunset", label: "Sunset Pop", bg: "#1b0b12", accent: "#f97316" },
+  { id: "forest", label: "Forest Mint", bg: "#091611", accent: "#22c55e" },
+  { id: "mono", label: "Mono Pro", bg: "#09090b", accent: "#a1a1aa" },
 ];
