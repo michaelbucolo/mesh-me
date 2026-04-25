@@ -1629,6 +1629,12 @@ export async function redeemCode(code: string) {
       rewardValue: "synergy1017",
       rewardLabel: "Synergy1017 Wink",
     },
+    {
+      code: "wetrab-hIzviz-3xonju",
+      rewardType: "meshpro",
+      rewardValue: "free",
+      rewardLabel: "MeshPro Access",
+    },
   ];
   for (const known of knownCodes) {
     const exists = await prisma.redeemCode.findUnique({ where: { code: known.code } });
@@ -1673,6 +1679,12 @@ export async function redeemCode(code: string) {
       where: { userId: user.id },
       create: { userId: user.id, faceStyle: redeemRecord.rewardValue },
       update: { faceStyle: redeemRecord.rewardValue },
+    });
+  }
+  if (redeemRecord.rewardType === "meshpro") {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { isMeshPro: true },
     });
   }
 
