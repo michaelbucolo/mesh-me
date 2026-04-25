@@ -10,7 +10,7 @@ export function Card({ children, className, hover = false }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] backdrop-blur-xl shadow-[var(--glass-shadow)]",
+        "rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] backdrop-blur-xl shadow-[var(--glass-shadow)]",
         hover && "transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--border-hover)] hover:bg-[var(--glass-card-hover)] hover:shadow-[var(--shadow-lg)]",
         className
       )}
