@@ -44,10 +44,11 @@ export function AppContentShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-7xl animate-page-enter">
       {routeInfo && (
-        <section className="mb-4 lg:hidden">
-          <div className="inline-flex items-center rounded-full border border-[var(--border-secondary)] bg-[var(--bg-secondary)]/70 px-3 py-1 text-xs text-[var(--text-secondary)]">
+        <section className="mobile-route-hero premium-surface mb-4 rounded-2xl p-3.5 lg:hidden">
+          <div className="inline-flex items-center rounded-full border border-[var(--border-secondary)] bg-[var(--bg-secondary)]/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
             {routeInfo.label}
           </div>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{routeInfo.blurb}</p>
         </section>
       )}
 

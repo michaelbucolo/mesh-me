@@ -864,16 +864,33 @@ html {
   .mobile-app-chrome {
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(7rem, calc(6rem + env(safe-area-inset-bottom)));
   }
 
   .mobile-app-chrome [data-meshi-zone] {
-    padding-top: 1rem;
-    padding-bottom: 1.25rem;
+    padding-top: 0.85rem;
+    padding-bottom: 1.2rem;
   }
 
   .mobile-app-chrome .card,
   .mobile-app-chrome .premium-surface {
     border-radius: 1.15rem;
+  }
+
+  .mobile-topbar-banner {
+    background: linear-gradient(120deg, color-mix(in oklab, var(--accent-subtle) 55%, transparent), transparent 68%);
+  }
+
+  .mobile-route-hero {
+    background:
+      linear-gradient(135deg, color-mix(in oklab, var(--accent-subtle) 22%, transparent), transparent 52%),
+      var(--glass-card-bg);
+  }
+
+  .mobile-bottom-nav {
+    box-shadow:
+      0 14px 44px rgba(0, 0, 0, 0.52),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .platform-ios .mobile-app-chrome {

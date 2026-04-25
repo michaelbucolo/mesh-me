@@ -31,7 +31,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   const navClass = useMemo(
     () =>
       cn(
-        "safe-area-bottom fixed bottom-[max(0.45rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-0.9rem)] max-w-md -translate-x-1/2 rounded-[1.55rem] border p-2 shadow-[var(--shadow-lg)] backdrop-blur-2xl transition-all duration-200 lg:hidden",
+        "safe-area-bottom mobile-bottom-nav fixed bottom-[max(0.45rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-0.9rem)] max-w-md -translate-x-1/2 rounded-[1.55rem] border p-2 shadow-[var(--shadow-lg)] backdrop-blur-2xl transition-all duration-200 lg:hidden",
         ios
           ? "border-white/10 bg-[color-mix(in_oklab,var(--glass-bg)_72%,transparent)]"
           : "border-[var(--glass-border)] bg-[var(--glass-bg)]",
@@ -54,7 +54,9 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
               onClick={() => impactFeedback("LIGHT")}
               className={cn(
                 "relative flex min-h-14 flex-col items-center justify-center rounded-xl px-1 text-[10px] font-medium transition-all duration-200 active:scale-95",
-                isActive ? "bg-[var(--accent-subtle)] text-[var(--accent)]" : "text-[var(--text-muted)] active:bg-[var(--bg-hover)]"
+                isActive
+                  ? "bg-[color-mix(in_oklab,var(--accent-subtle)_70%,transparent)] text-[var(--accent)] shadow-[0_0_0_1px_var(--accent-muted)]"
+                  : "text-[var(--text-muted)] active:bg-[var(--bg-hover)]"
               )}
             >
               <item.icon className={cn("h-[18px] w-[18px]", isActive && "drop-shadow-[0_0_8px_var(--accent)]")} />
@@ -71,7 +73,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
         <Link
           href="/innovation"
           onClick={() => impactFeedback("MEDIUM")}
-          className="mx-1 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-gradient)] text-white shadow-[0_10px_22px_rgba(0,210,255,0.35)] active:scale-95"
+          className="mx-1 inline-flex h-[3.25rem] w-[3.25rem] -translate-y-1 items-center justify-center rounded-2xl bg-[var(--brand-gradient-vibrant)] text-white shadow-[0_12px_28px_rgba(0,210,255,0.35)] active:scale-95"
           aria-label="Create"
         >
           <Plus className="h-5 w-5" />
@@ -88,7 +90,9 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
               onClick={() => impactFeedback("LIGHT")}
               className={cn(
                 "relative flex min-h-14 flex-col items-center justify-center rounded-xl px-1 text-[10px] font-medium transition-all duration-200 active:scale-95",
-                isActive ? "bg-[var(--accent-subtle)] text-[var(--accent)]" : "text-[var(--text-muted)] active:bg-[var(--bg-hover)]"
+                isActive
+                  ? "bg-[color-mix(in_oklab,var(--accent-subtle)_70%,transparent)] text-[var(--accent)] shadow-[0_0_0_1px_var(--accent-muted)]"
+                  : "text-[var(--text-muted)] active:bg-[var(--bg-hover)]"
               )}
             >
               <item.icon className={cn("h-[18px] w-[18px]", isActive && "drop-shadow-[0_0_8px_var(--accent)]")} />
