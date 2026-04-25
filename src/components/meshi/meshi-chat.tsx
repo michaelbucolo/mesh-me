@@ -23,9 +23,8 @@ const QUICK_ACTIONS = [
   { icon: HelpCircle, label: "How does mesh.me work?", prompt: "Explain how mesh.me works" },
 ];
 
-// Meshi's comprehensive knowledge base — stateless, indexing-only responses
-// Meshi knows about EVERY feature on mesh.me and can guide users through anything
-// Meshi is mesh-aware: it can look up people/entities from the user's mesh graph
+// Meshi's local fallback knowledge base (used when API is unavailable).
+// Meshi remains mesh-aware here: it can look up people/entities from the user's mesh graph.
 function getMeshiResponse(
   query: string,
   meshData?: { followers?: number; following?: number; posts?: number; communities?: number; platforms?: number },
@@ -34,9 +33,7 @@ function getMeshiResponse(
   const q = query.toLowerCase().trim();
 
   // ─── Mesh-aware entity lookup ───────────────────────────
-  // KNOWLEDGE BOUNDARY: Meshi only knows what's on the user's mesh.
-  // If someone asks about a person/entity not on their mesh, Meshi says "I don't know them yet."
-  // This is a core design principle — Meshi is NOT a general-purpose AI.
+  // In this local fallback path, person/entity answers are limited to loaded mesh data.
 
   // Detect ANY person/entity query — broad pattern matching
   const personPatterns = [
