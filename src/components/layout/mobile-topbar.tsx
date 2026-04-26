@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Bot, Search, Sparkles } from "lucide-react";
+import { Bot, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlatform } from "@/hooks/use-platform";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
@@ -35,8 +35,6 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
     return routeTitles[pathname] ?? routeTitles[firstSegment] ?? "mesh.me";
   }, [pathname]);
 
-  const subtitle = pathname === "/mesh" ? "Live map + creator intelligence" : "Built for quick mobile workflows";
-
   return (
     <header
       className={cn(
@@ -44,10 +42,10 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
         ios ? "bg-[color-mix(in_oklab,var(--glass-bg)_70%,transparent)]" : "bg-[var(--glass-bg)]/95"
       )}
     >
-      <div className="mx-auto flex w-full max-w-md flex-col gap-2">
+      <div className="mx-auto flex w-full max-w-md">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">mobile workspace</p>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">workspace</p>
             <h1 className="truncate text-lg font-semibold text-[var(--text-primary)]">{title}</h1>
           </div>
 
@@ -83,10 +81,6 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
               You
             </Link>
           </div>
-        </div>
-        <div className="mobile-topbar-banner inline-flex items-center gap-2 rounded-xl border border-[var(--border-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)]">
-          <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
-          <span className="truncate">{subtitle}</span>
         </div>
       </div>
     </header>
