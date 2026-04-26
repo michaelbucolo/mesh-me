@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { MeshiColor, MeshiHat, MeshiMood } from "@/components/meshi/meshi-mascot";
+import type { MeshiAccessory, MeshiColor, MeshiHair, MeshiHat, MeshiMood } from "@/components/meshi/meshi-mascot";
 import { getMeshiPreference } from "@/lib/actions";
 
 export interface MeshiPreferences {
   color: MeshiColor;
   hat: MeshiHat;
   face: MeshiMood;
+  hair: MeshiHair;
+  accessory: MeshiAccessory;
   enabled: boolean;
   appLogo: "default" | "custom";
   appLogoColor: MeshiColor;
@@ -20,6 +22,8 @@ const STORAGE_KEYS = {
   color: "meshiColor",
   hat: "meshiHat",
   face: "meshiFace",
+  hair: "meshiHair",
+  accessory: "meshiAccessory",
   enabled: "meshiEnabled",
   appLogo: "meshiAppLogo",
   appLogoColor: "meshiAppLogoColor",
@@ -30,6 +34,8 @@ const DEFAULTS: MeshiPreferences = {
   color: "blue",
   hat: "none",
   face: "happy",
+  hair: "none",
+  accessory: "none",
   enabled: true,
   appLogo: "default",
   appLogoColor: "blue",
@@ -47,6 +53,8 @@ function readMeshiPreferencesFromStorage(): MeshiPreferences {
     color: (localStorage.getItem(STORAGE_KEYS.color) as MeshiColor) || DEFAULTS.color,
     hat: (localStorage.getItem(STORAGE_KEYS.hat) as MeshiHat) || DEFAULTS.hat,
     face: (localStorage.getItem(STORAGE_KEYS.face) as MeshiMood) || DEFAULTS.face,
+    hair: (localStorage.getItem(STORAGE_KEYS.hair) as MeshiHair) || DEFAULTS.hair,
+    accessory: (localStorage.getItem(STORAGE_KEYS.accessory) as MeshiAccessory) || DEFAULTS.accessory,
     enabled: localStorage.getItem(STORAGE_KEYS.enabled) !== "false",
     appLogo: (localStorage.getItem(STORAGE_KEYS.appLogo) as "default" | "custom") || DEFAULTS.appLogo,
     appLogoColor: (localStorage.getItem(STORAGE_KEYS.appLogoColor) as MeshiColor) || DEFAULTS.appLogoColor,
@@ -60,6 +68,8 @@ function writeMeshiPreferencesToStorage(prefs: MeshiPreferences) {
   localStorage.setItem(STORAGE_KEYS.color, prefs.color);
   localStorage.setItem(STORAGE_KEYS.hat, prefs.hat);
   localStorage.setItem(STORAGE_KEYS.face, prefs.face);
+  localStorage.setItem(STORAGE_KEYS.hair, prefs.hair);
+  localStorage.setItem(STORAGE_KEYS.accessory, prefs.accessory);
   localStorage.setItem(STORAGE_KEYS.enabled, String(prefs.enabled));
   localStorage.setItem(STORAGE_KEYS.appLogo, prefs.appLogo);
   localStorage.setItem(STORAGE_KEYS.appLogoColor, prefs.appLogoColor);
