@@ -2,6 +2,11 @@
 
 This roadmap turns the product vision into implementation phases. It is ordered by dependency and risk.
 
+## Implementation status tracking
+
+Run `npm run roadmap:check` from the repository root to generate a live implementation snapshot for each phase in this roadmap.
+
+
 ## Phase 1: Trust Foundation
 
 - Add shared privacy policy enforcement.
