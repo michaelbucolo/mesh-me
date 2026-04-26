@@ -57,7 +57,7 @@ export function PublicSiteShell({
               See the vision
             </Link>
             <Link
-              href="/"
+              href="/login"
               className="brand-button inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white"
             >
               Enter
