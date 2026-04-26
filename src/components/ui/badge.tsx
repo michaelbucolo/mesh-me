@@ -7,7 +7,7 @@ interface BadgeProps {
 }
 
 const variantStyles = {
-  default: "bg-[var(--accent-muted)] text-[var(--accent)] border-[var(--accent-muted)]",
+  default: "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]",
   secondary: "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]",
   outline: "bg-transparent text-[var(--text-tertiary)] border-[var(--border-primary)]",
   success: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
@@ -18,7 +18,7 @@ export function Badge({ children, variant = "default", className }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors",
+        "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors",
         variantStyles[variant],
         className
       )}
