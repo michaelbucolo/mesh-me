@@ -1,21 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type React from "react";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NativeInit } from "@/components/native-init";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
 
 function getSiteUrl() {
   const fallback = "https://meshme.vercel.app";
@@ -84,10 +72,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${jakarta.variable} mesh-app-surface font-sans antialiased`}
-        style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}
-      >
+      <body className="mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <ThemeProvider>
           <ToastProvider>
             <NativeInit />
