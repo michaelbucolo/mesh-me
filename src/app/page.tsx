@@ -38,9 +38,9 @@ const pillars = [
   },
   {
     icon: Sparkles,
-    title: "Simple to start",
+    title: "Simple from minute one",
     description:
-      "Onboarding focuses on quick wins: connect accounts, import activity, and immediately experience one unified timeline.",
+      "Start in minutes: connect accounts, import activity, and see everything in one place right away.",
   },
 ];
 
@@ -91,11 +91,10 @@ export default async function LandingPage() {
         <div>
           <p className="mesh-kicker mb-4">Your World, Your Way</p>
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">
-            One platform for your entire digital life.
+            Everything you do online, finally in one clear place.
           </h1>
-          <p className="mesh-copy mt-6 max-w-2xl text-base md:text-lg">
-            Mesh.me unifies your posts, messages, interactions, and identity across platforms into one consumer-first
-            experience designed to feel safer, cleaner, and more useful than fragmented social apps.
+          <p className="simple-muted mt-6 max-w-2xl text-base md:text-lg">
+            Mesh.me brings your posts, messages, and identity together so you can stop jumping between apps.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -133,7 +132,7 @@ export default async function LandingPage() {
 
       <section className="mt-12 grid gap-4 md:grid-cols-3">
         {pillars.map((pillar) => (
-          <article key={pillar.title} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+          <article key={pillar.title} className="simple-card p-5">
             <pillar.icon className="mb-3 h-5 w-5 text-[var(--accent)]" />
             <h2 className="text-base font-bold text-[var(--text-primary)]">{pillar.title}</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{pillar.description}</p>
@@ -188,7 +187,7 @@ export default async function LandingPage() {
         </article>
       </section>
 
-      <section className="mt-12 rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6 md:p-8">
+      <section className="simple-card mt-12 rounded-3xl p-6 md:p-8">
         <p className="mesh-kicker mb-2">Ready to start</p>
         <h2 className="text-2xl font-bold text-[var(--text-primary)]">Build your unified digital identity with Mesh.me.</h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
