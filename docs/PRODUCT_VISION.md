@@ -72,3 +72,16 @@ Mesh Pro is the monetization model. It should add optional value without degradi
 Appropriate Mesh Pro areas include deeper analytics, additional Meshi customization, Mesh visual customization, interface personalization, and creator-grade management tools.
 
 Mesh.me should not use ads or hidden data resale as a business model.
+
+## Super-App Replacement Standard
+
+Mesh.me should be built to become a full replacement for standalone social and messaging apps, but only when quality is measurably better.
+
+Replacement claims should require all of the following:
+
+- Messaging parity with leading chat apps for reliability, media handling, search, replies, reactions, and group workflows.
+- Social parity for core daily behavior: posting, commenting, discovery, notifications, creator tools, and moderation.
+- Migration tooling that helps users import contacts and behavior safely without lock-in.
+- Public reliability thresholds (message delivery, sync lag, crash-free sessions) sustained long enough to earn trust.
+
+Until these conditions are satisfied, Mesh.me should position itself as a consolidation platform in progress, not a finished replacement.

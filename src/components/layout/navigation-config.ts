@@ -1,4 +1,4 @@
-import { BarChart3, Bell, Compass, LayoutDashboard, Link2, MessageCircle, Rss, Settings, Shield, Sparkles, User, Users, Waypoints, type LucideIcon } from "lucide-react";
+import { BarChart3, Bell, Compass, LayoutDashboard, Link2, MessageCircle, Rss, Settings, Shield, Smartphone, Sparkles, User, Users, Waypoints, type LucideIcon } from "lucide-react";
 
 export type BadgeKey = "messages" | "notifications";
 
@@ -40,6 +40,7 @@ export const desktopNavGroups: NavGroup[] = [
       { href: "/content-hub", icon: LayoutDashboard, label: "Control Center" },
       { href: "/connected-accounts", icon: Link2, label: "Connections" },
       { href: "/trust", icon: Shield, label: "Trust" },
+      { href: "/super-app", icon: Smartphone, label: "Super App" },
     ],
   },
 ];
