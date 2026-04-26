@@ -3,6 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { decryptSecret } from "./secret-store";
+import { resolveEnvValue } from "./oauth";
 
 // ─── Platform Adapter Interface ─────────────────────────────
 
@@ -570,8 +571,10 @@ const spotifyAdapter: PlatformAdapter = {
 // ─── Twitch Adapter ─────────────────────────────────────────
 
 async function fetchTwitchCurrentUser(accessToken: string): Promise<{ id: string; login?: string; viewCount?: number } | null> {
+  const twitchClientId = resolveEnvValue("TWITCH_CLIENT_ID");
+  if (!twitchClientId) return null;
   const userRes = await fetch("https://api.twitch.tv/helix/users", {
-    headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+    headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
   });
   if (!userRes.ok) return null;
   const user = (await userRes.json()).data?.[0];
@@ -588,10 +591,12 @@ const twitchAdapter: PlatformAdapter = {
     try {
       const currentUser = await fetchTwitchCurrentUser(accessToken);
       if (!currentUser) return { posts: [] };
+      const twitchClientId = resolveEnvValue("TWITCH_CLIENT_ID");
+      if (!twitchClientId) return { posts: [] };
 
       // Get videos (VODs, highlights, uploads)
       const res = await fetch(`https://api.twitch.tv/helix/videos?user_id=${currentUser.id}&first=50`, {
-        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
       if (!res.ok) return { posts: [] };
       const data = await res.json();
@@ -616,9 +621,11 @@ const twitchAdapter: PlatformAdapter = {
     try {
       const currentUser = await fetchTwitchCurrentUser(accessToken);
       if (!currentUser) return { followers: [] };
+      const twitchClientId = resolveEnvValue("TWITCH_CLIENT_ID");
+      if (!twitchClientId) return { followers: [] };
 
       const followersRes = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${currentUser.id}&first=100`, {
-        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
       if (!followersRes.ok) return { followers: [] };
       const followerData = await followersRes.json();
@@ -632,7 +639,7 @@ const twitchAdapter: PlatformAdapter = {
       }));
 
       const followingRes = await fetch(`https://api.twitch.tv/helix/channels/followed?user_id=${currentUser.id}&first=100`, {
-        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
 
       const followByUserId = new Map<string, PlatformFollowerData>();
@@ -668,12 +675,14 @@ const twitchAdapter: PlatformAdapter = {
     try {
       const currentUser = await fetchTwitchCurrentUser(accessToken);
       if (!currentUser) return defaultAnalytics();
+      const twitchClientId = resolveEnvValue("TWITCH_CLIENT_ID");
+      if (!twitchClientId) return defaultAnalytics();
 
       const followersRes = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${currentUser.id}&first=1`, {
-        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
       const followingRes = await fetch(`https://api.twitch.tv/helix/channels/followed?user_id=${currentUser.id}&first=1`, {
-        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+        headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
 
       const followerCount = followersRes.ok ? ((await followersRes.json()).total as number) || 0 : 0;

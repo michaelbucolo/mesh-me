@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { OAUTH_CONFIGS, getBaseUrl, getCallbackUrl, generatePKCE, isPlatformOAuth } from "@/lib/oauth";
+import { OAUTH_CONFIGS, getBaseUrl, getCallbackUrl, generatePKCE, getOAuthClientId, isPlatformOAuth } from "@/lib/oauth";
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 
@@ -25,7 +25,7 @@ export async function GET(
   }
 
   const config = OAUTH_CONFIGS[platform];
-  const clientId = process.env[config.clientIdEnv];
+  const clientId = getOAuthClientId(config);
 
   if (!clientId) {
     return NextResponse.redirect(
