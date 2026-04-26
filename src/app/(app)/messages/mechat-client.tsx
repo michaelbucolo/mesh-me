@@ -84,9 +84,10 @@ const FEATURE_STATUS_STYLES: Record<FeatureStatus, { label: string; className: s
 interface MeChatClientProps {
   threads: Thread[];
   currentUserId: string;
+  sharePostId?: string;
 }
 
-export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatClientProps) {
+export function MeChatClient({ threads: initialThreads, currentUserId, sharePostId }: MeChatClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
   const [showNewChat, setShowNewChat] = useState(false);
@@ -139,6 +140,11 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
 
   return (
     <div data-meshi-zone="messages" className="mx-auto max-w-6xl px-4 py-6 animate-page-enter">
+      {sharePostId && (
+        <section className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          Select a conversation to share this post through MeChat.
+        </section>
+      )}
       <section className="mb-6 rounded-[1.75rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-md)]">
         <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
           <div>
@@ -278,7 +284,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                 return (
                   <Link
                     key={thread.id}
-                    href={`/messages/${thread.id}`}
+                    href={sharePostId ? `/messages/${thread.id}?sharePostId=${encodeURIComponent(sharePostId)}` : `/messages/${thread.id}`}
                     className="group flex items-center gap-3 rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 transition hover:border-[var(--border-hover)]"
                   >
                     <div className="relative">
@@ -478,7 +484,9 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                     searchResults.map((user) => (
                       <Link
                         key={user.id}
-                        href={`/messages/${user.id}?new=true`}
+                        href={sharePostId
+                          ? `/messages/${user.id}?new=true&sharePostId=${encodeURIComponent(sharePostId)}`
+                          : `/messages/${user.id}?new=true`}
                         onClick={() => setShowNewChat(false)}
                         className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--bg-tertiary)]"
                       >

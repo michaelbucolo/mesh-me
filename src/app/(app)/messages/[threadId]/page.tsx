@@ -13,7 +13,7 @@ export default async function ThreadDetailPage({
   searchParams,
 }: {
   params: Promise<{ threadId: string }>;
-  searchParams: Promise<{ new?: string }>;
+  searchParams: Promise<{ new?: string; sharePostId?: string }>;
 }) {
   const { threadId } = await params;
   const query = await searchParams;
@@ -21,6 +21,7 @@ export default async function ThreadDetailPage({
   if (!user) return null;
 
   const isNewChat = query.new === "true";
+  const sharePostId = typeof query.sharePostId === "string" ? query.sharePostId : "";
 
   // If this is a new chat, threadId is actually a userId — find or create thread
   let resolvedThreadId = threadId;
@@ -101,6 +102,17 @@ export default async function ThreadDetailPage({
 
   const otherUser = otherUserDirect || thread.members.find((m) => m.userId !== user.id)?.user;
   const messages = await getThreadMessages(resolvedThreadId);
+  let initialShareMessage: string | undefined;
+
+  if (sharePostId) {
+    const sharedPost = await prisma.post.findUnique({
+      where: { id: sharePostId },
+      include: { author: { select: { username: true, displayName: true } } },
+    });
+    if (sharedPost) {
+      initialShareMessage = `🔗 Shared a post by ${sharedPost.author.displayName} (@${sharedPost.author.username})\n${sharedPost.content.slice(0, 260)}${sharedPost.content.length > 260 ? "…" : ""}\n/feed/${sharedPost.id}`;
+    }
+  }
 
   return (
     <div data-meshi-zone="thread-detail" className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-2rem)] animate-page-enter">
@@ -157,7 +169,7 @@ export default async function ThreadDetailPage({
       </div>
 
       {/* Message input */}
-      <MessageForm threadId={resolvedThreadId} />
+      <MessageForm threadId={resolvedThreadId} initialContent={initialShareMessage} />
     </div>
   );
 }
