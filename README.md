@@ -56,9 +56,12 @@ Before public release, run:
 
 ```bash
 npm run launch:check
+npm run roadmap:check
 ```
 
-This validates critical launch blockers and warns on non-blocking launch tasks.
+`launch:check` validates critical launch blockers and warns on non-blocking launch tasks.
+
+`roadmap:check` measures engineering-roadmap implementation signals across all roadmap phases.
 
 Use `PUBLIC_LAUNCH_MASTER_CHECKLIST.md` for a complete owner-based go-live checklist (1300+ lines).
 
