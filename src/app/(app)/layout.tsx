@@ -5,20 +5,10 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { prisma } from "@/lib/prisma";
 import { AppChrome } from "@/components/layout/app-chrome";
+import { AppClientLayer } from "@/components/app-client-layer";
 import dynamic from "next/dynamic";
 
 const MeshBackground = dynamic(() => import("@/components/mesh-background").then((module) => module.MeshBackground));
-const DynamicFavicon = dynamic(() => import("@/components/dynamic-favicon").then((module) => module.DynamicFavicon), { ssr: false });
-const MeshiFloat = dynamic(() => import("@/components/meshi/meshi-float").then((module) => module.MeshiFloat), { ssr: false });
-const MeshiDeliveryWrapper = dynamic(
-  () => import("@/components/meshi/meshi-delivery-wrapper").then((module) => module.MeshiDeliveryWrapper),
-  { ssr: false },
-);
-const AchievementChecker = dynamic(
-  () => import("@/components/achievements/achievement-toast").then((module) => module.AchievementChecker),
-  { ssr: false },
-);
-const LiveSyncPulse = dynamic(() => import("@/components/live-sync-pulse").then((module) => module.LiveSyncPulse), { ssr: false });
 
 export const metadata: Metadata = {
   title: {
@@ -94,11 +84,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
 
       <MobileNav unreadNotifications={unreadCount} unreadMessages={unreadMessages} username={user.username} />
-      <MeshiFloat />
-      <MeshiDeliveryWrapper />
-      <AchievementChecker />
-      <LiveSyncPulse />
-      <DynamicFavicon />
+      <AppClientLayer />
     </div>
   );
 }
