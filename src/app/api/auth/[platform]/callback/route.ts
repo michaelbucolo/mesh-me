@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { OAUTH_CONFIGS, getCallbackUrl, getBaseUrl, getNestedField, resolveNestedPath, isPlatformOAuth } from "@/lib/oauth";
+import {
+  OAUTH_CONFIGS,
+  getCallbackUrl,
+  getBaseUrl,
+  getNestedField,
+  getOAuthClientId,
+  getOAuthClientSecret,
+  resolveNestedPath,
+  isPlatformOAuth,
+} from "@/lib/oauth";
 import { encryptSecret, hasSecretEncryptionKey } from "@/lib/secret-store";
 import { cookies } from "next/headers";
 
@@ -66,8 +75,8 @@ export async function GET(
   cookieStore.delete(legacyOauthStateCookie);
 
   const config = OAUTH_CONFIGS[platform];
-  const clientId = process.env[config.clientIdEnv];
-  const clientSecret = process.env[config.clientSecretEnv];
+  const clientId = getOAuthClientId(config);
+  const clientSecret = getOAuthClientSecret(config);
 
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(
