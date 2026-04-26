@@ -744,6 +744,37 @@ export async function sendMessage(formData: FormData) {
   return { success: true, threadId: finalThreadId };
 }
 
+export async function sharePostViaMeChat(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const postId = (formData.get("postId") as string | null)?.trim();
+  if (!postId) return { error: "postId is required" };
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    include: {
+      author: {
+        select: { username: true, displayName: true },
+      },
+    },
+  });
+  if (!post) return { error: "Post not found" };
+
+  const note = ((formData.get("note") as string | null) || "").trim();
+  const sharedMessage = `${note ? `${note}\n\n` : ""}🔗 Shared a post by ${post.author.displayName} (@${post.author.username})\n${post.content.slice(0, 260)}${post.content.length > 260 ? "…" : ""}\n/feed/${post.id}`;
+
+  const nextData = new FormData();
+  nextData.set("content", sharedMessage);
+
+  const threadId = (formData.get("threadId") as string | null)?.trim();
+  const recipientId = (formData.get("recipientId") as string | null)?.trim();
+  if (threadId) nextData.set("threadId", threadId);
+  if (recipientId) nextData.set("recipientId", recipientId);
+
+  return sendMessage(nextData);
+}
+
 // ─── Notification Actions ────────────────────────────────────
 
 export async function markNotificationsRead() {
