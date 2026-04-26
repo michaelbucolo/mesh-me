@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LogOut, Shield, Crown, ChevronDown, Activity } from "lucide-react";
+import { LogOut, Shield, Crown, ChevronDown } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
@@ -28,7 +28,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   const pathname = usePathname();
   const meshiPrefs = useMeshiPreferences();
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
-  const [pulseHealth, setPulseHealth] = useState<"live" | "degraded">("live");
 
   const toggleGroup = (label: string) => {
     setCollapsedGroups((prev) => {
@@ -39,31 +38,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
     });
   };
 
-  useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    const pollPulse = async () => {
-      try {
-        const res = await fetch("/api/mesh/presence", { cache: "no-store" });
-        if (!res.ok) throw new Error("pulse failed");
-        await res.json();
-        if (!active) return;
-        setPulseHealth("live");
-      } catch {
-        if (!active) return;
-        setPulseHealth("degraded");
-      }
-    };
-
-    void pollPulse();
-    timer = setInterval(pollPulse, 8000);
-    return () => {
-      active = false;
-      if (timer) clearInterval(timer);
-    };
-  }, []);
-
   const renderNavItem = (item: NavItem) => {
     const active = isNavItemActive(pathname, item.href, user.username);
     const badgeCount = getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages);
@@ -73,10 +47,10 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         key={item.href}
         href={resolveNavHref(item.href, user.username)}
         className={cn(
-          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
+          "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150",
           active
-            ? "bg-[var(--accent-subtle)] text-[var(--text-primary)] shadow-sm"
-            : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] active:scale-[0.98]"
+            ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]"
+            : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
         )}
       >
         <item.icon className={cn("h-[17px] w-[17px] shrink-0", active && "text-[var(--accent)]")} />
@@ -91,7 +65,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   };
 
   return (
-    <aside data-sidebar className="hidden h-screen w-[16rem] shrink-0 flex-col border-r border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-4 backdrop-blur-2xl lg:flex">
+    <aside data-sidebar className="hidden h-screen w-[15rem] shrink-0 flex-col border-r border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-3 lg:flex">
       <Link href="/mesh" className="group mb-4 flex items-center gap-3 px-3 py-1">
         <MeshiMascot
           size={30}
@@ -105,9 +79,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         <p className="brand-wordmark text-lg text-[var(--text-primary)]">
           mesh<span className="brand-wordmark-accent">.me</span>
         </p>
-        <div className="ml-auto" title="Live mesh pulse">
-          <Activity className={cn("h-3.5 w-3.5", pulseHealth === "live" ? "text-emerald-400" : "text-amber-400")} />
-        </div>
       </Link>
 
       <nav className="flex-1 space-y-4 overflow-y-auto">
@@ -181,7 +152,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-3">
+      <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
         <div className="flex items-center gap-2.5">
           <div className="relative">
             <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />

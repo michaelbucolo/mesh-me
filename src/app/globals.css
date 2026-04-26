@@ -182,6 +182,18 @@ body {
   line-height: 1.5;
 }
 
+/* ─── Global declutter pass ─── */
+:root, .dark, .light {
+  --brand-gradient: var(--accent);
+  --brand-gradient-vibrant: var(--accent);
+  --glass-bg: var(--bg-primary);
+  --glass-border: var(--border-primary);
+  --glass-card-bg: var(--bg-secondary);
+  --glass-card-border: var(--border-primary);
+  --glass-card-hover: var(--bg-secondary);
+  --glass-shadow: var(--shadow-sm);
+}
+
 /* ─── Display Font for Headings ─── */
 h1, h2, h3, .font-display {
   font-family: var(--font-display), var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
