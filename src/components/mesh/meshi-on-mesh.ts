@@ -421,10 +421,8 @@ function svgEyesForMood(mood: MeshiMoodCanvas, primary: string): string {
       return `<text x="-5" y="1" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${primary}" font-family="system-ui">♥</text>
               <text x="5" y="1" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${primary}" font-family="system-ui">♥</text>`;
     case "searching":
-      return `<ellipse cx="-5" cy="0" rx="3" ry="1.5" fill="${primary}"/>
-              <ellipse cx="5" cy="0" rx="3" ry="1.5" fill="${primary}"/>
-              <circle cx="-4" cy="0" r="0.8" fill="white"/>
-              <circle cx="6" cy="0" r="0.8" fill="white"/>`;
+      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
+              <ellipse cx="5" cy="0" rx="2.5" ry="3" fill="${primary}"/>`;
     case "celebrating":
       return `<path d="M -7.5 0 Q -5 -3 -2.5 0" fill="none" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>
               <path d="M 2.5 0 Q 5 -3 7.5 0" fill="none" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>`;
