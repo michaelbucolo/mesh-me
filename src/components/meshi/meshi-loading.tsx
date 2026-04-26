@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { MeshiMascot, type MeshiHat, type MeshiMood, type MeshiProp } from "./meshi-mascot";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 /**
@@ -78,14 +78,19 @@ interface MeshiFunLoadingScreenProps {
   subtitle?: string;
   className?: string;
   mode?: "default" | "mesh-building" | "message-writing";
+  steps?: string[];
+  progressLabel?: string;
 }
 
-const LOADING_MODES: Record<NonNullable<MeshiFunLoadingScreenProps["mode"]>, {
-  tips: string[];
-  moods: MeshiMood[];
-  props: MeshiProp[];
-  hatOverride?: MeshiHat;
-}> = {
+const LOADING_MODES: Record<
+  NonNullable<MeshiFunLoadingScreenProps["mode"]>,
+  {
+    tips: string[];
+    moods: MeshiMood[];
+    props: MeshiProp[];
+    hatOverride?: MeshiHat;
+  }
+> = {
   default: {
     tips: LOADING_TIPS,
     moods: PLAYFUL_MOODS,
@@ -119,13 +124,28 @@ export function MeshiFunLoadingScreen({
   subtitle = "Meshi is preparing this workspace.",
   className = "",
   mode = "default",
+  steps,
+  progressLabel = "Loaded",
 }: MeshiFunLoadingScreenProps) {
   const { color, hat } = useMeshiPreferences();
   const [dots, setDots] = useState("");
   const [tipIndex, setTipIndex] = useState(0);
   const [moodIndex, setMoodIndex] = useState(0);
   const [propIndex, setPropIndex] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
   const selectedMode = LOADING_MODES[mode];
+  const loadingSteps = useMemo(
+    () =>
+      steps && steps.length > 0
+        ? steps
+        : [
+            "Initializing",
+            "Fetching records",
+            "Hydrating interface",
+            "Finalizing state",
+          ],
+    [steps],
+  );
 
   useEffect(() => {
     const dotTimer = setInterval(() => {
@@ -141,19 +161,31 @@ export function MeshiFunLoadingScreen({
       setPropIndex((i) => (i + 1) % selectedMode.props.length);
     }, 2600);
 
+    const stepTimer = setInterval(() => {
+      setActiveStep((i) => {
+        if (i >= loadingSteps.length - 1) {
+          return i;
+        }
+        return i + 1;
+      });
+    }, 900);
+
     return () => {
       clearInterval(dotTimer);
       clearInterval(tipTimer);
       clearInterval(moodTimer);
+      clearInterval(stepTimer);
     };
-  }, [selectedMode.moods.length, selectedMode.props.length, selectedMode.tips.length]);
+  }, [loadingSteps.length, selectedMode.moods.length, selectedMode.props.length, selectedMode.tips.length]);
+
+  const progressPercent = ((activeStep + 1) / loadingSteps.length) * 100;
 
   return (
     <div className={`max-w-3xl mx-auto px-4 py-10 flex flex-col items-center text-center ${className}`}>
       <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1 text-xs font-medium text-[var(--text-muted)] mb-5">
-        <span>Meshi Sync</span>
+        <span>{title}</span>
         <span aria-hidden>•</span>
-        <span>In progress</span>
+        <span>{progressLabel} {activeStep + 1}/{loadingSteps.length}</span>
       </div>
 
       <div className="rounded-3xl p-4 border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-lg shadow-black/5 mb-4">
@@ -174,7 +206,53 @@ export function MeshiFunLoadingScreen({
       </div>
 
       <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] mb-2">{title}</h2>
-      <p className="text-sm text-[var(--text-muted)] mb-2">{subtitle}</p>
+      <p className="text-sm text-[var(--text-muted)] mb-4">{subtitle}</p>
+
+      <div className="w-full rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 mb-4 text-left">
+        <div className="mb-3 flex items-center justify-between text-xs text-[var(--text-muted)]">
+          <span>Progress</span>
+          <span>{Math.round(progressPercent)}%</span>
+        </div>
+        <div className="h-2 rounded-full bg-[var(--bg-primary)] overflow-hidden mb-4">
+          <motion.div
+            className="h-full bg-[var(--accent)]"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPercent}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+        </div>
+
+        <ul className="space-y-2">
+          {loadingSteps.map((step, index) => {
+            const isComplete = index < activeStep;
+            const isActive = index === activeStep;
+
+            return (
+              <li key={step} className="flex items-center gap-2 text-sm">
+                <span
+                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
+                    isComplete
+                      ? "border-[var(--accent)] text-[var(--accent)]"
+                      : isActive
+                        ? "border-[var(--text-secondary)] text-[var(--text-secondary)]"
+                        : "border-[var(--border-primary)] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {isComplete ? "✓" : index + 1}
+                </span>
+                <span
+                  className={
+                    isComplete || isActive ? "text-[var(--text-primary)] font-medium" : "text-[var(--text-muted)]"
+                  }
+                >
+                  {step}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
       <p className="text-sm font-medium text-[var(--text-secondary)] min-h-[1.5rem]">
         {selectedMode.tips[tipIndex]}
         {dots}
