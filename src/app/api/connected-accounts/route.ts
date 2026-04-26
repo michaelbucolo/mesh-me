@@ -58,6 +58,8 @@ export async function POST(request: Request) {
     "instagram", "youtube", "tiktok", "twitter", "twitch", "spotify",
     "soundcloud", "linkedin", "github", "discord", "snapchat",
     "pinterest", "reddit", "facebook", "threads", "bluesky",
+    "applemusic", "mastodon", "patreon", "substack", "medium",
+    "devto", "dribbble", "behance",
   ];
 
   if (!VALID_PLATFORMS.includes(platform)) {
@@ -66,7 +68,19 @@ export async function POST(request: Request) {
 
   // Only manual-link platforms can be connected via this endpoint;
   // OAuth platforms must go through /api/auth/[platform]/callback
-  const MANUAL_PLATFORMS = ["soundcloud", "bluesky", "threads"];
+  const MANUAL_PLATFORMS = [
+    "soundcloud",
+    "bluesky",
+    "threads",
+    "applemusic",
+    "mastodon",
+    "patreon",
+    "substack",
+    "medium",
+    "devto",
+    "dribbble",
+    "behance",
+  ];
   if (!MANUAL_PLATFORMS.includes(platform)) {
     return NextResponse.json({ error: "This platform must be connected via OAuth" }, { status: 400 });
   }

@@ -43,6 +43,8 @@ const PLATFORM_NAMES = [
   "instagram", "youtube", "tiktok", "twitter", "x", "twitch",
   "spotify", "soundcloud", "linkedin", "github", "discord",
   "snapchat", "pinterest", "reddit", "facebook", "threads", "bluesky",
+  "applemusic", "apple music", "mastodon", "patreon", "substack",
+  "medium", "devto", "dev.to", "dribbble", "behance",
 ];
 
 function detectIntent(query: string): QueryIntent {
@@ -71,10 +73,18 @@ function detectIntent(query: string): QueryIntent {
 
   // ── Person platform creation date ──
   const personPlatformCreatedMatch =
-    q.match(/when did\s+(?:@)?(\w+)\s+(?:make|create|start|join|open)\s+(?:their|his|her)?\s*(instagram|youtube|tiktok|twitter|x|twitch|spotify|soundcloud|linkedin|github|discord|snapchat|pinterest|reddit|facebook|threads|bluesky)/i)
-    || q.match(/when (?:did|was)\s+(?:@)?(\w+)(?:'s)?\s+(instagram|youtube|tiktok|twitter|x|twitch|spotify|soundcloud|linkedin|github|discord|snapchat|pinterest|reddit|facebook|threads|bluesky)\s+(?:created|made|started|opened|joined)/i);
+    q.match(/when did\s+(?:@)?(\w+)\s+(?:make|create|start|join|open)\s+(?:their|his|her)?\s*(instagram|youtube|tiktok|twitter|x|twitch|spotify|soundcloud|linkedin|github|discord|snapchat|pinterest|reddit|facebook|threads|bluesky|applemusic|apple music|mastodon|patreon|substack|medium|devto|dev\.to|dribbble|behance)/i)
+    || q.match(/when (?:did|was)\s+(?:@)?(\w+)(?:'s)?\s+(instagram|youtube|tiktok|twitter|x|twitch|spotify|soundcloud|linkedin|github|discord|snapchat|pinterest|reddit|facebook|threads|bluesky|applemusic|apple music|mastodon|patreon|substack|medium|devto|dev\.to|dribbble|behance)\s+(?:created|made|started|opened|joined)/i);
   if (personPlatformCreatedMatch && personPlatformCreatedMatch[1] && personPlatformCreatedMatch[2]) {
-    return { type: "person_platform_created", name: personPlatformCreatedMatch[1], platform: personPlatformCreatedMatch[2] };
+    const matchedPlatform = personPlatformCreatedMatch[2].toLowerCase();
+    const normalizedPlatform = matchedPlatform === "x"
+      ? "twitter"
+      : matchedPlatform === "apple music"
+        ? "applemusic"
+        : matchedPlatform === "dev.to"
+          ? "devto"
+          : matchedPlatform;
+    return { type: "person_platform_created", name: personPlatformCreatedMatch[1], platform: normalizedPlatform };
   }
 
   // ── Person channels / connected accounts ──
@@ -159,7 +169,14 @@ function detectIntent(query: string): QueryIntent {
   for (const platform of PLATFORM_NAMES) {
     if (q.includes(platform)) {
       if (q.includes("content") || q.includes("posts") || q.includes("videos") || q.includes("photos")) {
-        return { type: "platform_content", platform };
+        const normalizedPlatform = platform === "x"
+          ? "twitter"
+          : platform === "apple music"
+            ? "applemusic"
+            : platform === "dev.to"
+              ? "devto"
+              : platform;
+        return { type: "platform_content", platform: normalizedPlatform };
       }
     }
   }
