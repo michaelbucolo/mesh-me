@@ -19,8 +19,8 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
   return (
     <header
       className={cn(
-        "safe-area-top sticky top-0 z-40 border-b border-[var(--glass-border)] px-3 py-2 backdrop-blur-xl lg:hidden",
-        ios ? "bg-[color-mix(in_oklab,var(--glass-bg)_70%,transparent)]" : "bg-[var(--glass-bg)]/95"
+        "safe-area-top sticky top-0 z-40 border-b border-[var(--border-primary)] px-3 py-2 lg:hidden",
+        ios ? "bg-[var(--bg-primary)]/95" : "bg-[var(--bg-primary)]/95"
       )}
     >
       <div className="mx-auto flex w-full max-w-md justify-end">
@@ -28,21 +28,21 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
             <button
               type="button"
               onClick={() => openMeshi("speech")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-secondary)] active:scale-95"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
               aria-label="Ask Meshi"
             >
               <Bot className="h-4 w-4" />
             </button>
             <Link
               href="/search"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-secondary)] active:scale-95"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
             </Link>
             <Link
               href={`/profile/${username}`}
-              className="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 px-3 text-xs font-medium text-[var(--text-secondary)] active:scale-95"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 text-xs font-medium text-[var(--text-secondary)]"
               aria-label="Open profile"
             >
               <MeshiMascot

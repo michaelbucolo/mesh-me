@@ -51,8 +51,7 @@ export function AppChrome({
       />
       <MobileTopbar username={username} />
 
-      <main className="mobile-app-chrome relative flex-1 overflow-y-auto overflow-x-hidden px-3 pb-36 pt-3 sm:px-4 md:px-5 md:pt-4 lg:px-6 lg:pb-8 lg:pt-5 xl:px-8">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(ellipse_at_top,rgba(92,168,255,0.14),transparent_70%)]" />
+      <main className="mobile-app-chrome relative flex-1 overflow-y-auto overflow-x-hidden px-3 pb-32 pt-2 sm:px-4 md:px-5 md:pt-3 lg:px-6 lg:pb-8 lg:pt-4 xl:px-8">
         <div className="mx-auto w-full max-w-[112rem]">
           <AppContentShell>{children}</AppContentShell>
         </div>
