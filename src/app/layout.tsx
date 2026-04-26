@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type React from "react";
 import "./globals.css";
-import { ToastProvider } from "@/components/ui/toast";
-import { ThemeProvider } from "@/components/theme-provider";
-import { NativeInit } from "@/components/native-init";
 
 function getSiteUrl() {
   const fallback = "https://meshme.vercel.app";
@@ -73,12 +70,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className="mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
-        <ThemeProvider>
-          <ToastProvider>
-            <NativeInit />
-            {children}
-          </ToastProvider>
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );
