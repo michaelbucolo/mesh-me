@@ -28,7 +28,6 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   const pathname = usePathname();
   const meshiPrefs = useMeshiPreferences();
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
-  const [livePulse, setLivePulse] = useState<{ totalOnline: number; sameMeshOnline: number; connectedOnline: number } | null>(null);
   const [pulseHealth, setPulseHealth] = useState<"live" | "degraded">("live");
 
   const toggleGroup = (label: string) => {
@@ -48,9 +47,8 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
       try {
         const res = await fetch("/api/mesh/presence", { cache: "no-store" });
         if (!res.ok) throw new Error("pulse failed");
-        const data = await res.json();
+        await res.json();
         if (!active) return;
-        setLivePulse(data.summary || { totalOnline: 0, sameMeshOnline: 0, connectedOnline: 0 });
         setPulseHealth("live");
       } catch {
         if (!active) return;
@@ -94,7 +92,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
 
   return (
     <aside data-sidebar className="hidden h-screen w-[16rem] shrink-0 flex-col border-r border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-4 backdrop-blur-2xl lg:flex">
-      <Link href="/mesh" className="group mb-5 flex items-center gap-3 px-3 py-1">
+      <Link href="/mesh" className="group mb-4 flex items-center gap-3 px-3 py-1">
         <MeshiMascot
           size={30}
           color={meshiPrefs.appLogo === "custom" ? meshiPrefs.appLogoColor : "blue"}
@@ -107,32 +105,10 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         <p className="brand-wordmark text-lg text-[var(--text-primary)]">
           mesh<span className="brand-wordmark-accent">.me</span>
         </p>
-        <div
-          className={cn(
-            "ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-            pulseHealth === "live" ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400",
-          )}
-          title="Live mesh pulse"
-        >
-          <Activity className="h-2.5 w-2.5" />
-          {livePulse?.totalOnline ?? 0}
+        <div className="ml-auto" title="Live mesh pulse">
+          <Activity className={cn("h-3.5 w-3.5", pulseHealth === "live" ? "text-emerald-400" : "text-amber-400")} />
         </div>
       </Link>
-
-      <div className="mb-4 grid grid-cols-3 gap-1.5 px-2">
-        <div className="rounded-lg bg-[var(--bg-secondary)]/70 px-2 py-1.5">
-          <p className="text-[9px] text-[var(--text-muted)] uppercase">Online</p>
-          <p className="text-xs font-semibold text-[var(--text-primary)]">{livePulse?.totalOnline ?? 0}</p>
-        </div>
-        <div className="rounded-lg bg-[var(--bg-secondary)]/70 px-2 py-1.5">
-          <p className="text-[9px] text-[var(--text-muted)] uppercase">Mesh</p>
-          <p className="text-xs font-semibold text-[var(--text-primary)]">{livePulse?.sameMeshOnline ?? 0}</p>
-        </div>
-        <div className="rounded-lg bg-[var(--bg-secondary)]/70 px-2 py-1.5">
-          <p className="text-[9px] text-[var(--text-muted)] uppercase">Network</p>
-          <p className="text-xs font-semibold text-[var(--text-primary)]">{livePulse?.connectedOnline ?? 0}</p>
-        </div>
-      </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto">
         {desktopNavGroups.map((group) => {
