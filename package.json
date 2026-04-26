@@ -11,7 +11,8 @@
     "cap:open": "npx cap open ios",
     "cap:build": "npm run build && npm run cap:sync",
     "build:ios": "npm run build && npm run cap:sync",
-    "launch:check": "node scripts/launch-readiness.mjs"
+    "launch:check": "node scripts/launch-readiness.mjs",
+    "roadmap:check": "node scripts/roadmap-readiness.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
