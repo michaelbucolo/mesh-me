@@ -60,3 +60,10 @@ This roadmap turns the product vision into implementation phases. It is ordered 
 - Use Capacitor integrations for push, native preferences, safe areas, and iOS polish.
 - Add notification deduplication and platform-source labeling.
 - Guide users to reduce duplicate native app notifications only after sync is reliable.
+
+## Phase 8: Super-App Replacement Readiness
+
+- Build a parity matrix for major social + messaging workflows (publish, discover, chat, group coordination, creator controls).
+- Add app-replacement migration assistant: contact import, thread bootstrap, follow migration, notification mapping, and fallback guidance.
+- Track hard SLOs for app-replacement confidence: message delivery, sync freshness, mobile startup, crash-free sessions.
+- Gate replacement marketing claims behind measurable 30-day reliability windows.
