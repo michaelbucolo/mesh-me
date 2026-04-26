@@ -3,14 +3,22 @@ import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { MeshBackground } from "@/components/mesh-background";
-import { DynamicFavicon } from "@/components/dynamic-favicon";
-import { MeshiFloat } from "@/components/meshi/meshi-float";
-import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
-import { AchievementChecker } from "@/components/achievements/achievement-toast";
 import { prisma } from "@/lib/prisma";
 import { AppChrome } from "@/components/layout/app-chrome";
-import { LiveSyncPulse } from "@/components/live-sync-pulse";
+import dynamic from "next/dynamic";
+
+const MeshBackground = dynamic(() => import("@/components/mesh-background").then((module) => module.MeshBackground));
+const DynamicFavicon = dynamic(() => import("@/components/dynamic-favicon").then((module) => module.DynamicFavicon), { ssr: false });
+const MeshiFloat = dynamic(() => import("@/components/meshi/meshi-float").then((module) => module.MeshiFloat), { ssr: false });
+const MeshiDeliveryWrapper = dynamic(
+  () => import("@/components/meshi/meshi-delivery-wrapper").then((module) => module.MeshiDeliveryWrapper),
+  { ssr: false },
+);
+const AchievementChecker = dynamic(
+  () => import("@/components/achievements/achievement-toast").then((module) => module.AchievementChecker),
+  { ssr: false },
+);
+const LiveSyncPulse = dynamic(() => import("@/components/live-sync-pulse").then((module) => module.LiveSyncPulse), { ssr: false });
 
 export const metadata: Metadata = {
   title: {
@@ -25,21 +33,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/");
   if (!user.onboarded) redirect("/onboarding");
 
-  const unreadCount = await prisma.notification.count({
-    where: { recipientId: user.id, read: false },
-  });
-
-  const unreadMessages = await prisma
-    .$queryRaw<Array<{ count: bigint | number }>>`
-      SELECT COUNT(*) as count
-      FROM "Message" m
-      INNER JOIN "ThreadMember" tm ON tm."threadId" = m."threadId"
-      WHERE tm."userId" = ${user.id}
-        AND m."senderId" != ${user.id}
-        AND m."createdAt" > tm."lastRead"
-    `
-    .then((rows) => Number(rows[0]?.count ?? 0))
-    .catch(() => 0);
+  const [unreadCount, unreadMessages] = await Promise.all([
+    prisma.notification.count({
+      where: { recipientId: user.id, read: false },
+    }),
+    prisma
+      .$queryRaw<Array<{ count: bigint | number }>>`
+        SELECT COUNT(*) as count
+        FROM "Message" m
+        INNER JOIN "ThreadMember" tm ON tm."threadId" = m."threadId"
+        WHERE tm."userId" = ${user.id}
+          AND m."senderId" != ${user.id}
+          AND m."createdAt" > tm."lastRead"
+      `
+      .then((rows) => Number(rows[0]?.count ?? 0))
+      .catch(() => 0),
+  ]);
 
   // Check if user needs verification (after 1 month of signup)
   const now = new Date();
