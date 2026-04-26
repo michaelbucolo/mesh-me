@@ -151,7 +151,7 @@ export function MeshEntry() {
     transition: { duration: 0.45, ease: [0.4, 0, 0.2, 1] as const },
   };
 
-  const inputClass = "w-full bg-transparent rounded-xl px-4 py-3.5 text-base placeholder:opacity-40 focus:outline-none focus:ring-1 focus:ring-[var(--accent-muted)] transition-all duration-300";
+  const inputClass = "simple-input w-full rounded-xl px-4 py-3.5 text-base focus:outline-none transition-all duration-300";
   const cardClass = "rounded-2xl p-6 md:p-8 backdrop-blur-xl";
 
   const errorBanner = error ? (
@@ -287,6 +287,17 @@ export function MeshEntry() {
 
   // Signup steps for progress bar
   const signupSteps: AuthStep[] = ["credentials", "email", "phone", "connect"];
+  const signupStepLabels: Record<AuthStep, string> = {
+    welcome: "Welcome",
+    credentials: "Account",
+    "login-password": "Password",
+    "forgot-password": "Reset",
+    "reset-sent": "Email sent",
+    email: "Email",
+    phone: "Phone",
+    connect: "Connect",
+    creating: "Creating",
+  };
   const currentStepIndex = signupSteps.indexOf(step);
   const progress = !isLogin && currentStepIndex >= 0 ? ((currentStepIndex + 1) / signupSteps.length) * 100 : 0;
 
@@ -299,6 +310,11 @@ export function MeshEntry() {
             initial={{ width: 0 }} animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }} />
         </div>
+      )}
+      {!isLogin && currentStepIndex >= 0 && step !== "creating" && (
+        <p className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          Step {currentStepIndex + 1} of {signupSteps.length}: {signupStepLabels[step]}
+        </p>
       )}
 
       <AnimatePresence mode="wait">
@@ -322,7 +338,7 @@ export function MeshEntry() {
                   <span className="gradient-text">Mesh</span>
                 </h1>
                 <p className="text-sm leading-relaxed mb-4 max-w-xs mx-auto" style={{ color: "var(--text-tertiary)" }}>
-                  One internet. One you.
+                  One place for your digital life.
                 </p>
                 <div className="flex items-center justify-center gap-5 mb-8 text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
                   <span className="flex items-center gap-1.5"><Shield className="h-3 w-3" style={{ color: "var(--accent)" }} /> Private</span>
@@ -360,10 +376,10 @@ export function MeshEntry() {
             <div className="mb-8">
               <MeshiWithSpeech size={56} meshiRef={meshiRef} meshiMood={meshiMood} meshiSpeech={meshiSpeech} />
               <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-                {isLogin ? "Welcome back" : "Claim your identity"}
+                {isLogin ? "Welcome back" : "Create your account"}
               </h2>
               <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-                {isLogin ? "Enter your username or email" : "Pick a username and password"}
+                {isLogin ? "Enter your username or email" : "Choose a username and password"}
               </p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
@@ -607,8 +623,8 @@ export function MeshEntry() {
                 style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
                 <Link2 className="h-6 w-6" style={{ color: "var(--accent)" }} />
               </div>
-              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Bring your world in</h2>
-              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Connect your platforms to build your mesh</p>
+              <h2 className="font-display text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Connect your apps</h2>
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Pick what you use now. You can always change this later.</p>
             </div>
             <div className={cardClass} style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <AnimatePresence mode="wait">{errorBanner}</AnimatePresence>
