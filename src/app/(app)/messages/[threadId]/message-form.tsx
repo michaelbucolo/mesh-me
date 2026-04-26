@@ -7,10 +7,11 @@ import { Send } from "lucide-react";
 
 interface MessageFormProps {
   threadId: string;
+  initialContent?: string;
 }
 
-export function MessageForm({ threadId }: MessageFormProps) {
-  const [content, setContent] = useState("");
+export function MessageForm({ threadId, initialContent }: MessageFormProps) {
+  const [content, setContent] = useState(initialContent || "");
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,7 +33,7 @@ export function MessageForm({ threadId }: MessageFormProps) {
       <input
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Type a message..."
+        placeholder={initialContent ? "Add a note or send the shared post…" : "Type a message..."}
         className="flex-1 glass-surface rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-muted)] transition-all"
       />
       <Button type="submit" variant="default" size="icon-sm" disabled={isPending || !content.trim()}>

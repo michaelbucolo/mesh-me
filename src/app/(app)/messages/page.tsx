@@ -5,9 +5,14 @@ import { MeChatClient } from "./mechat-client";
 
 export const metadata: Metadata = { title: "MeChat" };
 
-export default async function MessagesPage() {
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sharePostId?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) return null;
+  const query = await searchParams;
 
   const threads = await getMessageThreads();
 
@@ -21,5 +26,5 @@ export default async function MessagesPage() {
     unread: 0,
   }));
 
-  return <MeChatClient threads={serializedThreads} currentUserId={user.id} />;
+  return <MeChatClient threads={serializedThreads} currentUserId={user.id} sharePostId={query.sharePostId} />;
 }
