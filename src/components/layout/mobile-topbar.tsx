@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { usePathname } from "next/navigation";
 import { Bot, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlatform } from "@/hooks/use-platform";
@@ -14,46 +12,18 @@ interface MobileTopbarProps {
   username: string;
 }
 
-const routeTitles: Record<string, string> = {
-  "/mesh": "Your Mesh",
-  "/feed": "Feed",
-  "/analytics": "Analytics",
-  "/explore": "Explore",
-  "/messages": "Messages",
-  "/notifications": "Notifications",
-  "/communities": "Communities",
-  "/content-hub": "Control Center",
-  "/connected-accounts": "Connections",
-  "/trust": "Trust",
-  "/innovation": "Create",
-  "/profile": "Profile",
-  "/settings": "Settings",
-};
-
 export function MobileTopbar({ username }: MobileTopbarProps) {
-  const pathname = usePathname();
   const { ios } = usePlatform();
   const meshiPrefs = useMeshiPreferences();
-
-  const title = useMemo(() => {
-    const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
-    return routeTitles[pathname] ?? routeTitles[firstSegment] ?? "mesh.me";
-  }, [pathname]);
 
   return (
     <header
       className={cn(
-        "safe-area-top sticky top-0 z-40 border-b border-[var(--glass-border)] px-3 pb-3 pt-2 backdrop-blur-xl lg:hidden",
+        "safe-area-top sticky top-0 z-40 border-b border-[var(--glass-border)] px-3 py-2 backdrop-blur-xl lg:hidden",
         ios ? "bg-[color-mix(in_oklab,var(--glass-bg)_70%,transparent)]" : "bg-[var(--glass-bg)]/95"
       )}
     >
-      <div className="mx-auto flex w-full max-w-md">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">workspace</p>
-            <h1 className="truncate text-lg font-semibold text-[var(--text-primary)]">{title}</h1>
-          </div>
-
+      <div className="mx-auto flex w-full max-w-md justify-end">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -86,7 +56,6 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
               You
             </Link>
           </div>
-        </div>
       </div>
     </header>
   );
