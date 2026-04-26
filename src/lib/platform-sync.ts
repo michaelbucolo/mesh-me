@@ -856,6 +856,101 @@ function getStoredRefreshToken(value: string | null): string | null {
   return getStoredToken(value);
 }
 
+async function migratePlatformCommentsIntoMeChat(account: {
+  id: string;
+  userId: string;
+  platform: string;
+}) {
+  const comments = await prisma.platformComment.findMany({
+    where: {
+      connectedAccountId: account.id,
+      authorUsername: { not: null },
+      content: { not: "" },
+    },
+    select: {
+      platformCommentId: true,
+      authorUsername: true,
+      content: true,
+      publishedAt: true,
+      url: true,
+      post: { select: { url: true } },
+    },
+    take: 200,
+    orderBy: { publishedAt: "desc" },
+  });
+
+  if (comments.length === 0) return;
+
+  const usernames = [...new Set(
+    comments
+      .map((c) => c.authorUsername?.trim().toLowerCase())
+      .filter((value): value is string => Boolean(value)),
+  )];
+
+  if (usernames.length === 0) return;
+
+  const users = await prisma.user.findMany({
+    where: { username: { in: usernames } },
+    select: { id: true, username: true, displayName: true },
+  });
+  const userByUsername = new Map(users.map((u) => [u.username.toLowerCase(), u]));
+
+  for (const comment of comments) {
+    const username = comment.authorUsername?.trim().toLowerCase();
+    if (!username) continue;
+    const sender = userByUsername.get(username);
+    if (!sender || sender.id === account.userId) continue;
+
+    const existingThread = await prisma.messageThread.findFirst({
+      where: {
+        AND: [
+          { members: { some: { userId: account.userId } } },
+          { members: { some: { userId: sender.id } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    const thread = existingThread || await prisma.messageThread.create({
+      data: {
+        members: {
+          create: [
+            { userId: account.userId },
+            { userId: sender.id },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    const marker = `[${account.platform}:${comment.platformCommentId}]`;
+    const alreadyImported = await prisma.message.findFirst({
+      where: {
+        threadId: thread.id,
+        content: { startsWith: marker },
+      },
+      select: { id: true },
+    });
+    if (alreadyImported) continue;
+
+    const sourceUrl = comment.url || comment.post?.url;
+    const importedContent = `${marker} ${comment.content}${sourceUrl ? `\n${sourceUrl}` : ""}`;
+
+    await prisma.message.create({
+      data: {
+        content: importedContent,
+        senderId: sender.id,
+        threadId: thread.id,
+        createdAt: comment.publishedAt || new Date(),
+      },
+    });
+    await prisma.messageThread.update({
+      where: { id: thread.id },
+      data: { updatedAt: comment.publishedAt || new Date() },
+    });
+  }
+}
+
 // ─── Sync Engine ────────────────────────────────────────────
 
 export async function syncPlatform(connectedAccountId: string, syncType: "full" | "posts" | "comments" | "followers" | "analytics" = "full") {
@@ -985,6 +1080,12 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
       data: { syncStatus: "idle", lastSyncAt: new Date() },
     });
 
+    await migratePlatformCommentsIntoMeChat({
+      id: account.id,
+      userId: account.userId,
+      platform: account.platform,
+    });
+
     return { success: true, itemsSynced };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Sync failed";
@@ -1041,6 +1142,12 @@ export async function syncComments(connectedAccountId: string, platformPostId: s
     await prisma.platformPost.update({
       where: { id: post.id },
       data: { commentsImported: true },
+    });
+
+    await migratePlatformCommentsIntoMeChat({
+      id: account.id,
+      userId: account.userId,
+      platform: account.platform,
     });
 
     return { success: true, count: result.comments.length };

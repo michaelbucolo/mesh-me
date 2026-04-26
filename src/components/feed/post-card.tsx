@@ -302,7 +302,10 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 <Share2 className="h-4 w-4" />
               </button>
               {showShareMenu && (
-                <div className="absolute right-0 bottom-8 w-44 rounded-xl shadow-xl z-20 py-1 glass-dropdown animate-smooth-reveal">
+                <div className="absolute right-0 bottom-8 w-52 rounded-xl shadow-xl z-20 py-1 glass-dropdown animate-smooth-reveal">
+                  <Link href={`/messages?sharePostId=${encodeURIComponent(post.id)}`} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
+                    <MessageCircle className="h-4 w-4" /> Share in MeChat
+                  </Link>
                   <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                     <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
                   </button>
