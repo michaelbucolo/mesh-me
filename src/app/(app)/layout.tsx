@@ -14,7 +14,7 @@ import { LiveSyncPulse } from "@/components/live-sync-pulse";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s — mesh.me",
+    template: "%s | mesh.me",
     default: "mesh.me",
   },
 };
@@ -42,7 +42,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .catch(() => 0),
   ]);
 
-  // Check if user needs verification (after 1 month of signup)
   const now = new Date();
   const oneMonthAgo = new Date(now);
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -50,8 +49,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const accountOldEnough = user.createdAt < oneMonthAgo;
   const needsEmailVerification = accountOldEnough && !user.emailVerified;
   const needsPhoneVerification = accountOldEnough && !user.phoneVerified;
-
-  // Get user email for the verification banner
   const userEmail = user.email;
 
   return (

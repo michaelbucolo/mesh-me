@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowRight,
   BarChart3,
   BellRing,
   Brain,
@@ -15,6 +16,7 @@ import {
   Waypoints,
 } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
+import { SiteRouteMap } from "@/components/marketing/site-route-map";
 
 export const metadata: Metadata = {
   title: "Features | mesh.me",
@@ -108,8 +110,7 @@ export default function FeaturesPage() {
           </h1>
         </div>
         <p className="mesh-copy text-base md:text-lg">
-          Mesh.me combines a standalone social network with a user-authorized control center for the rest of your digital
-          life. One product model powers the Mesh, the Feed, MeChat, Analytics, connected accounts, and Meshi.
+          Mesh.me combines a standalone social network with a user-authorized control center for the rest of your digital life. One product model powers the Mesh, the Feed, MeChat, Analytics, connected accounts, and Meshi.
         </p>
       </section>
 
@@ -169,8 +170,7 @@ export default function FeaturesPage() {
             <h2 className="text-lg font-bold text-[var(--text-primary)]">Built for different kinds of people</h2>
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            Mesh.me is meant to work for creators, casual users, and people who need a calmer, more familiar layout.
-            The product adapts to the person instead of forcing every user into one rigid social pattern.
+            Mesh.me is meant to work for creators, casual users, and people who need a calmer, more familiar layout. The product adapts to the person instead of forcing every user into one rigid social pattern.
           </p>
         </article>
 
@@ -180,8 +180,7 @@ export default function FeaturesPage() {
             <h2 className="text-lg font-bold text-[var(--text-primary)]">Cross-platform philosophy</h2>
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            When supported by provider APIs and permissions, Mesh.me is designed to route interactions back to the
-            original source so creators keep credit and the connected web stays fair.
+            When supported by provider APIs and permissions, Mesh.me is designed to route interactions back to the original source so creators keep credit and the connected web stays fair.
           </p>
         </article>
       </section>
@@ -203,6 +202,35 @@ export default function FeaturesPage() {
         </div>
       </section>
 
+      <section className="mt-12 grid gap-4 lg:grid-cols-3">
+        {[
+          {
+            title: "Launch path",
+            copy: "Feed, Mesh, MeChat, Analytics, and the public trust pages now cross-link more directly so users can orient themselves without guessing where to go next.",
+          },
+          {
+            title: "Interface strategy",
+            copy: "The UX pass prioritizes quick comprehension on public pages, then progressively hands off to richer product surfaces after signup and onboarding.",
+          },
+          {
+            title: "What stays fixed",
+            copy: "Meshi remains visually stable so the mascot still feels like the constant identity anchor through the rest of the product.",
+          },
+        ].map((item) => (
+          <article key={item.title} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+            <h3 className="text-base font-bold text-[var(--text-primary)]">{item.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{item.copy}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="mt-12">
+        <SiteRouteMap
+          title="The feature pages point into the rest of the product"
+          description="This page no longer ends as a static marketing list. It now acts as a decision surface for users comparing Mesh, Feed, MeChat, Analytics, trust, and policy routes."
+        />
+      </section>
+
       <section className="mt-12 mesh-section grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-center">
         <div>
           <p className="mesh-kicker mb-2">Launch direction</p>
@@ -210,8 +238,8 @@ export default function FeaturesPage() {
             Mesh.me is trying to become the cleanest, safest place to manage your whole online identity.
           </h2>
         </div>
-        <Link href="/" className="brand-button inline-flex justify-center rounded-xl px-5 py-3 text-sm font-bold text-white">
-          Enter the product
+        <Link href="/signup" className="brand-button inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white">
+          Start with Meshi <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
     </PublicSiteShell>

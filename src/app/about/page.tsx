@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle2, Lock, ShieldCheck, Sparkles } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { SiteRouteMap } from "@/components/marketing/site-route-map";
 
 export const metadata: Metadata = {
   title: "About | mesh.me",
@@ -66,6 +67,13 @@ export default function AboutPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mt-12">
+        <SiteRouteMap
+          title="The public story now has a clearer sequence"
+          description="About now sits in the middle of the journey: users can start on the promise, validate the principles here, then move directly into the route that answers their next question."
+        />
       </section>
     </PublicSiteShell>
   );

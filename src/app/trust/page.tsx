@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
+import { SiteRouteMap } from "@/components/marketing/site-route-map";
 
 export const metadata: Metadata = {
   title: "Trust Center | mesh.me",
@@ -143,6 +144,13 @@ export default function TrustCenterPage() {
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="mt-12">
+        <SiteRouteMap
+          title="Trust routes are now part of the main navigation path"
+          description="The trust surface is no longer isolated from the rest of the site. It now reinforces the public promise and makes it easier to move into Privacy, Terms, and product entry routes."
+        />
       </section>
     </PublicSiteShell>
   );

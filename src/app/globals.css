@@ -178,21 +178,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease, color 0.2s ease;
-  letter-spacing: -0.011em;
+  letter-spacing: 0;
   line-height: 1.5;
 }
 
 /* ─── Display Font for Headings ─── */
 h1, h2, h3, .font-display {
   font-family: var(--font-display), var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 /* ─── Brand Wordmark ─── */
 .brand-wordmark {
   font-family: var(--font-display), var(--font-inter), sans-serif;
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
 }
 
 .brand-wordmark-accent { color: var(--accent); }
@@ -858,6 +858,65 @@ html {
 
 .premium-surface:hover::before {
   opacity: 1;
+}
+
+.mesh-kicker {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mesh-title {
+  color: var(--text-primary);
+  font-weight: 800;
+  line-height: 1.02;
+}
+
+.mesh-copy {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.mesh-command {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-card-border);
+  background: var(--glass-card-bg);
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  font-weight: 600;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.mesh-command:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.mesh-section {
+  border-radius: 1.5rem;
+  border: 1px solid var(--glass-card-border);
+  background: var(--glass-card-bg);
+  box-shadow: var(--glass-shadow);
+}
+
+.mesh-panel {
+  border: 1px solid var(--glass-card-border);
+  background: var(--glass-card-bg);
+}
+
+.mesh-stat-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--glass-card-border);
+  background: var(--glass-card-bg);
+  padding: 1rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -50,10 +50,7 @@ export function Tooltip({
     right: "left-full top-1/2 -translate-y-1/2 ml-2",
   };
 
-  const motionOrigin: Record<
-    string,
-    { initial: Record<string, number>; animate: Record<string, number> }
-  > = {
+  const motionOrigin: Record<string, { initial: Record<string, number>; animate: Record<string, number> }> = {
     top: { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 } },
     bottom: { initial: { opacity: 0, y: -4 }, animate: { opacity: 1, y: 0 } },
     left: { initial: { opacity: 0, x: 4 }, animate: { opacity: 1, x: 0 } },
