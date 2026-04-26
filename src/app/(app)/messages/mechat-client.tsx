@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar } from "@/components/ui/avatar";
@@ -52,6 +52,35 @@ const PLATFORM_ICONS: Record<string, { color: string; label: string }> = {
 
 type PlatformFilter = "all" | "mesh" | "instagram" | "twitter" | "youtube" | "discord";
 
+type FeatureStatus = "live" | "in-progress" | "planned";
+
+const IMESSAGE_PARITY_FEATURES: Array<{ name: string; status: FeatureStatus; note: string }> = [
+  { name: "Read receipts", status: "planned", note: "Per-conversation controls and sender visibility are queued." },
+  { name: "Typing indicators", status: "planned", note: "Real-time typing events are on the near-term socket backlog." },
+  { name: "Message reactions", status: "in-progress", note: "Tapback-style quick reactions are being implemented." },
+  { name: "Reply threading", status: "in-progress", note: "Inline replies and jump-to-context are being built." },
+  { name: "Voice notes", status: "planned", note: "Audio waveform capture + playback is in product design." },
+  { name: "Attachments & camera", status: "planned", note: "Photos, video, and document share flows are planned." },
+  { name: "Group messaging", status: "planned", note: "Admin controls, mentions, and membership states are planned." },
+  { name: "Conversation search", status: "live", note: "Thread-level search is available from the inbox." },
+  { name: "Delivery reliability", status: "in-progress", note: "Retry queue and network resilience are in active work." },
+];
+
+const FEATURE_STATUS_STYLES: Record<FeatureStatus, { label: string; className: string }> = {
+  live: {
+    label: "Live",
+    className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
+  },
+  "in-progress": {
+    label: "In progress",
+    className: "border-amber-500/25 bg-amber-500/10 text-amber-300",
+  },
+  planned: {
+    label: "Planned",
+    className: "border-slate-500/25 bg-slate-500/10 text-slate-300",
+  },
+};
+
 interface MeChatClientProps {
   threads: Thread[];
   currentUserId: string;
@@ -62,22 +91,31 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
   const [showNewChat, setShowNewChat] = useState(false);
   const [showPlatformFilter, setShowPlatformFilter] = useState(false);
+  const [visibleThreadCount, setVisibleThreadCount] = useState(40);
   const [newChatSearch, setNewChatSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; username: string; displayName: string; avatarUrl: string | null }>>([]);
   const meshiPrefs = useMeshiPreferences();
 
-  const filteredThreads = initialThreads.filter((thread) => {
-    if (platformFilter !== "all" && (thread.platform || "mesh") !== platformFilter) return false;
-    if (
-      searchQuery &&
-      thread.otherUser &&
-      !thread.otherUser.displayName.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !thread.otherUser.username.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
-      return false;
-    }
-    return true;
-  });
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const filteredThreads = useMemo(() => {
+    return initialThreads.filter((thread) => {
+      if (platformFilter !== "all" && (thread.platform || "mesh") !== platformFilter) return false;
+      if (
+        deferredSearchQuery &&
+        thread.otherUser &&
+        !thread.otherUser.displayName.toLowerCase().includes(deferredSearchQuery.toLowerCase()) &&
+        !thread.otherUser.username.toLowerCase().includes(deferredSearchQuery.toLowerCase())
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [deferredSearchQuery, initialThreads, platformFilter]);
+
+  const visibleThreads = useMemo(
+    () => filteredThreads.slice(0, visibleThreadCount),
+    [filteredThreads, visibleThreadCount],
+  );
 
   const handleNewChatSearch = async (query: string) => {
     setNewChatSearch(query);
@@ -233,7 +271,7 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
 
           {filteredThreads.length > 0 ? (
             <div className="space-y-3">
-              {filteredThreads.map((thread) => {
+              {visibleThreads.map((thread) => {
                 const platform = thread.platform || "mesh";
                 const platformInfo = PLATFORM_ICONS[platform] || PLATFORM_ICONS.mesh;
 
@@ -294,6 +332,15 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
                   </Link>
                 );
               })}
+              {filteredThreads.length > visibleThreads.length && (
+                <Button
+                  variant="glass"
+                  className="w-full rounded-xl"
+                  onClick={() => setVisibleThreadCount((count) => count + 40)}
+                >
+                  Load more conversations
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-10 text-center">
@@ -342,6 +389,31 @@ export function MeChatClient({ threads: initialThreads, currentUserId }: MeChatC
               <p className="text-sm leading-6 text-[var(--text-secondary)]">
                 The goal is not to erase where something came from. It is to make the conversation around it easier to follow.
               </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-[var(--accent)]" />
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  iMessage parity tracker
+                </p>
+              </div>
+              <div className="space-y-2.5">
+                {IMESSAGE_PARITY_FEATURES.map((feature) => {
+                  const status = FEATURE_STATUS_STYLES[feature.status];
+                  return (
+                    <div key={feature.name} className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/40 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">{feature.name}</p>
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${status.className}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{feature.note}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </aside>
