@@ -11,6 +11,9 @@ import { MeshiFloat } from "@/components/meshi/meshi-float";
 import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
 import { LiveSyncPulse } from "@/components/live-sync-pulse";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
+import { NativeInit } from "@/components/native-init";
 
 export const metadata: Metadata = {
   title: {
@@ -52,42 +55,47 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const userEmail = user.email;
 
   return (
-    <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-primary)]">
-      <MeshBackground density={30} className="opacity-30" />
+    <ThemeProvider>
+      <ToastProvider>
+        <NativeInit />
+        <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-primary)]">
+          <MeshBackground density={30} className="opacity-30" />
 
-      <div className="relative z-10 flex h-full">
-        <Sidebar
-          user={{
-            id: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-            isAdmin: user.isAdmin,
-          }}
-          unreadNotifications={unreadCount}
-          unreadMessages={unreadMessages}
-        />
+          <div className="relative z-10 flex h-full">
+            <Sidebar
+              user={{
+                id: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                avatarUrl: user.avatarUrl,
+                isAdmin: user.isAdmin,
+              }}
+              unreadNotifications={unreadCount}
+              unreadMessages={unreadMessages}
+            />
 
-        <div className="flex h-full min-w-0 flex-1 flex-col">
-          <AppChrome
-            unreadNotifications={unreadCount}
-            unreadMessages={unreadMessages}
-            username={user.username}
-            needsEmailVerification={needsEmailVerification}
-            needsPhoneVerification={needsPhoneVerification}
-            userEmail={userEmail}
-          >
-            {children}
-          </AppChrome>
+            <div className="flex h-full min-w-0 flex-1 flex-col">
+              <AppChrome
+                unreadNotifications={unreadCount}
+                unreadMessages={unreadMessages}
+                username={user.username}
+                needsEmailVerification={needsEmailVerification}
+                needsPhoneVerification={needsPhoneVerification}
+                userEmail={userEmail}
+              >
+                {children}
+              </AppChrome>
+            </div>
+          </div>
+
+          <MobileNav unreadNotifications={unreadCount} unreadMessages={unreadMessages} username={user.username} />
+          <MeshiFloat />
+          <MeshiDeliveryWrapper />
+          <AchievementChecker />
+          <LiveSyncPulse />
+          <DynamicFavicon />
         </div>
-      </div>
-
-      <MobileNav unreadNotifications={unreadCount} unreadMessages={unreadMessages} username={user.username} />
-      <MeshiFloat />
-      <MeshiDeliveryWrapper />
-      <AchievementChecker />
-      <LiveSyncPulse />
-      <DynamicFavicon />
-    </div>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
