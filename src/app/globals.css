@@ -179,6 +179,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease, color 0.2s ease;
   letter-spacing: -0.011em;
+  line-height: 1.5;
 }
 
 /* ─── Display Font for Headings ─── */
@@ -309,7 +310,7 @@ select:focus-visible {
   -webkit-backdrop-filter: none;
   border: 1px solid var(--glass-card-border);
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .glass-card:hover {
@@ -332,6 +333,7 @@ select:focus-visible {
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
   border: 1px solid var(--glass-card-border);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .glass-input {
@@ -600,6 +602,41 @@ select:focus-visible {
 }
 .brand-button:active {
   transform: scale(0.99);
+}
+
+/* ─── Simplicity-first global UX helpers ─── */
+.simple-page {
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+.simple-card {
+  border-radius: 1rem;
+  border: 1px solid var(--glass-card-border);
+  background: var(--glass-card-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.simple-input {
+  border-radius: 0.85rem;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.simple-input::placeholder {
+  color: var(--text-muted);
+}
+
+.simple-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+  outline: none;
+}
+
+.simple-muted {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 /* ─── Satisfying Button Ripple ─── */
