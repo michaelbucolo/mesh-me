@@ -195,7 +195,19 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
 
 // Platforms that use manual username entry instead of OAuth
 // (no standard OAuth API available or API is deprecated)
-export const MANUAL_PLATFORMS = ["soundcloud", "bluesky", "threads"];
+export const MANUAL_PLATFORMS = [
+  "soundcloud",
+  "bluesky",
+  "threads",
+  "applemusic",
+  "mastodon",
+  "patreon",
+  "substack",
+  "medium",
+  "devto",
+  "dribbble",
+  "behance",
+];
 
 export function isPlatformOAuth(platform: string): boolean {
   return Object.hasOwn(OAUTH_CONFIGS, platform);
