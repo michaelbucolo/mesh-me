@@ -705,7 +705,7 @@ export function MeshiMascot({
                 opacity: 1,
                 x: 0,
                 y: 0,
-                rotate: prop !== "none" ? [-22, -45, -36, -40] : [-22, -8, -14, -8],
+                rotate: [-22, -45, -36, -40],
                 scale: [0.85, 1, 0.98, 1],
               }}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -717,11 +717,7 @@ export function MeshiMascot({
                 fill={theme.bg}
                 stroke={theme.primary}
                 strokeWidth="1.4"
-                animate={animate ? (
-                  prop !== "none"
-                    ? { x: [0, 1.3, 0.4, 0], y: [0, -2.2, -0.6, 0], scale: [1, 1.15, 1.02, 1] }
-                    : { y: [0, -1.3, 0.3, 0], scale: [1, 1.1, 0.98, 1] }
-                ) : undefined}
+                animate={animate ? { x: [0, 1.3, 0.4, 0], y: [0, -2.2, -0.6, 0], scale: [1, 1.15, 1.02, 1] } : undefined}
                 transition={{ duration: speaking ? 0.8 : 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.08 }}
               />
             </motion.g>
