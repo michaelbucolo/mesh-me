@@ -53,10 +53,8 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   ),
   searching: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="0" rx="3" ry="1.5" fill={color} />
-      <ellipse cx="5" cy="0" rx="3" ry="1.5" fill={color} />
-      <circle cx="-4" cy="0" r="0.8" fill="white" />
-      <circle cx="6" cy="0" r="0.8" fill="white" />
+      <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
+      <ellipse cx="5" cy="0" rx="2.5" ry="3" fill={color} />
     </g>
   ),
   learning: (color: string) => (
