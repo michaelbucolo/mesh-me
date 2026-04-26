@@ -154,6 +154,11 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
   ),
 };
 
+const HAND_POSITIONS = {
+  left: { shoulderX: -10.5, shoulderY: 4, handX: -17, handY: 10 },
+  right: { shoulderX: 10.5, shoulderY: 4, handX: 17, handY: 10 },
+} as const;
+
 
 // Meshi hat styles (rendered as SVG elements)
 const HATS: Record<string, React.ReactNode> = {
@@ -469,6 +474,7 @@ export function MeshiMascot({
 
   // Determine prop SVG
   const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
+  const showHands = interactive || speaking || prop !== "none";
 
   // Determine current face (with blinking override)
   const getCurrentFace = () => {
@@ -593,6 +599,85 @@ export function MeshiMascot({
           >
             {propSvg}
           </motion.g>
+        )}
+
+        {/* Bubble hands — hidden by default, shown during interactions */}
+        {showHands && (
+          <>
+            <motion.g
+              initial={{ opacity: 0, x: -3, y: 4, rotate: 20, scale: 0.85 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                y: 0,
+                rotate: [20, 6, 10, 6],
+                scale: [0.85, 1, 0.98, 1],
+              }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+            >
+              <motion.line
+                x1={HAND_POSITIONS.left.shoulderX}
+                y1={HAND_POSITIONS.left.shoulderY}
+                x2={HAND_POSITIONS.left.handX}
+                y2={HAND_POSITIONS.left.handY}
+                stroke={theme.primary}
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                opacity="0.55"
+                animate={animate ? { pathLength: [0.9, 1, 0.95, 1] } : undefined}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.circle
+                cx={HAND_POSITIONS.left.handX}
+                cy={HAND_POSITIONS.left.handY}
+                r="2.8"
+                fill={theme.bg}
+                stroke={theme.primary}
+                strokeWidth="1.4"
+                animate={animate ? { y: [0, -1.6, 0.4, 0], scale: [1, 1.12, 0.98, 1] } : undefined}
+                transition={{ duration: speaking ? 0.9 : 1.3, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.g>
+
+            <motion.g
+              initial={{ opacity: 0, x: 3, y: 4, rotate: -22, scale: 0.85 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                y: 0,
+                rotate: prop !== "none" ? [-22, -45, -36, -40] : [-22, -8, -14, -8],
+                scale: [0.85, 1, 0.98, 1],
+              }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            >
+              <motion.line
+                x1={HAND_POSITIONS.right.shoulderX}
+                y1={HAND_POSITIONS.right.shoulderY}
+                x2={HAND_POSITIONS.right.handX}
+                y2={HAND_POSITIONS.right.handY}
+                stroke={theme.primary}
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                opacity="0.55"
+                animate={animate ? { pathLength: [0.9, 1, 0.95, 1] } : undefined}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
+              />
+              <motion.circle
+                cx={HAND_POSITIONS.right.handX}
+                cy={HAND_POSITIONS.right.handY}
+                r="2.8"
+                fill={theme.bg}
+                stroke={theme.primary}
+                strokeWidth="1.4"
+                animate={animate ? (
+                  prop !== "none"
+                    ? { x: [0, 1.3, 0.4, 0], y: [0, -2.2, -0.6, 0], scale: [1, 1.15, 1.02, 1] }
+                    : { y: [0, -1.3, 0.3, 0], scale: [1, 1.1, 0.98, 1] }
+                ) : undefined}
+                transition={{ duration: speaking ? 0.8 : 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.08 }}
+              />
+            </motion.g>
+          </>
         )}
       </svg>
     </motion.div>
