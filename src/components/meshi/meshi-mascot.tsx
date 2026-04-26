@@ -545,7 +545,7 @@ export function MeshiMascot({
 
   // Determine prop SVG
   const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
-  const showHands = interactive || speaking || prop !== "none";
+  const showHands = prop !== "none";
 
   // Determine current face (with blinking override)
   const getCurrentFace = () => {
@@ -675,7 +675,7 @@ export function MeshiMascot({
           </motion.g>
         )}
 
-        {/* Bubble hands — hidden by default, shown during interactions */}
+        {/* Bubble hands — only shown when Meshi is actively holding a prop */}
         {showHands && (
           <>
             <motion.g
@@ -689,18 +689,6 @@ export function MeshiMascot({
               }}
               transition={{ duration: 0.45, ease: "easeOut" }}
             >
-              <motion.line
-                x1={HAND_POSITIONS.left.shoulderX}
-                y1={HAND_POSITIONS.left.shoulderY}
-                x2={HAND_POSITIONS.left.handX}
-                y2={HAND_POSITIONS.left.handY}
-                stroke={theme.primary}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                opacity="0.55"
-                animate={animate ? { pathLength: [0.9, 1, 0.95, 1] } : undefined}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              />
               <motion.circle
                 cx={HAND_POSITIONS.left.handX}
                 cy={HAND_POSITIONS.left.handY}
@@ -724,18 +712,6 @@ export function MeshiMascot({
               }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              <motion.line
-                x1={HAND_POSITIONS.right.shoulderX}
-                y1={HAND_POSITIONS.right.shoulderY}
-                x2={HAND_POSITIONS.right.handX}
-                y2={HAND_POSITIONS.right.handY}
-                stroke={theme.primary}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                opacity="0.55"
-                animate={animate ? { pathLength: [0.9, 1, 0.95, 1] } : undefined}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
-              />
               <motion.circle
                 cx={HAND_POSITIONS.right.handX}
                 cy={HAND_POSITIONS.right.handY}
