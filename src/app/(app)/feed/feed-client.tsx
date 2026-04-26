@@ -20,6 +20,7 @@ import {
   Sparkles,
   Waypoints,
   RadioTower,
+  SlidersHorizontal,
 } from "lucide-react";
 
 type FeedLayout = "timeline" | "grid" | "reels" | "compact" | "cards";
@@ -76,8 +77,9 @@ const sourceMeta: Record<FeedSource, { label: string; copy: string }> = {
 };
 
 export function FeedClient({ user, initialPosts }: FeedClientProps) {
-  const [layout, setLayout] = useState<FeedLayout>("cards");
+  const [layout, setLayout] = useState<FeedLayout>("timeline");
   const [source, setSource] = useState<FeedSource>("all");
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
   const [posts, setPosts] = useState(initialPosts);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialPosts.length >= 20);
@@ -183,8 +185,8 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
             </div>
             <h1 className="text-3xl font-black text-[var(--text-primary)] md:text-4xl">Feed</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-              The Feed makes Mesh.me instantly familiar without losing the bigger product vision underneath.
-              Scroll the internet your way while staying connected to the same world as the Mesh.
+              Open the app and start scrolling right away.
+              Advanced controls are still available, but hidden by default to keep the experience simple.
             </p>
           </div>
 
@@ -194,7 +196,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
               <p className="mt-2 text-sm font-bold text-[var(--text-primary)]">{sourceMeta[source].label}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Layout</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">View</p>
               <p className="mt-2 text-sm font-bold text-[var(--text-primary)]">{activeLayout.label}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
@@ -229,59 +231,73 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {(["all", "following", "discover"] as FeedSource[]).map((src) => (
-                      <button
-                        key={src}
-                        onClick={() => void handleSourceChange(src)}
-                        disabled={loadingSource && source === src}
-                        className={
-                          "rounded-full px-3 py-1.5 text-xs font-semibold transition-all " +
-                          (
-                            src === source
-                              ? "bg-[var(--accent)] text-white"
-                              : "border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                          )
-                        }
-                      >
-                        {src === "all" ? "For You" : src === "following" ? "Following" : "Discover"}
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setShowAdvancedControls((current) => !current)}
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                    >
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
+                      {showAdvancedControls ? "Hide advanced" : "Customize feed"}
+                    </button>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {LAYOUT_OPTIONS.map((option) => {
-                    const Icon = option.icon;
-                    const active = layout === option.id;
+                {showAdvancedControls && (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      {(["all", "following", "discover"] as FeedSource[]).map((src) => (
+                        <button
+                          key={src}
+                          onClick={() => void handleSourceChange(src)}
+                          disabled={loadingSource && source === src}
+                          className={
+                            "rounded-full px-3 py-1.5 text-xs font-semibold transition-all " +
+                            (
+                              src === source
+                                ? "bg-[var(--accent)] text-white"
+                                : "border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                            )
+                          }
+                        >
+                          {src === "all" ? "For You" : src === "following" ? "Following" : "Discover"}
+                        </button>
+                      ))}
+                    </div>
 
-                    return (
-                      <button
-                        key={option.id}
-                        onClick={() => setLayout(option.id)}
-                        className={
-                          "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all " +
-                          (
-                            active
-                              ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
-                              : "border border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                          )
-                        }
-                        title={`${option.label} • ${option.description}`}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        {option.label}
-                      </button>
-                    );
-                  })}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {LAYOUT_OPTIONS.map((option) => {
+                        const Icon = option.icon;
+                        const active = layout === option.id;
 
-                  {loadingSource && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Refreshing
-                    </span>
-                  )}
-                </div>
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => setLayout(option.id)}
+                            className={
+                              "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all " +
+                              (
+                                active
+                                  ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
+                                  : "border border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                              )
+                            }
+                            title={`${option.label} • ${option.description}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {loadingSource && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Refreshing
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {layout === "timeline" && (
