@@ -4,11 +4,12 @@ import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { MeshBackground } from "@/components/mesh-background";
 
-const navItems = [
+const navLinks = [
   { href: "/features", label: "Features" },
   { href: "/about", label: "About" },
   { href: "/trust", label: "Trust" },
   { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ];
 
 export function PublicSiteShell({
@@ -24,7 +25,7 @@ export function PublicSiteShell({
       <div className="pointer-events-none absolute inset-0 mesh-grid-bg opacity-[0.14]" />
 
       <header className="glass sticky top-0 z-30 border-b border-[var(--glass-border)]">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:h-18 md:px-6">
+        <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
           <Link href="/" className="flex min-w-0 items-center gap-3">
             <MeshiLogo size={34} color="blue" mood="happy" />
             <div className="min-w-0">
@@ -38,7 +39,7 @@ export function PublicSiteShell({
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">
-            {navItems.map((item) => (
+            {navLinks.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -65,6 +66,13 @@ export function PublicSiteShell({
             </Link>
           </div>
         </div>
+        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 md:hidden md:px-6">
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="mesh-command shrink-0 px-3">
+              {link.label}
+            </Link>
+          ))}
+        </div>
       </header>
 
       <main className={`simple-page relative z-10 mx-auto ${maxWidth} px-4 py-10 md:px-6 md:py-14`}>
@@ -79,17 +87,17 @@ export function PublicSiteShell({
               No ads. No data selling.
             </div>
             <p className="max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-              Mesh.me is built to unify the useful parts of modern internet life without the manipulative parts.
-              Users connect what they want, control what is visible, and keep source credit intact.
+              Mesh.me is built to unify the useful parts of modern internet life without the manipulative parts. Users connect what they want, control what is visible, and keep source credit intact.
             </p>
           </div>
 
           <div className="grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-2">
-            <Link href="/privacy" className="transition hover:text-[var(--text-primary)]">Privacy</Link>
-            <Link href="/terms" className="transition hover:text-[var(--text-primary)]">Terms</Link>
-            <Link href="/features" className="transition hover:text-[var(--text-primary)]">Features</Link>
-            <Link href="/about" className="transition hover:text-[var(--text-primary)]">About</Link>
-            <Link href="/trust" className="transition hover:text-[var(--text-primary)]">Trust</Link>
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href} className="transition hover:text-[var(--text-primary)]">
+                {link.label}
+              </Link>
+            ))}
+            <Link href="/login" className="transition hover:text-[var(--text-primary)]">Login</Link>
             <div className="inline-flex items-center gap-2 text-[var(--text-secondary)]">
               <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
               2026 launch surface

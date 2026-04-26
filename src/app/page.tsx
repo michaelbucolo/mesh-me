@@ -16,6 +16,7 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { SiteRouteMap } from "@/components/marketing/site-route-map";
 
 export const metadata: Metadata = {
   title: "Mesh.me | Your World, Your Way",
@@ -120,8 +121,7 @@ export default async function LandingPage() {
             </div>
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            Meshi stays simple and recognizable: bubbly, two eyes, no mouth. Meshi represents your presence in the
-            Mesh and serves as your only deeply integrated AI companion.
+            Meshi stays simple and recognizable: bubbly, two eyes, no mouth. Meshi represents your presence in the Mesh and serves as your only deeply integrated AI companion.
           </p>
           <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]">
             <p className="font-semibold text-[var(--text-primary)]">No ad-driven model</p>
@@ -173,18 +173,24 @@ export default async function LandingPage() {
           <p className="mesh-kicker mb-3">Launch principle</p>
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">The product should adapt to people, not force people to adapt to the product.</h2>
           <p className="mt-4 text-sm leading-6 text-[var(--text-secondary)]">
-            Mesh.me supports multiple experience styles so creators, everyday consumers, and less technical users can use
-            the same unified ecosystem in the way that feels best for them.
+            Mesh.me supports multiple experience styles so creators, everyday consumers, and less technical users can use the same unified ecosystem in the way that feels best for them.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/about" className="rounded-xl border border-[var(--border-primary)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--border-hover)]">
               Why Mesh.me
             </Link>
             <Link href="/trust" className="rounded-xl border border-[var(--border-primary)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--border-hover)]">
-              Security & trust
+              Security and trust
             </Link>
           </div>
         </article>
+      </section>
+
+      <section className="mt-12">
+        <SiteRouteMap
+          title="A launch surface that explains the product fast"
+          description="The public routes now work together: the homepage makes the promise, Features explains how it works, About explains why it exists, Trust explains the risk model, and the legal pages no longer feel detached from the product."
+        />
       </section>
 
       <section className="simple-card mt-12 rounded-3xl p-6 md:p-8">
