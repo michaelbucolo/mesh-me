@@ -18,10 +18,15 @@ interface PremiumTopbarProps {
 const routeMeta: Record<string, { title: string; subtitle: string }> = {
   "/mesh": { title: "The Mesh", subtitle: "Map your identity graph in real time" },
   "/feed": { title: "Creator Feed", subtitle: "Curated momentum from your universe" },
+  "/analytics": { title: "Analytics", subtitle: "Track growth, engagement, and health" },
   "/explore": { title: "Explore", subtitle: "Discover creators, communities, and ideas" },
   "/messages": { title: "MeChat", subtitle: "Conversations that keep your network alive" },
   "/notifications": { title: "Notifications", subtitle: "Signals that deserve your attention" },
   "/communities": { title: "Communities", subtitle: "Your spaces for intentional growth" },
+  "/content-hub": { title: "Control Center", subtitle: "Manage content and connected sources" },
+  "/connected-accounts": { title: "Connections", subtitle: "Link and sync external platforms" },
+  "/trust": { title: "Trust Center", subtitle: "Review privacy, security, and account trust" },
+  "/profile": { title: "Profile", subtitle: "Shape how you appear across mesh.me" },
   "/settings": { title: "Settings", subtitle: "Tune every layer of your experience" },
 };
 

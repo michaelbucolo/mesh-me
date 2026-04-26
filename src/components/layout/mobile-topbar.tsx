@@ -17,11 +17,16 @@ interface MobileTopbarProps {
 const routeTitles: Record<string, string> = {
   "/mesh": "Your Mesh",
   "/feed": "Feed",
+  "/analytics": "Analytics",
   "/explore": "Explore",
   "/messages": "Messages",
   "/notifications": "Notifications",
   "/communities": "Communities",
+  "/content-hub": "Control Center",
+  "/connected-accounts": "Connections",
+  "/trust": "Trust",
   "/innovation": "Create",
+  "/profile": "Profile",
   "/settings": "Settings",
 };
 
