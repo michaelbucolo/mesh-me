@@ -10,6 +10,8 @@ export interface OAuthConfig {
   scopes: string[];
   clientIdEnv: string;
   clientSecretEnv: string;
+  clientIdEnvAliases?: string[];
+  clientSecretEnvAliases?: string[];
   // How to extract username from profile response
   usernameField: string;
   // Some platforms use different param names
@@ -48,6 +50,8 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     scopes: ["read:user", "user:email"],
     clientIdEnv: "GITHUB_OAUTH_CLIENT_ID",
     clientSecretEnv: "GITHUB_OAUTH_CLIENT_SECRET",
+    clientIdEnvAliases: ["GITHUB_CLIENT_ID"],
+    clientSecretEnvAliases: ["GITHUB_CLIENT_SECRET"],
     usernameField: "login",
   },
   discord: {
@@ -164,6 +168,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     scopes: ["user.info.basic"],
     clientIdEnv: "TIKTOK_CLIENT_KEY",
     clientSecretEnv: "TIKTOK_CLIENT_SECRET",
+    clientIdEnvAliases: ["TIKTOK_CLIENT_ID"],
     clientIdParam: "client_key",
     usernameField: "username",
     profileDataPath: "data.user",
@@ -215,6 +220,23 @@ export function isPlatformOAuth(platform: string): boolean {
 
 export function isPlatformManual(platform: string): boolean {
   return MANUAL_PLATFORMS.includes(platform);
+}
+
+export function resolveEnvValue(primaryName: string, aliases: string[] = []): string | null {
+  const names = [primaryName, ...aliases];
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return null;
+}
+
+export function getOAuthClientId(config: OAuthConfig): string | null {
+  return resolveEnvValue(config.clientIdEnv, config.clientIdEnvAliases);
+}
+
+export function getOAuthClientSecret(config: OAuthConfig): string | null {
+  return resolveEnvValue(config.clientSecretEnv, config.clientSecretEnvAliases);
 }
 
 // Resolve a nested path in an object, returning the value at the path (may be object, string, etc.)
