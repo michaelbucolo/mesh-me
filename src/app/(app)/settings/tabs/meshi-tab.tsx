@@ -4,7 +4,7 @@ import { updateMeshiPreference, getUserUnlockedCosmetics } from "@/lib/actions";
 import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Crown, ArrowRight, Lock, Trophy } from "lucide-react";
-import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor, ACHIEVEMENT_TITLES } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, type MeshiMood, type MeshiHat, type MeshiColor, ACHIEVEMENT_TITLES, type MeshiHair, type MeshiAccessory } from "@/components/meshi/meshi-mascot";
 import { updateMeshiLocalPreferences, useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { SettingsCard, SettingsCardHeader } from "./settings-primitives";
 
@@ -15,11 +15,13 @@ interface MeshiTabProps {
 
 export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
   const [, startTransition] = useTransition();
-  const { color, hat, face, enabled, title, refresh } = useMeshiPreferences();
+  const { color, hat, face, hair, accessory, enabled, title, refresh } = useMeshiPreferences();
 
   const [meshiHat, setMeshiHat] = useState<MeshiHat>(hat);
   const [meshiFace, setMeshiFace] = useState<MeshiMood>(face);
   const [meshiColor, setMeshiColor] = useState<MeshiColor>(color);
+  const [meshiHair, setMeshiHair] = useState<MeshiHair>(hair);
+  const [meshiAccessory, setMeshiAccessory] = useState<MeshiAccessory>(accessory);
   const [meshiEnabled, setMeshiEnabled] = useState(enabled);
   const [unlockedFaces, setUnlockedFaces] = useState<string[]>([]);
   const [unlockedTitles, setUnlockedTitles] = useState<string[]>([]);
@@ -34,15 +36,19 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
     });
   }, []);
 
-  const FREE_HATS: MeshiHat[] = ["none", "tophat", "beanie", "cap", "party"];
-  const PRO_HATS: MeshiHat[] = ["crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
-  const FREE_COLORS: MeshiColor[] = ["blue", "purple", "pink", "green", "orange"];
-  const PRO_COLORS: MeshiColor[] = ["cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"];
+  const BASIC_COLORS: MeshiColor[] = ["blue", "purple", "green"];
+  const PRO_COLORS: MeshiColor[] = ["pink", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"];
+  const PRO_HATS: MeshiHat[] = ["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
+  const PRO_FACES: MeshiMood[] = ["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", "searching", "learning", "celebrating", "shy", "giggle"];
+  const PRO_HAIRS: MeshiHair[] = ["none", "fluffy", "bangs", "spikes", "curls"];
+  const PRO_ACCESSORIES: MeshiAccessory[] = ["none", "glasses", "sunglasses", "lashes", "monocle"];
 
   const resetToSaved = () => {
     setMeshiHat(hat);
     setMeshiFace(face);
     setMeshiColor(color);
+    setMeshiHair(hair);
+    setMeshiAccessory(accessory);
     setMeshiEnabled(enabled);
     setActiveTitle(title);
     showSuccess("Reset to your saved Meshi settings");
@@ -51,7 +57,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="text-center mb-6">
-        <MeshiMascot size={80} mood={meshiFace} hat={meshiHat} color={meshiColor} speaking={false} />
+        <MeshiMascot size={80} mood={meshiFace} hat={meshiHat} color={meshiColor} hair={meshiHair} accessory={meshiAccessory} speaking={false} />
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mt-4 mb-1">Meshi <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-white ml-1" style={{ background: "var(--accent)" }}>Beta</span></h2>
         <p className="text-sm text-[var(--text-muted)]">Your personal assistant for navigating the mesh</p>
       </div>
@@ -80,80 +86,98 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
         <>
           <div className="text-center mb-2">
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">Customize Meshi</h3>
-            <p className="text-[10px] text-[var(--accent)] mt-1 flex items-center justify-center gap-1">
-              <Sparkles className="h-3 w-3" /> MeshPro feature
-            </p>
+            {!isMeshPro && <p className="text-xs text-[var(--text-muted)] mt-1">Basic plan: choose from core colors.</p>}
+            {isMeshPro && (
+              <p className="text-[10px] text-[var(--accent)] mt-1 flex items-center justify-center gap-1">
+                <Sparkles className="h-3 w-3" /> MeshPro unlocked: expressions, hair, accessories, hats, and premium colors
+              </p>
+            )}
           </div>
 
-          <SettingsCard>
-            <SettingsCardHeader title="Expression" className="mb-3" />
-            <div className="grid grid-cols-4 gap-3">
-              {(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", ...(unlockedFaces.includes("synergy1017") ? ["synergy1017" as MeshiMood] : [])] as MeshiMood[]).map((faceOption) => (
-                <button
-                  key={faceOption}
-                  onClick={() => {
-                    setMeshiFace(faceOption);
-                    updateMeshiLocalPreferences({ face: faceOption });
-                  }}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiFace === faceOption ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
-                >
-                  <MeshiMascot size={36} mood={faceOption} color={meshiColor} animate={false} showGlow={false} />
-                  <span className="text-[10px] text-[var(--text-secondary)] capitalize">{faceOption}</span>
-                </button>
-              ))}
-            </div>
-          </SettingsCard>
+          {isMeshPro && (
+            <>
+              <SettingsCard>
+                <SettingsCardHeader title="Expression" className="mb-3" />
+                <div className="grid grid-cols-4 gap-3">
+                  {[...PRO_FACES, ...(unlockedFaces.includes("synergy1017") ? ["synergy1017" as MeshiMood] : [])].map((faceOption) => (
+                    <button
+                      key={faceOption}
+                      onClick={() => {
+                        setMeshiFace(faceOption);
+                        updateMeshiLocalPreferences({ face: faceOption });
+                      }}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiFace === faceOption ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+                    >
+                      <MeshiMascot size={36} mood={faceOption} color={meshiColor} hair={meshiHair} accessory={meshiAccessory} animate={false} showGlow={false} />
+                      <span className="text-[10px] text-[var(--text-secondary)] capitalize">{faceOption}</span>
+                    </button>
+                  ))}
+                </div>
+              </SettingsCard>
 
-          <SettingsCard>
-            <SettingsCardHeader title="Hat" className="mb-3" />
-            <div className="grid grid-cols-4 gap-3">
-              {FREE_HATS.map((hatOption) => (
-                <button
-                  key={hatOption}
-                  onClick={() => {
-                    setMeshiHat(hatOption);
-                    updateMeshiLocalPreferences({ hat: hatOption });
-                  }}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiHat === hatOption ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
-                >
-                  <MeshiMascot size={36} mood={meshiFace} hat={hatOption} color={meshiColor} animate={false} showGlow={false} />
-                  <span className="text-[10px] text-[var(--text-secondary)] capitalize">{hatOption}</span>
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-[var(--border-primary)]">
-              <div className="flex items-center gap-2 mb-3">
-                <Crown className="h-3.5 w-3.5 text-amber-400" />
-                <span className="text-xs font-semibold text-amber-400">MeshPro Exclusive</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {PRO_HATS.map((hatOption) => (
-                  <button
-                    key={hatOption}
-                    onClick={() => {
-                      if (!isMeshPro) return;
-                      setMeshiHat(hatOption);
-                      updateMeshiLocalPreferences({ hat: hatOption });
-                    }}
-                    disabled={!isMeshPro}
-                    className={`relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
-                      !isMeshPro ? "opacity-50 cursor-not-allowed" :
-                      meshiHat === hatOption ? "ring-2 ring-amber-400 bg-amber-400/10" : "glass-surface hover:bg-[var(--bg-tertiary)]"
-                    }`}
-                  >
-                    {!isMeshPro && <Lock className="absolute top-1.5 right-1.5 h-3 w-3 text-[var(--text-muted)]" />}
-                    <MeshiMascot size={36} mood={meshiFace} hat={hatOption} color={meshiColor} animate={false} showGlow={false} />
-                    <span className="text-[10px] text-[var(--text-secondary)] capitalize">{hatOption}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </SettingsCard>
+              <SettingsCard>
+                <SettingsCardHeader title="Hair" className="mb-3" />
+                <div className="grid grid-cols-5 gap-3">
+                  {PRO_HAIRS.map((hairOption) => (
+                    <button
+                      key={hairOption}
+                      onClick={() => {
+                        setMeshiHair(hairOption);
+                        updateMeshiLocalPreferences({ hair: hairOption });
+                      }}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiHair === hairOption ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+                    >
+                      <MeshiMascot size={36} mood={meshiFace} hair={hairOption} accessory={meshiAccessory} hat={meshiHat} color={meshiColor} animate={false} showGlow={false} />
+                      <span className="text-[10px] text-[var(--text-secondary)] capitalize">{hairOption}</span>
+                    </button>
+                  ))}
+                </div>
+              </SettingsCard>
+
+              <SettingsCard>
+                <SettingsCardHeader title="Accessories" className="mb-3" />
+                <div className="grid grid-cols-5 gap-3">
+                  {PRO_ACCESSORIES.map((accessoryOption) => (
+                    <button
+                      key={accessoryOption}
+                      onClick={() => {
+                        setMeshiAccessory(accessoryOption);
+                        updateMeshiLocalPreferences({ accessory: accessoryOption });
+                      }}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiAccessory === accessoryOption ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+                    >
+                      <MeshiMascot size={36} mood={meshiFace} hair={meshiHair} accessory={accessoryOption} hat={meshiHat} color={meshiColor} animate={false} showGlow={false} />
+                      <span className="text-[10px] text-[var(--text-secondary)] capitalize">{accessoryOption}</span>
+                    </button>
+                  ))}
+                </div>
+              </SettingsCard>
+
+              <SettingsCard>
+                <SettingsCardHeader title="Hat" className="mb-3" />
+                <div className="grid grid-cols-4 gap-3">
+                  {PRO_HATS.map((hatOption) => (
+                    <button
+                      key={hatOption}
+                      onClick={() => {
+                        setMeshiHat(hatOption);
+                        updateMeshiLocalPreferences({ hat: hatOption });
+                      }}
+                      className={`relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiHat === hatOption ? "ring-2 ring-amber-400 bg-amber-400/10" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
+                    >
+                      <MeshiMascot size={36} mood={meshiFace} hair={meshiHair} accessory={meshiAccessory} hat={hatOption} color={meshiColor} animate={false} showGlow={false} />
+                      <span className="text-[10px] text-[var(--text-secondary)] capitalize">{hatOption}</span>
+                    </button>
+                  ))}
+                </div>
+              </SettingsCard>
+            </>
+          )}
 
           <SettingsCard>
             <SettingsCardHeader title="Color" className="mb-3" />
             <div className="grid grid-cols-4 gap-3">
-              {FREE_COLORS.map((colorOption) => (
+              {BASIC_COLORS.map((colorOption) => (
                 <button
                   key={colorOption}
                   onClick={() => {
@@ -162,7 +186,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
                   }}
                   className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${meshiColor === colorOption ? "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)]" : "glass-surface hover:bg-[var(--bg-tertiary)]"}`}
                 >
-                  <MeshiMascot size={36} mood={meshiFace} hat={meshiHat} color={colorOption} animate={false} showGlow={false} />
+                  <MeshiMascot size={36} mood={meshiFace} hair={meshiHair} accessory={meshiAccessory} hat={meshiHat} color={colorOption} animate={false} showGlow={false} />
                   <span className="text-[10px] text-[var(--text-secondary)] capitalize">{colorOption}</span>
                 </button>
               ))}
@@ -188,7 +212,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
                     }`}
                   >
                     {!isMeshPro && <Lock className="absolute top-1.5 right-1.5 h-3 w-3 text-[var(--text-muted)]" />}
-                    <MeshiMascot size={36} mood={meshiFace} hat={meshiHat} color={colorOption} animate={false} showGlow={false} />
+                    <MeshiMascot size={36} mood={meshiFace} hair={meshiHair} accessory={meshiAccessory} hat={meshiHat} color={colorOption} animate={false} showGlow={false} />
                     <span className="text-[10px] text-[var(--text-secondary)] capitalize">{colorOption}</span>
                   </button>
                 ))}
@@ -253,7 +277,7 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
               onClick={() => {
                 startTransition(async () => {
                   await updateMeshiPreference({ faceStyle: meshiFace, hatStyle: meshiHat, colorTheme: meshiColor });
-                  updateMeshiLocalPreferences({ face: meshiFace, hat: meshiHat, color: meshiColor });
+                  updateMeshiLocalPreferences({ face: meshiFace, hat: meshiHat, color: meshiColor, hair: meshiHair, accessory: meshiAccessory });
                   refresh();
                   showSuccess("Meshi preferences saved!");
                 });
@@ -285,11 +309,11 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[9px] text-amber-400 uppercase tracking-wider font-bold">Your Logo</span>
                 <div className="p-2 rounded-xl ring-2 ring-amber-400/30" style={{ background: "var(--bg-primary)", border: "1px solid rgba(251,191,36,0.3)" }}>
-                  <MeshiMascot size={36} mood={meshiFace} color={meshiColor} hat={meshiHat} animate showGlow={false} bouncy />
+                  <MeshiMascot size={36} mood={meshiFace} color={meshiColor} hair={meshiHair} accessory={meshiAccessory} hat={meshiHat} animate showGlow={false} bouncy />
                 </div>
               </div>
             </div>
-            <button
+            {isMeshPro ? <button
               onClick={() => {
                 updateMeshiLocalPreferences({ appLogo: "custom", appLogoColor: meshiColor });
                 showSuccess("App logo updated to your custom Meshi!");
@@ -300,6 +324,14 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
               <Crown className="h-3.5 w-3.5" />
               Use Custom Meshi as App Logo
             </button>
+            : <button
+              disabled
+              className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+              style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border-primary)", color: "var(--text-muted)" }}
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Upgrade to MeshPro to set custom app logo
+            </button>}
             <button
               onClick={() => {
                 updateMeshiLocalPreferences({ appLogo: "default", appLogoColor: "blue" });

@@ -264,6 +264,67 @@ const HATS: Record<string, React.ReactNode> = {
   ),
 };
 
+const HAIRS: Record<string, React.ReactNode> = {
+  none: null,
+  fluffy: (
+    <g transform="translate(0, -13)">
+      <path d="M-12,3 Q-10,-8 -4,-7 Q-1,-12 3,-8 Q8,-10 12,2" fill="currentColor" opacity="0.8" />
+    </g>
+  ),
+  bangs: (
+    <g transform="translate(0, -12)">
+      <path d="M-13,3 Q-9,-8 0,-8 Q9,-8 13,3 L9,3 Q7,-2 4,1 Q1,-2 -2,1 Q-5,-2 -8,3 Z" fill="currentColor" opacity="0.85" />
+    </g>
+  ),
+  spikes: (
+    <g transform="translate(0, -13)">
+      <polygon points="-12,3 -10,-7 -6,2 -2,-8 2,2 6,-7 10,2 12,3" fill="currentColor" opacity="0.85" />
+    </g>
+  ),
+  curls: (
+    <g transform="translate(0, -12)">
+      <circle cx="-8" cy="0" r="4" fill="currentColor" opacity="0.8" />
+      <circle cx="-2" cy="-2" r="4.5" fill="currentColor" opacity="0.82" />
+      <circle cx="5" cy="-1" r="4.2" fill="currentColor" opacity="0.8" />
+      <circle cx="10" cy="1" r="3.5" fill="currentColor" opacity="0.78" />
+    </g>
+  ),
+};
+
+const ACCESSORIES: Record<string, React.ReactNode> = {
+  none: null,
+  glasses: (
+    <g transform="translate(0, 0)">
+      <rect x="-10" y="-4" width="7" height="5.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="3" y="-4" width="7" height="5.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="-3" y1="-1.25" x2="3" y2="-1.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </g>
+  ),
+  sunglasses: (
+    <g transform="translate(0, 0)">
+      <rect x="-10" y="-4" width="7.5" height="5.5" rx="1.8" fill="currentColor" opacity="0.85" />
+      <rect x="2.5" y="-4" width="7.5" height="5.5" rx="1.8" fill="currentColor" opacity="0.85" />
+      <line x1="-2.5" y1="-1.2" x2="2.5" y2="-1.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </g>
+  ),
+  lashes: (
+    <g transform="translate(0, 0)">
+      <path d="M-8,-3 L-9.5,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M-6,-3 L-6,-5.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M-4,-3 L-2.8,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M4,-3 L2.8,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M6,-3 L6,-5.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M8,-3 L9.5,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </g>
+  ),
+  monocle: (
+    <g transform="translate(0, 0)">
+      <circle cx="5.5" cy="-1.2" r="3.3" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="8.6" y1="2" x2="10" y2="5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </g>
+  ),
+};
+
 // Meshi color themes
 const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }> = {
   blue: { primary: "#3b82f6", glow: "rgba(59, 130, 246, 0.4)", bg: "rgba(59, 130, 246, 0.1)" },
@@ -286,6 +347,8 @@ const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }
 // Which hats are MeshPro exclusive
 export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef"]);
 export const MESHPRO_COLORS: Set<string> = new Set(["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]);
+export const MESHPRO_HAIRS: Set<string> = new Set(["spikes", "curls"]);
+export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle"]);
 
 // Achievement titles — earned through milestones
 export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: string; requirement: string }> = {
@@ -301,6 +364,8 @@ export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: st
 
 export type MeshiMood = keyof typeof FACES;
 export type MeshiHat = keyof typeof HATS;
+export type MeshiHair = keyof typeof HAIRS;
+export type MeshiAccessory = keyof typeof ACCESSORIES;
 export type MeshiColor = keyof typeof COLOR_THEMES;
 
 // Page-to-prop mapping: which prop Meshi holds on each page
@@ -322,6 +387,8 @@ interface MeshiMascotProps {
   mood?: MeshiMood;
   hat?: MeshiHat;
   color?: MeshiColor;
+  hair?: MeshiHair;
+  accessory?: MeshiAccessory;
   animate?: boolean;
   onClick?: () => void;
   className?: string;
@@ -338,6 +405,8 @@ export function MeshiMascot({
   mood = "happy",
   hat = "none",
   color = "blue",
+  hair = "none",
+  accessory = "none",
   animate = true,
   onClick,
   className = "",
@@ -352,6 +421,8 @@ export function MeshiMascot({
   const face = FACES[mood] || FACES.happy;
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
+  const hairElement = HAIRS[hair] || null;
+  const accessoryElement = ACCESSORIES[accessory] || null;
   const containerRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId();
 
@@ -561,7 +632,8 @@ export function MeshiMascot({
             }
           />
 
-          {/* Hat */}
+          {/* Hair and hat */}
+          <g style={{ color: theme.primary }}>{hairElement}</g>
           <g style={{ color: theme.primary }}>{hatElement}</g>
 
           {/* Face — eyes with smooth tracking and blinking */}
@@ -581,6 +653,8 @@ export function MeshiMascot({
               );
             })()}
           </motion.g>
+
+          {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
         </g>
 
         {/* Prop — rendered outside the clip for visibility */}
@@ -637,15 +711,18 @@ export function getMeshiMoodFromActivity(stats: {
 }
 
 // Small social Meshi for displaying on other users' mesh nodes
-export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy" }: {
-  size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood;
+export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy", hair = "none", accessory = "none" }: {
+  size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood; hair?: MeshiHair; accessory?: MeshiAccessory;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   const face = FACES[mood] || FACES.happy;
   const hatElement = HATS[hat] || null;
+  const hairElement = HAIRS[hair] || null;
+  const accessoryElement = ACCESSORIES[accessory] || null;
   return (
     <svg width={size} height={size} viewBox="-24 -24 48 48">
       <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
+      <g style={{ color: theme.primary }}>{hairElement}</g>
       <g style={{ color: theme.primary }}>{hatElement}</g>
       <g transform="scale(0.8)">
         {face.svg && SVG_FACES[mood] ? (
@@ -657,8 +734,9 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
           </text>
         )}
       </g>
+      {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
     </svg>
   );
 }
 
-export { COLOR_THEMES, FACES, HATS, PROP_SVGS };
+export { ACCESSORIES, COLOR_THEMES, FACES, HAIRS, HATS, PROP_SVGS };
