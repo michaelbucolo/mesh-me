@@ -67,7 +67,7 @@ export function PublicSiteShell({
         </div>
       </header>
 
-      <main className={`relative z-10 mx-auto ${maxWidth} px-4 py-12 md:px-6 md:py-16`}>
+      <main className={`simple-page relative z-10 mx-auto ${maxWidth} px-4 py-10 md:px-6 md:py-14`}>
         {children}
       </main>
 
