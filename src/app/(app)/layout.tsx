@@ -5,20 +5,12 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { prisma } from "@/lib/prisma";
 import { AppChrome } from "@/components/layout/app-chrome";
-import dynamic from "next/dynamic";
-
-const MeshBackground = dynamic(() => import("@/components/mesh-background").then((module) => module.MeshBackground));
-const DynamicFavicon = dynamic(() => import("@/components/dynamic-favicon").then((module) => module.DynamicFavicon), { ssr: false });
-const MeshiFloat = dynamic(() => import("@/components/meshi/meshi-float").then((module) => module.MeshiFloat), { ssr: false });
-const MeshiDeliveryWrapper = dynamic(
-  () => import("@/components/meshi/meshi-delivery-wrapper").then((module) => module.MeshiDeliveryWrapper),
-  { ssr: false },
-);
-const AchievementChecker = dynamic(
-  () => import("@/components/achievements/achievement-toast").then((module) => module.AchievementChecker),
-  { ssr: false },
-);
-const LiveSyncPulse = dynamic(() => import("@/components/live-sync-pulse").then((module) => module.LiveSyncPulse), { ssr: false });
+import { MeshBackground } from "@/components/mesh-background";
+import { DynamicFavicon } from "@/components/dynamic-favicon";
+import { MeshiFloat } from "@/components/meshi/meshi-float";
+import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
+import { AchievementChecker } from "@/components/achievements/achievement-toast";
+import { LiveSyncPulse } from "@/components/live-sync-pulse";
 
 export const metadata: Metadata = {
   title: {
