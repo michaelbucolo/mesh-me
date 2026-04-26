@@ -542,8 +542,13 @@ export function MeshiMascot({
   useEffect(() => { return () => { if (petTimer.current) clearTimeout(petTimer.current); }; }, []);
 
   // Determine prop SVG
-  const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
-  const showHands = prop !== "none";
+  const hasProp = prop !== "none";
+  const propSvg = hasProp && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
+  const showHands = hasProp;
+  const rightHandRotate = hasProp ? [-22, -45, -36, -40] : [-22, -8, -14, -8];
+  const rightHandAnimate = hasProp
+    ? { x: [0, 1.3, 0.4, 0], y: [0, -2.2, -0.6, 0], scale: [1, 1.15, 1.02, 1] }
+    : { y: [0, -1.3, 0.3, 0], scale: [1, 1.1, 0.98, 1] };
 
   // Determine current face (with blinking override)
   const getCurrentFace = () => {
@@ -705,7 +710,7 @@ export function MeshiMascot({
                 opacity: 1,
                 x: 0,
                 y: 0,
-                rotate: [-22, -45, -36, -40],
+                rotate: rightHandRotate,
                 scale: [0.85, 1, 0.98, 1],
               }}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -717,7 +722,7 @@ export function MeshiMascot({
                 fill={theme.bg}
                 stroke={theme.primary}
                 strokeWidth="1.4"
-                animate={animate ? { x: [0, 1.3, 0.4, 0], y: [0, -2.2, -0.6, 0], scale: [1, 1.15, 1.02, 1] } : undefined}
+                animate={animate ? rightHandAnimate : undefined}
                 transition={{ duration: speaking ? 0.8 : 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.08 }}
               />
             </motion.g>
