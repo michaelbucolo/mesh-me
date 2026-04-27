@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import NextImage from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   RefreshCw,
@@ -175,6 +176,7 @@ type TabType = "overview" | "posts" | "analytics" | "followers" | "cross-post" |
 // ─── Main Component ─────────────────────────────────────────
 
 export default function ContentHubPage() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [accounts, setAccounts] = useState<PlatformAccount[]>([]);
   const [posts, setPosts] = useState<PlatformPostItem[]>([]);
@@ -203,6 +205,31 @@ export default function ContentHubPage() {
   const [controlResult, setControlResult] = useState<string>("");
   const [inAppUrl, setInAppUrl] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    const platformParam = searchParams.get("platform");
+    const postTypeParam = searchParams.get("postType");
+    const queryParam = searchParams.get("q");
+    const actionParam = searchParams.get("action");
+
+    if (tabParam && ["overview", "posts", "analytics", "followers", "cross-post", "control", "sync"].includes(tabParam)) {
+      setActiveTab(tabParam as TabType);
+    }
+    if (platformParam) {
+      setFilterPlatform(platformParam);
+    }
+    if (postTypeParam) {
+      setFilterPostType(postTypeParam);
+    }
+    if (queryParam) {
+      setSearchQuery(queryParam);
+    }
+    if (actionParam) {
+      setControlAction(actionParam);
+    }
+    setPage(1);
+  }, [searchParams]);
 
   // Load sync status and accounts
   const loadSyncData = useCallback(async () => {
