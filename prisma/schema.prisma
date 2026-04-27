@@ -83,6 +83,14 @@ model User {
   meChatSessionParticipants MeChatSessionParticipant[] @relation("sessionParticipant")
   meChatSessionItems MeChatSessionItem[] @relation("sessionItemAuthor")
   meChatSessionVotes MeChatSessionVote[] @relation("sessionVoteUser")
+  meshNodes      MeshNode[]
+  meshEdgesFrom  MeshEdge[] @relation("MeshEdgeFromUser")
+  meshEdgesTo    MeshEdge[] @relation("MeshEdgeToUser")
+  contentSources ContentSource[]
+  syncedContent  SyncedContent[]
+  syncedInteractions SyncedInteraction[]
+  dataVisibilityPolicies DataVisibilityPolicy[]
+  platformPermissions PlatformPermission[]
 }
 
 model UserInterest {
@@ -377,6 +385,8 @@ model ConnectedAccount {
   platformFollowers PlatformFollower[]
   syncJobs     SyncJob[]
   platformAnalytics PlatformAnalytics[]
+  contentSources ContentSource[]
+  platformPermissions PlatformPermission[]
 
   @@index([userId, platform])
   @@index([platform])
@@ -603,6 +613,158 @@ model FeedPreference {
   updatedAt DateTime @updatedAt
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Unified Data Model ────────────────────────────────────
+
+model MeshNode {
+  id            String   @id @default(cuid())
+  userId        String
+  nodeType      String
+  sourceType    String   @default("mesh")
+  sourceId      String?
+  label         String
+  description   String?
+  imageUrl      String?
+  metadata      String   @default("{}")
+  visibility    String   @default("private")
+  isArchived    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outgoingEdges MeshEdge[] @relation("MeshNodeOutgoing")
+  incomingEdges MeshEdge[] @relation("MeshNodeIncoming")
+
+  @@index([userId, nodeType])
+  @@index([sourceType, sourceId])
+}
+
+model MeshEdge {
+  id          String   @id @default(cuid())
+  userId      String
+  fromNodeId  String
+  toNodeId    String
+  edgeType    String
+  strength    Int      @default(100)
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation("MeshEdgeFromUser", fields: [userId], references: [id], onDelete: Cascade)
+  fromNode    MeshNode @relation("MeshNodeOutgoing", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode      MeshNode @relation("MeshNodeIncoming", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fromNodeId, toNodeId, edgeType])
+  @@index([userId, edgeType])
+}
+
+model ContentSource {
+  id                String   @id @default(cuid())
+  userId            String
+  connectedAccountId String?
+  sourceType        String
+  sourceId          String
+  sourceUrl         String?
+  sourceAuthorId    String?
+  sourceAuthorName  String?
+  sourceCreatedAt   DateTime?
+  ingestState       String   @default("active")
+  metadata          String   @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount  ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  syncedContent     SyncedContent[]
+
+  @@unique([userId, sourceType, sourceId])
+  @@index([connectedAccountId])
+}
+
+model SyncedContent {
+  id               String   @id @default(cuid())
+  userId           String
+  contentSourceId  String
+  canonicalType    String
+  textContent      String?
+  title            String?
+  mediaJson        String   @default("[]")
+  permalink        String?
+  ownership        String   @default("external")
+  actionSupport    String   @default("{}")
+  syncStatus       String   @default("synced")
+  syncedAt         DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentSource    ContentSource @relation(fields: [contentSourceId], references: [id], onDelete: Cascade)
+  interactions     SyncedInteraction[]
+
+  @@index([userId, canonicalType])
+  @@index([syncStatus, syncedAt])
+}
+
+model SyncedInteraction {
+  id               String   @id @default(cuid())
+  userId           String
+  syncedContentId  String
+  interactionType  String
+  actorSourceId    String?
+  actorDisplayName String?
+  value            Int?
+  body             String?
+  happenedAt       DateTime?
+  metadata         String   @default("{}")
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncedContent    SyncedContent @relation(fields: [syncedContentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, interactionType])
+  @@index([syncedContentId, happenedAt])
+}
+
+model PlatformPermission {
+  id                 String   @id @default(cuid())
+  userId             String
+  connectedAccountId String?
+  platform           String
+  permissionKey      String
+  permissionState    String   @default("granted")
+  grantedAt          DateTime @default(now())
+  revokedAt          DateTime?
+  source             String   @default("oauth_scope")
+  metadata           String   @default("{}")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount   ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, platform, permissionKey, connectedAccountId])
+  @@index([connectedAccountId, permissionState])
+}
+
+model DataVisibilityPolicy {
+  id             String   @id @default(cuid())
+  userId         String
+  entityType     String
+  entityId       String?
+  visibility     String
+  allowDiscovery Boolean  @default(true)
+  allowAnalytics Boolean  @default(true)
+  allowAiUse     Boolean  @default(false)
+  expiresAt      DateTime?
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entityType])
+  @@index([visibility])
 }
 
 // ─── Achievements & Titles ──────────────────────────────────
