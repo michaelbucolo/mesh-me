@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+function normalizeScopes(scopes: string | null | undefined): string[] {
+  return Array.from(new Set((scopes ?? "").split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean)));
+}
+
 // PATCH — update alter ego association or label
 export async function PATCH(
   request: Request,
@@ -71,6 +75,99 @@ export async function PATCH(
     where: { id },
     data: updateData,
   });
+
+  if ("scopes" in body || "isActive" in body) {
+    const scopes = normalizeScopes(updated.scopes);
+    const placeholders = scopes.map(() => "?").join(", ");
+
+    await prisma.$transaction(async (tx) => {
+      if (scopes.length > 0) {
+        await tx.$executeRawUnsafe(
+          `
+          UPDATE "PlatformPermission"
+          SET "permissionState" = 'revoked',
+              "revokedAt" = CURRENT_TIMESTAMP,
+              "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "userId" = ?
+            AND "connectedAccountId" = ?
+            AND "permissionKey" NOT IN (${placeholders});
+          `,
+          user.id,
+          id,
+          ...scopes,
+        );
+
+        for (const scope of scopes) {
+          await tx.$executeRawUnsafe(
+            `
+            INSERT INTO "PlatformPermission" (
+              "id",
+              "userId",
+              "connectedAccountId",
+              "platform",
+              "permissionKey",
+              "permissionState",
+              "grantedAt",
+              "source",
+              "metadata",
+              "createdAt",
+              "updatedAt"
+            )
+            SELECT lower(hex(randomblob(16))), ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'oauth_scope', '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (
+              SELECT 1 FROM "PlatformPermission"
+              WHERE "userId" = ?
+                AND "connectedAccountId" = ?
+                AND "platform" = ?
+                AND "permissionKey" = ?
+            );
+            `,
+            user.id,
+            id,
+            updated.platform,
+            scope,
+            updated.isActive ? "granted" : "revoked",
+            user.id,
+            id,
+            updated.platform,
+            scope,
+          );
+
+          await tx.$executeRawUnsafe(
+            `
+            UPDATE "PlatformPermission"
+            SET "permissionState" = ?,
+                "revokedAt" = CASE WHEN ? = 'revoked' THEN CURRENT_TIMESTAMP ELSE NULL END,
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE "userId" = ?
+              AND "connectedAccountId" = ?
+              AND "platform" = ?
+              AND "permissionKey" = ?;
+            `,
+            updated.isActive ? "granted" : "revoked",
+            updated.isActive ? "granted" : "revoked",
+            user.id,
+            id,
+            updated.platform,
+            scope,
+          );
+        }
+      } else {
+        await tx.$executeRawUnsafe(
+          `
+          UPDATE "PlatformPermission"
+          SET "permissionState" = 'revoked',
+              "revokedAt" = CURRENT_TIMESTAMP,
+              "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "userId" = ?
+            AND "connectedAccountId" = ?;
+          `,
+          user.id,
+          id,
+        );
+      }
+    });
+  }
 
   return NextResponse.json({ account: updated });
 }
