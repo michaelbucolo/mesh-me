@@ -67,7 +67,7 @@ export async function getSuperAppReadinessReport(userId: string): Promise<SuperA
     prisma.platformPost.count({ where: { connectedAccount: { userId } } }),
     prisma.platformComment.count({ where: { connectedAccount: { userId } } }),
     prisma.platformFollower.count({ where: { connectedAccount: { userId } } }),
-    prisma.twoFactorMethod.count({ where: { userId, enabled: true } }),
+    prisma.twoFactorMethod.count({ where: { userId, isEnabled: true } }),
     prisma.user.findUnique({
       where: { id: userId },
       select: {
