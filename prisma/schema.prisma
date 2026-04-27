@@ -83,6 +83,10 @@ model User {
   meChatSessionParticipants MeChatSessionParticipant[] @relation("sessionParticipant")
   meChatSessionItems MeChatSessionItem[] @relation("sessionItemAuthor")
   meChatSessionVotes MeChatSessionVote[] @relation("sessionVoteUser")
+  meshNodes      MeshNode[]
+  meshEdges      MeshEdge[]
+  syncedContent  SyncedContent[]
+  platformPermissions PlatformPermission[]
 }
 
 model UserInterest {
@@ -377,10 +381,103 @@ model ConnectedAccount {
   platformFollowers PlatformFollower[]
   syncJobs     SyncJob[]
   platformAnalytics PlatformAnalytics[]
+  meshNodes         MeshNode[]
+  syncedContent     SyncedContent[]
+  platformPermissions PlatformPermission[]
 
   @@index([userId, platform])
   @@index([platform])
   @@index([alterEgoId])
+}
+
+model MeshNode {
+  id                String   @id @default(cuid())
+  userId            String
+  connectedAccountId String?
+  nodeType          String   @default("user")
+  externalId        String?
+  label             String
+  metadata          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount  ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  outgoingEdges     MeshEdge[]       @relation("meshEdgeSource")
+  incomingEdges     MeshEdge[]       @relation("meshEdgeTarget")
+  syncedContent     SyncedContent[]
+
+  @@unique([userId, nodeType, externalId])
+  @@index([userId, nodeType])
+  @@index([connectedAccountId])
+}
+
+model MeshEdge {
+  id            String   @id @default(cuid())
+  userId        String
+  sourceNodeId  String
+  targetNodeId  String
+  edgeType      String   @default("follows")
+  weight        Int      @default(1)
+  metadata      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceNode    MeshNode @relation("meshEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode    MeshNode @relation("meshEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceNodeId, targetNodeId, edgeType])
+  @@index([userId, edgeType])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+model SyncedContent {
+  id                String   @id @default(cuid())
+  userId            String
+  connectedAccountId String
+  meshNodeId        String?
+  sourceType        String
+  sourceId          String
+  title             String?
+  normalizedText    String?
+  canonicalUrl      String?
+  publishedAt       DateTime?
+  engagementScore   Int      @default(0)
+  rawPayload        String?
+  lastSyncedAt      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  meshNode          MeshNode?       @relation(fields: [meshNodeId], references: [id], onDelete: SetNull)
+
+  @@unique([connectedAccountId, sourceType, sourceId])
+  @@index([userId, sourceType])
+  @@index([meshNodeId])
+}
+
+model PlatformPermission {
+  id                String   @id @default(cuid())
+  userId            String
+  connectedAccountId String
+  platform          String
+  permission        String
+  isGranted         Boolean  @default(true)
+  grantedAt         DateTime @default(now())
+  revokedAt         DateTime?
+  lastCheckedAt     DateTime @default(now())
+  source            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([connectedAccountId, permission])
+  @@index([userId, platform])
 }
 
 // ─── Cross-Platform Content Sync ────────────────────────────
