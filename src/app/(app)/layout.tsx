@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
-import { MobileNav } from "@/components/layout/mobile-nav";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
+import { AppShell } from "@/components/layout/app-shell";
 import { prisma } from "@/lib/prisma";
-import { AppChrome } from "@/components/layout/app-chrome";
+import { NativeInit } from "@/components/native-init";
 import { MeshBackground } from "@/components/mesh-background";
 import { DynamicFavicon } from "@/components/dynamic-favicon";
 import { MeshiFloat } from "@/components/meshi/meshi-float";
 import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
 import { AchievementChecker } from "@/components/achievements/achievement-toast";
 import { LiveSyncPulse } from "@/components/live-sync-pulse";
-import { ThemeProvider } from "@/components/theme-provider";
-import { ToastProvider } from "@/components/ui/toast";
-import { NativeInit } from "@/components/native-init";
 
 export const metadata: Metadata = {
   title: {
@@ -28,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/");
   if (!user.onboarded) redirect("/onboarding");
 
-  const [unreadCount, unreadMessages] = await Promise.all([
+  const [unreadNotifications, unreadMessages] = await Promise.all([
     prisma.notification.count({
       where: { recipientId: user.id, read: false },
     }),
@@ -61,34 +59,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-primary)]">
           <MeshBackground density={30} className="opacity-30" />
 
-          <div className="relative z-10 flex h-full">
-            <Sidebar
-              user={{
-                id: user.id,
-                username: user.username,
-                displayName: user.displayName,
-                avatarUrl: user.avatarUrl,
-                isAdmin: user.isAdmin,
-              }}
-              unreadNotifications={unreadCount}
-              unreadMessages={unreadMessages}
-            />
-
-            <div className="flex h-full min-w-0 flex-1 flex-col">
-              <AppChrome
-                unreadNotifications={unreadCount}
-                unreadMessages={unreadMessages}
-                username={user.username}
-                needsEmailVerification={needsEmailVerification}
-                needsPhoneVerification={needsPhoneVerification}
-                userEmail={userEmail}
-              >
-                {children}
-              </AppChrome>
-            </div>
-          </div>
-
-          <MobileNav unreadNotifications={unreadCount} unreadMessages={unreadMessages} username={user.username} />
+          <AppShell
+            user={{
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl,
+              isAdmin: user.isAdmin,
+            }}
+            needsEmailVerification={needsEmailVerification}
+            needsPhoneVerification={needsPhoneVerification}
+            userEmail={userEmail}
+            initialCounts={{ unreadNotifications, unreadMessages }}
+          >
+            {children}
+          </AppShell>
           <MeshiFloat />
           <MeshiDeliveryWrapper />
           <AchievementChecker />

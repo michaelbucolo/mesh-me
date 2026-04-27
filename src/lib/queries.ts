@@ -767,8 +767,16 @@ export async function getUserSettings() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [userWithEmail, achievements] = await Promise.all([
-    prisma.user.findUnique({ where: { id: user.id }, select: { email: true, activeTitle: true } }),
+  const [userWithProfile, achievements] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        email: true,
+        activeTitle: true,
+        interests: true,
+        links: true,
+      },
+    }),
     prisma.userAchievement.findMany({
       where: { userId: user.id },
       include: { achievement: { select: { slug: true } } },
@@ -777,7 +785,7 @@ export async function getUserSettings() {
 
   return {
     id: user.id,
-    email: userWithEmail?.email,
+    email: userWithProfile?.email,
     username: user.username,
     displayName: user.displayName,
     bio: user.bio,
@@ -790,9 +798,9 @@ export async function getUserSettings() {
     showInDiscovery: user.showInDiscovery,
     hideActivityStatus: user.hideActivityStatus,
     readReceipts: user.readReceipts,
-    interests: user.interests,
-    links: user.links,
-    activeTitle: userWithEmail?.activeTitle ?? null,
+    interests: userWithProfile?.interests ?? [],
+    links: userWithProfile?.links ?? [],
+    activeTitle: userWithProfile?.activeTitle ?? null,
     achievements: achievements.map((a) => ({ slug: a.achievement.slug })),
     isMeshPro: user.isMeshPro,
   };

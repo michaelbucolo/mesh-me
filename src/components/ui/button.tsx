@@ -12,6 +12,7 @@ const buttonVariants = cva(
         secondary: "border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]",
         ghost: "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
         outline: "border border-[var(--border-primary)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--accent-muted)] hover:text-[var(--text-primary)]",
+        glass: "border border-white/15 bg-white/5 text-white backdrop-blur-sm hover:bg-white/10",
         danger: "bg-red-600 text-white hover:bg-red-500",
         success: "bg-emerald-600 text-white hover:bg-emerald-500",
         gradient: "brand-button text-white",
