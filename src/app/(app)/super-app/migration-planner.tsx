@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, ClipboardCopy, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { LegacyAppKey } from "@/lib/super-app-migration";
 
@@ -21,30 +21,58 @@ type PlannerResult = {
 };
 
 export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; label: string }> }) {
+  const appKeys = useMemo(() => apps.map((app) => app.key), [apps]);
   const [selectedApps, setSelectedApps] = useState<LegacyAppKey[]>(["wechat", "messenger", "imessage"]);
   const [loading, setLoading] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PlannerResult | null>(null);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("meshme.migration-planner.apps");
+    if (!stored) return;
+
+    const parsed = stored
+      .split(",")
+      .filter((value): value is LegacyAppKey => appKeys.includes(value as LegacyAppKey));
+
+    if (parsed.length > 0) {
+      setSelectedApps(parsed);
+      return;
+    }
+
+    setSelectedApps(appKeys.slice(0, Math.min(3, appKeys.length)));
+  }, [appKeys]);
+
+  useEffect(() => {
+    window.localStorage.setItem("meshme.migration-planner.apps", selectedApps.join(","));
+  }, [selectedApps]);
 
   async function generatePlan() {
     setLoading(true);
     setError(null);
+    setCopyState("idle");
 
-    const response = await fetch("/api/super-app/migration-plan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apps: selectedApps }),
-    });
+    try {
+      const response = await fetch("/api/super-app/migration-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apps: selectedApps }),
+      });
 
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data?.error || "Failed to generate migration plan");
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data?.error || "Failed to generate migration plan");
+        setLoading(false);
+        return;
+      }
+
+      setResult(data);
+    } catch {
+      setError("Unable to reach migration planner. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setResult(data);
-    setLoading(false);
   }
 
   function toggleApp(key: LegacyAppKey) {
@@ -53,11 +81,63 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
     );
   }
 
+  function selectAllApps() {
+    setSelectedApps(appKeys);
+  }
+
+  function clearAllApps() {
+    setSelectedApps([]);
+  }
+
+  async function copyPlan() {
+    if (!result) return;
+
+    const lines = result.plan.map((item) => {
+      const status = item.readyToReplace ? "✅ Ready now" : "⏳ Needs work";
+      return `- ${item.label}: ${status} (${item.currentScore}/${item.readinessGate})`;
+    });
+    const payload = [
+      "Mesh.me migration plan",
+      `Generated: ${new Date(result.generatedAt).toLocaleString()}`,
+      `Account replacement score: ${result.overallScore}/100`,
+      "",
+      ...lines,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(payload);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+  }
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/30 px-3 py-2 text-xs text-slate-300">
+        <p>
+          Selected apps: <span className="font-semibold text-slate-100">{selectedApps.length}</span>
+        </p>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={selectAllApps} className="rounded-md border border-white/10 px-2 py-1 text-slate-200 transition hover:border-sky-300/30 hover:text-white">
+            Select all
+          </button>
+          <button type="button" onClick={clearAllApps} className="rounded-md border border-white/10 px-2 py-1 text-slate-200 transition hover:border-rose-300/30 hover:text-white">
+            Clear all
+          </button>
+        </div>
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-2">
         {apps.map((app) => (
-          <label key={app.key} className="flex items-center gap-2 rounded-lg border border-white/10 bg-slate-900/30 px-3 py-2 text-sm text-slate-100">
+          <label
+            key={app.key}
+            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+              selectedApps.includes(app.key)
+                ? "border-sky-300/40 bg-sky-500/10 text-sky-50"
+                : "border-white/10 bg-slate-900/30 text-slate-100"
+            }`}
+          >
             <input
               type="checkbox"
               checked={selectedApps.includes(app.key)}
@@ -78,6 +158,19 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
 
       {result ? (
         <div className="space-y-3">
+          <div className="rounded-lg border border-indigo-300/20 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
+            Generated {new Date(result.generatedAt).toLocaleString()} · Readiness baseline {result.overallScore}/100
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={copyPlan} className="h-8 text-xs">
+              <ClipboardCopy className="mr-1 h-3.5 w-3.5" />
+              Copy summary
+            </Button>
+            {copyState === "copied" ? <p className="text-xs text-emerald-300">Copied to clipboard.</p> : null}
+            {copyState === "failed" ? <p className="text-xs text-rose-300">Clipboard unavailable in this browser.</p> : null}
+          </div>
+
           {result.plan.map((item) => (
             <article key={item.app} className="rounded-xl border border-white/10 bg-slate-900/30 p-3 text-sm text-slate-100">
               <div className="mb-2 flex items-center justify-between gap-3">
@@ -87,8 +180,22 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
                 </span>
               </div>
 
+              <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full ${item.readyToReplace ? "bg-emerald-300" : "bg-amber-300"}`}
+                  style={{ width: `${Math.min(100, Math.round((item.currentScore / item.readinessGate) * 100))}%` }}
+                />
+              </div>
+
               {item.readyToReplace ? (
-                <p className="flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Ready to replace now.</p>
+                <div className="space-y-2">
+                  <p className="flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Ready to replace now.</p>
+                  <ul className="list-disc pl-5 text-xs text-emerald-100/90">
+                    {item.nextSteps.slice(0, 2).map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ul>
+                </div>
               ) : (
                 <div className="space-y-2">
                   <p className="flex items-center gap-1 text-amber-300"><AlertTriangle className="h-4 w-4" /> Not ready yet.</p>
@@ -97,6 +204,13 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
                       <li key={blocker}>{blocker}</li>
                     ))}
                   </ul>
+                  <div className="rounded-lg border border-sky-400/20 bg-sky-500/5 px-2 py-1.5">
+                    <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-sky-200">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Fastest next step
+                    </p>
+                    <p className="text-xs text-sky-100">{item.nextSteps[0]}</p>
+                  </div>
                 </div>
               )}
             </article>
