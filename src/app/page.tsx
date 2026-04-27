@@ -13,7 +13,7 @@ import {
   Sparkles,
   Waypoints,
 } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserRedirectState } from "@/lib/auth";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { SiteRouteMap } from "@/components/marketing/site-route-map";
@@ -82,7 +82,7 @@ const capabilities = [
 ];
 
 export default async function LandingPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserRedirectState();
   if (user?.onboarded) redirect("/mesh");
   if (user && !user.onboarded) redirect("/onboarding");
 

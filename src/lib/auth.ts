@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 const SESSION_COOKIE = "__Host-mesh_session";
 const LEGACY_SESSION_COOKIE = "mesh_session";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
+const SESSION_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -48,17 +49,25 @@ export async function getSession() {
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
 
   if (!sessionId) return null;
+  if (!SESSION_ID_REGEX.test(sessionId)) {
+    await clearSessionCookiesBestEffort();
+    return null;
+  }
 
   // Look up session in database
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
   });
 
-  if (!session) return null;
+  if (!session) {
+    await clearSessionCookiesBestEffort();
+    return null;
+  }
 
   if (session.expiresAt < new Date()) {
     // Clean up expired session
     await prisma.session.delete({ where: { id: sessionId } }).catch(() => {});
+    await clearSessionCookiesBestEffort();
     return null;
   }
 
@@ -71,22 +80,32 @@ export async function getCurrentUser() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    include: {
-      interests: true,
-      links: true,
-      _count: {
-        select: {
-          followers: true,
-          following: true,
-          posts: true,
-        },
-      },
-    },
   });
 
   if (!user || user.isSuspended) return null;
 
   return user;
+}
+
+export async function getCurrentUserRedirectState() {
+  const session = await getSession();
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      id: true,
+      onboarded: true,
+      isSuspended: true,
+    },
+  });
+
+  if (!user || user.isSuspended) return null;
+
+  return {
+    id: user.id,
+    onboarded: user.onboarded,
+  };
 }
 
 export async function destroySession() {
@@ -99,6 +118,16 @@ export async function destroySession() {
 
   cookieStore.delete(SESSION_COOKIE);
   cookieStore.delete(LEGACY_SESSION_COOKIE);
+}
+
+async function clearSessionCookiesBestEffort() {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete(SESSION_COOKIE);
+    cookieStore.delete(LEGACY_SESSION_COOKIE);
+  } catch {
+    // No-op in contexts where cookies are read-only.
+  }
 }
 
 export async function invalidateAllUserSessions(userId: string): Promise<number> {
