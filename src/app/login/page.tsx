@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserRedirectState } from "@/lib/auth";
 
 export default async function LoginPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserRedirectState();
   if (user?.onboarded) redirect("/mesh");
   if (user && !user.onboarded) redirect("/onboarding");
 
