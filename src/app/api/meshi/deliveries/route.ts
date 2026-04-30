@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 // GET: Fetch unread Meshi deliveries for the current user
 export async function GET() {
@@ -23,7 +24,15 @@ export async function GET() {
             displayName: true,
             avatarUrl: true,
             meshiPreference: {
-              select: { colorTheme: true, hatStyle: true },
+              select: {
+                colorTheme: true,
+                hatStyle: true,
+                hairStyle: true,
+                accessoryStyle: true,
+                eyeStyle: true,
+                badgeStyle: true,
+                outfitStyle: true,
+              },
             },
           },
         },
@@ -39,6 +48,11 @@ export async function GET() {
       message: n.message || "",
       meshiColor: n.actor?.meshiPreference?.colorTheme || "blue",
       meshiHat: n.actor?.meshiPreference?.hatStyle || "none",
+      meshiHair: n.actor?.meshiPreference?.hairStyle || "none",
+      meshiAccessory: n.actor?.meshiPreference?.accessoryStyle || "none",
+      meshiEyeStyle: n.actor?.meshiPreference?.eyeStyle || "regular",
+      meshiBadge: n.actor?.meshiPreference?.badgeStyle || "none",
+      meshiOutfit: n.actor?.meshiPreference?.outfitStyle || "none",
       timestamp: n.createdAt.getTime(),
     }));
 
@@ -51,6 +65,10 @@ export async function GET() {
 
 // POST: Mark specific deliveries as read after the client has displayed them
 export async function POST(req: Request) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

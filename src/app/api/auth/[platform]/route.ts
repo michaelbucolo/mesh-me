@@ -1,26 +1,28 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { OAUTH_CONFIGS, getBaseUrl, getCallbackUrl, generatePKCE, getOAuthClientId, isPlatformOAuth } from "@/lib/oauth";
+import { OAUTH_CONFIGS, getCallbackUrl, generatePKCE, getOAuthClientId, isPlatformOAuth } from "@/lib/oauth";
 import { cookies } from "next/headers";
-import { v4 as uuidv4 } from "uuid";
+import { randomBytes } from "crypto";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ platform: string }> }
 ) {
+  const requestUrl = new URL(request.url);
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", getBaseUrl()));
+    return NextResponse.redirect(new URL("/login", requestUrl.origin));
   }
 
   const { platform } = await params;
 
-  const connectedAccountsUrl = `${getBaseUrl()}/connected-accounts`;
-  const encodedPlatform = encodeURIComponent(platform);
+  const connectedAccountsUrl = new URL("/connected-accounts", requestUrl.origin);
 
   if (!isPlatformOAuth(platform)) {
+    connectedAccountsUrl.searchParams.set("error", "Platform does not support OAuth");
+    connectedAccountsUrl.searchParams.set("platform", platform);
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent("Platform does not support OAuth")}&platform=${encodedPlatform}`
+      connectedAccountsUrl
     );
   }
 
@@ -28,20 +30,23 @@ export async function GET(
   const clientId = getOAuthClientId(config);
 
   if (!clientId) {
+    connectedAccountsUrl.searchParams.set("error", `OAuth not configured for ${config.name}`);
+    connectedAccountsUrl.searchParams.set("platform", platform);
     return NextResponse.redirect(
-      `${connectedAccountsUrl}?error=${encodeURIComponent(`OAuth not configured for ${config.name}`)}&platform=${encodedPlatform}`
+      connectedAccountsUrl
     );
   }
 
-  const oauthStateCookie = `__Host-oauth_state_${platform}`;
-  const oauthPkceCookie = `__Host-oauth_pkce_${platform}`;
+  const useSecureCookiePrefix = process.env.NODE_ENV === "production";
+  const oauthStateCookie = `${useSecureCookiePrefix ? "__Host-" : ""}oauth_state_${platform}`;
+  const oauthPkceCookie = `${useSecureCookiePrefix ? "__Host-" : ""}oauth_pkce_${platform}`;
 
   // Generate state token for CSRF protection
-  const state = uuidv4();
+  const state = randomBytes(32).toString("hex");
   const cookieStore = await cookies();
   cookieStore.set(oauthStateCookie, state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: useSecureCookiePrefix,
     sameSite: "lax",
     maxAge: 600, // 10 minutes
     path: "/",
@@ -54,8 +59,11 @@ export async function GET(
     redirect_uri: getCallbackUrl(platform),
     response_type: "code",
     state,
-    scope: config.scopes.join(config.scopeDelimiter || " "),
   });
+
+  if (config.scopes.length > 0) {
+    authParams.set("scope", config.scopes.join(config.scopeDelimiter || " "));
+  }
 
   // Add extra platform-specific params
   if (config.extraAuthParams) {
@@ -68,7 +76,7 @@ export async function GET(
         // Store verifier in cookie for callback
         cookieStore.set(oauthPkceCookie, pkce.verifier, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: useSecureCookiePrefix,
           sameSite: "lax",
           maxAge: 600,
           path: "/",

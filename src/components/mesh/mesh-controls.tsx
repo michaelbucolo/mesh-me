@@ -5,15 +5,27 @@ import {
   ZoomIn, ZoomOut, Maximize2,
   Search, Fingerprint, Plus, Layers, Shield,
   Users, Hash, Globe, MessageCircle, FileText, Link2, Sparkles,
+  BarChart3, Eye, RefreshCw, Activity,
 } from "lucide-react";
 import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
 
 // --- Filter Bar ---
 
+export interface MeshPlatformFilterOption {
+  id: string;
+  label: string;
+  platform: string;
+  color: string;
+  count: number;
+}
+
 interface FilterBarProps {
   filter: FilterType;
   nodes: MeshNode[];
+  platformOptions?: MeshPlatformFilterOption[];
+  platformFilter?: string | null;
   onFilterChange: (filter: FilterType) => void;
+  onPlatformFilterChange?: (platformId: string | null) => void;
   onSearchOpen: () => void;
   showFootprint: boolean;
   onToggleFootprint: () => void;
@@ -21,55 +33,119 @@ interface FilterBarProps {
 }
 
 const FILTER_OPTIONS: { id: FilterType; label: string; icon: React.ElementType }[] = [
-  { id: "all", label: "Everything", icon: Globe },
+  { id: "all", label: "All", icon: Globe },
   { id: "user", label: "People", icon: Users },
-  { id: "alter-ego", label: "Alter Egos", icon: Sparkles },
-  { id: "community", label: "Communities", icon: MessageCircle },
+  { id: "alter-ego", label: "IDs", icon: Sparkles },
+  { id: "community", label: "Groups", icon: MessageCircle },
   { id: "tag", label: "Interests", icon: Hash },
   { id: "post", label: "Posts", icon: FileText },
-  { id: "platform", label: "Platforms", icon: Link2 },
+  { id: "platform", label: "Apps", icon: Link2 },
+  { id: "activity", label: "Activity", icon: Activity },
 ];
 
-export function MeshFilterBar({ filter, nodes, onFilterChange, onSearchOpen, showFootprint, onToggleFootprint, className }: FilterBarProps) {
+export function MeshFilterBar({
+  filter,
+  nodes,
+  platformOptions = [],
+  platformFilter = null,
+  onFilterChange,
+  onPlatformFilterChange,
+  onSearchOpen,
+  showFootprint,
+  onToggleFootprint,
+  className,
+}: FilterBarProps) {
   const getCounts = (type: FilterType) => {
     if (type === "all") return nodes.length;
     return nodes.filter((n) => n.type === type).length;
   };
 
+  const hasPlatformFilters = platformOptions.length > 0 && typeof onPlatformFilterChange === "function";
+
   return (
-    <div className={"absolute left-0 right-0 z-10 p-2 sm:p-4 " + (className || "top-0")}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-2xl p-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] overflow-x-auto scrollbar-hide shadow-lg shadow-black/20">
-          {FILTER_OPTIONS.filter((fItem) => getCounts(fItem.id) > 0 || fItem.id === "all").map((fItem) => {
-            const IconComp = fItem.icon;
-            const isActive = filter === fItem.id;
-            const count = getCounts(fItem.id);
-            return (
+    <div className={"mesh-filter-bar absolute left-0 right-0 z-10 p-2 sm:p-4 " + (className || "top-0")}>
+      <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="scrollbar-hide flex min-w-0 gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/35 p-1.5 shadow-lg shadow-black/20 backdrop-blur-2xl">
+            {FILTER_OPTIONS.filter((fItem) => getCounts(fItem.id) > 0 || fItem.id === "all").map((fItem) => {
+              const IconComp = fItem.icon;
+              const isActive = filter === fItem.id;
+              const count = getCounts(fItem.id);
+              return (
+                <button
+                  type="button"
+                  key={fItem.id}
+                  onClick={() => onFilterChange(fItem.id)}
+                  aria-pressed={isActive}
+                  aria-label={`Show ${fItem.label} in the Mesh${count > 0 ? `, ${count} available` : ""}`}
+                  className={"flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-semibold transition-all duration-300 whitespace-nowrap " + (
+                    isActive
+                      ? "bg-white/15 text-white shadow-sm shadow-white/5"
+                      : "text-white/45 hover:text-white/85 hover:bg-white/[0.07] active:scale-95"
+                  )}
+                  title={fItem.label}
+                >
+                  <IconComp className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{fItem.label}</span>
+                  {isActive && count > 0 && fItem.id !== "all" && (
+                    <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full">{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {hasPlatformFilters && (
+            <div className="scrollbar-hide flex min-w-0 gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/25 p-1.5 shadow-lg shadow-black/15 backdrop-blur-2xl" aria-label="Connected platform Mesh filters">
               <button
-                key={fItem.id}
-                onClick={() => onFilterChange(fItem.id)}
-                className={"flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-semibold transition-all duration-300 whitespace-nowrap " + (
-                  isActive
-                    ? "bg-white/15 text-white shadow-sm shadow-white/5"
-                    : "text-white/45 hover:text-white/85 hover:bg-white/[0.07] active:scale-95"
+                type="button"
+                onClick={() => onPlatformFilterChange?.(null)}
+                aria-pressed={!platformFilter}
+                aria-label="Show all connected platforms in the Mesh"
+                className={"flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all duration-300 active:scale-95 " + (
+                  !platformFilter
+                    ? "bg-white/14 text-white shadow-sm shadow-white/5"
+                    : "text-white/45 hover:bg-white/[0.07] hover:text-white/85"
                 )}
-                title={fItem.label}
               >
-                <IconComp className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{fItem.label}</span>
-                {isActive && count > 0 && fItem.id !== "all" && (
-                  <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full">{count}</span>
-                )}
+                <Globe className="h-3 w-3" />
+                All apps
               </button>
-            );
-          })}
+              {platformOptions.map((option) => {
+                const isActive = platformFilter === option.id;
+                return (
+                  <button
+                    type="button"
+                    key={option.id}
+                    onClick={() => onPlatformFilterChange?.(option.id)}
+                    aria-pressed={isActive}
+                    aria-label={`Filter Mesh to ${option.label}`}
+                    className={"flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all duration-300 active:scale-95 " + (
+                      isActive
+                        ? "bg-white/14 text-white shadow-sm shadow-white/5"
+                        : "text-white/45 hover:bg-white/[0.07] hover:text-white/85"
+                    )}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: option.color }} aria-hidden="true" />
+                    <span>{option.label}</span>
+                    {option.count > 0 && (
+                      <span className="rounded-full bg-white/12 px-1.5 py-0.5 text-[9px] text-white/65">{option.count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onSearchOpen} className="p-2.5 rounded-xl bg-black/35 backdrop-blur-2xl border border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-95 shadow-lg shadow-black/20" title="Search mesh (Cmd+K)">
+          <button type="button" onClick={onSearchOpen} className="p-2.5 rounded-xl bg-black/35 backdrop-blur-2xl border border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-95 shadow-lg shadow-black/20" title="Search mesh (Cmd+K)" aria-label="Search your Mesh">
             <Search className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={onToggleFootprint}
+            aria-pressed={showFootprint}
+            aria-label={showFootprint ? "Hide digital footprint" : "Show digital footprint"}
             className={"p-2.5 rounded-xl backdrop-blur-2xl border transition-all duration-300 active:scale-95 shadow-lg shadow-black/20 " + (
               showFootprint
                 ? "bg-indigo-500/30 border-indigo-400/30 text-indigo-300"
@@ -96,14 +172,46 @@ interface ZoomControlsProps {
   onToggleStats: () => void;
 }
 
-export function MeshZoomControls({ onZoom, onReset }: ZoomControlsProps) {
+export function MeshZoomControls({
+  showLabels,
+  showStats,
+  onZoom,
+  onReset,
+  onToggleLabels,
+  onToggleStats,
+}: ZoomControlsProps) {
+  const controlClass = "p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90";
+  const activeClass = "p-2.5 rounded-xl bg-white/14 text-white shadow-sm shadow-white/10 transition-all duration-300 active:scale-90";
+
   return (
-    <div className="absolute right-2 sm:right-3 z-10 flex flex-col gap-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-1.5 shadow-lg shadow-black/20 top-[max(8rem,calc(4.5rem+env(safe-area-inset-top)))] md:top-1/2 md:-translate-y-1/2">
-      <button onClick={() => onZoom(0.3)} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Zoom in"><ZoomIn className="h-4 w-4" /></button>
+    <div className="mesh-zoom-controls absolute right-2 sm:right-3 z-10 flex flex-col gap-1.5 bg-black/35 backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-1.5 shadow-lg shadow-black/20 top-[max(8rem,calc(4.5rem+env(safe-area-inset-top)))] md:top-1/2 md:-translate-y-1/2">
+      <button type="button" onClick={() => onZoom(0.3)} className={controlClass} title="Zoom in" aria-label="Zoom in"><ZoomIn className="h-4 w-4" /></button>
       <div className="h-px bg-white/[0.06] mx-1" />
-      <button onClick={() => onZoom(-0.3)} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>
+      <button type="button" onClick={() => onZoom(-0.3)} className={controlClass} title="Zoom out" aria-label="Zoom out"><ZoomOut className="h-4 w-4" /></button>
       <div className="h-px bg-white/[0.06] mx-1" />
-      <button onClick={onReset} className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90" title="Reset view"><Maximize2 className="h-4 w-4" /></button>
+      <button type="button" onClick={onReset} className={controlClass} title="Fit to view" aria-label="Fit Mesh to view"><Maximize2 className="h-4 w-4" /></button>
+      <div className="h-px bg-white/[0.06] mx-1" />
+      <button
+        onClick={onToggleLabels}
+        type="button"
+        aria-pressed={showLabels}
+        className={showLabels ? activeClass : controlClass}
+        title={showLabels ? "Hide labels" : "Show labels"}
+        aria-label={showLabels ? "Hide labels" : "Show labels"}
+      >
+        <Eye className="h-4 w-4" />
+      </button>
+      <div className="h-px bg-white/[0.06] mx-1" />
+      <button
+        onClick={onToggleStats}
+        type="button"
+        aria-pressed={showStats}
+        className={showStats ? activeClass : controlClass}
+        title={showStats ? "Hide stats" : "Show stats"}
+        aria-label={showStats ? "Hide stats" : "Show stats"}
+      >
+        <BarChart3 className="h-4 w-4" />
+      </button>
     </div>
   );
 }
@@ -122,6 +230,7 @@ export function MeshStatsBar({ nodes, zoom, visible }: StatsBarProps & { edges?:
   const interests = nodes.filter((n) => n.type === "tag");
   const posts = nodes.filter((n) => n.type === "post");
   const platforms = nodes.filter((n) => n.type === "platform");
+  const activities = nodes.filter((n) => n.type === "activity");
   const mutuals = people.filter((n) => n.isMutual);
   const onlineCount = people.filter((n) => n.status === "online").length;
 
@@ -135,13 +244,14 @@ export function MeshStatsBar({ nodes, zoom, visible }: StatsBarProps & { edges?:
     { label: "interests", count: interests.length, color: "text-cyan-400" },
     { label: "posts", count: posts.length, color: "text-emerald-400" },
     { label: "platforms", count: platforms.length, color: "text-amber-400" },
+    { label: "activity", count: activities.length, color: "text-sky-400" },
   ].filter((s) => s.count > 0);
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-          className="absolute bottom-[calc(7.5rem+env(safe-area-inset-bottom))] md:bottom-[4.5rem] left-2 sm:left-4 z-10 flex flex-col gap-1.5 max-w-[calc(100vw-6rem)]"
+          className="mesh-stats-bar absolute bottom-[calc(7.5rem+env(safe-area-inset-bottom))] md:bottom-[4.5rem] left-2 sm:left-4 z-10 flex flex-col gap-1.5 max-w-[calc(100vw-6rem)]"
         >
           {/* Mesh insights row */}
           <div className="flex gap-1.5 flex-wrap">
@@ -182,29 +292,67 @@ interface ActionBarProps {
   showContentHub: boolean;
   showNodePrivacy: boolean;
   hiddenCount: number;
+  isSyncingAll?: boolean;
   onCreatePost: () => void;
+  onConnectAccounts: () => void;
+  onSyncAll: () => void;
   onToggleContentHub: () => void;
   onTogglePrivacy: () => void;
 }
 
-export function MeshActionBar({ showContentHub, showNodePrivacy, hiddenCount, onCreatePost, onToggleContentHub, onTogglePrivacy }: ActionBarProps) {
+export function MeshActionBar({
+  showContentHub,
+  showNodePrivacy,
+  hiddenCount,
+  isSyncingAll,
+  onCreatePost,
+  onConnectAccounts,
+  onSyncAll,
+  onToggleContentHub,
+  onTogglePrivacy,
+}: ActionBarProps) {
   return (
-    <div className="absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2 sm:left-4 z-10 flex gap-2">
-      <button onClick={onCreatePost} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all duration-300 active:scale-95 shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-400 hover:shadow-indigo-500/30">
+    <div className="mesh-action-bar absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-10 flex gap-2 overflow-x-auto pb-1">
+      <button type="button" onClick={onCreatePost} aria-label="Create a Mesh post" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all duration-300 active:scale-95 shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-400 hover:shadow-indigo-500/30">
         <Plus className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Create Post</span>
+        <span className="hidden sm:inline">Post</span>
       </button>
       <button
+        type="button"
+        onClick={onSyncAll}
+        disabled={isSyncingAll}
+        aria-label="Sync all connected platforms"
+        className="flex items-center gap-1.5 rounded-xl border border-sky-400/25 bg-sky-500/18 px-3 py-2.5 text-[11px] font-semibold text-sky-200 shadow-lg shadow-black/20 backdrop-blur-2xl transition-all duration-300 active:scale-95 disabled:opacity-60"
+      >
+        <RefreshCw className={"h-3.5 w-3.5 " + (isSyncingAll ? "animate-spin" : "")} />
+        <span className="hidden sm:inline">{isSyncingAll ? "Syncing" : "Sync all"}</span>
+      </button>
+      <button
+        type="button"
+        onClick={onConnectAccounts}
+        aria-label="Connect or manage platforms"
+        className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-2.5 text-[11px] font-medium text-white/60 shadow-lg shadow-black/20 backdrop-blur-2xl transition-all duration-300 hover:bg-white/12 hover:text-white active:scale-95"
+      >
+        <Link2 className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Connect</span>
+      </button>
+      <button
+        type="button"
         onClick={onToggleContentHub}
+        aria-pressed={showContentHub}
+        aria-label={showContentHub ? "Hide Mesh content hub" : "Show Mesh content hub"}
         className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-300 active:scale-95 backdrop-blur-2xl border shadow-lg shadow-black/20 " + (
           showContentHub ? "bg-cyan-500/20 border-cyan-400/30 text-cyan-300" : "bg-black/35 border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12"
         )}
       >
         <Layers className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Content Hub</span>
+        <span className="hidden sm:inline">Content</span>
       </button>
       <button
+        type="button"
         onClick={onTogglePrivacy}
+        aria-pressed={showNodePrivacy}
+        aria-label={showNodePrivacy ? "Hide Mesh privacy controls" : "Show Mesh privacy controls"}
         className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-300 active:scale-95 backdrop-blur-2xl border shadow-lg shadow-black/20 " + (
           showNodePrivacy ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-300" : "bg-black/35 border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12"
         )}

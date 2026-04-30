@@ -2,11 +2,13 @@
 // No React dependency — just math and node positioning.
 
 import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
+import { getPostNodeSize } from "./mesh-types";
 
 export interface SimulationConfig {
   repulsionForce: number;
   attractionForce: number;
   centerGravity: number;
+  anchorGravity: number;
   damping: number;
   settleThreshold: number;
   maxRepulsionDist: number;
@@ -16,6 +18,7 @@ const DEFAULT_CONFIG: SimulationConfig = {
   repulsionForce: 0.0014,
   attractionForce: 0.0009,
   centerGravity: 0.00007,
+  anchorGravity: 0.00022,
   damping: 0.93,
   settleThreshold: 0.04,
   maxRepulsionDist: 2.5,
@@ -39,7 +42,18 @@ export class MeshEngine {
   }
 
   setCenter(x: number, y: number) {
+    const dx = x - this.center.x;
+    const dy = y - this.center.y;
     this.center = { x, y };
+    if (this.nodes.length > 0 && (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) {
+      for (const node of this.nodes) {
+        node.x += dx;
+        node.y += dy;
+        if (node.anchorX !== undefined) node.anchorX += dx;
+        if (node.anchorY !== undefined) node.anchorY += dy;
+      }
+      this._isSettled = false;
+    }
   }
 
   getCenter() {
@@ -67,6 +81,11 @@ export class MeshEngine {
       if (filter !== "all" && node.type !== filter && node.type !== "self") continue;
       const dx = worldX - node.x;
       const dy = worldY - node.y;
+      if (node.type === "post") {
+        const { width, height } = getPostNodeSize(node);
+        if (Math.abs(dx) <= width / 2 + 12 && Math.abs(dy) <= height / 2 + 12) return node;
+        continue;
+      }
       const hitRadius = node.radius * 1.5;
       if (dx * dx + dy * dy < hitRadius * hitRadius) return node;
     }
@@ -105,8 +124,12 @@ export class MeshEngine {
       }
 
       if (node.type !== "self") {
+        const targetX = node.anchorX ?? center.x;
+        const targetY = node.anchorY ?? center.y;
         node.vx += (center.x - node.x) * config.centerGravity * dtNorm;
         node.vy += (center.y - node.y) * config.centerGravity * dtNorm;
+        node.vx += (targetX - node.x) * config.anchorGravity * dtNorm;
+        node.vy += (targetY - node.y) * config.anchorGravity * dtNorm;
       }
     }
 

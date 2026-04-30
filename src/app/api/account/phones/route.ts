@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 export async function GET() {
   const session = await getSession();
@@ -15,6 +16,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
@@ -44,6 +49,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/security";
+import { isSameOriginRequest } from "@/lib/request-guard";
+import { readJsonObject } from "@/lib/api-validation";
+import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
+import { getDefaultPermissionKeysForPlatform, getSupportedPlatformAdapter } from "@/lib/platform-adapters";
+import { normalizePlatformId } from "@/lib/platform-capabilities";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -9,35 +14,17 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const accounts = await prisma.connectedAccount.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      platform: true,
-      platformUsername: true,
-      isActive: true,
-      createdAt: true,
-      syncStatus: true,
-      syncError: true,
-      lastSyncAt: true,
-      alterEgoId: true,
-      accountLabel: true,
-      _count: {
-        select: {
-          platformPosts: true,
-          platformComments: true,
-          platformFollowers: true,
-          platformMedia: true,
-        },
-      },
-    },
-  });
-
-  return NextResponse.json({ accounts });
+  return NextResponse.json(
+    await getConnectedAccountsDashboard(user.id),
+    { headers: { "Cache-Control": "no-store, max-age=0" } },
+  );
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -48,48 +35,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many connection attempts. Please try again later." }, { status: 429 });
   }
 
-  const { platform, username, alterEgoId, accountLabel } = await request.json();
+  const body = await readJsonObject(request);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
+  const platform = typeof body.platform === "string" ? normalizePlatformId(body.platform) : "";
   if (!platform) {
     return NextResponse.json({ error: "Platform is required" }, { status: 400 });
   }
 
-  const VALID_PLATFORMS = [
-    "instagram", "youtube", "tiktok", "twitter", "twitch", "spotify",
-    "soundcloud", "linkedin", "github", "discord", "snapchat",
-    "pinterest", "reddit", "facebook", "threads", "bluesky",
-    "applemusic", "mastodon", "patreon", "substack", "medium",
-    "devto", "dribbble", "behance",
-  ];
-
-  if (!VALID_PLATFORMS.includes(platform)) {
+  const adapter = getSupportedPlatformAdapter(platform);
+  if (!adapter) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 
-  // Only manual-link platforms can be connected via this endpoint;
-  // OAuth platforms must go through /api/auth/[platform]/callback
-  const MANUAL_PLATFORMS = [
-    "soundcloud",
-    "bluesky",
-    "threads",
-    "applemusic",
-    "mastodon",
-    "patreon",
-    "substack",
-    "medium",
-    "devto",
-    "dribbble",
-    "behance",
-  ];
-  if (!MANUAL_PLATFORMS.includes(platform)) {
+  if (adapter.authType !== "manual") {
     return NextResponse.json({ error: "This platform must be connected via OAuth" }, { status: 400 });
   }
-  const trimmedUsername = typeof username === "string" ? username.trim() : "";
+
+  const trimmedUsername = typeof body.username === "string" ? body.username.trim() : "";
   if (!trimmedUsername) {
     return NextResponse.json({ error: "Username is required for this platform" }, { status: 400 });
   }
 
-  const trimmedAccountLabel = typeof accountLabel === "string" ? accountLabel.trim() : "";
+  const trimmedAccountLabel = typeof body.accountLabel === "string" ? body.accountLabel.trim() : "";
+  const alterEgoId = typeof body.alterEgoId === "string" ? body.alterEgoId : "";
 
   // Validate alter ego belongs to this user if provided
   if (alterEgoId) {
@@ -111,25 +82,44 @@ export async function POST(request: Request) {
   }
 
   // Create the connection with optional alter ego association
-  const account = await prisma.connectedAccount.create({
-    data: {
-      userId: user.id,
-      platform,
-      platformUsername: trimmedUsername,
-      isActive: true,
-      alterEgoId: alterEgoId || null,
-      accountLabel: trimmedAccountLabel || null,
-    },
-    select: {
-      id: true,
-      platform: true,
-      platformUsername: true,
-      isActive: true,
-      alterEgoId: true,
-      accountLabel: true,
-      createdAt: true,
-    },
+  const permissionKeys = getDefaultPermissionKeysForPlatform(platform);
+  const account = await prisma.$transaction(async (tx) => {
+    const created = await tx.connectedAccount.create({
+      data: {
+        userId: user.id,
+        platform,
+        platformUsername: trimmedUsername,
+        isActive: true,
+        alterEgoId: alterEgoId || null,
+        accountLabel: trimmedAccountLabel || null,
+      },
+      select: {
+        id: true,
+        platform: true,
+        platformUsername: true,
+        isActive: true,
+        alterEgoId: true,
+        accountLabel: true,
+        createdAt: true,
+      },
+    });
+
+    for (const permissionKey of permissionKeys) {
+      await tx.platformPermission.create({
+        data: {
+          userId: user.id,
+          connectedAccountId: created.id,
+          platform,
+          permissionKey,
+          permissionState: "granted",
+          source: "manual_connection",
+          metadata: "{}",
+        },
+      });
+    }
+
+    return created;
   });
 
-  return NextResponse.json({ account });
+  return NextResponse.json({ account, dashboard: await getConnectedAccountsDashboard(user.id) });
 }

@@ -1,16 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Meshi body - perfect circle -->
-  <circle cx="32" cy="32" r="28" fill="#2d7ff9" />
-  <circle cx="32" cy="32" r="26" fill="url(#meshiGrad)" />
-  <!-- Gradient -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Meshi icon">
   <defs>
-    <radialGradient id="meshiGrad" cx="40%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#60a5fa" />
-      <stop offset="100%" stop-color="#2d7ff9" />
+    <radialGradient id="bubble" cx="34%" cy="24%" r="72%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.38" stop-color="#b9dcff"/>
+      <stop offset="1" stop-color="#58a6ff"/>
     </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#58a6ff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#58a6ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0f141b" flood-opacity="0.24"/>
+    </filter>
   </defs>
-  <!-- Glow ring -->
-  <circle cx="32" cy="32" r="28" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity="0.4" />
-  <!-- Eyes - the signature Meshi look -->
-  <text x="32" y="38" text-anchor="middle" font-size="18" fill="white" font-family="system-ui">◕ ◕</text>
+  <rect width="128" height="128" rx="32" fill="#0f141b"/>
+  <circle cx="64" cy="64" r="48" fill="url(#glow)"/>
+  <circle cx="64" cy="64" r="38" fill="url(#bubble)" filter="url(#shadow)"/>
+  <circle cx="50" cy="61" r="6.4" fill="#0f141b"/>
+  <circle cx="78" cy="61" r="6.4" fill="#0f141b"/>
+  <circle cx="48.2" cy="58.8" r="1.7" fill="#ffffff" opacity="0.86"/>
+  <circle cx="76.2" cy="58.8" r="1.7" fill="#ffffff" opacity="0.86"/>
 </svg>

@@ -51,6 +51,9 @@ export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
         sizeMap[size],
         className
       )}
+      role="img"
+      aria-label={alt ? `${alt}'s Meshi avatar` : "Meshi avatar"}
+      title={alt ? `${alt}'s Meshi` : "Meshi"}
     >
       <MeshiLogo size={size === "xs" ? 14 : size === "sm" ? 18 : size === "md" ? 20 : size === "lg" ? 28 : 36} color="blue" mood="happy" />
     </div>

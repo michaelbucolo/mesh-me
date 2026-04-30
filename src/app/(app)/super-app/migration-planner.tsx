@@ -20,9 +20,11 @@ type PlannerResult = {
   }>;
 };
 
+const DEFAULT_SELECTION: LegacyAppKey[] = ["youtube", "instagram", "tiktok", "discord", "whatsapp"];
+
 export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; label: string }> }) {
   const appKeys = useMemo(() => apps.map((app) => app.key), [apps]);
-  const [selectedApps, setSelectedApps] = useState<LegacyAppKey[]>(["wechat", "messenger", "imessage"]);
+  const [selectedApps, setSelectedApps] = useState<LegacyAppKey[]>(DEFAULT_SELECTION);
   const [loading, setLoading] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -30,18 +32,16 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
 
   useEffect(() => {
     const stored = window.localStorage.getItem("meshme.migration-planner.apps");
-    if (!stored) return;
+    if (!stored) {
+      setSelectedApps(DEFAULT_SELECTION.filter((key) => appKeys.includes(key)));
+      return;
+    }
 
     const parsed = stored
       .split(",")
       .filter((value): value is LegacyAppKey => appKeys.includes(value as LegacyAppKey));
 
-    if (parsed.length > 0) {
-      setSelectedApps(parsed);
-      return;
-    }
-
-    setSelectedApps(appKeys.slice(0, Math.min(3, appKeys.length)));
+    setSelectedApps(parsed.length > 0 ? parsed : appKeys.slice(0, Math.min(5, appKeys.length)));
   }, [appKeys]);
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
     if (!result) return;
 
     const lines = result.plan.map((item) => {
-      const status = item.readyToReplace ? "✅ Ready now" : "⏳ Needs work";
+      const status = item.readyToReplace ? "Ready now" : "Needs work";
       return `- ${item.label}: ${status} (${item.currentScore}/${item.readinessGate})`;
     });
     const payload = [
@@ -114,35 +114,35 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/30 px-3 py-2 text-xs text-slate-300">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 px-3 py-2 text-xs text-[var(--text-secondary)]">
         <p>
-          Selected apps: <span className="font-semibold text-slate-100">{selectedApps.length}</span>
+          Selected apps: <span className="font-semibold text-[var(--text-primary)]">{selectedApps.length}</span>
         </p>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={selectAllApps} className="rounded-md border border-white/10 px-2 py-1 text-slate-200 transition hover:border-sky-300/30 hover:text-white">
+          <button type="button" onClick={selectAllApps} className="mesh-pressable rounded-md border border-[var(--border-primary)] px-2 py-1 text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
             Select all
           </button>
-          <button type="button" onClick={clearAllApps} className="rounded-md border border-white/10 px-2 py-1 text-slate-200 transition hover:border-rose-300/30 hover:text-white">
+          <button type="button" onClick={clearAllApps} className="mesh-pressable rounded-md border border-[var(--border-primary)] px-2 py-1 text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
             Clear all
           </button>
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid max-h-[22rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
         {apps.map((app) => (
           <label
             key={app.key}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+            className={`mesh-pressable flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
               selectedApps.includes(app.key)
-                ? "border-sky-300/40 bg-sky-500/10 text-sky-50"
-                : "border-white/10 bg-slate-900/30 text-slate-100"
+                ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]"
+                : "border-[var(--border-primary)] bg-[var(--bg-primary)]/50 text-[var(--text-secondary)]"
             }`}
           >
             <input
               type="checkbox"
               checked={selectedApps.includes(app.key)}
               onChange={() => toggleApp(app.key)}
-              className="h-4 w-4 rounded border-white/20 bg-slate-900"
+              className="h-4 w-4 rounded border-[var(--border-primary)] bg-[var(--bg-primary)]"
             />
             {app.label}
           </label>
@@ -154,33 +154,33 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
         Generate migration plan
       </Button>
 
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-red-200">{error}</p> : null}
 
       {result ? (
         <div className="space-y-3">
-          <div className="rounded-lg border border-indigo-300/20 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
-            Generated {new Date(result.generatedAt).toLocaleString()} · Readiness baseline {result.overallScore}/100
+          <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 px-3 py-2 text-xs text-[var(--text-secondary)]">
+            Generated {new Date(result.generatedAt).toLocaleString()} - Readiness baseline {result.overallScore}/100
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="secondary" onClick={copyPlan} className="h-8 text-xs">
               <ClipboardCopy className="mr-1 h-3.5 w-3.5" />
               Copy summary
             </Button>
-            {copyState === "copied" ? <p className="text-xs text-emerald-300">Copied to clipboard.</p> : null}
-            {copyState === "failed" ? <p className="text-xs text-rose-300">Clipboard unavailable in this browser.</p> : null}
+            {copyState === "copied" ? <p className="text-xs text-emerald-200">Copied to clipboard.</p> : null}
+            {copyState === "failed" ? <p className="text-xs text-red-200">Clipboard unavailable in this browser.</p> : null}
           </div>
 
           {result.plan.map((item) => (
-            <article key={item.app} className="rounded-xl border border-white/10 bg-slate-900/30 p-3 text-sm text-slate-100">
+            <article key={item.app} className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 p-3 text-sm text-[var(--text-primary)]">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <p className="font-semibold">{item.label}</p>
-                <span className="text-xs text-slate-300">
+                <span className="text-xs text-[var(--text-secondary)]">
                   {item.currentScore}/{item.readinessGate}
                 </span>
               </div>
 
-              <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-secondary)]">
                 <div
                   className={`h-full rounded-full ${item.readyToReplace ? "bg-emerald-300" : "bg-amber-300"}`}
                   style={{ width: `${Math.min(100, Math.round((item.currentScore / item.readinessGate) * 100))}%` }}
@@ -189,7 +189,7 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
 
               {item.readyToReplace ? (
                 <div className="space-y-2">
-                  <p className="flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Ready to replace now.</p>
+                  <p className="flex items-center gap-1 text-emerald-200"><CheckCircle2 className="h-4 w-4" /> Ready to replace now.</p>
                   <ul className="list-disc pl-5 text-xs text-emerald-100/90">
                     {item.nextSteps.slice(0, 2).map((step) => (
                       <li key={step}>{step}</li>
@@ -198,18 +198,18 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="flex items-center gap-1 text-amber-300"><AlertTriangle className="h-4 w-4" /> Not ready yet.</p>
-                  <ul className="list-disc pl-5 text-xs text-slate-300">
+                  <p className="flex items-center gap-1 text-amber-200"><AlertTriangle className="h-4 w-4" /> Not ready yet.</p>
+                  <ul className="list-disc pl-5 text-xs text-[var(--text-secondary)]">
                     {item.blockers.slice(0, 3).map((blocker) => (
                       <li key={blocker}>{blocker}</li>
                     ))}
                   </ul>
-                  <div className="rounded-lg border border-sky-400/20 bg-sky-500/5 px-2 py-1.5">
-                    <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-sky-200">
+                  <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 px-2 py-1.5">
+                    <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)]">
                       <Sparkles className="h-3.5 w-3.5" />
                       Fastest next step
                     </p>
-                    <p className="text-xs text-sky-100">{item.nextSteps[0]}</p>
+                    <p className="text-xs text-[var(--text-secondary)]">{item.nextSteps[0]}</p>
                   </div>
                 </div>
               )}

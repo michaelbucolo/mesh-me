@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSameOriginRequest } from "@/lib/request-guard";
+import {
+  isPlatformContentAction,
+  isVisibilityValue,
+  parsePaginationParams,
+  readJsonObject,
+  readOptionalString,
+  readOptionalStringArray,
+  readRequiredString,
+  VALID_PLATFORM_CONTENT_ACTIONS,
+} from "@/lib/api-validation";
 import {
   getPlatformContent,
   getPlatformAnalyticsSummary,
@@ -20,6 +31,7 @@ import {
   getPlatformPostDetails,
   getConnectedAccountDetails,
 } from "@/lib/platform-sync";
+import { getPlatformCapabilitiesSnapshot } from "@/lib/platform-capabilities";
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,28 +48,16 @@ export async function GET(request: NextRequest) {
 
     if (view === "capabilities") {
       return NextResponse.json({
-        actions: [
-          { id: "cross-post", required: ["content"], optional: ["mediaUrls", "platforms", "accountIds"] },
-          { id: "delete", required: ["postId"] },
-          { id: "edit", required: ["postId", "content"] },
-          { id: "like", required: ["postId"] },
-          { id: "unlike", required: ["postId"] },
-          { id: "share", required: ["postId"], optional: ["comment"] },
-          { id: "pin", required: ["postId"] },
-          { id: "unpin", required: ["postId"] },
-          { id: "visibility", required: ["postId", "visibility"] },
-          { id: "reply", required: ["postId", "content"] },
-          { id: "delete-comment", required: ["commentId"] },
-          { id: "follow", required: ["connectedAccountId", "platformUserId"] },
-          { id: "unfollow", required: ["connectedAccountId", "platformUserId"] },
-        ],
+        actions: VALID_PLATFORM_CONTENT_ACTIONS.map((id) => ({ id })),
+        platformCapabilities: getPlatformCapabilitiesSnapshot(),
+        visibilityValues: ["public", "private", "unlisted", "friends"],
+        note: "Actions sync to source platforms only when the connected provider API, granted scopes, and account permissions allow it.",
       });
     }
 
     if (view === "followers") {
       const platform = searchParams.get("platform") || undefined;
-      const page = parseInt(searchParams.get("page") || "1");
-      const limit = parseInt(searchParams.get("limit") || "20");
+      const { page, limit } = parsePaginationParams(searchParams);
 
       const accounts = await prisma.connectedAccount.findMany({
         where: { userId: user.id, isActive: true, ...(platform ? { platform } : {}) },
@@ -104,8 +104,7 @@ export async function GET(request: NextRequest) {
 
     const platform = searchParams.get("platform") || undefined;
     const postType = searchParams.get("postType") || undefined;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const { page, limit } = parsePaginationParams(searchParams);
 
     const result = await getPlatformContent(platform, postType, page, limit);
     return NextResponse.json(result);
@@ -116,34 +115,102 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+    }
+
     if (!(await getCurrentUser())) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    const body = await request.json();
-    const { action } = body;
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    type ActionResult = { error?: string } & Record<string, unknown>;
-    const handlers: Record<string, () => Promise<ActionResult>> = {
-      delete: async () => deletePlatformPost(body.postId),
-      "cross-post": async () => crossPostContent(body.content, body.platforms, body.mediaUrls, body.accountIds),
-      edit: async () => editPlatformPost(body.postId, body.content),
-      like: async () => likePlatformPost(body.postId),
-      unlike: async () => unlikePlatformPost(body.postId),
-      follow: async () => followPlatformUser(body.connectedAccountId, body.platformUserId),
-      unfollow: async () => unfollowPlatformUser(body.connectedAccountId, body.platformUserId),
-      share: async () => sharePlatformPost(body.postId, body.comment),
-      pin: async () => pinPlatformPost(body.postId),
-      unpin: async () => unpinPlatformPost(body.postId),
-      visibility: async () => updatePlatformPostVisibility(body.postId, body.visibility),
-      reply: async () => replyToPlatformComment(body.postId, body.content),
-      "delete-comment": async () => deletePlatformComment(body.commentId),
-    };
-
-    const handler = handlers[action];
-    if (!handler) {
+    const action = body.action;
+    if (!isPlatformContentAction(action)) {
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
 
-    const result = await handler();
+    type ActionResult = { error?: string } & Record<string, unknown>;
+    let result: ActionResult;
+
+    if (action === "cross-post") {
+      const content = readRequiredString(body, "content", { maxLength: 5000 });
+      const platforms = readOptionalStringArray(body, "platforms");
+      const mediaUrls = readOptionalStringArray(body, "mediaUrls", 10);
+      const accountIds = readOptionalStringArray(body, "accountIds", 20);
+
+      if (!content) return NextResponse.json({ error: "content is required" }, { status: 400 });
+      if (platforms === null) return NextResponse.json({ error: "platforms must be a string array" }, { status: 400 });
+      if (mediaUrls === null) return NextResponse.json({ error: "mediaUrls must be a string array" }, { status: 400 });
+      if (accountIds === null) return NextResponse.json({ error: "accountIds must be a string array" }, { status: 400 });
+      if ((!platforms || platforms.length === 0) && (!accountIds || accountIds.length === 0)) {
+        return NextResponse.json({ error: "Choose at least one platform or connected account" }, { status: 400 });
+      }
+
+      result = await crossPostContent(content, platforms || [], mediaUrls, accountIds);
+    } else if (action === "follow" || action === "unfollow") {
+      const connectedAccountId = readRequiredString(body, "connectedAccountId");
+      const platformUserId = readRequiredString(body, "platformUserId");
+      if (!connectedAccountId) return NextResponse.json({ error: "connectedAccountId is required" }, { status: 400 });
+      if (!platformUserId) return NextResponse.json({ error: "platformUserId is required" }, { status: 400 });
+
+      result = action === "follow"
+        ? await followPlatformUser(connectedAccountId, platformUserId)
+        : await unfollowPlatformUser(connectedAccountId, platformUserId);
+    } else if (action === "delete-comment") {
+      const commentId = readRequiredString(body, "commentId");
+      if (!commentId) return NextResponse.json({ error: "commentId is required" }, { status: 400 });
+      result = await deletePlatformComment(commentId);
+    } else {
+      const postId = readRequiredString(body, "postId");
+      if (!postId) return NextResponse.json({ error: "postId is required" }, { status: 400 });
+
+      switch (action) {
+        case "delete":
+          result = await deletePlatformPost(postId);
+          break;
+        case "edit": {
+          const content = readRequiredString(body, "content", { maxLength: 5000 });
+          if (!content) return NextResponse.json({ error: "content is required" }, { status: 400 });
+          result = await editPlatformPost(postId, content);
+          break;
+        }
+        case "like":
+          result = await likePlatformPost(postId);
+          break;
+        case "unlike":
+          result = await unlikePlatformPost(postId);
+          break;
+        case "share": {
+          const comment = readOptionalString(body, "comment", 500);
+          if (comment === null) return NextResponse.json({ error: "comment must be a string" }, { status: 400 });
+          result = await sharePlatformPost(postId, comment);
+          break;
+        }
+        case "pin":
+          result = await pinPlatformPost(postId);
+          break;
+        case "unpin":
+          result = await unpinPlatformPost(postId);
+          break;
+        case "visibility": {
+          const visibility = readRequiredString(body, "visibility", { maxLength: 20 });
+          if (!isVisibilityValue(visibility)) {
+            return NextResponse.json({ error: "visibility must be public, private, unlisted, or friends" }, { status: 400 });
+          }
+          result = await updatePlatformPostVisibility(postId, visibility);
+          break;
+        }
+        case "reply": {
+          const content = readRequiredString(body, "content", { maxLength: 1000 });
+          if (!content) return NextResponse.json({ error: "content is required" }, { status: 400 });
+          result = await replyToPlatformComment(postId, content);
+          break;
+        }
+      }
+    }
+
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSameOriginRequest } from "@/lib/request-guard";
 import { NextResponse } from "next/server";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -14,6 +15,10 @@ function detectImageType(buf: Uint8Array): string | null {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -63,7 +68,11 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

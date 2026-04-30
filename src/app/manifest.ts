@@ -1,16 +1,16 @@
 import type { MetadataRoute } from "next";
+import { meshBrand } from "@/lib/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "mesh.me",
-    short_name: "mesh.me",
-    description:
-      "Your digital universe, remixed. A creator-first social operating system that unifies identity, communities, and conversations.",
-    start_url: "/",
+    name: `${meshBrand.name} - ${meshBrand.motto}`,
+    short_name: meshBrand.name,
+    description: `${meshBrand.motto}. ${meshBrand.description}`,
+    start_url: "/mesh",
     display: "standalone",
     orientation: "any",
-    background_color: "#09090b",
-    theme_color: "#09090b",
+    background_color: meshBrand.colors.ink,
+    theme_color: meshBrand.colors.ink,
     categories: ["social", "communication", "lifestyle"],
     icons: [
       {
@@ -56,7 +56,12 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
       {
-        src: "/meshi-favicon.svg",
+        src: meshBrand.assets.favicon,
+        sizes: "any",
+        type: "image/svg+xml",
+      },
+      {
+        src: meshBrand.assets.icon,
         sizes: "any",
         type: "image/svg+xml",
       },

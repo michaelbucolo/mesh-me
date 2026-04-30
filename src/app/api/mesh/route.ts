@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
+import { nsfwHiddenWhere } from "@/lib/content-safety";
 
 export async function GET() {
   try {
@@ -8,8 +10,9 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const safetyWhere = nsfwHiddenWhere(user);
 
-  const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData, meshiPrefData] = await Promise.all([
+  const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData, meshiPrefData, meshCosmeticsData] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: user.id },
       include: {
@@ -51,10 +54,11 @@ export async function GET() {
     }),
     prisma.userInterest.findMany({ where: { userId: user.id }, select: { tag: true } }),
     prisma.post.findMany({
-      where: { authorId: user.id },
+      where: { ...safetyWhere, authorId: user.id },
       select: {
         id: true, content: true, createdAt: true,
         communityId: true,
+        media: { select: { url: true, type: true, width: true, height: true }, take: 1 },
         tags: { select: { tag: true } },
         _count: { select: { reactions: true, comments: true, reposts: true } },
       },
@@ -68,17 +72,28 @@ export async function GET() {
         lastSyncAt: true, syncStatus: true,
         _count: { select: { platformPosts: true, platformFollowers: true, platformMedia: true, platformComments: true } },
         platformPosts: {
+          where: safetyWhere,
           select: {
-            id: true, title: true, content: true, url: true, postType: true,
+            id: true, platformPostId: true, title: true, content: true, url: true, postType: true,
             likeCount: true, commentCount: true, shareCount: true, viewCount: true,
-            thumbnailUrl: true, publishedAt: true, visibility: true,
+            thumbnailUrl: true, publishedAt: true, visibility: true, isPinned: true,
+            media: {
+              select: {
+                url: true,
+                thumbnailUrl: true,
+                mediaType: true,
+                width: true,
+                height: true,
+              },
+              take: 1,
+            },
           },
           orderBy: { likeCount: "desc" },
           take: 8,
         },
         platformFollowers: {
           select: {
-            id: true, username: true, displayName: true, avatarUrl: true,
+            id: true, platformUserId: true, username: true, displayName: true, avatarUrl: true,
             followerCount: true, isMutual: true, relationshipType: true, profileUrl: true,
           },
           orderBy: { followerCount: "desc" },
@@ -102,9 +117,183 @@ export async function GET() {
     }),
     prisma.meshiPreference.findUnique({
       where: { userId: user.id },
-      select: { colorTheme: true, hatStyle: true, faceStyle: true },
+      select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true },
+    }),
+    prisma.meshCosmetic.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { type: true, value: true, isActive: true },
     }),
   ]);
+
+  const [notificationsData, commentActivityData, reactionActivityData, messageActivityData] = await Promise.all([
+    prisma.notification.findMany({
+      where: { recipientId: user.id },
+      select: {
+        id: true,
+        type: true,
+        message: true,
+        read: true,
+        createdAt: true,
+        postId: true,
+        actor: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.comment.findMany({
+      where: { authorId: user.id, post: safetyWhere },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        post: {
+          select: {
+            id: true,
+            content: true,
+            author: {
+              select: {
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+    prisma.reaction.findMany({
+      where: { userId: user.id, post: safetyWhere },
+      select: {
+        id: true,
+        type: true,
+        createdAt: true,
+        post: {
+          select: {
+            id: true,
+            content: true,
+            author: {
+              select: {
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+    prisma.message.findMany({
+      where: { senderId: user.id },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        threadId: true,
+        sourcePlatform: true,
+        messageType: true,
+        sourcePostId: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+  ]);
+
+  const activityData = [
+    ...notificationsData.map((notification) => ({
+      id: `notification-${notification.id}`,
+      type: "notification",
+      label: notification.type.replace(/_/g, " "),
+      summary: notification.message || notification.post?.content || "New Mesh notification",
+      href: notification.postId ? `/feed/${notification.postId}` : "/notifications",
+      sourcePostId: notification.postId,
+      createdAt: notification.createdAt,
+      isUnread: !notification.read,
+      actor: notification.actor
+        ? {
+            id: notification.actor.id,
+            username: notification.actor.username,
+            displayName: notification.actor.displayName,
+            avatarUrl: notification.actor.avatarUrl,
+          }
+        : null,
+    })),
+    ...commentActivityData.map((comment) => ({
+      id: `comment-${comment.id}`,
+      type: "comment",
+      label: "Commented",
+      summary: comment.content || `Replied to ${comment.post.author.displayName || comment.post.author.username}`,
+      href: `/feed/${comment.post.id}`,
+      sourcePostId: comment.post.id,
+      createdAt: comment.createdAt,
+      isUnread: false,
+      actor: null,
+    })),
+    ...reactionActivityData.map((reaction) => ({
+      id: `reaction-${reaction.id}`,
+      type: reaction.type || "reaction",
+      label: reaction.type === "like" ? "Liked a post" : `${reaction.type} reaction`,
+      summary: reaction.post.content || `Reacted to ${reaction.post.author.displayName || reaction.post.author.username}`,
+      href: `/feed/${reaction.post.id}`,
+      sourcePostId: reaction.post.id,
+      createdAt: reaction.createdAt,
+      isUnread: false,
+      actor: null,
+    })),
+    ...messageActivityData.map((message) => ({
+      id: `message-${message.id}`,
+      type: "message",
+      label: message.sourcePlatform === "mesh" ? "MeChat message" : `${message.sourcePlatform} message`,
+      summary: message.content,
+      href: `/messages/${message.threadId}`,
+      sourcePostId: message.sourcePostId || null,
+      createdAt: message.createdAt,
+      isUnread: false,
+      actor: null,
+    })),
+    ...connectedAccountsData
+      .filter((account) => Boolean(account.lastSyncAt))
+      .map((account) => ({
+        id: `sync-${account.id}`,
+        type: "sync",
+        label: `${account.platform} synced`,
+        summary: account.platformUsername
+          ? `@${account.platformUsername} is connected and ready.`
+          : `${account.platform} is connected and ready.`,
+        href: "/connected-accounts",
+        sourcePostId: null,
+        connectedAccountId: account.id,
+        createdAt: account.lastSyncAt,
+        isUnread: false,
+        actor: null,
+      })),
+    {
+      id: `profile-created-${user.id}`,
+      type: "profile",
+      label: "Mesh created",
+      summary: "Your private Mesh account is active.",
+      href: "/settings",
+      sourcePostId: null,
+      connectedAccountId: null,
+      createdAt: user.createdAt,
+      isUnread: false,
+      actor: null,
+    },
+  ].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).slice(0, 18);
 
   // Find mutual follows (people the user follows who also follow them back)
   const followingIds = new Set(followingData.map((f) => f.following.id));
@@ -113,6 +302,86 @@ export async function GET() {
   for (const id of followingIds) {
     if (followerIds.has(id)) mutualSet.add(id);
   }
+
+  const mutualIds = Array.from(mutualSet).slice(0, 12);
+  const friendMeshData = mutualIds.length > 0
+    ? await prisma.user.findMany({
+        where: {
+          id: { in: mutualIds },
+          isSuspended: false,
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          meshPrivacy: {
+            select: {
+              meshVisibility: true,
+              branchOverrides: true,
+            },
+          },
+          posts: {
+            where: safetyWhere,
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              communityId: true,
+              media: { select: { url: true, type: true, width: true, height: true }, take: 1 },
+              tags: { select: { tag: true } },
+              _count: { select: { reactions: true, comments: true, reposts: true } },
+            },
+            orderBy: { createdAt: "desc" },
+            take: 6,
+          },
+          connectedAccounts: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              platform: true,
+              platformUsername: true,
+              syncStatus: true,
+              platformPosts: {
+                where: { ...safetyWhere, visibility: { in: ["public", "friends"] } },
+                select: {
+                  id: true,
+                  platformPostId: true,
+                  title: true,
+                  content: true,
+                  url: true,
+                  postType: true,
+                  likeCount: true,
+                  commentCount: true,
+                  shareCount: true,
+                  viewCount: true,
+                  thumbnailUrl: true,
+                  publishedAt: true,
+                  visibility: true,
+                  isPinned: true,
+                  media: {
+                    select: {
+                      url: true,
+                      thumbnailUrl: true,
+                      mediaType: true,
+                      width: true,
+                      height: true,
+                    },
+                    take: 1,
+                  },
+                },
+                orderBy: [
+                  { publishedAt: "desc" },
+                  { createdAt: "desc" },
+                ],
+                take: 4,
+              },
+            },
+            take: 4,
+          },
+        },
+      })
+    : [];
 
   // Find which users share communities with the current user
   const communityIds = communitiesData.map((cm) => cm.community.id);
@@ -157,8 +426,8 @@ export async function GET() {
     const commentInteractions = await prisma.comment.findMany({
       where: {
         OR: [
-          { authorId: user.id, post: { authorId: { in: allUserIds } } },
-          { authorId: { in: allUserIds }, post: { authorId: user.id } },
+          { authorId: user.id, post: { ...safetyWhere, authorId: { in: allUserIds } } },
+          { authorId: { in: allUserIds }, post: { ...safetyWhere, authorId: user.id } },
         ],
       },
       select: {
@@ -176,8 +445,8 @@ export async function GET() {
     const reactionInteractions = await prisma.reaction.findMany({
       where: {
         OR: [
-          { userId: user.id, post: { authorId: { in: allUserIds } } },
-          { userId: { in: allUserIds }, post: { authorId: user.id } },
+          { userId: user.id, post: { ...safetyWhere, authorId: { in: allUserIds } } },
+          { userId: { in: allUserIds }, post: { ...safetyWhere, authorId: user.id } },
         ],
       },
       select: {
@@ -239,6 +508,12 @@ export async function GET() {
       content: p.content.slice(0, 200),
       createdAt: p.createdAt,
       communityId: p.communityId,
+      media: p.media.map((media) => ({
+        url: media.url,
+        type: media.type,
+        width: media.width,
+        height: media.height,
+      })),
       tags: p.tags.map((t) => t.tag),
       likeCount: p._count.reactions,
       commentCount: p._count.comments,
@@ -256,6 +531,8 @@ export async function GET() {
         .filter((p) => p.visibility === "public")
         .map((p) => ({
         id: p.id,
+        platformPostId: p.platformPostId,
+        connectedAccountId: acct.id,
         title: p.title,
         content: (p.content || "").slice(0, 150),
         url: p.url,
@@ -265,21 +542,108 @@ export async function GET() {
         shareCount: p.shareCount,
         viewCount: p.viewCount,
         thumbnailUrl: p.thumbnailUrl,
+        media: p.media.map((media) => ({
+          url: media.url,
+          thumbnailUrl: media.thumbnailUrl,
+          mediaType: media.mediaType,
+          width: media.width,
+          height: media.height,
+        })),
         publishedAt: p.publishedAt,
         visibility: p.visibility,
+        isPinned: p.isPinned,
       })),
       topFollowers: acct.platformFollowers.map((f) => ({
         id: f.id,
+        platformUserId: f.platformUserId,
+        connectedAccountId: acct.id,
         username: f.username,
         displayName: f.displayName,
         avatarUrl: f.avatarUrl,
         followerCount: f.followerCount,
         isMutual: f.isMutual,
+        relationshipType: f.relationshipType,
         profileUrl: f.profileUrl,
       })),
     })),
+    friendMeshes: friendMeshData.map((friend) => {
+      const branchOverrides = parseMeshBranchOverrides(friend.meshPrivacy?.branchOverrides);
+      const meshVisibility = friend.meshPrivacy?.meshVisibility ?? "private";
+      const canSharePosts = canShareFriendMeshBranch(meshVisibility, branchOverrides, "posts");
+      const canSharePlatforms = canShareFriendMeshBranch(meshVisibility, branchOverrides, "platforms");
+
+      return {
+        user: {
+          id: friend.id,
+          username: friend.username,
+          displayName: friend.displayName,
+          avatarUrl: friend.avatarUrl,
+        },
+        posts: canSharePosts
+          ? friend.posts.map((p) => ({
+              id: p.id,
+              content: p.content.slice(0, 200),
+              createdAt: p.createdAt,
+              communityId: p.communityId,
+              media: p.media.map((media) => ({
+                url: media.url,
+                type: media.type,
+                width: media.width,
+                height: media.height,
+              })),
+              tags: p.tags.map((t) => t.tag),
+              likeCount: p._count.reactions,
+              commentCount: p._count.comments,
+              repostCount: p._count.reposts,
+            }))
+          : [],
+        connectedAccounts: canSharePlatforms
+          ? friend.connectedAccounts.map((acct) => ({
+              id: acct.id,
+              platform: acct.platform,
+              platformUsername: acct.platformUsername,
+              syncStatus: acct.syncStatus,
+              topPosts: acct.platformPosts.map((p) => ({
+                id: p.id,
+                platformPostId: p.platformPostId,
+                connectedAccountId: acct.id,
+                title: p.title,
+                content: (p.content || "").slice(0, 150),
+                url: p.url,
+                postType: p.postType,
+                likeCount: p.likeCount,
+                commentCount: p.commentCount,
+                shareCount: p.shareCount,
+                viewCount: p.viewCount,
+                thumbnailUrl: p.thumbnailUrl,
+                media: p.media.map((media) => ({
+                  url: media.url,
+                  thumbnailUrl: media.thumbnailUrl,
+                  mediaType: media.mediaType,
+                  width: media.width,
+                  height: media.height,
+                })),
+                publishedAt: p.publishedAt,
+                visibility: p.visibility,
+                isPinned: p.isPinned,
+              })),
+            }))
+          : [],
+      };
+    }),
     alterEgos: alterEgosData,
-    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy" },
+    activities: activityData,
+    meshiPreference: meshiPrefData || {
+      colorTheme: "blue",
+      hatStyle: "none",
+      faceStyle: "happy",
+      hairStyle: "none",
+      accessoryStyle: "none",
+      eyeStyle: "regular",
+      badgeStyle: "none",
+      outfitStyle: "none",
+    },
+    meshCosmetics: meshCosmeticsData,
     stats: {
       followingCount: followingData.length,
       followerCount: followersData.length,
@@ -289,6 +653,7 @@ export async function GET() {
       interestCount: interestsData.length,
       connectedPlatformCount: connectedAccountsData.length,
       alterEgoCount: alterEgosData.length,
+      activityCount: activityData.length,
     },
   });
   } catch (error) {

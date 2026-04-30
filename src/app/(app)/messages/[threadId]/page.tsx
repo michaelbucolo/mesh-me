@@ -1,175 +1,391 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getThreadMessages } from "@/lib/queries";
-import { Avatar } from "@/components/ui/avatar";
-import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { ArrowLeft, LockKeyhole, Phone, ShieldCheck, Users, Video } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
+import { MeChatThread, type MeChatSerializedMessage } from "@/components/messages/mechat-thread";
+import { getCurrentUser } from "@/lib/auth";
+import { nsfwHiddenWhere } from "@/lib/content-safety";
+import { parseMeChatMetadata } from "@/lib/mechat-metadata";
 import { prisma } from "@/lib/prisma";
-import { MessageForm } from "./message-form";
-import { formatRelativeTime } from "@/lib/utils";
+import { getThreadMessages } from "@/lib/queries";
 
-export default async function ThreadDetailPage({
-  params,
-  searchParams,
-}: {
+export const metadata: Metadata = {
+  title: "MeChat Thread",
+  description: "A unified MeChat conversation with cross-platform shares, group scrolling, and source-aware replies.",
+};
+
+type ThreadPageProps = {
   params: Promise<{ threadId: string }>;
-  searchParams: Promise<{ new?: string; sharePostId?: string }>;
-}) {
-  const { threadId } = await params;
-  const query = await searchParams;
-  const user = await getCurrentUser();
-  if (!user) return null;
+  searchParams: Promise<{
+    new?: string;
+    sharePostId?: string;
+    sharePlatformPostId?: string;
+    shareUrl?: string;
+    shareTitle?: string;
+    sourcePlatform?: string;
+  }>;
+};
 
-  const isNewChat = query.new === "true";
-  const sharePostId = typeof query.sharePostId === "string" ? query.sharePostId : "";
+type ConversationUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+};
 
-  // If this is a new chat, threadId is actually a userId — find or create thread
-  let resolvedThreadId = threadId;
-  let otherUserDirect: { id: string; username: string; displayName: string; avatarUrl: string | null } | null = null;
+type SharedMessageSource = {
+  content: string;
+  messageType?: string;
+  sourcePlatform?: string;
+  sourceUrl?: string;
+  sourcePostId?: string;
+  platformPostId?: string;
+  metadata?: string;
+};
 
-  if (isNewChat) {
-    const recipientId = threadId;
-
-    // Don't allow messaging yourself
-    if (recipientId === user.id) notFound();
-
-    // Look up the recipient to make sure they exist
-    const recipient = await prisma.user.findUnique({
-      where: { id: recipientId },
-      select: { id: true, username: true, displayName: true, avatarUrl: true, isSuspended: true },
-    });
-    if (!recipient || recipient.isSuspended) notFound();
-
-    // Check for blocks
-    const blockExists = await prisma.block.findFirst({
-      where: {
-        OR: [
-          { blockerId: user.id, blockedId: recipientId },
-          { blockerId: recipientId, blockedId: user.id },
-        ],
+async function buildSharedContent(
+  query: Awaited<ThreadPageProps["searchParams"]>,
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
+): Promise<SharedMessageSource | null> {
+  if (query.sharePostId) {
+    const post = await prisma.post.findUnique({
+      where: { id: query.sharePostId },
+      select: {
+        id: true,
+        content: true,
+        author: {
+          select: {
+            username: true,
+            displayName: true,
+          },
+        },
       },
     });
-    if (blockExists) notFound();
 
-    // Find existing thread between these two users
+    if (!post) return null;
+
+    const preview = post.content.length > 240 ? `${post.content.slice(0, 237)}...` : post.content;
+    return {
+      content: [
+        `Shared a Mesh.me post by ${post.author.displayName} (@${post.author.username})`,
+        preview,
+        `/feed/${post.id}`,
+      ].join("\n"),
+      messageType: "shared_post",
+      sourcePlatform: "mesh",
+      sourcePostId: post.id,
+    };
+  }
+
+  if (query.sharePlatformPostId) {
+    const platformPost = await prisma.platformPost.findFirst({
+      where: {
+        id: query.sharePlatformPostId,
+        ...nsfwHiddenWhere(user),
+        OR: [
+          { connectedAccount: { userId: user.id } },
+          {
+            visibility: { not: "private" },
+            connectedAccount: {
+              user: {
+                isSuspended: false,
+                isPublic: true,
+                showInDiscovery: true,
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        connectedAccount: {
+          select: {
+            platform: true,
+            platformUsername: true,
+          },
+        },
+      },
+    });
+
+    if (!platformPost) return null;
+
+    const platform = platformPost.connectedAccount.platform;
+    const author = platformPost.connectedAccount.platformUsername ? ` from @${platformPost.connectedAccount.platformUsername}` : "";
+    const preview = [platformPost.title, platformPost.content].filter(Boolean).join("\n").slice(0, 240);
+    return {
+      content: [
+        `Shared a ${platform} post${author}`,
+        preview || query.shareTitle || "Source-linked post",
+        platformPost.url,
+      ].filter(Boolean).join("\n"),
+      messageType: "platform_share",
+      sourcePlatform: platform,
+      sourceUrl: platformPost.url ?? undefined,
+      platformPostId: platformPost.id,
+      metadata: JSON.stringify({ platformPostId: platformPost.platformPostId }),
+    };
+  }
+
+  if (query.shareUrl) {
+    const platform = query.sourcePlatform || "web";
+    return {
+      content: [
+        `Shared a ${platform} link`,
+        query.shareTitle,
+        query.shareUrl,
+      ].filter(Boolean).join("\n"),
+      messageType: "platform_share",
+      sourcePlatform: platform,
+      sourceUrl: query.shareUrl,
+    };
+  }
+
+  return null;
+}
+
+export default async function ThreadDetailPage({ params, searchParams }: ThreadPageProps) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?next=/messages");
+  if (!user.onboarded) redirect("/onboarding");
+
+  const [{ threadId }, query] = await Promise.all([params, searchParams]);
+  const isNewConversation = query.new === "true";
+  const sharedContent = await buildSharedContent(query, user);
+  const sourcePlatform = sharedContent?.sourcePlatform || "mesh";
+
+  let activeThreadId = isNewConversation ? "" : threadId;
+  let recipient: ConversationUser | null = null;
+  let conversationTitle = "Secure MeChat thread";
+  let conversationSubtitle = "Private conversation";
+  let conversationAvatar: string | null | undefined = null;
+  let isGroupThread = false;
+  let memberCount = 0;
+  let formRecipientId: string | undefined;
+  let conversationMembers: Array<{
+    userId: string;
+    role: string;
+    notificationsMuted: boolean;
+    lastRead: string;
+    user: ConversationUser;
+  }> = [{
+    userId: user.id,
+    role: "owner",
+    notificationsMuted: false,
+    lastRead: new Date().toISOString(),
+    user: {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    },
+  }];
+
+  if (isNewConversation) {
+    recipient = await prisma.user.findFirst({
+      where: {
+        id: threadId,
+        isSuspended: false,
+      },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+      },
+    });
+
+    if (!recipient || recipient.id === user.id) notFound();
+
     const existingThread = await prisma.messageThread.findFirst({
       where: {
+        threadType: "direct",
         AND: [
           { members: { some: { userId: user.id } } },
-          { members: { some: { userId: recipientId } } },
+          { members: { some: { userId: recipient.id } } },
         ],
       },
     });
 
     if (existingThread) {
-      resolvedThreadId = existingThread.id;
+      activeThreadId = existingThread.id;
     } else {
-      // Create a new thread
-      const newThread = await prisma.messageThread.create({
-        data: {
-          members: {
-            create: [
-              { userId: user.id },
-              { userId: recipientId },
-            ],
-          },
-        },
-      });
-      resolvedThreadId = newThread.id;
+      formRecipientId = recipient.id;
     }
-
-    otherUserDirect = recipient;
-  }
-
-  const thread = await prisma.messageThread.findUnique({
-    where: { id: resolvedThreadId },
-    include: {
-      members: {
-        include: {
-          user: {
-            select: { id: true, username: true, displayName: true, avatarUrl: true },
+    conversationTitle = recipient.displayName;
+    conversationSubtitle = `@${recipient.username}`;
+    conversationAvatar = recipient.avatarUrl;
+    conversationMembers = [
+      ...conversationMembers,
+      {
+        userId: recipient.id,
+        role: "member",
+        notificationsMuted: false,
+        lastRead: new Date(0).toISOString(),
+        user: recipient,
+      },
+    ];
+  } else {
+    const thread = await prisma.messageThread.findFirst({
+      where: {
+        id: threadId,
+        members: { some: { userId: user.id } },
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
           },
         },
       },
-    },
-  });
-
-  if (!thread) notFound();
-
-  // Verify current user is a member of this thread
-  const isMember = thread.members.some((m) => m.userId === user.id);
-  if (!isMember) notFound();
-
-  const otherUser = otherUserDirect || thread.members.find((m) => m.userId !== user.id)?.user;
-  const messages = await getThreadMessages(resolvedThreadId);
-  let initialShareMessage: string | undefined;
-
-  if (sharePostId) {
-    const sharedPost = await prisma.post.findUnique({
-      where: { id: sharePostId },
-      include: { author: { select: { username: true, displayName: true } } },
     });
-    if (sharedPost) {
-      initialShareMessage = `🔗 Shared a post by ${sharedPost.author.displayName} (@${sharedPost.author.username})\n${sharedPost.content.slice(0, 260)}${sharedPost.content.length > 260 ? "…" : ""}\n/feed/${sharedPost.id}`;
-    }
+
+    if (!thread) notFound();
+    const otherMembers = thread.members.filter((member) => member.userId !== user.id);
+    recipient = otherMembers[0]?.user ?? null;
+    isGroupThread = thread.threadType === "group" || otherMembers.length > 1;
+    memberCount = thread.members.length;
+    conversationTitle = thread.title || (isGroupThread
+      ? otherMembers.map((member) => member.user.displayName).join(", ")
+      : recipient?.displayName || "Secure MeChat thread");
+    conversationSubtitle = isGroupThread
+      ? `${memberCount} members - Mesh.me group chat`
+      : recipient
+        ? `@${recipient.username}`
+        : "Private conversation";
+    conversationAvatar = isGroupThread ? null : recipient?.avatarUrl;
+    conversationMembers = thread.members.map((member) => ({
+      userId: member.userId,
+      role: member.role,
+      notificationsMuted: member.notificationsMuted,
+      lastRead: member.userId === user.id ? new Date().toISOString() : member.lastRead.toISOString(),
+      user: member.user,
+    }));
   }
 
+  if (activeThreadId) {
+    await prisma.threadMember.update({
+      where: { userId_threadId: { userId: user.id, threadId: activeThreadId } },
+      data: { lastRead: new Date() },
+    }).catch(() => {});
+  }
+  const messages = activeThreadId ? await getThreadMessages(activeThreadId) : [];
+  const messagesById = new Map(messages.map((message) => [message.id, {
+    id: message.id,
+    content: message.content,
+    senderName: message.sender.displayName || message.sender.username,
+  }]));
+  const serializedMessages: MeChatSerializedMessage[] = messages.map((message) => {
+    const metadata = parseMeChatMetadata(message.metadata);
+    const replyTo = metadata.replyToMessageId ? messagesById.get(metadata.replyToMessageId) : null;
+    return {
+      id: message.id,
+      content: message.content,
+      senderId: message.senderId,
+      threadId: message.threadId,
+      sourcePlatform: message.sourcePlatform,
+      messageType: message.messageType,
+      sourceUrl: message.sourceUrl,
+      sourcePostId: message.sourcePostId,
+      platformPostId: message.platformPostId,
+      platformCommentId: message.platformCommentId,
+      createdAt: message.createdAt.toISOString(),
+      sender: message.sender,
+      metadata,
+      replyTo: replyTo ? {
+        id: replyTo.id,
+        content: replyTo.content,
+        senderName: replyTo.senderName,
+      } : null,
+      readBy: conversationMembers
+        .filter((member) => new Date(member.lastRead).getTime() >= message.createdAt.getTime())
+        .map((member) => ({
+          userId: member.userId,
+          displayName: member.user.displayName,
+          username: member.user.username,
+          avatarUrl: member.user.avatarUrl,
+        })),
+    };
+  });
+
   return (
-    <div data-meshi-zone="thread-detail" className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-2rem)] animate-page-enter">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-[var(--border-primary)]">
-        <Link href="/messages" className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        {otherUser && (
-          <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <Avatar src={otherUser.avatarUrl} alt={otherUser.displayName} size="sm" />
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">{otherUser.displayName}</h2>
-              <p className="text-xs text-[var(--text-muted)]">@{otherUser.username}</p>
+    <main className="mesh-aurora min-h-full overflow-hidden rounded-lg text-[var(--text-primary)]">
+      <div className="mx-auto grid max-w-4xl gap-4 px-3 py-4 md:px-5 md:py-6">
+        <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link href="/messages" className="mesh-action mesh-action-secondary mesh-pressable px-3 text-sm">
+              <ArrowLeft size={15} aria-hidden="true" />
+              MeChat
+            </Link>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-100">
+              <ShieldCheck size={14} aria-hidden="true" />
+              Account-only encrypted surface
             </div>
-          </Link>
-        )}
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-sm text-[var(--text-muted)]">
-              No messages yet. Say hello!
-            </p>
           </div>
-        )}
-        {messages.map((message) => {
-          const isOwn = message.senderId === user.id;
-          return (
-            <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] ${isOwn ? "order-2" : ""}`}>
-                {!isOwn && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <Avatar src={message.sender.avatarUrl} alt={message.sender.displayName} size="xs" />
-                    <span className="text-xs text-[var(--text-muted)]">{message.sender.displayName}</span>
-                  </div>
-                )}
-                <div className={`px-4 py-2.5 rounded-2xl text-sm ${
-                  isOwn
-                    ? "text-white rounded-br-md"
-                    : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-bl-md"
-                }`} style={isOwn ? { background: "var(--accent)" } : undefined}>
-                  {message.content}
-                </div>
-                <p className={`text-xs text-[var(--text-muted)] mt-1 ${isOwn ? "text-right" : ""}`}>
-                  {formatRelativeTime(message.createdAt)}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Message input */}
-      <MessageForm threadId={resolvedThreadId} initialContent={initialShareMessage} />
-    </div>
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            {isGroupThread ? (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 text-[var(--text-primary)]">
+                <Users size={22} aria-hidden="true" />
+              </div>
+            ) : (
+              <Avatar src={conversationAvatar} alt={conversationTitle || "Conversation"} size="lg" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                {isGroupThread ? "MeChat group" : sourcePlatform === "mesh" ? "Mesh.me conversation" : `${sourcePlatform} source-aware conversation`}
+              </p>
+              <h1 className="mt-1 truncate text-3xl font-black">
+                {conversationTitle}
+              </h1>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">{conversationSubtitle}</p>
+            </div>
+            <MeshiBrandLockup size={34} label="Meshi" subtitle="represents you" useUserMeshi className="text-left" />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href={`/messages?roomTitle=${encodeURIComponent(conversationTitle)}`} className="mesh-action mesh-action-secondary px-3 text-sm">
+              <Phone size={15} aria-hidden="true" />
+              Voice room
+            </Link>
+            <Link href={`/messages?roomTitle=${encodeURIComponent(conversationTitle)}&callMode=video`} className="mesh-action mesh-action-secondary px-3 text-sm">
+              <Video size={15} aria-hidden="true" />
+              Video room
+            </Link>
+            <Link href={`/messages?roomTitle=${encodeURIComponent(conversationTitle)}&shareTitle=${encodeURIComponent(conversationTitle)}`} className="mesh-action mesh-action-secondary px-3 text-sm">
+              <Users size={15} aria-hidden="true" />
+              Shared scroll
+            </Link>
+          </div>
+        </header>
+
+        <section className="mesh-surface overflow-hidden rounded-lg">
+          <div className="flex items-center gap-2 border-b border-[var(--border-primary)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+            <LockKeyhole size={15} aria-hidden="true" />
+            Messages stay tied to your private account session. Block and membership checks run on every send.
+          </div>
+
+          <MeChatThread
+            currentUser={{
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl,
+            }}
+            initialThreadId={activeThreadId || null}
+            recipientId={formRecipientId}
+            initialMessages={serializedMessages}
+            initialSource={sharedContent ?? undefined}
+          />
+        </section>
+      </div>
+    </main>
   );
 }

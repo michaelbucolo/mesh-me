@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "./meshi-mascot";
+import { MeshiMini, type MeshiAccessory, type MeshiBadge, type MeshiColor, type MeshiEyeStyle, type MeshiHair, type MeshiHat, type MeshiMood, type MeshiOutfit } from "./meshi-mascot";
 import type { RemoteMeshi } from "@/components/mesh/meshi-on-mesh";
 
 interface MeshiPresence {
@@ -12,6 +12,11 @@ interface MeshiPresence {
   avatarUrl: string | null;
   meshiColor: string;
   meshiHat: string;
+  meshiHair?: string;
+  meshiAccessory?: string;
+  meshiEyeStyle?: string;
+  meshiBadge?: string;
+  meshiOutfit?: string;
   meshiMood: string;
   position: { x: number; y: number };
   viewportPosition: { vx: number; vy: number };
@@ -44,6 +49,11 @@ interface LiveMeshiPresenceProps {
   viewingMesh: string | null;
   myMeshiColor: MeshiColor;
   myMeshiHat: MeshiHat;
+  myMeshiHair?: MeshiHair;
+  myMeshiAccessory?: MeshiAccessory;
+  myMeshiEyeStyle?: MeshiEyeStyle;
+  myMeshiBadge?: MeshiBadge;
+  myMeshiOutfit?: MeshiOutfit;
   myMeshiPosition?: { x: number; y: number };
   myMeshiMood?: string;
   /** Viewport info for converting between world and viewport-relative coords */
@@ -81,8 +91,8 @@ function viewportToWorld(
 }
 
 export function LiveMeshiPresence({
-  viewingMesh, myMeshiColor, myMeshiHat,
-  myMeshiPosition, myMeshiMood, viewportInfo, userNodes,
+  viewingMesh, myMeshiColor, myMeshiHat, myMeshiHair = "none", myMeshiAccessory = "none", myMeshiEyeStyle = "regular",
+  myMeshiBadge = "none", myMeshiOutfit = "none", myMeshiPosition, myMeshiMood, viewportInfo, userNodes,
   enabled = true,
   onInteract, onRemoteMeshisChange, onSummaryChange,
 }: LiveMeshiPresenceProps) {
@@ -141,6 +151,11 @@ export function LiveMeshiPresence({
         body: JSON.stringify({
           meshiColor: myMeshiColor,
           meshiHat: myMeshiHat,
+          meshiHair: myMeshiHair,
+          meshiAccessory: myMeshiAccessory,
+          meshiEyeStyle: myMeshiEyeStyle,
+          meshiBadge: myMeshiBadge,
+          meshiOutfit: myMeshiOutfit,
           meshiMood: moodRef.current,
           position: pos,
           viewportPosition: vpPos,
@@ -156,7 +171,7 @@ export function LiveMeshiPresence({
       failureCountRef.current += 1;
       setSyncHealth(failureCountRef.current > 2 ? "degraded" : "live");
     }
-  }, [myMeshiColor, myMeshiHat, viewingMesh]);
+  }, [myMeshiColor, myMeshiHat, myMeshiHair, myMeshiAccessory, myMeshiEyeStyle, myMeshiBadge, myMeshiOutfit, viewingMesh]);
 
   // Poll for other users' presences and merge with offline Meshis from nodes
   const pollPresences = useCallback(async () => {
@@ -194,6 +209,11 @@ export function LiveMeshiPresence({
               y: worldPos.y,
               color: p.meshiColor,
               hat: p.meshiHat,
+              hair: p.meshiHair || "none",
+              accessory: p.meshiAccessory || "none",
+              eyeStyle: p.meshiEyeStyle || "regular",
+              badge: p.meshiBadge || "none",
+              outfit: p.meshiOutfit || "none",
               mood: (p.meshiMood as RemoteMeshi["mood"]) || "happy",
               isOnline: p.isOnline !== false,
             };
@@ -334,6 +354,11 @@ export function LiveMeshiPresence({
                   size={24}
                   color={presence.meshiColor as MeshiColor}
                   hat={presence.meshiHat as MeshiHat}
+                  hair={(presence.meshiHair || "none") as MeshiHair}
+                  accessory={(presence.meshiAccessory || "none") as MeshiAccessory}
+                  eyeStyle={(presence.meshiEyeStyle || "regular") as MeshiEyeStyle}
+                  badge={(presence.meshiBadge || "none") as MeshiBadge}
+                  outfit={(presence.meshiOutfit || "none") as MeshiOutfit}
                   mood={(presence.meshiMood as MeshiMood) || "happy"}
                 />
               </motion.div>

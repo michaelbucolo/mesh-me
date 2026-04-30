@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useCallback, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Search, Users, Hash, FileText, Link2, Globe, MessageCircle,
-  Shield, Fingerprint, PenSquare,
+  Shield, Fingerprint, PenSquare, X, Activity,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { MeshNode } from "./mesh-types";
@@ -28,10 +29,23 @@ export function MeshCommandPalette({
   onShowFootprint, centerRef, zoomRef, onPanChange,
 }: MeshCommandPaletteProps) {
   const router = useRouter();
+  const [forceClosed, setForceClosed] = useState(false);
+
+  const requestClose = useCallback(() => {
+    setForceClosed(true);
+    onClose();
+    window.setTimeout(onClose, 0);
+  }, [onClose]);
+
+  const handleEscape = (event: React.KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    requestClose();
+  };
 
   const handleSelect = (node: MeshNode) => {
     onSelectNode(node);
-    onClose();
+    requestClose();
     onSearchChange("");
     // Pan to node
     if (centerRef.current && zoomRef.current !== undefined) {
@@ -51,13 +65,17 @@ export function MeshCommandPalette({
     ))
     .slice(0, 10);
 
+  if (forceClosed) return null;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="absolute inset-0 z-50 flex items-start justify-center pt-24 bg-black/40 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
+      onKeyDownCapture={handleEscape}
+      onKeyUpCapture={handleEscape}
     >
       <motion.div
         initial={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -76,9 +94,29 @@ export function MeshCommandPalette({
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search your mesh... people, posts, communities"
               className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
-              onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  requestClose();
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  requestClose();
+                }
+              }}
             />
             <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-mono">ESC</kbd>
+            <button
+              type="button"
+              aria-label="Close Mesh search"
+              data-mesh-search-close="true"
+              onClick={requestClose}
+              className="rounded-full p-1.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
         <div className="max-h-80 overflow-y-auto p-2">
@@ -93,11 +131,12 @@ export function MeshCommandPalette({
                   <Avatar src={node.avatarUrl} alt={node.label} size="sm" />
                 ) : (
                   node.type === "community" ? <Users className="h-4 w-4" /> :
-                  node.type === "tag" ? <Hash className="h-4 w-4" /> :
-                  node.type === "post" ? <FileText className="h-4 w-4" /> :
-                  node.type === "platform" ? <Link2 className="h-4 w-4" /> :
-                  node.label[0]
-                )}
+                    node.type === "tag" ? <Hash className="h-4 w-4" /> :
+                    node.type === "post" ? <FileText className="h-4 w-4" /> :
+                    node.type === "platform" ? <Link2 className="h-4 w-4" /> :
+                    node.type === "activity" ? <Activity className="h-4 w-4" /> :
+                    node.label[0]
+                  )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-[var(--text-primary)] truncate">{node.label}</p>
@@ -129,7 +168,7 @@ export function MeshCommandPalette({
                       action.action();
                     } else if ("href" in action && action.href) {
                       router.push(action.href);
-                      onClose();
+                      requestClose();
                     }
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-[var(--bg-tertiary)] transition-all"

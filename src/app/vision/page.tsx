@@ -3,25 +3,26 @@ import Link from "next/link";
 import { ArrowRight, Bot, Fingerprint, KeyRound, LockKeyhole, Network, ShieldCheck, Sparkles } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Mesh.me Vision | Your World, Your Way",
-  description: "The full Mesh.me product vision for the Mesh, Meshi, privacy, sync, identity, and encrypted social interoperability.",
+  title: "Vision",
+  description: `The full ${meshBrand.name} product vision for the Mesh, Meshi, privacy, sync, identity, and encrypted social interoperability.`,
 };
 
 const layers = [
-  { icon: Fingerprint, title: "Identity layer", copy: "A user can hold multiple linked identities, like John and MediaMan, with separate permissions, visibility, audiences, and connected accounts." },
+  { icon: Fingerprint, title: "Identity layer", copy: "A user can hold multiple linked identities, like a personal self and creator persona, with separate permissions, visibility, audiences, and connected accounts." },
   { icon: Network, title: "Mesh graph", copy: "Every imported account, post, comment, like, group, channel, mention, tag, and connection becomes a node or edge in the user's living digital footprint." },
   { icon: Bot, title: "Meshi presence", copy: "Meshi follows the user through the product as a customizable bubble companion, guide, search agent, messenger, and public active-presence marker." },
   { icon: LockKeyhole, title: "Private compute", copy: "Personal indexing and AI context should run locally or in encrypted user-controlled spaces whenever possible, with minimal server-side knowledge." },
 ];
 
 const examples = [
-  "Who is John Manning and do we have any posts together?",
+  "Who is this person and do we have any posts together?",
   "How many times have I been seen in a social media post?",
   "When was the last time I posted about my band?",
-  "Has Jacob ever been to France?",
-  "Let Stephen know I will be there soon.",
+  "Has my friend ever posted from France?",
+  "Let my friend know I will be there soon.",
 ];
 
 export default function VisionPage() {
@@ -32,7 +33,7 @@ export default function VisionPage() {
           <p className="mesh-kicker mb-4">Product vision</p>
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">Mesh.me is the public playground for your private internet life.</h1>
           <p className="simple-muted mt-6 max-w-3xl text-base md:text-lg">
-            Mesh.me is designed to unify every internet interaction into one secure, transparent, user-owned experience. It should feel like a living map of a person's digital world, not another feed trying to trap attention.
+            Mesh.me is designed to unify every internet interaction into one secure, transparent, user-owned experience. It should feel like a living map of a person&apos;s digital world, not another feed trying to trap attention.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/signup" className="brand-button inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white">Create your Mesh <ArrowRight className="h-4 w-4" /></Link>
@@ -45,7 +46,7 @@ export default function VisionPage() {
             <div className="absolute h-56 w-56 rounded-full border border-[var(--border-primary)]" />
             <div className="absolute h-36 w-36 rounded-full border border-[var(--accent)] opacity-50" />
             <MeshiLogo size={92} color="blue" mood="happy" />
-            {['John','MediaMan','YouTube','Instagram','Friends','Groups'].map((label, index) => (
+            {["You", "Creator Persona", "YouTube", "Instagram", "Friends", "Groups"].map((label, index) => (
               <div key={label} className="absolute rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]" style={{ transform: `rotate(${index * 60}deg) translateY(-118px) rotate(-${index * 60}deg)` }}>{label}</div>
             ))}
           </div>
@@ -72,7 +73,7 @@ export default function VisionPage() {
       <section className="mt-12 simple-card p-6 md:p-8">
         <div className="flex items-center gap-3"><Sparkles className="h-5 w-5 text-[var(--accent)]" /><h2 className="text-2xl font-bold text-[var(--text-primary)]">Meshi should answer real internet-life questions</h2></div>
         <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {examples.map((example) => <div key={example} className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]">“{example}”</div>)}
+          {examples.map((example) => <div key={example} className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]">&quot;{example}&quot;</div>)}
         </div>
       </section>
     </PublicSiteShell>

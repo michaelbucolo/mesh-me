@@ -13,10 +13,11 @@ import {
 } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { SiteRouteMap } from "@/components/marketing/site-route-map";
+import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Trust Center | mesh.me",
-  description: "Security, privacy, transparency, and launch trust principles for Mesh.me.",
+  title: "Trust Center",
+  description: `Security, privacy, transparency, and launch trust principles for ${meshBrand.name}.`,
 };
 
 const trustPillars = [
@@ -112,11 +113,11 @@ export default function TrustCenterPage() {
             Source-respecting platform model
           </p>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            Mesh.me is intended to feel like a user-authorized control layer for your digital world. When supported,
-            interactions should flow back to the source platform so creators keep credit and origin context stays intact.
+            Mesh.me is intended to feel like a user-authorized control layer for your digital world. Source-platform
+            actions stay off unless the official API, approved scopes, user consent, and provider terms allow the action.
           </p>
           <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-200">
-            The product goal is simple: safer defaults, clearer controls, less manipulation, and no hidden ad bargain.
+            Compliance rule: official APIs only, no scraping, no credential collection, no unsupported write-back.
           </div>
         </article>
       </section>
@@ -132,11 +133,18 @@ export default function TrustCenterPage() {
             ["/terms", "Terms of Service"],
             ["/settings?tab=privacy", "Privacy Controls"],
             ["/api/trust/status", "Trust Status API"],
+            ["/api/platform-capabilities", "Platform Capability API"],
             ["/.well-known/security.txt", "security.txt"],
+            ["https://developers.google.com/youtube/terms/developer-policies", "YouTube API Policies"],
+            ["https://developer.x.com/en/developer-terms/agreement-and-policy", "X Developer Terms"],
+            ["https://developers.tiktok.com/doc/our-guidelines-developer-guidelines", "TikTok Developer Guidelines"],
+            ["https://support-dev.discord.com/hc/en-us/articles/8562894815383-Discord-Developer-Terms-of-Service", "Discord Developer Terms"],
           ].map(([href, label]) => (
             <Link
               key={href}
               href={href}
+              target={href.startsWith("http") ? "_blank" : undefined}
+              rel={href.startsWith("http") ? "noreferrer" : undefined}
               className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-primary)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               {label}

@@ -8,107 +8,117 @@ datasource db {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  username       String   @unique
-  displayName    String
-  passwordHash   String
-  bio            String?
-  location       String?
-  website        String?
-  avatarUrl      String?
-  bannerUrl      String?
-  accentColor    String   @default("#6366f1")
-  isPublic       Boolean  @default(true)
-  isAdmin        Boolean  @default(false)
-  isVerified     Boolean  @default(false)
-  isSuspended    Boolean  @default(false)
-  onboarded      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  displayName  String
+  passwordHash String
+  bio          String?
+  location     String?
+  website      String?
+  avatarUrl    String?
+  bannerUrl    String?
+  accentColor  String   @default("#6366f1")
+  isPublic     Boolean  @default(false)
+  isAdmin      Boolean  @default(false)
+  isVerified   Boolean  @default(false)
+  isSuspended  Boolean  @default(false)
+  onboarded    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  posts          Post[]
-  comments       Comment[]
-  reactions      Reaction[]
-  followers      Follow[]       @relation("following")
-  following      Follow[]       @relation("follower")
-  sentMessages   Message[]      @relation("sender")
-  threadMembers  ThreadMember[]
-  notifications  Notification[] @relation("recipient")
-  actorNotifs    Notification[] @relation("actor")
-  reports        Report[]       @relation("reporter")
-  reportedUser   Report[]       @relation("reportedUser")
-  blocks         Block[]        @relation("blocker")
-  blockedBy      Block[]        @relation("blocked")
-  mutes          Mute[]         @relation("muter")
-  mutedBy        Mute[]         @relation("muted")
-  communityMemberships CommunityMember[]
-  interests      UserInterest[]
-  links          UserLink[]
-  adminLogs      AdminLog[]
-  savedPosts     SavedPost[]
-  connectedAccounts ConnectedAccount[]
-  feedPreference FeedPreference?
-  achievements   UserAchievement[]
-  meshiPreference MeshiPreference?
-  meshCosmetics  MeshCosmetic[]
-  meshPrivacy    MeshPrivacy?
-  sessions       Session[]
-  globalMeshMember GlobalMeshMember?
-  activeTitle    String?
-  isMeshPro      Boolean  @default(false)
-  meshProSince   DateTime?
-  stripeCustomerId    String?  @unique
-  stripeSubscriptionId String?
-  signupNumber   Int?
+  posts                      Post[]
+  comments                   Comment[]
+  reactions                  Reaction[]
+  followers                  Follow[]                   @relation("following")
+  following                  Follow[]                   @relation("follower")
+  sentMessages               Message[]                  @relation("sender")
+  threadMembers              ThreadMember[]
+  notifications              Notification[]             @relation("recipient")
+  notificationPreference     UserNotificationPreference?
+  actorNotifs                Notification[]             @relation("actor")
+  reports                    Report[]                   @relation("reporter")
+  reportedUser               Report[]                   @relation("reportedUser")
+  blocks                     Block[]                    @relation("blocker")
+  blockedBy                  Block[]                    @relation("blocked")
+  mutes                      Mute[]                     @relation("muter")
+  mutedBy                    Mute[]                     @relation("muted")
+  communityMemberships       CommunityMember[]
+  interests                  UserInterest[]
+  links                      UserLink[]
+  adminLogs                  AdminLog[]
+  savedPosts                 SavedPost[]
+  connectedAccounts          ConnectedAccount[]
+  feedPreference             FeedPreference?
+  achievements               UserAchievement[]
+  meshiPreference            MeshiPreference?
+  meshCosmetics              MeshCosmetic[]
+  meshPrivacy                MeshPrivacy?
+  sessions                   Session[]
+  globalMeshMember           GlobalMeshMember?
+  activeTitle                String?
+  isMeshPro                  Boolean                    @default(false)
+  meshProSince               DateTime?
+  stripeCustomerId           String?                    @unique
+  stripeSubscriptionId       String?
+  signupNumber               Int?
   // Privacy toggles
-  showInDiscovery  Boolean @default(true)
-  hideActivityStatus Boolean @default(false)
-  readReceipts     Boolean @default(true)
+  showInDiscovery            Boolean                    @default(false)
+  hideActivityStatus         Boolean                    @default(true)
+  readReceipts               Boolean                    @default(false)
+  // Sensitive-content controls. NSFW is always off unless an adult-verification
+  // provider confirms the user is eligible; Mesh.me never stores ID images.
+  nsfwEnabled                Boolean                    @default(false)
+  adultVerificationStatus    String                     @default("unverified")
+  adultVerifiedAt            DateTime?
+  adultVerificationExpiresAt DateTime?
+  adultVerificationProvider  String?
+  adultVerificationRegion    String?
+  adultVerificationReference String?
   // Verification tracking
-  emailVerified    Boolean @default(false)
-  phoneVerified    Boolean @default(false)
+  emailVerified              Boolean                    @default(false)
+  phoneVerified              Boolean                    @default(false)
   // Password reset
-  resetToken       String?  @unique
-  resetTokenExpiry DateTime?
+  resetToken                 String?                    @unique
+  resetTokenExpiry           DateTime?
   // Online status: "online" | "dnd" | "busy" | "offline"
-  status         String   @default("offline")
-  lastSeenAt     DateTime?
-  alterEgos      AlterEgo[]
-  emails         UserEmail[]
-  phones         UserPhone[]
-  twoFactorMethods TwoFactorMethod[]
-  profileInfo    ProfileInfo?
-  hostedMeChatSessions MeChatSession[] @relation("sessionHost")
-  meChatSessionParticipants MeChatSessionParticipant[] @relation("sessionParticipant")
-  meChatSessionItems MeChatSessionItem[] @relation("sessionItemAuthor")
-  meChatSessionVotes MeChatSessionVote[] @relation("sessionVoteUser")
-  meshNodes      MeshNode[]
-  meshEdgesFrom  MeshEdge[] @relation("MeshEdgeFromUser")
-  meshEdgesTo    MeshEdge[] @relation("MeshEdgeToUser")
-  contentSources ContentSource[]
-  syncedContent  SyncedContent[]
-  syncedInteractions SyncedInteraction[]
-  dataVisibilityPolicies DataVisibilityPolicy[]
-  platformPermissions PlatformPermission[]
+  status                     String                     @default("offline")
+  lastSeenAt                 DateTime?
+  alterEgos                  AlterEgo[]
+  emails                     UserEmail[]
+  emailVerificationTokens    EmailVerificationToken[]
+  phones                     UserPhone[]
+  twoFactorMethods           TwoFactorMethod[]
+  profileInfo                ProfileInfo?
+  hostedMeChatSessions       MeChatSession[]            @relation("sessionHost")
+  meChatSessionParticipants  MeChatSessionParticipant[] @relation("sessionParticipant")
+  meChatSessionItems         MeChatSessionItem[]        @relation("sessionItemAuthor")
+  meChatSessionVotes         MeChatSessionVote[]        @relation("sessionVoteUser")
+  meshNodes                  MeshNode[]
+  meshEdgesFrom              MeshEdge[]                 @relation("MeshEdgeFromUser")
+  contentSources             ContentSource[]
+  syncedContent              SyncedContent[]
+  syncedInteractions         SyncedInteraction[]
+  dataVisibilityPolicies     DataVisibilityPolicy[]
+  platformPermissions        PlatformPermission[]
 }
 
 model UserInterest {
-  id       String @id @default(cuid())
-  userId   String
-  tag      String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  tag    String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tag])
   @@index([tag])
 }
 
 model UserLink {
-  id       String @id @default(cuid())
-  userId   String
-  label    String
-  url      String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  label  String
+  url    String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Follow {
@@ -125,41 +135,46 @@ model Follow {
 }
 
 model Post {
-  id          String      @id @default(cuid())
-  content     String
-  authorId    String
-  communityId String?
-  isRepost    Boolean     @default(false)
-  repostId    String?
-  isPinned    Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            String   @id @default(cuid())
+  content       String
+  authorId      String
+  communityId   String?
+  isRepost      Boolean  @default(false)
+  repostId      String?
+  isPinned      Boolean  @default(false)
+  visibility    String   @default("public")
+  isNsfw        Boolean  @default(false)
+  contentRating String   @default("general")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  community   Community?  @relation(fields: [communityId], references: [id], onDelete: SetNull)
-  repostOf    Post?       @relation("reposts", fields: [repostId], references: [id], onDelete: SetNull)
-  reposts     Post[]      @relation("reposts")
-  media       PostMedia[]
-  comments    Comment[]
-  reactions   Reaction[]
-  tags        PostTag[]
-  reports     Report[]    @relation("reportedPost")
-  savedBy     SavedPost[]
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community     Community?     @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  repostOf      Post?          @relation("reposts", fields: [repostId], references: [id], onDelete: SetNull)
+  reposts       Post[]         @relation("reposts")
+  media         PostMedia[]
+  comments      Comment[]
+  reactions     Reaction[]
+  tags          PostTag[]
+  reports       Report[]       @relation("reportedPost")
+  savedBy       SavedPost[]
   notifications Notification[]
 
   @@index([authorId])
   @@index([communityId])
   @@index([createdAt])
+  @@index([visibility, createdAt])
+  @@index([isNsfw, createdAt])
 }
 
 model PostMedia {
-  id       String @id @default(cuid())
-  postId   String
-  url      String
-  type     String @default("image")
-  width    Int?
-  height   Int?
-  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  postId String
+  url    String
+  type   String @default("image")
+  width  Int?
+  height Int?
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model PostTag {
@@ -172,19 +187,19 @@ model PostTag {
 }
 
 model Comment {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   content   String
   authorId  String
   postId    String
   parentId  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parent    Comment?  @relation("replies", fields: [parentId], references: [id])
-  replies   Comment[] @relation("replies")
-  reports   Report[]  @relation("reportedComment")
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("replies", fields: [parentId], references: [id])
+  replies Comment[] @relation("replies")
+  reports Report[]  @relation("reportedComment")
 
   @@index([postId])
   @@index([authorId])
@@ -197,8 +212,8 @@ model Reaction {
   postId    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@index([postId])
@@ -217,9 +232,9 @@ model Community {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  posts       Post[]
-  members     CommunityMember[]
-  reports     Report[]  @relation("reportedCommunity")
+  posts   Post[]
+  members CommunityMember[]
+  reports Report[]          @relation("reportedCommunity")
 
   @@index([category])
 }
@@ -231,42 +246,61 @@ model CommunityMember {
   role        String   @default("member")
   joinedAt    DateTime @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@unique([userId, communityId])
   @@index([communityId])
 }
 
 model MessageThread {
-  id        String         @id @default(cuid())
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  members   ThreadMember[]
-  messages  Message[]
+  id             String         @id @default(cuid())
+  title          String?
+  threadType     String         @default("direct")
+  sourcePlatform String         @default("mesh")
+  isEncrypted    Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  members        ThreadMember[]
+  messages       Message[]
+
+  @@index([threadType])
 }
 
 model ThreadMember {
-  id        String        @id @default(cuid())
-  userId    String
-  threadId  String
-  lastRead  DateTime      @default(now())
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  id                 String        @id @default(cuid())
+  userId             String
+  threadId           String
+  role               String        @default("member")
+  notificationsMuted Boolean       @default(false)
+  lastRead           DateTime      @default(now())
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread             MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@unique([userId, threadId])
+  @@index([role])
 }
 
 model Message {
-  id        String        @id @default(cuid())
-  content   String
-  senderId  String
-  threadId  String
-  createdAt DateTime      @default(now())
-  sender    User          @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
-  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  id                String        @id @default(cuid())
+  content           String
+  senderId          String
+  threadId          String
+  sourcePlatform    String        @default("mesh")
+  messageType       String        @default("text")
+  sourceUrl         String?
+  sourcePostId      String?
+  platformPostId    String?
+  platformCommentId String?
+  metadata          String?
+  createdAt         DateTime      @default(now())
+  sender            User          @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  thread            MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@index([threadId])
+  @@index([sourcePlatform])
+  @@index([platformPostId])
+  @@index([platformCommentId])
 }
 
 model Notification {
@@ -279,24 +313,42 @@ model Notification {
   read        Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  recipient   User     @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  actor       User?    @relation("actor", fields: [actorId], references: [id], onDelete: SetNull)
-  post        Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  recipient User  @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User? @relation("actor", fields: [actorId], references: [id], onDelete: SetNull)
+  post      Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
 
   @@index([recipientId])
   @@index([createdAt])
 }
 
+model UserNotificationPreference {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  pushEnabled    Boolean  @default(true)
+  emailDigest    String   @default("weekly")
+  messages       Boolean  @default(true)
+  mentions       Boolean  @default(true)
+  comments       Boolean  @default(true)
+  follows        Boolean  @default(true)
+  platformAlerts Boolean  @default(true)
+  securityAlerts Boolean  @default(true)
+  productUpdates Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Report {
-  id                String     @id @default(cuid())
-  reason            String
-  status            String     @default("pending")
-  reporterId        String
-  reportedUserId    String?
-  reportedPostId    String?
-  reportedCommentId String?
+  id                  String   @id @default(cuid())
+  reason              String
+  status              String   @default("pending")
+  reporterId          String
+  reportedUserId      String?
+  reportedPostId      String?
+  reportedCommentId   String?
   reportedCommunityId String?
-  createdAt         DateTime   @default(now())
+  createdAt           DateTime @default(now())
 
   reporter          User       @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
   reportedUser      User?      @relation("reportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
@@ -311,20 +363,20 @@ model Block {
   blockedId String
   createdAt DateTime @default(now())
 
-  blocker   User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
-  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker User @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
 }
 
 model Mute {
-  id      String   @id @default(cuid())
-  muterId String
-  mutedId String
+  id        String   @id @default(cuid())
+  muterId   String
+  mutedId   String
   createdAt DateTime @default(now())
 
-  muter   User     @relation("muter", fields: [muterId], references: [id], onDelete: Cascade)
-  muted   User     @relation("muted", fields: [mutedId], references: [id], onDelete: Cascade)
+  muter User @relation("muter", fields: [muterId], references: [id], onDelete: Cascade)
+  muted User @relation("muted", fields: [mutedId], references: [id], onDelete: Cascade)
 
   @@unique([muterId, mutedId])
 }
@@ -335,8 +387,8 @@ model SavedPost {
   postId    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
 }
@@ -348,44 +400,44 @@ model AdminLog {
   adminId   String
   createdAt DateTime @default(now())
 
-  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
 }
 
 model ConnectedAccount {
-  id           String   @id @default(cuid())
-  userId       String
-  platform     String
+  id               String    @id @default(cuid())
+  userId           String
+  platform         String
   platformUsername String?
-  platformId   String?
-  accessToken  String?
-  refreshToken String?
-  expiresAt    DateTime?
+  platformId       String?
+  accessToken      String?
+  refreshToken     String?
+  expiresAt        DateTime?
   // OAuth scopes granted by the platform
-  scopes       String?
-  isActive     Boolean  @default(true)
+  scopes           String?
+  isActive         Boolean   @default(true)
   // Last successful sync timestamp
-  lastSyncAt   DateTime?
+  lastSyncAt       DateTime?
   // Sync status: "idle" | "syncing" | "error" | "rate_limited"
-  syncStatus   String   @default("idle")
-  syncError    String?
+  syncStatus       String    @default("idle")
+  syncError        String?
   // Optional association with an alter ego / persona
-  alterEgoId   String?
+  alterEgoId       String?
   // Label to distinguish multiple accounts on the same platform
-  accountLabel String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  accountLabel     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alterEgo     AlterEgo? @relation(fields: [alterEgoId], references: [id], onDelete: SetNull)
-  platformPosts PlatformPost[]
-  platformComments PlatformComment[]
-  platformMedia PlatformMedia[]
-  platformFollowers PlatformFollower[]
-  syncJobs     SyncJob[]
-  platformAnalytics PlatformAnalytics[]
-  contentSources ContentSource[]
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alterEgo            AlterEgo?            @relation(fields: [alterEgoId], references: [id], onDelete: SetNull)
+  platformPosts       PlatformPost[]
+  platformComments    PlatformComment[]
+  platformMedia       PlatformMedia[]
+  platformFollowers   PlatformFollower[]
+  syncJobs            SyncJob[]
+  platformAnalytics   PlatformAnalytics[]
+  contentSources      ContentSource[]
   platformPermissions PlatformPermission[]
 
   @@index([userId, platform])
@@ -396,87 +448,92 @@ model ConnectedAccount {
 // ─── Cross-Platform Content Sync ────────────────────────────
 
 model PlatformPost {
-  id                String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   connectedAccountId String
   // Original post ID on the platform
-  platformPostId    String
+  platformPostId     String
   // Post content / caption / description
-  content           String?
+  content            String?
   // Post title (YouTube videos, Reddit posts, etc.)
-  title             String?
+  title              String?
   // Direct URL to the post on the platform
-  url               String?
+  url                String?
   // Post type: "text" | "image" | "video" | "story" | "reel" | "short" | "tweet" | "thread" | "article" | "pin" | "snap"
-  postType          String   @default("text")
+  postType           String    @default("text")
   // Engagement metrics
-  likeCount         Int      @default(0)
-  commentCount      Int      @default(0)
-  shareCount        Int      @default(0)
-  viewCount         Int      @default(0)
+  likeCount          Int       @default(0)
+  commentCount       Int       @default(0)
+  shareCount         Int       @default(0)
+  viewCount          Int       @default(0)
   // Video-specific metrics
-  watchTimeSeconds  Int?
+  watchTimeSeconds   Int?
   // Post visibility: "public" | "private" | "unlisted" | "friends"
-  visibility        String   @default("public")
+  visibility         String    @default("public")
   // Whether this post was created from mesh.me (cross-posted)
-  isFromMesh        Boolean  @default(false)
+  isFromMesh         Boolean   @default(false)
   // Whether we've imported comments for this post
-  commentsImported  Boolean  @default(false)
+  commentsImported   Boolean   @default(false)
   // Original publish timestamp from the platform
-  publishedAt       DateTime?
+  publishedAt        DateTime?
   // Thumbnail / preview image URL
-  thumbnailUrl      String?
+  thumbnailUrl       String?
   // Raw JSON metadata from platform API
-  rawMetadata       String?
+  rawMetadata        String?
   // Is this post pinned on the platform?
-  isPinned          Boolean  @default(false)
+  isPinned           Boolean   @default(false)
+  // Sensitive-content classification. Hidden unless the viewer has verified
+  // adult access and explicitly enables NSFW in settings.
+  isNsfw             Boolean   @default(false)
+  contentRating      String    @default("general")
   // Is this a scheduled post?
-  isScheduled       Boolean  @default(false)
-  scheduledFor      DateTime?
+  isScheduled        Boolean   @default(false)
+  scheduledFor       DateTime?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
-  comments          PlatformComment[]
-  media             PlatformMedia[]
+  connectedAccount ConnectedAccount  @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  comments         PlatformComment[]
+  media            PlatformMedia[]
 
   @@unique([connectedAccountId, platformPostId])
   @@index([connectedAccountId])
   @@index([publishedAt])
   @@index([postType])
+  @@index([isNsfw, publishedAt])
 }
 
 model PlatformComment {
-  id                String   @id @default(cuid())
+  id                 String  @id @default(cuid())
   connectedAccountId String
-  platformPostId    String?
-  platformCommentId String
+  platformPostId     String?
+  platformCommentId  String
   // The post this comment belongs to (if synced)
-  postId            String?
+  postId             String?
   // Comment text
-  content           String
+  content            String
   // Author info from the platform
-  authorName        String?
-  authorUsername    String?
-  authorAvatarUrl  String?
+  authorName         String?
+  authorUsername     String?
+  authorAvatarUrl    String?
   // Is this the connected user's own comment?
-  isOwnComment      Boolean  @default(false)
+  isOwnComment       Boolean @default(false)
   // Engagement
-  likeCount         Int      @default(0)
-  replyCount        Int      @default(0)
+  likeCount          Int     @default(0)
+  replyCount         Int     @default(0)
   // Parent comment ID (for threaded comments)
-  parentCommentId   String?
+  parentCommentId    String?
   // Direct URL to the comment
-  url               String?
+  url                String?
   // Sentiment: "positive" | "negative" | "neutral" | "question"
-  sentiment         String?
+  sentiment          String?
 
-  publishedAt       DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
-  post              PlatformPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  post             PlatformPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([connectedAccountId, platformCommentId])
   @@index([connectedAccountId])
@@ -484,95 +541,95 @@ model PlatformComment {
 }
 
 model PlatformMedia {
-  id                String   @id @default(cuid())
+  id                 String  @id @default(cuid())
   connectedAccountId String
-  platformMediaId   String?
+  platformMediaId    String?
   // Associated platform post
-  postId            String?
+  postId             String?
   // Media type: "image" | "video" | "audio" | "gif" | "document"
-  mediaType         String   @default("image")
+  mediaType          String  @default("image")
   // URL to the media file
-  url               String
+  url                String
   // Thumbnail URL
-  thumbnailUrl      String?
+  thumbnailUrl       String?
   // Alt text / description
-  altText           String?
+  altText            String?
   // Media dimensions
-  width             Int?
-  height            Int?
+  width              Int?
+  height             Int?
   // Duration in seconds (for video/audio)
-  durationSeconds   Int?
+  durationSeconds    Int?
   // File size in bytes
-  fileSizeBytes     Int?
+  fileSizeBytes      Int?
   // MIME type
-  mimeType          String?
+  mimeType           String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
-  post              PlatformPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  post             PlatformPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([connectedAccountId])
   @@index([postId])
 }
 
 model PlatformFollower {
-  id                String   @id @default(cuid())
+  id                 String  @id @default(cuid())
   connectedAccountId String
   // Platform user ID
-  platformUserId    String
+  platformUserId     String
   // Username on the platform
-  username          String?
+  username           String?
   // Display name
-  displayName       String?
+  displayName        String?
   // Profile picture URL
-  avatarUrl         String?
+  avatarUrl          String?
   // Follower count on that platform
-  followerCount     Int?
+  followerCount      Int?
   // Is this a mutual follow?
-  isMutual          Boolean  @default(false)
+  isMutual           Boolean @default(false)
   // Type: "follower" | "following" | "subscriber" | "friend"
-  relationshipType  String   @default("follower")
+  relationshipType   String  @default("follower")
   // Profile URL
-  profileUrl        String?
+  profileUrl         String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
 
   @@unique([connectedAccountId, platformUserId])
   @@index([connectedAccountId])
 }
 
 model PlatformAnalytics {
-  id                String   @id @default(cuid())
+  id                 String   @id @default(cuid())
   connectedAccountId String
   // Date for this analytics snapshot
-  date              DateTime
+  date               DateTime
   // Follower/subscriber count at this point
-  followerCount     Int      @default(0)
-  followingCount    Int      @default(0)
+  followerCount      Int      @default(0)
+  followingCount     Int      @default(0)
   // Engagement metrics for the day
-  postCount         Int      @default(0)
-  totalLikes        Int      @default(0)
-  totalComments     Int      @default(0)
-  totalViews        Int      @default(0)
-  totalShares       Int      @default(0)
+  postCount          Int      @default(0)
+  totalLikes         Int      @default(0)
+  totalComments      Int      @default(0)
+  totalViews         Int      @default(0)
+  totalShares        Int      @default(0)
   // Growth metrics
-  newFollowers      Int      @default(0)
-  lostFollowers     Int      @default(0)
+  newFollowers       Int      @default(0)
+  lostFollowers      Int      @default(0)
   // Engagement rate (percentage * 100 for precision)
-  engagementRate    Int?
+  engagementRate     Int?
   // Top-performing post ID for the day
-  topPostId         String?
+  topPostId          String?
   // Raw JSON for platform-specific analytics
-  rawData           String?
+  rawData            String?
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
 
   @@unique([connectedAccountId, date])
   @@index([connectedAccountId])
@@ -580,25 +637,25 @@ model PlatformAnalytics {
 }
 
 model SyncJob {
-  id                String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   connectedAccountId String
   // Sync type: "full" | "incremental" | "posts" | "comments" | "followers" | "analytics" | "media"
-  syncType          String   @default("full")
+  syncType           String    @default("full")
   // Status: "pending" | "running" | "completed" | "failed" | "cancelled"
-  status            String   @default("pending")
+  status             String    @default("pending")
   // Progress (0-100)
-  progress          Int      @default(0)
+  progress           Int       @default(0)
   // Items synced / total
-  itemsSynced       Int      @default(0)
-  totalItems        Int?
+  itemsSynced        Int       @default(0)
+  totalItems         Int?
   // Error message if failed
-  error             String?
+  error              String?
   // Timing
-  startedAt         DateTime?
-  completedAt       DateTime?
-  createdAt         DateTime @default(now())
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
 
-  connectedAccount  ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
 
   @@index([connectedAccountId])
   @@index([status])
@@ -612,27 +669,27 @@ model FeedPreference {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── Unified Data Model ────────────────────────────────────
 
 model MeshNode {
-  id            String   @id @default(cuid())
-  userId        String
-  nodeType      String
-  sourceType    String   @default("mesh")
-  sourceId      String?
-  label         String
-  description   String?
-  imageUrl      String?
-  metadata      String   @default("{}")
-  visibility    String   @default("private")
-  isArchived    Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  nodeType    String
+  sourceType  String   @default("mesh")
+  sourceId    String?
+  label       String
+  description String?
+  imageUrl    String?
+  metadata    String   @default("{}")
+  visibility  String   @default("private")
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   outgoingEdges MeshEdge[] @relation("MeshNodeOutgoing")
   incomingEdges MeshEdge[] @relation("MeshNodeIncoming")
 
@@ -641,73 +698,73 @@ model MeshNode {
 }
 
 model MeshEdge {
-  id          String   @id @default(cuid())
-  userId      String
-  fromNodeId  String
-  toNodeId    String
-  edgeType    String
-  strength    Int      @default(100)
-  metadata    String   @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String
+  fromNodeId String
+  toNodeId   String
+  edgeType   String
+  strength   Int      @default(100)
+  metadata   String   @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user        User     @relation("MeshEdgeFromUser", fields: [userId], references: [id], onDelete: Cascade)
-  fromNode    MeshNode @relation("MeshNodeOutgoing", fields: [fromNodeId], references: [id], onDelete: Cascade)
-  toNode      MeshNode @relation("MeshNodeIncoming", fields: [toNodeId], references: [id], onDelete: Cascade)
+  user     User     @relation("MeshEdgeFromUser", fields: [userId], references: [id], onDelete: Cascade)
+  fromNode MeshNode @relation("MeshNodeOutgoing", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   MeshNode @relation("MeshNodeIncoming", fields: [toNodeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, fromNodeId, toNodeId, edgeType])
   @@index([userId, edgeType])
 }
 
 model ContentSource {
-  id                String   @id @default(cuid())
-  userId            String
+  id                 String    @id @default(cuid())
+  userId             String
   connectedAccountId String?
-  sourceType        String
-  sourceId          String
-  sourceUrl         String?
-  sourceAuthorId    String?
-  sourceAuthorName  String?
-  sourceCreatedAt   DateTime?
-  ingestState       String   @default("active")
-  metadata          String   @default("{}")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  sourceType         String
+  sourceId           String
+  sourceUrl          String?
+  sourceAuthorId     String?
+  sourceAuthorName   String?
+  sourceCreatedAt    DateTime?
+  ingestState        String    @default("active")
+  metadata           String    @default("{}")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  connectedAccount  ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
-  syncedContent     SyncedContent[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  syncedContent    SyncedContent[]
 
   @@unique([userId, sourceType, sourceId])
   @@index([connectedAccountId])
 }
 
 model SyncedContent {
-  id               String   @id @default(cuid())
-  userId           String
-  contentSourceId  String
-  canonicalType    String
-  textContent      String?
-  title            String?
-  mediaJson        String   @default("[]")
-  permalink        String?
-  ownership        String   @default("external")
-  actionSupport    String   @default("{}")
-  syncStatus       String   @default("synced")
-  syncedAt         DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(cuid())
+  userId          String
+  contentSourceId String
+  canonicalType   String
+  textContent     String?
+  title           String?
+  mediaJson       String   @default("[]")
+  permalink       String?
+  ownership       String   @default("external")
+  actionSupport   String   @default("{}")
+  syncStatus      String   @default("synced")
+  syncedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contentSource    ContentSource @relation(fields: [contentSourceId], references: [id], onDelete: Cascade)
-  interactions     SyncedInteraction[]
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentSource ContentSource       @relation(fields: [contentSourceId], references: [id], onDelete: Cascade)
+  interactions  SyncedInteraction[]
 
   @@index([userId, canonicalType])
   @@index([syncStatus, syncedAt])
 }
 
 model SyncedInteraction {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   userId           String
   syncedContentId  String
   interactionType  String
@@ -716,52 +773,52 @@ model SyncedInteraction {
   value            Int?
   body             String?
   happenedAt       DateTime?
-  metadata         String   @default("{}")
-  createdAt        DateTime @default(now())
+  metadata         String    @default("{}")
+  createdAt        DateTime  @default(now())
 
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  syncedContent    SyncedContent @relation(fields: [syncedContentId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncedContent SyncedContent @relation(fields: [syncedContentId], references: [id], onDelete: Cascade)
 
   @@index([userId, interactionType])
   @@index([syncedContentId, happenedAt])
 }
 
 model PlatformPermission {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   userId             String
   connectedAccountId String?
   platform           String
   permissionKey      String
-  permissionState    String   @default("granted")
-  grantedAt          DateTime @default(now())
+  permissionState    String    @default("granted")
+  grantedAt          DateTime  @default(now())
   revokedAt          DateTime?
-  source             String   @default("oauth_scope")
-  metadata           String   @default("{}")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  source             String    @default("oauth_scope")
+  metadata           String    @default("{}")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  connectedAccount   ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
 
   @@unique([userId, platform, permissionKey, connectedAccountId])
   @@index([connectedAccountId, permissionState])
 }
 
 model DataVisibilityPolicy {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   userId         String
   entityType     String
   entityId       String?
   visibility     String
-  allowDiscovery Boolean  @default(true)
-  allowAnalytics Boolean  @default(true)
-  allowAiUse     Boolean  @default(false)
+  allowDiscovery Boolean   @default(false)
+  allowAnalytics Boolean   @default(false)
+  allowAiUse     Boolean   @default(false)
   expiresAt      DateTime?
-  metadata       String   @default("{}")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  metadata       String    @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, entityType])
   @@index([visibility])
@@ -782,7 +839,7 @@ model Achievement {
   maxHolders  Int?
   createdAt   DateTime @default(now())
 
-  holders     UserAchievement[]
+  holders UserAchievement[]
 }
 
 model UserAchievement {
@@ -791,8 +848,8 @@ model UserAchievement {
   achievementId String
   unlockedAt    DateTime @default(now())
 
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@unique([userId, achievementId])
   @@index([userId])
@@ -801,28 +858,33 @@ model UserAchievement {
 // ─── Meshi AI Preferences ───────────────────────────────────
 
 model MeshiPreference {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  hatStyle    String   @default("none")
-  faceStyle   String   @default("happy")
-  colorTheme  String   @default("blue")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  hatStyle       String   @default("none")
+  faceStyle      String   @default("happy")
+  colorTheme     String   @default("blue")
+  hairStyle      String   @default("none")
+  accessoryStyle String   @default("none")
+  eyeStyle       String   @default("regular")
+  badgeStyle     String   @default("none")
+  outfitStyle    String   @default("none")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── Mesh Cosmetics (MeshPro) ───────────────────────────────
 
 model MeshCosmetic {
-  id          String   @id @default(cuid())
-  userId      String
-  type        String
-  value       String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  value     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -833,31 +895,31 @@ model MeshPrivacy {
   id              String   @id @default(cuid())
   userId          String   @unique
   // Overall mesh visibility: "private" | "friends" | "public" | "partial"
-  meshVisibility  String   @default("friends")
+  meshVisibility  String   @default("private")
   // Per-branch visibility overrides (JSON: { "people": "public", "communities": "friends", ... })
   branchOverrides String   @default("{}")
   // Whether connections (edges) are visible to others
-  showConnections Boolean  @default(true)
+  showConnections Boolean  @default(false)
   // Whether stats are visible to others
   showStats       Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── Global Mesh (opt-in) ───────────────────────────────────
 
 model GlobalMeshMember {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  isActive        Boolean  @default(true)
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  isActive       Boolean  @default(false)
   // JSON array of branch types shared with global mesh: ["people","communities","interests"]
-  sharedBranches  String   @default("[]")
-  joinedAt        DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  sharedBranches String   @default("[]")
+  joinedAt       DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── Sessions (DB-backed for serverless) ─────────────────────
@@ -868,7 +930,7 @@ model Session {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -887,7 +949,7 @@ model AlterEgo {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   connectedAccounts ConnectedAccount[]
 
   @@index([userId])
@@ -903,9 +965,25 @@ model UserEmail {
   isVerified Boolean  @default(false)
   createdAt  DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model EmailVerificationToken {
+  id         String   @id @default(cuid())
+  userId     String
+  email      String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  consumedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([expiresAt])
 }
 
 model UserPhone {
@@ -916,7 +994,7 @@ model UserPhone {
   isVerified Boolean  @default(false)
   createdAt  DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -924,7 +1002,7 @@ model UserPhone {
 // ─── Two-Factor Authentication ──────────────────────────────
 
 model TwoFactorMethod {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   // Method type: "email" | "sms" | "totp" | "passkey"
   method     String
@@ -934,11 +1012,11 @@ model TwoFactorMethod {
   publicKey  String?
   // User-friendly label (e.g. "My iPhone", "Google Authenticator")
   label      String?
-  isEnabled  Boolean  @default(true)
+  isEnabled  Boolean   @default(true)
   lastUsedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -946,17 +1024,17 @@ model TwoFactorMethod {
 // ─── Account Merge Requests ─────────────────────────────────
 
 model AccountMergeRequest {
-  id              String   @id @default(cuid())
+  id             String    @id @default(cuid())
   // The account that will remain (primary)
-  primaryUserId   String
+  primaryUserId  String
   // The account that will be merged in (secondary → becomes alter ego)
-  secondaryEmail  String
+  secondaryEmail String
   // Status: "pending" | "verified" | "completed" | "rejected"
-  status          String   @default("pending")
+  status         String    @default("pending")
   // Verification token sent to secondary account email
-  verifyToken     String?
-  completedAt     DateTime?
-  createdAt       DateTime @default(now())
+  verifyToken    String?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
 
   @@index([primaryUserId])
   @@index([secondaryEmail])
@@ -965,33 +1043,33 @@ model AccountMergeRequest {
 // ─── Profile Info (Facebook-level fields with per-field privacy) ──
 
 model ProfileInfo {
-  id              String   @id @default(cuid())
-  userId          String   @unique
+  id                 String  @id @default(cuid())
+  userId             String  @unique
   // Extended bio / "About me"
-  aboutMe         String?
+  aboutMe            String?
   // Work & Education
-  workplace       String?
-  jobTitle        String?
-  school          String?
+  workplace          String?
+  jobTitle           String?
+  school             String?
   // Personal details
-  birthday        String?
-  gender          String?
-  pronouns        String?
-  hometown        String?
-  currentCity     String?
+  birthday           String?
+  gender             String?
+  pronouns           String?
+  hometown           String?
+  currentCity        String?
   relationshipStatus String?
   // Contact info (beyond primary email/phone)
-  publicEmail     String?
-  publicPhone     String?
+  publicEmail        String?
+  publicPhone        String?
 
   // Per-field privacy: JSON map of field → "public" | "friends" | "personal"
   // e.g. { "birthday": "friends", "workplace": "public", "publicPhone": "personal" }
-  fieldPrivacy    String   @default("{}")
+  fieldPrivacy String @default("{}")
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── Redeem Codes ────────────────────────────────────────────
@@ -999,17 +1077,22 @@ model ProfileInfo {
 // MeChat group browsing sessions
 
 model MeChatSession {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   hostId        String
   title         String
-  status        String   @default("draft")
+  status        String    @default("draft")
+  sessionType   String    @default("co_browse")
+  callMode      String    @default("none")
+  callStatus    String    @default("idle")
+  callStartedAt DateTime?
+  callEndedAt   DateTime?
   currentItemId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  host          User     @relation("sessionHost", fields: [hostId], references: [id], onDelete: Cascade)
-  participants  MeChatSessionParticipant[]
-  items         MeChatSessionItem[]
+  host         User                       @relation("sessionHost", fields: [hostId], references: [id], onDelete: Cascade)
+  participants MeChatSessionParticipant[]
+  items        MeChatSessionItem[]
 
   @@index([hostId])
   @@index([status])
@@ -1023,30 +1106,30 @@ model MeChatSessionParticipant {
   joinedAt   DateTime  @default(now())
   lastSeenAt DateTime?
 
-  session    MeChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user       User          @relation("sessionParticipant", fields: [userId], references: [id], onDelete: Cascade)
+  session MeChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User          @relation("sessionParticipant", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, userId])
   @@index([userId])
 }
 
 model MeChatSessionItem {
-  id              String   @id @default(cuid())
-  sessionId       String
-  addedById       String
-  sourcePlatform  String   @default("mesh")
-  sourceUrl       String?
-  title           String?
-  content         String?
-  postId          String?
-  platformPostId  String?
-  position        Int      @default(0)
-  status          String   @default("queued")
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  sessionId      String
+  addedById      String
+  sourcePlatform String   @default("mesh")
+  sourceUrl      String?
+  title          String?
+  content        String?
+  postId         String?
+  platformPostId String?
+  position       Int      @default(0)
+  status         String   @default("queued")
+  createdAt      DateTime @default(now())
 
-  session         MeChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  addedBy         User          @relation("sessionItemAuthor", fields: [addedById], references: [id], onDelete: Cascade)
-  votes           MeChatSessionVote[]
+  session MeChatSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  addedBy User                @relation("sessionItemAuthor", fields: [addedById], references: [id], onDelete: Cascade)
+  votes   MeChatSessionVote[]
 
   @@index([sessionId])
   @@index([addedById])
@@ -1059,8 +1142,8 @@ model MeChatSessionVote {
   vote      String
   createdAt DateTime @default(now())
 
-  item      MeChatSessionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user      User              @relation("sessionVoteUser", fields: [userId], references: [id], onDelete: Cascade)
+  item MeChatSessionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User              @relation("sessionVoteUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, userId])
   @@index([userId])

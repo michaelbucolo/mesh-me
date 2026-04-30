@@ -17,10 +17,11 @@ import {
 } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { SiteRouteMap } from "@/components/marketing/site-route-map";
+import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Features | mesh.me",
-  description: "Explore Mesh.me product areas, launch philosophy, interface modes, and Mesh Pro.",
+  title: "Features",
+  description: `Explore ${meshBrand.name} product areas, launch philosophy, interface modes, and Mesh Pro.`,
 };
 
 const productAreas = [

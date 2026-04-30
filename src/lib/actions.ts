@@ -5,21 +5,244 @@ import { getCurrentUser, hashPassword, createSession, destroySession, verifyPass
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
-import { getBaseUrl } from "./oauth";
-import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePostContent } from "./security";
+import { getBaseUrl, isPlatformOAuth, isSupportedPlatform } from "./oauth";
+import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
+import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
+import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState, nsfwHiddenWhere } from "./content-safety";
+import { communityThreadTitle } from "./community-constants";
 
-async function hashResetTokenValue(token: string) {
+async function hashAuthTokenValue(token: string) {
   const crypto = await import("crypto");
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+function escapeEmailHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  })[character] || character);
+}
+
+async function sendPasswordResetEmail(to: string, resetUrl: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.PASSWORD_RESET_FROM_EMAIL || process.env.RESEND_FROM_EMAIL;
+  if (!apiKey || !from) return false;
+
+  const safeResetUrl = escapeEmailHtml(resetUrl);
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject: "Reset your Mesh.me password",
+      text: `Use this secure link to reset your Mesh.me password. The link expires in 1 hour.\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
+      html: `
+        <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#0f172a">
+          <h1 style="font-size:22px;margin:0 0 12px">Reset your Mesh.me password</h1>
+          <p>Use this secure link to reset your password. The link expires in 1 hour.</p>
+          <p><a href="${safeResetUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:700">Reset password</a></p>
+          <p style="font-size:13px;color:#64748b">If you did not request this, you can ignore this email.</p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("Password reset email failed", await response.text().catch(() => response.statusText));
+    return false;
+  }
+
+  return true;
+}
+
+async function sendEmailVerificationEmail(to: string, verificationUrl: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_VERIFICATION_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || process.env.PASSWORD_RESET_FROM_EMAIL;
+  if (!apiKey || !from) return false;
+
+  const safeVerificationUrl = escapeEmailHtml(verificationUrl);
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject: "Verify your Mesh.me email",
+      text: `Verify this email address for your Mesh.me account. The link expires in 24 hours.\n\n${verificationUrl}\n\nIf you did not create this account, you can ignore this email.`,
+      html: `
+        <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#0f172a">
+          <h1 style="font-size:22px;margin:0 0 12px">Verify your Mesh.me email</h1>
+          <p>Confirm this email address for your Mesh.me account. The link expires in 24 hours.</p>
+          <p><a href="${safeVerificationUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:700">Verify email</a></p>
+          <p style="font-size:13px;color:#64748b">If you did not create this account, you can ignore this email.</p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("Email verification delivery failed", await response.text().catch(() => response.statusText));
+    return false;
+  }
+
+  return true;
+}
+
+async function issueEmailVerificationToken(userId: string, email: string) {
+  const crypto = await import("crypto");
+  const normalizedEmail = email.trim().toLowerCase();
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = await hashAuthTokenValue(token);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  await prisma.$transaction([
+    prisma.emailVerificationToken.deleteMany({
+      where: {
+        userId,
+        email: normalizedEmail,
+        consumedAt: null,
+      },
+    }),
+    prisma.emailVerificationToken.create({
+      data: {
+        userId,
+        email: normalizedEmail,
+        tokenHash,
+        expiresAt,
+      },
+    }),
+  ]);
+
+  return {
+    token,
+    verificationUrl: `${getBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`,
+  };
+}
+
+function getSafePostLoginPath(value: FormDataEntryValue | string | null): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || !trimmed.startsWith("/") || trimmed.startsWith("//")) return null;
+
+  try {
+    const parsed = new URL(trimmed, "https://mesh.me");
+    if (parsed.origin !== "https://mesh.me") return null;
+    if (parsed.pathname === "/login" || parsed.pathname === "/signup" || parsed.pathname === "/reset-password") {
+      return null;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Auth Actions ────────────────────────────────────────────
+
+function normalizePhone(value: string) {
+  return value.replace(/[^\d+]/g, "");
+}
+
+function normalizeUsernameSuggestion(value: string) {
+  const base = value
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, "")
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  const fallback = base || "mesh_user";
+  return fallback.length < 3 ? `${fallback}_me` : fallback.slice(0, 24);
+}
+
+function isAccountStorageUnavailable(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /HTTP status 401|SERVER_ERROR|Unauthorized|fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(message);
+}
+
+function accountStorageUnavailableMessage() {
+  return "Mesh.me can't reach secure account storage right now. Please try again shortly.";
+}
+
+export async function resolveEntryIdentity(rawIdentifier: string) {
+  const identifier = rawIdentifier.trim();
+  if (!identifier) return { error: "Enter your username, email, or phone number." };
+
+  const lowered = identifier.toLowerCase();
+  const normalizedPhone = normalizePhone(identifier);
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lowered);
+  const isPhone = normalizedPhone.length >= 7 && !lowered.includes("@");
+  const identifierKey = isPhone ? normalizedPhone : lowered;
+
+  const rl = rateLimit(`entry-identity:${identifierKey}`, 12, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many attempts. Please try again later." };
+  }
+
+  try {
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: lowered },
+          { username: lowered },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!user && isEmail) {
+      const emailRecord = await prisma.userEmail.findUnique({
+        where: { email: lowered },
+        select: { userId: true },
+      });
+      user = emailRecord ? { id: emailRecord.userId } : null;
+    }
+
+    if (!user && isPhone) {
+      const phoneRecord = await prisma.userPhone.findFirst({
+        where: { phone: { in: Array.from(new Set([normalizedPhone, identifier])) } },
+        select: { userId: true },
+      });
+      user = phoneRecord ? { id: phoneRecord.userId } : null;
+    }
+
+    if (user) {
+      return { mode: "sign-in" as const, identifier };
+    }
+  } catch (error) {
+    if (isAccountStorageUnavailable(error)) {
+      return { error: accountStorageUnavailableMessage() };
+    }
+    throw error;
+  }
+
+  return {
+    mode: "sign-up" as const,
+    identifier,
+    prefill: {
+      email: isEmail ? lowered : "",
+      username: isEmail ? normalizeUsernameSuggestion(lowered) : isPhone ? "" : normalizeUsernameSuggestion(lowered),
+      phone: isPhone ? normalizedPhone : "",
+    },
+  };
+}
 
 export async function signUp(formData: FormData) {
   const rawEmail = formData.get("email") as string;
   const password = formData.get("password") as string;
   const rawUsername = formData.get("username") as string;
   const rawDisplayName = formData.get("displayName") as string;
+  const rawPhone = formData.get("phone") as string | null;
 
   if (!rawEmail || !password || !rawUsername || !rawDisplayName) {
     return { error: "All fields are required" };
@@ -35,19 +258,18 @@ export async function signUp(formData: FormData) {
   const email = rawEmail.trim().toLowerCase();
   const username = rawUsername.trim().toLowerCase();
   const displayName = rawDisplayName.trim();
+  const phone = rawPhone ? normalizePhone(rawPhone) : "";
 
   // Validate email format
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Please enter a valid email address" };
   }
 
-  // Validate password strength
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters" };
-  }
+  const passwordValidation = validatePasswordStrength(password);
+  if (!passwordValidation.valid) return { error: passwordValidation.error };
 
-  if (password.length > 128) {
-    return { error: "Password is too long" };
+  if (phone && phone.length < 7) {
+    return { error: "Please enter a valid phone number" };
   }
 
   // Validate username format and length
@@ -64,12 +286,33 @@ export async function signUp(formData: FormData) {
     return { error: "Display name must be between 1 and 50 characters" };
   }
 
-  const existing = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
-  });
+  let existing;
+  try {
+    existing = await prisma.user.findFirst({
+      where: { OR: [{ email }, { username }] },
+    });
+  } catch (error) {
+    if (isAccountStorageUnavailable(error)) {
+      return { error: accountStorageUnavailableMessage() };
+    }
+    throw error;
+  }
 
   if (existing) {
     return { error: existing.email === email ? "Email already in use" : "Username already taken" };
+  }
+
+  if (phone) {
+    let existingPhone;
+    try {
+      existingPhone = await prisma.userPhone.findUnique({ where: { phone } });
+    } catch (error) {
+      if (isAccountStorageUnavailable(error)) {
+        return { error: accountStorageUnavailableMessage() };
+      }
+      throw error;
+    }
+    if (existingPhone) return { error: "Phone already in use" };
   }
 
   const passwordHash = await hashPassword(password);
@@ -82,14 +325,51 @@ export async function signUp(formData: FormData) {
         username,
         displayName,
         passwordHash,
+        isPublic: false,
+        showInDiscovery: false,
+        hideActivityStatus: true,
+        readReceipts: false,
+        nsfwEnabled: false,
+        adultVerificationStatus: "unverified",
+        emails: {
+          create: {
+            email,
+            isPrimary: true,
+            isVerified: false,
+          },
+        },
+        meshPrivacy: {
+          create: {
+            meshVisibility: "private",
+            showConnections: false,
+            showStats: false,
+          },
+        },
+        phones: phone ? {
+          create: {
+            phone,
+            isPrimary: true,
+            isVerified: false,
+          },
+        } : undefined,
       },
     });
     userId = user.id;
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "Email or username already taken" };
+      return { error: "Email, username, or phone already taken" };
+    }
+    if (isAccountStorageUnavailable(e)) {
+      return { error: accountStorageUnavailableMessage() };
     }
     throw e;
+  }
+
+  try {
+    const { verificationUrl } = await issueEmailVerificationToken(userId, email);
+    await sendEmailVerificationEmail(email, verificationUrl);
+  } catch (error) {
+    console.error("Email verification setup failed", error);
   }
 
   // Create session and redirect OUTSIDE try/catch
@@ -98,33 +378,65 @@ export async function signUp(formData: FormData) {
   redirect("/onboarding");
 }
 
-export async function signIn(formData: FormData) {
-  const rawEmail = formData.get("email") as string;
+async function completeSignIn(formData: FormData, options: { createSessionCookie?: boolean } = {}) {
+  const shouldCreateSession = options.createSessionCookie ?? true;
+  const rawIdentifier = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const nextPath = getSafePostLoginPath(formData.get("next"));
 
-  if (!rawEmail || !password) {
-    return { error: "Email and password are required" };
+  if (!rawIdentifier || !password) {
+    return { error: "Identity and password are required" };
   }
 
-  const email = rawEmail.trim().toLowerCase();
+  const identifier = rawIdentifier.trim();
+  const email = identifier.toLowerCase();
+  const normalizedPhone = identifier.replace(/[^\d+]/g, "");
+  const identifierKey = normalizedPhone.length >= 7 && !email.includes("@") ? normalizedPhone : email;
 
   // Pre-lookup rate limit to prevent DB spam from automated scanners
-  const preRl = rateLimit(`login-input:${email}`, 10, 15 * 60 * 1000);
+  const preRl = rateLimit(`login-input:${identifierKey}`, 10, 15 * 60 * 1000);
   if (!preRl.allowed) {
     return { error: "Too many login attempts. Please try again later." };
   }
 
-  const user = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { email },
-        { username: email },
-      ],
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email },
+          { username: email },
+        ],
+      },
+    });
+
+    if (!user && email.includes("@")) {
+      const emailRecord = await prisma.userEmail.findUnique({
+        where: { email },
+        include: { user: true },
+      });
+      user = emailRecord?.user ?? null;
+    }
+
+    if (!user && normalizedPhone.length >= 7) {
+      const phoneCandidates = Array.from(new Set([normalizedPhone, identifier]));
+      const phoneRecord = await prisma.userPhone.findFirst({
+        where: {
+          phone: { in: phoneCandidates },
+        },
+        include: { user: true },
+      });
+      user = phoneRecord?.user ?? null;
+    }
+  } catch (error) {
+    if (isAccountStorageUnavailable(error)) {
+      return { error: accountStorageUnavailableMessage() };
+    }
+    throw error;
+  }
 
   // Key lockout by resolved user ID to prevent bypass via alternative identifiers
-  const lockoutKey = user ? user.id : email;
+  const lockoutKey = user ? user.id : identifierKey;
 
   // Post-lookup rate limit keyed by user ID — prevents bypass via email/username alternation
   if (user) {
@@ -162,19 +474,31 @@ export async function signIn(formData: FormData) {
   // Clear lockout state for both user.id and the raw email/username input
   // to avoid stale entries from pre-lookup failed attempts
   clearFailedLogins(user.id);
-  if (lockoutKey !== user.id) clearFailedLogins(lockoutKey);
-  await createSession(user.id);
-
-  if (!user.onboarded) {
-    redirect("/onboarding");
+  clearFailedLogins(identifierKey);
+  if (shouldCreateSession) {
+    await createSession(user.id);
   }
 
-  redirect("/mesh");
+  return { success: true, redirectTo: user.onboarded ? (nextPath || "/mesh") : "/onboarding" };
+}
+
+export async function signInForEntry(formData: FormData) {
+  return completeSignIn(formData, { createSessionCookie: false });
+}
+
+export async function finalizeSignInForEntry(formData: FormData) {
+  return completeSignIn(formData, { createSessionCookie: true });
+}
+
+export async function signIn(formData: FormData) {
+  const result = await completeSignIn(formData);
+  if ("error" in result) return result;
+  redirect(result.redirectTo);
 }
 
 export async function signOut() {
   await destroySession();
-  redirect("/");
+  redirect("/login?signedOut=1");
 }
 
 // ─── Password Reset ─────────────────────────────────────────
@@ -193,7 +517,7 @@ export async function requestPasswordReset(email: string) {
 
   const crypto = await import("crypto");
   const token = crypto.randomBytes(32).toString("hex");
-  const tokenHash = await hashResetTokenValue(token);
+  const tokenHash = await hashAuthTokenValue(token);
   const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
   await prisma.user.update({
@@ -203,14 +527,127 @@ export async function requestPasswordReset(email: string) {
 
   const resetUrl = `${getBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
 
-  // Email delivery integration should send resetUrl.
-  // In development, return it to speed up local/staging testing.
+  await sendPasswordResetEmail(normalizedEmail, resetUrl);
+
+  // In development, return the link to speed up local/staging testing.
   if (process.env.NODE_ENV !== "production") {
     return { success: true, resetUrl };
   }
 
-  console.log(`Password reset requested for ${user.email}`);
   return { success: true };
+}
+
+export async function requestEmailVerification(formData?: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const rawEmail = formData?.get("email");
+  const normalizedEmail = (typeof rawEmail === "string" && rawEmail.trim() ? rawEmail : user.email).trim().toLowerCase();
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return { error: "Please enter a valid email address" };
+  }
+
+  const rl = rateLimit(`email-verification:${user.id}:${normalizedEmail}`, 3, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many verification emails requested. Please try again later." };
+  }
+
+  if (normalizedEmail === user.email.toLowerCase() && user.emailVerified) {
+    return { success: true, alreadyVerified: true };
+  }
+
+  if (normalizedEmail !== user.email.toLowerCase()) {
+    const emailRecord = await prisma.userEmail.findUnique({ where: { email: normalizedEmail } });
+    if (!emailRecord || emailRecord.userId !== user.id) {
+      return { error: "That email is not connected to your account." };
+    }
+    if (emailRecord.isVerified) return { success: true, alreadyVerified: true };
+  }
+
+  const { verificationUrl } = await issueEmailVerificationToken(user.id, normalizedEmail);
+  await sendEmailVerificationEmail(normalizedEmail, verificationUrl);
+
+  if (process.env.NODE_ENV !== "production") {
+    return { success: true, verificationUrl };
+  }
+
+  return { success: true };
+}
+
+export async function verifyEmailToken(token: string) {
+  const trimmedToken = token.trim();
+  if (!trimmedToken || trimmedToken.length < 32) {
+    return { error: "Invalid verification link. Please request a new one." };
+  }
+
+  const rl = rateLimit(`email-token:${trimmedToken.slice(0, 16)}`, 8, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many verification attempts. Please try again later." };
+  }
+
+  const tokenHash = await hashAuthTokenValue(trimmedToken);
+  const verificationToken = await prisma.emailVerificationToken.findFirst({
+    where: {
+      tokenHash,
+      consumedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!verificationToken) {
+    return { error: "Invalid or expired verification link. Please request a new one." };
+  }
+
+  const normalizedEmail = verificationToken.email.trim().toLowerCase();
+  const isPrimaryEmail = verificationToken.user.email.toLowerCase() === normalizedEmail;
+  const existingEmailRecord = await prisma.userEmail.findUnique({ where: { email: normalizedEmail } });
+  if (existingEmailRecord && existingEmailRecord.userId !== verificationToken.userId) {
+    return { error: "This email is already connected to another account." };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.emailVerificationToken.update({
+      where: { id: verificationToken.id },
+      data: { consumedAt: new Date() },
+    });
+
+    if (isPrimaryEmail) {
+      await tx.user.update({
+        where: { id: verificationToken.userId },
+        data: { emailVerified: true },
+      });
+    }
+
+    if (existingEmailRecord) {
+      await tx.userEmail.update({
+        where: { id: existingEmailRecord.id },
+        data: {
+          isVerified: true,
+          isPrimary: existingEmailRecord.isPrimary || isPrimaryEmail,
+        },
+      });
+    } else {
+      await tx.userEmail.create({
+        data: {
+          userId: verificationToken.userId,
+          email: normalizedEmail,
+          isPrimary: isPrimaryEmail,
+          isVerified: true,
+        },
+      });
+    }
+  });
+
+  return { success: true, email: normalizedEmail };
 }
 
 export async function resetPassword(token: string, newPassword: string) {
@@ -223,15 +660,10 @@ export async function resetPassword(token: string, newPassword: string) {
     return { error: "Too many attempts. Please try again later." };
   }
 
-  if (newPassword.length < 8) {
-    return { error: "Password must be at least 8 characters" };
-  }
+  const passwordValidation = validatePasswordStrength(newPassword);
+  if (!passwordValidation.valid) return { error: passwordValidation.error };
 
-  if (newPassword.length > 128) {
-    return { error: "Password is too long" };
-  }
-
-  const tokenHash = await hashResetTokenValue(token);
+  const tokenHash = await hashAuthTokenValue(token);
 
   const user = await prisma.user.findFirst({
     where: {
@@ -267,26 +699,178 @@ export async function completeOnboarding(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const bio = formData.get("bio") as string;
-  const location = formData.get("location") as string;
-  const interests = formData.getAll("interests") as string[];
+  const rl = rateLimit(`onboarding:${user.id}`, 12, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many setup attempts. Please try again later." };
+  }
+
+  const username = String(formData.get("username") || user.username).trim().toLowerCase();
+  const displayName = sanitizeForDisplay(String(formData.get("displayName") || user.displayName).trim());
+  const bio = sanitizeForDisplay(String(formData.get("bio") || "").trim()).slice(0, 160);
+  const location = sanitizeForDisplay(String(formData.get("location") || "").trim()).slice(0, 80);
   const phone = formData.get("phone") as string | null;
-  const platforms = formData.getAll("platforms") as string[];
+  const interests = Array.from(
+    new Set(formData.getAll("interests").map((value) => sanitizeForDisplay(String(value).trim())).filter(Boolean)),
+  ).slice(0, 12);
+  const interfaceStyle = String(formData.get("interfaceStyle") || "balanced");
+  const firstPlatform = String(formData.get("firstPlatform") || "").trim().toLowerCase();
+  const connectFirstPlatform = formData.get("connectFirstPlatform") === "true";
+  const rawPlatforms = [
+    ...formData.getAll("platforms").map((value) => String(value).trim().toLowerCase()),
+    firstPlatform,
+  ].filter(Boolean);
+  const platforms = Array.from(new Set(rawPlatforms)).filter(isSupportedPlatform).slice(0, 8);
+  const meshVisibility = ["private", "friends", "public"].includes(String(formData.get("meshVisibility")))
+    ? String(formData.get("meshVisibility"))
+    : "private";
+  const emailDigest = ["off", "daily", "weekly"].includes(String(formData.get("emailDigest")))
+    ? String(formData.get("emailDigest"))
+    : "weekly";
+  const bool = (name: string, fallback = false) => {
+    const value = formData.get(name);
+    if (value === null) return fallback;
+    return value === "true" || value === "on" || value === "1";
+  };
+  const meshiUpdate = {
+    colorTheme: cleanMeshiOption(String(formData.get("meshiColor") || ""), MESHI_OPTION_VALUES.colors, "blue") ?? "blue",
+    hatStyle: cleanMeshiOption(String(formData.get("meshiHat") || ""), MESHI_OPTION_VALUES.hats, "none") ?? "none",
+    faceStyle: cleanMeshiOption(String(formData.get("meshiFace") || ""), MESHI_OPTION_VALUES.faces, "happy") ?? "happy",
+    hairStyle: cleanMeshiOption(String(formData.get("meshiHair") || ""), MESHI_OPTION_VALUES.hairs, "none") ?? "none",
+    accessoryStyle: cleanMeshiOption(String(formData.get("meshiAccessory") || ""), MESHI_OPTION_VALUES.accessories, "none") ?? "none",
+    eyeStyle: cleanMeshiOption(String(formData.get("meshiEyes") || ""), MESHI_OPTION_VALUES.eyes, "regular") ?? "regular",
+    badgeStyle: cleanMeshiOption(String(formData.get("meshiBadge") || ""), MESHI_OPTION_VALUES.badges, "none") ?? "none",
+    outfitStyle: cleanMeshiOption(String(formData.get("meshiOutfit") || ""), MESHI_OPTION_VALUES.outfits, "none") ?? "none",
+  };
+
+  if (username.length < 3 || username.length > 30 || !/^[a-z0-9_]+$/.test(username)) {
+    return { error: "Username must be 3-30 characters and use letters, numbers, or underscores." };
+  }
+
+  if (displayName.length < 1 || displayName.length > 50) {
+    return { error: "Display name must be between 1 and 50 characters." };
+  }
+
+  if (username !== user.username) {
+    const existingUsername = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+    if (existingUsername && existingUsername.id !== user.id) {
+      return { error: "That username is already taken." };
+    }
+  }
 
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      bio: bio || undefined,
-      location: location || undefined,
+      username,
+      displayName,
+      bio: bio || null,
+      location: location || null,
+      isPublic: meshVisibility === "public",
+      showInDiscovery: bool("showInDiscovery", false) && meshVisibility !== "private",
+      hideActivityStatus: bool("hideActivityStatus", true),
+      readReceipts: bool("readReceipts", false),
       onboarded: true,
     },
   });
 
+  await prisma.userInterest.deleteMany({ where: { userId: user.id } });
   if (interests.length > 0) {
     await prisma.userInterest.createMany({
       data: interests.map((tag) => ({ userId: user.id, tag })),
     });
   }
+
+  await prisma.meshiPreference.upsert({
+    where: { userId: user.id },
+    update: {
+      colorTheme: meshiUpdate.colorTheme,
+      hatStyle: meshiUpdate.hatStyle,
+      faceStyle: meshiUpdate.faceStyle,
+      hairStyle: meshiUpdate.hairStyle,
+      accessoryStyle: meshiUpdate.accessoryStyle,
+      eyeStyle: meshiUpdate.eyeStyle,
+      badgeStyle: meshiUpdate.badgeStyle,
+      outfitStyle: meshiUpdate.outfitStyle,
+    },
+    create: {
+      userId: user.id,
+      colorTheme: meshiUpdate.colorTheme,
+      hatStyle: meshiUpdate.hatStyle,
+      faceStyle: meshiUpdate.faceStyle,
+      hairStyle: meshiUpdate.hairStyle,
+      accessoryStyle: meshiUpdate.accessoryStyle,
+      eyeStyle: meshiUpdate.eyeStyle,
+      badgeStyle: meshiUpdate.badgeStyle,
+      outfitStyle: meshiUpdate.outfitStyle,
+    },
+  });
+
+  await prisma.meshPrivacy.upsert({
+    where: { userId: user.id },
+    update: {
+      meshVisibility,
+      branchOverrides: JSON.stringify({
+        people: meshVisibility,
+        content: meshVisibility,
+        platforms: meshVisibility === "public" ? "friends" : meshVisibility,
+      }),
+      showConnections: bool("showConnections", false),
+      showStats: bool("showStats", false),
+    },
+    create: {
+      userId: user.id,
+      meshVisibility,
+      branchOverrides: JSON.stringify({
+        people: meshVisibility,
+        content: meshVisibility,
+        platforms: meshVisibility === "public" ? "friends" : meshVisibility,
+      }),
+      showConnections: bool("showConnections", false),
+      showStats: bool("showStats", false),
+    },
+  });
+
+  await prisma.feedPreference.upsert({
+    where: { userId: user.id },
+    update: {
+      layout: interfaceStyle,
+      sources: "all",
+    },
+    create: {
+      userId: user.id,
+      layout: interfaceStyle,
+      sources: "all",
+    },
+  });
+
+  await prisma.userNotificationPreference.upsert({
+    where: { userId: user.id },
+    update: {
+      pushEnabled: bool("pushEnabled", true),
+      emailDigest,
+      messages: bool("notifyMessages", true),
+      mentions: bool("notifyMentions", true),
+      comments: bool("notifyComments", true),
+      follows: bool("notifyFollows", true),
+      platformAlerts: bool("notifyPlatformAlerts", true),
+      securityAlerts: true,
+      productUpdates: bool("notifyProductUpdates", false),
+    },
+    create: {
+      userId: user.id,
+      pushEnabled: bool("pushEnabled", true),
+      emailDigest,
+      messages: bool("notifyMessages", true),
+      mentions: bool("notifyMentions", true),
+      comments: bool("notifyComments", true),
+      follows: bool("notifyFollows", true),
+      platformAlerts: bool("notifyPlatformAlerts", true),
+      securityAlerts: true,
+      productUpdates: bool("notifyProductUpdates", false),
+    },
+  });
 
   // Persist phone number if provided
   if (phone && phone.trim()) {
@@ -308,7 +892,7 @@ export async function completeOnboarding(formData: FormData) {
     }
   }
 
-  // Create manual connected account stubs for selected platforms
+  // Create pending connected-account records for selected platforms.
   if (platforms.length > 0) {
     const existingAccounts = await prisma.connectedAccount.findMany({
       where: { userId: user.id },
@@ -328,26 +912,156 @@ export async function completeOnboarding(formData: FormData) {
     }
   }
 
+  if (connectFirstPlatform && firstPlatform && isSupportedPlatform(firstPlatform)) {
+    if (isPlatformOAuth(firstPlatform)) redirect(`/api/auth/${firstPlatform}`);
+    redirect(`/connected-accounts?platform=${encodeURIComponent(firstPlatform)}&from=onboarding`);
+  }
+
   redirect("/mesh");
 }
 
 // ─── Post Actions ────────────────────────────────────────────
 
+const POST_VISIBILITIES = new Set(["public", "friends", "private"]);
+const MAX_POST_MEDIA_FILES = 4;
+const MAX_POST_MEDIA_FILE_SIZE = 4 * 1024 * 1024;
+const MAX_POST_MEDIA_TOTAL_SIZE = 10 * 1024 * 1024;
+
+type NativePostMediaInput = {
+  url: string;
+  type: "image" | "video" | "link";
+};
+
+function normalizePostVisibility(value: FormDataEntryValue | null) {
+  const visibility = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return POST_VISIBILITIES.has(visibility) ? visibility : "public";
+}
+
+function normalizePostTag(value: string) {
+  return sanitizeForDisplay(value)
+    .replace(/^#+/, "")
+    .replace(/[^\w-]/g, "")
+    .trim()
+    .toLowerCase()
+    .slice(0, 32);
+}
+
+function inferMediaTypeFromUrl(url: string): NativePostMediaInput["type"] {
+  const clean = url.split("?")[0]?.toLowerCase() || "";
+  if (/\.(png|jpe?g|gif|webp|avif)$/.test(clean)) return "image";
+  if (/\.(mp4|webm|mov|m4v)$/.test(clean)) return "video";
+  return "link";
+}
+
+function detectUploadedPostMediaType(bytes: Uint8Array, fileType: string): { type: "image" | "video"; mime: string } | null {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { type: "image", mime: "image/jpeg" };
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return { type: "image", mime: "image/png" };
+  if (bytes.length >= 12 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return { type: "image", mime: "image/webp" };
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return { type: "image", mime: "image/gif" };
+  if (bytes.length >= 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return { type: "video", mime: fileType === "video/quicktime" ? "video/quicktime" : "video/mp4" };
+  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return { type: "video", mime: "video/webm" };
+  return null;
+}
+
+function readStringArrayField(formData: FormData, key: string, maxItems: number) {
+  const values = formData.getAll(key).flatMap((entry) => {
+    if (typeof entry !== "string") return [];
+    const trimmed = entry.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed.filter((item): item is string => typeof item === "string");
+    } catch {
+      // Treat as comma/newline separated text below.
+    }
+    return trimmed.split(/[,\n]/);
+  });
+
+  return values.map((value) => value.trim()).filter(Boolean).slice(0, maxItems);
+}
+
+async function collectNativePostMedia(formData: FormData) {
+  const mediaItems: NativePostMediaInput[] = [];
+  let totalBytes = 0;
+
+  const files = formData
+    .getAll("mediaFiles")
+    .filter((entry): entry is File => typeof File !== "undefined" && entry instanceof File && entry.size > 0)
+    .slice(0, MAX_POST_MEDIA_FILES);
+
+  for (const file of files) {
+    if (file.size > MAX_POST_MEDIA_FILE_SIZE) {
+      return { error: "Each image or video must be 4MB or smaller." };
+    }
+    totalBytes += file.size;
+    if (totalBytes > MAX_POST_MEDIA_TOTAL_SIZE) {
+      return { error: "Post media is too large. Keep uploads under 10MB total." };
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const detected = detectUploadedPostMediaType(bytes, file.type);
+    if (!detected) {
+      return { error: "Use JPEG, PNG, WebP, GIF, MP4, MOV, or WebM media." };
+    }
+
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    mediaItems.push({
+      type: detected.type,
+      url: `data:${detected.mime};base64,${base64}`,
+    });
+  }
+
+  const remoteUrls = readStringArrayField(formData, "mediaUrls", MAX_POST_MEDIA_FILES);
+  for (const rawUrl of remoteUrls) {
+    if (mediaItems.length >= MAX_POST_MEDIA_FILES) break;
+    if (!validateUrl(rawUrl)) return { error: "Media URLs must start with http:// or https://." };
+    mediaItems.push({ url: rawUrl, type: inferMediaTypeFromUrl(rawUrl) });
+  }
+
+  const linkUrl = String(formData.get("linkUrl") || "").trim();
+  if (linkUrl) {
+    if (!validateUrl(linkUrl)) return { error: "Link URL must start with http:// or https://." };
+    if (!mediaItems.some((item) => item.url === linkUrl)) {
+      mediaItems.push({ url: linkUrl, type: "link" });
+    }
+  }
+
+  return { mediaItems: mediaItems.slice(0, MAX_POST_MEDIA_FILES) };
+}
+
 export async function createPost(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
+  const rl = rateLimit(`post:${user.id}`, 30, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Posting too fast. Please slow down." };
+  }
+
   const content = formData.get("content") as string;
   const communityId = formData.get("communityId") as string | null;
   const tags = formData.get("tags") as string;
+  const visibility = normalizePostVisibility(formData.get("visibility"));
+  const crossPostTo = formData.get("crossPostTo") as string | null;
+  const crossPostAccountIds = formData.get("crossPostAccountIds") as string | null;
+  const mediaResult = await collectNativePostMedia(formData);
+  if ("error" in mediaResult) return { error: mediaResult.error };
+  const mediaItems = mediaResult.mediaItems;
 
   // Validate and sanitize post content
-  const validation = validatePostContent(content);
-  if (!validation.valid) {
-    return { error: validation.error };
+  const contentText = content || "";
+  if (contentText.trim()) {
+    const validation = validatePostContent(contentText);
+    if (!validation.valid) {
+      return { error: validation.error };
+    }
+  } else if (mediaItems.length === 0) {
+    return { error: "Add text, media, or a link before posting." };
   }
 
-  const sanitizedContent = sanitizeForDisplay(content.trim());
+  const sanitizedContent = sanitizeForDisplay(contentText.trim());
+  const safety = classifyContentSafety(sanitizedContent, tags, mediaItems.map((item) => item.url).join(" "));
 
   // Verify community membership if posting to a community
   if (communityId) {
@@ -364,11 +1078,14 @@ export async function createPost(formData: FormData) {
       content: sanitizedContent,
       authorId: user.id,
       communityId: communityId || undefined,
+      visibility,
+      isNsfw: safety.isNsfw,
+      contentRating: safety.contentRating,
     },
   });
 
   if (tags) {
-    const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const tagList = Array.from(new Set(tags.split(",").map(normalizePostTag).filter(Boolean))).slice(0, 12);
     if (tagList.length > 0) {
       await prisma.postTag.createMany({
         data: tagList.map((tag) => ({ postId: post.id, tag })),
@@ -376,14 +1093,90 @@ export async function createPost(formData: FormData) {
     }
   }
 
+  if (mediaItems.length > 0) {
+    await prisma.postMedia.createMany({
+      data: mediaItems.map((item) => ({
+        postId: post.id,
+        url: item.url,
+        type: item.type,
+      })),
+    });
+  }
+
+  let crossPostResults: Record<string, { success: boolean; error?: string }> | undefined;
+  const parseStringArray = (value: string | null) => {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 12);
+    } catch {
+      return value.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 12);
+    }
+  };
+  const targetPlatforms = parseStringArray(crossPostTo);
+  const targetAccountIds = parseStringArray(crossPostAccountIds);
+  if (targetPlatforms.length > 0 || targetAccountIds.length > 0) {
+    const { crossPostContent } = await import("./platform-sync");
+    const result = await crossPostContent(sanitizedContent, targetPlatforms, mediaItems.filter((item) => item.type !== "link").map((item) => item.url), targetAccountIds);
+    if ("results" in result && result.results && typeof result.results === "object") {
+      crossPostResults = result.results;
+    }
+  }
+
+  const createdPost = await prisma.post.findUnique({
+    where: { id: post.id },
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          isVerified: true,
+        },
+      },
+      community: {
+        select: { id: true, name: true, slug: true },
+      },
+      media: true,
+      tags: true,
+      _count: {
+        select: { comments: true, reactions: true, reposts: true },
+      },
+      reactions: {
+        where: { userId: user.id },
+        select: { id: true },
+      },
+      savedBy: {
+        where: { userId: user.id },
+        select: { id: true },
+      },
+    },
+  });
+
   revalidatePath("/feed");
+  revalidatePath(`/feed/${post.id}`);
   revalidatePath(`/profile/${user.username}`);
   if (communityId) {
     const community = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
     if (community) revalidatePath(`/communities/${community.slug}`);
   }
 
-  return { success: true, postId: post.id };
+  return {
+    success: true,
+    postId: post.id,
+    post: createdPost ? { ...createdPost, platform: "meshme" } : undefined,
+    crossPostResults,
+  };
+}
+
+export async function createCommunityPostFromForm(formData: FormData): Promise<void> {
+  await createPost(formData);
 }
 
 export async function deletePost(postId: string) {
@@ -396,6 +1189,8 @@ export async function deletePost(postId: string) {
 
   await prisma.post.delete({ where: { id: postId } });
   revalidatePath("/feed");
+  revalidatePath(`/feed/${postId}`);
+  revalidatePath(`/profile/${user.username}`);
   return { success: true };
 }
 
@@ -432,6 +1227,7 @@ export async function toggleReaction(postId: string) {
   }
 
   revalidatePath("/feed");
+  revalidatePath(`/feed/${postId}`);
   return { success: true, liked: !existing };
 }
 
@@ -475,6 +1271,7 @@ export async function createComment(formData: FormData) {
   }
 
   revalidatePath("/feed");
+  revalidatePath(`/feed/${postId}`);
   return { success: true };
 }
 
@@ -484,6 +1281,12 @@ export async function toggleFollow(targetUserId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
   if (user.id === targetUserId) return { error: "Cannot follow yourself" };
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, username: true, displayName: true, isSuspended: true },
+  });
+  if (!targetUser || targetUser.isSuspended) return { error: "User not found" };
 
   // Check if either user has blocked the other
   const blockExists = await prisma.block.findFirst({
@@ -500,12 +1303,20 @@ export async function toggleFollow(targetUserId: string) {
     where: { followerId_followingId: { followerId: user.id, followingId: targetUserId } },
   });
 
+  let isFriend = false;
+
   if (existing) {
     await prisma.follow.delete({ where: { id: existing.id } });
   } else {
     await prisma.follow.create({
       data: { followerId: user.id, followingId: targetUserId },
     });
+
+    const reciprocalFollow = await prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId: targetUserId, followingId: user.id } },
+      select: { id: true },
+    });
+    isFriend = Boolean(reciprocalFollow);
 
     await prisma.notification.create({
       data: {
@@ -515,37 +1326,105 @@ export async function toggleFollow(targetUserId: string) {
         message: `${user.displayName} started following you`,
       },
     });
+
+    if (isFriend) {
+      await prisma.notification.createMany({
+        data: [
+          {
+            type: "mesh_friend",
+            recipientId: targetUserId,
+            actorId: user.id,
+            message: `${user.displayName}'s Mesh is now connected with yours`,
+          },
+          {
+            type: "mesh_friend",
+            recipientId: user.id,
+            actorId: targetUserId,
+            message: `Your Mesh is now connected with ${targetUser.displayName}`,
+          },
+        ],
+      });
+    }
   }
 
   revalidatePath("/feed");
-  return { success: true, following: !existing };
+  revalidatePath("/mesh");
+  revalidatePath("/notifications");
+  revalidatePath(`/profile/${user.username}`);
+  revalidatePath(`/profile/${targetUser.username}`);
+  return { success: true, following: !existing, isFriend };
 }
 
 // ─── Profile Actions ─────────────────────────────────────────
+
+function normalizeProfileInterests(formData: FormData) {
+  const rawValues = [
+    ...formData.getAll("interests").map((value) => String(value)),
+    String(formData.get("interestTags") || ""),
+  ];
+
+  return Array.from(
+    new Set(
+      rawValues
+        .flatMap((value) => value.split(/[,\n]/))
+        .map((value) =>
+          sanitizeForDisplay(value)
+            .replace(/^#+/, "")
+            .replace(/[^\w\s-]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 24)
+        )
+        .filter(Boolean)
+        .map((value) => value.toLowerCase())
+    )
+  ).slice(0, 12);
+}
 
 export async function updateProfile(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const displayName = formData.get("displayName") as string;
-  const bio = formData.get("bio") as string;
-  const location = formData.get("location") as string;
-  const website = formData.get("website") as string;
-  const accentColor = formData.get("accentColor") as string;
+  const displayName = sanitizeForDisplay(String(formData.get("displayName") || "")).slice(0, 80) || user.displayName;
+  const bio = sanitizeForDisplay(String(formData.get("bio") || "")).slice(0, 280);
+  const location = sanitizeForDisplay(String(formData.get("location") || "")).slice(0, 80);
+  const rawWebsite = String(formData.get("website") || "").trim();
+  const rawAccentColor = String(formData.get("accentColor") || "").trim();
+  const accentColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(rawAccentColor)
+    ? rawAccentColor
+    : user.accentColor;
+  const interests = normalizeProfileInterests(formData);
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      displayName: displayName || user.displayName,
-      bio: bio ?? user.bio,
-      location: location ?? user.location,
-      website: website !== null && website !== undefined ? (website.trim() ? ((await import("./security")).validateUrl(website.trim()) ? website.trim() : user.website) : null) : user.website,
-      accentColor: accentColor || user.accentColor,
-    },
+  if (rawWebsite && !validateUrl(rawWebsite)) {
+    return { error: "Enter a valid website that starts with http:// or https://." };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        displayName,
+        bio: bio || null,
+        location: location || null,
+        website: rawWebsite || null,
+        accentColor,
+      },
+    });
+
+    if (formData.has("interests") || formData.has("interestTags")) {
+      await tx.userInterest.deleteMany({ where: { userId: user.id } });
+      if (interests.length > 0) {
+        await tx.userInterest.createMany({
+          data: interests.map((tag) => ({ userId: user.id, tag })),
+        });
+      }
+    }
   });
 
+  revalidatePath("/profile");
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/settings");
+  revalidatePath("/search");
   return { success: true };
 }
 
@@ -555,10 +1434,19 @@ export async function createCommunity(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
+  const rl = rateLimit(`community:${user.id}`, 6, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Too many community creation attempts. Please try again later." };
+  }
+
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const category = formData.get("category") as string;
   const rules = formData.get("rules") as string;
+  const spaceType = formData.get("spaceType") as string;
+  const iconUrl = formData.get("iconUrl") as string;
+  const bannerUrl = formData.get("bannerUrl") as string;
+  const isPublic = formData.get("isPublic") !== "false";
 
   if (!name?.trim()) {
     return { error: "Community name is required" };
@@ -580,11 +1468,16 @@ export async function createCommunity(formData: FormData) {
 
   const community = await prisma.community.create({
     data: {
-      name: name.trim(),
+      name: sanitizeForDisplay(name.trim()).slice(0, 64),
       slug,
-      description: description || undefined,
-      category: category || undefined,
-      rules: rules || undefined,
+      description: description ? sanitizeForDisplay(description).slice(0, 240) : undefined,
+      category: category ? sanitizeForDisplay(category).slice(0, 40) : spaceType ? sanitizeForDisplay(spaceType).slice(0, 40) : undefined,
+      iconUrl: iconUrl && validateUrl(iconUrl) ? iconUrl : undefined,
+      bannerUrl: bannerUrl && validateUrl(bannerUrl) ? bannerUrl : undefined,
+      isPublic,
+      rules: rules
+        ? sanitizeForDisplay(rules).slice(0, 800)
+        : "Respect people.\nCredit original creators.\nKeep private community content inside the community.",
     },
   });
 
@@ -598,16 +1491,22 @@ export async function createCommunity(formData: FormData) {
   });
 
   revalidatePath("/communities");
-  return { success: true, communityId: community.id };
+  revalidatePath(`/communities/${community.slug}`);
+  return { success: true, communityId: community.id, slug: community.slug };
 }
 
 export async function toggleCommunityMembership(communityId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const existing = await prisma.communityMember.findUnique({
-    where: { userId_communityId: { userId: user.id, communityId } },
-  });
+  const [community, existing] = await Promise.all([
+    prisma.community.findUnique({ where: { id: communityId }, select: { id: true, slug: true, isPublic: true } }),
+    prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: user.id, communityId } },
+    }),
+  ]);
+
+  if (!community) return { error: "Community not found" };
 
   if (existing) {
     if (existing.role === "admin") {
@@ -615,18 +1514,27 @@ export async function toggleCommunityMembership(communityId: string) {
     }
     await prisma.communityMember.delete({ where: { id: existing.id } });
   } else {
+    if (!community.isPublic) {
+      return { error: "This private community requires an invite" };
+    }
     await prisma.communityMember.create({
       data: { userId: user.id, communityId },
     });
   }
 
   revalidatePath("/communities");
-  const communityForSlug = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
-  if (communityForSlug) revalidatePath(`/communities/${communityForSlug.slug}`);
+  revalidatePath(`/communities/${community.slug}`);
   return { success: true, joined: !existing };
 }
 
 // ─── Message Actions ─────────────────────────────────────────
+
+function cleanFormText(formData: FormData, key: string, maxLength: number) {
+  const value = formData.get(key);
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? sanitizeForDisplay(trimmed).slice(0, maxLength) : undefined;
+}
 
 export async function sendMessage(formData: FormData) {
   const user = await getCurrentUser();
@@ -637,6 +1545,14 @@ export async function sendMessage(formData: FormData) {
   const recipientId = formData.get("recipientId") as string;
 
   if (!content?.trim()) return { error: "Message is required" };
+  const sanitizedContent = sanitizeForDisplay(content.trim());
+  const messageType = cleanFormText(formData, "messageType", 40) || "text";
+  const sourcePlatform = cleanFormText(formData, "sourcePlatform", 40) || "mesh";
+  const sourceUrl = cleanFormText(formData, "sourceUrl", 500);
+  const sourcePostId = cleanFormText(formData, "sourcePostId", 120);
+  const platformPostId = cleanFormText(formData, "platformPostId", 120);
+  const platformCommentId = cleanFormText(formData, "platformCommentId", 120);
+  const metadata = cleanFormText(formData, "metadata", 1000);
 
   // Rate limit messages
   const rl = rateLimit(`msg:${user.id}`, 30, 60 * 1000);
@@ -663,6 +1579,7 @@ export async function sendMessage(formData: FormData) {
     // Find or create thread
     const existingThread = await prisma.messageThread.findFirst({
       where: {
+        threadType: "direct",
         AND: [
           { members: { some: { userId: user.id } } },
           { members: { some: { userId: recipientId } } },
@@ -675,10 +1592,13 @@ export async function sendMessage(formData: FormData) {
     } else {
       const thread = await prisma.messageThread.create({
         data: {
+          threadType: "direct",
+          sourcePlatform: "mesh",
+          isEncrypted: true,
           members: {
             create: [
-              { userId: user.id },
-              { userId: recipientId },
+              { userId: user.id, role: "owner" },
+              { userId: recipientId, role: "member" },
             ],
           },
         },
@@ -713,9 +1633,16 @@ export async function sendMessage(formData: FormData) {
 
   await prisma.message.create({
     data: {
-      content: content.trim(),
+      content: sanitizedContent,
       senderId: user.id,
       threadId: finalThreadId,
+      messageType,
+      sourcePlatform,
+      sourceUrl,
+      sourcePostId,
+      platformPostId,
+      platformCommentId,
+      metadata,
     },
   });
 
@@ -729,13 +1656,21 @@ export async function sendMessage(formData: FormData) {
     where: { threadId: finalThreadId, userId: { not: user.id } },
   });
 
+  const threadForNotification = await prisma.messageThread.findUnique({
+    where: { id: finalThreadId },
+    select: { title: true, threadType: true },
+  });
+  const isGroupThread = threadForNotification?.threadType === "group";
+
   for (const member of threadMembers) {
     await prisma.notification.create({
       data: {
         type: "message",
         recipientId: member.userId,
         actorId: user.id,
-        message: `${user.displayName} sent you a message`,
+        message: isGroupThread
+          ? `${user.displayName} sent a message in ${threadForNotification.title || "a MeChat group"}`
+          : `${user.displayName} sent you a message`,
       },
     });
   }
@@ -744,7 +1679,7 @@ export async function sendMessage(formData: FormData) {
   return { success: true, threadId: finalThreadId };
 }
 
-export async function sharePostViaMeChat(formData: FormData) {
+async function sharePostViaMeChatLegacy(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -776,6 +1711,94 @@ export async function sharePostViaMeChat(formData: FormData) {
 }
 
 // ─── Notification Actions ────────────────────────────────────
+
+void sharePostViaMeChatLegacy;
+
+export async function sharePostViaMeChat(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const postId = (formData.get("postId") as string | null)?.trim();
+  const platformPostId = (formData.get("platformPostId") as string | null)?.trim();
+  const sourceUrl = (formData.get("sourceUrl") as string | null)?.trim();
+  if (!postId && !platformPostId && !sourceUrl) return { error: "A post or source URL is required" };
+
+  const nextData = new FormData();
+  let sharedMessage = "";
+
+  if (postId) {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        author: {
+          select: { username: true, displayName: true },
+        },
+      },
+    });
+    if (!post) return { error: "Post not found" };
+
+    const note = ((formData.get("note") as string | null) || "").trim();
+    sharedMessage = `${note ? `${note}\n\n` : ""}Shared a Mesh.me post by ${post.author.displayName} (@${post.author.username})\n${post.content.slice(0, 260)}${post.content.length > 260 ? "..." : ""}\n/feed/${post.id}`;
+    nextData.set("messageType", "shared_post");
+    nextData.set("sourcePlatform", "mesh");
+    nextData.set("sourcePostId", post.id);
+  } else if (platformPostId) {
+    const platformPost = await prisma.platformPost.findFirst({
+      where: {
+        id: platformPostId,
+        ...nsfwHiddenWhere(user),
+        OR: [
+          { connectedAccount: { userId: user.id } },
+          {
+            visibility: { not: "private" },
+            connectedAccount: {
+              user: {
+                isSuspended: false,
+                isPublic: true,
+                showInDiscovery: true,
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        connectedAccount: {
+          select: {
+            platform: true,
+            platformUsername: true,
+          },
+        },
+      },
+    });
+    if (!platformPost) return { error: "Platform post not found or not shareable" };
+
+    const note = ((formData.get("note") as string | null) || "").trim();
+    const preview = [platformPost.title, platformPost.content].filter(Boolean).join("\n").slice(0, 260);
+    const platformName = platformPost.connectedAccount.platform;
+    const author = platformPost.connectedAccount.platformUsername ? ` from @${platformPost.connectedAccount.platformUsername}` : "";
+    sharedMessage = `${note ? `${note}\n\n` : ""}Shared a ${platformName} post${author}\n${preview}${preview.length >= 260 ? "..." : ""}${platformPost.url ? `\n${platformPost.url}` : ""}`;
+    nextData.set("messageType", "platform_share");
+    nextData.set("sourcePlatform", platformName);
+    nextData.set("platformPostId", platformPost.id);
+    if (platformPost.url) nextData.set("sourceUrl", platformPost.url);
+  } else if (sourceUrl) {
+    const note = ((formData.get("note") as string | null) || "").trim();
+    const sourcePlatform = (formData.get("sourcePlatform") as string | null)?.trim() || "web";
+    sharedMessage = `${note ? `${note}\n\n` : ""}Shared a ${sourcePlatform} link\n${sourceUrl}`;
+    nextData.set("messageType", "platform_share");
+    nextData.set("sourcePlatform", sourcePlatform);
+    nextData.set("sourceUrl", sourceUrl);
+  }
+
+  nextData.set("content", sharedMessage);
+
+  const threadId = (formData.get("threadId") as string | null)?.trim();
+  const recipientId = (formData.get("recipientId") as string | null)?.trim();
+  if (threadId) nextData.set("threadId", threadId);
+  if (recipientId) nextData.set("recipientId", recipientId);
+
+  return sendMessage(nextData);
+}
 
 export async function markNotificationsRead() {
   const user = await getCurrentUser();
@@ -865,6 +1888,7 @@ export async function toggleSavePost(postId: string) {
   }
 
   revalidatePath("/feed");
+  revalidatePath(`/feed/${postId}`);
   return { success: true, saved: !existing };
 }
 
@@ -930,6 +1954,63 @@ export async function adminResolveReport(reportId: string, status: string) {
   return { success: true };
 }
 
+export async function adminSetCommunityVisibility(communityId: string, isPublic: boolean) {
+  const user = await getCurrentUser();
+  if (!user?.isAdmin) return { error: "Unauthorized" };
+
+  const community = await prisma.community.findUnique({
+    where: { id: communityId },
+    select: { id: true, name: true, slug: true, isPublic: true },
+  });
+  if (!community) return { error: "Community not found" };
+
+  await prisma.community.update({
+    where: { id: communityId },
+    data: { isPublic },
+  });
+
+  await prisma.adminLog.create({
+    data: {
+      action: isPublic ? "community_make_public" : "community_make_private",
+      details: `Community: ${community.name}`,
+      adminId: user.id,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/communities");
+  revalidatePath(`/communities/${community.slug}`);
+  return { success: true };
+}
+
+export async function adminResolveCommunityReports(communityId: string) {
+  const user = await getCurrentUser();
+  if (!user?.isAdmin) return { error: "Unauthorized" };
+
+  const community = await prisma.community.findUnique({
+    where: { id: communityId },
+    select: { id: true, name: true, slug: true },
+  });
+  if (!community) return { error: "Community not found" };
+
+  const result = await prisma.report.updateMany({
+    where: { reportedCommunityId: communityId, status: "pending" },
+    data: { status: "resolved" },
+  });
+
+  await prisma.adminLog.create({
+    data: {
+      action: "community_reports_resolved",
+      details: `${community.name}: ${result.count} report${result.count === 1 ? "" : "s"}`,
+      adminId: user.id,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/communities/${community.slug}`);
+  return { success: true, count: result.count };
+}
+
 export async function adminDeletePost(postId: string) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) return { error: "Unauthorized" };
@@ -938,6 +2019,10 @@ export async function adminDeletePost(postId: string) {
   if (!post) return { error: "Post not found" };
 
   await prisma.post.delete({ where: { id: postId } });
+  await prisma.report.updateMany({
+    where: { reportedPostId: postId, status: "pending" },
+    data: { status: "resolved" },
+  });
 
   await prisma.adminLog.create({
     data: {
@@ -992,6 +2077,7 @@ export async function repost(postId: string) {
   if (existing) {
     await prisma.post.delete({ where: { id: existing.id } });
     revalidatePath("/feed");
+    revalidatePath(`/feed/${postId}`);
     return { success: true, reposted: false };
   }
 
@@ -1017,6 +2103,7 @@ export async function repost(postId: string) {
   }
 
   revalidatePath("/feed");
+  revalidatePath(`/feed/${postId}`);
   return { success: true, reposted: true };
 }
 
@@ -1062,9 +2149,8 @@ export async function changePassword(formData: FormData) {
     return { error: "All fields are required" };
   }
 
-  if (newPassword.length < 8) {
-    return { error: "New password must be at least 8 characters" };
-  }
+  const passwordValidation = validatePasswordStrength(newPassword);
+  if (!passwordValidation.valid) return { error: passwordValidation.error?.replace("Password", "New password") };
 
   if (newPassword !== confirmPassword) {
     return { error: "Passwords do not match" };
@@ -1090,9 +2176,25 @@ export async function changePassword(formData: FormData) {
 
 // ─── Account Actions ────────────────────────────────────────
 
-export async function deleteAccount() {
+export async function deleteAccount(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+
+  const confirmation = String(formData.get("confirmation") ?? "").trim();
+  const currentPassword = String(formData.get("currentPassword") ?? "");
+
+  if (confirmation !== "DELETE") {
+    return { error: "Type DELETE to confirm account deletion." };
+  }
+
+  if (!currentPassword) {
+    return { error: "Enter your current password before deleting this account." };
+  }
+
+  const passwordMatches = await verifyPassword(currentPassword, user.passwordHash);
+  if (!passwordMatches) {
+    return { error: "Current password is incorrect." };
+  }
 
   if (user.isAdmin) {
     const adminCount = await prisma.user.count({ where: { isAdmin: true } });
@@ -1116,12 +2218,19 @@ export async function deleteAccount() {
   }
 
   // Clean up orphaned records that don't have cascade rules
-  await prisma.accountMergeRequest.deleteMany({ where: { primaryUserId: user.id } });
+  await prisma.accountMergeRequest.deleteMany({
+    where: {
+      OR: [
+        { primaryUserId: user.id },
+        { secondaryEmail: user.email },
+      ],
+    },
+  });
 
   // Delete the user — all related records cascade automatically via schema rules
   await prisma.user.delete({ where: { id: user.id } });
   await destroySession();
-  redirect("/");
+  redirect("/login?accountDeleted=1");
 }
 
 // ─── Privacy Actions ────────────────────────────────────────
@@ -1141,10 +2250,144 @@ export async function updatePrivacy(formData: FormData) {
   });
 
   revalidatePath("/settings");
+  revalidatePath("/privacy-controls");
+  return { success: true };
+}
+
+export async function updateNotificationPreferences(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const emailDigest = ["off", "daily", "weekly"].includes(String(formData.get("emailDigest")))
+    ? String(formData.get("emailDigest"))
+    : "weekly";
+  const bool = (name: string, fallback = false) => {
+    const value = formData.get(name);
+    if (value === null) return fallback;
+    return value === "true" || value === "on" || value === "1";
+  };
+
+  await prisma.userNotificationPreference.upsert({
+    where: { userId: user.id },
+    update: {
+      pushEnabled: bool("pushEnabled", true),
+      emailDigest,
+      messages: bool("messages", true),
+      mentions: bool("mentions", true),
+      comments: bool("comments", true),
+      follows: bool("follows", true),
+      platformAlerts: bool("platformAlerts", true),
+      securityAlerts: true,
+      productUpdates: bool("productUpdates", false),
+    },
+    create: {
+      userId: user.id,
+      pushEnabled: bool("pushEnabled", true),
+      emailDigest,
+      messages: bool("messages", true),
+      mentions: bool("mentions", true),
+      comments: bool("comments", true),
+      follows: bool("follows", true),
+      platformAlerts: bool("platformAlerts", true),
+      securityAlerts: true,
+      productUpdates: bool("productUpdates", false),
+    },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/notifications");
   return { success: true };
 }
 
 // ─── Community Moderation ───────────────────────────────────
+
+export async function updateNsfwPreference(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const enable = formData.get("nsfwEnabled") === "true";
+  const region = normalizeUsState(formData.get("adultVerificationRegion") as string | null);
+
+  if (!enable) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        nsfwEnabled: false,
+        adultVerificationRegion: region || user.adultVerificationRegion,
+      },
+    });
+    revalidatePath("/settings");
+    revalidatePath("/feed");
+    revalidatePath("/search");
+    revalidatePath("/mesh");
+    return { success: true };
+  }
+
+  const policy = getNsfwPolicyForRegion(region || user.adultVerificationRegion);
+  if (policy.requiresIdVerification && !isAdultVerificationActive(user)) {
+    return {
+      error: "Adult ID verification is required before NSFW content can be enabled. NSFW remains off.",
+    };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      nsfwEnabled: true,
+      adultVerificationRegion: region || user.adultVerificationRegion,
+    },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/privacy-controls");
+  revalidatePath("/feed");
+  revalidatePath("/search");
+  revalidatePath("/mesh");
+  return { success: true };
+}
+
+export async function requestAdultVerification(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const region = normalizeUsState(formData.get("adultVerificationRegion") as string | null);
+  const policy = getNsfwPolicyForRegion(region);
+  const providerUrl = process.env.ADULT_VERIFICATION_PROVIDER_URL?.trim();
+  const providerName = process.env.ADULT_VERIFICATION_PROVIDER_NAME?.trim() || "external-provider";
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      nsfwEnabled: false,
+      adultVerificationStatus: "pending",
+      adultVerificationRegion: region || null,
+      adultVerificationProvider: providerName,
+      adultVerificationReference: null,
+    },
+  });
+
+  revalidatePath("/settings");
+
+  if (!providerUrl) {
+    return {
+      error: `${policy.reason} Adult verification is not configured for this deployment yet, so NSFW remains off.`,
+    };
+  }
+
+  let redirectUrl: string;
+  try {
+    const url = new URL(providerUrl);
+    url.searchParams.set("client_reference_id", user.id);
+    url.searchParams.set("minimum_age", String(policy.minAge));
+    if (region) url.searchParams.set("region", region);
+    url.searchParams.set("return_url", `${getBaseUrl()}/settings`);
+    redirectUrl = url.toString();
+  } catch {
+    return { error: "Adult verification provider URL is invalid. NSFW remains off." };
+  }
+
+  return { success: true, redirectUrl };
+}
 
 export async function updateCommunity(formData: FormData) {
   const user = await getCurrentUser();
@@ -1154,6 +2397,9 @@ export async function updateCommunity(formData: FormData) {
   const description = formData.get("description") as string;
   const rules = formData.get("rules") as string;
   const category = formData.get("category") as string;
+  const iconUrl = formData.get("iconUrl") as string;
+  const bannerUrl = formData.get("bannerUrl") as string;
+  const isPublicValue = formData.get("isPublic");
 
   const membership = await prisma.communityMember.findUnique({
     where: { userId_communityId: { userId: user.id, communityId } },
@@ -1163,17 +2409,26 @@ export async function updateCommunity(formData: FormData) {
     return { error: "Only admins can edit community settings" };
   }
 
-  await prisma.community.update({
+  const community = await prisma.community.update({
     where: { id: communityId },
     data: {
-      description: description ?? undefined,
-      rules: rules ?? undefined,
-      category: category ?? undefined,
+      description: description ? sanitizeForDisplay(description).slice(0, 240) : null,
+      rules: rules ? sanitizeForDisplay(rules).slice(0, 800) : null,
+      category: category ? sanitizeForDisplay(category).slice(0, 40) : null,
+      iconUrl: iconUrl && validateUrl(iconUrl) ? iconUrl : null,
+      bannerUrl: bannerUrl && validateUrl(bannerUrl) ? bannerUrl : null,
+      isPublic: isPublicValue === "true",
     },
+    select: { slug: true },
   });
 
   revalidatePath("/communities");
+  revalidatePath(`/communities/${community.slug}`);
   return { success: true };
+}
+
+export async function updateCommunityFromForm(formData: FormData): Promise<void> {
+  await updateCommunity(formData);
 }
 
 export async function promoteMember(userId: string, communityId: string, role: string) {
@@ -1192,6 +2447,13 @@ export async function promoteMember(userId: string, communityId: string, role: s
   if (!membership || membership.role !== "admin") {
     return { error: "Only admins can change roles" };
   }
+
+  const target = await prisma.communityMember.findUnique({
+    where: { userId_communityId: { userId, communityId } },
+    select: { role: true },
+  });
+  if (!target) return { error: "User is not a member of this community" };
+  if (target.role === "admin") return { error: "Admin roles cannot be changed here" };
 
   await prisma.communityMember.update({
     where: { userId_communityId: { userId, communityId } },
@@ -1237,6 +2499,139 @@ export async function removeMember(userId: string, communityId: string) {
 }
 
 // ─── Delete Comment ─────────────────────────────────────────
+
+export async function updateCommunityMemberRole(formData: FormData) {
+  const targetUserId = formData.get("targetUserId") as string;
+  const communityId = formData.get("communityId") as string;
+  const role = formData.get("role") as string;
+
+  return promoteMember(targetUserId, communityId, role);
+}
+
+export async function updateCommunityMemberRoleFromForm(formData: FormData): Promise<void> {
+  await updateCommunityMemberRole(formData);
+}
+
+export async function removeCommunityMemberFromForm(formData: FormData): Promise<void> {
+  const targetUserId = formData.get("targetUserId") as string;
+  const communityId = formData.get("communityId") as string;
+
+  await removeMember(targetUserId, communityId);
+}
+
+export async function moderateCommunityPost(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const communityId = formData.get("communityId") as string;
+  const postId = formData.get("postId") as string;
+  const moderationAction = formData.get("moderationAction") as string;
+
+  const [membership, post, community] = await Promise.all([
+    prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: user.id, communityId } },
+    }),
+    prisma.post.findUnique({ where: { id: postId }, select: { id: true, communityId: true, isPinned: true } }),
+    prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } }),
+  ]);
+
+  if (!membership || (membership.role !== "admin" && membership.role !== "moderator")) {
+    return { error: "Only moderators can manage community posts" };
+  }
+  if (!post || post.communityId !== communityId) {
+    return { error: "Post does not belong to this community" };
+  }
+
+  if (moderationAction === "toggle-pin") {
+    await prisma.post.update({ where: { id: postId }, data: { isPinned: !post.isPinned } });
+  } else if (moderationAction === "delete") {
+    await prisma.post.delete({ where: { id: postId } });
+  } else {
+    return { error: "Invalid moderation action" };
+  }
+
+  revalidatePath("/communities");
+  revalidatePath("/feed");
+  if (community) revalidatePath(`/communities/${community.slug}`);
+  return { success: true };
+}
+
+export async function moderateCommunityPostFromForm(formData: FormData): Promise<void> {
+  await moderateCommunityPost(formData);
+}
+
+export async function sendCommunityMessage(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const communityId = formData.get("communityId") as string;
+  const content = formData.get("content") as string;
+  if (!content?.trim()) return { error: "Message is required" };
+
+  const rl = rateLimit(`community-message:${user.id}:${communityId}`, 45, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Sending too fast. Please slow down." };
+  }
+
+  const [membership, community, members] = await Promise.all([
+    prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: user.id, communityId } },
+    }),
+    prisma.community.findUnique({ where: { id: communityId }, select: { id: true, slug: true, name: true } }),
+    prisma.communityMember.findMany({ where: { communityId }, select: { userId: true, role: true } }),
+  ]);
+
+  if (!membership) return { error: "Join the community to chat" };
+  if (!community) return { error: "Community not found" };
+
+  let thread = await prisma.messageThread.findFirst({
+    where: { title: communityThreadTitle(communityId), threadType: "community" },
+    select: { id: true },
+  });
+
+  if (!thread) {
+    thread = await prisma.messageThread.create({
+      data: {
+        title: communityThreadTitle(communityId),
+        threadType: "community",
+        sourcePlatform: "mesh",
+        isEncrypted: true,
+      },
+      select: { id: true },
+    });
+  }
+
+  for (const member of members) {
+    await prisma.threadMember.upsert({
+      where: { userId_threadId: { userId: member.userId, threadId: thread.id } },
+      update: {},
+      create: {
+        userId: member.userId,
+        threadId: thread.id,
+        role: member.role === "admin" || member.role === "moderator" ? member.role : "member",
+      },
+    });
+  }
+
+  await prisma.message.create({
+    data: {
+      content: sanitizeForDisplay(content.trim()).slice(0, 1200),
+      senderId: user.id,
+      threadId: thread.id,
+      sourcePlatform: "mesh",
+      messageType: "community",
+      metadata: JSON.stringify({ communityId, communityName: community.name }),
+    },
+  });
+
+  revalidatePath(`/communities/${community.slug}`);
+  revalidatePath("/messages");
+  return { success: true };
+}
+
+export async function sendCommunityMessageFromForm(formData: FormData): Promise<void> {
+  await sendCommunityMessage(formData);
+}
 
 export async function deleteComment(commentId: string) {
   const user = await getCurrentUser();
@@ -1460,22 +2855,107 @@ export async function setActiveTitle(title: string | null) {
 
 // ─── Meshi Customization Actions ────────────────────────────
 
-export async function updateMeshiPreference(data: { hatStyle?: string; faceStyle?: string; colorTheme?: string }) {
+const MESHI_OPTION_VALUES = {
+  hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"]),
+  faces: new Set(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", "searching", "learning", "celebrating", "shy", "giggle", "synergy1017"]),
+  colors: new Set(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]),
+  hairs: new Set(["none", "fluffy", "bangs", "spikes", "curls"]),
+  accessories: new Set(["none", "glasses", "sunglasses", "monocle"]),
+  eyes: new Set(["regular", "lashes"]),
+  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder"]),
+  outfits: new Set(["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit"]),
+};
+
+function cleanMeshiOption(value: string | undefined, allowed: Set<string>, fallback?: string) {
+  if (!value) return fallback;
+  const normalized = value.trim().toLowerCase();
+  return allowed.has(normalized) ? normalized : fallback;
+}
+
+type MeshiPreferenceUpdate = {
+  hatStyle?: string;
+  faceStyle?: string;
+  colorTheme?: string;
+  hairStyle?: string;
+  accessoryStyle?: string;
+  eyeStyle?: string;
+  badgeStyle?: string;
+  outfitStyle?: string;
+};
+
+const DEFAULT_MESHI_PREFERENCE = {
+  hatStyle: "none",
+  faceStyle: "happy",
+  colorTheme: "blue",
+  hairStyle: "none",
+  accessoryStyle: "none",
+  eyeStyle: "regular",
+  badgeStyle: "none",
+  outfitStyle: "none",
+};
+
+function findLockedMeshiOptionForFreeUser(next: Partial<Record<keyof MeshiPreferenceUpdate, string | undefined>>) {
+  const checks: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_MESHI_OPTIONS, string]> = [
+    ["hatStyle", "hats", "hat"],
+    ["faceStyle", "faces", "expression"],
+    ["colorTheme", "colors", "color"],
+    ["hairStyle", "hairs", "hair"],
+    ["accessoryStyle", "accessories", "accessory"],
+    ["eyeStyle", "eyes", "eyes"],
+    ["badgeStyle", "badges", "badge"],
+    ["outfitStyle", "outfits", "outfit"],
+  ];
+
+  return checks.find(([field, group]) => {
+    const value = next[field];
+    return value ? !isFreeMeshiOption(group, value) : false;
+  })?.[2];
+}
+
+export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+
+  const next = {
+    hatStyle: cleanMeshiOption(data.hatStyle, MESHI_OPTION_VALUES.hats),
+    faceStyle: cleanMeshiOption(data.faceStyle, MESHI_OPTION_VALUES.faces),
+    colorTheme: cleanMeshiOption(data.colorTheme, MESHI_OPTION_VALUES.colors),
+    hairStyle: cleanMeshiOption(data.hairStyle, MESHI_OPTION_VALUES.hairs),
+    accessoryStyle: cleanMeshiOption(data.accessoryStyle, MESHI_OPTION_VALUES.accessories),
+    eyeStyle: cleanMeshiOption(data.eyeStyle, MESHI_OPTION_VALUES.eyes),
+    badgeStyle: cleanMeshiOption(data.badgeStyle, MESHI_OPTION_VALUES.badges),
+    outfitStyle: cleanMeshiOption(data.outfitStyle, MESHI_OPTION_VALUES.outfits),
+  };
+
+  if (!user.isMeshPro) {
+    const lockedOption = findLockedMeshiOptionForFreeUser(next);
+    if (lockedOption) {
+      return { error: `Mesh Pro is required for that Meshi ${lockedOption}.` };
+    }
+  }
 
   await prisma.meshiPreference.upsert({
     where: { userId: user.id },
     update: {
-      hatStyle: data.hatStyle || undefined,
-      faceStyle: data.faceStyle || undefined,
-      colorTheme: data.colorTheme || undefined,
+      hatStyle: next.hatStyle,
+      faceStyle: next.faceStyle,
+      colorTheme: next.colorTheme,
+      hairStyle: next.hairStyle,
+      accessoryStyle: next.accessoryStyle,
+      eyeStyle: next.eyeStyle,
+      badgeStyle: next.badgeStyle,
+      outfitStyle: next.outfitStyle,
     },
     create: {
       userId: user.id,
-      hatStyle: data.hatStyle || "none",
-      faceStyle: data.faceStyle || "happy",
-      colorTheme: data.colorTheme || "blue",
+      hatStyle: next.hatStyle ?? DEFAULT_MESHI_PREFERENCE.hatStyle,
+      faceStyle: next.faceStyle ?? DEFAULT_MESHI_PREFERENCE.faceStyle,
+      colorTheme: next.colorTheme ?? DEFAULT_MESHI_PREFERENCE.colorTheme,
+      hairStyle: next.hairStyle ?? DEFAULT_MESHI_PREFERENCE.hairStyle,
+      accessoryStyle: next.accessoryStyle ?? DEFAULT_MESHI_PREFERENCE.accessoryStyle,
+      eyeStyle: next.eyeStyle ?? DEFAULT_MESHI_PREFERENCE.eyeStyle,
+      badgeStyle: next.badgeStyle ?? DEFAULT_MESHI_PREFERENCE.badgeStyle,
+      outfitStyle: next.outfitStyle ?? DEFAULT_MESHI_PREFERENCE.outfitStyle,
     },
   });
 
@@ -1492,7 +2972,7 @@ export async function getMeshiPreference() {
     where: { userId: user.id },
   });
 
-  return pref || { hatStyle: "none", faceStyle: "happy", colorTheme: "blue" };
+  return pref || DEFAULT_MESHI_PREFERENCE;
 }
 
 // Get another user's Meshi preference (for social Meshi on their mesh nodes)
@@ -1503,7 +2983,18 @@ export async function getUserMeshiPreference(userId: string) {
     where: { userId },
   });
 
-  return pref ? { hatStyle: pref.hatStyle, faceStyle: pref.faceStyle, colorTheme: pref.colorTheme } : null;
+  return pref
+    ? {
+        hatStyle: pref.hatStyle,
+        faceStyle: pref.faceStyle,
+        colorTheme: pref.colorTheme,
+        hairStyle: pref.hairStyle,
+        accessoryStyle: pref.accessoryStyle,
+        eyeStyle: pref.eyeStyle,
+        badgeStyle: pref.badgeStyle,
+        outfitStyle: pref.outfitStyle,
+      }
+    : null;
 }
 
 // ─── Mesh Cosmetics Actions ─────────────────────────────────
@@ -1511,6 +3002,7 @@ export async function getUserMeshiPreference(userId: string) {
 export async function updateMeshCosmetics(cosmetics: { type: string; value: string; isActive: boolean }[]) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+  if (!user.isMeshPro) return { error: "Mesh Pro is required for custom Mesh visuals." };
 
   await prisma.$transaction(async (tx) => {
     await tx.meshCosmetic.deleteMany({ where: { userId: user.id } });
@@ -1557,18 +3049,19 @@ export async function updateMeshPrivacy(data: {
       userId: user.id,
       meshVisibility: data.meshVisibility,
       branchOverrides: JSON.stringify(data.branchOverrides || {}),
-      showConnections: data.showConnections ?? true,
+      showConnections: data.showConnections ?? false,
       showStats: data.showStats ?? false,
     },
     update: {
       meshVisibility: data.meshVisibility,
       branchOverrides: JSON.stringify(data.branchOverrides || {}),
-      showConnections: data.showConnections ?? true,
+      showConnections: data.showConnections ?? false,
       showStats: data.showStats ?? false,
     },
   });
 
   revalidatePath("/settings");
+  revalidatePath("/privacy-controls");
   revalidatePath("/mesh");
   return { success: true };
 }

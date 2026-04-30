@@ -2,9 +2,25 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncPlatform } from "@/lib/platform-sync";
+import { isSameOriginRequest } from "@/lib/request-guard";
+import { canImportFromPlatform } from "@/lib/platform-capabilities";
+
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed", allowedMethods: ["POST"] },
+    {
+      status: 405,
+      headers: { Allow: "POST" },
+    },
+  );
+}
 
 // POST — automatically sync all connected accounts that haven't been synced recently
-export async function POST() {
+export async function POST(req: Request) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -22,7 +38,7 @@ export async function POST() {
     // Keep accounts close to real-time by syncing anything older than 45 seconds.
     const staleThreshold = new Date(Date.now() - 45 * 1000);
     const staleAccounts = accounts.filter(
-      (a) => a.syncStatus !== "syncing" && (!a.lastSyncAt || a.lastSyncAt < staleThreshold),
+      (a) => canImportFromPlatform(a.platform) && a.syncStatus !== "syncing" && (!a.lastSyncAt || a.lastSyncAt < staleThreshold),
     );
 
     if (staleAccounts.length === 0) {

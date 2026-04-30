@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 /** Detect actual image type from file magic bytes (ignores client-provided MIME) */
 function detectImageType(buf: Uint8Array): string | null {
@@ -12,6 +13,10 @@ function detectImageType(buf: Uint8Array): string | null {
 }
 
 export async function POST(req: Request) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -52,7 +57,11 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   try {
     const user = await getCurrentUser();
     if (!user) {

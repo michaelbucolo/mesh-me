@@ -4,8 +4,7 @@ import Link from "next/link";
 import { Bell, MessageCircle, Search, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openMeshi } from "@/lib/meshi-events";
-import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
-import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
 
 interface PremiumTopbarProps {
   unreadNotifications: number;
@@ -14,8 +13,6 @@ interface PremiumTopbarProps {
 }
 
 export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenCommandCenter }: PremiumTopbarProps) {
-  const meshiPrefs = useMeshiPreferences();
-
   return (
     <header className="sticky top-0 z-30 hidden shrink-0 border-b border-[var(--glass-border)] bg-[var(--glass-bg)]/80 px-5 py-2 backdrop-blur-2xl lg:block">
       <div className="flex items-center justify-end gap-2">
@@ -35,14 +32,7 @@ export function PremiumTopbar({ unreadNotifications, unreadMessages, onOpenComma
             className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
             title="Talk to Meshi"
           >
-            <MeshiMascot
-              size={16}
-              color={meshiPrefs.color}
-              hat={meshiPrefs.hat}
-              mood={meshiPrefs.face}
-              showGlow={false}
-              animate={false}
-            />
+            <MeshiPresenceGlyph size={16} />
           </button>
 
           <Link

@@ -1,201 +1,421 @@
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
-import { getAdminStats } from "@/lib/queries";
+import type { ComponentType } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users, FileText, Flag, TrendingUp, Clock, Activity, Hash } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Flag,
+  LockKeyhole,
+  MessageSquareWarning,
+  RadioTower,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+  XCircle,
+} from "lucide-react";
 import { AdminActions } from "./admin-actions";
-import { formatRelativeTime } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { getAdminDashboard } from "@/lib/admin-dashboard";
+import { cn, formatCount, formatRelativeTime } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Admin" };
+export const metadata: Metadata = {
+  title: "Admin",
+  description: "Role-gated Mesh.me admin console for users, moderation, communities, security, analytics, and launch readiness.",
+};
 
-export default async function AdminPage() {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) redirect("/feed");
+const statusStyles = {
+  pass: {
+    icon: CheckCircle2,
+    className: "border-[var(--ds-success-border)] bg-[var(--ds-success-bg)] text-[var(--ds-success)]",
+    label: "Ready",
+  },
+  warn: {
+    icon: AlertTriangle,
+    className: "border-[var(--ds-warning-border)] bg-[var(--ds-warning-bg)] text-[var(--ds-warning)]",
+    label: "Watch",
+  },
+  fail: {
+    icon: XCircle,
+    className: "border-[var(--ds-danger-border)] bg-[var(--ds-danger-bg)] text-[var(--ds-danger)]",
+    label: "Fix",
+  },
+};
 
-  const stats = await getAdminStats();
+const severityStyles = {
+  low: "border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--text-secondary)]",
+  medium: "border-[var(--ds-warning-border)] bg-[var(--ds-warning-bg)] text-[var(--ds-warning)]",
+  high: "border-[var(--ds-danger-border)] bg-[var(--ds-danger-bg)] text-[var(--ds-danger)]",
+};
+
+type AdminDashboardData = NonNullable<Awaited<ReturnType<typeof getAdminDashboard>>>;
+type LaunchCheck = AdminDashboardData["launchChecks"][number];
+
+function MetricCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  detail: string;
+  icon: ComponentType<{ className?: string }>;
+}) {
+  return (
+    <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">{label}</p>
+        <Icon className="h-5 w-5 text-[var(--accent)]" />
+      </div>
+      <p className="mt-3 text-3xl font-black tracking-[0] text-[var(--text-primary)]">{formatCount(value)}</p>
+      <p className="mt-1 text-xs text-[var(--text-secondary)]">{detail}</p>
+    </section>
+  );
+}
+
+function LaunchCheckCard({
+  check,
+}: {
+  check: LaunchCheck;
+}) {
+  const style = statusStyles[check.status];
+  const Icon = style.icon;
 
   return (
-    <div data-meshi-zone="admin" className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">
-      <div className="flex items-center gap-3 mb-8">
-        <MeshiLogo size={40} color="blue" mood="happy" />
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Admin Panel</h1>
-          <p className="text-xs text-[var(--text-muted)]">Platform overview and moderation</p>
-        </div>
-      </div>
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Total Users", value: stats.userCount, icon: Users, color: "text-[var(--accent)]", bg: "from-[var(--accent-subtle)] to-transparent", sub: `+${stats.recentSignups} this week` },
-          { label: "Total Posts", value: stats.postCount, icon: FileText, color: "text-[var(--accent)]", bg: "from-[var(--accent-subtle)] to-transparent", sub: `+${stats.recentPostCount} this week` },
-          { label: "Communities", value: stats.communityCount, icon: Hash, color: "text-cyan-400", bg: "from-cyan-500/10 to-cyan-500/5", sub: "active groups" },
-          { label: "Pending Reports", value: stats.reportCount, icon: Flag, color: stats.reportCount > 0 ? "text-red-400" : "text-emerald-400", bg: stats.reportCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", sub: stats.reportCount > 0 ? "needs attention" : "all clear" },
-        ].map((stat) => (
-          <div key={stat.label} className={`rounded-2xl border border-[var(--border-primary)] bg-gradient-to-br ${stat.bg} p-5`}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-[var(--text-tertiary)] font-medium">{stat.label}</span>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </div>
-            <p className="text-3xl font-bold text-[var(--text-primary)]">{stat.value.toLocaleString()}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">{stat.sub}</p>
+    <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
+      <div className="flex items-start gap-3">
+        <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-2xl border", style.className)}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-bold text-[var(--text-primary)]">{check.label}</p>
+            <Badge variant={check.status === "pass" ? "success" : check.status === "warn" ? "warning" : "danger"}>
+              {style.label}
+            </Badge>
           </div>
-        ))}
-      </div>
-
-      {/* Quick analytics row */}
-      <div className="grid lg:grid-cols-3 gap-4 mb-8">
-        <div className="rounded-2xl glass-card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="h-4 w-4 text-emerald-400" />
-            <h3 className="text-sm font-medium text-[var(--text-secondary)]">Growth (7d)</h3>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">New users</span>
-              <span className="text-sm font-medium text-[var(--text-primary)]">{stats.recentSignups}</span>
-            </div>
-            <div className="w-full h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ background: "var(--brand-gradient)", width: `${Math.min(100, (stats.recentSignups / Math.max(stats.userCount, 1)) * 100 * 10)}%` }} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">New posts</span>
-              <span className="text-sm font-medium text-[var(--text-primary)]">{stats.recentPostCount}</span>
-            </div>
-            <div className="w-full h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ background: "var(--brand-gradient)", width: `${Math.min(100, (stats.recentPostCount / Math.max(stats.postCount, 1)) * 100 * 10)}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl glass-card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Activity className="h-4 w-4" style={{ color: "var(--accent)" }} />
-            <h3 className="text-sm font-medium text-[var(--text-secondary)]">Platform Health</h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">Reports queue</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${stats.reportCount > 5 ? "bg-red-500/10 text-red-400" : stats.reportCount > 0 ? "bg-amber-500/10 text-amber-400" : "bg-emerald-500/10 text-emerald-400"}`}>
-                {stats.reportCount > 5 ? "High" : stats.reportCount > 0 ? "Moderate" : "Clear"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">Suspended users</span>
-              <span className="text-sm font-medium text-[var(--text-primary)]">{stats.recentUsers.filter((u: { isSuspended: boolean }) => u.isSuspended).length}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">Avg posts/user</span>
-              <span className="text-sm font-medium text-[var(--text-primary)]">{stats.userCount > 0 ? (stats.postCount / stats.userCount).toFixed(1) : "0"}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl glass-card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="h-4 w-4 text-amber-400" />
-            <h3 className="text-sm font-medium text-[var(--text-secondary)]">Recent Admin Actions</h3>
-          </div>
-          {stats.adminLogs.length > 0 ? (
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {stats.adminLogs.slice(0, 5).map((log: { id: string; action: string; details: string | null; createdAt: Date; admin: { username: string; displayName: string } }) => (
-                <div key={log.id} className="text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[var(--text-tertiary)] font-medium">{log.admin.displayName}</span>
-                    <span className="text-[var(--text-muted)]">{formatRelativeTime(log.createdAt)}</span>
-                  </div>
-                  <p className="text-[var(--text-muted)]">{log.action.replace(/_/g, " ")} - {log.details}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-[var(--text-muted)] text-center py-4">No admin actions yet</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* User management */}
-        <div className="rounded-2xl glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">User Management</h2>
-            <span className="text-xs text-[var(--text-muted)]">{stats.recentUsers.length} shown</span>
-          </div>
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {stats.recentUsers.map((u: { id: string; username: string; displayName: string; email: string; isSuspended: boolean; isAdmin: boolean; isVerified: boolean; createdAt: Date; _count: { posts: number; followers: number } }) => (
-              <div key={u.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors border-b border-[var(--border-primary)] last:border-0">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{u.displayName}</p>
-                    {u.isVerified && <svg className="h-3 w-3" style={{ color: "var(--accent)" }} viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                  </div>
-                  <p className="text-xs text-[var(--text-muted)]">@{u.username} &middot; {u.email}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[10px] text-[var(--text-muted)]">{u._count.posts} posts</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">{u._count.followers} followers</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">{formatRelativeTime(u.createdAt)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {u.isSuspended && (
-                    <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full">Suspended</span>
-                  )}
-                  {u.isAdmin && (
-                    <span className="text-[10px] bg-[var(--accent-subtle)] px-2 py-0.5 rounded-full" style={{ color: "var(--accent)" }}>Admin</span>
-                  )}
-                  <AdminActions type="user" id={u.id} isSuspended={u.isSuspended} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Moderation queue */}
-        <div className="rounded-2xl glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Moderation Queue</h2>
-            {stats.reportCount > 0 && (
-              <span className="text-xs bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full">{stats.reportCount} pending</span>
-            )}
-          </div>
-          {stats.recentReports.length > 0 ? (
-            <div className="space-y-3 max-h-[500px] overflow-y-auto">
-              {stats.recentReports.map((report: { id: string; reason: string; createdAt: Date; reporter: { username: string; displayName: string }; reportedUser: { username: string; displayName: string } | null; reportedPost: { id: string; content: string } | null; reportedComment: { id: string; content: string } | null }) => (
-                <div key={report.id} className="py-3 px-3 rounded-xl border border-[var(--border-primary)] hover:bg-[var(--bg-tertiary)] transition-colors">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[var(--text-primary)] font-medium">{report.reason}</p>
-                      <p className="text-xs text-[var(--text-muted)] mt-1">
-                        Reported by <span className="text-[var(--text-tertiary)]">@{report.reporter.username}</span>
-                        {report.reportedUser && <> about <span className="text-[var(--text-tertiary)]">@{report.reportedUser.username}</span></>}
-                      </p>
-                      {report.reportedPost && (
-                        <div className="mt-2 p-2 rounded-lg glass-surface/50">
-                          <p className="text-xs text-[var(--text-tertiary)] line-clamp-2">{report.reportedPost.content}</p>
-                        </div>
-                      )}
-                      {report.reportedComment && (
-                        <div className="mt-2 p-2 rounded-lg glass-surface/50">
-                          <p className="text-xs text-[var(--text-tertiary)] line-clamp-2">Comment: {report.reportedComment.content}</p>
-                        </div>
-                      )}
-                      <p className="text-[10px] text-[var(--text-muted)] mt-1">{formatRelativeTime(report.createdAt)}</p>
-                    </div>
-                    <AdminActions type="report" id={report.id} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Flag className="h-8 w-8 text-[var(--text-muted)] mx-auto mb-3" />
-              <p className="text-sm text-[var(--text-muted)]">No pending reports</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1">The community is behaving well</p>
-            </div>
-          )}
+          <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{check.description}</p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default async function AdminPage() {
+  const data = await getAdminDashboard();
+  if (!data) redirect("/feed");
+
+  const reportResolutionRate =
+    data.counts.totalReports > 0
+      ? Math.round(((data.counts.totalReports - data.counts.pendingReports) / data.counts.totalReports) * 100)
+      : 100;
+
+  return (
+    <main data-meshi-zone="admin" className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6">
+      <header className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent-subtle)]">
+              <MeshiLogo size={38} color="blue" mood="happy" />
+            </div>
+            <div>
+              <Badge variant="accent" className="mb-2">Role-gated admin</Badge>
+              <h1 className="text-3xl font-black tracking-[0] text-[var(--text-primary)]">Admin Panel</h1>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
+                Manage users, reports, communities, security alerts, analytics, and public launch readiness from one place.
+              </p>
+              <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                Signed in as {data.admin.displayName} (@{data.admin.username})
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/settings">
+                Security settings
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/communities">
+                Communities
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Users" value={data.counts.users} detail={`+${data.counts.recentSignups} this week`} icon={Users} />
+        <MetricCard label="Posts" value={data.counts.posts} detail={`+${data.counts.recentPosts} this week`} icon={BarChart3} />
+        <MetricCard label="Communities" value={data.counts.communities} detail={`${data.counts.publicCommunities} public, ${data.counts.privateCommunities} private`} icon={RadioTower} />
+        <MetricCard label="Pending reports" value={data.counts.pendingReports} detail={`${reportResolutionRate}% resolved all time`} icon={Flag} />
+      </section>
+
+      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-5">
+          <section id="moderation" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-xl font-black tracking-[0] text-[var(--text-primary)]">
+                  <MessageSquareWarning className="h-5 w-5 text-[var(--accent)]" />
+                  Moderation queue
+                </h2>
+                <p className="text-sm text-[var(--text-secondary)]">Review reports across users, posts, comments, and communities.</p>
+              </div>
+              <Badge variant={data.counts.pendingReports ? "warning" : "success"}>
+                {data.counts.pendingReports ? `${data.counts.pendingReports} pending` : "Clear"}
+              </Badge>
+            </div>
+
+            {data.recentReports.length ? (
+              <div className="grid gap-3">
+                {data.recentReports.map((report) => (
+                  <article key={report.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="warning">Report</Badge>
+                          <span className="text-xs text-[var(--text-tertiary)]">{formatRelativeTime(report.createdAt)}</span>
+                        </div>
+                        <p className="mt-2 text-sm font-bold text-[var(--text-primary)]">{report.reason}</p>
+                        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                          Reported by @{report.reporter.username}
+                          {report.reportedUser ? ` about @${report.reportedUser.username}` : ""}
+                          {report.reportedCommunity ? ` in ${report.reportedCommunity.name}` : ""}
+                        </p>
+                        {report.reportedPost ? (
+                          <div className="mt-3 rounded-2xl border border-[var(--ds-border)] bg-[var(--bg-primary)] p-3">
+                            <p className="line-clamp-3 text-xs leading-5 text-[var(--text-secondary)]">{report.reportedPost.content}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Button asChild variant="secondary" size="sm">
+                                <Link href={`/feed/${report.reportedPost.id}`}>Open post</Link>
+                              </Button>
+                              <AdminActions type="post" id={report.reportedPost.id} />
+                            </div>
+                          </div>
+                        ) : null}
+                        {report.reportedComment ? (
+                          <div className="mt-3 rounded-2xl border border-[var(--ds-border)] bg-[var(--bg-primary)] p-3">
+                            <p className="line-clamp-3 text-xs leading-5 text-[var(--text-secondary)]">Comment: {report.reportedComment.content}</p>
+                          </div>
+                        ) : null}
+                        {report.reportedCommunity ? (
+                          <div className="mt-3 rounded-2xl border border-[var(--ds-border)] bg-[var(--bg-primary)] p-3">
+                            <p className="text-xs font-bold text-[var(--text-primary)]">{report.reportedCommunity.name}</p>
+                            <Button asChild variant="secondary" size="sm" className="mt-2">
+                              <Link href={`/communities/${report.reportedCommunity.slug}`}>Open community</Link>
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                      <AdminActions type="report" id={report.id} />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[var(--ds-border)] p-8 text-center">
+                <ShieldCheck className="mx-auto h-9 w-9 text-[var(--ds-success)]" />
+                <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">No pending reports</p>
+                <p className="text-xs text-[var(--text-secondary)]">The moderation queue is clear.</p>
+              </div>
+            )}
+          </section>
+
+          <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-xl font-black tracking-[0] text-[var(--text-primary)]">
+                  <Users className="h-5 w-5 text-[var(--accent)]" />
+                  User management
+                </h2>
+                <p className="text-sm text-[var(--text-secondary)]">Suspend abusive users, inspect account activity, and confirm admin status.</p>
+              </div>
+              <Badge variant="secondary">{data.recentUsers.length} recent users</Badge>
+            </div>
+            <div className="grid gap-2">
+              {data.recentUsers.map((user) => (
+                <article key={user.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/profile/${user.username}`} className="text-sm font-bold text-[var(--text-primary)] hover:underline">
+                          {user.displayName}
+                        </Link>
+                        <span className="text-xs text-[var(--text-tertiary)]">@{user.username}</span>
+                        {user.isAdmin ? <Badge variant="accent">Admin</Badge> : null}
+                        {user.isSuspended ? <Badge variant="danger">Suspended</Badge> : null}
+                        {user.isVerified ? <Badge variant="success">Verified</Badge> : null}
+                      </div>
+                      <p className="mt-1 truncate text-xs text-[var(--text-secondary)]">{user.email}</p>
+                      <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                        {user._count.posts} posts · {user._count.followers} followers · {user._count.communityMemberships} communities · joined {formatRelativeTime(user.createdAt)}
+                      </p>
+                    </div>
+                    <AdminActions type="user" id={user.id} isSuspended={user.isSuspended} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+            <div className="mb-4">
+              <h2 className="flex items-center gap-2 text-xl font-black tracking-[0] text-[var(--text-primary)]">
+                <RadioTower className="h-5 w-5 text-[var(--accent)]" />
+                Community moderation
+              </h2>
+              <p className="text-sm text-[var(--text-secondary)]">Review public/private status, community reports, admins, and activity.</p>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+              {data.communities.map((community) => (
+                <article key={community.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/communities/${community.slug}`} className="truncate text-base font-bold text-[var(--text-primary)] hover:underline">
+                          {community.name}
+                        </Link>
+                        <Badge variant={community.isPublic ? "outline" : "warning"}>{community.isPublic ? "Public" : "Private"}</Badge>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--text-secondary)]">
+                        {community.description || "No description yet."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--text-tertiary)]">
+                    <span>{community._count.members} members</span>
+                    <span>{community._count.posts} posts</span>
+                    <span>{community._count.reports} reports</span>
+                    <span>Updated {formatRelativeTime(community.updatedAt)}</span>
+                  </div>
+                  <p className="mt-3 text-xs text-[var(--text-secondary)]">
+                    Admins: {community.members.length ? community.members.map((member) => member.user.displayName || member.user.username).join(", ") : "No listed admin"}
+                  </p>
+                  <div className="mt-4">
+                    <AdminActions type="community" id={community.id} isPublic={community.isPublic} reportCount={community._count.reports} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+          <section id="launch" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
+            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+              <Activity className="h-5 w-5 text-[var(--accent)]" />
+              Launch readiness
+            </h2>
+            <div className="mt-4 grid gap-3">
+              {data.launchChecks.map((check) => (
+                <LaunchCheckCard key={check.label} check={check} />
+              ))}
+            </div>
+          </section>
+
+          <section id="security" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
+            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+              <ShieldAlert className="h-5 w-5 text-[var(--accent)]" />
+              Security alerts
+            </h2>
+            <div className="mt-4 grid gap-3">
+              {data.securityAlerts.length ? (
+                data.securityAlerts.map((alert) => (
+                  <Link key={`${alert.title}-${alert.href}`} href={alert.href} className={cn("rounded-2xl border p-3 transition hover:-translate-y-0.5", severityStyles[alert.severity])}>
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        <p className="text-sm font-bold">{alert.title}</p>
+                        <p className="mt-1 text-xs leading-5 opacity-90">{alert.description}</p>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-[var(--ds-success-border)] bg-[var(--ds-success-bg)] p-4 text-sm text-[var(--ds-success)]">
+                  No active security alerts.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
+            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+              <BarChart3 className="h-5 w-5 text-[var(--accent)]" />
+              Platform analytics
+            </h2>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
+                <p className="text-xs text-[var(--text-tertiary)]">Active sessions</p>
+                <p className="mt-1 text-2xl font-black text-[var(--text-primary)]">{formatCount(data.counts.activeSessions)}</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
+                <p className="text-xs text-[var(--text-tertiary)]">Connected accounts</p>
+                <p className="mt-1 text-2xl font-black text-[var(--text-primary)]">{formatCount(data.counts.connectedAccounts)}</p>
+                <p className="text-xs text-[var(--text-secondary)]">{data.counts.erroredConnectedAccounts} need sync attention</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
+                <p className="text-xs text-[var(--text-tertiary)]">Verified users</p>
+                <p className="mt-1 text-2xl font-black text-[var(--text-primary)]">{formatCount(data.counts.verifiedUsers)}</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
+            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+              <Clock className="h-5 w-5 text-[var(--accent)]" />
+              Admin activity
+            </h2>
+            <div className="mt-4 max-h-[340px] space-y-3 overflow-y-auto pr-1">
+              {data.adminLogs.length ? (
+                data.adminLogs.map((log) => (
+                  <div key={log.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{log.action.replace(/_/g, " ")}</p>
+                    <p className="mt-1 text-xs text-[var(--text-secondary)]">{log.details || "No details"}</p>
+                    <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">
+                      {log.admin.displayName || log.admin.username} · {formatRelativeTime(log.createdAt)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="rounded-2xl border border-dashed border-[var(--ds-border)] p-4 text-sm text-[var(--text-secondary)]">
+                  No admin actions yet.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
+            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+              <LockKeyhole className="h-5 w-5 text-[var(--accent)]" />
+              Security actions
+            </h2>
+            <div className="mt-4 grid gap-2">
+              {data.recentSecurityLogs.length ? (
+                data.recentSecurityLogs.map((log) => (
+                  <div key={log.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{log.action.replace(/_/g, " ")}</p>
+                    <p className="mt-1 text-xs text-[var(--text-secondary)]">{log.details || "No details"}</p>
+                    <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">{formatRelativeTime(log.createdAt)}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-[var(--text-secondary)]">No security actions in the last 30 days.</p>
+              )}
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
   );
 }

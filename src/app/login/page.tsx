@@ -1,26 +1,39 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LoginForm } from "@/components/auth/login-form";
+import type { Metadata } from "next";
+import { MeshEntryExperience } from "@/components/auth/mesh-entry-experience";
 import { getCurrentUserRedirectState } from "@/lib/auth";
+import { meshBrand } from "@/lib/brand";
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<{ next?: string | string[] }>;
+};
+
+export const metadata: Metadata = {
+  title: "Enter your world",
+  description: `Sign in to ${meshBrand.name}. ${meshBrand.motto}.`,
+};
+
+function getSafeNextPath(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  try {
+    const parsed = new URL(raw, "https://mesh.me");
+    if (parsed.origin !== "https://mesh.me") return null;
+    if (parsed.pathname === "/login" || parsed.pathname === "/signup" || parsed.pathname === "/reset-password") {
+      return null;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const nextPath = getSafeNextPath(params?.next);
   const user = await getCurrentUserRedirectState();
-  if (user?.onboarded) redirect("/mesh");
+  if (user?.onboarded) redirect(nextPath || "/mesh");
   if (user && !user.onboarded) redirect("/onboarding");
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4 py-10">
-      <section className="w-full max-w-md rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6 shadow-[var(--shadow-lg)] sm:p-8">
-        <div className="mb-6 text-center">
-          <Link href="/" className="brand-wordmark text-2xl text-[var(--text-primary)]">
-            mesh<span className="brand-wordmark-accent">.me</span>
-          </Link>
-          <h1 className="mt-5 text-3xl font-black tracking-tight text-[var(--text-primary)]">Welcome back</h1>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">Log in to get straight into your account.</p>
-        </div>
-
-        <LoginForm />
-      </section>
-    </main>
-  );
+  return <MeshEntryExperience nextPath={nextPath} />;
 }

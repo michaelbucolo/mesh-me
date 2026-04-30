@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-function normalizeScopes(scopes: string | null | undefined): string[] {
-  return Array.from(new Set((scopes ?? "").split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean)));
-}
+import { isSameOriginRequest } from "@/lib/request-guard";
+import { normalizeScopes, syncConnectedAccountPermissions } from "@/lib/platform-permissions";
+import { getDefaultPermissionKeysForPlatform } from "@/lib/platform-adapters";
 
 // PATCH — update alter ego association or label
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -74,98 +77,33 @@ export async function PATCH(
   const updated = await prisma.connectedAccount.update({
     where: { id },
     data: updateData,
+    select: {
+      id: true,
+      platform: true,
+      platformUsername: true,
+      isActive: true,
+      syncStatus: true,
+      syncError: true,
+      lastSyncAt: true,
+      scopes: true,
+      alterEgoId: true,
+      accountLabel: true,
+      updatedAt: true,
+    },
   });
 
   if ("scopes" in body || "isActive" in body) {
     const scopes = normalizeScopes(updated.scopes);
-    const placeholders = scopes.map(() => "?").join(", ");
-
+    const permissionKeys = scopes.length > 0 ? scopes : getDefaultPermissionKeysForPlatform(updated.platform);
     await prisma.$transaction(async (tx) => {
-      if (scopes.length > 0) {
-        await tx.$executeRawUnsafe(
-          `
-          UPDATE "PlatformPermission"
-          SET "permissionState" = 'revoked',
-              "revokedAt" = CURRENT_TIMESTAMP,
-              "updatedAt" = CURRENT_TIMESTAMP
-          WHERE "userId" = ?
-            AND "connectedAccountId" = ?
-            AND "permissionKey" NOT IN (${placeholders});
-          `,
-          user.id,
-          id,
-          ...scopes,
-        );
-
-        for (const scope of scopes) {
-          await tx.$executeRawUnsafe(
-            `
-            INSERT INTO "PlatformPermission" (
-              "id",
-              "userId",
-              "connectedAccountId",
-              "platform",
-              "permissionKey",
-              "permissionState",
-              "grantedAt",
-              "source",
-              "metadata",
-              "createdAt",
-              "updatedAt"
-            )
-            SELECT lower(hex(randomblob(16))), ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'oauth_scope', '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-            WHERE NOT EXISTS (
-              SELECT 1 FROM "PlatformPermission"
-              WHERE "userId" = ?
-                AND "connectedAccountId" = ?
-                AND "platform" = ?
-                AND "permissionKey" = ?
-            );
-            `,
-            user.id,
-            id,
-            updated.platform,
-            scope,
-            updated.isActive ? "granted" : "revoked",
-            user.id,
-            id,
-            updated.platform,
-            scope,
-          );
-
-          await tx.$executeRawUnsafe(
-            `
-            UPDATE "PlatformPermission"
-            SET "permissionState" = ?,
-                "revokedAt" = CASE WHEN ? = 'revoked' THEN CURRENT_TIMESTAMP ELSE NULL END,
-                "updatedAt" = CURRENT_TIMESTAMP
-            WHERE "userId" = ?
-              AND "connectedAccountId" = ?
-              AND "platform" = ?
-              AND "permissionKey" = ?;
-            `,
-            updated.isActive ? "granted" : "revoked",
-            updated.isActive ? "granted" : "revoked",
-            user.id,
-            id,
-            updated.platform,
-            scope,
-          );
-        }
-      } else {
-        await tx.$executeRawUnsafe(
-          `
-          UPDATE "PlatformPermission"
-          SET "permissionState" = 'revoked',
-              "revokedAt" = CURRENT_TIMESTAMP,
-              "updatedAt" = CURRENT_TIMESTAMP
-          WHERE "userId" = ?
-            AND "connectedAccountId" = ?;
-          `,
-          user.id,
-          id,
-        );
-      }
+      await syncConnectedAccountPermissions(tx, {
+        userId: user.id,
+        connectedAccountId: id,
+        platform: updated.platform,
+        scopes: permissionKeys,
+        isActive: updated.isActive,
+        source: scopes.length > 0 ? "oauth_scope" : "manual_connection",
+      });
     });
   }
 
@@ -173,9 +111,13 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -191,7 +133,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  await prisma.connectedAccount.delete({ where: { id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.platformPermission.deleteMany({
+      where: { userId: user.id, connectedAccountId: id },
+    });
+    await tx.connectedAccount.delete({ where: { id } });
+  });
 
   return NextResponse.json({ success: true });
 }

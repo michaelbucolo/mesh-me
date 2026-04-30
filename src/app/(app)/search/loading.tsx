@@ -1,18 +1,5 @@
-import { MeshiFunLoadingScreen } from "@/components/meshi/meshi-loading";
+import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
 
 export default function Loading() {
-  return (
-    <MeshiFunLoadingScreen
-      title="Search"
-      subtitle="Meshi is processing your search context."
-      mode="default"
-      progressLabel="Results prepared"
-      steps={[
-        "Indexing your query",
-        "Searching people and posts",
-        "Ranking relevance",
-        "Preparing result cards",
-      ]}
-    />
-  );
+  return <RouteLoadingPersonality personality="search" />;
 }

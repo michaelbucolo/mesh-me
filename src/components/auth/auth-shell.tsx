@@ -1,8 +1,10 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { Lock, ShieldCheck, Waypoints } from "lucide-react";
-import { MeshBackground } from "@/components/mesh-background";
-import { MeshiLogo } from "@/components/meshi/meshi-mascot";
+import { ShieldCheck } from "lucide-react";
+import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
+import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
+import { meshBrand } from "@/lib/brand";
+
+const trustChips = ["Account required", "No ads", "Private by default"];
 
 export function AuthShell({
   title,
@@ -14,46 +16,29 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[var(--bg-primary)]">
-      <MeshBackground density={58} className="opacity-30" />
-      <div className="pointer-events-none absolute inset-0 mesh-grid-bg opacity-[0.14]" />
-
-      <div className="relative z-10 grid min-h-screen gap-10 px-4 py-6 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:px-8">
-        <section className="flex min-h-[16rem] flex-col justify-between rounded-[2rem] border border-[var(--glass-card-border)] bg-[linear-gradient(180deg,rgba(0,210,255,0.08),transparent_35%),var(--glass-card-bg)] p-6 md:p-8">
-          <div>
-            <Link href="/" className="inline-flex items-center gap-3">
-              <MeshiLogo size={38} color="blue" mood="happy" />
-              <div>
-                <p className="brand-wordmark text-xl text-[var(--text-primary)]">
-                  Mesh<span className="brand-wordmark-accent">.me</span>
-                </p>
-                <p className="text-xs font-semibold text-[var(--text-muted)]">Your World, Your Way</p>
-              </div>
-            </Link>
-          </div>
-
-          <div className="max-w-xl py-8">
-            <p className="mesh-kicker mb-4">Account access</p>
-            <h1 className="text-4xl font-bold text-[var(--text-primary)] md:text-5xl">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-[var(--text-secondary)] md:text-base">{description}</p>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            {[
-              { icon: Lock, title: "Private login", copy: "Account recovery, verification, and platform tokens stay under user control." },
-              { icon: ShieldCheck, title: "Trust first", copy: "The same privacy model follows the user from signup into settings and analytics." },
-              { icon: Waypoints, title: "Fast entry", copy: "Join quickly, then grow the Mesh after account creation instead of front-loading complexity." },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4">
-                <item.icon className="mb-3 h-4 w-4 text-[var(--accent)]" />
-                <h2 className="text-sm font-bold text-[var(--text-primary)]">{item.title}</h2>
-                <p className="mt-2 text-xs leading-6 text-[var(--text-secondary)]">{item.copy}</p>
-              </div>
+    <main className="mesh-aurora auth-shell relative isolate h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--text-primary)]">
+      <DeferredMeshBackground fixed interactive density={34} mouseInfluence={0.48} className="mesh-field-auth" delayMs={420} />
+      <div className="pointer-events-none fixed inset-0 mesh-soft-grid mesh-soft-grid-elegant" aria-hidden="true" />
+      <div className="pointer-events-none fixed inset-0 mesh-shell-vignette" aria-hidden="true" />
+      <div className="auth-shell-grid relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl grid-cols-1 content-center gap-4 overflow-hidden px-4 py-3 sm:gap-5 md:grid-cols-[0.68fr_1fr] md:items-center md:px-6 lg:grid-cols-[0.78fr_1fr] lg:gap-10 xl:px-8">
+        <section className="mesh-pop-in min-w-0">
+          <MeshiBrandLockup href="/" size={32} label={meshBrand.name} subtitle={`${meshBrand.meshi.name} is your identity`} className="text-base sm:text-lg" />
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold text-emerald-100 sm:py-2 sm:text-sm">
+            <ShieldCheck size={15} aria-hidden="true" />
+            Privacy first
+          </p>
+          <h1 className="mt-4 text-3xl font-black leading-[1.04] tracking-[0] sm:mt-7 sm:text-4xl lg:text-5xl xl:text-6xl">{title}</h1>
+          <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)] sm:mt-3 lg:text-base lg:leading-7">{description}</p>
+          <div className="mt-4 hidden max-w-md flex-wrap gap-2 text-xs font-bold text-[var(--text-secondary)] sm:flex">
+            {trustChips.map((item) => (
+              <span key={item} className="mesh-step rounded-md px-3 py-2">{item}</span>
             ))}
           </div>
         </section>
 
-        <section className="relative">{children}</section>
+        <section className="mesh-pop-in mesh-delay-2 min-w-0">
+          {children}
+        </section>
       </div>
     </main>
   );

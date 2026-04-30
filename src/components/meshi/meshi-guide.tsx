@@ -17,16 +17,16 @@ interface GuideStep {
 const ONBOARDING_STEPS: GuideStep[] = [
   {
     title: "Welcome to mesh.me!",
-    description: "I'm Meshi, your personal guide to the mesh. Let me show you how everything works so you feel right at home.",
+    description: "I'm Meshi. I follow you through Mesh.me and help when you need it.",
     mood: "excited",
     icon: Sparkles,
   },
   {
     title: "The Mesh — your digital universe",
-    description: "The Mesh is an interactive constellation of everything connected to you — people, communities, platforms, and interests. It's your home base.",
+    description: "The Mesh shows your people, posts, platforms, and communities in one place.",
     mood: "excited",
     icon: Eye,
-    detail: "Click any node to interact with it. You can message people, view posts, join communities, and manage platforms — all from the Mesh. Click on someone to zoom into their mesh too!",
+    detail: "Click any node to view it, message someone, join a community, or manage a platform. Meshi stays nearby so help is one tap away.",
   },
   {
     title: "MeChat — all messages, one place",
@@ -100,7 +100,7 @@ const SETTINGS_TIPS: Record<string, { message: string; mood: MeshiMood }> = {
     mood: "love",
   },
   meshi: {
-    message: "This is my customization page! MeshPro members can give me hats, change my color, and pick my face. I'll look however you want!",
+    message: "This is where you customize me. Pick the look, face, and style that feels like you.",
     mood: "love",
   },
   cosmetics: {
@@ -159,6 +159,11 @@ export function MeshiOnboardingGuide({ onComplete }: MeshiOnboardingGuideProps) 
             mood={currentStep.mood}
             color={meshiPrefs.color}
             hat={meshiPrefs.hat}
+            hair={meshiPrefs.hair}
+            accessory={meshiPrefs.accessory}
+            eyeStyle={meshiPrefs.eye}
+            badge={meshiPrefs.badge}
+            outfit={meshiPrefs.outfit}
             speaking={true}
             animate
             bouncy
@@ -255,7 +260,7 @@ export function MeshiSettingsTip({ tab }: { tab: string }) {
       exit={{ opacity: 0, y: -10 }}
       className="flex items-start gap-3 p-3 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 mb-4"
     >
-      <MeshiMascot size={32} mood={tip.mood} color={meshiPrefs.color} hat={meshiPrefs.hat} animate={false} showGlow={false} />
+      <MeshiMascot size={32} mood={tip.mood} color={meshiPrefs.color} hat={meshiPrefs.hat} hair={meshiPrefs.hair} accessory={meshiPrefs.accessory} eyeStyle={meshiPrefs.eye} badge={meshiPrefs.badge} outfit={meshiPrefs.outfit} animate={false} showGlow={false} />
       <div className="flex-1 min-w-0">
         <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{tip.message}</p>
       </div>

@@ -72,6 +72,11 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
           color={meshiPrefs.appLogo === "custom" ? meshiPrefs.appLogoColor : "blue"}
           mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
           hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
+          hair={meshiPrefs.appLogo === "custom" ? meshiPrefs.hair : "none"}
+          accessory={meshiPrefs.appLogo === "custom" ? meshiPrefs.accessory : "none"}
+          eyeStyle={meshiPrefs.appLogo === "custom" ? meshiPrefs.eye : "regular"}
+          badge={meshiPrefs.appLogo === "custom" ? meshiPrefs.badge : "none"}
+          outfit={meshiPrefs.appLogo === "custom" ? meshiPrefs.outfit : "none"}
           animate
           showGlow={false}
           bouncy
@@ -162,6 +167,11 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
                 color={meshiPrefs.color}
                 hat={meshiPrefs.hat}
                 mood={meshiPrefs.face}
+                hair={meshiPrefs.hair}
+                accessory={meshiPrefs.accessory}
+                eyeStyle={meshiPrefs.eye}
+                badge={meshiPrefs.badge}
+                outfit={meshiPrefs.outfit}
                 showGlow={false}
                 animate={false}
               />

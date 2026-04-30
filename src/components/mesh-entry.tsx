@@ -76,8 +76,8 @@ function BackButton({ onClick }: { onClick: () => void }) {
 
 function PasswordStrength({ password }: { password: string }) {
   let score = 0;
-  if (password.length >= 8) score++;
   if (password.length >= 12) score++;
+  if (/[a-z]/.test(password)) score++;
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
@@ -176,7 +176,7 @@ export function MeshEntry() {
       showMeshiSpeech(`Hey @${val}! Enter your password.`, "wink", 5000);
       setStep("login-password");
     } else {
-      if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+      if (password.length < 12) { setError("Password must be at least 12 characters"); return; }
       setError("");
       showMeshiSpeech(`Nice, @${val}! Now your email.`, "love");
       setStep("email");
@@ -402,8 +402,8 @@ export function MeshEntry() {
                   <>
                     <div className="relative">
                       <input type={showPassword ? "text" : "password"} value={password}
-                        placeholder="Password (8+ characters)" autoComplete="new-password"
-                        className={inputClass + " pr-10 text-center"} minLength={8}
+                        placeholder="Password (12+ characters)" autoComplete="new-password"
+                        className={inputClass + " pr-10 text-center"} minLength={12}
                         style={{ border: "1px solid var(--border-primary)", color: "var(--text-primary)" }}
                         onChange={(e) => setPassword(e.target.value)} />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}

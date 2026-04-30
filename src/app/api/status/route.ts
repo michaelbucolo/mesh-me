@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 const VALID_STATUSES = ["online", "dnd", "busy", "offline"] as const;
 
@@ -23,6 +24,10 @@ export async function GET() {
 
 // PUT to update status
 export async function PUT(req: NextRequest) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

@@ -1,18 +1,5 @@
-import { MeshiFunLoadingScreen } from "@/components/meshi/meshi-loading";
+import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
 
 export default function Loading() {
-  return (
-    <MeshiFunLoadingScreen
-      title="Connected Accounts"
-      subtitle="Meshi is syncing your connected platforms."
-      mode="default"
-      progressLabel="Accounts synced"
-      steps={[
-        "Loading linked platforms",
-        "Verifying token health",
-        "Fetching latest sync status",
-        "Preparing connection controls",
-      ]}
-    />
-  );
+  return <RouteLoadingPersonality personality="connected-accounts" />;
 }

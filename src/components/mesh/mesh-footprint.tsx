@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { X, Users, Heart, FileText, Link2, Shield, Lock } from "lucide-react";
 import Link from "next/link";
-import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, type MeshiAccessory, type MeshiBadge, type MeshiColor, type MeshiEyeStyle, type MeshiHair, type MeshiHat, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
 
 interface MeshFootprintProps {
   meshStats: {
@@ -17,10 +17,15 @@ interface MeshFootprintProps {
   };
   meshiColor: MeshiColor;
   meshiHat: MeshiHat;
+  meshiHair?: MeshiHair;
+  meshiAccessory?: MeshiAccessory;
+  meshiEyeStyle?: MeshiEyeStyle;
+  meshiBadge?: MeshiBadge;
+  meshiOutfit?: MeshiOutfit;
   onClose: () => void;
 }
 
-export function MeshFootprint({ meshStats, meshiColor, meshiHat, onClose }: MeshFootprintProps) {
+export function MeshFootprint({ meshStats, meshiColor, meshiHat, meshiHair = "none", meshiAccessory = "none", meshiEyeStyle = "regular", meshiBadge = "none", meshiOutfit = "none", onClose }: MeshFootprintProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -33,15 +38,15 @@ export function MeshFootprint({ meshStats, meshiColor, meshiHat, onClose }: Mesh
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <MeshiMascot size={28} color={meshiColor} mood="happy" hat={meshiHat} animate showGlow={false} />
+            <MeshiMascot size={28} color={meshiColor} mood="happy" hat={meshiHat} hair={meshiHair} accessory={meshiAccessory} eyeStyle={meshiEyeStyle} badge={meshiBadge} outfit={meshiOutfit} animate showGlow={false} />
             <div>
               <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Digital Footprint</h3>
               <p className="text-[10px] text-[var(--text-muted)]">Everything in your mesh at a glance</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
-            <X className="h-4 w-4" />
-          </button>
+        <button type="button" onClick={onClose} aria-label="Close digital footprint" className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+          <X className="h-4 w-4" />
+        </button>
         </div>
 
         {/* Stats grid */}

@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { buildAppMigrationPlan, getSupportedLegacyApps, type LegacyAppKey } from "@/lib/super-app-migration";
 import { getCachedSuperAppReadinessReport } from "@/lib/super-app-readiness";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 export async function GET() {
   return NextResponse.json({ apps: getSupportedLegacyApps() });
 }
 
 export async function POST(req: NextRequest) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

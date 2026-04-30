@@ -1,12 +1,16 @@
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
-import { v4 as uuidv4 } from "uuid";
 
 const SESSION_COOKIE = "__Host-mesh_session";
 const LEGACY_SESSION_COOKIE = "mesh_session";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
-const SESSION_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SESSION_ID_REGEX = /^(?:[0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
+
+function activeSessionCookieName() {
+  return process.env.NODE_ENV === "production" ? SESSION_COOKIE : LEGACY_SESSION_COOKIE;
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -17,7 +21,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function createSession(userId: string): Promise<string> {
-  const sessionId = uuidv4();
+  const sessionId = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE);
 
   // Store session in database (works on serverless/Vercel)
@@ -30,7 +34,8 @@ export async function createSession(userId: string): Promise<string> {
   });
 
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, sessionId, {
+  const cookieName = activeSessionCookieName();
+  cookieStore.set(cookieName, sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -38,8 +43,7 @@ export async function createSession(userId: string): Promise<string> {
     path: "/",
   });
 
-  // Clear legacy cookie name if it still exists
-  cookieStore.delete(LEGACY_SESSION_COOKIE);
+  cookieStore.delete(cookieName === SESSION_COOKIE ? LEGACY_SESSION_COOKIE : SESSION_COOKIE);
 
   return sessionId;
 }

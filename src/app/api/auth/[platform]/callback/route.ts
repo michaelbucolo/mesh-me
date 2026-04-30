@@ -11,8 +11,17 @@ import {
   resolveNestedPath,
   isPlatformOAuth,
 } from "@/lib/oauth";
+import { serializeScopes, syncConnectedAccountPermissions } from "@/lib/platform-permissions";
 import { encryptSecret, hasSecretEncryptionKey } from "@/lib/secret-store";
 import { cookies } from "next/headers";
+import { timingSafeEqual } from "crypto";
+
+function safeStateEquals(storedState: string, incomingState: string) {
+  if (storedState.length > 256 || incomingState.length > 256) return false;
+  const stored = Buffer.from(storedState);
+  const incoming = Buffer.from(incomingState);
+  return stored.length === incoming.length && timingSafeEqual(stored, incoming);
+}
 
 export async function GET(
   request: Request,
@@ -64,7 +73,7 @@ export async function GET(
 
   // Verify state for CSRF protection
   const storedState = cookieStore.get(oauthStateCookie)?.value || cookieStore.get(legacyOauthStateCookie)?.value;
-  if (!storedState || storedState !== state) {
+  if (!storedState || !safeStateEquals(storedState, state)) {
     return NextResponse.redirect(
       `${connectedAccountsUrl}?error=${encodeURIComponent("Invalid state parameter. Please try again.")}&platform=${encodedPlatform}`
     );
@@ -113,11 +122,11 @@ export async function GET(
       Accept: "application/json",
     };
 
-    // Reddit uses HTTP Basic Auth for token exchange
-    if (platform === "reddit") {
+    // Some providers require HTTP Basic Auth for token exchange.
+    if (config.tokenAuthMethod === "client_secret_basic" || platform === "reddit") {
       const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
       tokenHeaders.Authorization = `Basic ${credentials}`;
-      delete tokenParams.client_id;
+      delete tokenParams[clientIdParamName];
       delete tokenParams.client_secret;
     }
 
@@ -138,6 +147,7 @@ export async function GET(
     const refreshToken = tokenData.refresh_token || null;
     const expiresIn = tokenData.expires_in;
     const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
+    const grantedScopes = serializeScopes(tokenData.scope || tokenData.scopes || config.scopes);
 
     if (!accessToken) {
       return NextResponse.redirect(
@@ -196,9 +206,12 @@ export async function GET(
       );
 
       // Extract platform-specific ID
-      const idField = (profile as Record<string, unknown>).id;
+      const idField = getNestedField(
+        profile as Record<string, unknown>,
+        config.idField || "id"
+      );
       if (idField) {
-        platformId = String(idField);
+        platformId = idField;
       }
     }
 
@@ -221,32 +234,48 @@ export async function GET(
       where: { userId: user.id, platform, ...(platformId ? { platformId } : {}) },
     });
 
-    if (existingAccount) {
-      await prisma.connectedAccount.update({
-        where: { id: existingAccount.id },
-        data: {
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresAt,
-          platformUsername,
-          platformId,
-          isActive: true,
-          updatedAt: new Date(),
-        },
+    const connectedAccount = await prisma.$transaction(async (tx) => {
+      const account = existingAccount
+        ? await tx.connectedAccount.update({
+            where: { id: existingAccount.id },
+            data: {
+              accessToken: encryptedAccessToken,
+              refreshToken: encryptedRefreshToken,
+              expiresAt,
+              platformUsername,
+              platformId,
+              scopes: grantedScopes,
+              isActive: true,
+              updatedAt: new Date(),
+            },
+          })
+        : await tx.connectedAccount.create({
+            data: {
+              userId: user.id,
+              platform,
+              accessToken: encryptedAccessToken,
+              refreshToken: encryptedRefreshToken,
+              expiresAt,
+              platformUsername,
+              platformId,
+              scopes: grantedScopes,
+              isActive: true,
+            },
+          });
+
+      await syncConnectedAccountPermissions(tx, {
+        userId: user.id,
+        connectedAccountId: account.id,
+        platform,
+        scopes: grantedScopes,
+        isActive: true,
       });
-    } else {
-      await prisma.connectedAccount.create({
-        data: {
-          userId: user.id,
-          platform,
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresAt,
-          platformUsername,
-          platformId,
-          isActive: true,
-        },
-      });
+
+      return account;
+    });
+
+    if (!connectedAccount.id) {
+      throw new Error("Connected account was not saved");
     }
 
     return NextResponse.redirect(

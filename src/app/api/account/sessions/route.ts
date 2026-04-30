@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 const SESSION_COOKIE = "__Host-mesh_session";
 const LEGACY_SESSION_COOKIE = "mesh_session";
@@ -26,13 +27,20 @@ export async function GET() {
   const totalSessions = await prisma.session.count({ where: { userId: session.userId } });
 
   return NextResponse.json({
-    currentSessionId,
-    sessions,
+    sessions: sessions.map((item) => ({
+      createdAt: item.createdAt,
+      expiresAt: item.expiresAt,
+      isCurrent: item.id === currentSessionId,
+    })),
     totalSessions,
   });
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 

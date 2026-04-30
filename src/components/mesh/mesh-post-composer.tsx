@@ -13,16 +13,6 @@ interface MeshPostComposerProps {
 export function MeshPostComposer({ connectedPlatforms, onClose }: MeshPostComposerProps) {
   const router = useRouter();
   const [postContent, setPostContent] = useState("");
-  const [crossPostPlatforms, setCrossPostPlatforms] = useState<Set<string>>(new Set());
-
-  const togglePlatform = (id: string) => {
-    setCrossPostPlatforms((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const handlePublish = async () => {
     if (!postContent.trim()) return;
@@ -49,50 +39,48 @@ export function MeshPostComposer({ connectedPlatforms, onClose }: MeshPostCompos
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold text-[var(--text-primary)]">Create Post</h3>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
-              <X className="h-4 w-4" />
-            </button>
+          <button type="button" onClick={onClose} aria-label="Close post composer" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+            <X className="h-4 w-4" />
+          </button>
           </div>
 
           <textarea
             value={postContent}
             onChange={(e) => setPostContent(e.target.value)}
-            placeholder="What's on your mind? Share it across your mesh..."
+            placeholder="What's on your mind? Post it to Mesh.me..."
             className="w-full h-32 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all"
             autoFocus
           />
 
-          {/* Cross-post to connected platforms */}
+          {/* Connected source status */}
           {connectedPlatforms.length > 0 && (
             <div className="mt-3">
               <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-2 flex items-center gap-1">
-                <Share2 className="h-3 w-3" /> Also post to
+                <Share2 className="h-3 w-3" /> Connected sources
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {connectedPlatforms.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => togglePlatform(p.id)}
-                    className={"flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border " + (
-                      crossPostPlatforms.has(p.id)
-                        ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
-                        : "border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-                    )}
+                    type="button"
+                    disabled
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border border-[var(--border-primary)] text-[var(--text-muted)] opacity-80"
+                    title="External publishing is disabled until this source grants official publishing API access."
                   >
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
                     {p.label}
                   </button>
                 ))}
               </div>
+              <p className="mt-2 text-[10px] text-[var(--text-muted)]">
+                External publishing only appears when the source platform grants official posting permissions.
+              </p>
             </div>
           )}
 
           <div className="flex items-center justify-between mt-4">
             <p className="text-[10px] text-[var(--text-muted)]">
               {postContent.length}/500 characters
-              {crossPostPlatforms.size > 0 && (
-                <span className="ml-2 text-[var(--accent)]">+ {crossPostPlatforms.size} platform{crossPostPlatforms.size !== 1 ? "s" : ""}</span>
-              )}
             </p>
             <div className="flex gap-2">
               <button
