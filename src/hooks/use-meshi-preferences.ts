@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { MeshiAccessory, MeshiColor, MeshiHair, MeshiHat, MeshiMood } from "@/components/meshi/meshi-mascot";
+import type {
+  MeshiAccessory,
+  MeshiBadge,
+  MeshiColor,
+  MeshiEyeStyle,
+  MeshiHair,
+  MeshiHat,
+  MeshiMood,
+  MeshiOutfit,
+} from "@/components/meshi/meshi-mascot";
 import { getMeshiPreference } from "@/lib/actions";
 
 export interface MeshiPreferences {
@@ -10,6 +19,9 @@ export interface MeshiPreferences {
   face: MeshiMood;
   hair: MeshiHair;
   accessory: MeshiAccessory;
+  eye: MeshiEyeStyle;
+  badge: MeshiBadge;
+  outfit: MeshiOutfit;
   enabled: boolean;
   appLogo: "default" | "custom";
   appLogoColor: MeshiColor;
@@ -24,6 +36,9 @@ const STORAGE_KEYS = {
   face: "meshiFace",
   hair: "meshiHair",
   accessory: "meshiAccessory",
+  eye: "meshiEye",
+  badge: "meshiBadge",
+  outfit: "meshiOutfit",
   enabled: "meshiEnabled",
   appLogo: "meshiAppLogo",
   appLogoColor: "meshiAppLogoColor",
@@ -36,6 +51,9 @@ const DEFAULTS: MeshiPreferences = {
   face: "happy",
   hair: "none",
   accessory: "none",
+  eye: "regular",
+  badge: "none",
+  outfit: "none",
   enabled: true,
   appLogo: "default",
   appLogoColor: "blue",
@@ -49,12 +67,17 @@ function canUseStorage() {
 function readMeshiPreferencesFromStorage(): MeshiPreferences {
   if (!canUseStorage()) return DEFAULTS;
 
+  const storedAccessory = localStorage.getItem(STORAGE_KEYS.accessory);
+
   return {
     color: (localStorage.getItem(STORAGE_KEYS.color) as MeshiColor) || DEFAULTS.color,
     hat: (localStorage.getItem(STORAGE_KEYS.hat) as MeshiHat) || DEFAULTS.hat,
     face: (localStorage.getItem(STORAGE_KEYS.face) as MeshiMood) || DEFAULTS.face,
     hair: (localStorage.getItem(STORAGE_KEYS.hair) as MeshiHair) || DEFAULTS.hair,
-    accessory: (localStorage.getItem(STORAGE_KEYS.accessory) as MeshiAccessory) || DEFAULTS.accessory,
+    accessory: ((storedAccessory === "lashes" ? "none" : storedAccessory) as MeshiAccessory) || DEFAULTS.accessory,
+    eye: ((localStorage.getItem(STORAGE_KEYS.eye) || (storedAccessory === "lashes" ? "lashes" : "")) as MeshiEyeStyle) || DEFAULTS.eye,
+    badge: (localStorage.getItem(STORAGE_KEYS.badge) as MeshiBadge) || DEFAULTS.badge,
+    outfit: (localStorage.getItem(STORAGE_KEYS.outfit) as MeshiOutfit) || DEFAULTS.outfit,
     enabled: localStorage.getItem(STORAGE_KEYS.enabled) !== "false",
     appLogo: (localStorage.getItem(STORAGE_KEYS.appLogo) as "default" | "custom") || DEFAULTS.appLogo,
     appLogoColor: (localStorage.getItem(STORAGE_KEYS.appLogoColor) as MeshiColor) || DEFAULTS.appLogoColor,
@@ -70,6 +93,9 @@ function writeMeshiPreferencesToStorage(prefs: MeshiPreferences) {
   localStorage.setItem(STORAGE_KEYS.face, prefs.face);
   localStorage.setItem(STORAGE_KEYS.hair, prefs.hair);
   localStorage.setItem(STORAGE_KEYS.accessory, prefs.accessory);
+  localStorage.setItem(STORAGE_KEYS.eye, prefs.eye);
+  localStorage.setItem(STORAGE_KEYS.badge, prefs.badge);
+  localStorage.setItem(STORAGE_KEYS.outfit, prefs.outfit);
   localStorage.setItem(STORAGE_KEYS.enabled, String(prefs.enabled));
   localStorage.setItem(STORAGE_KEYS.appLogo, prefs.appLogo);
   localStorage.setItem(STORAGE_KEYS.appLogoColor, prefs.appLogoColor);
@@ -105,6 +131,11 @@ async function hydrateMeshiPreferencesFromServer() {
     color: (serverPref.colorTheme as MeshiColor) || local.color,
     hat: (serverPref.hatStyle as MeshiHat) || local.hat,
     face: (serverPref.faceStyle as MeshiMood) || local.face,
+    hair: (serverPref.hairStyle as MeshiHair) || local.hair,
+    accessory: (serverPref.accessoryStyle as MeshiAccessory) || local.accessory,
+    eye: (serverPref.eyeStyle as MeshiEyeStyle) || local.eye,
+    badge: (serverPref.badgeStyle as MeshiBadge) || local.badge,
+    outfit: (serverPref.outfitStyle as MeshiOutfit) || local.outfit,
   };
 
   writeMeshiPreferencesToStorage(merged);
@@ -120,7 +151,7 @@ async function hydrateMeshiPreferencesFromServer() {
  * across the current tab and other tabs.
  */
 export function useMeshiPreferences(): MeshiPreferences & { refresh: () => void } {
-  const [prefs, setPrefs] = useState<MeshiPreferences>(() => readMeshiPreferencesFromStorage());
+  const [prefs, setPrefs] = useState<MeshiPreferences>(DEFAULTS);
 
   useEffect(() => {
     let mounted = true;

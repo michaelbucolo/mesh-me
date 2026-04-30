@@ -3,11 +3,12 @@
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
-import { Heart, MessageCircle, Repeat2, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
+import { getPlatformActionCapability } from "@/lib/platform-capabilities";
 
 // Platform colors for origin badges
 const PLATFORM_BADGE: Record<string, { label: string; color: string; abbr: string }> = {
@@ -44,13 +45,114 @@ interface PostCardProps {
     savedBy?: { id: string }[];
     isPinned?: boolean;
     platform?: string; // Origin platform (e.g. "instagram", "twitter", "meshme")
+    sourceId?: string; // PlatformPost id when this card comes from a connected source
+    externalUrl?: string | null;
+    platformPostId?: string;
     crossPostedTo?: string[]; // Platforms this was cross-posted to
+    optimistic?: boolean;
+    isNsfw?: boolean;
+    contentRating?: string;
+    visibility?: string;
   };
   currentUserId?: string;
+  connectedPlatforms?: string[];
   compact?: boolean;
+  eager?: boolean;
 }
 
-export function PostCard({ post, currentUserId, compact }: PostCardProps) {
+function normalizePlatform(platform?: string | null) {
+  if (!platform) return null;
+  const value = platform.toLowerCase();
+  if (value === "x") return "twitter";
+  return value;
+}
+
+function getMediaTypes(media: { type: string }[]) {
+  return [...new Set(media.map((item) => item.type.toLowerCase()).filter(Boolean))];
+}
+
+function isVisualMedia(type: string) {
+  const normalized = type.toLowerCase();
+  return normalized === "image" || normalized === "video";
+}
+
+function getLinkHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function VisibilityIcon({ visibility }: { visibility?: string }) {
+  if (visibility === "private") return <Lock className="h-3 w-3" aria-label="Only me" />;
+  if (visibility === "friends") return <Users className="h-3 w-3" aria-label="Friends only" />;
+  return <Globe className="h-3 w-3" aria-label="Public" />;
+}
+
+function detectAiMediaSignals(post: PostCardProps["post"]) {
+  const haystack = [
+    post.content,
+    post.externalUrl,
+    ...post.media.map((item) => `${item.url} ${item.type}`),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const signals: string[] = [];
+  [
+    ["ai", "caption or media reference mentions AI"],
+    ["generated", "caption or media reference says generated"],
+    ["synthetic", "caption or media reference says synthetic"],
+    ["deepfake", "caption or media reference says deepfake"],
+    ["sora", "media reference mentions Sora"],
+    ["runway", "media reference mentions Runway"],
+    ["pika", "media reference mentions Pika"],
+    ["midjourney", "media reference mentions Midjourney"],
+    ["stable diffusion", "media reference mentions Stable Diffusion"],
+  ].forEach(([needle, label]) => {
+    if (haystack.includes(needle)) signals.push(label);
+  });
+
+  return [...new Set(signals)].slice(0, 4);
+}
+
+function ExpandablePostText({
+  content,
+  compact,
+  className,
+  prefix,
+}: {
+  content: string;
+  compact?: boolean;
+  className?: string;
+  prefix?: ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = content.trim().length > (compact ? 180 : 420);
+  if (!content.trim()) return null;
+
+  return (
+    <div className={cn("feed-post-copy", className)}>
+      <p className={cn("whitespace-pre-wrap", isLong && !expanded && "feed-post-copy-clamped")}>
+        {prefix ? <>{prefix} </> : null}
+        {content}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-1 text-xs font-black text-[var(--text-primary)] transition hover:text-[var(--accent)]"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager }: PostCardProps) {
   const [liked, setLiked] = useState(post.reactions && post.reactions.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [saved, setSaved] = useState(post.savedBy && post.savedBy.length > 0);
@@ -58,12 +160,38 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [platformActionMessage, setPlatformActionMessage] = useState("");
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
   const shareRef = useRef<HTMLDivElement>(null);
+  const originPlatform = normalizePlatform(post.platform);
+  const connectedPlatformSet = new Set(connectedPlatforms.map((platform) => normalizePlatform(platform)).filter(Boolean));
+  const requiresSourceAccount = Boolean(originPlatform && originPlatform !== "meshme");
+  const hasSourceAccount = !requiresSourceAccount || connectedPlatformSet.has(originPlatform);
+  const platformLabel = originPlatform && PLATFORM_BADGE[originPlatform]?.label;
+  const platformBadge = originPlatform ? PLATFORM_BADGE[originPlatform] : null;
+  const isOptimistic = Boolean(post.optimistic);
+  const postHref = isOptimistic ? "/feed" : post.externalUrl || `/feed/${post.id}`;
+  const mediaTypes = getMediaTypes(post.media);
+  const aiSignals = detectAiMediaSignals(post);
+  const visualMedia = post.media.filter((item) => isVisualMedia(item.type));
+  const linkMedia = post.media.filter((item) => !isVisualMedia(item.type));
+  const meChatShareHref = post.sourceId && requiresSourceAccount
+    ? `/messages?sharePlatformPostId=${encodeURIComponent(post.sourceId)}&sourcePlatform=${encodeURIComponent(originPlatform || "platform")}${post.externalUrl ? `&shareUrl=${encodeURIComponent(post.externalUrl)}` : ""}`
+    : `/messages?sharePostId=${encodeURIComponent(post.id)}`;
+
+  const redirectToSourceConnection = (action: string) => {
+    if (!originPlatform) return;
+    const params = new URLSearchParams({
+      platform: originPlatform,
+      next: "/feed",
+      reason: action,
+    });
+    window.location.href = `/connected-accounts?${params.toString()}`;
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -74,8 +202,50 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const requireSourceAccount = (action: string) => {
+    setPlatformActionMessage("");
+    if (!requiresSourceAccount || hasSourceAccount) return true;
+    redirectToSourceConnection(action);
+    return false;
+  };
+
+  const canRunSourceAction = (action: "like" | "unlike" | "share") => {
+    if (!requiresSourceAccount) return true;
+    const capability = getPlatformActionCapability(originPlatform, action);
+    if (capability.supported) return true;
+    setPlatformActionMessage(capability.reason);
+    return false;
+  };
+
+  const runPlatformAction = async (action: "like" | "unlike" | "share") => {
+    if (!post.sourceId) {
+      return { error: "This source post is missing its connected platform record." };
+    }
+    const response = await fetch("/api/platform-content", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ action, postId: post.sourceId }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.error) {
+      return { error: payload?.error || "Platform action failed" };
+    }
+    return payload;
+  };
+
+  const handleSourceActionError = (message: string, action: string) => {
+    if (/^connect\s/i.test(message) && originPlatform) {
+      redirectToSourceConnection(action);
+      return;
+    }
+    setPlatformActionMessage(message);
+  };
+
   const handleLike = () => {
     if (!currentUserId) return;
+    if (!requireSourceAccount("like")) return;
+    if (!canRunSourceAction(liked ? "unlike" : "like")) return;
     const newLiked = !liked;
     const previousLiked = liked;
     const previousCount = likeCount;
@@ -87,16 +257,24 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
       setTimeout(() => setLikeAnimating(false), 400);
     }
     startTransition(async () => {
-      const result = await toggleReaction(post.id);
+      const result = requiresSourceAccount ? await runPlatformAction(newLiked ? "like" : "unlike") : await toggleReaction(post.id);
       if (result && "error" in result) {
         setLiked(previousLiked);
         setLikeCount(previousCount);
+        handleSourceActionError(String(result.error), newLiked ? "like" : "unlike");
       }
     });
   };
 
   const handleSave = () => {
     if (!currentUserId) return;
+    if (requiresSourceAccount) {
+      if (!requireSourceAccount("save")) return;
+      setSaved(true);
+      setSaveAnimating(true);
+      setTimeout(() => setSaveAnimating(false), 300);
+      return;
+    }
     const newSaved = !saved;
     const previousSaved = saved;
     setSaved(newSaved);
@@ -114,10 +292,14 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
 
   const handleRepost = () => {
     if (!currentUserId) return;
+    if (!requireSourceAccount("share")) return;
+    if (!canRunSourceAction("share")) return;
     startTransition(async () => {
-      const result = await repost(post.id);
+      const result = requiresSourceAccount ? await runPlatformAction("share").then((value) => ("error" in value ? value : { reposted: true })) : await repost(post.id);
       if (result && 'reposted' in result) {
         setRepostCount((prev) => result.reposted ? prev + 1 : prev - 1);
+      } else if (result && "error" in result) {
+        handleSourceActionError(String(result.error), "share");
       }
     });
   };
@@ -134,39 +316,54 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/feed/${post.id}`);
+    navigator.clipboard.writeText(post.externalUrl || `${window.location.origin}/feed/${post.id}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     setShowShareMenu(false);
   };
 
-  const isOwner = currentUserId === post.author.id;
+  const isOwner = currentUserId === post.author.id && !requiresSourceAccount;
 
   if (deleted) return null;
 
   return (
-    <article className={cn(
-      "rounded-2xl border backdrop-blur-sm transition-all duration-200 group",
-      "glass-card rounded-2xl",
-      post.isPinned && "ring-1 ring-[var(--accent-muted)]"
-    )}>
-      <div className={cn("p-5", compact && "p-3")}>
+    <article
+      data-meshi-content-card="true"
+      data-meshi-content-id={post.id}
+      data-meshi-content-platform={originPlatform || "meshme"}
+      data-meshi-content-author={post.author.displayName}
+      data-meshi-content-text={post.content.slice(0, 900)}
+      data-meshi-content-media={mediaTypes.join(",")}
+      data-meshi-content-url={post.externalUrl || `/feed/${post.id}`}
+      data-meshi-content-rating={post.contentRating || (post.isNsfw ? "adult" : "general")}
+      data-meshi-content-ai-signals={aiSignals.join("|")}
+      className={cn(
+        "insta-post-card group overflow-hidden transition-all duration-200",
+        post.isPinned && "ring-1 ring-[var(--accent-muted)]",
+        isOptimistic && "feed-post-pending",
+      )}
+      onDoubleClick={() => {
+        if (!liked && !isOptimistic) handleLike();
+      }}
+    >
+      <div className={cn("px-3 py-3 sm:px-4", compact && "p-3")}>
         {post.isPinned && (
-          <div className="flex items-center gap-1.5 text-xs mb-2" style={{ color: "var(--accent)" }}>
+          <div className="mb-2 flex items-center gap-1.5 text-xs" style={{ color: "var(--accent)" }}>
             <Pin className="h-3 w-3" />
             <span>Pinned post</span>
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-3">
             <Link href={`/profile/${post.author.username}`}>
-              <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
+              <span className="insta-story-ring insta-story-ring-small">
+                <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} className="ring-2 ring-[var(--bg-primary)]" />
+              </span>
             </Link>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <Link href={`/profile/${post.author.username}`} className="font-semibold hover:underline text-sm" style={{ color: "var(--text-primary)" }}>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <Link href={`/profile/${post.author.username}`} className="truncate text-sm font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
                   {post.author.displayName}
                 </Link>
                 {post.author.isVerified && (
@@ -182,17 +379,17 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 <span>&middot;</span>
                 <span>{formatRelativeTime(post.createdAt)}</span>
                 {/* Platform origin badge — non-invasive */}
-                {post.platform && PLATFORM_BADGE[post.platform] && (
+                {platformBadge && (
                   <>
                     <span>&middot;</span>
                     <span
                       className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[10px] font-medium"
-                      style={{ backgroundColor: PLATFORM_BADGE[post.platform].color + "18", color: PLATFORM_BADGE[post.platform].color }}
+                      style={{ backgroundColor: platformBadge.color + "18", color: platformBadge.color }}
                     >
-                      <span className="w-2.5 h-2.5 rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{ backgroundColor: PLATFORM_BADGE[post.platform].color }}>
-                        {PLATFORM_BADGE[post.platform].abbr[0]}
+                      <span className="w-2.5 h-2.5 rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{ backgroundColor: platformBadge.color }}>
+                        {platformBadge.abbr[0]}
                       </span>
-                      {PLATFORM_BADGE[post.platform].label}
+                      {platformBadge.label}
                     </span>
                   </>
                 )}
@@ -214,13 +411,45 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                     </Link>
                   </>
                 )}
+                {isOptimistic && (
+                  <>
+                    <span>&middot;</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-black text-[var(--accent)]">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Posting
+                    </span>
+                  </>
+                )}
+                {post.isNsfw && (
+                  <>
+                    <span>&middot;</span>
+                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-bold text-amber-300 bg-amber-400/10">
+                      NSFW
+                    </span>
+                  </>
+                )}
+                {!requiresSourceAccount && (
+                  <>
+                    <span>&middot;</span>
+                    <span className="inline-flex items-center gap-1">
+                      <VisibilityIcon visibility={post.visibility} />
+                      {post.visibility === "private" ? "Only me" : post.visibility === "friends" ? "Friends" : "Public"}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
-          {/* More menu */}
+          {!isOptimistic && (
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setShowMenu(!showMenu)} className="p-1.5 rounded-lg transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100" style={{ color: "var(--text-muted)" }}>
+            <button
+              type="button"
+              onClick={() => setShowMenu(!showMenu)}
+              aria-label="More post options"
+              className="rounded-full p-1.5 transition-colors opacity-100 hover:bg-[var(--bg-hover)]"
+              style={{ color: "var(--text-muted)" }}
+            >
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {showMenu && (
@@ -228,7 +457,7 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
                 <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
-                <Link href={`/feed/${post.id}`} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
+                <Link href={postHref} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <ExternalLink className="h-4 w-4" /> Open post
                 </Link>
                 {!isOwner && (
@@ -244,79 +473,209 @@ export function PostCard({ post, currentUserId, compact }: PostCardProps) {
               </div>
             )}
           </div>
+          )}
         </div>
+      </div>
 
-        {/* Content */}
-        <Link href={`/feed/${post.id}`}>
-          <p className={cn("text-sm leading-relaxed whitespace-pre-wrap mb-3", compact && "line-clamp-3")} style={{ color: "var(--text-secondary)" }}>{post.content}</p>
-        </Link>
+        {post.content && (visualMedia.length > 0 || linkMedia.length > 0) && (
+          <div className="feed-media-copy px-3 pb-3 sm:px-4">
+            <ExpandablePostText
+              content={post.content}
+              compact={compact}
+              className="text-[0.95rem] leading-6 text-[var(--text-primary)]"
+            />
+          </div>
+        )}
 
-        {/* Media */}
-        {post.media.length > 0 && (
-          <div className={cn("rounded-xl overflow-hidden mb-3", post.media.length === 1 && "max-h-96", post.media.length >= 2 && "grid grid-cols-2 gap-1")}>
-            {post.media.slice(0, 4).map((media, idx) => (
-              <div key={media.id} className={cn("relative overflow-hidden", post.media.length === 3 && idx === 0 && "row-span-2", post.media.length >= 4 && "aspect-square")}>
-                <Image src={media.url} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover hover:scale-105 transition-transform duration-300" />
-                {idx === 3 && post.media.length > 4 && (
+        {visualMedia.length > 0 && (
+          <Link
+            href={postHref}
+            className={cn(
+              "feed-media-frame relative block overflow-hidden bg-[var(--bg-secondary)]",
+              visualMedia.length === 1 && "feed-media-single aspect-[4/5]",
+              visualMedia.length >= 2 && "feed-media-grid grid grid-cols-2 gap-px",
+            )}
+            aria-label="Open post"
+          >
+            {visualMedia.slice(0, 4).map((media, idx) => (
+              <div
+                key={media.id}
+                className={cn(
+                  "relative overflow-hidden",
+                  visualMedia.length === 1 && "h-full",
+                  visualMedia.length === 2 && "aspect-square",
+                  visualMedia.length === 3 && idx === 0 && "row-span-2 aspect-auto",
+                  visualMedia.length === 3 && idx > 0 && "aspect-square",
+                  visualMedia.length >= 4 && "aspect-square",
+                )}
+              >
+                {media.type.toLowerCase() === "video" ? (
+                  <video src={media.url} className="h-full w-full object-cover" controls preload="metadata" playsInline />
+                ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={media.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.015]" />
+                ) : (
+                  <Image
+                    src={media.url}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 640px, 624px"
+                    priority={Boolean(eager && idx === 0)}
+                    loading={eager && idx === 0 ? undefined : "lazy"}
+                    decoding="async"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.015]"
+                  />
+                )}
+                {idx === 3 && visualMedia.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">+{post.media.length - 4}</span>
+                    <span className="text-white font-bold text-lg">+{visualMedia.length - 4}</span>
                   </div>
                 )}
               </div>
             ))}
+          </Link>
+        )}
+
+        {linkMedia.length > 0 && (
+          <div className="px-3 pb-3 sm:px-4">
+            {linkMedia.slice(0, 2).map((media) => (
+              <a key={media.id} href={media.url} target="_blank" rel="noopener noreferrer" className="feed-link-preview">
+                <span className="feed-link-preview-icon">
+                  <ExternalLink className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
+                  <span className="block truncate text-xs text-[var(--text-muted)]">{media.url}</span>
+                </span>
+              </a>
+            ))}
           </div>
         )}
 
-        {/* Tags */}
+        {visualMedia.length === 0 && linkMedia.length === 0 && (
+          <div className="insta-text-post feed-text-post px-4 py-7 sm:px-6">
+            <ExpandablePostText
+              content={post.content}
+              compact={compact}
+              className="text-[1.05rem] font-semibold leading-7 text-[var(--text-primary)]"
+            />
+            {isOptimistic ? (
+              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-[var(--text-muted)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Saving to feed
+              </p>
+            ) : (
+              <Link href={postHref} className="mt-3 inline-flex text-xs font-black text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+                Open post
+              </Link>
+            )}
+          </div>
+        )}
+
+      <div className="px-3 py-3 sm:px-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={isPending || isOptimistic}
+              aria-label={liked ? "Unlike post" : "Like post"}
+              className={cn("insta-post-action", liked ? "text-rose-400" : "text-[var(--text-primary)] hover:text-rose-400")}
+            >
+              <Heart className={cn("h-[22px] w-[22px] transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
+            </button>
+            <Link
+              href={postHref}
+              onClick={(event) => {
+                if (isOptimistic) {
+                  event.preventDefault();
+                  return;
+                }
+                if (!requireSourceAccount("comment")) event.preventDefault();
+                else if (requiresSourceAccount && !getPlatformActionCapability(originPlatform, "reply").supported) {
+                  event.preventDefault();
+                  setPlatformActionMessage("Comment syncing for this source is not available with the current provider permissions. Open the source post to comment there.");
+                }
+              }}
+              className="insta-post-action"
+              aria-label="Comment on post"
+            >
+              <MessageCircle className="h-[22px] w-[22px]" />
+            </Link>
+            <button type="button" onClick={() => setShowShareMenu(!showShareMenu)} disabled={isOptimistic} className="insta-post-action" aria-label="Share post">
+              <Share2 className="h-[22px] w-[22px]" />
+            </button>
+          </div>
+          <div className="relative" ref={shareRef}>
+            {showShareMenu && (
+              <div className="absolute right-0 top-9 z-20 w-52 rounded-xl py-1 shadow-xl glass-dropdown animate-smooth-reveal">
+                <Link href={meChatShareHref} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+                  <MessageCircle className="h-4 w-4" /> Share in MeChat
+                </Link>
+                <button onClick={handleCopyLink} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+                  <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
+                </button>
+              </div>
+            )}
+            <button type="button" onClick={handleSave} disabled={isOptimistic} aria-label={saved ? "Unsave post" : "Save post"} className={cn("insta-post-action", saved && "text-[var(--accent)]")}>
+              <Bookmark className={cn("h-[22px] w-[22px] transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />
+            </button>
+          </div>
+        </div>
+
+        <p className="feed-like-count mt-2 text-sm font-black text-[var(--text-primary)]">{formatCount(likeCount)} likes</p>
+
+        {requiresSourceAccount && !hasSourceAccount && (
+          <Link
+            href={`/connected-accounts?platform=${encodeURIComponent(originPlatform || "")}&next=/feed`}
+            className="mt-2 block rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-muted)] hover:text-[var(--text-primary)]"
+          >
+            Connect {platformLabel || post.platform} to like, comment, and sync actions back to the source.
+          </Link>
+        )}
+
+        {platformActionMessage && (
+          <p className="mt-2 rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs font-semibold leading-5 text-amber-100" role="status">
+            {platformActionMessage}
+          </p>
+        )}
+
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+          <Link
+            href={postHref}
+            onClick={(event) => {
+              if (isOptimistic) {
+                event.preventDefault();
+                return;
+              }
+              if (!requireSourceAccount("comment")) event.preventDefault();
+              else if (requiresSourceAccount && !getPlatformActionCapability(originPlatform, "reply").supported) {
+                event.preventDefault();
+                setPlatformActionMessage("Comment syncing for this source is not available with the current provider permissions. Open the source post to comment there.");
+              }
+            }}
+            className="hover:text-[var(--text-primary)]"
+          >
+            View {formatCount(post._count.comments)} comments
+          </Link>
+          {repostCount > 0 && (
+            <button type="button" onClick={handleRepost} disabled={isPending || isOptimistic} className="hover:text-emerald-400">
+              {formatCount(repostCount)} reposts
+            </button>
+          )}
+        </div>
+
         {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {post.tags.map((tag) => (
               <Link key={tag.id} href={`/search?q=${encodeURIComponent(tag.tag)}`}>
-                <Badge variant="secondary" className="text-xs hover:bg-zinc-700 transition-colors cursor-pointer">
+                <Badge variant="secondary" className="cursor-pointer text-xs transition-colors hover:bg-zinc-700">
                   #{tag.tag}
                 </Badge>
               </Link>
             ))}
           </div>
         )}
-
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid var(--border-primary)" }}>
-          <div className="flex items-center gap-1">
-            <button onClick={handleLike} disabled={isPending} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 action-icon", liked ? "text-rose-400 hover:text-rose-300" : "hover:text-rose-400/70")} style={!liked ? { color: "var(--text-muted)" } : undefined}>
-              <Heart className={cn("h-4 w-4 transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
-              <span className="text-xs">{formatCount(likeCount)}</span>
-            </button>
-            <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors action-icon hover:opacity-70" style={{ color: "var(--text-muted)" }}>
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-xs">{formatCount(post._count.comments)}</span>
-            </Link>
-            <button onClick={handleRepost} disabled={isPending} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:text-emerald-400 transition-colors action-icon" style={{ color: "var(--text-muted)" }}>
-              <Repeat2 className="h-4 w-4" />
-              <span className="text-xs">{formatCount(repostCount)}</span>
-            </button>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="relative" ref={shareRef}>
-              <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-1.5 rounded-lg hover:opacity-80 transition-colors" style={{ color: "var(--text-muted)" }}>
-                <Share2 className="h-4 w-4" />
-              </button>
-              {showShareMenu && (
-                <div className="absolute right-0 bottom-8 w-52 rounded-xl shadow-xl z-20 py-1 glass-dropdown animate-smooth-reveal">
-                  <Link href={`/messages?sharePostId=${encodeURIComponent(post.id)}`} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
-                    <MessageCircle className="h-4 w-4" /> Share in MeChat
-                  </Link>
-                  <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
-                    <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
-                  </button>
-                </div>
-              )}
-            </div>
-            <button onClick={handleSave} className={cn("p-1.5 rounded-lg transition-all duration-200 action-icon", saved ? "hover:opacity-80" : "hover:opacity-70")} style={saved ? { color: "var(--accent)" } : { color: "var(--text-muted)" }}>
-              <Bookmark className={cn("h-4 w-4 transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />
-            </button>
-          </div>
-        </div>
       </div>
     </article>
   );

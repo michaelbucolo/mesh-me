@@ -1,5 +1,6 @@
 import { subDays } from "date-fns";
 import { prisma } from "@/lib/prisma";
+import { nsfwHiddenWhere } from "@/lib/content-safety";
 
 export interface InnovationMetric {
   label: string;
@@ -50,6 +51,15 @@ export async function getInnovationBrief(userId: string): Promise<InnovationBrie
   const now = new Date();
   const last30 = subDays(now, 30);
   const prev30 = subDays(now, 60);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      nsfwEnabled: true,
+      adultVerificationStatus: true,
+      adultVerificationExpiresAt: true,
+    },
+  });
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const [
     postsCurrent,
@@ -62,21 +72,21 @@ export async function getInnovationBrief(userId: string): Promise<InnovationBrie
     postTags,
     authoredPosts,
   ] = await Promise.all([
-    prisma.post.count({ where: { authorId: userId, createdAt: { gte: last30 } } }),
-    prisma.post.count({ where: { authorId: userId, createdAt: { gte: prev30, lt: last30 } } }),
+    prisma.post.count({ where: { ...safetyWhere, authorId: userId, createdAt: { gte: last30 } } }),
+    prisma.post.count({ where: { ...safetyWhere, authorId: userId, createdAt: { gte: prev30, lt: last30 } } }),
     prisma.comment.count({ where: { authorId: userId, createdAt: { gte: last30 } } }),
     prisma.comment.count({ where: { authorId: userId, createdAt: { gte: prev30, lt: last30 } } }),
-    prisma.reaction.count({ where: { createdAt: { gte: last30 }, post: { authorId: userId } } }),
-    prisma.reaction.count({ where: { createdAt: { gte: prev30, lt: last30 }, post: { authorId: userId } } }),
+    prisma.reaction.count({ where: { createdAt: { gte: last30 }, post: { ...safetyWhere, authorId: userId } } }),
+    prisma.reaction.count({ where: { createdAt: { gte: prev30, lt: last30 }, post: { ...safetyWhere, authorId: userId } } }),
     prisma.communityMember.count({ where: { userId } }),
     prisma.postTag.findMany({
-      where: { post: { authorId: userId } },
+      where: { post: { ...safetyWhere, authorId: userId } },
       select: { tag: true },
       take: 200,
       orderBy: { id: "desc" },
     }),
     prisma.post.findMany({
-      where: { authorId: userId },
+      where: { ...safetyWhere, authorId: userId },
       select: { createdAt: true },
       take: 120,
       orderBy: { createdAt: "desc" },

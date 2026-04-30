@@ -6,33 +6,78 @@ import { usePathname } from "next/navigation";
 import {
   Send, Search,
 } from "lucide-react";
-import { MeshiMascot, type MeshiMood, type MeshiColor, type MeshiHat, type MeshiProp, PAGE_PROPS } from "./meshi-mascot";
+import {
+  MeshiMascot,
+  type MeshiAccessory,
+  type MeshiBadge,
+  type MeshiColor,
+  type MeshiEyeStyle,
+  type MeshiHair,
+  type MeshiHat,
+  type MeshiMood,
+  type MeshiOutfit,
+  type MeshiProp,
+  PAGE_PROPS,
+} from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
 import { MeshiActionsMenu } from "./meshi-actions-menu";
+import { askMeshi } from "@/lib/meshi-client";
+import type { MeshiHistoryMessage } from "@/lib/meshi-shared";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 import { getMeshiPreference } from "@/lib/actions";
 import {
-  loadKnowledge, saveKnowledge, indexMeshData, answerMeshQuestion,
+  loadKnowledge, saveKnowledge, indexMeshData,
   getKnowledgeLevelDescription, type MeshiExplorationState,
 } from "@/lib/meshi-knowledge";
 import { impactFeedback } from "@/lib/native/haptics";
 import { MESHI_OPEN_EVENT, type MeshiOpenMode } from "@/lib/meshi-events";
+import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
+import type { MeshiContext } from "@/lib/meshi-shared";
 
-// Meshi is ONE standalone AI entity. No bubble, no home position.
-// Click Meshi to open actions. Meshi floats freely in the bottom-right.
+// Meshi is the user's persistent bubble character.
+// It follows page to page as their private vessel, represents their identity,
+// and opens companion actions.
 
 const GREETINGS: Record<string, { text: string; mood: MeshiMood }> = {
-  "/mesh": { text: "Welcome to your Mesh!", mood: "excited" },
-  "/feed": { text: "Here\u2019s your feed!", mood: "happy" },
-  "/messages": { text: "MeChat is ready!", mood: "love" },
-  "/communities": { text: "Explore communities!", mood: "excited" },
-  "/notifications": { text: "Let me catch you up!", mood: "thinking" },
-  "/settings": { text: "Need help?", mood: "happy" },
-  "/explore": { text: "Let\u2019s discover!", mood: "excited" },
-  "/search": { text: "What are we looking for?", mood: "thinking" },
-  "/profile": { text: "Looking good!", mood: "wink" },
-  "/meshpro": { text: "MeshPro unlocks more!", mood: "excited" },
+  "/mesh": { text: "I connect this world for you.", mood: "excited" },
+  "/feed": { text: "I can send this back to your Mesh.", mood: "happy" },
+  "/messages": { text: "I keep your conversations connected.", mood: "love" },
+  "/communities": { text: "I can help groups move together.", mood: "excited" },
+  "/notifications": { text: "I will sort what needs you.", mood: "thinking" },
+  "/settings": { text: "I help protect your world.", mood: "happy" },
+  "/analytics": { text: "I can explain what is changing.", mood: "thinking" },
+  "/connected-accounts": { text: "I bridge platforms carefully.", mood: "cool" },
+  "/content-hub": { text: "I can organize every source.", mood: "happy" },
+  "/vault": { text: "I keep saved moments close.", mood: "love" },
+  "/explore": { text: "I can guide you across the internet.", mood: "excited" },
+  "/search": { text: "I can find it across your Mesh.", mood: "thinking" },
+  "/profile": { text: "I represent you here.", mood: "wink" },
+  "/meshpro": { text: "I can make your world feel yours.", mood: "excited" },
 };
+
+function getGreetingForPath(pathname: string) {
+  const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
+  return matchedKey ? GREETINGS[matchedKey] : { text: "I am your bridge to the internet.", mood: "happy" as MeshiMood };
+}
+
+const MESHI_PUBLIC_ROUTES = new Set([
+  "/",
+  "/about",
+  "/features",
+  "/innovation",
+  "/login",
+  "/privacy",
+  "/reset-password",
+  "/roadmap",
+  "/signup",
+  "/terms",
+  "/trust",
+  "/vision",
+]);
+
+function shouldHideGlobalMeshi(pathname: string) {
+  return MESHI_PUBLIC_ROUTES.has(pathname) || pathname.startsWith("/login/");
+}
 
 const SEARCH_TRIGGERS = ["search", "find", "look for", "where", "show me"];
 
@@ -42,6 +87,10 @@ const PAGE_AMBIENT_MOODS: Record<string, MeshiMood[]> = {
   "/messages": ["love", "happy", "wink"],
   "/explore": ["excited", "cool", "happy"],
   "/settings": ["thinking", "happy", "cool"],
+  "/analytics": ["thinking", "cool", "happy"],
+  "/connected-accounts": ["cool", "thinking", "happy"],
+  "/content-hub": ["happy", "thinking", "wink"],
+  "/vault": ["love", "happy", "cool"],
   "/profile": ["wink", "happy", "love"],
   "/meshpro": ["excited", "cool", "happy"],
   "/notifications": ["thinking", "surprised", "happy"],
@@ -51,53 +100,494 @@ const PAGE_AMBIENT_MOODS: Record<string, MeshiMood[]> = {
 type MeshiView = "closed" | "actions" | "speech" | "chat";
 
 const MESHI_SIZE = 48;
+const MESHI_FOLLOW_RELEASE_MS = 2600;
+const MESHI_UI_PADDING = 10;
+const MESHI_VIEWPORT_GAP = 12;
 
-// Safe insets: Meshi docks bottom-right but must never overlap UI.
-// Detects sidebar, header, mobile nav, and any data-meshi-zone elements to avoid.
-function getSafePosition() {
-  if (typeof window === "undefined") return { x: 900, y: 600 };
-  const isMobile = window.innerWidth < 1024;
-  const safeBottom = isMobile ? 80 : 16; // mobile nav is ~60px + gap
-  const safeRight = 16;
+const MESHI_AVOID_SELECTOR = [
+  "[data-meshi-avoid]",
+  "[data-sidebar]",
+  ".mobile-bottom-nav",
+  ".mobile-compose-fab",
+  ".app-route-progress",
+  ".app-command-bar",
+  ".feed-x-topbar",
+  ".mesh-action-bar",
+  ".mesh-canvas-toolbar",
+  "[role='dialog']",
+  "[role='menu']",
+  "dialog",
+  "button",
+  "a[href]",
+  "input",
+  "textarea",
+  "select",
+  "summary",
+  "[contenteditable='true']",
+  "[role='button']",
+  "[role='link']",
+  "[role='textbox']",
+  "[data-meshi-zone]",
+].join(", ");
 
-  // Check for sidebar width on desktop
-  const sidebar = document.querySelector("[data-sidebar]");
-  const sidebarWidth = sidebar ? sidebar.getBoundingClientRect().right : 0;
+type MeshiPoint = { x: number; y: number };
+type FocusedContent = NonNullable<MeshiContext["focusedContent"]>;
+type MeshiRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+};
 
-  // Check for any UI zones Meshi should avoid
-  const zones = document.querySelectorAll("[data-meshi-zone]");
-  let maxBlockedRight = window.innerWidth - MESHI_SIZE - safeRight;
-  let maxBlockedBottom = window.innerHeight - MESHI_SIZE - safeBottom;
+const MESHI_CONTINUITY_KEY = "meshi-continuity-state";
+const MESHI_INSTANCE_ID_KEY = "meshi-instance-id";
+const MESHI_CONTINUITY_STATE_VERSION = 1 as const;
+const MESHI_CONTINUITY_MAX_AGE_MS = 10 * 60 * 1000;
+const MESHI_VIEW_VALUES = new Set<MeshiView>(["closed", "actions", "speech", "chat"]);
 
-  zones.forEach((zone) => {
-    const rect = (zone as HTMLElement).getBoundingClientRect();
-    // If a zone is near bottom-right, push Meshi above/left of it
-    if (rect.right > window.innerWidth - 120 && rect.bottom > window.innerHeight - 120) {
-      maxBlockedRight = Math.min(maxBlockedRight, rect.left - MESHI_SIZE - 8);
-      maxBlockedBottom = Math.min(maxBlockedBottom, rect.top - MESHI_SIZE - 8);
+type MeshiContinuityState = {
+  version: typeof MESHI_CONTINUITY_STATE_VERSION;
+  instanceId: string;
+  updatedAt: number;
+  pathname: string;
+  position: MeshiPoint;
+  view: MeshiView;
+  mood: MeshiMood;
+  activeProp: MeshiProp;
+};
+
+function getOrCreateMeshiInstanceId() {
+  if (typeof window === "undefined") return "meshi-server-instance";
+  const existing = window.localStorage.getItem(MESHI_INSTANCE_ID_KEY);
+  if (existing) return existing;
+
+  const next =
+    window.crypto?.randomUUID?.() ||
+    `meshi-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  window.localStorage.setItem(MESHI_INSTANCE_ID_KEY, next);
+  return next;
+}
+
+function readMeshiContinuityState(): MeshiContinuityState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(MESHI_CONTINUITY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<MeshiContinuityState>;
+    const position = parsed.position;
+    const age = Date.now() - (typeof parsed.updatedAt === "number" ? parsed.updatedAt : 0);
+
+    if (
+      parsed.version !== MESHI_CONTINUITY_STATE_VERSION ||
+      !parsed.instanceId ||
+      age > MESHI_CONTINUITY_MAX_AGE_MS ||
+      !position ||
+      typeof position.x !== "number" ||
+      typeof position.y !== "number"
+    ) {
+      return null;
     }
-  });
+
+    return {
+      version: MESHI_CONTINUITY_STATE_VERSION,
+      instanceId: parsed.instanceId,
+      updatedAt: parsed.updatedAt || Date.now(),
+      pathname: typeof parsed.pathname === "string" ? parsed.pathname : "",
+      position,
+      view: MESHI_VIEW_VALUES.has(parsed.view as MeshiView) ? (parsed.view as MeshiView) : "closed",
+      mood: (parsed.mood || "happy") as MeshiMood,
+      activeProp: (parsed.activeProp || "none") as MeshiProp,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeMeshiContinuityState(state: MeshiContinuityState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(MESHI_CONTINUITY_KEY, JSON.stringify(state));
+  } catch {
+    // Continuity is nice to have; storage limits should never break Meshi.
+  }
+}
+
+function getFocusedContentFromElement(element: Element | null): FocusedContent | null {
+  const card = element?.closest?.("[data-meshi-content-card='true']") as HTMLElement | null;
+  if (!card) return null;
+
+  const mediaTypes = (card.dataset.meshiContentMedia || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const aiSignals = (card.dataset.meshiContentAiSignals || "")
+    .split("|")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
   return {
-    x: Math.max(sidebarWidth + 8, maxBlockedRight),
-    y: Math.max(48, maxBlockedBottom), // never above header
+    id: card.dataset.meshiContentId,
+    platform: card.dataset.meshiContentPlatform || "meshme",
+    author: card.dataset.meshiContentAuthor,
+    text: card.dataset.meshiContentText,
+    mediaTypes,
+    externalUrl: card.dataset.meshiContentUrl,
+    contentRating: card.dataset.meshiContentRating || "general",
+    aiSignals,
   };
 }
 
+function getVisibleFocusedContent(): FocusedContent | null {
+  if (typeof document === "undefined") return null;
+  const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-meshi-content-card='true']"));
+  const viewportHeight = window.innerHeight || 1;
+  const targetY = viewportHeight * 0.45;
+  let bestCard: HTMLElement | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  cards.forEach((card) => {
+    const rect = card.getBoundingClientRect();
+    if (rect.bottom <= 0 || rect.top >= viewportHeight || rect.width <= 0 || rect.height <= 0) return;
+    const visibleTop = Math.max(0, rect.top);
+    const visibleBottom = Math.min(viewportHeight, rect.bottom);
+    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    const centerDistance = Math.abs((rect.top + rect.bottom) / 2 - targetY);
+    const score = visibleHeight - centerDistance * 0.35;
+    if (score > bestScore) {
+      bestScore = score;
+      bestCard = card;
+    }
+  });
+
+  return getFocusedContentFromElement(bestCard);
+}
+
+function areFocusedContentEqual(a: FocusedContent | null, b: FocusedContent | null) {
+  if (!a && !b) return true;
+  return Boolean(a && b && a.id === b.id && a.platform === b.platform && a.text === b.text);
+}
+
+function getFocusedContentPrompt(content: FocusedContent, mode: "summary" | "fact-check" | "ai") {
+  const source = content.platform ? ` from ${content.platform}` : "";
+  if (mode === "summary") return `Summarize the visible post${source}.`;
+  if (mode === "ai") return `Check the visible post${source} for possible AI-generated photo or video signals.`;
+  return `Fact-check the visible post${source}. Point out what is verified, what needs a source, and what I should be careful about.`;
+}
+
+function getViewportBounds() {
+  if (typeof window === "undefined") {
+    return { minX: 8, minY: 48, maxX: 900, maxY: 600 };
+  }
+
+  const isMobile = window.innerWidth < 1024;
+  const isSpatial = typeof document !== "undefined" && document.body.classList.contains("platform-spatial");
+  const sidebar = document.querySelector("[data-sidebar]");
+  const sidebarWidth = !isMobile && sidebar ? sidebar.getBoundingClientRect().right : 0;
+  const minX = Math.max(MESHI_VIEWPORT_GAP, sidebarWidth + MESHI_VIEWPORT_GAP);
+  const minY = isMobile ? 72 : isSpatial ? 72 : 48;
+  const maxX = Math.max(minX, window.innerWidth - MESHI_SIZE - (isSpatial ? 32 : MESHI_VIEWPORT_GAP));
+  const maxY = Math.max(minY, window.innerHeight - MESHI_SIZE - (isMobile ? 80 : isSpatial ? 32 : MESHI_VIEWPORT_GAP));
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+  };
+}
+
+function clampMeshiPosition(point: MeshiPoint): MeshiPoint {
+  if (typeof window === "undefined") return point;
+  const bounds = getViewportBounds();
+
+  return {
+    x: Math.max(bounds.minX, Math.min(bounds.maxX, point.x)),
+    y: Math.max(bounds.minY, Math.min(bounds.maxY, point.y)),
+  };
+}
+
+function getDefaultDockPosition(): MeshiPoint {
+  const bounds = getViewportBounds();
+  return { x: bounds.maxX, y: bounds.maxY };
+}
+
+function getMeshiRect(point: MeshiPoint): MeshiRect {
+  return {
+    left: point.x,
+    top: point.y,
+    right: point.x + MESHI_SIZE,
+    bottom: point.y + MESHI_SIZE,
+    width: MESHI_SIZE,
+    height: MESHI_SIZE,
+  };
+}
+
+function toMeshiRect(rect: DOMRect): MeshiRect {
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function rectsOverlap(a: MeshiRect, b: MeshiRect, padding = 0) {
+  return !(
+    a.right <= b.left - padding ||
+    a.left >= b.right + padding ||
+    a.bottom <= b.top - padding ||
+    a.top >= b.bottom + padding
+  );
+}
+
+function overlapArea(a: MeshiRect, b: MeshiRect, padding = 0) {
+  const left = Math.max(a.left, b.left - padding);
+  const top = Math.max(a.top, b.top - padding);
+  const right = Math.min(a.right, b.right + padding);
+  const bottom = Math.min(a.bottom, b.bottom + padding);
+  return Math.max(0, right - left) * Math.max(0, bottom - top);
+}
+
+function isAvoidElementVisible(element: Element, rect: MeshiRect) {
+  if (rect.width < 2 || rect.height < 2) return false;
+  if (rect.bottom < 0 || rect.right < 0 || rect.top > window.innerHeight || rect.left > window.innerWidth) return false;
+  if (element.closest("[data-meshi-owned], [data-meshi-primary]")) return false;
+
+  const style = window.getComputedStyle(element);
+  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+
+  const isStructuralChrome = element.matches("[data-sidebar], .mobile-bottom-nav, .mobile-compose-fab, .app-route-progress, .app-command-bar, .feed-x-topbar, .mesh-action-bar, .mesh-canvas-toolbar, [role='dialog'], dialog, [data-meshi-avoid]");
+  if (style.pointerEvents === "none" && !isStructuralChrome) return false;
+
+  const coversMostViewport = rect.width > window.innerWidth * 0.82 && rect.height > window.innerHeight * 0.66;
+  const isBroadPageZone = element.matches("[data-meshi-zone]") && (rect.width > window.innerWidth * 0.64 || rect.height > window.innerHeight * 0.52);
+
+  return !((coversMostViewport || isBroadPageZone) && !isStructuralChrome);
+}
+
+function getMeshiAvoidRects(): MeshiRect[] {
+  if (typeof document === "undefined") return [];
+
+  const seen = new Set<Element>();
+  const rects: MeshiRect[] = [];
+
+  document.querySelectorAll(MESHI_AVOID_SELECTOR).forEach((element) => {
+    if (seen.has(element)) return;
+    seen.add(element);
+    const rect = toMeshiRect(element.getBoundingClientRect());
+    if (!isAvoidElementVisible(element, rect)) return;
+    rects.push(rect);
+  });
+
+  return rects;
+}
+
+function hasUiCollision(point: MeshiPoint, avoidRects = getMeshiAvoidRects()) {
+  const rect = getMeshiRect(point);
+  return avoidRects.some((avoidRect) => rectsOverlap(rect, avoidRect, MESHI_UI_PADDING));
+}
+
+function findSafeMeshiPosition(candidate: MeshiPoint, avoidRects = getMeshiAvoidRects()): MeshiPoint {
+  if (typeof window === "undefined") return candidate;
+
+  const clamped = clampMeshiPosition(candidate);
+  if (!hasUiCollision(clamped, avoidRects)) return clamped;
+
+  const bounds = getViewportBounds();
+  const candidateRect = getMeshiRect(clamped);
+  const collisions = avoidRects.filter((rect) => rectsOverlap(candidateRect, rect, MESHI_UI_PADDING));
+  const candidates: MeshiPoint[] = [
+    clamped,
+    getDefaultDockPosition(),
+    { x: bounds.maxX, y: bounds.minY },
+    { x: bounds.maxX, y: bounds.minY + (bounds.maxY - bounds.minY) * 0.42 },
+    { x: bounds.maxX, y: bounds.minY + (bounds.maxY - bounds.minY) * 0.66 },
+    { x: bounds.minX, y: bounds.maxY },
+    { x: bounds.minX, y: bounds.minY },
+  ];
+
+  collisions.forEach((rect) => {
+    candidates.push(
+      { x: rect.left - MESHI_SIZE - MESHI_UI_PADDING, y: clamped.y },
+      { x: rect.right + MESHI_UI_PADDING, y: clamped.y },
+      { x: clamped.x, y: rect.top - MESHI_SIZE - MESHI_UI_PADDING },
+      { x: clamped.x, y: rect.bottom + MESHI_UI_PADDING },
+      { x: rect.left - MESHI_SIZE - MESHI_UI_PADDING, y: rect.top - MESHI_SIZE - MESHI_UI_PADDING },
+      { x: rect.right + MESHI_UI_PADDING, y: rect.bottom + MESHI_UI_PADDING },
+    );
+  });
+
+  [56, 96, 144, 208].forEach((distance) => {
+    candidates.push(
+      { x: clamped.x + distance, y: clamped.y },
+      { x: clamped.x - distance, y: clamped.y },
+      { x: clamped.x, y: clamped.y + distance },
+      { x: clamped.x, y: clamped.y - distance },
+      { x: clamped.x + distance, y: clamped.y - distance },
+      { x: clamped.x - distance, y: clamped.y - distance },
+      { x: clamped.x + distance, y: clamped.y + distance },
+      { x: clamped.x - distance, y: clamped.y + distance },
+    );
+  });
+
+  for (let y = bounds.minY; y <= bounds.maxY; y += 72) {
+    candidates.push({ x: bounds.maxX, y }, { x: bounds.minX, y });
+  }
+  for (let x = bounds.minX; x <= bounds.maxX; x += 96) {
+    candidates.push({ x, y: bounds.maxY }, { x, y: bounds.minY });
+  }
+
+  let best = clamped;
+  let bestScore = Number.POSITIVE_INFINITY;
+  const seen = new Set<string>();
+
+  candidates.forEach((candidatePoint) => {
+    const point = clampMeshiPosition(candidatePoint);
+    const key = `${Math.round(point.x)}:${Math.round(point.y)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    const rect = getMeshiRect(point);
+    const area = avoidRects.reduce((sum, avoidRect) => sum + overlapArea(rect, avoidRect, MESHI_UI_PADDING), 0);
+    const distanceFromTarget = Math.hypot(point.x - clamped.x, point.y - clamped.y);
+    const distanceFromDock = Math.hypot(point.x - bounds.maxX, point.y - bounds.maxY);
+    const score = area * 2000 + distanceFromTarget + distanceFromDock * 0.05;
+
+    if (area === 0 && score < bestScore) {
+      best = point;
+      bestScore = score;
+      return;
+    }
+
+    if (score < bestScore) {
+      best = point;
+      bestScore = score;
+    }
+  });
+
+  return best;
+}
+
+// Safe insets: Meshi docks bottom-right but must never overlap UI.
+// Detects app chrome, controls, dialogs, toolbars, and explicit Meshi avoid zones.
+function getSafePosition() {
+  if (typeof window === "undefined") return { x: 900, y: 600 };
+  return findSafeMeshiPosition(getDefaultDockPosition());
+}
+
+function getPointerFollowPosition(clientX: number, clientY: number): MeshiPoint {
+  if (typeof window === "undefined") return { x: clientX, y: clientY };
+  const horizontalOffset = clientX > window.innerWidth * 0.55 ? -72 : 24;
+  const verticalOffset = clientY > window.innerHeight * 0.55 ? -68 : 22;
+  return findSafeMeshiPosition({
+    x: clientX + horizontalOffset,
+    y: clientY + verticalOffset,
+  });
+}
+
+function overlapsImportantUi(point: MeshiPoint) {
+  if (typeof document === "undefined") return false;
+  if (hasUiCollision(point)) return true;
+
+  const samplePoints = [
+    { x: point.x + MESHI_SIZE / 2, y: point.y + MESHI_SIZE / 2 },
+    { x: point.x + 8, y: point.y + 8 },
+    { x: point.x + MESHI_SIZE - 8, y: point.y + 8 },
+    { x: point.x + 8, y: point.y + MESHI_SIZE - 8 },
+    { x: point.x + MESHI_SIZE - 8, y: point.y + MESHI_SIZE - 8 },
+  ];
+
+  return samplePoints.some((sample) => {
+    return document.elementsFromPoint(sample.x, sample.y).some((element) => {
+      if (element.closest("[data-meshi-owned], [data-meshi-primary]")) return false;
+      return Boolean(element.closest(MESHI_AVOID_SELECTOR));
+    });
+  });
+}
+
+function getPageArrivalPosition(pathname: string): MeshiPoint {
+  if (typeof window === "undefined") return { x: 900, y: 600 };
+  const safe = getSafePosition();
+  const rightRail = safe.x;
+  const upper = window.innerHeight * 0.2;
+  const middle = window.innerHeight * 0.42;
+  const lower = window.innerHeight * 0.68;
+
+  if (pathname.startsWith("/feed") || pathname.startsWith("/content-hub")) {
+    return findSafeMeshiPosition({ x: rightRail, y: middle });
+  }
+  if (pathname.startsWith("/messages") || pathname.startsWith("/notifications")) {
+    return findSafeMeshiPosition({ x: rightRail, y: upper });
+  }
+  if (pathname.startsWith("/settings") || pathname.startsWith("/analytics")) {
+    return findSafeMeshiPosition({ x: rightRail, y: lower });
+  }
+  if (pathname.startsWith("/connected-accounts") || pathname.startsWith("/vault")) {
+    return findSafeMeshiPosition({ x: rightRail, y: middle });
+  }
+  if (pathname.startsWith("/profile") || pathname.startsWith("/communities") || pathname.startsWith("/explore")) {
+    return findSafeMeshiPosition({ x: rightRail, y: window.innerHeight * 0.32 });
+  }
+
+  return safe;
+}
+
 export function MeshiFloat() {
+  const [initialContinuity] = useState<MeshiContinuityState | null>(() => readMeshiContinuityState());
+  const [instanceId] = useState(() => getOrCreateMeshiInstanceId());
+
+  const [isMounted, setIsMounted] = useState(false);
   const [meshiEnabled, setMeshiEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("meshiEnabled") !== "false";
   });
-  const [view, setView] = useState<MeshiView>("closed");
-  const [mood, setMood] = useState<MeshiMood>("happy");
-  const [meshiColor, setMeshiColor] = useState<MeshiColor>("blue");
-  const [meshiHat, setMeshiHat] = useState<MeshiHat>("none");
+  const [view, setView] = useState<MeshiView>(() => initialContinuity?.view ?? "closed");
+  const [mood, setMood] = useState<MeshiMood>(() => {
+    if (initialContinuity?.mood) return initialContinuity.mood;
+    if (typeof window === "undefined") return "happy";
+    return (localStorage.getItem("meshiFace") || "happy") as MeshiMood;
+  });
+  const [meshiColor, setMeshiColor] = useState<MeshiColor>(() => {
+    if (typeof window === "undefined") return "blue";
+    return (localStorage.getItem("meshiColor") || "blue") as MeshiColor;
+  });
+  const [meshiHat, setMeshiHat] = useState<MeshiHat>(() => {
+    if (typeof window === "undefined") return "none";
+    return (localStorage.getItem("meshiHat") || "none") as MeshiHat;
+  });
+  const [meshiHair, setMeshiHair] = useState<MeshiHair>(() => {
+    if (typeof window === "undefined") return "none";
+    return (localStorage.getItem("meshiHair") || "none") as MeshiHair;
+  });
+  const [meshiAccessory, setMeshiAccessory] = useState<MeshiAccessory>(() => {
+    if (typeof window === "undefined") return "none";
+    const storedAccessory = localStorage.getItem("meshiAccessory");
+    return ((storedAccessory === "lashes" ? "none" : storedAccessory) || "none") as MeshiAccessory;
+  });
+  const [meshiEye, setMeshiEye] = useState<MeshiEyeStyle>(() => {
+    if (typeof window === "undefined") return "regular";
+    return ((localStorage.getItem("meshiEye") || (localStorage.getItem("meshiAccessory") === "lashes" ? "lashes" : "")) || "regular") as MeshiEyeStyle;
+  });
+  const [meshiBadge, setMeshiBadge] = useState<MeshiBadge>(() => {
+    if (typeof window === "undefined") return "none";
+    return (localStorage.getItem("meshiBadge") || "none") as MeshiBadge;
+  });
+  const [meshiOutfit, setMeshiOutfit] = useState<MeshiOutfit>(() => {
+    if (typeof window === "undefined") return "none";
+    return (localStorage.getItem("meshiOutfit") || "none") as MeshiOutfit;
+  });
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetingText, setGreetingText] = useState("");
   const [lastPath, setLastPath] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isFullscreenVideo, setIsFullscreenVideo] = useState(false);
   const [searchingText, setSearchingText] = useState("");
+  const [focusedContent, setFocusedContent] = useState<FocusedContent | null>(null);
+  const [contentInsightVisible, setContentInsightVisible] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -120,15 +610,28 @@ export function MeshiFloat() {
   const [explorationProgress, setExplorationProgress] = useState(0);
 
   // Position starts in safe bottom-right zone (never overlapping UI)
-  const safePos = getSafePosition();
-  const meshiX = useMotionValue(safePos.x);
-  const meshiY = useMotionValue(safePos.y);
+  const [initialPosition] = useState<MeshiPoint>(() =>
+    initialContinuity?.position
+      ? findSafeMeshiPosition(initialContinuity.position)
+      : getSafePosition()
+  );
+  const meshiX = useMotionValue(initialPosition.x);
+  const meshiY = useMotionValue(initialPosition.y);
   const springX = useSpring(meshiX, { stiffness: 200, damping: 25, mass: 0.6 });
   const springY = useSpring(meshiY, { stiffness: 200, damping: 25, mass: 0.6 });
 
   const [isDragging, setIsDragging] = useState(false);
+  const [isAvoidingUi, setIsAvoidingUi] = useState(false);
   const [wasDragged, setWasDragged] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const dragAvoidRectsRef = useRef<MeshiRect[]>([]);
+  const avoidingUiTimerRef = useRef<number | null>(null);
+  const followReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const followFrameRef = useRef<number | null>(null);
+  const lastFollowPointRef = useRef<MeshiPoint | null>(null);
+  const focusedContentRef = useRef<FocusedContent | null>(null);
+  const lastFocusedContentIdRef = useRef<string | null>(null);
+  const contentInsightTimerRef = useRef<number | null>(null);
 
   const [isIdle, setIsIdle] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -153,15 +656,147 @@ export function MeshiFloat() {
 
   const pathname = usePathname();
 
+  const persistContinuityState = useCallback(
+    (patch: Partial<Omit<MeshiContinuityState, "version" | "instanceId" | "updatedAt">> = {}) => {
+      if (!meshiEnabled) return;
+      const position = patch.position || { x: meshiX.get(), y: meshiY.get() };
+      writeMeshiContinuityState({
+        version: MESHI_CONTINUITY_STATE_VERSION,
+        instanceId,
+        updatedAt: Date.now(),
+        pathname: patch.pathname || pathname,
+        position: findSafeMeshiPosition(clampMeshiPosition(position)),
+        view: patch.view || view,
+        mood: patch.mood || mood,
+        activeProp: patch.activeProp || activeProp,
+      });
+    },
+    [activeProp, instanceId, meshiEnabled, meshiX, meshiY, mood, pathname, view],
+  );
+
   useEffect(() => {
-    getMeshiPreference().then((pref) => {
-      if (pref) {
-        if (pref.faceStyle) setMood(pref.faceStyle as MeshiMood);
-        if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
-        if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
-      }
-    }).catch(() => {});
+    const frame = window.requestAnimationFrame(() => setIsMounted(true));
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (avoidingUiTimerRef.current) window.clearTimeout(avoidingUiTimerRef.current);
+      if (contentInsightTimerRef.current) window.clearTimeout(contentInsightTimerRef.current);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isMounted || !meshiEnabled) return;
+    persistContinuityState();
+  }, [activeProp, isMounted, meshiEnabled, mood, pathname, persistContinuityState, view]);
+
+  useEffect(() => {
+    if (!meshiEnabled) return;
+
+    const saveCurrentState = () => persistContinuityState();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") saveCurrentState();
+    };
+
+    window.addEventListener("pagehide", saveCurrentState);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", saveCurrentState);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [meshiEnabled, persistContinuityState]);
+
+  useEffect(() => {
+    const detectFullscreenVideo = () => {
+      const element = document.fullscreenElement as HTMLElement | null;
+      const videoActive = Boolean(
+        element &&
+        (element.tagName.toLowerCase() === "video" || element.querySelector("video"))
+      );
+      setIsFullscreenVideo(videoActive);
+      if (videoActive) {
+        setView("closed");
+        setMood("learning");
+        setActiveProp("magnifying-glass");
+        setContentInsightVisible(false);
+        const fullscreenContext = getFocusedContentFromElement(element) || getVisibleFocusedContent();
+        if (fullscreenContext) {
+          focusedContentRef.current = fullscreenContext;
+          setFocusedContent(fullscreenContext);
+        }
+        const safe = findSafeMeshiPosition({
+          x: window.innerWidth - MESHI_SIZE - 16,
+          y: window.innerHeight - MESHI_SIZE - 16,
+        });
+        meshiX.set(safe.x);
+        meshiY.set(safe.y);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", detectFullscreenVideo);
+    detectFullscreenVideo();
+    return () => document.removeEventListener("fullscreenchange", detectFullscreenVideo);
+  }, [meshiX, meshiY]);
+
+  useEffect(() => {
+    if (!meshiEnabled || shouldHideGlobalMeshi(pathname)) return;
+    let frame: number | null = null;
+
+    const showInsightBriefly = (content: FocusedContent) => {
+      if (!content.id || lastFocusedContentIdRef.current === content.id) return;
+      lastFocusedContentIdRef.current = content.id;
+      if (view !== "closed" || isSearching || isDragging || isFullscreenVideo) return;
+      setMood("learning");
+      setActiveProp("notebook");
+      setContentInsightVisible(true);
+      if (contentInsightTimerRef.current) window.clearTimeout(contentInsightTimerRef.current);
+      contentInsightTimerRef.current = window.setTimeout(() => setContentInsightVisible(false), 2800);
+    };
+
+    const updateFocusedContent = () => {
+      frame = null;
+      const next = getVisibleFocusedContent();
+      if (areFocusedContentEqual(focusedContentRef.current, next)) return;
+      focusedContentRef.current = next;
+      setFocusedContent(next);
+      if (next) showInsightBriefly(next);
+    };
+
+    const scheduleUpdate = () => {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(updateFocusedContent);
+    };
+
+    scheduleUpdate();
+    const interval = window.setInterval(scheduleUpdate, 2200);
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      window.clearInterval(interval);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+    };
+  }, [isDragging, isFullscreenVideo, isSearching, meshiEnabled, pathname, view]);
+
+  useEffect(() => {
+    if (!meshiEnabled) return;
+    const timer = window.setTimeout(() => {
+      getMeshiPreference().then((pref) => {
+        if (pref) {
+          if (pref.faceStyle) setMood(pref.faceStyle as MeshiMood);
+          if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
+          if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
+          if (pref.hairStyle) setMeshiHair(pref.hairStyle as MeshiHair);
+          if (pref.accessoryStyle) setMeshiAccessory(pref.accessoryStyle as MeshiAccessory);
+          if (pref.eyeStyle) setMeshiEye(pref.eyeStyle as MeshiEyeStyle);
+          if (pref.badgeStyle) setMeshiBadge(pref.badgeStyle as MeshiBadge);
+          if (pref.outfitStyle) setMeshiOutfit(pref.outfitStyle as MeshiOutfit);
+        }
+      }).catch(() => {});
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [meshiEnabled]);
 
   // Persist Meshi conversation memory
   useEffect(() => {
@@ -177,42 +812,74 @@ export function MeshiFloat() {
   }, [chatHistory]);
 
   useEffect(() => {
+    const applyPrefs = (prefs: Partial<MeshiPreferences>) => {
+      if (prefs.color) setMeshiColor(prefs.color);
+      if (prefs.hat) setMeshiHat(prefs.hat);
+      if (prefs.hair) setMeshiHair(prefs.hair);
+      if (prefs.accessory) setMeshiAccessory(prefs.accessory);
+      if (prefs.eye) setMeshiEye(prefs.eye);
+      if (prefs.badge) setMeshiBadge(prefs.badge);
+      if (prefs.outfit) setMeshiOutfit(prefs.outfit);
+      if (prefs.face) setMood(prefs.face);
+      if (typeof prefs.enabled === "boolean") setMeshiEnabled(prefs.enabled);
+    };
+
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "meshiEnabled") setMeshiEnabled(e.newValue !== "false");
       if (e.key === "meshiColor") setMeshiColor((e.newValue || "blue") as MeshiColor);
       if (e.key === "meshiHat") setMeshiHat((e.newValue || "none") as MeshiHat);
+      if (e.key === "meshiHair") setMeshiHair((e.newValue || "none") as MeshiHair);
+      if (e.key === "meshiAccessory") setMeshiAccessory(((e.newValue === "lashes" ? "none" : e.newValue) || "none") as MeshiAccessory);
+      if (e.key === "meshiEye") setMeshiEye((e.newValue || "regular") as MeshiEyeStyle);
+      if (e.key === "meshiBadge") setMeshiBadge((e.newValue || "none") as MeshiBadge);
+      if (e.key === "meshiOutfit") setMeshiOutfit((e.newValue || "none") as MeshiOutfit);
       if (e.key === "meshiFace") setMood((e.newValue || "happy") as MeshiMood);
     };
+    const handlePreferenceEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<MeshiPreferences>;
+      if (customEvent.detail) applyPrefs(customEvent.detail);
+    };
+
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener(MESHI_PREFERENCES_EVENT, handlePreferenceEvent as EventListener);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(MESHI_PREFERENCES_EVENT, handlePreferenceEvent as EventListener);
+    };
   }, []);
 
   // Load mesh data AND index it into knowledge system
   useEffect(() => {
+    if (!meshiEnabled || view === "closed") return;
     let cancelled = false;
-    getMeshGraphData().then((data) => {
-      if (!cancelled) {
-        setMeshEntities(data.entities);
-        setMeshStats(data.stats);
-        // Auto-index mesh data into knowledge system
-        if (data.entities.length > 0) {
-          const nodes = data.entities.map((e) => ({
-            id: e.id,
-            type: e.type as "user" | "community" | "tag" | "post" | "platform",
-            label: e.label,
-            sublabel: e.sublabel || undefined,
-            data: { followerCount: e.followerCount || 0, memberCount: e.memberCount || 0, isMutual: e.isMutual || false },
-          }));
-          setKnowledge((prev) => {
-            const updated = indexMeshData(prev, nodes);
-            saveKnowledge(updated);
-            return updated;
-          });
+    const timer = window.setTimeout(() => {
+      getMeshGraphData().then((data) => {
+        if (!cancelled) {
+          setMeshEntities(data.entities);
+          setMeshStats(data.stats);
+          // Auto-index mesh data into knowledge system
+          if (data.entities.length > 0) {
+            const nodes = data.entities.map((e) => ({
+              id: e.id,
+              type: e.type as "user" | "community" | "tag" | "post" | "platform",
+              label: e.label,
+              sublabel: e.sublabel || undefined,
+              data: { followerCount: e.followerCount || 0, memberCount: e.memberCount || 0, isMutual: e.isMutual || false },
+            }));
+            setKnowledge((prev) => {
+              const updated = indexMeshData(prev, nodes);
+              saveKnowledge(updated);
+              return updated;
+            });
+          }
         }
-      }
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [pathname]);
+      }).catch(() => {});
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [meshiEnabled, view]);
 
   // Page transition bounce + contextual prop
   useEffect(() => {
@@ -222,17 +889,25 @@ export function MeshiFloat() {
     const contextualProp = matchedPropKey ? PAGE_PROPS[matchedPropKey] : "none";
     queueMicrotask(() => setActiveProp(contextualProp));
     if (pathname !== lastPath && lastPath !== "") {
+      const nextGreeting = getGreetingForPath(pathname);
       queueMicrotask(() => {
         setIsPageTransitioning(true);
-        setMood("excited");
+        setMood(nextGreeting.mood);
         setLastPath(pathname);
         setHasGreetedThisPage(false);
       });
+      if (pathname !== "/mesh") {
+        const target = getPageArrivalPosition(pathname);
+        requestAnimationFrame(() => {
+          meshiX.set(target.x);
+          meshiY.set(target.y);
+        });
+      }
       const timer = setTimeout(() => setIsPageTransitioning(false), 800);
       return () => clearTimeout(timer);
     }
     if (lastPath === "") queueMicrotask(() => setLastPath(pathname));
-  }, [pathname, lastPath, meshiEnabled]);
+  }, [pathname, lastPath, meshiEnabled, meshiX, meshiY]);
 
   // Mesh page transition — animate Meshi toward canvas center when entering /mesh
   useEffect(() => {
@@ -252,14 +927,14 @@ export function MeshiFloat() {
       return () => clearTimeout(timer);
     } else if (leavingMesh) {
       queueMicrotask(() => setIsMeshTransition(true));
-      const safe = getSafePosition();
+      const target = getPageArrivalPosition(pathname);
       const centerX = window.innerWidth / 2 - MESHI_SIZE / 2;
       const centerY = window.innerHeight / 2 - MESHI_SIZE / 2;
       meshiX.set(centerX);
       meshiY.set(centerY);
       requestAnimationFrame(() => {
-        meshiX.set(safe.x);
-        meshiY.set(safe.y);
+        meshiX.set(target.x);
+        meshiY.set(target.y);
       });
       const timer = setTimeout(() => setIsMeshTransition(false), 600);
       prevPathnameRef.current = pathname;
@@ -270,21 +945,18 @@ export function MeshiFloat() {
   }, [pathname, meshiEnabled, meshiX, meshiY]);
   useEffect(() => {
     if (!meshiEnabled || hasGreetedThisPage || view !== "closed") return;
-    const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
-    if (matchedKey) {
-      const greeting = GREETINGS[matchedKey];
-      queueMicrotask(() => {
-        setGreetingText(greeting.text);
-        setMood(greeting.mood);
-        setHasGreetedThisPage(true);
-      });
-      let hideTimer: ReturnType<typeof setTimeout>;
-      const showTimer = setTimeout(() => {
-        setShowGreeting(true);
-        hideTimer = setTimeout(() => setShowGreeting(false), 3000);
-      }, 1000);
-      return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
-    }
+    const greeting = getGreetingForPath(pathname);
+    queueMicrotask(() => {
+      setGreetingText(greeting.text);
+      setMood(greeting.mood);
+      setHasGreetedThisPage(true);
+    });
+    let hideTimer: ReturnType<typeof setTimeout>;
+    const showTimer = setTimeout(() => {
+      setShowGreeting(true);
+      hideTimer = setTimeout(() => setShowGreeting(false), 2600);
+    }, 900);
+    return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
   }, [pathname, hasGreetedThisPage, view, meshiEnabled]);
 
   // User interaction reactions
@@ -329,6 +1001,73 @@ export function MeshiFloat() {
     else if (isTyping) queueMicrotask(() => setMood("thinking"));
   }, [isIdle, isTyping, view, meshiEnabled]);
 
+  // Dynamic follow behavior: Meshi trails attention, then docks safely.
+  useEffect(() => {
+    if (!meshiEnabled || view !== "closed" || isSearching || isDragging || isMeshTransition) return;
+
+    const canFollow = () => view === "closed" && !isSearching && !isDragging && !isMeshTransition;
+    const releaseToDock = () => {
+      if (followReleaseTimerRef.current) clearTimeout(followReleaseTimerRef.current);
+      followReleaseTimerRef.current = setTimeout(() => {
+        if (!canFollow()) return;
+        const safe = getSafePosition();
+        meshiX.set(safe.x);
+        meshiY.set(safe.y);
+        setActiveProp(PAGE_PROPS[pathname] || "none");
+      }, MESHI_FOLLOW_RELEASE_MS);
+    };
+    const moveNear = (point: MeshiPoint, nextMood: MeshiMood, prop: MeshiProp = "none") => {
+      if (!canFollow()) return;
+      meshiX.set(point.x);
+      meshiY.set(point.y);
+      setMood(nextMood);
+      if (prop !== "none") setActiveProp(prop);
+      releaseToDock();
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse" || window.innerWidth < 900 || !canFollow()) return;
+      const last = lastFollowPointRef.current;
+      const movedEnough = !last || Math.hypot(event.clientX - last.x, event.clientY - last.y) > 140;
+      if (!movedEnough || followFrameRef.current !== null) return;
+
+      lastFollowPointRef.current = { x: event.clientX, y: event.clientY };
+      followFrameRef.current = window.requestAnimationFrame(() => {
+        followFrameRef.current = null;
+        moveNear(getPointerFollowPosition(event.clientX, event.clientY), "wink");
+      });
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (!canFollow()) return;
+      const target = event.target as HTMLElement | null;
+      if (!target?.matches("input, textarea, select, button, a, [role='button'], [data-meshi-follow]")) return;
+      const rect = target.getBoundingClientRect();
+      moveNear(getPointerFollowPosition(rect.right, rect.top + rect.height / 2), "thinking", PAGE_PROPS[pathname] || "none");
+    };
+
+    const handleClick = (event: MouseEvent) => {
+      if (!canFollow() || window.innerWidth < 768) return;
+      const target = event.target as HTMLElement | null;
+      const isInteractive = Boolean(target?.closest("button, a, input, textarea, select, [role='button'], [data-meshi-follow]"));
+      if (!isInteractive) return;
+      moveNear(getPointerFollowPosition(event.clientX, event.clientY), "happy");
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("focusin", handleFocusIn);
+    window.addEventListener("click", handleClick, { passive: true });
+    releaseToDock();
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("focusin", handleFocusIn);
+      window.removeEventListener("click", handleClick);
+      if (followReleaseTimerRef.current) clearTimeout(followReleaseTimerRef.current);
+      if (followFrameRef.current !== null) window.cancelAnimationFrame(followFrameRef.current);
+    };
+  }, [meshiEnabled, view, isSearching, isDragging, isMeshTransition, meshiX, meshiY, pathname]);
+
   // Ambient mood cycling
   useEffect(() => {
     if (!meshiEnabled || view !== "closed" || isIdle || isTyping || isDragging) return;
@@ -350,13 +1089,28 @@ export function MeshiFloat() {
       lastScrollY = window.scrollY;
       if (Math.abs(delta) > 50) {
         setMood(delta > 0 ? "cool" : "surprised");
+        if (!isDragging && !isSearching) {
+          const safe = getSafePosition();
+          const target = findSafeMeshiPosition({
+            x: safe.x,
+            y: delta > 0 ? window.innerHeight * 0.66 : window.innerHeight * 0.26,
+          });
+          meshiX.set(target.x);
+          meshiY.set(target.y);
+        }
         if (pendingTimeout) clearTimeout(pendingTimeout);
-        pendingTimeout = setTimeout(() => { setMood("happy"); pendingTimeout = null; }, 600);
+        pendingTimeout = setTimeout(() => {
+          const safe = getSafePosition();
+          meshiX.set(safe.x);
+          meshiY.set(safe.y);
+          setMood("happy");
+          pendingTimeout = null;
+        }, 1200);
       }
     };
     window.addEventListener("scroll", handleScrollDirection, { passive: true });
     return () => { window.removeEventListener("scroll", handleScrollDirection); if (pendingTimeout) clearTimeout(pendingTimeout); };
-  }, [meshiEnabled, view]);
+  }, [meshiEnabled, view, isDragging, isSearching, meshiX, meshiY]);
 
   // Keep Meshi in safe zone on resize — snap to safe position if out of bounds
   useEffect(() => {
@@ -364,14 +1118,26 @@ export function MeshiFloat() {
       const safe = getSafePosition();
       const curX = meshiX.get();
       const curY = meshiY.get();
-      // If Meshi is near the default position or out of bounds, snap to safe zone
-      if (curX > window.innerWidth - MESHI_SIZE - 8 || curY > window.innerHeight - MESHI_SIZE - 8) {
-        meshiX.set(safe.x);
-        meshiY.set(safe.y);
+      const clamped = clampMeshiPosition({ x: curX, y: curY });
+      const resolved = findSafeMeshiPosition(clamped);
+      const outOfBounds = Math.abs(clamped.x - curX) > 1 || Math.abs(clamped.y - curY) > 1;
+      const overlapsUi = Math.abs(resolved.x - clamped.x) > 1 || Math.abs(resolved.y - clamped.y) > 1 || overlapsImportantUi(clamped);
+
+      // SSR starts MotionValues with a desktop fallback. Correct it as soon as
+      // the real viewport exists, then keep it inside mobile/tablet bounds.
+      if (outOfBounds || overlapsUi || curX > window.innerWidth || curY > window.innerHeight) {
+        const target = overlapsUi ? resolved : safe;
+        meshiX.set(target.x);
+        meshiY.set(target.y);
       }
     };
+    handleResize();
+    const settleTimer = window.setTimeout(handleResize, 250);
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.clearTimeout(settleTimer);
+      window.removeEventListener("resize", handleResize);
+    };
   }, [meshiX, meshiY]);
 
   const addSpeechBubble = useCallback((role: "user" | "meshi", text: string) => {
@@ -428,53 +1194,9 @@ export function MeshiFloat() {
   // Legacy triggerSearch now uses exploration
   const triggerSearch = triggerExploration;
 
-  // Enhanced quick response with knowledge system integration
-  const getQuickResponse = useCallback((query: string): { text: string; mood: MeshiMood } => {
-    const q = query.toLowerCase().trim();
-
-    // Check if this is a mesh knowledge question (how many, who is, find, etc.)
-    const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("find ") ||
-      q.includes("@") || q.includes("tell me about my mesh") || q.includes("summary") ||
-      q.includes("what do you know") || q.includes("knowledge level");
-
-    if (isMeshQuery) {
-      const result = answerMeshQuestion(knowledge, query);
-      return { text: result.answer, mood: result.mood as MeshiMood };
-    }
-
-    if (q.includes("knowledge") || q.includes("how smart") || q.includes("level")) {
-      const level = knowledge.knowledgeLevel;
-      const desc = getKnowledgeLevelDescription(level);
-      return {
-        text: `I'm at Knowledge Level ${level}/10 — ${desc}! I've explored ${knowledge.totalNodesVisited} nodes and learned ${Object.keys(knowledge.entries).length} things about your mesh.`,
-        mood: level >= 5 ? "excited" : "happy",
-      };
-    }
-
-    if (q.includes("explore") || q.includes("index") || q.includes("learn more"))
-      return { text: "I'll explore your mesh right now! Watch me go!", mood: "excited" };
-
-    if (q.includes("mesh") && (q.includes("what") || q.includes("how") || q.includes("work")))
-      return { text: "The Mesh is your entire digital universe visualized! Every connection as a glowing node.", mood: "excited" };
-    if (q.includes("mechat") || q.includes("message") || q.includes("chat"))
-      return { text: "MeChat merges all your conversations across platforms! Encrypted and private.", mood: "love" };
-    if (q.includes("privacy") || q.includes("secure") || q.includes("safe"))
-      return { text: "Privacy is #1! We never sell data, never track you, and you control everything.", mood: "cool" };
-    if (q.includes("meshi") || q.includes("who are you"))
-      return { text: `I'm Meshi! Your mesh.me AI companion. Knowledge Level ${knowledge.knowledgeLevel}/10 and growing!`, mood: "love" };
-    if (q.includes("pro") || q.includes("premium"))
-      return { text: "MeshPro is $4.99/mo \u2014 Digital Footprint Scanner, custom cosmetics, and analytics.", mood: "wink" };
-    if (q.includes("hello") || q.includes("hi") || q.includes("hey"))
-      return { text: "Hey there! What can I help you with?", mood: "happy" };
-    if (q.includes("thank"))
-      return { text: "Anytime! Happy to help!", mood: "love" };
-    return { text: "Great question! For a deeper dive, open the full chat.", mood: "thinking" };
-  }, [knowledge]);
-
-  const handleSpeechSend = useCallback(() => {
-    const text = speechInput.trim();
+  const submitSpeechPrompt = useCallback((rawText: string) => {
+    const text = rawText.trim();
     if (!text || isMeshiTyping) return;
-    setSpeechInput("");
     addSpeechBubble("user", text);
     setMood("thinking");
     setIsMeshiTyping(true);
@@ -482,62 +1204,92 @@ export function MeshiFloat() {
     const q = text.toLowerCase();
     const isSearchQuery = SEARCH_TRIGGERS.some((trigger) => q.includes(trigger));
     const isExploreQuery = q.includes("explore") || q.includes("index") || q.includes("learn more");
-
-    // Mesh knowledge questions — Meshi pulls out magnifying glass and explores
+    const isFocusedContentQuery = Boolean(focusedContent && (
+      q.includes("this post") ||
+      q.includes("visible post") ||
+      q.includes("this video") ||
+      q.includes("this photo") ||
+      q.includes("this image") ||
+      q.includes("fact") ||
+      q.includes("summar") ||
+      q.includes("ai") ||
+      q.includes("generated") ||
+      q.includes("media")
+    ));
     const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("find ") || q.includes("@") ||
       q.includes("tell me about my mesh") || q.includes("summary") || q.includes("what do you know") || q.includes("knowledge level");
-
-    if (isMeshQuery && !isSearching) {
-      // Magnifying glass exploration animation, then answer
-      setIsSearching(true);
-      setSearchingText("Searching through your mesh...");
-      setMood("searching" as MeshiMood);
-      setView("closed");
-      setTimeout(() => {
-        setSearchingText("Analyzing data...");
-        setMood("learning" as MeshiMood);
-      }, 1500);
-      setTimeout(() => {
-        setIsSearching(false);
-        const result = answerMeshQuestion(knowledge, text);
-        setMood(result.mood as MeshiMood);
-        setView("speech");
-        addSpeechBubble("meshi", result.answer);
-        setIsMeshiTyping(false);
-        setChatHistory((prev) => [...prev.slice(-49), { q: text, a: result.answer, time: new Date() }]);
-        setTimeout(() => setMood("happy"), 3000);
-      }, 3000);
-      return;
-    }
-
-    if ((isSearchQuery || isExploreQuery) && !isSearching) {
-      setTimeout(() => { setIsMeshiTyping(false); triggerExploration(); }, 500);
-      return;
-    }
-
-    // Node inspector mode: when on mesh page and asking about a person/entity
     const isInspectQuery = (pathname === "/mesh") && (
       text.toLowerCase().includes("who is") ||
       text.toLowerCase().includes("tell me about") ||
       text.toLowerCase().includes("inspect") ||
       text.toLowerCase().includes("look up")
     );
-    if (isInspectQuery) {
-      setMood("searching");
+
+    const shouldAnimateSearch = !isSearching && (isMeshQuery || isSearchQuery || isExploreQuery || isInspectQuery || isFocusedContentQuery);
+    if (shouldAnimateSearch) {
+      setIsSearching(true);
+      setSearchingText(isFocusedContentQuery ? "Checking visible content..." : isExploreQuery ? "Exploring your mesh..." : "Searching with Meshi...");
+      setMood("searching" as MeshiMood);
+      setView("closed");
       setActiveProp("magnifying-glass");
       setTimeout(() => {
-        setActiveProp(PAGE_PROPS["/mesh"] || "compass");
-        setMood("learning");
-      }, 3000);
+        setSearchingText(isFocusedContentQuery ? "Reviewing source and media clues..." : "Reasoning privately...");
+        setActiveProp(isFocusedContentQuery ? "notebook" : PAGE_PROPS["/mesh"] || "compass");
+        setMood("learning" as MeshiMood);
+      }, 700);
     }
-    setTimeout(() => {
-      const response = getQuickResponse(text);
-      setMood(isInspectQuery ? "learning" : response.mood);
-      addSpeechBubble("meshi", response.text);
+
+    const history: MeshiHistoryMessage[] = chatHistory.slice(-6).flatMap((entry) => [
+      { role: "user" as const, content: entry.q },
+      { role: "meshi" as const, content: entry.a },
+    ]);
+
+    const startedAt = Date.now();
+    void (async () => {
+      const response = await askMeshi({
+        message: text,
+        context: {
+          meshData: meshStats,
+          meshEntities: meshEntities.slice(0, 50),
+          focusedContent: focusedContent || undefined,
+          currentPage: pathname,
+        },
+        history,
+      });
+
+      const elapsed = Date.now() - startedAt;
+      if (shouldAnimateSearch && elapsed < 900) {
+        await new Promise((resolve) => setTimeout(resolve, 900 - elapsed));
+      }
+
+      if (shouldAnimateSearch) {
+        setIsSearching(false);
+        setIsExploring(false);
+        setExplorationProgress(0);
+        setView("speech");
+      }
+
+      setMood(response.mood as MeshiMood);
+      addSpeechBubble("meshi", response.content);
       setIsMeshiTyping(false);
-      setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.text, time: new Date() }]);
-    }, isInspectQuery ? 1500 : 800 + Math.random() * 600);
-  }, [speechInput, isMeshiTyping, isSearching, knowledge, addSpeechBubble, triggerExploration, getQuickResponse, pathname]);
+      setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.content, time: new Date() }]);
+      setTimeout(() => setMood("happy"), 3000);
+    })();
+  }, [isMeshiTyping, addSpeechBubble, focusedContent, isSearching, chatHistory, meshStats, meshEntities, pathname]);
+
+  const handleSpeechSend = useCallback(() => {
+    const text = speechInput.trim();
+    if (!text || isMeshiTyping) return;
+    setSpeechInput("");
+    submitSpeechPrompt(text);
+  }, [isMeshiTyping, speechInput, submitSpeechPrompt]);
+
+  const handleFocusedContentPrompt = useCallback((mode: "summary" | "fact-check" | "ai") => {
+    if (!focusedContent || isMeshiTyping) return;
+    setView("speech");
+    setContentInsightVisible(false);
+    submitSpeechPrompt(getFocusedContentPrompt(focusedContent, mode));
+  }, [focusedContent, isMeshiTyping, submitSpeechPrompt]);
 
   useEffect(() => {
     if (view === "speech") setTimeout(() => speechInputRef.current?.focus(), 100);
@@ -559,6 +1311,7 @@ export function MeshiFloat() {
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     dragStartRef.current = { x: e.clientX, y: e.clientY, px: springX.get(), py: springY.get() };
+    dragAvoidRectsRef.current = getMeshiAvoidRects();
     setWasDragged(false);
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, [springX, springY]);
@@ -568,28 +1321,37 @@ export function MeshiFloat() {
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) { setIsDragging(true); setWasDragged(true); }
-    const maxX = (typeof window !== "undefined" ? window.innerWidth : 1024) - MESHI_SIZE;
-    const isMobile = (typeof window !== "undefined" ? window.innerWidth : 1024) < 1024;
-    const safeBottom = isMobile ? 80 : 16;
-    const maxY = (typeof window !== "undefined" ? window.innerHeight : 768) - MESHI_SIZE - safeBottom;
-    meshiX.set(Math.max(0, Math.min(maxX, dragStartRef.current.px + dx)));
-    meshiY.set(Math.max(0, Math.min(maxY, dragStartRef.current.py + dy)));
-  }, [meshiX, meshiY]);
+    const raw = clampMeshiPosition({ x: dragStartRef.current.px + dx, y: dragStartRef.current.py + dy });
+    const safe = findSafeMeshiPosition(raw, dragAvoidRectsRef.current);
+    const adjusted = Math.abs(raw.x - safe.x) > 1 || Math.abs(raw.y - safe.y) > 1;
+
+    if (adjusted !== isAvoidingUi) setIsAvoidingUi(adjusted);
+    if (adjusted) setMood("surprised");
+
+    meshiX.set(safe.x);
+    meshiY.set(safe.y);
+  }, [isAvoidingUi, meshiX, meshiY]);
 
   const handlePointerUp = useCallback(() => {
     dragStartRef.current = null;
     setIsDragging(false);
-    // Snap back to safe zone if released near edges where UI lives
     const curX = meshiX.get();
     const curY = meshiY.get();
-    const safe = getSafePosition();
-    const nearRight = curX > window.innerWidth - MESHI_SIZE - 24;
-    const nearBottom = curY > safe.y - 8;
-    if (nearRight && nearBottom) {
-      meshiX.set(safe.x);
-      meshiY.set(safe.y);
+    const clamped = clampMeshiPosition({ x: curX, y: curY });
+    const safe = findSafeMeshiPosition(clamped);
+    const adjusted = Math.abs(clamped.x - safe.x) > 1 || Math.abs(clamped.y - safe.y) > 1 || overlapsImportantUi(clamped);
+
+    meshiX.set(safe.x);
+    meshiY.set(safe.y);
+    persistContinuityState({ position: safe });
+    dragAvoidRectsRef.current = [];
+
+    if (avoidingUiTimerRef.current) window.clearTimeout(avoidingUiTimerRef.current);
+    setIsAvoidingUi(adjusted);
+    if (adjusted) {
+      avoidingUiTimerRef.current = window.setTimeout(() => setIsAvoidingUi(false), 700);
     }
-  }, [meshiX, meshiY]);
+}, [meshiX, meshiY, persistContinuityState]);
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
 
@@ -626,14 +1388,22 @@ export function MeshiFloat() {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  // On /mesh page: show transition animation then hide; on other pages: show normally
-  const isOnMeshPage = pathname === "/mesh";
+  if (!isMounted || !meshiEnabled || shouldHideGlobalMeshi(pathname)) return null;
 
-  if (!meshiEnabled) return null;
+  const activeHeldProp: MeshiProp =
+    isFullscreenVideo || isSearching
+      ? "magnifying-glass"
+      : contentInsightVisible && focusedContent
+        ? "notebook"
+      : isTyping || isMeshiTyping
+        ? "keyboard"
+        : view === "actions" || view === "speech" || view === "chat" || isDragging
+          ? activeProp
+          : "none";
 
   return (
     <>
-      {/* Search Overlay */}
+      {/* Search Overlay. It explains what the single floating Meshi is doing without rendering another Meshi body. */}
       <AnimatePresence>
         {isSearching && (
           <motion.div
@@ -643,9 +1413,6 @@ export function MeshiFloat() {
             <motion.div className="flex flex-col items-center gap-3"
               animate={{ x: [0, 100, -80, 60, -40, 0], y: [0, -50, 30, -60, 20, 0] }}
               transition={{ duration: 4, ease: "easeInOut" }}>
-              <motion.div animate={{ rotate: [0, 10, -10, 15, -5, 0] }} transition={{ duration: 0.8, repeat: Infinity }}>
-                <MeshiMascot size={80} mood={isExploring ? "searching" as MeshiMood : "thinking"} color={meshiColor} hat={meshiHat} speaking showGlow />
-              </motion.div>
               {/* Magnifying glass icon */}
               <motion.div
                 animate={{ rotate: [-15, 15, -15], scale: [1, 1.1, 1] }}
@@ -677,12 +1444,114 @@ export function MeshiFloat() {
 
       {/* THE ONE MESHI - standalone floating entity */}
       <AnimatePresence>
-        {!isSearching && (!isOnMeshPage || isMeshTransition) && (
-          <motion.div className="fixed z-40" style={{ left: springX, top: springY }}
-            initial={isOnMeshPage ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }}
-            animate={isOnMeshPage ? { opacity: 0, scale: 0.6 } : { opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}>
+        <motion.div
+          data-meshi-float="true"
+          data-meshi-singleton="true"
+          data-meshi-instance-id={instanceId}
+          data-meshi-owned="true"
+          data-meshi-avoiding={isAvoidingUi ? "true" : undefined}
+          className="meshi-float-shell fixed z-40 hidden md:block"
+          style={{ left: springX, top: springY }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{
+            opacity: isFullscreenVideo ? 0.46 : 1,
+            scale: isFullscreenVideo ? 0.56 : isMeshTransition ? [1, 1.14, 1] : 1,
+            y: isAvoidingUi ? [0, -4, 0] : 0,
+          }}
+          exit={{ opacity: 0, scale: 0.5 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}>
+            {isFullscreenVideo && view === "closed" && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.92 }}
+                animate={{ opacity: 0.82, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.92 }}
+                className="absolute bottom-full right-0 mb-1 flex items-center gap-1 rounded-full border border-[var(--accent)]/20 bg-[var(--bg-elevated)]/72 px-2 py-1 text-[10px] font-black text-[var(--text-primary)] shadow-md backdrop-blur"
+              >
+                <span className="text-[var(--accent)]">Check</span>
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleFocusedContentPrompt("summary");
+                  }}
+                  className="rounded-full px-1.5 py-0.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                >
+                  Sum
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleFocusedContentPrompt("fact-check");
+                  }}
+                  className="rounded-full px-1.5 py-0.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                >
+                  Facts
+                </button>
+              </motion.div>
+            )}
+            {contentInsightVisible && focusedContent && view === "closed" && !isFullscreenVideo && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.94 }}
+                className="absolute bottom-full right-0 mb-2 w-[15rem] rounded-xl border border-[var(--border-primary)] bg-[var(--bg-elevated)]/94 px-3 py-2 text-[11px] font-semibold text-[var(--text-primary)] shadow-lg backdrop-blur"
+              >
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[var(--text-primary)]">
+                      Fact-check ready
+                      {focusedContent.platform ? <span className="text-[var(--text-muted)]"> - {focusedContent.platform}</span> : null}
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-4 text-[var(--text-muted)]">
+                      I can summarize, check claims, or look for AI-media clues using visible metadata.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-1">
+                  {([
+                    ["summary", "Sum"],
+                    ["fact-check", "Facts"],
+                    ["ai", "AI cues"],
+                  ] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleFocusedContentPrompt(mode);
+                      }}
+                      className="rounded-lg bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] font-black text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+            {isSearching && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.94 }}
+                className="absolute bottom-full right-0 mb-2 min-w-[11rem] rounded-xl border border-[var(--accent)]/40 bg-[var(--bg-elevated)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] shadow-lg"
+              >
+                <span className="block">{searchingText || "Meshi is working..."}</span>
+                {isExploring && explorationProgress > 0 && (
+                  <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                    <motion.span
+                      className="block h-full rounded-full bg-[var(--accent)]"
+                      animate={{ width: `${explorationProgress}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </span>
+                )}
+              </motion.div>
+            )}
             {/* Speech bubbles above Meshi */}
             {view === "speech" && (
               <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-2 w-[280px]">
@@ -699,8 +1568,8 @@ export function MeshiFloat() {
                           : "bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-bl-sm"
                       }`}>
                       {bubble.role === "meshi" && (
-                        <div className="flex items-start gap-1.5 mb-1">
-                          <MeshiMascot size={14} mood={mood} color={meshiColor} hat={meshiHat} showGlow={false} animate={false} />
+                        <div className="mb-1 flex items-start gap-1.5">
+                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
                           <span className="text-[10px] font-medium text-[var(--accent)]">Meshi</span>
                         </div>
                       )}
@@ -723,7 +1592,7 @@ export function MeshiFloat() {
                   <input ref={speechInputRef} type="text" value={speechInput}
                     onChange={(e) => setSpeechInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSpeechSend()}
-                    placeholder="Ask Meshi anything..."
+                    placeholder="Ask me anything..."
                     className="flex-1 bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] shadow-lg" />
                   <button onClick={handleSpeechSend} disabled={!speechInput.trim()}
                     className="p-2 rounded-xl brand-button text-white disabled:opacity-40 shadow-lg">
@@ -740,21 +1609,31 @@ export function MeshiFloat() {
                   initial={{ opacity: 0, y: 10, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                  className="absolute bottom-full right-0 mb-2 px-3 py-2 rounded-xl text-xs max-w-[180px] shadow-lg pointer-events-none"
+                  className="absolute bottom-full right-0 mb-2 px-3 py-2 rounded-xl text-xs max-w-[160px] shadow-lg pointer-events-none"
                   style={{ background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--border-primary)" }}>
                   <p>{greetingText}</p>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* MESHI ENTITY - standalone, no container/bubble */}
+            {/* MESHI ENTITY - the user's persistent bubble character */}
             <motion.div
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onClick={handleMeshiClick}
-              className={`cursor-pointer select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+              className={`relative cursor-pointer select-none rounded-full ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
               style={{ touchAction: "none", width: MESHI_SIZE, height: MESHI_SIZE }}
+              data-meshi-primary="true"
+              role="button"
+              aria-label="Open Meshi"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleMeshiClick();
+                }
+              }}
               animate={{
                 scale: clickBurst ? [1, 1.15, 1] : isPageTransitioning ? [1, 1.2, 0.9, 1.1, 1] : 1,
                 rotate: isPageTransitioning ? [0, 10, -10, 5, 0] : isDragging ? [0, 3, -3, 0] : 0,
@@ -775,14 +1654,37 @@ export function MeshiFloat() {
                       ? { duration: 3, repeat: Infinity, ease: "easeInOut" }
                       : { duration: 4, repeat: Infinity, ease: "easeInOut" }
                 }>
+                <motion.span
+                  className="absolute inset-[-6px] -z-10 rounded-full bg-[var(--bg-primary)]/45 shadow-[0_10px_32px_rgba(96,165,250,0.18)] backdrop-blur"
+                  animate={{
+                    scale: view === "closed" ? [1, 1.05, 1] : [1, 1.16, 1],
+                    opacity: view === "closed" ? [0.64, 0.82, 0.64] : [0.82, 0.45, 0.82],
+                  }}
+                  transition={{ duration: view === "closed" ? 4 : 1.8, repeat: Infinity, ease: "easeInOut" }}
+                  aria-hidden="true"
+                />
+                <motion.span
+                  className="absolute inset-[-14px] -z-20 rounded-full bg-[var(--accent)]/5"
+                  animate={{
+                    scale: view !== "closed" ? [1, 1.24, 1] : [1, 1.08, 1],
+                    opacity: view !== "closed" ? [0.5, 0.06, 0.5] : [0.16, 0.03, 0.16],
+                  }}
+                  transition={{ duration: view !== "closed" ? 1.8 : 5, repeat: Infinity, ease: "easeOut" }}
+                  aria-hidden="true"
+                />
                 <MeshiMascot
                   size={MESHI_SIZE}
-                  mood={isDragging ? "excited" : mood}
+                  mood={isFullscreenVideo || contentInsightVisible ? "learning" : isSearching ? "searching" as MeshiMood : isDragging ? "excited" : mood}
                   color={meshiColor}
                   hat={meshiHat}
-                  showGlow={view !== "closed"}
+                  hair={meshiHair}
+                  accessory={isFullscreenVideo || isSearching || contentInsightVisible ? "glasses" : meshiAccessory}
+                  eyeStyle={meshiEye}
+                  badge={meshiBadge}
+                  outfit={meshiOutfit}
+                  showGlow={view !== "closed" || isSearching || isFullscreenVideo || contentInsightVisible}
                   interactive
-                  prop={view === "closed" ? activeProp : "none"}
+                  prop={activeHeldProp}
                   bouncy={isIdle}
                 />
               </motion.div>
@@ -810,18 +1712,17 @@ export function MeshiFloat() {
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
                   >
-                    Hi!
+                    Tap
                   </motion.div>
                 </>
               )}
             </motion.div>
           </motion.div>
-        )}
       </AnimatePresence>
 
       {/* Actions Menu — hidden on mesh page */}
       <AnimatePresence>
-        {view === "actions" && !isOnMeshPage && (
+        {view === "actions" && (
           <MeshiActionsMenu
             meshiColor={meshiColor}
             meshiHat={meshiHat}
@@ -834,7 +1735,17 @@ export function MeshiFloat() {
       </AnimatePresence>
 
       {/* Full Meshi Chat */}
-      <MeshiChat isOpen={view === "chat"} onClose={closeAll} meshData={meshStats} meshEntities={meshEntities} />
+      <MeshiChat
+        isOpen={view === "chat"}
+        onClose={closeAll}
+        hat={meshiHat}
+        color={meshiColor}
+        hair={meshiHair}
+        accessory={meshiAccessory}
+        faceStyle={mood}
+        meshData={meshStats}
+        meshEntities={meshEntities}
+      />
     </>
   );
 }

@@ -9,8 +9,7 @@ import { useRouter } from "next/navigation";
 
 export function SecurityHubTab() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<Array<{ id: string; createdAt: string; expiresAt: string }>>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<Array<{ createdAt: string; expiresAt: string; isCurrent: boolean }>>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -23,8 +22,8 @@ export function SecurityHubTab() {
   });
 
   const otherSessionCount = useMemo(
-    () => sessions.filter((item) => item.id !== currentSessionId).length,
-    [sessions, currentSessionId],
+    () => sessions.filter((item) => !item.isCurrent).length,
+    [sessions],
   );
 
   useEffect(() => {
@@ -46,7 +45,6 @@ export function SecurityHubTab() {
 
         const sessionPayload = await sessionRes.json();
         setSessions(sessionPayload.sessions ?? []);
-        setCurrentSessionId(sessionPayload.currentSessionId ?? null);
 
         if (overviewRes.ok) {
           const overviewPayload = await overviewRes.json();
@@ -83,7 +81,7 @@ export function SecurityHubTab() {
         return;
       }
       setSessionMessage(`Signed out ${payload.deletedCount} other session${payload.deletedCount === 1 ? "" : "s"}.`);
-      setSessions((prev) => prev.filter((item) => item.id === currentSessionId));
+      setSessions((prev) => prev.filter((item) => item.isCurrent));
     } catch {
       setSessionMessage("Could not sign out other sessions.");
     } finally {
@@ -186,7 +184,7 @@ export function SecurityHubTab() {
               {otherSessionCount} other active session{otherSessionCount === 1 ? "" : "s"}.
             </p>
           )}
-          {isLoadingSessions && <p className="text-xs text-[var(--text-muted)] px-1">Loading session status…</p>}
+          {isLoadingSessions && <p className="text-xs text-[var(--text-muted)] px-1">Loading session status...</p>}
           {sessionMessage && <p className="text-xs text-[var(--text-muted)] px-1">{sessionMessage}</p>}
         </div>
         <Button variant="secondary" size="sm" className="mt-3 w-full" onClick={() => void signOutOtherSessions()} disabled={isSigningOut || isLoadingSessions}>

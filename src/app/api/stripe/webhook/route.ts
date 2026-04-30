@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  return new Stripe(key);
-}
+import { syncMeshProSubscription } from "@/lib/stripe-billing";
+import { getStripeClient, stripeObjectId } from "@/lib/stripe";
 
 // Errors that should NOT trigger Stripe retry (permanent failures)
 function isPermanentError(err: unknown): boolean {
@@ -26,7 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing signature or webhook secret" }, { status: 400 });
   }
 
-  const stripe = getStripe();
+  const stripe = getStripeClient();
   if (!stripe) {
     return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
   }
@@ -45,38 +41,38 @@ export async function POST(req: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
-        if (userId) {
-          // Idempotency: skip if already activated
-          const existing = await prisma.user.findUnique({ where: { id: userId } });
-          if (existing && !existing.isMeshPro) {
-            await prisma.user.update({
-              where: { id: userId },
-              data: {
-                isMeshPro: true,
-                meshProSince: new Date(),
-                stripeCustomerId: session.customer as string,
-                stripeSubscriptionId: session.subscription as string,
-              },
-            });
-          }
-        }
-        break;
-      }
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
-        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
-        if (user) {
+        const subscriptionId = stripeObjectId(session.subscription);
+
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          await syncMeshProSubscription(subscription, userId);
+        } else if (userId) {
+          const customerId = stripeObjectId(session.customer);
           await prisma.user.update({
-            where: { id: user.id },
-            data: { isMeshPro: false, stripeSubscriptionId: null },
+            where: { id: userId },
+            data: {
+              isMeshPro: true,
+              meshProSince: new Date(),
+              ...(customerId ? { stripeCustomerId: customerId } : {}),
+            },
           });
         }
         break;
       }
+      case "customer.subscription.created":
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await syncMeshProSubscription(subscription);
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await syncMeshProSubscription(subscription);
+        break;
+      }
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        const customerId = invoice.customer as string;
+        const customerId = stripeObjectId(invoice.customer);
         console.error("Payment failed for customer:", customerId);
         break;
       }

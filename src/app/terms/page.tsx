@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDocumentPage } from "@/components/legal/legal-document-page";
+import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | mesh.me",
-  description: "Terms of Service for mesh.me, the privacy-first social platform.",
+  title: "Terms of Service",
+  description: `Terms of Service for ${meshBrand.name}, the privacy-first social platform.`,
 };
 
 export default function TermsPage() {

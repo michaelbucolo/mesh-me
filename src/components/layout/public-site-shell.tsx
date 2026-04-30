@@ -1,108 +1,79 @@
 import Link from "next/link";
 import type React from "react";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
-import { MeshiLogo } from "@/components/meshi/meshi-mascot";
-import { MeshBackground } from "@/components/mesh-background";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
+import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
+import { meshBrand } from "@/lib/brand";
 
 const navLinks = [
   { href: "/features", label: "Features" },
-  { href: "/about", label: "About" },
   { href: "/trust", label: "Trust" },
+  { href: "/roadmap", label: "Roadmap" },
+  { href: "/help", label: "Help" },
+  { href: "/vision", label: "Vision" },
+];
+
+const footerLinks = [
+  { href: "/about", label: "About" },
+  { href: "/help", label: "Help" },
+  { href: "/support", label: "Support" },
+  { href: "/status", label: "Status" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
 ];
 
 export function PublicSiteShell({
   children,
-  maxWidth = "max-w-6xl",
+  maxWidth = "max-w-5xl",
 }: {
   children: React.ReactNode;
   maxWidth?: string;
 }) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--bg-primary)]">
-      <MeshBackground density={46} className="opacity-25" />
-      <div className="pointer-events-none absolute inset-0 mesh-grid-bg opacity-[0.14]" />
-
-      <header className="glass sticky top-0 z-30 border-b border-[var(--glass-border)]">
-        <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
-            <MeshiLogo size={34} color="blue" mood="happy" />
-            <div className="min-w-0">
-              <p className="brand-wordmark truncate text-lg text-[var(--text-primary)]">
-                Mesh<span className="brand-wordmark-accent">.me</span>
-              </p>
-              <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)] md:block">
-                Your World, Your Way
-              </p>
-            </div>
-          </Link>
-
-          <nav className="hidden items-center gap-1 lg:flex">
+    <div className="mesh-aurora public-site-shell relative isolate flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden text-[var(--text-primary)]">
+      <DeferredMeshBackground fixed interactive density={30} mouseInfluence={0.42} className="mesh-field-public" delayMs={520} />
+      <div className="pointer-events-none fixed inset-0 mesh-soft-grid mesh-soft-grid-elegant" aria-hidden="true" />
+      <div className="pointer-events-none fixed inset-0 mesh-shell-vignette" aria-hidden="true" />
+      <header className="relative z-40 shrink-0 border-b border-[var(--border-primary)] bg-[var(--bg-primary)]/86 backdrop-blur-xl">
+        <div className="public-site-nav mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4">
+          <MeshiBrandLockup href="/" size={32} label={meshBrand.name} subtitle={meshBrand.motto} className="text-lg" />
+          <nav className="flex max-w-full gap-3 overflow-x-auto text-sm text-[var(--text-secondary)]">
             {navLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-              >
+              <Link key={item.href} href={item.href} className="mesh-choice shrink-0 rounded-md px-3 py-2 hover:text-[var(--text-primary)]">
                 {item.label}
               </Link>
             ))}
           </nav>
-
           <div className="flex items-center gap-2">
-            <Link
-              href="/features"
-              className="hidden rounded-xl border border-[var(--glass-card-border)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] sm:inline-flex"
-            >
-              See the vision
+            <Link href="/login" className="mesh-action mesh-action-secondary px-3 text-sm">
+              Log in
             </Link>
-            <Link
-              href="/login"
-              className="brand-button inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white"
-            >
-              Enter
-              <ArrowRight className="h-4 w-4" />
+            <Link href="/signup" className="mesh-action mesh-action-primary px-3 text-sm">
+              Create account
+              <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
-        </div>
-        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 md:hidden md:px-6">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="mesh-command shrink-0 px-3">
-              {link.label}
-            </Link>
-          ))}
         </div>
       </header>
 
-      <main className={`simple-page relative z-10 mx-auto ${maxWidth} px-4 py-10 md:px-6 md:py-14`}>
-        {children}
-      </main>
+      <main className={`public-site-main relative z-10 mx-auto min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden ${maxWidth} px-4 py-4 md:py-5`}>{children}</main>
 
-      <footer className="relative z-10 border-t border-[var(--glass-border)] py-8">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 md:grid-cols-[1.2fr_0.8fr] md:px-6">
+      <footer className="relative z-10 shrink-0 border-t border-[var(--border-primary)] bg-[var(--bg-primary)]/58">
+        <div className="mx-auto grid max-w-5xl gap-2 px-4 py-3 text-xs text-[var(--text-muted)] md:grid-cols-[1fr_auto] md:items-center md:text-sm">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              No ads. No data selling.
+            <div className="flex items-center gap-2 font-semibold text-[var(--text-secondary)]">
+              <ShieldCheck size={15} aria-hidden="true" />
+              {meshBrand.trustLine}
             </div>
-            <p className="max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-              Mesh.me is built to unify the useful parts of modern internet life without the manipulative parts. Users connect what they want, control what is visible, and keep source credit intact.
-            </p>
+            <p className="mt-1">{meshBrand.motto}.</p>
           </div>
-
-          <div className="grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-2">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="transition hover:text-[var(--text-primary)]">
-                {link.label}
+          <nav className="flex flex-wrap gap-2">
+            {footerLinks.map((item) => (
+              <Link key={item.href} href={item.href} className="rounded-md px-2 py-1 hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]">
+                {item.label}
               </Link>
             ))}
-            <Link href="/login" className="transition hover:text-[var(--text-primary)]">Login</Link>
-            <div className="inline-flex items-center gap-2 text-[var(--text-secondary)]">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
-              2026 launch surface
-            </div>
-          </div>
+          </nav>
         </div>
       </footer>
     </div>

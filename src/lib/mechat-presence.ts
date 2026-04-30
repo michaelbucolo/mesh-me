@@ -1,0 +1,69 @@
+type TypingUser = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  expiresAt: number;
+};
+
+type MeChatPresenceGlobal = typeof globalThis & {
+  __meshMeChatTyping?: Map<string, TypingUser[]>;
+};
+
+function typingStore() {
+  const globalRef = globalThis as MeChatPresenceGlobal;
+  if (!globalRef.__meshMeChatTyping) {
+    globalRef.__meshMeChatTyping = new Map<string, TypingUser[]>();
+  }
+  return globalRef.__meshMeChatTyping;
+}
+
+function pruneThread(threadId: string) {
+  const store = typingStore();
+  const now = Date.now();
+  const active = (store.get(threadId) || []).filter((entry) => entry.expiresAt > now);
+  if (active.length > 0) {
+    store.set(threadId, active);
+  } else {
+    store.delete(threadId);
+  }
+  return active;
+}
+
+export function setMeChatTyping(
+  threadId: string,
+  user: { id: string; username: string; displayName: string; avatarUrl: string | null },
+  ttlMs = 6500,
+) {
+  const store = typingStore();
+  const active = pruneThread(threadId).filter((entry) => entry.userId !== user.id);
+  active.push({
+    userId: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    expiresAt: Date.now() + ttlMs,
+  });
+  store.set(threadId, active);
+}
+
+export function clearMeChatTyping(threadId: string, userId: string) {
+  const store = typingStore();
+  const active = pruneThread(threadId).filter((entry) => entry.userId !== userId);
+  if (active.length > 0) {
+    store.set(threadId, active);
+  } else {
+    store.delete(threadId);
+  }
+}
+
+export function getMeChatTypingUsers(threadId: string, currentUserId: string) {
+  return pruneThread(threadId)
+    .filter((entry) => entry.userId !== currentUserId)
+    .map((entry) => ({
+      userId: entry.userId,
+      username: entry.username,
+      displayName: entry.displayName,
+      avatarUrl: entry.avatarUrl,
+    }));
+}

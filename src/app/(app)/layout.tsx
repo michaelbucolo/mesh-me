@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ThemeProvider } from "@/components/theme-provider";
+import { getCurrentUser } from "@/lib/auth";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppShell } from "@/components/layout/app-shell";
-import { prisma } from "@/lib/prisma";
 import { NativeInit } from "@/components/native-init";
-import { MeshBackground } from "@/components/mesh-background";
-import { DynamicFavicon } from "@/components/dynamic-favicon";
-import { MeshiFloat } from "@/components/meshi/meshi-float";
-import { MeshiDeliveryWrapper } from "@/components/meshi/meshi-delivery-wrapper";
-import { AchievementChecker } from "@/components/achievements/achievement-toast";
-import { LiveSyncPulse } from "@/components/live-sync-pulse";
+import { OnboardingRedirect } from "@/components/onboarding-redirect";
 
 export const metadata: Metadata = {
   title: {
@@ -20,67 +14,50 @@ export const metadata: Metadata = {
   },
 };
 
+function getSafeNextPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+
+  try {
+    const parsed = new URL(value, "https://mesh.me");
+    if (parsed.origin !== "https://mesh.me") return null;
+    if (parsed.pathname === "/login" || parsed.pathname === "/signup" || parsed.pathname === "/reset-password") {
+      return null;
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const headerStore = await headers();
+  const nextPath = getSafeNextPath(headerStore.get("x-mesh-current-path"));
   const user = await getCurrentUser();
 
-  if (!user) redirect("/");
-  if (!user.onboarded) redirect("/onboarding");
+  if (!user) {
+    redirect(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login");
+  }
 
-  const [unreadNotifications, unreadMessages] = await Promise.all([
-    prisma.notification.count({
-      where: { recipientId: user.id, read: false },
-    }),
-    prisma
-      .$queryRaw<Array<{ count: bigint | number }>>`
-        SELECT COUNT(*) as count
-        FROM "Message" m
-        INNER JOIN "ThreadMember" tm ON tm."threadId" = m."threadId"
-        WHERE tm."userId" = ${user.id}
-          AND m."senderId" != ${user.id}
-          AND m."createdAt" > tm."lastRead"
-      `
-      .then((rows) => Number(rows[0]?.count ?? 0))
-      .catch(() => 0),
-  ]);
-
-  const now = new Date();
-  const oneMonthAgo = new Date(now);
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-  if (oneMonthAgo.getDate() !== now.getDate()) oneMonthAgo.setDate(0);
-  const accountOldEnough = user.createdAt < oneMonthAgo;
-  const needsEmailVerification = accountOldEnough && !user.emailVerified;
-  const needsPhoneVerification = accountOldEnough && !user.phoneVerified;
-  const userEmail = user.email;
+  if (!user.onboarded) {
+    return <OnboardingRedirect />;
+  }
 
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <NativeInit />
-        <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-primary)]">
-          <MeshBackground density={30} className="opacity-30" />
-
-          <AppShell
-            user={{
-              id: user.id,
-              username: user.username,
-              displayName: user.displayName,
-              avatarUrl: user.avatarUrl,
-              isAdmin: user.isAdmin,
-            }}
-            needsEmailVerification={needsEmailVerification}
-            needsPhoneVerification={needsPhoneVerification}
-            userEmail={userEmail}
-            initialCounts={{ unreadNotifications, unreadMessages }}
-          >
-            {children}
-          </AppShell>
-          <MeshiFloat />
-          <MeshiDeliveryWrapper />
-          <AchievementChecker />
-          <LiveSyncPulse />
-          <DynamicFavicon />
-        </div>
-      </ToastProvider>
-    </ThemeProvider>
+    <ToastProvider>
+      <NativeInit />
+      <AppShell
+        user={{
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          isAdmin: user.isAdmin,
+          onboarded: user.onboarded,
+        }}
+      >
+        {children}
+      </AppShell>
+    </ToastProvider>
   );
 }

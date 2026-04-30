@@ -63,17 +63,17 @@ export type MeshIdentity = {
 export type MeshQuestionResult = {
   answer: string;
   sources: string[];
-  confidence: "demo" | "low" | "medium" | "high";
+  confidence: "local" | "low" | "medium" | "high";
   privacyNote: string;
   actions: string[];
 };
 
 export const meshIdentity: MeshIdentity = {
-  id: "john",
-  displayName: "John",
-  handle: "@john",
-  publicPersona: "MediaMan",
-  privateSummary: "John controls what stays private, what is shared with trusted friends, and what becomes part of MediaMan's public creator graph.",
+  id: "owner",
+  displayName: "You",
+  handle: "@you",
+  publicPersona: "Creator Persona",
+  privateSummary: "The owner controls what stays private, what is shared with trusted friends, and what becomes part of a public creator graph.",
 };
 
 export const platformNames: Record<MeshPlatform, string> = {
@@ -93,8 +93,8 @@ export const platformNames: Record<MeshPlatform, string> = {
 
 export const meshNodes: MeshNodeRecord[] = [
   {
-    id: "john",
-    label: "John",
+    id: "owner",
+    label: "You",
     kind: "self",
     platform: "mesh",
     visibility: "private",
@@ -107,12 +107,12 @@ export const meshNodes: MeshNodeRecord[] = [
     tags: ["identity", "private", "control"],
   },
   {
-    id: "mediaman",
-    label: "MediaMan",
+    id: "creator-persona",
+    label: "Creator Persona",
     kind: "persona",
     platform: "mesh",
     visibility: "public",
-    description: "John's public internet persona with its own accounts, audience, posts, and presence.",
+    description: "A public internet persona with its own accounts, audience, posts, and presence.",
     x: 67,
     y: 32,
     radius: 33,
@@ -131,7 +131,7 @@ export const meshNodes: MeshNodeRecord[] = [
     y: 48,
     radius: 25,
     accent: "#ef4444",
-    personaId: "mediaman",
+    personaId: "creator-persona",
     stats: { subscribers: "482K", videos: 126, comments: "18K" },
     tags: ["video", "creator", "analytics"],
   },
@@ -146,7 +146,7 @@ export const meshNodes: MeshNodeRecord[] = [
     y: 68,
     radius: 23,
     accent: "#ec4899",
-    personaId: "mediaman",
+    personaId: "creator-persona",
     stats: { followers: "218K", reels: 224, tagged: 31 },
     tags: ["reels", "stories", "tags"],
   },
@@ -161,7 +161,7 @@ export const meshNodes: MeshNodeRecord[] = [
     y: 30,
     radius: 21,
     accent: "#22d3ee",
-    personaId: "mediaman",
+    personaId: "creator-persona",
     stats: { followers: "164K", videos: 383, sounds: 12 },
     tags: ["shorts", "trends", "discovery"],
   },
@@ -194,12 +194,12 @@ export const meshNodes: MeshNodeRecord[] = [
     tags: ["private", "friends", "photos"],
   },
   {
-    id: "stephen",
-    label: "Stephen",
+    id: "trusted-friend",
+    label: "Trusted Friend",
     kind: "person",
     platform: "mesh",
     visibility: "trusted",
-    description: "Trusted friend and frequent collaborator. Meshi can deliver messages to Stephen's Meshi when allowed.",
+    description: "Trusted friend and frequent collaborator. Meshi can deliver messages when allowed.",
     x: 18,
     y: 51,
     radius: 26,
@@ -208,8 +208,8 @@ export const meshNodes: MeshNodeRecord[] = [
     tags: ["trusted", "collaborator", "friend"],
   },
   {
-    id: "jacob",
-    label: "Jacob",
+    id: "travel-friend",
+    label: "Travel Friend",
     kind: "person",
     platform: "mesh",
     visibility: "friends",
@@ -227,7 +227,7 @@ export const meshNodes: MeshNodeRecord[] = [
     kind: "place",
     platform: "instagram",
     visibility: "public",
-    description: "A public post cluster tagged in Paris and Nice. Meshi can cite this when asked if Jacob has been to France.",
+    description: "A public post cluster tagged in Paris and Nice. Meshi can cite this when asked travel questions.",
     x: 10,
     y: 84,
     radius: 15,
@@ -241,7 +241,7 @@ export const meshNodes: MeshNodeRecord[] = [
     kind: "moment",
     platform: "mesh",
     visibility: "private",
-    description: "A private recognition index showing how often John appears in imported photos and videos.",
+    description: "A private recognition index showing how often the owner appears in imported photos and videos.",
     x: 50,
     y: 87,
     radius: 20,
@@ -260,7 +260,7 @@ export const meshNodes: MeshNodeRecord[] = [
     y: 62,
     radius: 17,
     accent: "#fb7185",
-    personaId: "mediaman",
+    personaId: "creator-persona",
     stats: { views: "2.4M", comments: "8.8K", reposts: 742 },
     tags: ["launch", "video", "analytics"],
   },
@@ -293,12 +293,12 @@ export const meshNodes: MeshNodeRecord[] = [
     tags: ["security", "permissions", "audit"],
   },
   {
-    id: "message-stephen",
-    label: "Message to Stephen",
+    id: "message-trusted-friend",
+    label: "Message to Trusted Friend",
     kind: "message",
     platform: "mesh",
     visibility: "trusted",
-    description: "A Meshi-to-Meshi delivery request. The message is encrypted and routed to Stephen's Meshi.",
+    description: "A Meshi-to-Meshi delivery request. The message is encrypted and routed to the recipient's Meshi.",
     x: 8,
     y: 61,
     radius: 13,
@@ -309,21 +309,21 @@ export const meshNodes: MeshNodeRecord[] = [
 ];
 
 export const meshEdges: MeshEdgeRecord[] = [
-  { id: "john-mediaman", from: "john", to: "mediaman", label: "internet persona", strength: 92, visibility: "private" },
-  { id: "john-facebook", from: "john", to: "facebook-personal", label: "personal account", strength: 79, visibility: "friends" },
-  { id: "john-instagram-personal", from: "john", to: "instagram-personal", label: "private account", strength: 86, visibility: "trusted" },
-  { id: "john-stephen", from: "john", to: "stephen", label: "trusted friend", strength: 96, visibility: "trusted" },
-  { id: "john-jacob", from: "john", to: "jacob", label: "following", strength: 58, visibility: "friends" },
-  { id: "john-seen", from: "john", to: "found-in-posts", label: "appears in", strength: 74, visibility: "private" },
-  { id: "john-vault", from: "john", to: "privacy-vault", label: "controls", strength: 100, visibility: "private" },
-  { id: "mediaman-youtube", from: "mediaman", to: "youtube-main", label: "public channel", strength: 94, visibility: "public" },
-  { id: "mediaman-instagram", from: "mediaman", to: "instagram-public", label: "public creator acct", strength: 88, visibility: "public" },
-  { id: "mediaman-tiktok", from: "mediaman", to: "tiktok-public", label: "short-form acct", strength: 82, visibility: "public" },
+  { id: "owner-creator-persona", from: "owner", to: "creator-persona", label: "internet persona", strength: 92, visibility: "private" },
+  { id: "owner-facebook", from: "owner", to: "facebook-personal", label: "personal account", strength: 79, visibility: "friends" },
+  { id: "owner-instagram-personal", from: "owner", to: "instagram-personal", label: "private account", strength: 86, visibility: "trusted" },
+  { id: "owner-trusted-friend", from: "owner", to: "trusted-friend", label: "trusted friend", strength: 96, visibility: "trusted" },
+  { id: "owner-travel-friend", from: "owner", to: "travel-friend", label: "following", strength: 58, visibility: "friends" },
+  { id: "owner-seen", from: "owner", to: "found-in-posts", label: "appears in", strength: 74, visibility: "private" },
+  { id: "owner-vault", from: "owner", to: "privacy-vault", label: "controls", strength: 100, visibility: "private" },
+  { id: "creator-persona-youtube", from: "creator-persona", to: "youtube-main", label: "public channel", strength: 94, visibility: "public" },
+  { id: "creator-persona-instagram", from: "creator-persona", to: "instagram-public", label: "public creator acct", strength: 88, visibility: "public" },
+  { id: "creator-persona-tiktok", from: "creator-persona", to: "tiktok-public", label: "short-form acct", strength: 82, visibility: "public" },
   { id: "youtube-launch", from: "youtube-main", to: "launch-post", label: "published", strength: 86, visibility: "public" },
   { id: "launch-group", from: "launch-post", to: "creator-group", label: "discussed by", strength: 64, visibility: "trusted" },
-  { id: "stephen-group", from: "stephen", to: "creator-group", label: "member", strength: 76, visibility: "trusted" },
-  { id: "stephen-message", from: "stephen", to: "message-stephen", label: "Meshi route", strength: 90, visibility: "trusted" },
-  { id: "jacob-france", from: "jacob", to: "france-trip", label: "visited", strength: 72, visibility: "public" },
+  { id: "trusted-friend-group", from: "trusted-friend", to: "creator-group", label: "member", strength: 76, visibility: "trusted" },
+  { id: "trusted-friend-message", from: "trusted-friend", to: "message-trusted-friend", label: "Meshi route", strength: 90, visibility: "trusted" },
+  { id: "travel-friend-france", from: "travel-friend", to: "france-trip", label: "visited", strength: 72, visibility: "public" },
   { id: "instagram-seen", from: "instagram-personal", to: "found-in-posts", label: "tagged media", strength: 65, visibility: "private" },
   { id: "facebook-seen", from: "facebook-personal", to: "found-in-posts", label: "albums", strength: 59, visibility: "friends" },
   { id: "vault-accounts", from: "privacy-vault", to: "youtube-main", label: "permission scope", strength: 75, visibility: "private" },
@@ -334,15 +334,15 @@ export const meshFeed = [
   {
     id: "f1",
     platform: "youtube" as MeshPlatform,
-    title: "MediaMan posted a new launch video",
-    body: "2.4M views, 8.8K comments, 742 reposts. Routed into John -> MediaMan -> YouTube Channel -> Launch Post.",
+    title: "Creator Persona posted a new launch video",
+    body: "2.4M views, 8.8K comments, 742 reposts. Routed into You -> Creator Persona -> YouTube Channel -> Launch Post.",
     privacy: "Public creator content",
   },
   {
     id: "f2",
     platform: "instagram" as MeshPlatform,
-    title: "John was tagged in a birthday post",
-    body: "This appears in the private Seen in Posts branch until John chooses who can view it.",
+    title: "You were tagged in a birthday post",
+    body: "This appears in the private Seen in Posts branch until you choose who can view it.",
     privacy: "Private by default",
   },
   {
@@ -356,7 +356,7 @@ export const meshFeed = [
     id: "f4",
     platform: "mesh" as MeshPlatform,
     title: "Meshi detected a duplicate identity",
-    body: "MediaMan and John share verified ownership but keep separate public and personal surfaces.",
+    body: "The creator persona and personal identity share verified ownership but keep separate public and personal surfaces.",
     privacy: "Transparent identity link",
   },
 ];
@@ -408,59 +408,61 @@ const normalizedIncludes = (input: string, terms: string[]) => {
 
 export function answerMeshiQuestion(question: string): MeshQuestionResult {
   const q = question.trim();
-  const fallbackPrivacy = "Meshi only uses content the user can access and always labels whether an answer came from public, trusted, friends-only, or private branches.";
+  const fallbackPrivacy = "Meshi only uses content the signed-in user can access and labels whether an answer came from public, trusted, friends-only, or private branches.";
+  const summary = summarizeMesh();
+  const summaryAnswer = `This local mesh index currently has ${summary.nodes} nodes, ${summary.edges} relationships, and ${summary.platforms} connected outside platforms. Ask about a person, post, account, permission, persona, or branch and Meshi will answer only from accessible mesh context.`;
 
   if (!q) {
     return {
-      answer: "Ask me anything about this mesh. Try: Who is John Manning and do we have posts together? Has Jacob ever been to France? How many times have I been seen in a post?",
-      sources: ["Demo mesh index"],
-      confidence: "demo",
+      answer: "Ask me anything about your mesh: people, posts, connected accounts, permissions, privacy, content branches, or creator analytics.",
+      sources: ["Local mesh index"],
+      confidence: "local",
       privacyNote: fallbackPrivacy,
-      actions: ["Open privacy vault", "Inspect connected accounts"],
+      actions: ["Open privacy vault", "Inspect connected accounts", "Show mesh summary"],
     };
   }
 
-  if (normalizedIncludes(q, ["who is john", "john manning", "who is john manning"])) {
+  if (normalizedIncludes(q, ["who is", "tell me about", "do i know", "do we have posts", "posts together"])) {
     return {
       answer:
-        "John is the private owner node at the center of this mesh. His public internet persona is MediaMan. Based on the demo mesh, you share 14 posts or projects with Stephen, 2 with Jacob, and John appears in 37 imported posts or media items. Private identity details stay behind John's permissions unless he chooses to share them.",
-      sources: ["John owner node", "MediaMan persona node", "Stephen relationship edge", "Seen in Posts private index"],
-      confidence: "demo",
-      privacyNote: "I separated John's private identity from MediaMan's public creator identity because Mesh.me treats personas as permissioned branches, not one forced public profile.",
-      actions: ["Show John to MediaMan relationship", "Open Seen in Posts", "Ask Stephen's Meshi"],
+        "I can answer person and shared-post questions from your connected Mesh.me relationships, comments, messages, and imported platform content. If the person is not in the accessible mesh index yet, connect the platform or add them to your mesh first.",
+      sources: ["People branch", "Post interaction branch", "Permissioned mesh index"],
+      confidence: "local",
+      privacyNote: "Private identity details stay behind the owner's permissions unless they choose to share them.",
+      actions: ["Search people", "Open shared posts", "Review permissions"],
     };
   }
 
   if (normalizedIncludes(q, ["how many times", "seen in", "social media post", "appeared", "tagged"])) {
     return {
       answer:
-        "John appears in 37 imported media items in this demo. 19 are public sightings, 18 are private or trusted-only sightings, and the private ones do not appear in public search or other users' meshes unless John changes the branch permission.",
-      sources: ["Seen in Posts node", "Instagram Personal tagged-media edge", "Facebook Personal albums edge"],
-      confidence: "demo",
+        "Appearance and tag counts should come from connected platform imports plus Mesh.me-native posts. Private or trusted-only sightings do not appear in public search or other users' meshes unless the owner changes the branch permission.",
+      sources: ["Tagged media branch", "Platform media imports", "Visibility controls"],
+      confidence: "local",
       privacyNote: "Face or appearance indexing should be opt-in, revocable, and local/private by default. Mesh.me should never turn recognition into an ad targeting system.",
       actions: ["Review sightings", "Change recognition settings", "Hide private tags"],
     };
   }
 
-  if (normalizedIncludes(q, ["jacob", "france", "paris", "nice"])) {
+  if (normalizedIncludes(q, ["friend", "travel", "france", "paris", "nice"])) {
     return {
       answer:
-        "Yes. In the demo mesh, Jacob has a public France Trip cluster connected to posts tagged in Paris and Nice in 2024. Because this answer uses public travel posts, Meshi can answer without exposing private messages or private location data.",
-      sources: ["Jacob person node", "France Trip public place node", "Jacob to France Trip edge"],
-      confidence: "demo",
-      privacyNote: "If Jacob's trip evidence were private or friends-only, Meshi would either ask for permission or answer that it cannot verify from accessible context.",
-      actions: ["Open France Trip cluster", "Show public evidence", "Message Jacob"],
+        "I can verify travel or location questions only from content you can access, such as public posts, trusted posts, or your own saved memories. I will not expose private messages or private location data to answer a public question.",
+      sources: ["Place branch", "Public post branch", "Permissioned memory index"],
+      confidence: "local",
+      privacyNote: "If the evidence is private or friends-only, Meshi should ask for permission or say it cannot verify from accessible context.",
+      actions: ["Open place cluster", "Show accessible evidence", "Review location privacy"],
     };
   }
 
-  if (normalizedIncludes(q, ["stephen", "there soon", "message", "deliver", "tell stephen"])) {
+  if (normalizedIncludes(q, ["there soon", "message", "deliver", "tell my friend", "send"])) {
     return {
       answer:
-        "I can prepare an encrypted MeChat delivery to Stephen's Meshi: 'I'll be there soon.' In a production build, this would route through Stephen's Mesh.me inbox or an allowed connected messaging platform, then show delivery status without exposing message contents to Mesh.me.",
-      sources: ["Stephen trusted person node", "Message to Stephen route", "MeChat delivery branch"],
-      confidence: "demo",
+        "I can prepare an encrypted MeChat delivery when you choose a recipient and message. Mesh.me should route it through the recipient's Mesh.me inbox or an allowed connected messaging platform, then show delivery status without exposing message contents.",
+      sources: ["Trusted people branch", "MeChat delivery branch", "Message permissions"],
+      confidence: "local",
       privacyNote: "The message body should be end-to-end encrypted. Mesh.me should only retain delivery metadata that the user can audit and delete.",
-      actions: ["Send encrypted message", "Change delivery platform", "Show audit log"],
+      actions: ["Send encrypted message", "Choose delivery platform", "Show audit log"],
     };
   }
 
@@ -469,29 +471,28 @@ export function answerMeshiQuestion(question: string): MeshQuestionResult {
       answer:
         "Mesh.me's product promise should be: no selling data, no surveillance ads, encrypted credentials, private-by-default imports, transparent permission logs, and per-branch visibility controls. Meshi should answer from a local or permissioned index and cite the exact branches it used.",
       sources: ["Privacy Vault node", "Platform permission scope edges", "Trust stack"],
-      confidence: "demo",
+      confidence: "local",
       privacyNote: "Security copy in the UI must match the actual implementation. The app should say what is end-to-end encrypted only where that path is truly E2EE.",
       actions: ["Open permission audit", "Export my data", "Disconnect a platform"],
     };
   }
 
-  if (normalizedIncludes(q, ["mediaman", "persona", "public account", "creator"])) {
+  if (normalizedIncludes(q, ["persona", "public account", "creator"])) {
     return {
       answer:
-        "MediaMan is John's public creator persona. It has its own connected YouTube, Instagram Creator, TikTok, Launch Post, and Creator Group branches. Mesh.me lets John keep MediaMan's public audience separate from personal Facebook, private Instagram, family, and trusted-friend branches.",
-      sources: ["MediaMan persona node", "YouTube Channel", "Instagram Creator", "TikTok", "Creator Group"],
-      confidence: "demo",
+        "A public creator persona can have its own YouTube, Instagram, TikTok, launch, and community branches. Mesh.me keeps public audience activity separate from personal, family, private, and trusted-friend branches.",
+      sources: ["Persona branch", "Connected creator accounts", "Visibility controls"],
+      confidence: "local",
       privacyNote: "Persona separation is important because one human can have multiple public/private selves without merging everything into a single exposed profile.",
-      actions: ["Open MediaMan branch", "View creator analytics", "Edit persona visibility"],
+      actions: ["Open persona branch", "View creator analytics", "Edit persona visibility"],
     };
   }
 
-  const summary = summarizeMesh();
   return {
-    answer: `I found ${summary.nodes} nodes, ${summary.edges} relationships, and ${summary.platforms} connected outside platforms in this demo mesh. I can answer best when you ask about a person, post, account, permission, persona, or branch.`,
-    sources: ["Demo mesh index", "Mesh summary"],
-    confidence: "demo",
+    answer: summaryAnswer,
+    sources: ["Local mesh index", "Mesh summary"],
+    confidence: "local",
     privacyNote: fallbackPrivacy,
-    actions: ["Open Mesh map", "Ask about John", "Ask about privacy"],
+    actions: ["Open Mesh map", "Ask about privacy", "Inspect connected accounts"],
   };
 }

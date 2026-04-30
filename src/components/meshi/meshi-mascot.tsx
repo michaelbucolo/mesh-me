@@ -79,19 +79,38 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   ),
 };
 
-// Meshi prop types — contextual items Meshi holds
-export type MeshiProp = "none" | "magnifying-glass" | "clipboard" | "paintbrush" | "megaphone" | "shield" | "compass" | "bell" | "heart" | "wrench" | "notebook";
+// Meshi prop types — contextual items Meshi can physically hold.
+// Hands are only rendered when one of these visible props is active.
+export type MeshiProp =
+  | "none"
+  | "magnifying-glass"
+  | "clipboard"
+  | "paintbrush"
+  | "megaphone"
+  | "shield"
+  | "compass"
+  | "bell"
+  | "heart"
+  | "wrench"
+  | "notebook"
+  | "paper"
+  | "envelope"
+  | "keyboard"
+  | "rock"
+  | "scissors"
+  | "ball"
+  | "grab";
 
-// SVG props rendered near Meshi
+// SVG props are anchored where Meshi's hand grips them, never over the face.
 const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
   "magnifying-glass": (color: string) => (
-    <g transform="translate(12, -8) scale(0.6)">
+    <g transform="translate(17, 8) scale(0.52) rotate(-10)">
       <circle cx="0" cy="0" r="6" fill="none" stroke={color} strokeWidth="2.5" />
       <line x1="4" y1="4" x2="10" y2="10" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     </g>
   ),
   clipboard: (color: string) => (
-    <g transform="translate(12, -6) scale(0.55)">
+    <g transform="translate(16, 8) scale(0.48) rotate(4)">
       <rect x="-5" y="-2" width="10" height="14" rx="1.5" fill="none" stroke={color} strokeWidth="2" />
       <rect x="-2" y="-4" width="4" height="3" rx="1" fill={color} />
       <line x1="-3" y1="3" x2="3" y2="3" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
@@ -100,61 +119,117 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
     </g>
   ),
   paintbrush: (color: string) => (
-    <g transform="translate(13, -7) scale(0.55) rotate(-30)">
+    <g transform="translate(17, 9) scale(0.52) rotate(-35)">
       <rect x="-1.5" y="-2" width="3" height="12" rx="1" fill={color} />
       <path d="M -2.5 10 Q 0 14 2.5 10" fill={color} opacity="0.7" />
     </g>
   ),
   megaphone: (color: string) => (
-    <g transform="translate(12, -4) scale(0.55)">
+    <g transform="translate(16, 8) scale(0.5) rotate(-8)">
       <path d="M -2 -4 L 8 -8 L 8 4 L -2 0 Z" fill={color} opacity="0.8" />
       <rect x="-4" y="-4" width="3" height="4" rx="1" fill={color} />
     </g>
   ),
   shield: (color: string) => (
-    <g transform="translate(12, -6) scale(0.55)">
+    <g transform="translate(16, 8) scale(0.48)">
       <path d="M 0 -7 L 7 -3 L 6 5 L 0 8 L -6 5 L -7 -3 Z" fill="none" stroke={color} strokeWidth="2" />
       <path d="M 0 -2 L 3 1 L 0 4 L -3 1 Z" fill={color} opacity="0.5" />
     </g>
   ),
   compass: (color: string) => (
-    <g transform="translate(12, -6) scale(0.55)">
+    <g transform="translate(16, 8) scale(0.48)">
       <circle cx="0" cy="0" r="7" fill="none" stroke={color} strokeWidth="2" />
       <polygon points="0,-5 2,0 0,5 -2,0" fill={color} opacity="0.7" />
       <circle cx="0" cy="0" r="1.5" fill={color} />
     </g>
   ),
   bell: (color: string) => (
-    <g transform="translate(12, -6) scale(0.55)">
+    <g transform="translate(16, 8) scale(0.5)">
       <path d="M -5 2 Q -5 -6 0 -7 Q 5 -6 5 2 L -5 2 Z" fill={color} opacity="0.8" />
       <rect x="-6" y="2" width="12" height="2" rx="1" fill={color} />
       <circle cx="0" cy="5" r="1.5" fill={color} />
     </g>
   ),
   heart: (color: string) => (
-    <g transform="translate(12, -6) scale(0.55)">
+    <g transform="translate(0, 15) scale(0.58)">
       <path d="M 0 3 C -8 -2 -8 -8 -4 -8 C -1 -8 0 -5 0 -5 C 0 -5 1 -8 4 -8 C 8 -8 8 -2 0 3 Z" fill={color} opacity="0.8" />
     </g>
   ),
   wrench: (color: string) => (
-    <g transform="translate(13, -7) scale(0.55) rotate(-45)">
+    <g transform="translate(17, 8) scale(0.52) rotate(-48)">
       <rect x="-1.5" y="-2" width="3" height="14" rx="1" fill={color} />
       <circle cx="0" cy="-2" r="3" fill="none" stroke={color} strokeWidth="2" />
     </g>
   ),
   notebook: (color: string) => (
-    <g transform="translate(12, -7) scale(0.55)">
+    <g transform="translate(0, 15) scale(0.46) rotate(2)">
       <rect x="-6" y="-2" width="12" height="14" rx="1.5" fill="none" stroke={color} strokeWidth="2" />
       <line x1="-2" y1="-2" x2="-2" y2="12" stroke={color} strokeWidth="1.4" opacity="0.7" />
       <line x1="0" y1="3" x2="4" y2="-1" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
       <line x1="0.5" y1="3.5" x2="3" y2="6" stroke={color} strokeWidth="1.4" strokeLinecap="round" opacity="0.75" />
     </g>
   ),
+  paper: (color: string) => (
+    <g transform="translate(0, 15) scale(0.48) rotate(4)">
+      <path d="M -6 -7 H 3 L 7 -3 V 9 H -6 Z" fill="rgba(255,255,255,0.72)" stroke={color} strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M 3 -7 V -3 H 7" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+      <line x1="-3" y1="-1" x2="3" y2="-1" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.65" />
+      <line x1="-3" y1="3" x2="4" y2="3" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.65" />
+    </g>
+  ),
+  envelope: (color: string) => (
+    <g transform="translate(0, 15) scale(0.5) rotate(-2)">
+      <rect x="-7" y="-4.5" width="14" height="10" rx="1.6" fill="rgba(255,255,255,0.7)" stroke={color} strokeWidth="1.8" />
+      <path d="M -6 -3.5 L 0 1 L 6 -3.5" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+      <path d="M -6 5 L -1 1.2 M 6 5 L 1 1.2" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+    </g>
+  ),
+  keyboard: (color: string) => (
+    <g transform="translate(0, 16) scale(0.5)">
+      <rect x="-9" y="-5" width="18" height="12" rx="2.2" fill="rgba(255,255,255,0.58)" stroke={color} strokeWidth="1.9" />
+      {[-5, 0, 5].map((x) => (
+        <line key={`keyboard-key-${x}`} x1={x} y1="-1.8" x2={x} y2="2.5" stroke={color} strokeWidth="1" opacity="0.65" />
+      ))}
+      <line x1="-6" y1="2.8" x2="6" y2="2.8" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
+    </g>
+  ),
+  rock: (color: string) => (
+    <g transform="translate(17, 8) scale(0.52)">
+      <path d="M -5 1 C -7 -3 -4 -7 0 -7 C 5 -7 8 -3 6 2 C 5 6 1 8 -3 6 C -5 5 -6 3 -5 1 Z" fill={color} opacity="0.72" />
+      <path d="M -3 -2 C 0 -4 3 -3 4 0" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.1" strokeLinecap="round" />
+    </g>
+  ),
+  scissors: (color: string) => (
+    <g transform="translate(17, 8) scale(0.5) rotate(-18)">
+      <circle cx="-4.5" cy="5" r="2.2" fill="none" stroke={color} strokeWidth="1.7" />
+      <circle cx="2.5" cy="5" r="2.2" fill="none" stroke={color} strokeWidth="1.7" />
+      <path d="M -2.5 3 L 7 -7 M 0.5 3 L -7 -7" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    </g>
+  ),
+  ball: (color: string) => (
+    <g transform="translate(17, 8) scale(0.52)">
+      <circle cx="0" cy="0" r="6" fill="rgba(255,255,255,0.58)" stroke={color} strokeWidth="1.9" />
+      <path d="M -5 -1 Q 0 -4 5 -1 M -5 2 Q 0 5 5 2" fill="none" stroke={color} strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
+    </g>
+  ),
+  grab: (color: string) => (
+    <g transform="translate(17, 8) scale(0.52)">
+      <circle cx="0" cy="0" r="5.5" fill="none" stroke={color} strokeWidth="1.8" strokeDasharray="2.2 2" />
+      <circle cx="0" cy="0" r="2" fill={color} opacity="0.6" />
+    </g>
+  ),
 };
 
-const HAND_POSITIONS = {
-  left: { shoulderX: -10.5, shoulderY: 4, handX: -17, handY: 10 },
-  right: { shoulderX: 10.5, shoulderY: 4, handX: 17, handY: 10 },
+const TWO_HAND_PROPS: Set<MeshiProp> = new Set(["keyboard", "notebook", "paper", "envelope", "heart"]);
+
+const HOLDING_POSES = {
+  single: {
+    right: { side: "right", shoulderX: 11.8, shoulderY: 5, elbowX: 15.4, elbowY: 7.8, handX: 17, handY: 10 },
+  },
+  two: {
+    left: { side: "left", shoulderX: -8.8, shoulderY: 8, elbowX: -11.6, elbowY: 11.6, handX: -10.6, handY: 15 },
+    right: { side: "right", shoulderX: 8.8, shoulderY: 8, elbowX: 11.6, elbowY: 11.6, handX: 10.6, handY: 15 },
+  },
 } as const;
 
 
@@ -328,6 +403,107 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
   ),
 };
 
+const BADGES: Record<string, React.ReactNode> = {
+  none: null,
+  spark: (
+    <g transform="translate(9, 8)">
+      <circle cx="0" cy="0" r="4.2" fill="rgba(255,255,255,0.78)" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M0 -2.4 L0.8 -0.7 L2.5 0 L0.8 0.7 L0 2.4 L-0.8 0.7 L-2.5 0 L-0.8 -0.7 Z" fill="currentColor" />
+    </g>
+  ),
+  heart: (
+    <g transform="translate(9, 8)">
+      <circle cx="0" cy="0" r="4.3" fill="rgba(255,255,255,0.78)" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M0 2.2 C-4 -0.5 -3.4 -3.1 -1.5 -3.1 C-0.5 -3.1 0 -2.2 0 -2.2 C0 -2.2 0.5 -3.1 1.5 -3.1 C3.4 -3.1 4 -0.5 0 2.2 Z" fill="currentColor" />
+    </g>
+  ),
+  shield: (
+    <g transform="translate(9, 8)">
+      <circle cx="0" cy="0" r="4.3" fill="rgba(255,255,255,0.78)" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M0 -3.1 L2.5 -1.8 L2 1.4 L0 3 L-2 1.4 L-2.5 -1.8 Z" fill="currentColor" opacity="0.9" />
+    </g>
+  ),
+  verified: (
+    <g transform="translate(9, 8)">
+      <circle cx="0" cy="0" r="4.4" fill="#2563eb" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
+      <path d="M-2 -0.1 L-0.5 1.5 L2.4 -1.8" fill="none" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+  ),
+  creator: (
+    <g transform="translate(9, 8)">
+      <circle cx="0" cy="0" r="4.4" fill="#f59e0b" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
+      <path d="M0 -2.7 L0.8 -0.8 L2.8 -0.8 L1.2 0.5 L1.8 2.5 L0 1.4 L-1.8 2.5 L-1.2 0.5 L-2.8 -0.8 L-0.8 -0.8 Z" fill="white" />
+    </g>
+  ),
+  founder: (
+    <g transform="translate(9, 8)">
+      <circle cx="0" cy="0" r="4.4" fill="#7c3aed" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
+      <path d="M-2.6 1.9 L-1.8 -1.8 L0 -0.4 L1.8 -1.8 L2.6 1.9 Z" fill="white" />
+    </g>
+  ),
+};
+
+const OUTFITS: Record<string, React.ReactNode> = {
+  none: null,
+  scarf: (
+    <g transform="translate(0, 7)">
+      <path d="M-12 -1 Q0 3 12 -1 L12 3 Q0 7 -12 3 Z" fill="currentColor" opacity="0.85" />
+      <rect x="5" y="1" width="4" height="9" rx="1.4" fill="currentColor" opacity="0.72" />
+    </g>
+  ),
+  hoodie: (
+    <g transform="translate(0, 8)">
+      <path d="M-13 -1 Q-9 -7 0 -7 Q9 -7 13 -1 L12 12 H-12 Z" fill="currentColor" opacity="0.28" />
+      <path d="M-6 -5 Q0 -1 6 -5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.75" />
+      <line x1="-3" y1="-2" x2="-3" y2="4" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+      <line x1="3" y1="-2" x2="3" y2="4" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+    </g>
+  ),
+  jacket: (
+    <g transform="translate(0, 8)">
+      <path d="M-14 0 Q-8 -5 0 -5 Q8 -5 14 0 L12 12 H-12 Z" fill="currentColor" opacity="0.24" />
+      <path d="M0 -5 L0 12" stroke="currentColor" strokeWidth="1.5" opacity="0.7" />
+      <circle cx="-4" cy="1" r="1" fill="currentColor" opacity="0.75" />
+      <circle cx="4" cy="1" r="1" fill="currentColor" opacity="0.75" />
+    </g>
+  ),
+  overalls: (
+    <g transform="translate(0, 8)">
+      <path d="M-10 -3 H10 L12 12 H-12 Z" fill="currentColor" opacity="0.3" />
+      <path d="M-6 -5 V4 M6 -5 V4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
+      <rect x="-4" y="1" width="8" height="5" rx="1" fill="rgba(255,255,255,0.28)" stroke="currentColor" strokeWidth="0.8" />
+    </g>
+  ),
+  cape: (
+    <g transform="translate(0, 7)">
+      <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.34" />
+      <circle cx="-5" cy="-2.5" r="1.2" fill="currentColor" />
+      <circle cx="5" cy="-2.5" r="1.2" fill="currentColor" />
+    </g>
+  ),
+  spacesuit: (
+    <g transform="translate(0, 8)">
+      <path d="M-13 0 Q-7 -6 0 -6 Q7 -6 13 0 L12 12 H-12 Z" fill="rgba(226,232,240,0.48)" stroke="currentColor" strokeWidth="1" />
+      <rect x="-4.5" y="-1.5" width="9" height="5" rx="1.5" fill="rgba(15,23,42,0.22)" stroke="currentColor" strokeWidth="0.8" />
+      <circle cx="0" cy="1" r="1" fill="currentColor" />
+    </g>
+  ),
+};
+
+const EYE_STYLES: Record<string, React.ReactNode> = {
+  regular: null,
+  lashes: (
+    <g transform="translate(0, 0)">
+      <path d="M-8,-3 L-9.5,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M-6,-3 L-6,-5.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M-4,-3 L-2.8,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M4,-3 L2.8,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M6,-3 L6,-5.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M8,-3 L9.5,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </g>
+  ),
+};
+
 // Meshi color themes
 const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }> = {
   blue: { primary: "#3b82f6", glow: "rgba(59, 130, 246, 0.4)", bg: "rgba(59, 130, 246, 0.1)" },
@@ -352,6 +528,8 @@ export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard"
 export const MESHPRO_COLORS: Set<string> = new Set(["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]);
 export const MESHPRO_HAIRS: Set<string> = new Set(["spikes", "curls"]);
 export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle"]);
+export const MESHPRO_BADGES: Set<string> = new Set(["verified", "creator", "founder"]);
+export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit"]);
 
 // Achievement titles — earned through milestones
 export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: string; requirement: string }> = {
@@ -369,7 +547,10 @@ export type MeshiMood = keyof typeof FACES;
 export type MeshiHat = keyof typeof HATS;
 export type MeshiHair = keyof typeof HAIRS;
 export type MeshiAccessory = keyof typeof ACCESSORIES;
+export type MeshiEyeStyle = keyof typeof EYE_STYLES;
 export type MeshiColor = keyof typeof COLOR_THEMES;
+export type MeshiBadge = keyof typeof BADGES;
+export type MeshiOutfit = keyof typeof OUTFITS;
 
 // Page-to-prop mapping: which prop Meshi holds on each page
 export const PAGE_PROPS: Record<string, MeshiProp> = {
@@ -392,6 +573,9 @@ interface MeshiMascotProps {
   color?: MeshiColor;
   hair?: MeshiHair;
   accessory?: MeshiAccessory;
+  eyeStyle?: MeshiEyeStyle;
+  badge?: MeshiBadge;
+  outfit?: MeshiOutfit;
   animate?: boolean;
   onClick?: () => void;
   className?: string;
@@ -410,6 +594,9 @@ export function MeshiMascot({
   color = "blue",
   hair = "none",
   accessory = "none",
+  eyeStyle = "regular",
+  badge = "none",
+  outfit = "none",
   animate = true,
   onClick,
   className = "",
@@ -425,7 +612,12 @@ export function MeshiMascot({
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
   const hairElement = HAIRS[hair] || null;
-  const accessoryElement = ACCESSORIES[accessory] || null;
+  const effectiveEyeStyle = accessory === "lashes" ? "lashes" : eyeStyle;
+  const effectiveAccessory = accessory === "lashes" ? "none" : accessory;
+  const eyeStyleElement = EYE_STYLES[effectiveEyeStyle] || null;
+  const accessoryElement = ACCESSORIES[effectiveAccessory] || null;
+  const badgeElement = BADGES[badge] || null;
+  const outfitElement = OUTFITS[outfit] || null;
   const containerRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId();
 
@@ -541,9 +733,13 @@ export function MeshiMascot({
 
   useEffect(() => { return () => { if (petTimer.current) clearTimeout(petTimer.current); }; }, []);
 
-  // Determine prop SVG
+  // Determine prop SVG. Hands follow visible held objects only.
   const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
-  const showHands = prop !== "none";
+  const showHands = Boolean(propSvg);
+  const propUsesBothHands = showHands && TWO_HAND_PROPS.has(prop);
+  const holdingHands = propUsesBothHands
+    ? [HOLDING_POSES.two.left, HOLDING_POSES.two.right]
+    : [HOLDING_POSES.single.right];
 
   // Determine current face (with blinking override)
   const getCurrentFace = () => {
@@ -559,6 +755,7 @@ export function MeshiMascot({
     <motion.div
       ref={containerRef}
       className={`inline-flex items-center justify-center cursor-pointer select-none ${className}`}
+      data-meshi-mascot="true"
       style={{
         width: size, height: size,
         scaleX: interactive ? squishX : undefined,
@@ -636,6 +833,9 @@ export function MeshiMascot({
             }
           />
 
+          {/* Simple outfits stay inside the bubble so Meshi remains minimal. */}
+          <g style={{ color: theme.primary }}>{outfitElement}</g>
+
           {/* Hair and hat */}
           <g style={{ color: theme.primary }}>{hairElement}</g>
           <g style={{ color: theme.primary }}>{hatElement}</g>
@@ -658,10 +858,33 @@ export function MeshiMascot({
             })()}
           </motion.g>
 
+          {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
           {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
+          {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
         </g>
 
         {/* Prop — rendered outside the clip for visibility */}
+        {showHands && (
+          <motion.g
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+          >
+            {holdingHands.map((hand) => (
+              <motion.path
+                key={`${hand.side}-holding-arm`}
+                d={`M ${hand.shoulderX} ${hand.shoulderY} Q ${hand.elbowX} ${hand.elbowY} ${hand.handX} ${hand.handY}`}
+                fill="none"
+                stroke={theme.primary}
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                animate={animate ? { y: [0, -0.5, 0.3, 0] } : undefined}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            ))}
+          </motion.g>
+        )}
+
         {propSvg && (
           <motion.g
             initial={{ scale: 0, opacity: 0 }}
@@ -675,53 +898,45 @@ export function MeshiMascot({
 
         {/* Bubble hands — only shown when Meshi is actively holding a prop */}
         {showHands && (
-          <>
-            <motion.g
-              initial={{ opacity: 0, x: -3, y: 4, rotate: 20, scale: 0.85 }}
-              animate={{
-                opacity: 1,
-                x: 0,
-                y: 0,
-                rotate: [20, 6, 10, 6],
-                scale: [0.85, 1, 0.98, 1],
-              }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-            >
-              <motion.circle
-                cx={HAND_POSITIONS.left.handX}
-                cy={HAND_POSITIONS.left.handY}
-                r="2.8"
-                fill={theme.bg}
-                stroke={theme.primary}
-                strokeWidth="1.4"
-                animate={animate ? { y: [0, -1.6, 0.4, 0], scale: [1, 1.12, 0.98, 1] } : undefined}
-                transition={{ duration: speaking ? 0.9 : 1.3, repeat: Infinity, ease: "easeInOut" }}
-              />
-            </motion.g>
-
-            <motion.g
-              initial={{ opacity: 0, x: 3, y: 4, rotate: -22, scale: 0.85 }}
-              animate={{
-                opacity: 1,
-                x: 0,
-                y: 0,
-                rotate: [-22, -45, -36, -40],
-                scale: [0.85, 1, 0.98, 1],
-              }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            >
-              <motion.circle
-                cx={HAND_POSITIONS.right.handX}
-                cy={HAND_POSITIONS.right.handY}
-                r="2.8"
-                fill={theme.bg}
-                stroke={theme.primary}
-                strokeWidth="1.4"
-                animate={animate ? { x: [0, 1.3, 0.4, 0], y: [0, -2.2, -0.6, 0], scale: [1, 1.15, 1.02, 1] } : undefined}
-                transition={{ duration: speaking ? 0.8 : 1.2, repeat: Infinity, ease: "easeInOut", delay: 0.08 }}
-              />
-            </motion.g>
-          </>
+          <motion.g
+            initial={{ opacity: 0, y: 3, scale: 0.84 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            {holdingHands.map((hand, index) => (
+              <motion.g
+                key={`${hand.side}-holding-hand`}
+                animate={animate ? {
+                  x: hand.side === "right" ? [0, 0.7, 0.2, 0] : [0, -0.7, -0.2, 0],
+                  y: [0, -1.1, -0.2, 0],
+                  scale: [1, 1.09, 1.01, 1],
+                } : undefined}
+                transition={{
+                  duration: speaking ? 0.85 : 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: index * 0.08,
+                }}
+              >
+                <circle
+                  cx={hand.handX}
+                  cy={hand.handY}
+                  r="2.9"
+                  fill={theme.bg}
+                  stroke={theme.primary}
+                  strokeWidth="1.45"
+                />
+                <path
+                  d={`M ${hand.handX - 1.25} ${hand.handY - 0.1} Q ${hand.handX} ${hand.handY - 1.35} ${hand.handX + 1.25} ${hand.handY - 0.1}`}
+                  fill="none"
+                  stroke={theme.primary}
+                  strokeWidth="0.9"
+                  strokeLinecap="round"
+                  opacity="0.82"
+                />
+              </motion.g>
+            ))}
+          </motion.g>
         )}
       </svg>
     </motion.div>
@@ -766,17 +981,23 @@ export function getMeshiMoodFromActivity(stats: {
 }
 
 // Small social Meshi for displaying on other users' mesh nodes
-export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy", hair = "none", accessory = "none" }: {
-  size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood; hair?: MeshiHair; accessory?: MeshiAccessory;
+export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy", hair = "none", accessory = "none", eyeStyle = "regular", badge = "none", outfit = "none" }: {
+  size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood; hair?: MeshiHair; accessory?: MeshiAccessory; eyeStyle?: MeshiEyeStyle; badge?: MeshiBadge; outfit?: MeshiOutfit;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   const face = FACES[mood] || FACES.happy;
   const hatElement = HATS[hat] || null;
   const hairElement = HAIRS[hair] || null;
-  const accessoryElement = ACCESSORIES[accessory] || null;
+  const effectiveEyeStyle = accessory === "lashes" ? "lashes" : eyeStyle;
+  const effectiveAccessory = accessory === "lashes" ? "none" : accessory;
+  const eyeStyleElement = EYE_STYLES[effectiveEyeStyle] || null;
+  const accessoryElement = ACCESSORIES[effectiveAccessory] || null;
+  const badgeElement = BADGES[badge] || null;
+  const outfitElement = OUTFITS[outfit] || null;
   return (
     <svg width={size} height={size} viewBox="-24 -24 48 48">
       <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
+      <g style={{ color: theme.primary }}>{outfitElement}</g>
       <g style={{ color: theme.primary }}>{hairElement}</g>
       <g style={{ color: theme.primary }}>{hatElement}</g>
       <g transform="scale(0.8)">
@@ -789,9 +1010,11 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
           </text>
         )}
       </g>
+      {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
       {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
+      {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
     </svg>
   );
 }
 
-export { ACCESSORIES, COLOR_THEMES, FACES, HAIRS, HATS, PROP_SVGS };
+export { ACCESSORIES, BADGES, COLOR_THEMES, EYE_STYLES, FACES, HAIRS, HATS, OUTFITS, PROP_SVGS };

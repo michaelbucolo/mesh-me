@@ -182,7 +182,13 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
       const res = await fetch("/api/platform-content?view=analytics");
       if (res.ok) {
         const data = await res.json();
-        setAnalytics(data.analytics || null);
+        const analyticsRows = Array.isArray(data.analytics) ? data.analytics : [];
+        setAnalytics({
+          accounts: analyticsRows.length,
+          posts: analyticsRows.reduce((sum: number, row: { postCount?: number }) => sum + (row.postCount || 0), 0),
+          followers: analyticsRows.reduce((sum: number, row: { followerCount?: number }) => sum + (row.followerCount || 0), 0),
+          views: analyticsRows.reduce((sum: number, row: { totalViews?: number }) => sum + (row.totalViews || 0), 0),
+        });
       }
     } catch {
       // Analytics are non-critical
@@ -219,8 +225,13 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
   const handleEditSave = async (postId: string) => {
     setEditSaving(true);
     try {
-      // Platform content edit — update locally for now
-      // In production this would call the platform's API
+      const res = await fetch("/api/platform-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "edit", postId, content: editContent }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Edit failed");
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId ? { ...p, content: editContent } : p
@@ -228,8 +239,8 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
       );
       setEditingId(null);
       setEditContent("");
-    } catch {
-      setError("Failed to save edit.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save edit.");
     } finally {
       setEditSaving(false);
     }

@@ -1,14 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MeshiMascot, type MeshiHat, type MeshiMood, type MeshiProp } from "./meshi-mascot";
 import { useEffect, useMemo, useState } from "react";
-import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 /**
- * Custom Meshi Loading Screen
- * Shows the user's personalized Meshi during loading states and page transitions.
- * Only shows the USER's custom Meshi — other users' Meshi only appears on their meshes.
+ * Continuity loading states.
+ * The global Meshi companion stays mounted at the root, so loading UI uses
+ * neutral signals instead of rendering a second Meshi body.
  */
 
 interface MeshiLoadingProps {
@@ -25,11 +23,35 @@ const LOADING_TIPS = [
   "Meshi is aligning your live signals",
 ];
 
-const PLAYFUL_MOODS: MeshiMood[] = ["thinking", "excited", "giggle", "wink", "celebrating", "love"];
-const PLAYFUL_PROPS: MeshiProp[] = ["none", "compass", "magnifying-glass", "heart", "clipboard"];
+function MeshiContinuityPulse({ size = 48 }: { size?: number }) {
+  return (
+    <motion.div
+      data-meshi-continuity-pulse="true"
+      className="relative inline-flex items-center justify-center rounded-full"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <motion.span
+        className="absolute inset-0 rounded-full border border-[var(--accent)]/35"
+        animate={{ scale: [0.88, 1.18, 0.88], opacity: [0.75, 0.12, 0.75] }}
+        transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.span
+        className="absolute inset-[18%] rounded-full bg-[var(--accent)]/18"
+        animate={{ scale: [1, 0.72, 1], opacity: [0.42, 0.78, 0.42] }}
+        transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.span
+        className="relative block rounded-full bg-[var(--accent)] shadow-[0_0_22px_var(--accent)]"
+        style={{ width: Math.max(8, size * 0.18), height: Math.max(8, size * 0.18) }}
+        animate={{ y: [0, -2, 0] }}
+        transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </motion.div>
+  );
+}
 
 export function MeshiLoading({ message = "Loading...", fullScreen = false, size = 48 }: MeshiLoadingProps) {
-  const { color, hat } = useMeshiPreferences();
   const [dots, setDots] = useState("");
 
   useEffect(() => {
@@ -49,7 +71,7 @@ export function MeshiLoading({ message = "Loading...", fullScreen = false, size 
         animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <MeshiMascot size={size} mood="thinking" color={color} hat={hat} showGlow animate />
+        <MeshiContinuityPulse size={size} />
       </motion.div>
       <motion.p
         initial={{ opacity: 0 }}
@@ -77,7 +99,7 @@ interface MeshiFunLoadingScreenProps {
   title: string;
   subtitle?: string;
   className?: string;
-  mode?: "default" | "mesh-building" | "message-writing";
+  mode?: "default" | "mesh-building" | "message-writing" | "secure" | "search" | "social" | "creator";
   steps?: string[];
   progressLabel?: string;
 }
@@ -86,15 +108,10 @@ const LOADING_MODES: Record<
   NonNullable<MeshiFunLoadingScreenProps["mode"]>,
   {
     tips: string[];
-    moods: MeshiMood[];
-    props: MeshiProp[];
-    hatOverride?: MeshiHat;
   }
 > = {
   default: {
     tips: LOADING_TIPS,
-    moods: PLAYFUL_MOODS,
-    props: PLAYFUL_PROPS,
   },
   "mesh-building": {
     tips: [
@@ -103,9 +120,6 @@ const LOADING_MODES: Record<
       "Meshi is balancing your network topology",
       "Meshi is validating graph integrity",
     ],
-    moods: ["thinking", "excited", "celebrating", "learning"],
-    props: ["wrench", "clipboard", "compass"],
-    hatOverride: "hardhat",
   },
   "message-writing": {
     tips: [
@@ -114,8 +128,38 @@ const LOADING_MODES: Record<
       "Meshi is preparing smart reply context",
       "Meshi is syncing your inbox status",
     ],
-    moods: ["thinking", "love", "wink", "giggle"],
-    props: ["notebook", "clipboard", "heart"],
+  },
+  secure: {
+    tips: [
+      "Meshi is checking permissions without exposing private details",
+      "Meshi is keeping the handoff privacy-first",
+      "Meshi is preparing only what this page needs",
+      "Meshi is keeping sensitive controls close",
+    ],
+  },
+  search: {
+    tips: [
+      "Meshi is sorting the strongest matches first",
+      "Meshi is keeping your search context clean",
+      "Meshi is preparing results you can act on",
+      "Meshi is checking people, posts, and shared spaces",
+    ],
+  },
+  social: {
+    tips: [
+      "Meshi is lining up the people and posts you care about",
+      "Meshi is keeping reactions and context together",
+      "Meshi is preparing a smooth social handoff",
+      "Meshi is syncing the latest visible activity",
+    ],
+  },
+  creator: {
+    tips: [
+      "Meshi is preparing creator tools without the clutter",
+      "Meshi is staging drafts, signals, and controls",
+      "Meshi is organizing the workspace around action",
+      "Meshi is keeping publishing context ready",
+    ],
   },
 };
 
@@ -127,11 +171,8 @@ export function MeshiFunLoadingScreen({
   steps,
   progressLabel = "Loaded",
 }: MeshiFunLoadingScreenProps) {
-  const { color, hat } = useMeshiPreferences();
   const [dots, setDots] = useState("");
   const [tipIndex, setTipIndex] = useState(0);
-  const [moodIndex, setMoodIndex] = useState(0);
-  const [propIndex, setPropIndex] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
   const selectedMode = LOADING_MODES[mode];
   const loadingSteps = useMemo(
@@ -156,11 +197,6 @@ export function MeshiFunLoadingScreen({
       setTipIndex((i) => (i + 1) % selectedMode.tips.length);
     }, 2200);
 
-    const moodTimer = setInterval(() => {
-      setMoodIndex((i) => (i + 1) % selectedMode.moods.length);
-      setPropIndex((i) => (i + 1) % selectedMode.props.length);
-    }, 2600);
-
     const stepTimer = setInterval(() => {
       setActiveStep((i) => {
         if (i >= loadingSteps.length - 1) {
@@ -173,10 +209,9 @@ export function MeshiFunLoadingScreen({
     return () => {
       clearInterval(dotTimer);
       clearInterval(tipTimer);
-      clearInterval(moodTimer);
       clearInterval(stepTimer);
     };
-  }, [loadingSteps.length, selectedMode.moods.length, selectedMode.props.length, selectedMode.tips.length]);
+  }, [loadingSteps.length, selectedMode.tips.length]);
 
   const progressPercent = ((activeStep + 1) / loadingSteps.length) * 100;
 
@@ -184,24 +219,16 @@ export function MeshiFunLoadingScreen({
     <div className={`max-w-3xl mx-auto px-4 py-10 flex flex-col items-center text-center ${className}`}>
       <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1 text-xs font-medium text-[var(--text-muted)] mb-5">
         <span>{title}</span>
-        <span aria-hidden>•</span>
+        <span aria-hidden>-</span>
         <span>{progressLabel} {activeStep + 1}/{loadingSteps.length}</span>
       </div>
 
-      <div className="rounded-3xl p-4 border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-lg shadow-black/5 mb-4">
+      <div className="rounded-2xl p-4 border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-lg shadow-black/5 mb-4">
         <motion.div
           animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
         >
-          <MeshiMascot
-            size={92}
-            mood={selectedMode.moods[moodIndex]}
-            color={color}
-            hat={selectedMode.hatOverride || hat}
-            prop={selectedMode.props[propIndex]}
-            showGlow
-            animate
-          />
+          <MeshiContinuityPulse size={72} />
         </motion.div>
       </div>
 
@@ -238,7 +265,7 @@ export function MeshiFunLoadingScreen({
                         : "border-[var(--border-primary)] text-[var(--text-muted)]"
                   }`}
                 >
-                  {isComplete ? "✓" : index + 1}
+                  {isComplete ? "OK" : index + 1}
                 </span>
                 <span
                   className={
@@ -261,10 +288,8 @@ export function MeshiFunLoadingScreen({
   );
 }
 
-/** Page transition loading overlay — shows custom Meshi bouncing */
+/** Page transition loading overlay - keeps the single root Meshi as the only Meshi body. */
 export function MeshiPageTransition({ isTransitioning }: { isTransitioning: boolean }) {
-  const { color, hat } = useMeshiPreferences();
-
   if (!isTransitioning) return null;
 
   return (
@@ -276,13 +301,12 @@ export function MeshiPageTransition({ isTransitioning }: { isTransitioning: bool
     >
       <motion.div
         animate={{
-          x: [0, 100, -80, 60, -40, 0],
-          y: [0, -40, 20, -60, 30, 0],
-          scale: [1, 1.1, 0.9, 1.1, 0.95, 1],
+          scale: [1, 1.12, 0.96, 1],
+          opacity: [0.7, 1, 0.7],
         }}
         transition={{ duration: 0.8, ease: "easeInOut" }}
       >
-        <MeshiMascot size={48} mood="excited" color={color} hat={hat} showGlow />
+        <MeshiContinuityPulse size={44} />
       </motion.div>
     </motion.div>
   );
@@ -290,15 +314,13 @@ export function MeshiPageTransition({ isTransitioning }: { isTransitioning: bool
 
 /** Inline Meshi spinner for buttons/forms */
 export function MeshiSpinner({ size = 20 }: { size?: number }) {
-  const { color } = useMeshiPreferences();
-
   return (
     <motion.div
       animate={{ rotate: [0, 10, -10, 0] }}
       transition={{ duration: 0.8, repeat: Infinity }}
       className="inline-flex"
     >
-      <MeshiMascot size={size} mood="thinking" color={color} hat="none" showGlow={false} animate={false} />
+      <MeshiContinuityPulse size={size} />
     </motion.div>
   );
 }

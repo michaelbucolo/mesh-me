@@ -4,7 +4,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
-import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Send, Copy, Link2 } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Send, Copy, Link2, ExternalLink, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useTransition, useRef } from "react";
@@ -55,8 +55,34 @@ interface PostDetailClientProps {
     _count: { comments: number; reactions: number; reposts: number };
     reactions?: { id: string }[] | false;
     savedBy?: { id: string }[] | false;
+    visibility?: string;
+    isNsfw?: boolean;
+    contentRating?: string;
   };
   currentUserId?: string;
+}
+
+function isVisualMedia(type: string) {
+  const normalized = type.toLowerCase();
+  return normalized === "image" || normalized === "video";
+}
+
+function getLinkHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function VisibilityLabel({ visibility }: { visibility?: string }) {
+  if (visibility === "private") {
+    return <span className="inline-flex items-center gap-1"><Lock className="h-3 w-3" /> Only me</span>;
+  }
+  if (visibility === "friends") {
+    return <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> Friends</span>;
+  }
+  return <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" /> Public</span>;
 }
 
 export function PostDetailClient({ post, currentUserId }: PostDetailClientProps) {
@@ -70,6 +96,8 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  const visualMedia = post.media.filter((item) => isVisualMedia(item.type));
+  const linkMedia = post.media.filter((item) => !isVisualMedia(item.type));
 
   const handleLike = () => {
     if (!currentUserId) return;
@@ -150,6 +178,14 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               <span>@{post.author.username}</span>
               <span>&middot;</span>
               <span>{formatRelativeTime(post.createdAt)}</span>
+              <span>&middot;</span>
+              <VisibilityLabel visibility={post.visibility} />
+              {post.isNsfw && (
+                <>
+                  <span>&middot;</span>
+                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-black text-amber-300">NSFW</span>
+                </>
+              )}
               {post.community && (
                 <>
                   <span>&middot;</span>
@@ -166,16 +202,39 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
         <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap mb-4">{post.content}</p>
 
         {/* Media */}
-        {post.media.length > 0 && (
+        {visualMedia.length > 0 && (
           <div className={cn(
-            "rounded-xl overflow-hidden mb-4",
-            post.media.length === 1 && "max-h-[500px]",
-            post.media.length >= 2 && "grid grid-cols-2 gap-1"
+            "rounded-xl overflow-hidden mb-4 bg-[var(--bg-secondary)]",
+            visualMedia.length === 1 && "grid",
+            visualMedia.length >= 2 && "grid grid-cols-2 gap-1"
           )}>
-            {post.media.map((media) => (
-              <div key={media.id} className="relative overflow-hidden">
-                <Image src={media.url} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+            {visualMedia.map((media) => (
+              <div key={media.id} className={cn("relative overflow-hidden", visualMedia.length === 1 ? "aspect-[4/5] max-h-[560px]" : "aspect-square")}>
+                {media.type.toLowerCase() === "video" ? (
+                  <video src={media.url} className="h-full w-full object-cover" controls preload="metadata" playsInline />
+                ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={media.url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Image src={media.url} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                )}
               </div>
+            ))}
+          </div>
+        )}
+
+        {linkMedia.length > 0 && (
+          <div className="mb-4 grid gap-2">
+            {linkMedia.map((media) => (
+              <a key={media.id} href={media.url} target="_blank" rel="noopener noreferrer" className="feed-link-preview">
+                <span className="feed-link-preview-icon">
+                  <ExternalLink className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
+                  <span className="block truncate text-xs text-[var(--text-muted)]">{media.url}</span>
+                </span>
+              </a>
             ))}
           </div>
         )}

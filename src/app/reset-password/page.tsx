@@ -21,8 +21,8 @@ function ResetPasswordForm() {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters");
       return;
     }
     if (password !== confirmPassword) {
@@ -74,7 +74,7 @@ function ResetPasswordForm() {
       <div className="mb-8">
         <MeshiMascot size={56} mood="happy" animate />
         <h1 className="mt-4 text-2xl font-bold text-[var(--text-primary)]">Set a new password</h1>
-        <p className="mt-2 text-sm text-[var(--text-tertiary)]">Choose a strong password with at least 8 characters.</p>
+        <p className="mt-2 text-sm text-[var(--text-tertiary)]">Choose a strong password with at least 12 characters.</p>
       </div>
       <div className="rounded-3xl p-6 space-y-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
         {error && (

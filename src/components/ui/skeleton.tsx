@@ -2,13 +2,19 @@ import { cn } from "@/lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("animate-pulse rounded-xl glass-surface", className)} />
+    <div
+      aria-hidden="true"
+      className={cn(
+        "ds-skeleton rounded-[var(--ds-radius-md)]",
+        className
+      )}
+    />
   );
 }
 
 export function PostSkeleton() {
   return (
-    <div className="rounded-2xl glass-card p-5 space-y-4">
+    <div className="space-y-4 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-5">
       <div className="flex items-center gap-3">
         <Skeleton className="h-10 w-10 rounded-full" />
         <div className="space-y-2">
@@ -75,7 +81,7 @@ export function NotificationSkeleton() {
 
 export function FeedSkeleton() {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <Skeleton className="h-8 w-24" />
         <Skeleton className="h-10 w-48 rounded-xl" />

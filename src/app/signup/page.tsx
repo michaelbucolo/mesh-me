@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/signup-form";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { getCurrentUserRedirectState } from "@/lib/auth";
+import { meshBrand } from "@/lib/brand";
+
+export const metadata: Metadata = {
+  title: "Create your Mesh",
+  description: `Create your ${meshBrand.name} account and shape your digital world with ${meshBrand.meshi.name}.`,
+};
 
 export default async function SignupPage() {
   const user = await getCurrentUserRedirectState();
@@ -9,18 +17,20 @@ export default async function SignupPage() {
   if (user && !user.onboarded) redirect("/onboarding");
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4 py-10">
-      <section className="w-full max-w-md rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6 shadow-[var(--shadow-lg)] sm:p-8">
-        <div className="mb-6 text-center">
-          <Link href="/" className="brand-wordmark text-2xl text-[var(--text-primary)]">
+    <AuthShell
+      title="Create your account."
+      description={`Set up ${meshBrand.name} in a few steps.`}
+    >
+      <section className="mx-auto w-full max-w-full rounded-lg border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-lg)] sm:w-full sm:max-w-md sm:p-8">
+        <div className="mb-5 sm:mb-6">
+          <Link href="/" className="brand-wordmark text-xl text-[var(--text-primary)]">
             mesh<span className="brand-wordmark-accent">.me</span>
           </Link>
-          <h1 className="mt-5 text-3xl font-black tracking-tight text-[var(--text-primary)]">Create account</h1>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">A clean start. Just sign up and enter the website.</p>
+          <h1 className="mt-3 text-2xl font-black tracking-tight text-[var(--text-primary)] sm:mt-4">Create account</h1>
         </div>
 
         <SignupForm />
       </section>
-    </main>
+    </AuthShell>
   );
 }

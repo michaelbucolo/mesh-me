@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { LegalDocumentPage } from "@/components/legal/legal-document-page";
+import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | mesh.me",
-  description: "Privacy Policy for mesh.me. Your data belongs to you. We never sell your information.",
+  title: "Privacy Policy",
+  description: `Privacy Policy for ${meshBrand.name}. Your data belongs to you. We never sell your information.`,
 };
 
 export default function PrivacyPage() {
