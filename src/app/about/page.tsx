@@ -3,10 +3,11 @@ import { CheckCircle2, Lock, ShieldCheck, Sparkles } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { SiteRouteMap } from "@/components/marketing/site-route-map";
+import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "About | mesh.me",
-  description: "Mesh.me is a privacy-first social platform and digital identity hub built around user ownership.",
+  title: "About",
+  description: `${meshBrand.name} is a privacy-first social platform and digital identity hub built around user ownership.`,
 };
 
 const principles = [
@@ -33,8 +34,8 @@ export default function AboutPage() {
           <div className="mb-6 flex items-center gap-3">
             <MeshiLogo size={54} color="blue" mood="happy" />
             <div>
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">Meshi stays Meshi</h2>
-              <p className="text-sm text-[var(--text-secondary)]">Simple, bubbly, two eyes, no mouth.</p>
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">{meshBrand.meshi.name} stays {meshBrand.meshi.name}</h2>
+              <p className="text-sm text-[var(--text-secondary)]">{meshBrand.meshi.visualRule}</p>
             </div>
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">

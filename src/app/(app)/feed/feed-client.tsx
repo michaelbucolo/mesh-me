@@ -175,7 +175,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const activeLayout = LAYOUT_OPTIONS.find((item) => item.id === layout) || LAYOUT_OPTIONS[0];
 
   return (
-    <div data-meshi-zone="feed" className="mx-auto max-w-6xl px-4 py-6 animate-page-enter">
+    <div data-meshi-zone="feed" className="feed-experience mx-auto max-w-6xl px-4 py-6 animate-page-enter">
       <section className="mb-6 rounded-[1.75rem] border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-md)]">
         <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
           <div>

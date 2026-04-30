@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BarChart3, Lock, MessageCircle, Rss, ShieldCheck, Sparkles, Waypoints } from "lucide-react";
+import { ArrowRight, BarChart3, Compass, Lock, MessageCircle, Rss, ShieldCheck, Sparkles, Waypoints } from "lucide-react";
 
 const routes = [
   {
@@ -31,6 +31,13 @@ const routes = [
     title: "Product vision",
     description: "Understand why Mesh.me exists, how Meshi fits, and how the product adapts to the user.",
     accent: "text-amber-300",
+  },
+  {
+    href: "/roadmap",
+    icon: Compass,
+    title: "Launch roadmap",
+    description: "Separate launch-ready features from expansion ideas like Vault, Spaces, voice, marketplace, and visionOS.",
+    accent: "text-lime-300",
   },
   {
     href: "/privacy",

@@ -37,15 +37,60 @@ const ThemeContext = createContext<ThemeContextType>({
   clearCustomTheme: () => {},
 });
 
+const THEME_MODE_KEY = "mesh-theme";
+const THEME_PRESET_KEY = "mesh-theme-preset";
+const THEME_CUSTOM_KEY = "mesh-theme-custom";
+
 function getSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined") return "dark";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function applyTheme(resolved: ResolvedTheme) {
+function readStoredMode(): ThemeMode {
+  if (typeof window === "undefined") return "system";
+  const stored = localStorage.getItem(THEME_MODE_KEY);
+  return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+}
+
+function readStoredPreset(): ThemePreset {
+  if (typeof window === "undefined") return "default";
+  const stored = localStorage.getItem(THEME_PRESET_KEY);
+  return stored === "instagram" || stored === "ocean" || stored === "sunset" || stored === "forest" || stored === "mono" || stored === "default"
+    ? stored
+    : "default";
+}
+
+function readStoredCustomTheme(): ThemeCustomization | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(THEME_CUSTOM_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored) as ThemeCustomization;
+  } catch {
+    localStorage.removeItem(THEME_CUSTOM_KEY);
+    return null;
+  }
+}
+
+function resolveTheme(mode: ThemeMode): ResolvedTheme {
+  return mode === "system" ? getSystemTheme() : mode;
+}
+
+function updateBrowserThemeColor(resolved: ResolvedTheme) {
+  const color = resolved === "light" ? "#f7f9fc" : "#0d1117";
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    if (!meta.media) meta.content = color;
+  });
+}
+
+function applyTheme(mode: ThemeMode, resolved: ResolvedTheme) {
   const root = document.documentElement;
   root.classList.remove("light", "dark");
   root.classList.add(resolved);
+  root.dataset.themeMode = mode;
+  root.dataset.resolvedTheme = resolved;
+  root.style.colorScheme = resolved;
+  updateBrowserThemeColor(resolved);
 }
 
 function applyPreset(preset: ThemePreset) {
@@ -85,81 +130,60 @@ function applyCustomTheme(customTheme: ThemeCustomization | null) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
-  const [preset, setPresetState] = useState<ThemePreset>("default");
-  const [customTheme, setCustomThemeState] = useState<ThemeCustomization | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [mode, setModeState] = useState<ThemeMode>(() => readStoredMode());
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme(readStoredMode()));
+  const [preset, setPresetState] = useState<ThemePreset>(() => readStoredPreset());
+  const [customTheme, setCustomThemeState] = useState<ThemeCustomization | null>(() => readStoredCustomTheme());
 
   const resolve = useCallback((m: ThemeMode): ResolvedTheme => {
-    return m === "system" ? getSystemTheme() : m;
+    return resolveTheme(m);
   }, []);
 
   useEffect(() => {
-    const initTimer = setTimeout(() => {
-      setMounted(true);
-      const stored = localStorage.getItem("mesh-theme") as ThemeMode | null;
-      const initial: ThemeMode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
-      const storedPreset = localStorage.getItem("mesh-theme-preset") as ThemePreset | null;
-      const initialPreset: ThemePreset = storedPreset ?? "default";
-      const storedCustom = localStorage.getItem("mesh-theme-custom");
-      const initialCustom: ThemeCustomization | null = storedCustom ? JSON.parse(storedCustom) : null;
-      setModeState(initial);
-      const resolved = resolve(initial);
-      setResolvedTheme(resolved);
-      setPresetState(initialPreset);
-      setCustomThemeState(initialCustom);
-      applyTheme(resolved);
-      applyPreset(initialPreset);
-      applyCustomTheme(initialCustom);
-    }, 0);
-    return () => clearTimeout(initTimer);
-  }, [resolve]);
+    applyTheme(mode, resolvedTheme);
+    applyPreset(preset);
+    applyCustomTheme(customTheme);
+  }, [customTheme, mode, preset, resolvedTheme]);
 
   // Listen for OS theme changes when in system mode
   useEffect(() => {
-    if (!mounted) return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
       if (mode === "system") {
         const resolved = getSystemTheme();
         setResolvedTheme(resolved);
-        applyTheme(resolved);
+        applyTheme(mode, resolved);
       }
     };
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, [mode, mounted]);
+  }, [mode]);
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
-    localStorage.setItem("mesh-theme", newMode);
+    localStorage.setItem(THEME_MODE_KEY, newMode);
     const resolved = resolve(newMode);
     setResolvedTheme(resolved);
-    applyTheme(resolved);
+    applyTheme(newMode, resolved);
   };
 
   const setPreset = (newPreset: ThemePreset) => {
     setPresetState(newPreset);
-    localStorage.setItem("mesh-theme-preset", newPreset);
+    localStorage.setItem(THEME_PRESET_KEY, newPreset);
     applyPreset(newPreset);
   };
 
   const setCustomTheme = (colors: ThemeCustomization) => {
     setCustomThemeState(colors);
-    localStorage.setItem("mesh-theme-custom", JSON.stringify(colors));
+    localStorage.setItem(THEME_CUSTOM_KEY, JSON.stringify(colors));
     applyCustomTheme(colors);
   };
 
   const clearCustomTheme = () => {
     setCustomThemeState(null);
-    localStorage.removeItem("mesh-theme-custom");
+    localStorage.removeItem(THEME_CUSTOM_KEY);
     applyCustomTheme(null);
   };
-
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return (
     <ThemeContext.Provider value={{ mode, theme: resolvedTheme, preset, customTheme, setMode, setPreset, setCustomTheme, clearCustomTheme }}>

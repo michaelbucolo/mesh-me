@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       id: { not: user.id },
       isSuspended: false,
       isPublic: true,
+      showInDiscovery: true,
     },
     select: {
       id: true,

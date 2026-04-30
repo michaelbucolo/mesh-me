@@ -1,207 +1,428 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState, useTransition } from "react";
+import {
+  AlertTriangle,
+  AtSign,
+  Bell,
+  BellOff,
+  Check,
+  Heart,
+  Loader2,
+  LockKeyhole,
+  MessageCircle,
+  RefreshCw,
+  Repeat,
+  Search,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Bell, Heart, MessageCircle, UserPlus, Repeat, AtSign, Sparkles, X, BellOff, Smartphone } from "lucide-react";
-import Link from "next/link";
+import {
+  getNotificationCategoryLabel,
+  notificationCategories,
+  type NotificationCategory,
+  type NotificationCenterPayload,
+  type NotificationGroup,
+} from "@/lib/notifications";
 import { formatRelativeTime } from "@/lib/utils";
-import { MarkReadButton } from "./mark-read-button";
-import { motion, AnimatePresence } from "framer-motion";
 
-const NOTIFICATION_ICONS: Record<string, typeof Heart> = {
-  like: Heart,
-  comment: MessageCircle,
-  follow: UserPlus,
-  repost: Repeat,
-  mention: AtSign,
-  message: MessageCircle,
+type NoticeState = {
+  type: "success" | "error" | "info";
+  message: string;
+} | null;
+
+const categoryIcons: Record<NotificationCategory, typeof Bell> = {
+  all: Bell,
+  unread: AlertTriangle,
+  likes: Heart,
+  comments: MessageCircle,
+  follows: UserPlus,
+  messages: MessageCircle,
+  mentions: AtSign,
+  communities: Users,
+  security: ShieldCheck,
+  privacy: LockKeyhole,
+  shares: Repeat,
 };
 
-interface Notification {
-  id: string;
-  type: string;
-  message: string | null;
-  read: boolean;
-  postId: string | null;
-  createdAt: string;
-  actor: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarUrl: string | null;
-  } | null;
-}
+const visibleCategories = notificationCategories;
 
-type TabKey = "all" | "likes" | "comments" | "follows" | "messages" | "reposts";
+export function NotificationsClient({ initialPayload }: { initialPayload: NotificationCenterPayload }) {
+  const [payload, setPayload] = useState(initialPayload);
+  const [activeCategory, setActiveCategory] = useState<NotificationCategory>("all");
+  const [query, setQuery] = useState("");
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [notice, setNotice] = useState<NoticeState>(null);
+  const [isPending, startTransition] = useTransition();
 
-interface NotificationsClientProps {
-  categorized: Record<TabKey, Notification[]>;
-  unreadCount: number;
-  smartSummary: string | null;
-}
+  const filteredGroups = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return payload.groups.filter((group) => {
+      if (activeCategory === "unread" && group.unreadCount === 0) return false;
+      if (!["all", "unread"].includes(activeCategory) && group.category !== activeCategory) return false;
+      if (showUnreadOnly && group.unreadCount === 0) return false;
+      if (!search) return true;
+      return [
+        group.title,
+        group.summary,
+        group.category,
+        ...group.actorNames,
+        ...group.notifications.map((notification) => notification.message),
+      ].some((value) => value.toLowerCase().includes(search));
+    });
+  }, [activeCategory, payload.groups, query, showUnreadOnly]);
 
-const TABS: { id: TabKey; label: string; icon: typeof Heart }[] = [
-  { id: "all", label: "All", icon: Bell },
-  { id: "likes", label: "Likes", icon: Heart },
-  { id: "comments", label: "Comments", icon: MessageCircle },
-  { id: "follows", label: "Follows", icon: UserPlus },
-  { id: "messages", label: "Messages", icon: MessageCircle },
-  { id: "reposts", label: "Reposts", icon: Repeat },
-];
+  function toggleGroup(key: string) {
+    setExpandedGroups((current) => (
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+    ));
+  }
 
-export function NotificationsClient({ categorized, unreadCount, smartSummary }: NotificationsClientProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("all");
-  const [showSmartSummary, setShowSmartSummary] = useState(!!smartSummary);
+  function requestNotificationAction(action: "mark-read" | "mark-unread" | "delete-read", notificationIds?: string[]) {
+    startTransition(async () => {
+      setNotice(null);
+      try {
+        const response = await fetch("/api/notifications", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, notificationIds }),
+        });
+        const data = await response.json().catch(() => ({})) as Partial<NotificationCenterPayload> & { error?: string; updated?: number; deleted?: number };
+        if (!response.ok || data.error || !data.groups || !data.categories || !data.notifications) {
+          throw new Error(data.error || "Could not update notifications.");
+        }
+        setPayload(data as NotificationCenterPayload);
+        const changed = data.updated ?? data.deleted ?? 0;
+        setNotice({
+          type: "success",
+          message: action === "delete-read"
+            ? `${changed} read notification${changed === 1 ? "" : "s"} cleared.`
+            : `${changed} notification${changed === 1 ? "" : "s"} updated.`,
+        });
+      } catch (error) {
+        setNotice({ type: "error", message: error instanceof Error ? error.message : "Could not update notifications." });
+      }
+    });
+  }
 
-  const notifications = categorized[activeTab];
+  function refresh() {
+    startTransition(async () => {
+      setNotice(null);
+      try {
+        const response = await fetch("/api/notifications?limit=100", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        const data = await response.json().catch(() => ({})) as Partial<NotificationCenterPayload> & { error?: string };
+        if (!response.ok || data.error || !data.groups || !data.categories || !data.notifications) {
+          throw new Error(data.error || "Could not refresh notifications.");
+        }
+        setPayload(data as NotificationCenterPayload);
+        setNotice({ type: "info", message: "Notification center refreshed." });
+      } catch (error) {
+        setNotice({ type: "error", message: error instanceof Error ? error.message : "Could not refresh notifications." });
+      }
+    });
+  }
 
   return (
-    <div data-meshi-zone="notifications" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Notifications</h1>
-          {unreadCount > 0 && (
-            <p className="text-sm text-[var(--text-tertiary)] mt-1">{unreadCount} unread</p>
-          )}
-        </div>
-        {unreadCount > 0 && <MarkReadButton />}
-      </div>
-
-      {/* Smart Summary Banner */}
-      <AnimatePresence>
-        {showSmartSummary && smartSummary && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden mb-4"
-          >
-            <div className="rounded-2xl p-4" style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-muted)" }}>
-              <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--brand-gradient)" }}>
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Smart Summary</h3>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>Smart Digest</span>
-                  </div>
-                  <p className="text-sm text-[var(--text-secondary)]">{smartSummary}</p>
-                </div>
-                <button
-                  onClick={() => setShowSmartSummary(false)}
-                  className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mb-4 rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-[var(--accent-subtle)] p-2">
-            <Smartphone className="h-4 w-4 text-[var(--accent)]" />
+    <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5">
+      <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-black text-[var(--text-secondary)]">
+            <Bell size={15} aria-hidden="true" />
+            Unified notification hub
           </div>
-          <div className="flex-1">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Make Mesh.me your notification hub</h2>
-            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
-              After platforms are connected and syncing reliably, turn off duplicate native app alerts and let Mesh.me organize the activity here.
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={refresh} disabled={isPending} className="mesh-action mesh-action-secondary px-3 text-sm">
+              {isPending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={15} aria-hidden="true" />}
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => requestNotificationAction("mark-read")}
+              disabled={isPending || payload.unreadCount === 0}
+              className="mesh-action mesh-action-primary px-4 text-sm"
+              data-testid="mark-all-notifications-read"
+            >
+              <Check size={15} aria-hidden="true" />
+              Mark all read
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+          <div>
+            <h1 className="max-w-3xl text-3xl font-black leading-tight md:text-5xl">One calm place for every alert.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
+              Likes, comments, follows, messages, mentions, communities, security, and privacy alerts are grouped so the important parts stay visible.
             </p>
-            <Link href="/connected-accounts" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)]">
-              <BellOff className="h-3.5 w-3.5" />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Metric label="Unread" value={payload.unreadCount} />
+            <Metric label="Groups" value={payload.unreadGroupCount} />
+            <Metric label="Priority" value={payload.importantCount} />
+          </div>
+        </div>
+      </header>
+
+      <section className="grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <aside className="grid h-fit gap-4 xl:sticky xl:top-5">
+          <div className="mesh-surface rounded-lg p-4">
+            <h2 className="text-base font-black">Smart digest</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{payload.smartSummary}</p>
+            <div className="mt-4 grid gap-2">
+              <PreferenceRow label="Push alerts" active={payload.preferences.pushEnabled} />
+              <PreferenceRow label="Messages" active={payload.preferences.messages} />
+              <PreferenceRow label="Mentions" active={payload.preferences.mentions} />
+              <PreferenceRow label="Security" active={payload.preferences.securityAlerts} />
+            </div>
+            <Link href="/settings" className="mesh-action mesh-action-secondary mt-4 w-full justify-center px-4 text-sm">
+              <LockKeyhole size={15} aria-hidden="true" />
+              Notification settings
+            </Link>
+          </div>
+
+          <div className="mesh-surface rounded-lg p-4">
+            <h2 className="text-base font-black">Duplicate app alerts</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+              Once a platform is connected and syncing reliably, Mesh.me can be the cleaner hub instead of letting every app interrupt you separately.
+            </p>
+            <Link href="/connected-accounts" className="mesh-link-row mt-3 rounded-md px-3 py-3 text-sm">
+              <BellOff size={15} aria-hidden="true" />
               Review connected platforms
             </Link>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      {/* Category Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-        {TABS.map((tab) => {
-          const count = categorized[tab.id].filter((n) => !n.read).length;
-          return (
+        <section className="grid gap-4">
+          <div className="mesh-surface rounded-lg p-3 md:p-4">
+            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+              <label className="flex h-11 items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 text-sm">
+                <Search size={15} className="text-[var(--text-muted)]" aria-hidden="true" />
+                <input
+                  data-testid="notification-search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--text-muted)]"
+                  placeholder="Search notifications"
+                />
+                {query && (
+                  <button type="button" onClick={() => setQuery("")} className="mesh-choice rounded-full p-1" aria-label="Clear search">
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                )}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowUnreadOnly((current) => !current)}
+                aria-pressed={showUnreadOnly}
+                className={`mesh-action px-4 text-sm ${showUnreadOnly ? "mesh-action-primary" : "mesh-action-secondary"}`}
+              >
+                <AlertTriangle size={15} aria-hidden="true" />
+                Unread only
+              </button>
+            </div>
+
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1" data-testid="notification-category-tabs">
+              {visibleCategories.map((category) => {
+                const Icon = categoryIcons[category];
+                const counts = payload.categories[category];
+                const active = activeCategory === category;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setActiveCategory(category)}
+                    className={`mesh-choice shrink-0 rounded-full px-3 py-2 text-xs font-black ${active ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-secondary)]"}`}
+                    aria-pressed={active}
+                  >
+                    <Icon size={14} aria-hidden="true" />
+                    {getNotificationCategoryLabel(category)}
+                    {counts.unread > 0 ? <span className="rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[10px] text-white">{counts.unread}</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {notice && (
+            <div className={`rounded-md border px-4 py-3 text-sm ${
+              notice.type === "error"
+                ? "border-red-400/25 bg-red-500/10 text-red-100"
+                : notice.type === "success"
+                  ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
+                  : "border-[var(--border-primary)] bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"
+            }`}>
+              {notice.message}
+            </div>
+          )}
+
+          {filteredGroups.length > 0 ? (
+            <div className="grid gap-3" data-testid="notification-group-list">
+              {filteredGroups.map((group) => (
+                <NotificationGroupCard
+                  key={group.key}
+                  group={group}
+                  expanded={expandedGroups.includes(group.key)}
+                  busy={isPending}
+                  onToggle={() => toggleGroup(group.key)}
+                  onMarkRead={() => requestNotificationAction("mark-read", group.notifications.map((item) => item.id))}
+                  onMarkUnread={() => requestNotificationAction("mark-unread", group.notifications.map((item) => item.id))}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mesh-surface rounded-lg p-8">
+              <EmptyState
+                icon={Bell}
+                title="No matching notifications"
+                description="Try another category, clear search, or turn off unread-only filtering."
+              />
+            </div>
+          )}
+
+          <div className="flex flex-wrap justify-end gap-2">
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${
-                activeTab === tab.id
-                  ? "brand-button text-white shadow-lg"
-                  : "text-[var(--text-tertiary)] glass-surface hover:border-[var(--glass-border)]"
-              }`}
+              type="button"
+              onClick={() => requestNotificationAction("delete-read")}
+              disabled={isPending || !payload.notifications.some((notification) => notification.read)}
+              className="mesh-action border-red-400/25 bg-red-500/10 px-4 text-sm text-red-200"
             >
-              <tab.icon className="h-3.5 w-3.5" />
-              {tab.label}
-              {count > 0 && (
-                <span className={`h-4 min-w-4 px-1 rounded-full text-[10px] flex items-center justify-center ${
-                  activeTab === tab.id ? "bg-white/20 text-white" : ""
-                }`}
-                style={activeTab !== tab.id ? { background: "var(--accent-muted)", color: "var(--accent)" } : undefined}>
-                  {count}
+              <Trash2 size={15} aria-hidden="true" />
+              Clear read
+            </button>
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3 text-center">
+      <strong className="block text-xl text-[var(--text-primary)]">{value.toLocaleString()}</strong>
+      <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
+    </div>
+  );
+}
+
+function PreferenceRow({ label, active }: { label: string; active: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 px-3 py-2 text-sm">
+      <span className="font-semibold text-[var(--text-secondary)]">{label}</span>
+      <span className={`rounded-full px-2 py-1 text-[10px] font-black ${active ? "bg-emerald-300/10 text-emerald-100" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"}`}>
+        {active ? "On" : "Off"}
+      </span>
+    </div>
+  );
+}
+
+function NotificationGroupCard({
+  group,
+  expanded,
+  busy,
+  onToggle,
+  onMarkRead,
+  onMarkUnread,
+}: {
+  group: NotificationGroup;
+  expanded: boolean;
+  busy: boolean;
+  onToggle: () => void;
+  onMarkRead: () => void;
+  onMarkUnread: () => void;
+}) {
+  const Icon = categoryIcons[group.category];
+  const primary = group.notifications[0];
+
+  return (
+    <article
+      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.unreadCount > 0 ? "ring-1 ring-[var(--accent-muted)]" : ""}`}
+      data-testid="notification-group"
+    >
+      <div className="flex flex-col gap-4 md:flex-row md:items-start">
+        <Link href={group.href} className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="relative shrink-0">
+            {primary.actor ? (
+              <Avatar src={primary.actor.avatarUrl} alt={primary.actor.displayName} size="md" />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+                <Bell size={18} aria-hidden="true" />
+              </span>
+            )}
+            <span className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-primary)] ${group.priority === "high" ? "bg-red-500 text-white" : "bg-[var(--bg-primary)] text-[var(--accent)]"}`}>
+              <Icon size={13} aria-hidden="true" />
+            </span>
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="min-w-0 truncate text-base font-black text-[var(--text-primary)]">{group.title}</h2>
+              {group.unreadCount > 0 && (
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-black text-white">
+                  {group.unreadCount} unread
                 </span>
               )}
+              {group.priority === "high" && (
+                <span className="rounded-full border border-red-400/25 bg-red-500/10 px-2 py-0.5 text-[10px] font-black text-red-100">
+                  Priority
+                </span>
+              )}
+            </div>
+            <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">{group.summary}</p>
+            <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
+              {getNotificationCategoryLabel(group.category)} - {formatRelativeTime(group.latestAt)}
+              {group.count > 1 ? ` - ${group.count} related` : ""}
+            </p>
+          </div>
+        </Link>
+
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          <button type="button" onClick={onToggle} className="mesh-action mesh-action-secondary px-3 text-xs">
+            {expanded ? "Hide" : "Details"}
+          </button>
+          {group.unreadCount > 0 ? (
+            <button type="button" onClick={onMarkRead} disabled={busy} className="mesh-action mesh-action-primary px-3 text-xs" aria-label={`Mark ${group.title} read`}>
+              <Check size={13} aria-hidden="true" />
+              Read
             </button>
-          );
-        })}
+          ) : (
+            <button type="button" onClick={onMarkUnread} disabled={busy} className="mesh-action mesh-action-secondary px-3 text-xs" aria-label={`Mark ${group.title} unread`}>
+              Unread
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Notification List */}
-      {notifications.length > 0 ? (
-        <div className="space-y-1">
-          {notifications.map((notification) => {
-            const Icon = NOTIFICATION_ICONS[notification.type] || Bell;
-            const href = notification.postId
-              ? `/feed/${notification.postId}`
-              : notification.actor
-              ? `/profile/${notification.actor.username}`
-              : "#";
-
-            return (
-              <Link
-                key={notification.id}
-                href={href}
-                className="flex items-start gap-3 p-4 rounded-xl transition-all duration-200 hover:bg-[var(--bg-tertiary)]"
-                style={!notification.read ? { background: "var(--accent-subtle)" } : undefined}
-              >
-                <div className="relative">
-                  {notification.actor ? (
-                    <Avatar src={notification.actor.avatarUrl} alt={notification.actor.displayName} size="sm" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
-                      <Bell className="h-4 w-4 text-[var(--text-tertiary)]" />
-                    </div>
-                  )}
-                  <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full glass-surface flex items-center justify-center">
-                    <Icon className="h-3 w-3" style={{ color: "var(--accent)" }} />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[var(--text-primary)]">{notification.message}</p>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                    {formatRelativeTime(notification.createdAt)}
-                  </p>
-                </div>
-                {!notification.read && (
-                  <div className="h-2 w-2 rounded-full mt-2 flex-shrink-0" style={{ background: "var(--accent)" }} />
-                )}
-              </Link>
-            );
-          })}
+      {expanded && (
+        <div className="mt-4 grid gap-2 border-t border-[var(--border-primary)] pt-3">
+          {group.notifications.map((notification) => (
+            <Link
+              key={notification.id}
+              href={notification.href}
+              className="mesh-link-row rounded-md px-3 py-3 text-sm"
+              data-testid="notification-row"
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${notification.read ? "bg-[var(--border-primary)]" : "bg-[var(--accent)]"}`} />
+                <span className="min-w-0">
+                  <span className="block truncate font-bold text-[var(--text-primary)]">{notification.message}</span>
+                  <span className="block text-xs text-[var(--text-muted)]">{formatRelativeTime(notification.createdAt)}</span>
+                </span>
+              </div>
+            </Link>
+          ))}
         </div>
-      ) : (
-        <EmptyState
-          icon={Bell}
-          title={activeTab === "all" ? "No notifications" : `No ${activeTab}`}
-          description={activeTab === "all"
-            ? "When someone interacts with you, you'll see it here."
-            : `You don't have any ${activeTab} notifications yet.`
-          }
-        />
       )}
-    </div>
+    </article>
   );
 }

@@ -1,0 +1,115 @@
+export const MESHI_MOODS = [
+  "happy",
+  "excited",
+  "thinking",
+  "cool",
+  "love",
+  "wink",
+  "surprised",
+  "sleepy",
+  "searching",
+  "learning",
+  "celebrating",
+  "blinking",
+] as const;
+
+export type MeshiMood = (typeof MESHI_MOODS)[number];
+
+export interface MeshiAction {
+  type: string;
+  content?: string;
+  suggestionType?: string;
+  recipient?: string;
+  message?: string;
+}
+
+export interface MeshiContext {
+  meshData?: {
+    followers?: number;
+    following?: number;
+    posts?: number;
+    communities?: number;
+    platforms?: number;
+  };
+  meshEntities?: Array<{
+    type: string;
+    label: string;
+    sublabel?: string;
+    isMutual?: boolean;
+    followerCount?: number;
+    memberCount?: number;
+  }>;
+  focusedContent?: {
+    id?: string;
+    platform?: string;
+    author?: string;
+    text?: string;
+    mediaTypes?: string[];
+    externalUrl?: string;
+    contentRating?: string;
+    aiSignals?: string[];
+  };
+  currentPage?: string;
+}
+
+export interface MeshiHistoryMessage {
+  role: "user" | "meshi";
+  content: string;
+}
+
+export type MeshiSource = "llm" | "database" | "local" | "offline";
+
+export interface MeshiResponse {
+  content: string;
+  mood: MeshiMood;
+  action?: MeshiAction;
+  source: MeshiSource;
+  model?: string;
+  meshi: {
+    identity: "mascot-user-vessel-llm";
+    llmReady: boolean;
+    grounded: boolean;
+  };
+}
+
+export function normalizeMeshiMood(value: unknown, fallback: MeshiMood = "happy"): MeshiMood {
+  if (typeof value === "string" && MESHI_MOODS.includes(value as MeshiMood)) {
+    return value as MeshiMood;
+  }
+  return fallback;
+}
+
+export function createMeshiResponse(
+  input: {
+    content: string;
+    mood?: unknown;
+    action?: MeshiAction;
+    source: MeshiSource;
+    model?: string;
+    llmReady?: boolean;
+    grounded?: boolean;
+  },
+): MeshiResponse {
+  return {
+    content: input.content,
+    mood: normalizeMeshiMood(input.mood, "thinking"),
+    action: input.action,
+    source: input.source,
+    model: input.model,
+    meshi: {
+      identity: "mascot-user-vessel-llm",
+      llmReady: input.llmReady ?? false,
+      grounded: input.grounded ?? false,
+    },
+  };
+}
+
+export function createMeshiOfflineResponse(): MeshiResponse {
+  return createMeshiResponse({
+    content: "I could not reach my private reasoning engine right now. Your data stayed protected. Try again in a moment.",
+    mood: "thinking",
+    source: "offline",
+    llmReady: false,
+    grounded: false,
+  });
+}

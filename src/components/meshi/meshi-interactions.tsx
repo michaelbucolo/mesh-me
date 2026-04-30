@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood } from "./meshi-mascot";
+import { MeshiMascot, MeshiMini, type MeshiColor, type MeshiHat, type MeshiMood, type MeshiProp } from "./meshi-mascot";
 
 // Meshi-to-Meshi interactions when visiting another user's mesh
 
@@ -27,6 +27,11 @@ function getRPSResult(myChoice: RPSChoice, theirChoice: RPSChoice): RPSResult {
 }
 
 const RPS_EMOJI: Record<RPSChoice, string> = { rock: "\u270A", paper: "\u270B", scissors: "\u2702\uFE0F" };
+
+function rpsToMeshiProp(choice: RPSChoice | null): MeshiProp {
+  if (!choice) return "none";
+  return choice;
+}
 
 export function MeshiMeetOverlay({
   myMeshi,
@@ -140,7 +145,14 @@ export function MeshiMeetOverlay({
             transition={{ duration: phase === "hat-exchange" ? 1 : 2, repeat: phase === "hat-exchange" ? 0 : Infinity }}
             className="flex flex-col items-center gap-1"
           >
-            <MeshiMascot size={56} mood={myMood} color={myMeshi.color} hat={myCurrentHat} showGlow />
+            <MeshiMascot
+              size={56}
+              mood={myMood}
+              color={myMeshi.color}
+              hat={myCurrentHat}
+              prop={phase === "rps-result" ? rpsToMeshiProp(myChoice) : phase === "hat-exchange" ? "grab" : "none"}
+              showGlow
+            />
             <span className="text-[10px] text-[var(--text-muted)] font-medium">You</span>
           </motion.div>
 
@@ -197,7 +209,14 @@ export function MeshiMeetOverlay({
             transition={{ duration: phase === "hat-exchange" ? 1 : 2, repeat: phase === "hat-exchange" ? 0 : Infinity, delay: 0.3 }}
             className="flex flex-col items-center gap-1"
           >
-            <MeshiMascot size={56} mood={theirMood} color={theirMeshi.color} hat={theirCurrentHat} showGlow />
+            <MeshiMascot
+              size={56}
+              mood={theirMood}
+              color={theirMeshi.color}
+              hat={theirCurrentHat}
+              prop={phase === "rps-result" ? rpsToMeshiProp(theirChoice) : phase === "hat-exchange" ? "grab" : "none"}
+              showGlow
+            />
             <span className="text-[10px] text-[var(--text-muted)] font-medium">{theirMeshi.username}</span>
           </motion.div>
         </div>

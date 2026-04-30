@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MeshiMascot, type MeshiColor, type MeshiHat } from "./meshi-mascot";
-import { Mail, Check } from "lucide-react";
+import { MeshiMascot, type MeshiAccessory, type MeshiBadge, type MeshiColor, type MeshiEyeStyle, type MeshiHair, type MeshiHat, type MeshiOutfit } from "./meshi-mascot";
+import { Check } from "lucide-react";
 
 interface DeliveryNotification {
   id: string;
@@ -12,15 +12,33 @@ interface DeliveryNotification {
   message: string;
   meshiColor: MeshiColor;
   meshiHat: MeshiHat;
+  meshiHair?: MeshiHair;
+  meshiAccessory?: MeshiAccessory;
+  meshiEyeStyle?: MeshiEyeStyle;
+  meshiBadge?: MeshiBadge;
+  meshiOutfit?: MeshiOutfit;
   timestamp: number;
 }
 
 interface MeshiDeliveryProps {
   myMeshiColor: MeshiColor;
   myMeshiHat: MeshiHat;
+  myMeshiHair?: MeshiHair;
+  myMeshiAccessory?: MeshiAccessory;
+  myMeshiEyeStyle?: MeshiEyeStyle;
+  myMeshiBadge?: MeshiBadge;
+  myMeshiOutfit?: MeshiOutfit;
 }
 
-export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) {
+export function MeshiDelivery({
+  myMeshiColor,
+  myMeshiHat,
+  myMeshiHair = "none",
+  myMeshiAccessory = "none",
+  myMeshiEyeStyle = "regular",
+  myMeshiBadge = "none",
+  myMeshiOutfit = "none",
+}: MeshiDeliveryProps) {
   const [deliveries, setDeliveries] = useState<DeliveryNotification[]>([]);
   const [activeDelivery, setActiveDelivery] = useState<DeliveryNotification | null>(null);
   const [deliveryPhase, setDeliveryPhase] = useState<"traveling" | "arriving" | "delivered" | null>(null);
@@ -106,20 +124,17 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
                 size={48}
                 color={activeDelivery.meshiColor || myMeshiColor}
                 hat={activeDelivery.meshiHat || myMeshiHat}
+                hair={activeDelivery.meshiHair || myMeshiHair}
+                accessory={activeDelivery.meshiAccessory || myMeshiAccessory}
+                eyeStyle={activeDelivery.meshiEyeStyle || myMeshiEyeStyle}
+                badge={activeDelivery.meshiBadge || myMeshiBadge}
+                outfit={activeDelivery.meshiOutfit || myMeshiOutfit}
                 mood="excited"
                 animate
                 showGlow
                 bouncy
+                prop="envelope"
               />
-              <motion.div
-                className="absolute -top-2 -right-2"
-                animate={{ rotate: [0, 10, -10, 0], y: [0, -2, 0] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-              >
-                <div className="bg-amber-400 rounded-lg p-1">
-                  <Mail className="h-3.5 w-3.5 text-black" />
-                </div>
-              </motion.div>
             </div>
           </motion.div>
         )}
@@ -138,6 +153,11 @@ export function MeshiDelivery({ myMeshiColor, myMeshiHat }: MeshiDeliveryProps) 
                   size={36}
                   color={activeDelivery.meshiColor || myMeshiColor}
                   hat={activeDelivery.meshiHat || myMeshiHat}
+                  hair={activeDelivery.meshiHair || myMeshiHair}
+                  accessory={activeDelivery.meshiAccessory || myMeshiAccessory}
+                  eyeStyle={activeDelivery.meshiEyeStyle || myMeshiEyeStyle}
+                  badge={activeDelivery.meshiBadge || myMeshiBadge}
+                  outfit={activeDelivery.meshiOutfit || myMeshiOutfit}
                   mood="love"
                   animate
                   showGlow={false}
@@ -186,10 +206,26 @@ interface MeshiSendAnimationProps {
   recipientName: string;
   meshiColor: MeshiColor;
   meshiHat: MeshiHat;
+  meshiHair?: MeshiHair;
+  meshiAccessory?: MeshiAccessory;
+  meshiEyeStyle?: MeshiEyeStyle;
+  meshiBadge?: MeshiBadge;
+  meshiOutfit?: MeshiOutfit;
   onComplete: () => void;
 }
 
-export function MeshiSendAnimation({ isActive, recipientName, meshiColor, meshiHat, onComplete }: MeshiSendAnimationProps) {
+export function MeshiSendAnimation({
+  isActive,
+  recipientName,
+  meshiColor,
+  meshiHat,
+  meshiHair = "none",
+  meshiAccessory = "none",
+  meshiEyeStyle = "regular",
+  meshiBadge = "none",
+  meshiOutfit = "none",
+  onComplete,
+}: MeshiSendAnimationProps) {
   const [phase, setPhase] = useState<"pickup" | "traveling" | "done" | null>(null);
 
   useEffect(() => {
@@ -231,7 +267,7 @@ export function MeshiSendAnimation({ isActive, recipientName, meshiColor, meshiH
             animate={{ scale: 1, opacity: 1 }}
           >
             <div className="flex items-center gap-2">
-              <MeshiMascot size={40} color={meshiColor} hat={meshiHat} mood="excited" animate showGlow={false} bouncy />
+              <MeshiMascot size={40} color={meshiColor} hat={meshiHat} hair={meshiHair} accessory={meshiAccessory} eyeStyle={meshiEyeStyle} badge={meshiBadge} outfit={meshiOutfit} mood="excited" animate showGlow={false} bouncy prop="envelope" />
               <motion.div
                 initial={{ x: -10, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -253,16 +289,7 @@ export function MeshiSendAnimation({ isActive, recipientName, meshiColor, meshiH
             className="absolute"
           >
             <div className="relative">
-              <MeshiMascot size={36} color={meshiColor} hat={meshiHat} mood="happy" animate showGlow bouncy />
-              <motion.div
-                className="absolute -top-1 -right-1"
-                animate={{ rotate: [0, 15, -15, 0] }}
-                transition={{ duration: 0.4, repeat: Infinity }}
-              >
-                <div className="bg-amber-400 rounded p-0.5">
-                  <Mail className="h-2.5 w-2.5 text-black" />
-                </div>
-              </motion.div>
+              <MeshiMascot size={36} color={meshiColor} hat={meshiHat} hair={meshiHair} accessory={meshiAccessory} eyeStyle={meshiEyeStyle} badge={meshiBadge} outfit={meshiOutfit} mood="happy" animate showGlow bouncy prop="envelope" />
             </div>
           </motion.div>
         )}

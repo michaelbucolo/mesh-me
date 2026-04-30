@@ -1,8 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "./button";
 
 interface ModalProps {
   open: boolean;
@@ -10,52 +11,74 @@ interface ModalProps {
   children: React.ReactNode;
   className?: string;
   title?: string;
+  description?: string;
 }
 
-export function Modal({ open, onClose, children, className, title }: ModalProps) {
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
-  if (!open) return null;
-
+export function Modal({ open, onClose, children, className, title, description }: ModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl glass-dropdown shadow-2xl shadow-black/50 animate-in fade-in zoom-in-95 duration-200",
-          className
-        )}
-      >
-        {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-primary)]">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm data-[state=open]:animate-fade-in" />
+        <Dialog.Content
+          className={cn(
+            "ds-glass-panel fixed left-1/2 top-1/2 z-50 grid max-h-[min(86dvh,42rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden text-[var(--text-primary)] shadow-[var(--ds-shadow-floating)] data-[state=open]:animate-smooth-reveal",
+            className
+          )}
+        >
+          <div className="flex min-h-14 items-start justify-between gap-3 border-b border-[var(--ds-border)] px-5 py-4">
+            <div className="min-w-0">
+              <Dialog.Title className={cn("text-base font-semibold leading-tight", !title && "sr-only")}>
+                {title || "Dialog"}
+              </Dialog.Title>
+              {description && (
+                <Dialog.Description className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+                  {description}
+                </Dialog.Description>
+              )}
+            </div>
+            <Dialog.Close asChild>
+              <Button variant="ghost" size="icon-sm" aria-label="Close dialog">
+                <X className="h-4 w-4" />
+              </Button>
+            </Dialog.Close>
           </div>
-        )}
-        {!title && (
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors z-10"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-        <div className="p-6">{children}</div>
-      </div>
-    </div>
+          <div className="overflow-y-auto p-5 ds-scrollbar">{children}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
+
+export const DialogRoot = Dialog.Root;
+export const DialogTrigger = Dialog.Trigger;
+export const DialogClose = Dialog.Close;
+export const DialogPortal = Dialog.Portal;
+
+export function DialogOverlay({ className, ...props }: Dialog.DialogOverlayProps) {
+  return (
+    <Dialog.Overlay
+      className={cn("fixed inset-0 z-50 bg-black/55 backdrop-blur-sm data-[state=open]:animate-fade-in", className)}
+      {...props}
+    />
+  );
+}
+
+export function DialogContent({ className, children, ...props }: Dialog.DialogContentProps) {
+  return (
+    <Dialog.Portal>
+      <DialogOverlay />
+      <Dialog.Content
+        className={cn(
+          "ds-glass-panel fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 p-5 data-[state=open]:animate-smooth-reveal",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </Dialog.Content>
+    </Dialog.Portal>
+  );
+}
+
+export const DialogTitle = Dialog.Title;
+export const DialogDescription = Dialog.Description;

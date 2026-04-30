@@ -1,18 +1,5 @@
-import { MeshiFunLoadingScreen } from "@/components/meshi/meshi-loading";
+import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
 
 export default function Loading() {
-  return (
-    <MeshiFunLoadingScreen
-      title="Content Hub"
-      subtitle="Meshi is assembling your content workspace."
-      mode="default"
-      progressLabel="Assets staged"
-      steps={[
-        "Fetching drafts and assets",
-        "Loading publishing tools",
-        "Syncing scheduled posts",
-        "Preparing analytics snapshot",
-      ]}
-    />
-  );
+  return <RouteLoadingPersonality personality="content-hub" />;
 }

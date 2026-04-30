@@ -12,7 +12,7 @@ const TUTORIAL_STEPS = [
     title: "Welcome to your Mesh",
     description:
       "This is your digital universe — a living map of your connections, communities, and content across the internet.",
-    tip: "Each circle (node) represents a person, community, tag, post, or connected platform.",
+    tip: "Each node represents a person, community, tag, post, connected platform, or activity signal.",
     mood: "excited" as const,
   },
   {
@@ -20,7 +20,7 @@ const TUTORIAL_STEPS = [
     title: "Interact with nodes",
     description:
       "Click any node to see details. Double-click to dive into that person's profile, community, or post.",
-    tip: "Your node is the large one in the center with a glowing ring around it.",
+    tip: "Meshi represents you while the center point anchors your private dashboard.",
     mood: "happy" as const,
   },
   {
@@ -35,7 +35,7 @@ const TUTORIAL_STEPS = [
     icon: Filter,
     title: "Filter your view",
     description:
-      "Use the filter pills at the top to show only people, communities, interests, posts, or platforms.",
+      "Use the filter pills at the top to show only people, communities, interests, posts, platforms, or activity.",
     tip: "Each filter shows a count badge so you know how many nodes of that type exist.",
     mood: "wink" as const,
   },
@@ -52,15 +52,24 @@ const TUTORIAL_STEPS = [
 export function MeshTutorial() {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
+  const [desktopMode, setDesktopMode] = useState(false);
   const meshiPrefs = useMeshiPreferences();
 
   useEffect(() => {
-    const seen = localStorage.getItem("mesh-tutorial-seen");
-    if (!seen) {
-      // Small delay so the canvas loads first
-      const timer = setTimeout(() => setVisible(true), 1500);
-      return () => clearTimeout(timer);
-    }
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setDesktopMode(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    const openTutorial = () => {
+      setStep(0);
+      setVisible(true);
+    };
+    window.addEventListener("mesh:tutorial", openTutorial);
+    return () => window.removeEventListener("mesh:tutorial", openTutorial);
   }, []);
 
   const handleDismiss = () => {
@@ -89,8 +98,12 @@ export function MeshTutorial() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+        className={`fixed z-50 flex p-4 ${
+          desktopMode
+            ? "inset-auto right-6 top-24 w-[min(22rem,calc(100vw-19rem))] items-start justify-start p-0"
+            : "inset-0 items-center justify-center"
+        }`}
+        style={desktopMode ? undefined : { background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       >
         <motion.div
           key={step}
@@ -98,7 +111,7 @@ export function MeshTutorial() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl"
+          className="relative w-full max-w-md overflow-hidden rounded-2xl shadow-2xl lg:max-w-sm"
           style={{
             background: "var(--bg-card)",
             border: "1px solid var(--border-primary)",
@@ -138,6 +151,11 @@ export function MeshTutorial() {
                 mood={current.mood}
                 color={meshiPrefs.color}
                 hat={meshiPrefs.hat}
+                hair={meshiPrefs.hair}
+                accessory={meshiPrefs.accessory}
+                eyeStyle={meshiPrefs.eye}
+                badge={meshiPrefs.badge}
+                outfit={meshiPrefs.outfit}
                 interactive
                 animate
               />

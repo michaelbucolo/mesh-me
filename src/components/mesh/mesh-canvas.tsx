@@ -2,9 +2,13 @@
 
 import { useRef, useCallback, useEffect } from "react";
 import type { MeshEngine } from "./mesh-engine";
-import type { MeshNode, FilterType } from "./mesh-types";
+import type { MeshNode, FilterType, MeshVisualSettings } from "./mesh-types";
 import { renderMesh } from "./mesh-renderer";
 import { createMeshiState, tickMeshi, updateMeshiCursor, updateMeshiInteraction, MESHI_COLORS, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
+
+function getUserFacingNode(node: MeshNode | null) {
+  return node?.type === "self" ? null : node;
+}
 
 interface MeshCanvasProps {
   engine: MeshEngine;
@@ -18,7 +22,13 @@ interface MeshCanvasProps {
   loading: boolean;
   meshiColor?: string;
   meshiHat?: string;
+  meshiHair?: string;
+  meshiAccessory?: string;
+  meshiEyeStyle?: string;
+  meshiBadge?: string;
+  meshiOutfit?: string;
   meshiUsername?: string;
+  meshVisuals?: MeshVisualSettings;
   remoteMeshis?: RemoteMeshi[];
   syncPulseTime?: number | null;
   onMeshiPositionChange?: (x: number, y: number, mood: string) => void;
@@ -41,7 +51,7 @@ interface MeshCanvasProps {
 export function MeshCanvas({
   engine, filter, showLabels, zoom, pan,
   hoveredNode, selectedNode, imageCache, loading,
-  meshiColor, meshiHat, meshiUsername, remoteMeshis, syncPulseTime,
+  meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiUsername, meshVisuals, remoteMeshis, syncPulseTime,
   onMeshiPositionChange,
   onViewportInfoChange,
   onZoomChange, onPanChange, onHoverChange, onClick, onDoubleClick,
@@ -59,7 +69,7 @@ export function MeshCanvas({
 
   // Formation animation state
   const formationStartRef = useRef<number | null>(null);
-  const formationDuration = 2000; // 2 seconds for full formation
+  const formationDuration = 1200; // keep the Mesh responsive while still feeling assembled
 
   // Meshi state
   const meshiStateRef = useRef<MeshiState | null>(null);
@@ -78,6 +88,7 @@ export function MeshCanvas({
   const showLabelsRef = useRef(showLabels);
   const hoveredRef = useRef(hoveredNode);
   const selectedRef = useRef(selectedNode);
+  const meshVisualsRef = useRef<MeshVisualSettings | undefined>(meshVisuals);
 
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { panRef.current = pan; }, [pan]);
@@ -85,6 +96,7 @@ export function MeshCanvas({
   useEffect(() => { showLabelsRef.current = showLabels; }, [showLabels]);
   useEffect(() => { hoveredRef.current = hoveredNode; }, [hoveredNode]);
   useEffect(() => { selectedRef.current = selectedNode; }, [selectedNode]);
+  useEffect(() => { meshVisualsRef.current = meshVisuals; }, [meshVisuals]);
   useEffect(() => { remoteMeshisRef.current = remoteMeshis || []; }, [remoteMeshis]);
 
   // Keep syncPulseTime in a ref for the render loop
@@ -97,9 +109,14 @@ export function MeshCanvas({
       meshiStateRef.current.color = MESHI_COLORS[meshiColor || "blue"] || MESHI_COLORS.blue;
       meshiStateRef.current.hatColor = MESHI_COLORS[meshiColor || "blue"] || MESHI_COLORS.blue;
       meshiStateRef.current.hat = meshiHat || "none";
+      meshiStateRef.current.hair = meshiHair || "none";
+      meshiStateRef.current.accessory = meshiAccessory || "none";
+      meshiStateRef.current.eyeStyle = meshiEyeStyle || "regular";
+      meshiStateRef.current.badge = meshiBadge || "none";
+      meshiStateRef.current.outfit = meshiOutfit || "none";
       meshiStateRef.current.username = meshiUsername || "You";
     }
-  }, [meshiColor, meshiHat, meshiUsername]);
+  }, [meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiUsername]);
 
   // World coordinate conversion
   const getWorldCoords = useCallback((clientX: number, clientY: number) => {
@@ -116,6 +133,27 @@ export function MeshCanvas({
       y: (my - canvas.offsetHeight / 2 - p.y) / z + center.y,
     };
   }, [engine]);
+
+  const zoomAtClientPoint = useCallback((clientX: number, clientY: number, nextZoom: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const screenX = clientX - rect.left - canvas.offsetWidth / 2;
+    const screenY = clientY - rect.top - canvas.offsetHeight / 2;
+    const center = engine.getCenter();
+    const currentZoom = zoomRef.current;
+    const currentPan = panRef.current;
+    const worldX = (screenX - currentPan.x) / currentZoom + center.x;
+    const worldY = (screenY - currentPan.y) / currentZoom + center.y;
+    const clampedZoom = Math.max(0.2, Math.min(4, nextZoom));
+
+    onZoomChange(clampedZoom);
+    onPanChange({
+      x: screenX - (worldX - center.x) * clampedZoom,
+      y: screenY - (worldY - center.y) * clampedZoom,
+    });
+    engine.wake();
+  }, [engine, onPanChange, onZoomChange]);
 
   // Canvas resize
   useEffect(() => {
@@ -178,6 +216,11 @@ export function MeshCanvas({
           meshiColor || "blue",
           meshiHat || "none",
           meshiUsername || "You",
+          meshiHair || "none",
+          meshiAccessory || "none",
+          meshiEyeStyle || "regular",
+          meshiBadge || "none",
+          meshiOutfit || "none",
         );
         meshiInitializedRef.current = true;
       }
@@ -261,6 +304,7 @@ export function MeshCanvas({
         dt,
         formationProgress,
         syncPulseTime: syncPulseTimeRef.current,
+        meshVisuals: meshVisualsRef.current,
       }, {
         hoveredNode: hoveredRef.current,
         selectedNode: selectedRef.current,
@@ -283,11 +327,12 @@ export function MeshCanvas({
       cancelAnimationFrame(animationRef.current);
       cancelAnimationFrame(momentumRafRef.current);
     };
-  }, [engine, loading, imageCache, meshiColor, meshiHat, meshiUsername, onMeshiPositionChange, onViewportInfoChange]);
+  }, [engine, loading, imageCache, meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiUsername, meshVisuals, onMeshiPositionChange, onViewportInfoChange]);
 
   // --- Mouse handlers ---
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     isDraggingRef.current = true;
     dragActiveRef.current = false;
     dragStartRef.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
@@ -313,7 +358,7 @@ export function MeshCanvas({
       return;
     }
     const coords = getWorldCoords(e.clientX, e.clientY);
-    const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
+    const node = getUserFacingNode(engine.findNodeAt(coords.x, coords.y, filterRef.current));
     onHoverChange(node);
     if (canvasRef.current) canvasRef.current.style.cursor = node ? "pointer" : "grab";
 
@@ -360,27 +405,34 @@ export function MeshCanvas({
     if (meshiStateRef.current) {
       updateMeshiInteraction(meshiStateRef.current, coords.x, coords.y);
     }
-    const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
+    const node = getUserFacingNode(engine.findNodeAt(coords.x, coords.y, filterRef.current));
     onClick(node);
   }, [engine, getWorldCoords, onClick]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const coords = getWorldCoords(e.clientX, e.clientY);
-    const node = engine.findNodeAt(coords.x, coords.y, filterRef.current);
+    const node = getUserFacingNode(engine.findNodeAt(coords.x, coords.y, filterRef.current));
     onDoubleClick(node);
   }, [engine, getWorldCoords, onDoubleClick]);
 
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    // Smoother zoom with smaller increments for satisfying scroll feel
-    const delta = -e.deltaY * 0.0008;
-    const newZoom = Math.max(0.2, Math.min(4, zoomRef.current + delta));
-    onZoomChange(newZoom);
-  }, [onZoomChange]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const zoomFactor = Math.exp(-event.deltaY * 0.001);
+      zoomAtClientPoint(event.clientX, event.clientY, zoomRef.current * zoomFactor);
+    };
+
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleWheel);
+  }, [zoomAtClientPoint]);
 
   // --- Touch handlers ---
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (e.touches.length === 1) {
       const coords = getWorldCoords(e.touches[0].clientX, e.touches[0].clientY);
       if (meshiStateRef.current) {
@@ -418,19 +470,27 @@ export function MeshCanvas({
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const newDist = Math.sqrt(dx * dx + dy * dy);
-      const newZoom = Math.max(0.2, Math.min(4, zoomRef.current * (newDist / lastTouchRef.current.dist)));
-      onZoomChange(newZoom);
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      zoomAtClientPoint(midX, midY, zoomRef.current * (newDist / lastTouchRef.current.dist));
       lastTouchRef.current.dist = newDist;
     }
-  }, [getWorldCoords, onPanChange, onZoomChange]);
+  }, [getWorldCoords, onPanChange, zoomAtClientPoint]);
 
   const handleTouchEnd = useCallback(() => { lastTouchRef.current = null; }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      className="w-full h-full"
-      style={{ cursor: "grab" }}
+      data-testid="mesh-canvas"
+      tabIndex={0}
+      role="application"
+      aria-label="Interactive Mesh canvas"
+      aria-describedby="mesh-canvas-instructions mesh-selection-status"
+      aria-busy={loading}
+      className="h-full w-full select-none"
+      style={{ cursor: "grab", touchAction: "none", overscrollBehavior: "none" }}
+      onContextMenu={(event) => event.preventDefault()}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onMouseDown={handleMouseDown}
@@ -438,7 +498,6 @@ export function MeshCanvas({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onPointerMove={handlePointerMove}
-      onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

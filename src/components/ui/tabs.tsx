@@ -27,13 +27,16 @@ export function Tabs({ tabs, defaultTab, onChange, children, className }: TabsPr
 
   return (
     <div className={className}>
-      <div className="flex border-b border-[var(--border-primary)] overflow-x-auto">
+      <div className="flex overflow-x-auto border-b border-[var(--ds-border)] ds-scrollbar" role="tablist">
         {tabs.map((tab) => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
+            role="tab"
+            aria-selected={activeTab === tab.id}
             className={cn(
-              "px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative",
+              "ds-focus-ring relative min-h-[var(--ds-control-height)] whitespace-nowrap px-4 py-3 text-sm font-semibold transition-colors",
               activeTab === tab.id
                 ? "text-[var(--text-primary)]"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -42,16 +45,16 @@ export function Tabs({ tabs, defaultTab, onChange, children, className }: TabsPr
             <span className="flex items-center gap-2">
               {tab.label}
               {tab.count !== undefined && (
-                <span className="text-xs text-[var(--text-muted)]">{tab.count}</span>
+                <span className="rounded-[var(--ds-radius-pill)] bg-[var(--ds-surface-muted)] px-1.5 py-0.5 text-xs text-[var(--text-muted)]">{tab.count}</span>
               )}
             </span>
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: "var(--accent)" }} />
+              <div className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-[var(--accent)]" />
             )}
           </button>
         ))}
       </div>
-      <div className="mt-4">{children(activeTab)}</div>
+      <div className="mt-4" role="tabpanel">{children(activeTab)}</div>
     </div>
   );
 }

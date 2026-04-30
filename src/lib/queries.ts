@@ -2,6 +2,56 @@
 
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
+
+type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+
+const SOCIAL_SEARCH_SOURCES = [
+  {
+    id: "twitter",
+    name: "X",
+    description: "Public posts, creators, and conversations from synced X accounts.",
+    connectHref: "/connected-accounts?platform=twitter",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    description: "Profiles, photos, reels, and creator references from connected Instagram accounts.",
+    connectHref: "/connected-accounts?platform=instagram",
+  },
+  {
+    id: "youtube",
+    name: "YouTube",
+    description: "Videos, channels, titles, and synced creator performance from connected YouTube accounts.",
+    connectHref: "/connected-accounts?platform=youtube",
+  },
+  {
+    id: "snapchat",
+    name: "Snapchat",
+    description: "Connected Snapchat identity and share references where provider permissions allow.",
+    connectHref: "/connected-accounts?platform=snapchat",
+  },
+] as const;
+
+const SOCIAL_SEARCH_PLATFORM_IDS = SOCIAL_SEARCH_SOURCES.map((source) => source.id);
+
+function sourceSearchUrl(platform: string, query: string) {
+  const encoded = encodeURIComponent(query);
+  const tag = query.toLowerCase().replace(/^#/, "").replace(/[^a-z0-9_]+/g, "");
+
+  switch (platform) {
+    case "twitter":
+      return `https://x.com/search?q=${encoded}&src=typed_query`;
+    case "instagram":
+      return tag ? `https://www.instagram.com/explore/tags/${tag}/` : "https://www.instagram.com/explore/";
+    case "youtube":
+      return `https://www.youtube.com/results?search_query=${encoded}`;
+    case "snapchat":
+      return `https://www.snapchat.com/search?q=${encoded}`;
+    default:
+      return "";
+  }
+}
 
 function parseStoredRecord(value: string | null | undefined): Record<string, string> {
   if (!value) return {};
@@ -20,29 +70,133 @@ function parseStoredRecord(value: string | null | undefined): Record<string, str
   }
 }
 
-export async function getFeedPosts(page = 1, limit = 20) {
-  const user = await getCurrentUser();
+const VALID_PROFILE_VISIBILITIES = new Set(["private", "friends", "public", "partial"]);
+
+function normalizeProfileVisibility(value: string | null | undefined, fallback: string) {
+  return value && VALID_PROFILE_VISIBILITIES.has(value) ? value : fallback;
+}
+
+function canSeeVisibility(visibility: string, isOwnProfile: boolean, isFriend: boolean) {
+  if (isOwnProfile) return true;
+  if (visibility === "public") return true;
+  if (visibility === "friends") return isFriend;
+  return false;
+}
+
+async function getMutualFriendIds(userId: string) {
+  const [following, followers] = await Promise.all([
+    prisma.follow.findMany({ where: { followerId: userId }, select: { followingId: true } }),
+    prisma.follow.findMany({ where: { followingId: userId }, select: { followerId: true } }),
+  ]);
+  const followerIds = new Set(followers.map((item) => item.followerId));
+  return following.map((item) => item.followingId).filter((id) => followerIds.has(id));
+}
+
+async function canCurrentUserViewNativePost(post: { authorId: string; visibility: string }, currentUser: CurrentUser | null) {
+  if (post.visibility === "public") return true;
+  if (!currentUser) return false;
+  if (post.authorId === currentUser.id) return true;
+  if (post.visibility !== "friends") return false;
+  const [followToAuthor, followFromAuthor] = await Promise.all([
+    prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId: currentUser.id, followingId: post.authorId } },
+      select: { id: true },
+    }),
+    prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId: post.authorId, followingId: currentUser.id } },
+      select: { id: true },
+    }),
+  ]);
+  return Boolean(followToAuthor && followFromAuthor);
+}
+
+async function searchWikipedia(query: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1800);
+
+  try {
+    const params = new URLSearchParams({
+      action: "query",
+      format: "json",
+      generator: "search",
+      gsrsearch: query,
+      gsrlimit: "5",
+      prop: "pageimages|extracts",
+      exintro: "1",
+      explaintext: "1",
+      exsentences: "2",
+      piprop: "thumbnail",
+      pithumbsize: "160",
+      origin: "*",
+    });
+    const response = await fetch(`https://en.wikipedia.org/w/api.php?${params.toString()}`, {
+      signal: controller.signal,
+      next: { revalidate: 3600 },
+    });
+    if (!response.ok) return [];
+    const payload = await response.json().catch(() => null) as {
+      query?: {
+        pages?: Record<string, {
+          pageid: number;
+          title: string;
+          extract?: string;
+          thumbnail?: { source?: string };
+        }>;
+      };
+    } | null;
+
+    return Object.values(payload?.query?.pages || {}).map((page) => ({
+      id: String(page.pageid),
+      title: page.title,
+      extract: page.extract || "",
+      url: `https://en.wikipedia.org/?curid=${page.pageid}`,
+      thumbnailUrl: page.thumbnail?.source || null,
+      source: "Wikipedia",
+    }));
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function getFeedPosts(page = 1, limit = 20, currentUser?: CurrentUser | null) {
+  const user = currentUser ?? await getCurrentUser();
   if (!user) return [];
 
-  const following = await prisma.follow.findMany({
-    where: { followerId: user.id },
-    select: { followingId: true },
-  });
+  const [following, communityMemberships, friendIds] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: user.id },
+      select: { followingId: true },
+    }),
+    prisma.communityMember.findMany({
+      where: { userId: user.id },
+      select: { communityId: true },
+    }),
+    getMutualFriendIds(user.id),
+  ]);
 
   const followingIds = following.map((f) => f.followingId);
-
-  const communityMemberships = await prisma.communityMember.findMany({
-    where: { userId: user.id },
-    select: { communityId: true },
-  });
-
   const communityIds = communityMemberships.map((m) => m.communityId);
 
   const posts = await prisma.post.findMany({
     where: {
-      OR: [
-        { authorId: { in: [...followingIds, user.id] } },
-        { communityId: { in: communityIds } },
+      ...nsfwHiddenWhere(user),
+      AND: [
+        {
+          OR: [
+            { authorId: { in: [...followingIds, user.id] } },
+            { communityId: { in: communityIds } },
+          ],
+        },
+        {
+          OR: [
+            { authorId: user.id },
+            { communityId: { in: communityIds } },
+            { visibility: "public" },
+            { visibility: "friends", authorId: { in: friendIds } },
+          ],
+        },
       ],
     },
     include: {
@@ -80,11 +234,21 @@ export async function getFeedPosts(page = 1, limit = 20) {
   return posts;
 }
 
-export async function getExplorePosts(page = 1, limit = 20) {
-  const user = await getCurrentUser();
+export async function getExplorePosts(page = 1, limit = 20, currentUser?: CurrentUser | null) {
+  const user = currentUser ?? await getCurrentUser();
+  const visibilityFilter = user
+    ? {
+        ...nsfwHiddenWhere(user),
+        visibility: "public",
+        OR: [
+          { authorId: user.id },
+          { author: { isSuspended: false, isPublic: true, showInDiscovery: true } },
+        ],
+      }
+    : { isNsfw: false, visibility: "public", author: { isSuspended: false, isPublic: true, showInDiscovery: true } };
 
   const posts = await prisma.post.findMany({
-    where: { author: { isSuspended: false } },
+    where: visibilityFilter,
     include: {
       author: {
         select: {
@@ -185,6 +349,10 @@ export async function getPostById(postId: string) {
     },
   });
 
+  if (!post) return null;
+  if (post.isNsfw && !canViewNsfw(user)) return null;
+  if (!(await canCurrentUserViewNativePost(post, user))) return null;
+
   return post;
 }
 
@@ -193,9 +361,60 @@ export async function getUserProfile(username: string) {
 
   const user = await prisma.user.findUnique({
     where: { username },
-    include: {
-      interests: true,
-      links: true,
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      bio: true,
+      location: true,
+      website: true,
+      avatarUrl: true,
+      bannerUrl: true,
+      accentColor: true,
+      isPublic: true,
+      isVerified: true,
+      isMeshPro: true,
+      isSuspended: true,
+      createdAt: true,
+      interests: {
+        select: { id: true, tag: true },
+        orderBy: { tag: "asc" },
+      },
+      links: {
+        select: { id: true, label: true, url: true },
+      },
+      connectedAccounts: {
+        where: { isActive: true },
+        select: {
+          id: true,
+          platform: true,
+          platformUsername: true,
+          accountLabel: true,
+          lastSyncAt: true,
+          syncStatus: true,
+        },
+        orderBy: { platform: "asc" },
+      },
+      meshiPreference: {
+        select: {
+          colorTheme: true,
+          hatStyle: true,
+          faceStyle: true,
+          hairStyle: true,
+          accessoryStyle: true,
+          eyeStyle: true,
+          badgeStyle: true,
+          outfitStyle: true,
+        },
+      },
+      meshPrivacy: {
+        select: {
+          meshVisibility: true,
+          branchOverrides: true,
+          showConnections: true,
+          showStats: true,
+        },
+      },
       _count: {
         select: {
           followers: true,
@@ -208,28 +427,43 @@ export async function getUserProfile(username: string) {
 
   if (!user) return null;
 
-  const isFollowing = currentUser
-    ? !!(await prisma.follow.findUnique({
+  const isOwnProfile = currentUser?.id === user.id;
+  let isFollowing = false;
+  let isFriend = false;
+  let mutualFollowers: Array<{ follower: { id: string; username: string; displayName: string; avatarUrl: string | null } }> = [];
+
+  if (currentUser) {
+    const [followToUser, followFromUser, currentFollowing] = await Promise.all([
+      prisma.follow.findUnique({
         where: {
           followerId_followingId: {
             followerId: currentUser.id,
             followingId: user.id,
           },
         },
-      }))
-    : false;
+      }),
+      prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: user.id,
+            followingId: currentUser.id,
+          },
+        },
+      }),
+      prisma.follow.findMany({
+        where: { followerId: currentUser.id },
+        select: { followingId: true },
+      }),
+    ]);
 
-  const mutualFollowers = currentUser
-    ? await prisma.follow.findMany({
+    isFollowing = Boolean(followToUser);
+    isFriend = Boolean(followToUser && followFromUser);
+
+    mutualFollowers = await prisma.follow.findMany({
         where: {
           followingId: user.id,
           followerId: {
-            in: (
-              await prisma.follow.findMany({
-                where: { followerId: currentUser.id },
-                select: { followingId: true },
-              })
-            ).map((f) => f.followingId),
+          in: currentFollowing.map((f) => f.followingId),
           },
         },
         include: {
@@ -238,25 +472,115 @@ export async function getUserProfile(username: string) {
           },
         },
         take: 5,
-      })
-    : [];
+    });
+  }
+
+  const userIsPublic = user.isPublic;
+  const meshShowStats = user.meshPrivacy?.showStats ?? false;
+  const meshVisibility = normalizeProfileVisibility(
+    user.meshPrivacy?.meshVisibility,
+    userIsPublic ? "public" : "private"
+  );
+  const branchOverrides = parseStoredRecord(user.meshPrivacy?.branchOverrides);
+  const canViewProfile = isOwnProfile || userIsPublic || canSeeVisibility(meshVisibility, isOwnProfile, isFriend);
+
+  function canSeeBranch(branchKey: string) {
+    if (!canViewProfile) return false;
+    const fallback = meshVisibility === "partial" ? (userIsPublic ? "public" : "private") : meshVisibility;
+    return canSeeVisibility(normalizeProfileVisibility(branchOverrides[branchKey], fallback), isOwnProfile, isFriend);
+  }
+
+  const sectionVisibility = {
+    profile: canViewProfile,
+    stats: isOwnProfile || (canViewProfile && (meshShowStats || userIsPublic)),
+    people: canSeeBranch("people"),
+    interests: canSeeBranch("interests"),
+    platforms: canSeeBranch("platforms"),
+    content: canSeeBranch("content"),
+  };
+
+  const hiddenCounts = { followers: 0, following: 0, posts: 0 };
 
   return {
     ...user,
+    bio: canViewProfile ? user.bio : null,
+    location: canViewProfile ? user.location : null,
+    website: canViewProfile ? user.website : null,
+    links: canViewProfile ? user.links : [],
+    interests: sectionVisibility.interests ? user.interests : [],
+    connectedAccounts: sectionVisibility.platforms ? user.connectedAccounts : [],
+    _count: sectionVisibility.stats ? user._count : hiddenCounts,
+    meshPrivacy: undefined,
     isFollowing,
-    isOwnProfile: currentUser?.id === user.id,
-    mutualFollowers: mutualFollowers.map((f) => f.follower),
+    isOwnProfile,
+    isFriend,
+    privacyLevel: canViewProfile ? meshVisibility : "private",
+    sectionVisibility,
+    mutualFollowers: sectionVisibility.people ? mutualFollowers.map((f) => f.follower) : [],
   };
 }
 
 export async function getUserPosts(username: string, page = 1, limit = 20) {
   const currentUser = await getCurrentUser();
 
-  const user = await prisma.user.findUnique({ where: { username } });
+  const user = await prisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      isPublic: true,
+      meshPrivacy: {
+        select: {
+          meshVisibility: true,
+          branchOverrides: true,
+        },
+      },
+    },
+  });
   if (!user) return [];
 
+  const isOwnProfile = currentUser?.id === user.id;
+  let isFriend = false;
+  if (currentUser && !isOwnProfile) {
+    const [followToUser, followFromUser] = await Promise.all([
+      prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: currentUser.id,
+            followingId: user.id,
+          },
+        },
+      }),
+      prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: user.id,
+            followingId: currentUser.id,
+          },
+        },
+      }),
+    ]);
+    isFriend = Boolean(followToUser && followFromUser);
+  }
+
+  const meshVisibility = normalizeProfileVisibility(
+    user.meshPrivacy?.meshVisibility,
+    user.isPublic ? "public" : "private"
+  );
+  const branchOverrides = parseStoredRecord(user.meshPrivacy?.branchOverrides);
+  const fallback = meshVisibility === "partial" ? (user.isPublic ? "public" : "private") : meshVisibility;
+  const contentVisibility = normalizeProfileVisibility(branchOverrides.content, fallback);
+  if (!canSeeVisibility(contentVisibility, isOwnProfile, isFriend)) return [];
+
+  const postVisibilityWhere = isOwnProfile
+    ? {}
+    : { OR: [{ visibility: "public" }, ...(isFriend ? [{ visibility: "friends" }] : [])] };
+
   const posts = await prisma.post.findMany({
-    where: { authorId: user.id },
+    where: {
+      ...nsfwHiddenWhere(currentUser),
+      authorId: user.id,
+      ...postVisibilityWhere,
+    },
     include: {
       author: {
         select: {
@@ -296,6 +620,14 @@ export async function getCommunities() {
   const user = await getCurrentUser();
 
   const communities = await prisma.community.findMany({
+    where: user
+      ? {
+          OR: [
+            { isPublic: true },
+            { members: { some: { userId: user.id } } },
+          ],
+        }
+      : { isPublic: true },
     include: {
       _count: {
         select: { members: true, posts: true },
@@ -344,6 +676,8 @@ export async function getCommunityBySlug(slug: string) {
       })
     : null;
 
+  if (!community.isPublic && !membership) return null;
+
   return {
     ...community,
     isMember: !!membership,
@@ -353,9 +687,23 @@ export async function getCommunityBySlug(slug: string) {
 
 export async function getCommunityPosts(communityId: string, page = 1, limit = 20) {
   const user = await getCurrentUser();
+  const community = await prisma.community.findUnique({
+    where: { id: communityId },
+    select: { isPublic: true },
+  });
+
+  if (!community) return [];
+  if (!community.isPublic) {
+    if (!user) return [];
+    const membership = await prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: user.id, communityId } },
+      select: { id: true },
+    });
+    if (!membership) return [];
+  }
 
   return prisma.post.findMany({
-    where: { communityId },
+    where: { ...nsfwHiddenWhere(user), communityId },
     include: {
       author: {
         select: {
@@ -413,10 +761,32 @@ export async function getMessageThreads() {
     orderBy: { updatedAt: "desc" },
   });
 
-  return threads.map((thread) => ({
-    ...thread,
-    otherUser: thread.members.find((m) => m.userId !== user.id)?.user,
-    lastMessage: thread.messages[0] || null,
+  return Promise.all(threads.map(async (thread) => {
+    const currentMembership = thread.members.find((member) => member.userId === user.id);
+    const unreadCount = await prisma.message.count({
+      where: {
+        threadId: thread.id,
+        senderId: { not: user.id },
+        createdAt: { gt: currentMembership?.lastRead || new Date(0) },
+      },
+    });
+
+    return {
+      ...thread,
+      otherUsers: thread.members.filter((m) => m.userId !== user.id).map((m) => m.user),
+      otherUser: thread.members.find((m) => m.userId !== user.id)?.user,
+      memberCount: thread.members.length,
+      displayTitle:
+        thread.title ||
+        (thread.members.filter((m) => m.userId !== user.id).length > 1
+          ? thread.members
+              .filter((m) => m.userId !== user.id)
+              .map((m) => m.user.displayName)
+              .join(", ")
+          : thread.members.find((m) => m.userId !== user.id)?.user.displayName || "Conversation"),
+      lastMessage: thread.messages[0] || null,
+      unreadCount,
+    };
   }));
 }
 
@@ -462,6 +832,19 @@ export async function getNotifications(page = 1, limit = 30) {
             avatarUrl: true,
           },
         },
+        post: {
+          select: {
+            id: true,
+            content: true,
+            community: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
@@ -477,20 +860,23 @@ export async function getNotifications(page = 1, limit = 30) {
 
 export async function searchAll(query: string) {
   const user = await getCurrentUser();
-  if (!user) return { users: [], posts: [], communities: [] };
+  if (!user) return { users: [], posts: [], communities: [], platformPosts: [], platformPeople: [], messages: [], wikipedia: [], sourceIndex: [] };
 
-  if (!query?.trim()) return { users: [], posts: [], communities: [] };
+  if (!query?.trim()) return { users: [], posts: [], communities: [], platformPosts: [], platformPeople: [], messages: [], wikipedia: [], sourceIndex: [] };
 
   const q = query.trim();
 
-  const [users, posts, communities] = await Promise.all([
+  const [users, posts, communities, platformPosts, platformPeople, connectedSocialSources, messages, wikipedia] = await Promise.all([
     prisma.user.findMany({
       where: {
         OR: [
           { username: { contains: q } },
           { displayName: { contains: q } },
         ],
+        id: { not: user.id },
         isSuspended: false,
+        isPublic: true,
+        showInDiscovery: true,
       },
       select: {
         id: true,
@@ -504,7 +890,14 @@ export async function searchAll(query: string) {
       take: 10,
     }),
     prisma.post.findMany({
-      where: { content: { contains: q } },
+      where: {
+        ...nsfwHiddenWhere(user),
+        content: { contains: q },
+        OR: [
+          { authorId: user.id },
+          { author: { isSuspended: false, isPublic: true, showInDiscovery: true } },
+        ],
+      },
       include: {
         author: {
           select: { id: true, username: true, displayName: true, avatarUrl: true },
@@ -516,6 +909,14 @@ export async function searchAll(query: string) {
     }),
     prisma.community.findMany({
       where: {
+        AND: [
+          {
+            OR: [
+              { isPublic: true },
+              { members: { some: { userId: user.id } } },
+            ],
+          },
+        ],
         OR: [
           { name: { contains: q } },
           { description: { contains: q } },
@@ -526,9 +927,139 @@ export async function searchAll(query: string) {
       },
       take: 10,
     }),
+    prisma.platformPost.findMany({
+      where: {
+        ...nsfwHiddenWhere(user),
+        visibility: { not: "private" },
+        connectedAccount: {
+          isActive: true,
+          platform: { in: SOCIAL_SEARCH_PLATFORM_IDS },
+          OR: [
+            { userId: user.id },
+            { user: { isSuspended: false, isPublic: true, showInDiscovery: true } },
+          ],
+        },
+        OR: [
+          { title: { contains: q } },
+          { content: { contains: q } },
+          { url: { contains: q } },
+          { platformPostId: { contains: q } },
+        ],
+      },
+      include: {
+        connectedAccount: {
+          select: {
+            id: true,
+            platform: true,
+            platformUsername: true,
+            user: {
+              select: {
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+        },
+        media: {
+          select: {
+            id: true,
+            url: true,
+            thumbnailUrl: true,
+            mediaType: true,
+          },
+          take: 1,
+        },
+      },
+      orderBy: [
+        { publishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: 12,
+    }),
+    prisma.platformFollower.findMany({
+      where: {
+        connectedAccount: {
+          userId: user.id,
+          isActive: true,
+          platform: { in: SOCIAL_SEARCH_PLATFORM_IDS },
+        },
+        OR: [
+          { username: { contains: q } },
+          { displayName: { contains: q } },
+          { profileUrl: { contains: q } },
+        ],
+      },
+      include: {
+        connectedAccount: {
+          select: {
+            platform: true,
+            platformUsername: true,
+          },
+        },
+      },
+      orderBy: { followerCount: "desc" },
+      take: 12,
+    }),
+    prisma.connectedAccount.findMany({
+      where: {
+        userId: user.id,
+        isActive: true,
+        platform: { in: SOCIAL_SEARCH_PLATFORM_IDS },
+      },
+      select: {
+        id: true,
+        platform: true,
+        platformUsername: true,
+        syncStatus: true,
+        lastSyncAt: true,
+        _count: {
+          select: {
+            platformPosts: true,
+            platformFollowers: true,
+          },
+        },
+      },
+    }),
+    prisma.message.findMany({
+      where: {
+        content: { contains: q },
+        thread: { members: { some: { userId: user.id } } },
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    searchWikipedia(q),
   ]);
 
-  return { users, posts, communities };
+  const sourceIndex = SOCIAL_SEARCH_SOURCES.map((source) => {
+    const account = connectedSocialSources.find((item) => item.platform === source.id);
+
+    return {
+      id: source.id,
+      name: source.name,
+      description: source.description,
+      connected: Boolean(account),
+      accountLabel: account?.platformUsername || null,
+      syncStatus: account?.syncStatus || "not_connected",
+      lastSyncAt: account?.lastSyncAt || null,
+      syncedPosts: account?._count.platformPosts || 0,
+      syncedPeople: account?._count.platformFollowers || 0,
+      searchUrl: sourceSearchUrl(source.id, q),
+      connectHref: source.connectHref,
+    };
+  });
+
+  return { users, posts, communities, platformPosts, platformPeople, messages, wikipedia, sourceIndex };
 }
 
 export async function getDiscoverUsers() {
@@ -551,6 +1082,8 @@ export async function getDiscoverUsers() {
     where: {
       id: { notIn: [...followingIds, user.id] },
       isSuspended: false,
+      isPublic: true,
+      showInDiscovery: true,
       ...(tags.length > 0 ? { interests: { some: { tag: { in: tags } } } } : {}),
     },
     include: {
@@ -565,6 +1098,7 @@ export async function getDiscoverUsers() {
 
 export async function getTrendingCommunities() {
   return prisma.community.findMany({
+    where: { isPublic: true },
     include: {
       _count: { select: { members: true, posts: true } },
     },
@@ -656,7 +1190,7 @@ export async function getSavedPosts(page = 1, limit = 20) {
   if (!user) return [];
 
   const saved = await prisma.savedPost.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, post: nsfwHiddenWhere(user) },
     include: {
       post: {
         include: {
@@ -684,6 +1218,253 @@ export async function getSavedPosts(page = 1, limit = 20) {
   });
 
   return saved.map((s) => s.post);
+}
+
+export async function getAdvancedSocialDashboard() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const safetyWhere = nsfwHiddenWhere(user);
+
+  const [
+    communityMemberships,
+    sessions,
+    savedPosts,
+    recentPosts,
+    platformPosts,
+    connectedAccounts,
+    following,
+    followers,
+    communityThreads,
+  ] = await Promise.all([
+    prisma.communityMember.findMany({
+      where: { userId: user.id },
+      include: {
+        community: {
+          include: {
+            _count: { select: { members: true, posts: true } },
+          },
+        },
+      },
+      orderBy: { joinedAt: "desc" },
+      take: 24,
+    }),
+    prisma.meChatSession.findMany({
+      where: {
+        OR: [
+          { hostId: user.id },
+          { participants: { some: { userId: user.id } } },
+        ],
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+          orderBy: { joinedAt: "asc" },
+        },
+        items: {
+          include: { votes: true },
+          orderBy: { position: "asc" },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 30,
+    }),
+    prisma.savedPost.findMany({
+      where: { userId: user.id, post: safetyWhere },
+      include: {
+        post: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+                isVerified: true,
+              },
+            },
+            community: { select: { id: true, name: true, slug: true } },
+            media: true,
+            tags: true,
+            _count: { select: { comments: true, reactions: true, reposts: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+    prisma.post.findMany({
+      where: {
+        ...safetyWhere,
+        OR: [
+          { authorId: user.id },
+          {
+            visibility: "public",
+            author: {
+              isSuspended: false,
+              isPublic: true,
+              showInDiscovery: true,
+            },
+          },
+        ],
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
+        },
+        community: { select: { id: true, name: true, slug: true } },
+        media: true,
+        tags: true,
+        _count: { select: { comments: true, reactions: true, reposts: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 18,
+    }),
+    prisma.platformPost.findMany({
+      where: {
+        ...safetyWhere,
+        connectedAccount: {
+          userId: user.id,
+          isActive: true,
+        },
+      },
+      include: {
+        connectedAccount: {
+          select: {
+            id: true,
+            platform: true,
+            platformUsername: true,
+          },
+        },
+        media: {
+          select: {
+            id: true,
+            url: true,
+            thumbnailUrl: true,
+            mediaType: true,
+          },
+          take: 1,
+        },
+      },
+      orderBy: [
+        { publishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: 18,
+    }),
+    prisma.connectedAccount.findMany({
+      where: { userId: user.id, isActive: true },
+      include: {
+        _count: {
+          select: {
+            platformPosts: true,
+            platformComments: true,
+            platformFollowers: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 24,
+    }),
+    prisma.follow.findMany({
+      where: { followerId: user.id },
+      include: {
+        following: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            isPublic: true,
+            showInDiscovery: true,
+          },
+        },
+      },
+      take: 80,
+    }),
+    prisma.follow.findMany({
+      where: { followingId: user.id },
+      select: { followerId: true },
+      take: 250,
+    }),
+    prisma.messageThread.findMany({
+      where: {
+        threadType: "community",
+        members: { some: { userId: user.id } },
+      },
+      include: {
+        members: {
+          select: {
+            userId: true,
+            role: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 12,
+    }),
+  ]);
+
+  const followerIds = new Set(followers.map((follower) => follower.followerId));
+  const friends = following
+    .filter((follow) => followerIds.has(follow.followingId))
+    .map((follow) => follow.following)
+    .filter((friend) => friend.isPublic && friend.showInDiscovery)
+    .slice(0, 24);
+
+  return {
+    currentUser: {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      isMeshPro: user.isMeshPro,
+    },
+    spaces: communityMemberships.map((membership) => ({
+      id: membership.community.id,
+      name: membership.community.name,
+      slug: membership.community.slug,
+      description: membership.community.description,
+      category: membership.community.category,
+      isPublic: membership.community.isPublic,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+      memberCount: membership.community._count.members,
+      postCount: membership.community._count.posts,
+    })),
+    sessions,
+    savedPosts,
+    recentPosts,
+    platformPosts,
+    connectedAccounts,
+    friends,
+    communityThreads: communityThreads.map((thread) => ({
+      id: thread.id,
+      title: thread.title,
+      memberCount: thread.members.length,
+      lastMessage: thread.messages[0] || null,
+      updatedAt: thread.updatedAt,
+    })),
+  };
 }
 
 export async function getBlockedUsers() {
@@ -729,6 +1510,7 @@ export async function getMutedUsers() {
 export async function getTrendingTags() {
   const tags = await prisma.postTag.groupBy({
     by: ["tag"],
+    where: { post: { isNsfw: false } },
     _count: { tag: true },
     orderBy: { _count: { tag: "desc" } },
     take: 20,
@@ -739,8 +1521,19 @@ export async function getTrendingTags() {
 
 export async function getPopularPosts(limit = 10) {
   const user = await getCurrentUser();
+  const safetyWhere = nsfwHiddenWhere(user);
+  const visibilityFilter = user
+    ? {
+        ...safetyWhere,
+        OR: [
+          { authorId: user.id },
+          { author: { isSuspended: false, isPublic: true, showInDiscovery: true } },
+        ],
+      }
+    : { ...safetyWhere, author: { isSuspended: false, isPublic: true, showInDiscovery: true } };
 
   return prisma.post.findMany({
+    where: visibilityFilter,
     include: {
       author: {
         select: {
@@ -775,6 +1568,32 @@ export async function getUserSettings() {
         activeTitle: true,
         interests: true,
         links: true,
+        connectedAccounts: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            platform: true,
+            platformUsername: true,
+            accountLabel: true,
+            isActive: true,
+            lastSyncAt: true,
+            syncStatus: true,
+          },
+          orderBy: { platform: "asc" },
+        },
+        notificationPreference: {
+          select: {
+            pushEnabled: true,
+            emailDigest: true,
+            messages: true,
+            mentions: true,
+            comments: true,
+            follows: true,
+            platformAlerts: true,
+            securityAlerts: true,
+            productUpdates: true,
+          },
+        },
       },
     }),
     prisma.userAchievement.findMany({
@@ -786,6 +1605,7 @@ export async function getUserSettings() {
   return {
     id: user.id,
     email: userWithProfile?.email,
+    emailVerified: user.emailVerified,
     username: user.username,
     displayName: user.displayName,
     bio: user.bio,
@@ -798,8 +1618,26 @@ export async function getUserSettings() {
     showInDiscovery: user.showInDiscovery,
     hideActivityStatus: user.hideActivityStatus,
     readReceipts: user.readReceipts,
+    nsfwEnabled: user.nsfwEnabled,
+    adultVerificationStatus: user.adultVerificationStatus,
+    adultVerifiedAt: user.adultVerifiedAt,
+    adultVerificationExpiresAt: user.adultVerificationExpiresAt,
+    adultVerificationProvider: user.adultVerificationProvider,
+    adultVerificationRegion: user.adultVerificationRegion,
     interests: userWithProfile?.interests ?? [],
     links: userWithProfile?.links ?? [],
+    connectedAccounts: userWithProfile?.connectedAccounts ?? [],
+    notificationPreference: userWithProfile?.notificationPreference ?? {
+      pushEnabled: true,
+      emailDigest: "weekly",
+      messages: true,
+      mentions: true,
+      comments: true,
+      follows: true,
+      platformAlerts: true,
+      securityAlerts: true,
+      productUpdates: false,
+    },
     activeTitle: userWithProfile?.activeTitle ?? null,
     achievements: achievements.map((a) => ({ slug: a.achievement.slug })),
     isMeshPro: user.isMeshPro,
@@ -853,6 +1691,7 @@ export async function getMeshGraphData(): Promise<{
 }> {
   const user = await getCurrentUser();
   if (!user) return { entities: [], stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 } };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const [following, followers, communities, interests, connectedAccounts, postCount] = await Promise.all([
     prisma.follow.findMany({
@@ -877,7 +1716,7 @@ export async function getMeshGraphData(): Promise<{
     }),
     prisma.userInterest.findMany({ where: { userId: user.id } }),
     prisma.connectedAccount.findMany({ where: { userId: user.id, isActive: true } }),
-    prisma.post.count({ where: { authorId: user.id } }),
+    prisma.post.count({ where: { ...safetyWhere, authorId: user.id } }),
   ]);
 
   const followerIds = new Set(followers.map((f) => f.followerId));
@@ -949,9 +1788,9 @@ export async function getMeshPrivacy() {
   });
 
   return privacy || {
-    meshVisibility: "friends",
+    meshVisibility: "private",
     branchOverrides: "{}",
-    showConnections: true,
+    showConnections: false,
     showStats: false,
   };
 }
@@ -998,12 +1837,22 @@ export async function getFriendMeshData(username: string): Promise<{
   communities: Array<{ id: string; name: string; slug: string; memberCount: number }>;
   interests: string[];
   platforms: FriendMeshPlatform[];
-  meshiPreference: { colorTheme: string; hatStyle: string; faceStyle: string } | null;
+  meshiPreference: {
+    colorTheme: string;
+    hatStyle: string;
+    faceStyle: string;
+    hairStyle: string;
+    accessoryStyle: string;
+    eyeStyle: string;
+    badgeStyle: string;
+    outfitStyle: string;
+  } | null;
   stats: { followers: number; following: number; posts: number; communities: number; platforms: number };
   privacyLevel: string;
 } | null> {
   const currentUser = await getCurrentUser();
   if (!currentUser) return null;
+  const safetyWhere = nsfwHiddenWhere(currentUser);
 
   const targetUser = await prisma.user.findFirst({
     where: { username: { equals: username } },
@@ -1015,7 +1864,7 @@ export async function getFriendMeshData(username: string): Promise<{
     where: { userId: targetUser.id },
   });
 
-  const visibility = privacy?.meshVisibility || "public";
+  const visibility = privacy?.meshVisibility || "private";
 
   // Check if we're friends (mutual follow)
   const [followToTarget, followFromTarget] = await Promise.all([
@@ -1075,7 +1924,7 @@ export async function getFriendMeshData(username: string): Promise<{
       select: {
         id: true, platform: true, platformUsername: true,
         platformPosts: {
-          where: { visibility: "public" },
+          where: { ...safetyWhere, visibility: "public" },
           select: {
             id: true, title: true, content: true, url: true, postType: true,
             likeCount: true, commentCount: true, viewCount: true,
@@ -1086,7 +1935,7 @@ export async function getFriendMeshData(username: string): Promise<{
         },
       },
     }),
-    prisma.post.count({ where: { authorId: targetUser.id } }),
+    prisma.post.count({ where: { ...safetyWhere, authorId: targetUser.id } }),
     prisma.meshiPreference.findUnique({ where: { userId: targetUser.id } }),
   ]);
 
@@ -1168,7 +2017,16 @@ export async function getFriendMeshData(username: string): Promise<{
     interests: interestData,
     platforms: platformData,
     meshiPreference: meshiPref
-      ? { colorTheme: meshiPref.colorTheme, hatStyle: meshiPref.hatStyle, faceStyle: meshiPref.faceStyle }
+      ? {
+          colorTheme: meshiPref.colorTheme,
+          hatStyle: meshiPref.hatStyle,
+          faceStyle: meshiPref.faceStyle,
+          hairStyle: meshiPref.hairStyle,
+          accessoryStyle: meshiPref.accessoryStyle,
+          eyeStyle: meshiPref.eyeStyle,
+          badgeStyle: meshiPref.badgeStyle,
+          outfitStyle: meshiPref.outfitStyle,
+        }
       : null,
     stats: {
       followers,

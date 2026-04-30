@@ -2,7 +2,7 @@
 // Deterministic layout: positions based on type rings + index angle, no Math.random().
 
 import type { MeshNode, MeshEdge } from "./mesh-types";
-import { NODE_COLORS, PLATFORM_COLORS } from "./mesh-types";
+import { NODE_COLORS, PLATFORM_COLORS, normalizeMediaAspectRatio } from "./mesh-types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -14,8 +14,40 @@ export interface MeshApiResponse {
   interests: string[];
   posts: any[];
   connectedAccounts: any[];
+  activities?: Array<{
+    id: string;
+    type: string;
+    label: string;
+    summary?: string | null;
+    href?: string;
+    sourcePostId?: string | null;
+    connectedAccountId?: string | null;
+    createdAt?: string | Date | null;
+    isUnread?: boolean;
+    actor?: {
+      id: string;
+      username: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+    } | null;
+  }>;
+  friendMeshes?: Array<{
+    user: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+    posts: any[];
+    connectedAccounts: any[];
+  }>;
   alterEgos: any[];
-  meshiPreference: { colorTheme: string; hatStyle: string; faceStyle: string };
+  meshiPreference: {
+    colorTheme: string;
+    hatStyle: string;
+    faceStyle: string;
+    hairStyle: string;
+    accessoryStyle: string;
+    eyeStyle: string;
+    badgeStyle: string;
+    outfitStyle: string;
+  };
+  meshCosmetics?: Array<{ type: string; value: string; isActive?: boolean }>;
   stats: {
     followingCount: number;
     followerCount: number;
@@ -25,6 +57,7 @@ export interface MeshApiResponse {
     interestCount: number;
     connectedPlatformCount: number;
     alterEgoCount: number;
+    activityCount?: number;
   };
 }
 
@@ -32,6 +65,17 @@ interface BuildResult {
   nodes: MeshNode[];
   edges: MeshEdge[];
 }
+
+const BRANCH_LABELS: Record<MeshNode["type"], string> = {
+  self: "You",
+  "alter-ego": "Identities",
+  platform: "Platforms",
+  user: "People",
+  community: "Communities",
+  tag: "Interests",
+  post: "Posts",
+  activity: "Activity",
+};
 
 /**
  * Lay out items in a ring around (cx, cy) at the given radius.
@@ -50,6 +94,62 @@ function computeEngagement(node: { followerCount?: number; postCount?: number; i
   return (node.followerCount || 0) * 0.3 + (node.postCount || 0) * 0.5 + (node.interactionCount || 0) * 2;
 }
 
+function computeImportance(node: MeshNode): number {
+  if (node.type === "self") return 1;
+  const metricScore = (node.followerCount || 0) * 0.0008
+    + (node.memberCount || 0) * 0.004
+    + (node.likeCount || 0) * 0.01
+    + (node.commentCount || 0) * 0.02
+    + (node.interactionCount || 0) * 0.05
+    + (node.engagementScore || 0) * 0.004
+    + node.connections.length * 0.025;
+
+  return Math.max(0.12, Math.min(1, 0.18 + node.radius / 54 + metricScore));
+}
+
+function inferPostMediaType(value: string | null | undefined): MeshNode["mediaType"] {
+  const type = value?.toLowerCase();
+  if (!type) return "text";
+  if (["image", "photo", "pin"].includes(type)) return "image";
+  if (["video", "story", "reel", "short", "shorts", "tiktok", "gif"].includes(type)) return "video";
+  if (["audio", "podcast"].includes(type)) return "audio";
+  if (["link", "article", "thread", "tweet"].includes(type)) return "link";
+  if (type === "text") return "text";
+  return "unknown";
+}
+
+function inferPostAspectRatio(postType: string | null | undefined, platform: string | null | undefined): number {
+  const normalizedType = postType?.toLowerCase() || "";
+  const normalizedPlatform = platform?.toLowerCase() || "";
+
+  if (["story", "reel", "short", "shorts", "snap", "tiktok"].includes(normalizedType)) return 9 / 16;
+  if (normalizedPlatform === "youtube" || normalizedType === "video") return 16 / 9;
+  if (["tweet", "thread", "article", "link", "text"].includes(normalizedType)) return 1.7;
+  return 1;
+}
+
+function mediaAspectRatio(width?: number | null, height?: number | null, fallback = 1): number {
+  if (width && height) return normalizeMediaAspectRatio(width / height);
+  return normalizeMediaAspectRatio(fallback);
+}
+
+function organizeNode(node: MeshNode, cx: number, cy: number): MeshNode {
+  const dx = node.x - cx;
+  const dy = node.y - cy;
+  const orbitRadius = node.orbitRadius ?? Math.hypot(dx, dy);
+  const orbitAngle = node.orbitAngle ?? Math.atan2(dy, dx);
+
+  return {
+    ...node,
+    anchorX: node.anchorX ?? node.x,
+    anchorY: node.anchorY ?? node.y,
+    orbitRadius,
+    orbitAngle,
+    branchLabel: node.branchLabel ?? BRANCH_LABELS[node.type],
+    importance: node.importance ?? computeImportance(node),
+  };
+}
+
 export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): BuildResult {
   const nodes: MeshNode[] = [];
   const edges: MeshEdge[] = [];
@@ -57,9 +157,10 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   const nodeIds = new Set<string>();
 
   const addNode = (node: MeshNode) => {
-    nodes.push(node);
-    nodeMap.set(node.id, node);
-    nodeIds.add(node.id);
+    const organizedNode = organizeNode(node, cx, cy);
+    nodes.push(organizedNode);
+    nodeMap.set(organizedNode.id, organizedNode);
+    nodeIds.add(organizedNode.id);
   };
 
   const userId = data.user.id;
@@ -78,6 +179,8 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     sublabel: "@" + data.user.username,
     avatarUrl: data.user.avatarUrl,
     href: "/profile/" + data.user.username,
+    sourceType: "mesh",
+    sourceId: data.user.id,
     x: cx, y: cy, vx: 0, vy: 0,
     radius: 36,
     color: NODE_COLORS.self,
@@ -137,6 +240,10 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       label: acct.platform,
       sublabel: acct.platformUsername ? "@" + acct.platformUsername : undefined,
       href: "/connected-accounts",
+      sourceType: "platform",
+      sourceId: acct.id,
+      connectedAccountId: acct.id,
+      syncStatus: acct.syncStatus,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
       radius: 19 + Math.min(totalPosts * 0.2, 10),
       color: PLATFORM_COLORS[platformKey] || NODE_COLORS.platform,
@@ -168,13 +275,25 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       const subPos = ringPosition(pos.x, pos.y, 68 + pi * 9, pi, topPosts.length, Math.PI / 3 + i);
       const ppId = "pp-" + pp.id;
       const ppEngagement = (pp.likeCount || 0) + (pp.commentCount || 0) * 2 + (pp.viewCount || 0) * 0.01;
+      const firstMedia = pp.media?.[0];
+      const postType = pp.postType || firstMedia?.mediaType;
+      const mediaType = inferPostMediaType(postType);
+      const imageUrl = pp.thumbnailUrl || firstMedia?.thumbnailUrl || firstMedia?.url || null;
       addNode({
         id: ppId,
         type: "post",
         label: (pp.title || pp.content || pp.postType || "Post").slice(0, 35) + ((pp.title || pp.content || "").length > 35 ? "..." : ""),
         content: pp.content || pp.title,
         href: pp.url || undefined,
-        imageUrl: pp.thumbnailUrl || null,
+        sourceType: "platform",
+        sourceId: pp.id,
+        connectedAccountId: acct.id,
+        platformPostId: pp.platformPostId,
+        visibility: pp.visibility,
+        isPinned: pp.isPinned,
+        imageUrl,
+        mediaType: imageUrl ? mediaType : "text",
+        mediaAspectRatio: mediaAspectRatio(firstMedia?.width, firstMedia?.height, inferPostAspectRatio(postType, acct.platform)),
         x: subPos.x, y: subPos.y, vx: 0, vy: 0,
         radius: 9 + Math.min(ppEngagement * 0.3, 7),
         color: PLATFORM_COLORS[platformKey] || NODE_COLORS.post,
@@ -207,6 +326,10 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
         sublabel: pf.username ? "@" + pf.username : undefined,
         avatarUrl: pf.avatarUrl,
         href: pf.profileUrl || undefined,
+        sourceType: "platform",
+        sourceId: pf.id,
+        connectedAccountId: acct.id,
+        platformUserId: pf.platformUserId,
         x: subPos.x, y: subPos.y, vx: 0, vy: 0,
         radius: 11 + Math.min((pf.followerCount || 0) * 0.001, 5),
         color: PLATFORM_COLORS[platformKey] || NODE_COLORS.user,
@@ -274,6 +397,8 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       sublabel: "@" + f.username,
       avatarUrl: f.avatarUrl,
       href: "/profile/" + f.username,
+      sourceType: "mesh",
+      sourceId: f.id,
       x: pos.x, y: pos.y, vx: 0, vy: 0,
       radius: (isMutual ? 21 : 17) + engagementBoost,
       color: isMutual ? NODE_COLORS.mutual : NODE_COLORS.user,
@@ -298,6 +423,171 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       type: isMutual ? "mutual" : "follow",
       interactionCount,
       status: f.status || "offline",
+    });
+  });
+
+  // --- Combined friend meshes ---
+  // Mutual follows become "friend mesh" branches: shared native posts and shared
+  // platform content orbit the friend's node so their live world is part of yours.
+  const friendMeshMap = new Map((data.friendMeshes || []).map((friend) => [friend.user.id, friend]));
+  const friendsToMerge = peopleToDraw
+    .filter((person) => person.isMutual && friendMeshMap.has(person.id))
+    .slice(0, 10);
+
+  friendsToMerge.forEach((person, friendIndex) => {
+    const friendMesh = friendMeshMap.get(person.id);
+    const friendNode = nodeMap.get(person.id);
+    if (!friendMesh || !friendNode) return;
+
+    const friendPosts = (friendMesh.posts || []).slice(0, 4);
+    friendPosts.forEach((p: any, postIndex: number) => {
+      const total = Math.max(friendPosts.length, 1);
+      const subPos = ringPosition(
+        friendNode.x,
+        friendNode.y,
+        82 + postIndex * 8,
+        postIndex,
+        total,
+        (friendNode.orbitAngle ?? 0) + Math.PI / 7
+      );
+      const postId = `friend-native-post-${person.id}-${p.id}`;
+      const postEngagement = (p.likeCount || 0) + (p.commentCount || 0) * 2 + (p.repostCount || 0) * 3;
+      const firstMedia = p.media?.[0];
+      const mediaType = inferPostMediaType(firstMedia?.type);
+      const imageUrl = firstMedia?.url || null;
+
+      addNode({
+        id: postId,
+        type: "post",
+        label: (p.content || "Friend post").slice(0, 38) + ((p.content || "").length > 38 ? "..." : ""),
+        sublabel: `@${person.username} · mesh.me`,
+        content: p.content,
+        href: "/feed/" + p.id,
+        sourceType: "mesh",
+        sourceId: p.id,
+        imageUrl,
+        mediaType: imageUrl ? mediaType : "text",
+        mediaAspectRatio: mediaAspectRatio(firstMedia?.width, firstMedia?.height, imageUrl ? 1 : 1.7),
+        x: subPos.x, y: subPos.y, vx: 0, vy: 0,
+        radius: 11 + Math.min(postEngagement * 0.42, 8),
+        color: NODE_COLORS.post,
+        opacity: 0.78,
+        pulsePhase: friendIndex * 0.5 + postIndex * 0.4,
+        connections: [person.id],
+        branchLabel: "Friend Mesh",
+        likeCount: p.likeCount,
+        commentCount: p.commentCount,
+        repostCount: p.repostCount,
+        lastActiveAt: p.createdAt || null,
+      });
+
+      edges.push({
+        source: person.id,
+        target: postId,
+        strength: 0.32,
+        type: "post",
+      });
+      if (!friendNode.connections.includes(postId)) friendNode.connections.push(postId);
+    });
+
+    const friendPlatforms = (friendMesh.connectedAccounts || []).slice(0, 3);
+    friendPlatforms.forEach((acct: any, accountIndex: number) => {
+      const platformKey = acct.platform?.toLowerCase() || "";
+      const platformNodeId = `friend-platform-${person.id}-${acct.id}`;
+      const platformPos = ringPosition(
+        friendNode.x,
+        friendNode.y,
+        138 + accountIndex * 12,
+        accountIndex,
+        Math.max(friendPlatforms.length, 1),
+        (friendNode.orbitAngle ?? 0) - Math.PI / 5
+      );
+
+      addNode({
+        id: platformNodeId,
+        type: "platform",
+        label: acct.platform,
+        sublabel: acct.platformUsername ? `@${acct.platformUsername}` : `@${person.username}`,
+        href: "/connected-accounts",
+        sourceType: "platform",
+        sourceId: acct.id,
+        connectedAccountId: acct.id,
+        syncStatus: acct.syncStatus,
+        x: platformPos.x, y: platformPos.y, vx: 0, vy: 0,
+        radius: 14 + Math.min((acct.topPosts?.length || 0) * 1.2, 5),
+        color: PLATFORM_COLORS[platformKey] || NODE_COLORS.platform,
+        opacity: 0.74,
+        pulsePhase: friendIndex + accountIndex * 0.6,
+        connections: [person.id],
+        branchLabel: "Friend Platforms",
+        platform: acct.platform,
+        postCount: acct.topPosts?.length || 0,
+        description: `${person.displayName || person.username}'s shared ${acct.platform} branch`,
+      });
+
+      edges.push({
+        source: person.id,
+        target: platformNodeId,
+        strength: 0.26,
+        type: "platform",
+      });
+      if (!friendNode.connections.includes(platformNodeId)) friendNode.connections.push(platformNodeId);
+
+      const topPosts = (acct.topPosts || []).slice(0, 3);
+      topPosts.forEach((pp: any, platformPostIndex: number) => {
+        const postPos = ringPosition(
+          platformPos.x,
+          platformPos.y,
+          62 + platformPostIndex * 7,
+          platformPostIndex,
+          Math.max(topPosts.length, 1),
+          accountIndex + friendIndex * 0.35
+        );
+        const ppId = `friend-platform-post-${person.id}-${pp.id}`;
+        const ppEngagement = (pp.likeCount || 0) + (pp.commentCount || 0) * 2 + (pp.viewCount || 0) * 0.01;
+        const firstMedia = pp.media?.[0];
+        const postType = pp.postType || firstMedia?.mediaType;
+        const mediaType = inferPostMediaType(postType);
+        const imageUrl = pp.thumbnailUrl || firstMedia?.thumbnailUrl || firstMedia?.url || null;
+
+        addNode({
+          id: ppId,
+          type: "post",
+          label: (pp.title || pp.content || `${acct.platform} post`).slice(0, 35) + ((pp.title || pp.content || "").length > 35 ? "..." : ""),
+          sublabel: `@${person.username} · ${acct.platform}`,
+          content: pp.content || pp.title,
+          href: pp.url || undefined,
+          sourceType: "platform",
+          sourceId: pp.id,
+          connectedAccountId: acct.id,
+          platformPostId: pp.platformPostId,
+          visibility: pp.visibility,
+          isPinned: pp.isPinned,
+          imageUrl,
+          mediaType: imageUrl ? mediaType : "text",
+          mediaAspectRatio: mediaAspectRatio(firstMedia?.width, firstMedia?.height, inferPostAspectRatio(postType, acct.platform)),
+          x: postPos.x, y: postPos.y, vx: 0, vy: 0,
+          radius: 8 + Math.min(ppEngagement * 0.18, 6),
+          color: PLATFORM_COLORS[platformKey] || NODE_COLORS.post,
+          opacity: 0.68,
+          pulsePhase: platformPostIndex * 0.5 + friendIndex,
+          connections: [platformNodeId],
+          branchLabel: "Friend Mesh",
+          likeCount: pp.likeCount,
+          commentCount: pp.commentCount,
+          repostCount: pp.shareCount,
+          platform: acct.platform,
+          lastActiveAt: pp.publishedAt || null,
+        });
+        edges.push({
+          source: platformNodeId,
+          target: ppId,
+          strength: 0.22,
+          type: "platform-content",
+        });
+        const platformNode = nodeMap.get(platformNodeId);
+        if (platformNode && !platformNode.connections.includes(ppId)) platformNode.connections.push(ppId);
+      });
     });
   });
 
@@ -454,6 +744,9 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     // Size posts by engagement
     const postEngagement = (p.likeCount || 0) + (p.commentCount || 0) * 2 + (p.repostCount || 0) * 3;
     const engagementRadius = Math.min(postEngagement * 0.5, 10);
+    const firstMedia = p.media?.[0];
+    const mediaType = inferPostMediaType(firstMedia?.type);
+    const imageUrl = firstMedia?.url || null;
 
     addNode({
       id: postId,
@@ -461,6 +754,11 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
       label: (p.content || "Post").slice(0, 40) + ((p.content || "").length > 40 ? "..." : ""),
       content: p.content,
       href: "/feed/" + p.id,
+      sourceType: "mesh",
+      sourceId: p.id,
+      imageUrl,
+      mediaType: imageUrl ? mediaType : "text",
+      mediaAspectRatio: mediaAspectRatio(firstMedia?.width, firstMedia?.height, imageUrl ? 1 : 1.7),
       x: pos.x, y: pos.y, vx: 0, vy: 0,
       radius: 12 + engagementRadius,
       color: NODE_COLORS.post,
@@ -508,6 +806,69 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     }
   });
 
+  // --- Recent activity (near the center) ---
+  // Activity nodes make the Mesh a dashboard, not just a static map: notifications,
+  // comments, reactions, messages, and platform syncs become clickable signals.
+  const activities = data.activities || [];
+  const maxActivities = 18;
+  activities.slice(0, maxActivities).forEach((activity, i) => {
+    const activityCount = Math.min(activities.length, maxActivities);
+    const pos = ringPosition(cx, cy, 225, i, activityCount, -Math.PI / 2);
+    const activityNodeId = `activity-${activity.id}`;
+    const postNodeId = activity.sourcePostId ? `post-${activity.sourcePostId}` : null;
+    const platformNodeId = activity.connectedAccountId ? `platform-${activity.connectedAccountId}` : null;
+    const targetNodeId = postNodeId && nodeIds.has(postNodeId)
+      ? postNodeId
+      : platformNodeId && nodeIds.has(platformNodeId)
+        ? platformNodeId
+        : null;
+    const signalStrength = activity.isUnread ? 0.95 : 0.55;
+
+    addNode({
+      id: activityNodeId,
+      type: "activity",
+      label: activity.label || "Activity",
+      sublabel: activity.actor?.username ? `@${activity.actor.username}` : activity.type.replace(/-/g, " "),
+      avatarUrl: activity.actor?.avatarUrl || null,
+      href: activity.href || "/notifications",
+      sourceType: "mesh",
+      sourceId: activity.id,
+      connectedAccountId: activity.connectedAccountId || undefined,
+      x: pos.x, y: pos.y, vx: 0, vy: 0,
+      radius: activity.isUnread ? 17 : 14,
+      color: activity.isUnread ? "#7dd3fc" : NODE_COLORS.activity,
+      opacity: activity.isUnread ? 1 : 0.82,
+      pulsePhase: i * 0.55,
+      connections: targetNodeId ? [userId, targetNodeId] : [userId],
+      description: activity.summary || undefined,
+      branchLabel: "Activity",
+      activityType: activity.type,
+      isUnread: activity.isUnread,
+      lastActiveAt: activity.createdAt ? String(activity.createdAt) : null,
+      importance: activity.isUnread ? 0.78 : 0.48,
+    });
+
+    edges.push({
+      source: userId,
+      target: activityNodeId,
+      strength: signalStrength,
+      type: "activity",
+    });
+
+    if (targetNodeId) {
+      edges.push({
+        source: activityNodeId,
+        target: targetNodeId,
+        strength: 0.42,
+        type: "activity",
+      });
+      const targetNode = nodeMap.get(targetNodeId);
+      if (targetNode && !targetNode.connections.includes(activityNodeId)) {
+        targetNode.connections.push(activityNodeId);
+      }
+    }
+  });
+
   // Update self node connections
   const selfNode = nodeMap.get(userId);
   if (selfNode) {
@@ -525,7 +886,7 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
   const edges: MeshEdge[] = [];
   const nodeId = data.user?.id || "viewed-user";
   const addNode = (node: MeshNode) => {
-    nodes.push(node);
+    nodes.push(organizeNode(node, cx, cy));
   };
 
   addNode({
@@ -629,13 +990,22 @@ export function buildUserMeshData(data: any, cx: number, cy: number): BuildResul
     (platform.publicPosts || []).slice(0, 5).forEach((post: any, j: number) => {
       const postPos = ringPosition(pos.x, pos.y, 80 + j * 8, j, Math.min((platform.publicPosts || []).length, 5), i);
       const postId = `friend-post-${platform.id}-${post.id}`;
+      const mediaType = inferPostMediaType(post.postType);
       addNode({
         id: postId,
         type: "post",
         label: (post.title || post.content || "Post").slice(0, 34) + ((post.title || post.content || "").length > 34 ? "..." : ""),
         content: post.content,
         href: post.url || undefined,
+        sourceType: "platform",
+        sourceId: post.id,
+        connectedAccountId: platform.id,
+        platformPostId: post.platformPostId,
+        visibility: post.visibility,
+        isPinned: post.isPinned,
         imageUrl: post.thumbnailUrl,
+        mediaType: post.thumbnailUrl ? mediaType : "text",
+        mediaAspectRatio: normalizeMediaAspectRatio(inferPostAspectRatio(post.postType, platform.platform)),
         x: postPos.x, y: postPos.y, vx: 0, vy: 0,
         radius: 10 + Math.min(((post.likeCount || 0) + (post.commentCount || 0) * 2 + (post.viewCount || 0) * 0.01) * 0.06, 6),
         color: PLATFORM_COLORS[platformKey] || NODE_COLORS.post,

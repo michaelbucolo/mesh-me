@@ -3,9 +3,14 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { timingSafeEqual, createHash } from "crypto";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 // Initiate account merge: primary user requests to merge a secondary account
 export async function POST(req: NextRequest) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
@@ -82,6 +87,10 @@ export async function GET() {
 
 // Complete or cancel a merge request
 export async function PUT(req: NextRequest) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 

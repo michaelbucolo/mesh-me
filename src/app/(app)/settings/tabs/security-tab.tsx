@@ -228,7 +228,7 @@ export function SecurityTab({ showSuccess, showError }: SecurityTabProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       <SettingsCard>
-        <SettingsCardHeader title="Change password" description="Choose a strong password with at least 8 characters." />
+        <SettingsCardHeader title="Change password" description="Choose a strong password with at least 12 characters, a number, and a symbol." />
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Current password</label>

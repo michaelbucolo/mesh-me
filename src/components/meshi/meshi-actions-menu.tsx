@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   X, Sparkles, MessageCircle, Search,
-  ChevronRight, Palette, Settings,
+  Palette, Settings,
   PenSquare,
 } from "lucide-react";
-import { MeshiMascot, type MeshiColor, type MeshiHat } from "./meshi-mascot";
+import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
+import type { MeshiColor, MeshiHat } from "./meshi-mascot";
 
 interface MeshiActionsMenuProps {
   meshiColor: MeshiColor;
@@ -19,7 +20,7 @@ interface MeshiActionsMenuProps {
 }
 
 export function MeshiActionsMenu({
-  meshiColor, meshiHat, onClose, onAskMeshi, onSearchMesh, onOpenChat,
+  onClose, onAskMeshi, onSearchMesh, onOpenChat,
 }: MeshiActionsMenuProps) {
   const router = useRouter();
 
@@ -27,43 +28,53 @@ export function MeshiActionsMenu({
 
   return (
     <motion.div
+      data-meshi-owned="true"
       initial={{ opacity: 0, y: 10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.95 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      className="fixed bottom-[72px] lg:bottom-[72px] right-4 z-50 w-[280px] max-w-[calc(100vw-2rem)] max-h-[60vh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+      className="fixed bottom-[72px] lg:bottom-[72px] right-4 z-50 w-[260px] max-w-[calc(100vw-2rem)] max-h-[60vh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]" style={{ background: "var(--bg-secondary)" }}>
-        <MeshiMascot size={28} mood="happy" color={meshiColor} hat={meshiHat} showGlow={false} animate={false} />
+        <MeshiPresenceGlyph size={28} active />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-[var(--text-primary)]">Meshi</p>
-          <p className="text-[10px] text-[var(--text-muted)]">Your mesh.me companion</p>
+          <p className="text-[10px] text-[var(--text-muted)]">Your bridge to the internet</p>
         </div>
-        <button onClick={onClose} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+        <button
+          onClick={onClose}
+          aria-label="Close Meshi actions"
+          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Menu Items */}
-      <div className="p-2 space-y-0.5 overflow-y-auto flex-1">
-        <MenuItem icon={MessageCircle} iconColor="var(--accent)" label="Open Chat" onClick={onOpenChat} />
-        <MenuItem icon={Sparkles} iconColor="#a78bfa" label="Ask Meshi" onClick={onAskMeshi} />
-        <MenuItem icon={Search} iconColor="#f59e0b" label="Search Mesh" onClick={onSearchMesh} />
-        <MenuItem icon={PenSquare} iconColor="#22c55e" label="Create Post" onClick={() => navigate("/feed?compose=true")} />
-        <MenuItem icon={Palette} iconColor="#06b6d4" label="Customize Meshi" onClick={() => navigate("/settings?tab=meshi")} />
-        <MenuItem icon={Settings} iconColor="#38bdf8" label="Settings" onClick={() => navigate("/settings")} />
+      <div className="grid grid-cols-2 gap-2 p-2">
+        <MenuItem icon={Sparkles} iconColor="var(--accent)" label="Ask" onClick={onAskMeshi} />
+        <MenuItem icon={MessageCircle} iconColor="#a78bfa" label="Chat" onClick={onOpenChat} />
+        <MenuItem icon={PenSquare} iconColor="#34d399" label="Post" onClick={() => navigate("/feed?compose=true")} />
+        <MenuItem icon={Search} iconColor="#f59e0b" label="Explore" onClick={onSearchMesh} />
       </div>
 
       {/* Footer */}
       <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between" style={{ background: "var(--bg-secondary)" }}>
+        <button
+          onClick={() => navigate("/settings?tab=meshi")}
+          className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+        >
+          <Palette className="h-3 w-3" />
+          Customize
+        </button>
         <div className="flex items-center gap-1 text-[9px] text-emerald-500 font-medium">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Zero data stored
+          Private first
         </div>
-        <span className="text-[9px] text-[var(--text-muted)]">
-          <Sparkles className="h-3 w-3 inline" /> mesh.me
-        </span>
+        <button onClick={() => navigate("/settings")} aria-label="Open settings" className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+          <Settings className="h-3.5 w-3.5" />
+        </button>
       </div>
     </motion.div>
   );
@@ -78,12 +89,11 @@ function MenuItem({ icon: Icon, iconColor, label, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left hover:bg-[var(--bg-hover)] transition-colors"
+      className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-xl px-3 py-3 text-center hover:bg-[var(--bg-hover)] transition-colors"
       style={{ color: "var(--text-primary)" }}
     >
       <Icon className="h-4 w-4" style={{ color: iconColor }} />
-      <span className="flex-1">{label}</span>
-      <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+      <span className="text-sm font-semibold">{label}</span>
     </button>
   );
 }

@@ -1,12 +1,23 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSameOriginRequest } from "@/lib/request-guard";
+import { rateLimit } from "@/lib/security";
 
 export async function POST(req: Request) {
   try {
+    if (!isSameOriginRequest(req)) {
+      return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+    }
+
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rl = rateLimit(`feedback:${user.id}`, 6, 10 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many feedback submissions. Please try again later." }, { status: 429 });
     }
 
     const body = await req.json();

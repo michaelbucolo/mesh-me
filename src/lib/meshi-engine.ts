@@ -2,6 +2,7 @@
 
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { nsfwHiddenWhere } from "./content-safety";
 import { rateLimit } from "./security";
 
 /**
@@ -93,7 +94,7 @@ function detectIntent(query: string): QueryIntent {
     || q.match(/(?:@)?(\w+)(?:'s)?\s+(?:channels?|platforms?|accounts?)/i);
   if (personChannelsMatch && personChannelsMatch[1]) {
     const name = personChannelsMatch[1].toLowerCase();
-    const skip = ["i", "me", "my", "you", "we", "our", "their", "his", "her"];
+    const skip = ["i", "me", "my", "you", "we", "our", "their", "his", "her", "what", "which", "all", "connected"];
     if (!skip.includes(name)) {
       return { type: "person_channels", name };
     }
@@ -298,6 +299,7 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
 async function getSharedPosts(name: string): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const searchTerm = name.toLowerCase().replace(/^@/, "");
 
@@ -320,6 +322,7 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
   const [myPostsCommentedByThem, theirPostsCommentedByMe] = await Promise.all([
     prisma.post.findMany({
       where: {
+        ...safetyWhere,
         authorId: user.id,
         comments: { some: { authorId: otherUser.id } },
       },
@@ -328,6 +331,7 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
     }),
     prisma.post.findMany({
       where: {
+        ...safetyWhere,
         authorId: otherUser.id,
         comments: { some: { authorId: user.id } },
       },
@@ -339,6 +343,7 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
   // Also check for posts where content mentions the other user
   const mentionPosts = await prisma.post.findMany({
     where: {
+      ...safetyWhere,
       authorId: user.id,
       content: { contains: otherUser.username },
     },
@@ -366,6 +371,7 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
 async function getPersonPosts(name: string): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const searchTerm = name.toLowerCase().replace(/^@/, "");
 
@@ -388,7 +394,7 @@ async function getPersonPosts(name: string): Promise<MeshiAnswer> {
 
   // Get their recent posts
   const recentPosts = await prisma.post.findMany({
-    where: { authorId: person.id },
+    where: { ...safetyWhere, authorId: person.id },
     select: { content: true, createdAt: true, _count: { select: { reactions: true, comments: true } } },
     orderBy: { createdAt: "desc" },
     take: 5,
@@ -407,6 +413,7 @@ async function getPersonPosts(name: string): Promise<MeshiAnswer> {
 async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const searchTerm = name.toLowerCase().replace(/^@/, "");
   const person = await prisma.user.findFirst({
@@ -425,7 +432,7 @@ async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
 
   const [meshPosts, platformPosts] = await Promise.all([
     prisma.post.findMany({
-      where: { authorId: person.id },
+      where: { ...safetyWhere, authorId: person.id },
       select: {
         content: true,
         tags: { select: { tag: true } },
@@ -434,7 +441,7 @@ async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
       take: 80,
     }),
     prisma.platformPost.findMany({
-      where: { connectedAccount: { userId: person.id } },
+      where: { ...safetyWhere, connectedAccount: { userId: person.id } },
       select: { postType: true, content: true, title: true, connectedAccount: { select: { platform: true } } },
       orderBy: { publishedAt: "desc" },
       take: 80,
@@ -582,9 +589,11 @@ async function getPersonPlatformCreated(name: string, platform: string): Promise
 async function searchPosts(topic: string): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const posts = await prisma.post.findMany({
     where: {
+      ...safetyWhere,
       OR: [
         { content: { contains: topic } },
         { tags: { some: { tag: { contains: topic } } } },
@@ -621,7 +630,7 @@ async function getLastPost(topic?: string): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
 
-  const where: Record<string, unknown> = { authorId: user.id };
+  const where: Record<string, unknown> = { ...nsfwHiddenWhere(user), authorId: user.id };
   if (topic) {
     where.OR = [
       { content: { contains: topic } },
@@ -753,6 +762,7 @@ async function getPlatformContent(platform: string): Promise<MeshiAnswer> {
     where: { userId: user.id, platform: { contains: platform }, isActive: true },
     include: {
       platformPosts: {
+        where: nsfwHiddenWhere(user),
         orderBy: { publishedAt: "desc" },
         take: 5,
         select: {
@@ -833,11 +843,12 @@ async function getInterestList(): Promise<MeshiAnswer> {
 async function getMeshSummary(): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const [followers, following, posts, communities, platforms, interests, savedPosts] = await Promise.all([
     prisma.follow.count({ where: { followingId: user.id } }),
     prisma.follow.count({ where: { followerId: user.id } }),
-    prisma.post.count({ where: { authorId: user.id } }),
+    prisma.post.count({ where: { ...safetyWhere, authorId: user.id } }),
     prisma.communityMember.count({ where: { userId: user.id } }),
     prisma.connectedAccount.count({ where: { userId: user.id, isActive: true } }),
     prisma.userInterest.count({ where: { userId: user.id } }),
@@ -846,7 +857,7 @@ async function getMeshSummary(): Promise<MeshiAnswer> {
 
   // Get cross-platform content stats
   const platformPosts = await prisma.platformPost.count({
-    where: { connectedAccount: { userId: user.id } },
+    where: { ...safetyWhere, connectedAccount: { userId: user.id } },
   });
 
   const totalContent = posts + platformPosts;
@@ -871,10 +882,11 @@ async function getMeshSummary(): Promise<MeshiAnswer> {
 async function getRecentActivity(): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const [recentPosts, recentComments, recentFollowers, recentNotifs] = await Promise.all([
     prisma.post.findMany({
-      where: { authorId: user.id },
+      where: { ...safetyWhere, authorId: user.id },
       orderBy: { createdAt: "desc" },
       take: 3,
       select: { content: true, createdAt: true, _count: { select: { reactions: true, comments: true } } },
@@ -943,13 +955,14 @@ async function getWhoActive(): Promise<MeshiAnswer> {
 async function getContentStats(): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
+  const safetyWhere = nsfwHiddenWhere(user);
 
   const [totalPosts, totalReactions, totalComments, platformPosts] = await Promise.all([
-    prisma.post.count({ where: { authorId: user.id } }),
-    prisma.reaction.count({ where: { post: { authorId: user.id } } }),
-    prisma.comment.count({ where: { post: { authorId: user.id } } }),
+    prisma.post.count({ where: { ...safetyWhere, authorId: user.id } }),
+    prisma.reaction.count({ where: { post: { ...safetyWhere, authorId: user.id } } }),
+    prisma.comment.count({ where: { post: { ...safetyWhere, authorId: user.id } } }),
     prisma.platformPost.findMany({
-      where: { connectedAccount: { userId: user.id } },
+      where: { ...safetyWhere, connectedAccount: { userId: user.id } },
       select: { likeCount: true, commentCount: true, viewCount: true, shareCount: true },
     }),
   ]);
@@ -1086,7 +1099,7 @@ async function getPostCount(name?: string): Promise<MeshiAnswer> {
     return getPersonPosts(name);
   }
 
-  const count = await prisma.post.count({ where: { authorId: user.id } });
+  const count = await prisma.post.count({ where: { ...nsfwHiddenWhere(user), authorId: user.id } });
   return {
     content: `You have ${count} post${count !== 1 ? "s" : ""} on mesh.me!`,
     mood: count > 0 ? "happy" : "thinking",

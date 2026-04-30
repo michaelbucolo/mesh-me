@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncPlatform } from "@/lib/platform-sync";
+import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSyncType, readJsonObject } from "@/lib/api-validation";
 
 // GET — load accounts with sync status + recent sync jobs
 export async function GET() {
@@ -51,12 +53,28 @@ export async function GET() {
 
 // POST — trigger sync for a specific account
 export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   try {
-    const body = await request.json();
-    const { connectedAccountId, syncType = "full" } = body;
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const connectedAccountId = typeof body.connectedAccountId === "string" ? body.connectedAccountId.trim() : "";
+    const syncType = body.syncType === undefined ? "full" : body.syncType;
 
     if (!connectedAccountId) {
       return NextResponse.json({ error: "connectedAccountId is required" }, { status: 400 });
+    }
+
+    if (!isSyncType(syncType)) {
+      return NextResponse.json({ error: "Invalid syncType" }, { status: 400 });
     }
 
     const result = await syncPlatform(connectedAccountId, syncType);

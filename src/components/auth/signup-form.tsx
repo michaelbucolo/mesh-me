@@ -46,7 +46,7 @@ export function SignupForm() {
         <label htmlFor="password" className="text-sm font-medium text-[var(--text-secondary)]">
           Password
         </label>
-        <Input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required placeholder="At least 8 characters" />
+        <Input id="password" name="password" type="password" autoComplete="new-password" minLength={12} required placeholder="12+ chars with number and symbol" />
       </div>
 
       {error ? (

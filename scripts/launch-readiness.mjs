@@ -6,6 +6,39 @@ import process from "node:process";
 
 const root = process.cwd();
 
+loadLocalEnvFiles();
+
+function loadLocalEnvFiles() {
+  if (process.env.NODE_ENV === "production") return;
+
+  for (const filename of [".env.local", ".env"]) {
+    const filePath = path.join(root, filename);
+    if (!fs.existsSync(filePath)) continue;
+
+    const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+
+      const separatorIndex = trimmed.indexOf("=");
+      if (separatorIndex <= 0) continue;
+
+      const key = trimmed.slice(0, separatorIndex).trim();
+      if (process.env[key]) continue;
+
+      let value = trimmed.slice(separatorIndex + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      process.env[key] = value;
+    }
+  }
+}
+
 const checks = [
   {
     id: "env-app-url",
@@ -184,7 +217,7 @@ for (const row of rows) {
       ? color("FAIL", ANSI.red)
       : color("WARN", ANSI.yellow);
 
-  console.log(`[${status}] (${row.severity}) ${row.id} — ${row.description}`);
+  console.log(`[${status}] (${row.severity}) ${row.id} - ${row.description}`);
   if (!row.passed) {
     console.log(`       Fix: ${row.fix}`);
   }

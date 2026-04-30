@@ -1,136 +1,14 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { meshiQuery } from "@/lib/meshi-engine";
+import { callMeshiLLM } from "@/lib/meshi-llm";
+import { isSameOriginRequest } from "@/lib/request-guard";
+import { createMeshiResponse, normalizeMeshiMood, type MeshiAction, type MeshiContext, type MeshiHistoryMessage } from "@/lib/meshi-shared";
 
 interface ChatRequest {
   message: string;
-  context?: {
-    meshData?: {
-      followers?: number;
-      following?: number;
-      posts?: number;
-      communities?: number;
-      platforms?: number;
-    };
-    meshEntities?: Array<{
-      type: string;
-      label: string;
-      sublabel?: string;
-      isMutual?: boolean;
-      followerCount?: number;
-      memberCount?: number;
-    }>;
-    currentPage?: string;
-  };
-  history?: Array<{ role: "user" | "meshi"; content: string }>;
-}
-
-interface MeshiLLMResult {
-  content: string;
-  mood: string;
-  action?: { type: string; content?: string; suggestionType?: string };
-}
-
-function shouldUseLLMFallback(query: string, result: ReasonResult): boolean {
-  if (result.action) return false;
-  if (result.content.includes("That's an interesting question!")) return true;
-  const broadTaskSignals = [
-    "write",
-    "draft",
-    "summarize",
-    "translate",
-    "brainstorm",
-    "plan",
-    "improve",
-    "explain",
-    "code",
-    "email",
-    "outline",
-  ];
-  const q = query.toLowerCase();
-  return broadTaskSignals.some((signal) => q.includes(signal));
-}
-
-async function callMeshiLLM(message: string, context?: ChatRequest["context"], history?: ChatRequest["history"]): Promise<MeshiLLMResult | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-
-  const model = process.env.MESHI_LLM_MODEL || "gpt-4.1-mini";
-  const meshContext = context?.meshData
-    ? `Mesh snapshot: followers=${context.meshData.followers ?? 0}, following=${context.meshData.following ?? 0}, posts=${context.meshData.posts ?? 0}, communities=${context.meshData.communities ?? 0}, platforms=${context.meshData.platforms ?? 0}.`
-    : "Mesh snapshot unavailable.";
-
-  const recentHistory = (history ?? []).slice(-6).map((item) => `${item.role}: ${item.content}`).join("\n");
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        {
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text: "You are Meshi, a capable LLM assistant inside mesh.me. Answer broad questions clearly and safely. If a user asks you to do something on their behalf, provide an action object. Return strict JSON only with keys: content (string), mood (one of happy/excited/thinking/cool/love/wink/surprised/sleepy), optional action ({type, content?, suggestionType?}). Keep tone concise, practical, and helpful.",
-            },
-          ],
-        },
-        {
-          role: "system",
-          content: [{ type: "input_text", text: `${meshContext}\nRecent conversation:\n${recentHistory || "none"}` }],
-        },
-        {
-          role: "user",
-          content: [{ type: "input_text", text: message }],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "meshi_response",
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              content: { type: "string" },
-              mood: { type: "string", enum: ["happy", "excited", "thinking", "cool", "love", "wink", "surprised", "sleepy"] },
-              action: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  type: { type: "string" },
-                  content: { type: "string" },
-                  suggestionType: { type: "string" },
-                },
-                required: ["type"],
-              },
-            },
-            required: ["content", "mood"],
-          },
-          strict: true,
-        },
-      },
-      max_output_tokens: 280,
-    }),
-  });
-
-  if (!response.ok) return null;
-  const json = await response.json();
-  const raw = json.output_text;
-  if (!raw || typeof raw !== "string") return null;
-
-  try {
-    const parsed = JSON.parse(raw) as MeshiLLMResult;
-    if (!parsed?.content || !parsed?.mood) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+  context?: MeshiContext;
+  history?: MeshiHistoryMessage[];
 }
 
 // --- Safe recursive descent math parser (no eval/Function) ---
@@ -250,11 +128,90 @@ function evaluateMath(expr: string): number | null {
 interface ReasonResult {
   content: string;
   mood: string;
-  action?: { type: string; content?: string; suggestionType?: string };
+  action?: MeshiAction;
+}
+
+function summarizeVisibleContent(context?: MeshiContext) {
+  const content = context?.focusedContent;
+  if (!content) return null;
+
+  const platform = content.platform && content.platform !== "meshme" ? content.platform : "Mesh.me";
+  const media = content.mediaTypes?.length ? ` Media: ${content.mediaTypes.join(", ")}.` : "";
+  const author = content.author ? ` by ${content.author}` : "";
+  const text = (content.text || "").trim();
+  const summary = text
+    ? text.length > 260
+      ? `${text.slice(0, 257)}...`
+      : text
+    : "This visible item has little or no caption text available in Mesh.me.";
+
+  return `Visible post${author} from ${platform}: ${summary}${media}`;
+}
+
+function getVisibleContentFactCheck(context?: MeshiContext) {
+  const content = context?.focusedContent;
+  if (!content) return null;
+
+  const text = (content.text || "").trim();
+  const claims: string[] = [];
+  const claimPatterns = [
+    /\b(always|never|guaranteed|miracle|secret|proven|breaking|leaked|exclusive)\b/i,
+    /\b(cure|treats|prevents|diagnosed|doctor|study|researchers)\b/i,
+    /\b\d+(?:\.\d+)?\s?(?:%|percent|million|billion|trillion|x)\b/i,
+    /\b(everyone|nobody|all users|no one)\b/i,
+  ];
+  claimPatterns.forEach((pattern) => {
+    const match = text.match(pattern);
+    if (match?.[0]) claims.push(match[0]);
+  });
+
+  const source = content.platform && content.platform !== "meshme" ? `${content.platform} source` : "Mesh.me source";
+  const claimText = claims.length
+    ? `Claims or high-confidence language to verify: ${[...new Set(claims)].slice(0, 4).join(", ")}.`
+    : "I do not see obvious high-risk claim language in the visible caption.";
+  const mediaText = content.mediaTypes?.length
+    ? `It includes ${content.mediaTypes.join(", ")} media, so visual claims should be treated as unverified unless the original source provides provenance.`
+    : "No media file is exposed in this card.";
+
+  return `Local fact-check pass: ${source}. ${claimText} ${mediaText} I can only use visible Mesh.me metadata here, so treat this as a triage check, not proof.`;
+}
+
+function getVisibleContentAiSignals(context?: MeshiContext) {
+  const content = context?.focusedContent;
+  if (!content) return null;
+
+  const mediaText = content.mediaTypes?.length ? content.mediaTypes.join(", ") : "no visible media";
+  const signals = content.aiSignals?.filter(Boolean) || [];
+  if (signals.length > 0) {
+    return `Possible AI-media cues: ${signals.join("; ")}. Media shown: ${mediaText}. This is a metadata and caption check only, not pixel-level verification.`;
+  }
+
+  return `I do not see obvious local AI-generation cues in the visible caption, source URL, or media metadata. Media shown: ${mediaText}. That does not prove the photo or video is authentic; it means Mesh.me does not have enough provenance metadata to label it as AI-generated.`;
 }
 
 function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
   const q = query.toLowerCase().trim();
+
+  if (context?.focusedContent && (
+    q.includes("visible post") ||
+    q.includes("this post") ||
+    q.includes("this video") ||
+    q.includes("this photo") ||
+    q.includes("this image") ||
+    q.includes("media") ||
+    q.includes("fact") ||
+    q.includes("summar") ||
+    q.includes("ai") ||
+    q.includes("generated")
+  )) {
+    if (q.includes("ai") || q.includes("generated") || q.includes("synthetic") || q.includes("deepfake")) {
+      return { content: getVisibleContentAiSignals(context) || "I do not have a visible post to inspect yet.", mood: "learning" };
+    }
+    if (q.includes("fact") || q.includes("verify") || q.includes("true") || q.includes("false")) {
+      return { content: getVisibleContentFactCheck(context) || "I do not have a visible post to inspect yet.", mood: "learning" };
+    }
+    return { content: summarizeVisibleContent(context) || "I do not have a visible post to summarize yet.", mood: "learning" };
+  }
 
   // --- Math questions ---
   const mathMatch = q.match(/(?:what(?:'s| is)|calculate|compute|solve|evaluate)\s+(.+?)(?:\?|$)/i);
@@ -377,7 +334,7 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
     if (q.includes("post") || q.includes("create")) return { content: "To create a post: click 'Create Post' in the sidebar (or the + button on mobile). Write your content, choose which connected platforms to cross-post to, add tags, and hit publish! It'll post to mesh.me and your selected platforms simultaneously.", mood: "excited" };
     if (q.includes("follow")) return { content: "Click any person node on The Mesh, or visit their profile. You'll get the option to follow on mesh.me only, on a specific platform, or everywhere at once!", mood: "happy" };
     if (q.includes("hide") || q.includes("privacy")) return { content: "Right-click any node on The Mesh to access privacy controls. You can hide individual nodes, entire branches (like all communities), or set custom visibility. Go to Settings > Mesh Privacy for global controls.", mood: "cool" };
-    if (q.includes("connect") || q.includes("platform") || q.includes("link")) return { content: "Go to Connected Accounts in settings. Click the platform you want to link, authorize with your account, and it'll appear as a node on your mesh. Content flows in, interactions sync out!", mood: "excited" };
+  if (q.includes("connect") || q.includes("platform") || q.includes("link")) return { content: "Go to Connected Accounts in settings. Click the platform you want to link, authorize with your account, and it will appear as a node on your mesh. Mesh.me uses official APIs only; source-platform writes stay disabled unless the provider grants the needed scopes.", mood: "excited" };
     if (q.includes("message") || q.includes("chat") || q.includes("dm")) return { content: "Open Messages (MeChat) from the sidebar. You can start a new conversation with anyone on your mesh, or view merged conversations from connected platforms. All messages are encrypted.", mood: "love" };
   }
 
@@ -409,10 +366,10 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
     return { content: jokes[Math.floor(Math.random() * jokes.length)], mood: "wink" };
   }
 
-  if (q.includes("thank")) return { content: "Anytime! I'm always here if you need me. Just drag me over to anything you're curious about!", mood: "love" };
-  if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("sup") || q.includes("yo")) return { content: "Hey! What can I help you with? I can answer questions, help navigate, search your mesh, or explain any feature.", mood: "happy" };
-  if (q.includes("bye") || q.includes("goodbye") || q.includes("later")) return { content: "See you around! I'll be right here whenever you need me.", mood: "love" };
-  if (q.includes("who are you") || q.includes("what are you")) return { content: "I'm Meshi, your companion on mesh.me! I can answer any question, help you navigate the platform, search your mesh, explain features, do math, and more. I'm always floating around ready to help!", mood: "love" };
+  if (q.includes("thank")) return { content: "Anytime. Tap me whenever you need help.", mood: "love" };
+  if (q.includes("who are you") || q.includes("what are you")) return { content: "I'm Meshi. I represent you on Mesh.me, follow you page to page, and help you search, understand, and control your Mesh. Privacy comes first.", mood: "love" };
+  if (/\b(hello|hi|hey|sup|yo)\b/.test(q)) return { content: "Hey. Ask me to search, explain, or help with your Mesh.", mood: "happy" };
+  if (q.includes("bye") || q.includes("goodbye") || q.includes("later")) return { content: "See you around. I'll be here when you need me.", mood: "love" };
   if (q.includes("good") && (q.includes("morning") || q.includes("afternoon") || q.includes("evening") || q.includes("night"))) return { content: "Good to see you! Your mesh is looking great today. Anything I can help with?", mood: "happy" };
 
   // Time/date
@@ -442,8 +399,8 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
   if (q.includes("privacy") || q.includes("private") || q.includes("hide") || q.includes("visible")) return { content: "Privacy is mesh.me's #1 priority. You can hide any node, branch, or connection. Set per-node visibility (Private, Friends Only, Public, Custom). mesh.me itself uses zero-knowledge architecture — we can't see your data. Settings > Mesh Privacy has all the controls.", mood: "cool" };
   if (q.includes("security") || q.includes("secure") || q.includes("safe") || q.includes("hack")) return { content: "mesh.me uses strong encryption, rate limiting, account lockout protection, and session management. Your data is yours — we never sell it, track you, or build ad profiles. Change passwords, manage sessions, and export data from Settings > Security.", mood: "cool" };
   if (q.includes("notification") || q.includes("alert")) return { content: "mesh.me has smart notifications that intelligently summarize what matters. You can disable native app notifications and just use mesh.me's unified alerts. Customize exactly what you get notified about in Settings > Notifications.", mood: "happy" };
-  if (q.includes("post") || q.includes("create") || q.includes("publish")) return { content: "Create posts from the sidebar or from The Mesh itself! Choose which connected platforms to cross-post to, add tags, and publish. Your post appears on mesh.me and syncs to selected platforms. Interactions (likes, comments) sync back!", mood: "excited" };
-  if (q.includes("platform") || q.includes("connect") || q.includes("instagram") || q.includes("youtube") || q.includes("tiktok")) return { content: "Connect all major platforms: Instagram, YouTube, TikTok, X, Twitch, Spotify, Reddit, LinkedIn, Discord, and more. Content flows into your feed, interactions sync back natively. Manage from Connected Accounts or The Mesh.", mood: "excited" };
+  if (q.includes("post") || q.includes("create") || q.includes("publish")) return { content: "Create posts from the sidebar or from The Mesh itself. Your post appears on Mesh.me immediately. Cross-posting only turns on for a source when its official API, approved scopes, and user-controlled publishing flow allow it.", mood: "excited" };
+  if (q.includes("platform") || q.includes("connect") || q.includes("instagram") || q.includes("youtube") || q.includes("tiktok")) return { content: "Connect supported platforms like YouTube, X, Twitch, TikTok, GitHub, Discord, and more. Mesh.me imports through official APIs where allowed and keeps restricted platforms read-only until provider approval and scopes are available.", mood: "excited" };
   if (q.includes("communit") || q.includes("group")) return { content: "Communities are groups of mesh.me users with shared interests. Join existing ones or create your own. Each has its own feed and discussion space. They appear as nodes on your mesh!", mood: "happy" };
   if (q.includes("message") || q.includes("chat") || q.includes("dm") || q.includes("mechat")) return { content: "MeChat merges all your conversations from connected platforms into one encrypted inbox. Start conversations from any profile or The Mesh. Messages are end-to-end encrypted — not even mesh.me can read them.", mood: "love" };
   if (q.includes("search") || q.includes("find") || q.includes("discover")) return { content: "Search for people, communities, posts, and topics. Use Cmd/Ctrl+K for quick search, or the Search page for detailed results. On The Mesh, use filters to show specific node types. I can also help you search — just ask!", mood: "happy" };
@@ -517,7 +474,37 @@ function findSmallestFactor(n: number): number {
   return n;
 }
 
+function isOpenEndedLLMTask(query: string): boolean {
+  const q = query.toLowerCase();
+  const taskSignals = ["write", "draft", "brainstorm", "plan", "improve", "code", "email", "outline", "translate"];
+  return taskSignals.some((signal) => q.includes(signal));
+}
+
+function isFocusedContentTask(query: string, context?: MeshiContext) {
+  if (!context?.focusedContent) return false;
+  const q = query.toLowerCase();
+  return (
+    q.includes("visible post") ||
+    q.includes("this post") ||
+    q.includes("this video") ||
+    q.includes("this photo") ||
+    q.includes("this image") ||
+    q.includes("media") ||
+    q.includes("fact") ||
+    q.includes("verify") ||
+    q.includes("summar") ||
+    q.includes("ai") ||
+    q.includes("generated") ||
+    q.includes("synthetic") ||
+    q.includes("deepfake")
+  );
+}
+
 export async function POST(req: Request) {
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+  }
+
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -531,43 +518,90 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
+    let databaseAnswer: { content: string; mood: string; action?: MeshiAction } | undefined;
+    const openEndedTask = isOpenEndedLLMTask(message);
+    const focusedContentTask = isFocusedContentTask(message, context);
+
     // Try the smart query engine first — it queries the database for real answers
-    try {
-      const engineResult = await meshiQuery(message);
-      if (engineResult.content) {
-        return NextResponse.json({
-          content: engineResult.content,
-          mood: engineResult.mood,
-          action: engineResult.action,
-        });
-      }
-    } catch {
-      // Engine failed, fall through to pattern matching
-    }
-
-    // Fallback to pattern-matching reasoning
-    const result = reason(message, context);
-
-    // LLM fallback: broad questions and open-ended tasks
-    if (shouldUseLLMFallback(message, result)) {
+    if (!openEndedTask && !focusedContentTask) {
       try {
-        const llmResult = await callMeshiLLM(message, context, history);
-        if (llmResult) {
-          return NextResponse.json({
-            content: llmResult.content,
-            mood: llmResult.mood,
-            action: llmResult.action,
-          });
+        const engineResult = await meshiQuery(message);
+        if (engineResult.content) {
+          databaseAnswer = {
+            content: engineResult.content,
+            mood: normalizeMeshiMood(engineResult.mood, "thinking"),
+            action: engineResult.action,
+          };
         }
       } catch {
-        // If LLM is unavailable, keep deterministic fallback response
+        // Engine failed, fall through to LLM/local reasoning.
       }
     }
 
+    if (focusedContentTask && !process.env.OPENAI_API_KEY) {
+      const result = reason(message, context);
+      return NextResponse.json(createMeshiResponse({
+        content: result.content,
+        mood: result.mood,
+        action: result.action,
+        source: "local",
+        llmReady: false,
+        grounded: true,
+      }));
+    }
+
+    try {
+      const llmResult = await callMeshiLLM({
+        message,
+        context,
+        history,
+        databaseAnswer,
+        user: {
+          username: user.username,
+          displayName: user.displayName,
+          isMeshPro: user.isMeshPro,
+        },
+      });
+      if (llmResult) {
+        return NextResponse.json(llmResult);
+      }
+    } catch {
+      // If the LLM provider is unavailable, keep Mesh.me usable with grounded fallback responses.
+    }
+
+    if (openEndedTask) {
+      return NextResponse.json(createMeshiResponse({
+        content: "My LLM reasoning layer is the right tool for that. It is wired into Mesh.me now, but this environment needs OPENAI_API_KEY configured before I can complete open-ended writing, planning, coding, and brainstorming tasks live.",
+        mood: "thinking",
+        source: "local",
+        llmReady: false,
+        grounded: false,
+      }));
+    }
+
+    if (databaseAnswer) {
+      return NextResponse.json(createMeshiResponse({
+        content: databaseAnswer.content,
+        mood: databaseAnswer.mood,
+        action: databaseAnswer.action,
+        source: "database",
+        llmReady: false,
+        grounded: true,
+      }));
+    }
+
+    // Fallback to local reasoning only when no LLM/database response is available.
+    const result = reason(message, context);
+
     return NextResponse.json({
-      content: result.content,
-      mood: result.mood,
-      action: result.action,
+      ...createMeshiResponse({
+        content: result.content,
+        mood: result.mood,
+        action: result.action,
+        source: "local",
+        llmReady: false,
+        grounded: false,
+      }),
     });
   } catch {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

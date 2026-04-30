@@ -16,7 +16,7 @@ function PaymentModal({ plan, onClose }: { plan: PaymentPlan; onClose: () => voi
 
   if (!plan) return null;
 
-  const price = plan === "monthly" ? "$4.99" : "$39.99";
+  const price = plan === "monthly" ? "$4.99" : "$44.99";
   const period = plan === "monthly" ? "month" : "year";
 
   const handleCheckout = async () => {
@@ -96,7 +96,7 @@ function PaymentModal({ plan, onClose }: { plan: PaymentPlan; onClose: () => voi
           </Button>
 
           <p className="text-[10px] text-[var(--text-muted)] text-center">
-            You&apos;ll be redirected to our secure payment page. Apple Pay, Google Pay, and all major cards accepted. Cancel anytime.
+            You&apos;ll be redirected to Stripe. Apple Pay, Google Pay, and major cards appear where available. Cancel anytime.
           </p>
 
           {error && (
@@ -191,10 +191,10 @@ export function MeshProTab() {
           </div>
           <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Yearly</h3>
           <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-3xl font-bold text-[var(--text-primary)]">$39.99</span>
+            <span className="text-3xl font-bold text-[var(--text-primary)]">$44.99</span>
             <span className="text-sm text-[var(--text-muted)]">/year</span>
           </div>
-          <p className="text-xs text-emerald-400 mb-4">Save 33% — that&apos;s $3.33/month</p>
+          <p className="text-xs text-emerald-400 mb-4">Save 25% - that&apos;s $3.75/month</p>
           <Button variant="gradient" className="w-full" onClick={() => setSelectedPlan("yearly")}>Subscribe</Button>
         </div>
       </div>

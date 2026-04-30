@@ -1,18 +1,5 @@
-import { MeshiFunLoadingScreen } from "@/components/meshi/meshi-loading";
+import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
 
 export default function Loading() {
-  return (
-    <MeshiFunLoadingScreen
-      title="Settings"
-      subtitle="Meshi is applying your preference profile."
-      mode="default"
-      progressLabel="Preferences loaded"
-      steps={[
-        "Fetching account preferences",
-        "Loading privacy controls",
-        "Syncing notification rules",
-        "Preparing customization panels",
-      ]}
-    />
-  );
+  return <RouteLoadingPersonality personality="settings" />;
 }

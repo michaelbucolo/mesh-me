@@ -1,8 +1,8 @@
 // Pure canvas rendering for the Mesh visualization.
 // Takes state and draws to a canvas context — no React dependency.
 
-import type { MeshNode, MeshEdge, FilterType } from "./mesh-types";
-import { NODE_GLOW, STATUS_COLORS, hexAlpha } from "./mesh-types";
+import type { MeshNode, MeshEdge, FilterType, MeshVisualSettings } from "./mesh-types";
+import { NODE_GLOW, STATUS_COLORS, getPostNodeSize, hexAlpha } from "./mesh-types";
 import { drawMeshi, drawRemoteMeshis, type MeshiState, type RemoteMeshi } from "./meshi-on-mesh";
 
 export interface ViewportState {
@@ -18,6 +18,8 @@ export interface ViewportState {
   formationProgress?: number;
   /** Timestamp of a sync pulse ripple (performance.now), or null. */
   syncPulseTime?: number | null;
+  /** Pro-only visual personalization applied to the Mesh canvas. */
+  meshVisuals?: MeshVisualSettings;
 }
 
 export interface InteractionState {
@@ -25,6 +27,57 @@ export interface InteractionState {
   selectedNode: MeshNode | null;
   meshiState?: MeshiState | null;
   remoteMeshis?: RemoteMeshi[];
+}
+
+type ResolvedMeshVisuals = {
+  connectionRgb: string | null;
+  nodeStyle: "clean" | "soft" | "glass" | "bold";
+  motionFactor: number;
+};
+
+function hexToRgbTriplet(value: string | null | undefined) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const match = /^#?([a-f0-9]{6})$/i.exec(trimmed);
+  if (!match) return null;
+  const numeric = Number.parseInt(match[1], 16);
+  const r = (numeric >> 16) & 255;
+  const g = (numeric >> 8) & 255;
+  const b = numeric & 255;
+  return `${r}, ${g}, ${b}`;
+}
+
+function resolveMeshVisuals(visuals?: MeshVisualSettings): ResolvedMeshVisuals {
+  const nodeStyle = visuals?.nodeStyle === "soft" || visuals?.nodeStyle === "glass" || visuals?.nodeStyle === "bold"
+    ? visuals.nodeStyle
+    : "clean";
+  const motionFactor = visuals?.motionStyle === "minimal"
+    ? 0.35
+    : visuals?.motionStyle === "lively"
+      ? 1.35
+      : 1;
+
+  return {
+    connectionRgb: hexToRgbTriplet(visuals?.connectionColor),
+    nodeStyle,
+    motionFactor,
+  };
+}
+
+function resolveEdgeColor(edgeType: string, visuals: ResolvedMeshVisuals) {
+  return visuals.connectionRgb || EDGE_COLORS[edgeType] || "99, 102, 241";
+}
+
+function visualFillAlpha(base: number, visuals: ResolvedMeshVisuals) {
+  if (visuals.nodeStyle === "glass") return base * 0.72;
+  if (visuals.nodeStyle === "bold") return Math.min(1, base * 1.2);
+  return base;
+}
+
+function visualLineWidth(base: number, visuals: ResolvedMeshVisuals) {
+  if (visuals.nodeStyle === "bold") return base + 0.75;
+  if (visuals.nodeStyle === "glass") return base + 0.25;
+  return base;
 }
 
 export function renderMesh(
@@ -38,6 +91,8 @@ export function renderMesh(
   const { zoom: z, pan: p, center, filter: f, showLabels: labels, time, dt } = viewport;
   const { hoveredNode: hovered, selectedNode: selected, remoteMeshis } = interaction;
   const formationProgress = viewport.formationProgress ?? 1;
+  const visuals = resolveMeshVisuals(viewport.meshVisuals);
+  const motionTime = time * visuals.motionFactor;
 
   const dpr = window.devicePixelRatio || 1;
   const w = ctx.canvas.width;
@@ -56,6 +111,7 @@ export function renderMesh(
   bgGrad.addColorStop(1, "transparent");
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, logicalW, logicalH);
+  drawAmbientField(ctx, logicalW, logicalH, motionTime);
 
   // Formation flash — brief bright pulse at the start
   if (formationProgress > 0 && formationProgress < 0.3) {
@@ -77,43 +133,26 @@ export function renderMesh(
     ctx.globalAlpha = Math.max(0, formationProgress * 1.5 - 0.3);
   }
 
-  // Draw orbit rings around self node
+  // Keep the user node clean; organization is carried by branches and content shapes.
   const selfNode = nodes.find((n) => n.type === "self");
   if (selfNode) {
-    drawOrbitRings(ctx, selfNode, time);
+    drawBranchFields(ctx, selfNode, nodes, f, motionTime, visuals);
   }
 
-  drawEdges(ctx, nodes, edges, f, hovered, selected, time);
-  drawDataParticles(ctx, nodes, edges, f, time, hovered, selected);
+  drawEdges(ctx, nodes, edges, f, hovered, selected, motionTime, visuals);
+  drawDataParticles(ctx, nodes, edges, f, motionTime, hovered, selected, visuals);
+  const focusNode = selected?.type === "self" ? hovered : selected || hovered;
+  drawFocusConstellation(ctx, nodes, edges, focusNode?.type === "self" ? null : focusNode, motionTime, visuals);
 
   // Reset alpha for nodes
   ctx.globalAlpha = 1;
 
   drawSectionLabels(ctx, selfNode, z, nodes);
-  drawNodes(ctx, nodes, edges, f, hovered, selected, labels, time, imageCache, formationProgress, dt);
+  drawNodes(ctx, nodes, edges, f, hovered, selected, labels, motionTime, imageCache, formationProgress, dt, z, visuals);
 
-  // Sync pulse ripple effect
+  // Sync pulse stays subtle so the user's Meshi/self point never gets wrapped in rings.
   if (viewport.syncPulseTime != null && selfNode) {
-    const elapsed = (performance.now() - viewport.syncPulseTime) / 1000;
-    if (elapsed < 2.5) {
-      const rippleRadius = elapsed * 400;
-      const rippleAlpha = Math.max(0, 1 - elapsed / 2.5) * 0.25;
-      ctx.beginPath();
-      ctx.arc(selfNode.x, selfNode.y, rippleRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${rippleAlpha})`;
-      ctx.lineWidth = 3 - elapsed;
-      ctx.stroke();
-      // Second ripple, delayed
-      if (elapsed > 0.3) {
-        const r2 = (elapsed - 0.3) * 400;
-        const a2 = Math.max(0, 1 - (elapsed - 0.3) / 2.2) * 0.15;
-        ctx.beginPath();
-        ctx.arc(selfNode.x, selfNode.y, r2, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(139, 92, 246, ${a2})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    }
+    drawSyncPulseLines(ctx, selfNode, nodes, performance.now() - viewport.syncPulseTime);
   }
 
   // Draw remote Meshis on the mesh (other users' presence)
@@ -133,39 +172,207 @@ export function renderMesh(
   drawLegend(ctx, logicalW, logicalH, f, nodes);
 }
 
-// --- Orbit rings around self ---
+// --- Ambient star field in screen space ---
 
-function drawOrbitRings(ctx: CanvasRenderingContext2D, self: MeshNode, time: number) {
-  const rings = [
-    { radius: 150, alpha: 0.055, dashLen: 4, label: "Alter Egos" },
-    { radius: 285, alpha: 0.045, dashLen: 5, label: "Platforms" },
-    { radius: 475, alpha: 0.035, dashLen: 6, label: "People" },
-    { radius: 680, alpha: 0.025, dashLen: 8, label: "Communities" },
-    { radius: 820, alpha: 0.018, dashLen: 10, label: "Interests" },
-    { radius: 980, alpha: 0.012, dashLen: 12, label: "Posts" },
-  ];
+function drawAmbientField(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  const starCount = Math.max(44, Math.min(130, Math.floor((w * h) / 12000)));
 
-  for (let ri = 0; ri < rings.length; ri++) {
-    const ring = rings[ri];
-    // Each ring pulses at a slightly different rate for organic feel
-    const pulse = Math.sin(time * (0.12 + ri * 0.03) + ring.radius * 0.008) * 0.008;
-    // Subtle radial gradient on each ring — brighter near the label angle
-    const labelAngle = -Math.PI / 2 + (ri % 2 === 0 ? -0.15 : 0.15);
-    const arcStart = labelAngle - Math.PI;
-    const arcEnd = labelAngle + Math.PI;
+  ctx.save();
+  for (let i = 0; i < starCount; i++) {
+    const seedX = (i * 97 + 41) % 997;
+    const seedY = (i * 193 + 17) % 991;
+    const x = (seedX / 997) * w;
+    const y = (seedY / 991) * h;
+    const phase = Math.sin(time * (0.22 + (i % 7) * 0.018) + i * 0.71);
+    const alpha = 0.035 + Math.max(0, phase) * 0.12;
+    const radius = 0.55 + (i % 5) * 0.14;
+
     ctx.beginPath();
-    ctx.arc(self.x, self.y, ring.radius, arcStart, arcEnd);
-    ctx.strokeStyle = `rgba(99, 102, 241, ${ring.alpha + pulse})`;
-    ctx.setLineDash([ring.dashLen, ring.dashLen * 2.5]);
-    // Smoother rotation — delta-time independent visual
-    ctx.lineDashOffset = -time * 2.5;
-    ctx.lineWidth = ri < 2 ? 0.8 : 0.5;
-    ctx.stroke();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(191, 219, 254, ${alpha})`;
+    ctx.fill();
+
+    if (i % 11 === 0) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 18 + (i % 4) * 9, y + 6 - (i % 3) * 5);
+      ctx.strokeStyle = `rgba(96, 165, 250, ${alpha * 0.22})`;
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+    }
   }
-  ctx.setLineDash([]);
+  ctx.restore();
 }
 
-// --- Section labels along orbit rings ---
+// --- Focus field around the selected/hovered node ---
+
+function drawFocusConstellation(
+  ctx: CanvasRenderingContext2D,
+  nodes: MeshNode[],
+  edges: MeshEdge[],
+  focus: MeshNode | null,
+  time: number,
+  visuals: ResolvedMeshVisuals,
+) {
+  if (!focus) return;
+
+  const nodeMap = new Map<string, MeshNode>();
+  for (const node of nodes) nodeMap.set(node.id, node);
+
+  const relatedEdges = edges
+    .filter((edge) => edge.source === focus.id || edge.target === focus.id)
+    .slice(0, 24);
+
+  if (relatedEdges.length === 0) return;
+
+  const pulse = Math.sin(time * 1.6) * 0.5 + 0.5;
+  const fieldRadius = Math.max(70, focus.radius * 3.8 + relatedEdges.length * 2.6);
+  const focusGlow = ctx.createRadialGradient(focus.x, focus.y, focus.radius, focus.x, focus.y, fieldRadius);
+  focusGlow.addColorStop(0, `${focus.color}22`);
+  focusGlow.addColorStop(0.55, `${focus.color}0d`);
+  focusGlow.addColorStop(1, "rgba(0,0,0,0)");
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(focus.x, focus.y, fieldRadius, 0, Math.PI * 2);
+  ctx.fillStyle = focusGlow;
+  ctx.fill();
+
+  relatedEdges.forEach((edge, index) => {
+    const otherId = edge.source === focus.id ? edge.target : edge.source;
+    const other = nodeMap.get(otherId);
+    if (!other) return;
+
+    const edgeColor = resolveEdgeColor(edge.type, visuals);
+    const alpha = 0.055 + pulse * 0.035 + Math.min(0.08, (edge.interactionCount || 0) * 0.01);
+    const offset = Math.sin(time * 0.8 + index) * 10;
+    const midX = (focus.x + other.x) / 2 - (other.y - focus.y) * 0.025;
+    const midY = (focus.y + other.y) / 2 + (other.x - focus.x) * 0.025 + offset;
+
+    ctx.beginPath();
+    ctx.moveTo(focus.x, focus.y);
+    ctx.quadraticCurveTo(midX, midY, other.x, other.y);
+    ctx.strokeStyle = `rgba(${edgeColor}, ${alpha})`;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+const BRANCH_FIELDS: Array<{
+  type: MeshNode["type"];
+  label: string;
+  radius: number;
+  band: number;
+  color: string;
+}> = [
+  { type: "alter-ego", label: "Identities", radius: 150, band: 54, color: "192, 132, 252" },
+  { type: "activity", label: "Activity", radius: 225, band: 56, color: "56, 189, 248" },
+  { type: "platform", label: "Platforms", radius: 285, band: 70, color: "245, 158, 11" },
+  { type: "user", label: "People", radius: 475, band: 96, color: "129, 140, 248" },
+  { type: "community", label: "Communities", radius: 680, band: 86, color: "236, 72, 153" },
+  { type: "tag", label: "Interests", radius: 820, band: 76, color: "6, 182, 212" },
+  { type: "post", label: "Posts", radius: 980, band: 96, color: "16, 185, 129" },
+];
+
+function drawBranchFields(
+  ctx: CanvasRenderingContext2D,
+  self: MeshNode,
+  nodes: MeshNode[],
+  filter: FilterType,
+  time: number,
+  visuals: ResolvedMeshVisuals,
+) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+
+  for (let index = 0; index < BRANCH_FIELDS.length; index += 1) {
+    const branch = BRANCH_FIELDS[index];
+    const count = nodes.filter((node) => node.type === branch.type).length;
+    if (count === 0) continue;
+
+    const active = filter === "all" || filter === branch.type;
+    const pulse = Math.sin(time * 0.28 + index * 0.7) * 0.5 + 0.5;
+    const branchNodes = nodes.filter((node) => node.type === branch.type);
+    const primary = branchNodes.reduce<MeshNode | null>((best, node) => {
+      if (!best) return node;
+      return Math.hypot(node.x - self.x, node.y - self.y) < Math.hypot(best.x - self.x, best.y - self.y) ? node : best;
+    }, null);
+    const angle = primary
+      ? Math.atan2(primary.y - self.y, primary.x - self.x)
+      : (-Math.PI / 2) + (index / BRANCH_FIELDS.length) * Math.PI * 2;
+    const anchorDistance = Math.max(86, Math.min(branch.radius, 220 + index * 56));
+    const anchorX = self.x + Math.cos(angle) * anchorDistance;
+    const anchorY = self.y + Math.sin(angle) * anchorDistance;
+
+    const alpha = active ? 0.13 + pulse * 0.04 : 0.045;
+    const lineEndX = self.x + Math.cos(angle) * (anchorDistance - 18);
+    const lineEndY = self.y + Math.sin(angle) * (anchorDistance - 18);
+
+    ctx.beginPath();
+    ctx.moveTo(self.x + Math.cos(angle) * 42, self.y + Math.sin(angle) * 42);
+    ctx.lineTo(lineEndX, lineEndY);
+    const branchColor = visuals.connectionRgb || branch.color;
+    ctx.strokeStyle = `rgba(${branchColor}, ${alpha * 0.28})`;
+    ctx.lineWidth = visualLineWidth(active ? 1.2 : 0.8, visuals);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(anchorX, anchorY, active ? 3.4 + pulse * 1.2 : 2.4, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${branchColor}, ${alpha})`;
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawSyncPulseLines(
+  ctx: CanvasRenderingContext2D,
+  selfNode: MeshNode,
+  nodes: MeshNode[],
+  elapsedMs: number,
+) {
+  const elapsed = elapsedMs / 1000;
+  if (elapsed < 0 || elapsed > 1.8) return;
+
+  const alpha = Math.max(0, 1 - elapsed / 1.8) * 0.16;
+  const reach = Math.min(1, elapsed / 0.65);
+  const targets = nodes
+    .filter((node) => node.type !== "self")
+    .sort((a, b) => (b.importance || 0) - (a.importance || 0))
+    .slice(0, 18);
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.lineCap = "round";
+
+  for (const target of targets) {
+    const dx = target.x - selfNode.x;
+    const dy = target.y - selfNode.y;
+    const endX = selfNode.x + dx * reach;
+    const endY = selfNode.y + dy * reach;
+    const gradient = ctx.createLinearGradient(selfNode.x, selfNode.y, endX, endY);
+    gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.18})`);
+    gradient.addColorStop(0.55, `${target.color}${hexAlpha(alpha)}`);
+    gradient.addColorStop(1, "rgba(255,255,255,0)");
+
+    ctx.beginPath();
+    ctx.moveTo(selfNode.x, selfNode.y);
+    ctx.quadraticCurveTo(
+      (selfNode.x + endX) / 2 - dy * 0.025,
+      (selfNode.y + endY) / 2 + dx * 0.025,
+      endX,
+      endY,
+    );
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 1.15;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// --- Section labels near branch lanes ---
 
 function drawSectionLabels(
   ctx: CanvasRenderingContext2D,
@@ -177,6 +384,7 @@ function drawSectionLabels(
 
   const TYPE_MAP: Record<string, string> = {
     "Alter Egos": "alter-ego",
+    "Activity": "activity",
     "Platforms": "platform",
     "People": "user",
     "Communities": "community",
@@ -186,6 +394,7 @@ function drawSectionLabels(
 
   const sections = [
     { radius: 150, label: "Alter Egos", angle: -Math.PI / 2 - 0.3, color: "192, 132, 252" },
+    { radius: 225, label: "Activity", angle: -Math.PI / 2 + 0.45, color: "56, 189, 248" },
     { radius: 285, label: "Platforms", angle: -Math.PI / 2 + 0.15, color: "245, 158, 11" },
     { radius: 475, label: "People", angle: -Math.PI / 2 - 0.1, color: "129, 140, 248" },
     { radius: 680, label: "Communities", angle: -Math.PI / 2 + 0.25, color: "236, 72, 153" },
@@ -239,6 +448,67 @@ function drawSectionLabels(
   }
 }
 
+function getEdgeControlPoint(source: MeshNode, target: MeshNode, edge: MeshEdge, time: number) {
+  const midX = (source.x + target.x) / 2;
+  const midY = (source.y + target.y) / 2;
+  const dx = target.x - source.x;
+  const dy = target.y - source.y;
+  const dist = Math.max(1, Math.hypot(dx, dy));
+  const nx = -dy / dist;
+  const ny = dx / dist;
+  const sourceAnchorX = source.anchorX ?? source.x;
+  const sourceAnchorY = source.anchorY ?? source.y;
+  const targetAnchorX = target.anchorX ?? target.x;
+  const targetAnchorY = target.anchorY ?? target.y;
+  const anchorMidX = (sourceAnchorX + targetAnchorX) / 2;
+  const anchorMidY = (sourceAnchorY + targetAnchorY) / 2;
+
+  const curveByType: Record<string, number> = {
+    mutual: 0.16,
+    "cross-follow": 0.2,
+    "shared-community": 0.18,
+    community: 0.1,
+    interest: 0.12,
+    post: 0.08,
+    "platform-content": 0.14,
+    "platform-follower": 0.12,
+    platform: 0.04,
+    follow: 0.04,
+    "alter-ego": 0.03,
+    activity: 0.1,
+  };
+
+  const curve = dist * (curveByType[edge.type] ?? 0.08);
+  const shimmer = Math.sin(time * 0.35 + edge.strength * 8) * Math.min(8, dist * 0.018);
+
+  return {
+    x: midX + nx * (curve + shimmer) + (anchorMidX - midX) * 0.22,
+    y: midY + ny * (curve + shimmer) + (anchorMidY - midY) * 0.22,
+  };
+}
+
+function drawOrganizedEdgePath(
+  ctx: CanvasRenderingContext2D,
+  source: MeshNode,
+  target: MeshNode,
+  edge: MeshEdge,
+  time: number,
+) {
+  const control = getEdgeControlPoint(source, target, edge, time);
+  ctx.beginPath();
+  ctx.moveTo(source.x, source.y);
+  ctx.quadraticCurveTo(control.x, control.y, target.x, target.y);
+}
+
+function getOrganizedEdgePoint(source: MeshNode, target: MeshNode, edge: MeshEdge, time: number, t: number) {
+  const control = getEdgeControlPoint(source, target, edge, time);
+  const inv = 1 - t;
+  return {
+    x: inv * inv * source.x + 2 * inv * t * control.x + t * t * target.x,
+    y: inv * inv * source.y + 2 * inv * t * control.y + t * t * target.y,
+  };
+}
+
 function drawEdges(
   ctx: CanvasRenderingContext2D,
   nodes: MeshNode[],
@@ -247,6 +517,7 @@ function drawEdges(
   hovered: MeshNode | null,
   selected: MeshNode | null,
   time: number,
+  visuals: ResolvedMeshVisuals,
 ) {
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
@@ -269,7 +540,7 @@ function drawEdges(
       : 0.035 + edge.strength * 0.055;
     const pulseAlpha = Math.sin(time * 0.5 + edge.strength * 4) * 0.006;
 
-    const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
+    const edgeColor = resolveEdgeColor(edge.type, visuals);
     const interactionBoost = edge.interactionCount ? Math.min(edge.interactionCount * 0.15, 1.2) : 0;
 
     // Gradient edge — flows from source to target for visual direction
@@ -283,23 +554,12 @@ function drawEdges(
       ctx.strokeStyle = `rgba(${edgeColor}, ${baseAlpha + pulseAlpha})`;
     }
 
-    ctx.beginPath();
-    ctx.moveTo(source.x, source.y);
+    drawOrganizedEdgePath(ctx, source, target, edge, time);
 
-    if (edge.type === "mutual" || edge.type === "cross-follow") {
-      // Curved lines for mutual/cross edges
-      const mx = (source.x + target.x) / 2;
-      const my = (source.y + target.y) / 2;
-      const edx = target.x - source.x;
-      const edy = target.y - source.y;
-      const curveFactor = edge.type === "cross-follow" ? 0.1 : 0.15;
-      ctx.quadraticCurveTo(mx - edy * curveFactor, my + edx * curveFactor, target.x, target.y);
-    } else {
-      ctx.lineTo(target.x, target.y);
-    }
-
-    ctx.lineWidth = isHighlighted ? 1.8 + interactionBoost
-      : 0.4 + edge.strength * 0.4 + interactionBoost;
+    ctx.lineWidth = visualLineWidth(
+      isHighlighted ? 1.8 + interactionBoost : 0.4 + edge.strength * 0.4 + interactionBoost,
+      visuals,
+    );
     ctx.stroke();
   }
 }
@@ -314,6 +574,7 @@ function drawDataParticles(
   time: number,
   hovered: MeshNode | null,
   selected: MeshNode | null,
+  visuals: ResolvedMeshVisuals,
 ) {
   const nodeMap = new Map<string, MeshNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
@@ -335,12 +596,13 @@ function drawDataParticles(
 
     const particleCount = 3;
     const speed = 0.3;
-    const edgeColor = EDGE_COLORS[edge.type] || "99, 102, 241";
+    const edgeColor = resolveEdgeColor(edge.type, visuals);
 
     for (let pi = 0; pi < particleCount; pi++) {
       const t = ((time * speed + ei * 0.37 + pi * (1 / particleCount)) % 1);
-      const px = source.x + (target.x - source.x) * t;
-      const py = source.y + (target.y - source.y) * t;
+      const point = getOrganizedEdgePoint(source, target, edge, time, t);
+      const px = point.x;
+      const py = point.y;
 
       // Smooth fade in/out at edges for satisfying flow
       const fadeIn = Math.min(1, t * 4);
@@ -371,6 +633,7 @@ const EDGE_COLORS: Record<string, string> = {
   interest: "6, 182, 212",
   post: "16, 185, 129",
   platform: "245, 158, 11",
+  activity: "56, 189, 248",
   follow: "99, 102, 241",
   "alter-ego": "192, 132, 252",
   "shared-community": "200, 120, 200",
@@ -416,6 +679,8 @@ function drawNodes(
   imageCache: Map<string, HTMLImageElement | null>,
   formationProgress: number = 1,
   dt: number = 0.016,
+  zoom: number = 1,
+  visuals: ResolvedMeshVisuals = resolveMeshVisuals(),
 ) {
   // Prune stale entries from nodeScaleMap to prevent memory leaks across mesh navigations
   if (nodeScaleMap.size > nodes.length * 2) {
@@ -459,6 +724,10 @@ function drawNodes(
       node.y = drawY;
     }
 
+    if (node.type === "self") {
+      continue;
+    }
+
     const isHovered = hovered?.id === node.id;
     const isSelected = selected?.id === node.id;
     const isConnectedToHovered = hovered && edges.some((e) =>
@@ -469,7 +738,7 @@ function drawNodes(
     );
 
     const highlight = isHovered || isSelected || isConnectedToHovered || isConnectedToSelected;
-    const dimmed = (hovered || selected) && !highlight && node.type !== "self";
+    const dimmed = (hovered || selected) && !highlight;
 
     // Smooth elastic hover scale — interpolate toward target instead of instant jump
     const targetScale = isHovered ? 1.15 : isSelected ? 1.08 : 1.0;
@@ -485,13 +754,15 @@ function drawNodes(
     const nodeRadius = baseNodeRadius * newScale;
     const pulse = Math.sin(time * 1.5 + node.pulsePhase) * 0.5 + 0.5;
 
-    const glowColor = node.type === "self" ? NODE_GLOW.self
-      : node.isMutual ? NODE_GLOW.mutual
+    const glowColor = node.isMutual ? NODE_GLOW.mutual
       : NODE_GLOW[node.type] || NODE_GLOW.user;
 
     // Glow — smooth multi-layer premium glow
-    const glowRadius = nodeRadius * (1.7 + pulse * 0.15);
-    const gradient = ctx.createRadialGradient(node.x, node.y, nodeRadius * 0.5, node.x, node.y, glowRadius);
+    const postSize = node.type === "post" ? getPostNodeSize(node, nodeRadius) : null;
+    const glowRadius = node.type === "post" && postSize
+      ? Math.max(postSize.width, postSize.height) * (0.72 + pulse * 0.04)
+      : nodeRadius * (1.7 + pulse * 0.15);
+    const gradient = ctx.createRadialGradient(node.x, node.y, Math.max(1, nodeRadius * 0.5), node.x, node.y, glowRadius);
     gradient.addColorStop(0, glowColor.replace(/[\d.]+\)$/, (0.15 * nodeOpacity) + ")"));
     gradient.addColorStop(0.4, glowColor.replace(/[\d.]+\)$/, (0.06 * nodeOpacity) + ")"));
     gradient.addColorStop(0.8, glowColor.replace(/[\d.]+\)$/, (0.02 * nodeOpacity) + ")"));
@@ -513,21 +784,6 @@ function drawNodes(
       ctx.fill();
     }
 
-    // Self node rings
-    if (node.type === "self") {
-      const ringRadius = nodeRadius + 5 + pulse * 2;
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${0.15 + pulse * 0.06})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, ringRadius + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(99, 102, 241, ${0.05 + pulse * 0.03})`;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-    }
-
     // Activity pulse for online users — smooth breathing
     if (node.status === "online" && node.type === "user") {
       const activityPulse = Math.sin(time * 1.2 + node.pulsePhase) * 0.5 + 0.5;
@@ -540,7 +796,7 @@ function drawNodes(
     }
 
     // Node body
-    drawNodeBody(ctx, node, nodeRadius, nodeOpacity, isHovered, isSelected, imageCache);
+    drawNodeBody(ctx, node, nodeRadius, nodeOpacity, isHovered, isSelected, imageCache, visuals);
 
     // Mutual badge
     if (node.isMutual && node.type === "user") {
@@ -577,13 +833,22 @@ function drawNodes(
       ctx.fill();
     }
 
-    // Labels — always show for readability, larger font
-    if (labels && nodeOpacity > 0.2) {
-      drawLabel(ctx, node, nodeRadius, nodeOpacity, isHovered || isSelected);
+    const labelPriority = isHovered
+      || isSelected
+      || Boolean(isConnectedToHovered)
+      || Boolean(isConnectedToSelected)
+      || (node.importance ?? 0) > 0.62
+      || (zoom > 0.72 && (node.type === "platform" || node.type === "alter-ego"))
+      || zoom > 1.05;
+
+    // Labels are prioritized so the Mesh stays readable when zoomed out.
+    if (labels && nodeOpacity > 0.2 && labelPriority) {
+      const labelOffset = postSize ? postSize.height / 2 : nodeRadius;
+      drawLabel(ctx, node, labelOffset, nodeOpacity, isHovered || isSelected);
     }
 
     // Status indicator dot
-    if ((node.type === "user" || node.type === "self") && node.status) {
+    if (node.type === "user" && node.status) {
       const statusColor = STATUS_COLORS[node.status] || STATUS_COLORS.offline;
       const dotR = Math.max(3, nodeRadius * 0.2);
       const dotX = node.x + nodeRadius * 0.7;
@@ -614,9 +879,15 @@ function drawNodeBody(
   isHovered: boolean,
   isSelected: boolean,
   imageCache: Map<string, HTMLImageElement | null>,
+  visuals: ResolvedMeshVisuals,
 ) {
   const cachedImg = imageCache.get(node.id);
   const hasImage = cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0;
+
+  if (node.type === "post") {
+    drawPostNodeBody(ctx, node, nodeRadius, nodeOpacity, isHovered, isSelected, cachedImg, visuals);
+    return;
+  }
 
   if (hasImage) {
     ctx.save();
@@ -629,8 +900,8 @@ function drawNodeBody(
     ctx.restore();
     ctx.beginPath();
     ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.9 : 0.5) * nodeOpacity);
-    ctx.lineWidth = isHovered || isSelected ? 2.5 : 1.5;
+    ctx.strokeStyle = node.color + hexAlpha(visualFillAlpha((isHovered || isSelected ? 0.9 : 0.5) * nodeOpacity, visuals));
+    ctx.lineWidth = visualLineWidth(isHovered || isSelected ? 2.5 : 1.5, visuals);
     ctx.stroke();
     if (isHovered || isSelected) {
       ctx.beginPath();
@@ -646,12 +917,12 @@ function drawNodeBody(
       ctx.beginPath();
       ctx.roundRect(node.x - nodeRadius, node.y - nodeRadius, nodeRadius * 2, nodeRadius * 2, nodeRadius * 0.35);
       const fillGrad = ctx.createRadialGradient(node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0, node.x, node.y, nodeRadius);
-      fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
-      fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
+      fillGrad.addColorStop(0, node.color + hexAlpha(visualFillAlpha(0.35 * nodeOpacity, visuals)));
+      fillGrad.addColorStop(1, node.color + hexAlpha(visualFillAlpha(0.12 * nodeOpacity, visuals)));
       ctx.fillStyle = fillGrad;
       ctx.fill();
-      ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
-      ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
+      ctx.strokeStyle = node.color + hexAlpha(visualFillAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity, visuals));
+      ctx.lineWidth = visualLineWidth(isHovered || isSelected ? 1.5 : 1, visuals);
       ctx.stroke();
     } else if (node.type === "tag") {
       // Diamond shape for interest tags
@@ -662,24 +933,24 @@ function drawNodeBody(
       ctx.lineTo(node.x - nodeRadius, node.y);
       ctx.closePath();
       const fillGrad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeRadius);
-      fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
-      fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
+      fillGrad.addColorStop(0, node.color + hexAlpha(visualFillAlpha(0.35 * nodeOpacity, visuals)));
+      fillGrad.addColorStop(1, node.color + hexAlpha(visualFillAlpha(0.12 * nodeOpacity, visuals)));
       ctx.fillStyle = fillGrad;
       ctx.fill();
-      ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
-      ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
+      ctx.strokeStyle = node.color + hexAlpha(visualFillAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity, visuals));
+      ctx.lineWidth = visualLineWidth(isHovered || isSelected ? 1.5 : 1, visuals);
       ctx.stroke();
     } else {
       // Default circle for all other node types
       ctx.beginPath();
       ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
       const fillGrad = ctx.createRadialGradient(node.x - nodeRadius * 0.3, node.y - nodeRadius * 0.3, 0, node.x, node.y, nodeRadius);
-      fillGrad.addColorStop(0, node.color + hexAlpha(0.35 * nodeOpacity));
-      fillGrad.addColorStop(1, node.color + hexAlpha(0.12 * nodeOpacity));
+      fillGrad.addColorStop(0, node.color + hexAlpha(visualFillAlpha(0.35 * nodeOpacity, visuals)));
+      fillGrad.addColorStop(1, node.color + hexAlpha(visualFillAlpha(0.12 * nodeOpacity, visuals)));
       ctx.fillStyle = fillGrad;
       ctx.fill();
-      ctx.strokeStyle = node.color + hexAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity);
-      ctx.lineWidth = isHovered || isSelected ? 1.5 : 1;
+      ctx.strokeStyle = node.color + hexAlpha(visualFillAlpha((isHovered || isSelected ? 0.8 : 0.4) * nodeOpacity, visuals));
+      ctx.lineWidth = visualLineWidth(isHovered || isSelected ? 1.5 : 1, visuals);
       ctx.stroke();
     }
 
@@ -693,9 +964,10 @@ function drawNodeBody(
     const ICON_MAP: Record<string, { text: string; sizeFactor: number }> = {
       self: { text: "", sizeFactor: 0.55 },
       community: { text: "", sizeFactor: 0.5 },
-      tag: { text: "#", sizeFactor: 0.5 },
-      post: { text: "\u2726", sizeFactor: 0.45 },
-    };
+        tag: { text: "#", sizeFactor: 0.5 },
+        post: { text: "\u2726", sizeFactor: 0.45 },
+        activity: { text: "\u2022", sizeFactor: 0.95 },
+      };
     const iconInfo = ICON_MAP[node.type];
     const fontSize = Math.max(9, nodeRadius * (iconInfo?.sizeFactor || 0.6));
     ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
@@ -711,6 +983,207 @@ function drawNodeBody(
       ctx.fillText((node.label[0] || "?").toUpperCase(), node.x, node.y);
     }
   }
+}
+
+function drawPostNodeBody(
+  ctx: CanvasRenderingContext2D,
+  node: MeshNode,
+  nodeRadius: number,
+  nodeOpacity: number,
+  isHovered: boolean,
+  isSelected: boolean,
+  cachedImg: HTMLImageElement | null | undefined,
+  visuals: ResolvedMeshVisuals,
+) {
+  const { width, height } = getPostNodeSize(node, nodeRadius);
+  const x = node.x - width / 2;
+  const y = node.y - height / 2;
+  const radius = Math.min(14, Math.max(7, Math.min(width, height) * 0.16));
+  const hasImage = cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0;
+  const active = isHovered || isSelected;
+
+  ctx.save();
+  ctx.shadowColor = node.color + hexAlpha((active ? 0.45 : 0.22) * nodeOpacity);
+  const shadowMultiplier = visuals.nodeStyle === "soft" ? 1.35 : visuals.nodeStyle === "bold" ? 1.15 : 1;
+  ctx.shadowBlur = (active ? 18 : 10) * shadowMultiplier;
+  ctx.shadowOffsetY = active ? 5 : 3;
+
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, radius);
+  ctx.fillStyle = `rgba(5, 8, 14, ${0.9 * nodeOpacity})`;
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  if (hasImage) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, radius);
+    ctx.clip();
+    ctx.globalAlpha = nodeOpacity;
+    drawCoverImage(ctx, cachedImg, x, y, width, height);
+    ctx.globalAlpha = 1;
+
+    const shade = ctx.createLinearGradient(x, y, x, y + height);
+    shade.addColorStop(0, "rgba(0,0,0,0.08)");
+    shade.addColorStop(0.72, "rgba(0,0,0,0.1)");
+    shade.addColorStop(1, "rgba(0,0,0,0.58)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(x, y, width, height);
+    ctx.restore();
+  } else {
+    const fillGrad = ctx.createLinearGradient(x, y, x + width, y + height);
+    fillGrad.addColorStop(0, node.color + hexAlpha(0.34 * nodeOpacity));
+    fillGrad.addColorStop(0.48, "rgba(17, 24, 39, 0.78)");
+    fillGrad.addColorStop(1, node.color + hexAlpha(0.14 * nodeOpacity));
+    ctx.fillStyle = fillGrad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, radius);
+    ctx.fill();
+
+    const text = node.content || node.label || "Post";
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x + 6, y + 6, width - 12, height - 12, Math.max(5, radius - 4));
+    ctx.clip();
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.86 * nodeOpacity})`;
+    ctx.font = `700 ${Math.max(8, Math.min(12, width / 8))}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    wrapCanvasText(ctx, text, x + 10, y + 10, width - 20, Math.max(10, Math.min(14, height / 4)), Math.max(2, Math.floor((height - 18) / 14)));
+    ctx.restore();
+  }
+
+  if (node.mediaType === "video") {
+    drawPlayBadge(ctx, node.x, node.y, Math.min(width, height));
+  } else if (node.mediaType === "audio") {
+    drawMediaBadge(ctx, x + width - 17, y + 15, "\u266a", nodeOpacity);
+  } else if (node.mediaType === "link") {
+    drawMediaBadge(ctx, x + width - 17, y + 15, "\u2197", nodeOpacity);
+  }
+
+  const topLine = ctx.createLinearGradient(x, y, x + width, y);
+  topLine.addColorStop(0, node.color + hexAlpha(0.3 * nodeOpacity));
+  topLine.addColorStop(0.5, node.color + hexAlpha((active ? 0.95 : 0.58) * nodeOpacity));
+  topLine.addColorStop(1, node.color + hexAlpha(0.3 * nodeOpacity));
+
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, radius);
+  ctx.strokeStyle = topLine;
+  ctx.lineWidth = visualLineWidth(active ? 2.4 : 1.35, visuals);
+  ctx.stroke();
+
+  const metric = node.likeCount ?? node.commentCount ?? node.repostCount;
+  if (metric !== undefined) {
+    const pill = metric > 999 ? `${Math.round(metric / 100) / 10}k` : String(metric);
+    ctx.font = "700 8.5px system-ui, -apple-system, sans-serif";
+    const pillW = Math.max(20, ctx.measureText(pill).width + 12);
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.62 * nodeOpacity})`;
+    ctx.beginPath();
+    ctx.roundRect(x + 6, y + height - 18, pillW, 12, 6);
+    ctx.fill();
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.92 * nodeOpacity})`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(pill, x + 6 + pillW / 2, y + height - 12);
+  }
+
+  ctx.restore();
+}
+
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const imageRatio = image.naturalWidth / Math.max(1, image.naturalHeight);
+  const frameRatio = width / Math.max(1, height);
+  let sourceX = 0;
+  let sourceY = 0;
+  let sourceWidth = image.naturalWidth;
+  let sourceHeight = image.naturalHeight;
+
+  if (imageRatio > frameRatio) {
+    sourceWidth = image.naturalHeight * frameRatio;
+    sourceX = (image.naturalWidth - sourceWidth) / 2;
+  } else {
+    sourceHeight = image.naturalWidth / frameRatio;
+    sourceY = (image.naturalHeight - sourceHeight) / 2;
+  }
+
+  ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+}
+
+function drawPlayBadge(ctx: CanvasRenderingContext2D, x: number, y: number, frameSize: number) {
+  const badgeRadius = Math.max(9, Math.min(16, frameSize * 0.18));
+  ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+  ctx.beginPath();
+  ctx.arc(x, y, badgeRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.beginPath();
+  ctx.moveTo(x - badgeRadius * 0.25, y - badgeRadius * 0.45);
+  ctx.lineTo(x - badgeRadius * 0.25, y + badgeRadius * 0.45);
+  ctx.lineTo(x + badgeRadius * 0.52, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawMediaBadge(ctx: CanvasRenderingContext2D, x: number, y: number, symbol: string, opacity: number) {
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.56 * opacity})`;
+  ctx.beginPath();
+  ctx.arc(x, y, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * opacity})`;
+  ctx.font = "800 10px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(symbol, x, y + 0.5);
+}
+
+function wrapCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number,
+) {
+  const words = text.replace(/\s+/g, " ").trim().split(" ");
+  let line = "";
+  let lineIndex = 0;
+
+  for (const word of words) {
+    const testLine = line ? `${line} ${word}` : word;
+    if (ctx.measureText(testLine).width <= maxWidth) {
+      line = testLine;
+      continue;
+    }
+
+    if (line) {
+      ctx.fillText(lineIndex === maxLines - 1 ? truncateCanvasText(ctx, line, maxWidth) : line, x, y + lineIndex * lineHeight);
+      lineIndex += 1;
+    }
+    line = word;
+    if (lineIndex >= maxLines) return;
+  }
+
+  if (line && lineIndex < maxLines) {
+    ctx.fillText(lineIndex === maxLines - 1 ? truncateCanvasText(ctx, line, maxWidth) : line, x, y + lineIndex * lineHeight);
+  }
+}
+
+function truncateCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  let output = text;
+  while (output.length > 3 && ctx.measureText(`${output}...`).width > maxWidth) {
+    output = output.slice(0, -1);
+  }
+  return output.length < text.length ? `${output}...` : output;
 }
 
 function drawLabel(
@@ -784,7 +1257,7 @@ function drawTooltip(
     if (hovered.sublabel) ttLines.push(hovered.sublabel);
   }
 
-  if (hovered.type === "self") {
+    if (hovered.type === "self") {
     const parts: string[] = [];
     if (hovered.followerCount !== undefined) parts.push(hovered.followerCount + " followers");
     if (hovered.postCount !== undefined) parts.push(hovered.postCount + " posts");
@@ -822,7 +1295,7 @@ function drawTooltip(
     if (hovered.commentCount !== undefined) parts.push("\ud83d\udcac " + hovered.commentCount);
     if (hovered.repostCount !== undefined) parts.push("\ud83d\udd01 " + hovered.repostCount);
     if (parts.length > 0) ttLines.push(parts.join("  "));
-  } else if (hovered.type === "platform") {
+    } else if (hovered.type === "platform") {
     const parts: string[] = [];
     if (hovered.followerCount) parts.push(hovered.followerCount + " followers");
     if (hovered.postCount) parts.push(hovered.postCount + " posts");
@@ -830,13 +1303,17 @@ function drawTooltip(
     if (hovered.likeCount) ttLines.push("\u2764 " + hovered.likeCount + " total likes");
     if (hovered.description) ttLines.push(hovered.description);
     ttLines.push("Click to manage connections");
-  } else if (hovered.type === "tag") {
-    ttLines.push("Interest tag");
-    ttLines.push("Click to explore related content");
-  } else if (hovered.type === "alter-ego") {
-    ttLines.push("Alter ego persona");
-    if (hovered.description) ttLines.push(hovered.description.slice(0, 50) + (hovered.description.length > 50 ? "..." : ""));
-  }
+    } else if (hovered.type === "tag") {
+      ttLines.push("Interest tag");
+      ttLines.push("Click to explore related content");
+    } else if (hovered.type === "alter-ego") {
+      ttLines.push("Alter ego persona");
+      if (hovered.description) ttLines.push(hovered.description.slice(0, 50) + (hovered.description.length > 50 ? "..." : ""));
+    } else if (hovered.type === "activity") {
+      if (hovered.description) ttLines.push(hovered.description.slice(0, 70) + (hovered.description.length > 70 ? "..." : ""));
+      if (hovered.activityType) ttLines.push(hovered.activityType.replace(/-/g, " "));
+      if (hovered.isUnread) ttLines.push("Unread signal");
+    }
 
   // Connection count
   if (hovered.connections.length > 0) {
@@ -919,6 +1396,7 @@ function drawLegend(
     "Interests": "tag",
     "Posts": "post",
     "Alter Egos": "alter-ego",
+    "Activity": "activity",
   };
 
   const items = [
@@ -928,6 +1406,7 @@ function drawLegend(
     { color: "#06b6d4", label: "Interests" },
     { color: "#10b981", label: "Posts" },
     { color: "#c084fc", label: "Alter Egos" },
+    { color: "#38bdf8", label: "Activity" },
   ];
 
   const fontSize = 11;

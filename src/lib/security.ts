@@ -115,6 +115,24 @@ export function validatePostContent(content: string): { valid: boolean; error?: 
   return { valid: true };
 }
 
+export function validatePasswordStrength(password: string): { valid: boolean; error?: string } {
+  if (password.length < 12) {
+    return { valid: false, error: "Password must be at least 12 characters" };
+  }
+  if (password.length > 128) {
+    return { valid: false, error: "Password is too long" };
+  }
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+    return { valid: false, error: "Password must include uppercase, lowercase, number, and symbol characters" };
+  }
+  const normalized = password.toLowerCase();
+  const weakFragments = ["password", "meshme", "qwerty", "letmein", "admin", "welcome", "123456"];
+  if (weakFragments.some((fragment) => normalized.includes(fragment))) {
+    return { valid: false, error: "Password contains a common weak phrase" };
+  }
+  return { valid: true };
+}
+
 export function validateUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -128,8 +146,11 @@ export function validateUrl(url: string): boolean {
 export const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
-  "X-XSS-Protection": "1; mode=block",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "X-XSS-Protection": "0",
+  "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "accelerometer=(), autoplay=(), bluetooth=(), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "X-DNS-Prefetch-Control": "off",
+  "X-Download-Options": "noopen",
+  "X-Permitted-Cross-Domain-Policies": "none",
 };

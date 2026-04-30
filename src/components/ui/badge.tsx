@@ -2,23 +2,25 @@ import { cn } from "@/lib/utils";
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: "default" | "secondary" | "outline" | "success" | "danger";
+  variant?: "default" | "secondary" | "outline" | "success" | "danger" | "warning" | "accent";
   className?: string;
 }
 
 const variantStyles = {
-  default: "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]",
-  secondary: "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]",
-  outline: "bg-transparent text-[var(--text-tertiary)] border-[var(--border-primary)]",
-  success: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-  danger: "bg-red-500/20 text-red-300 border-red-500/30",
+  default: "bg-[var(--ds-surface-muted)] text-[var(--text-secondary)] border-[var(--ds-border)]",
+  secondary: "bg-[var(--ds-surface)] text-[var(--text-secondary)] border-[var(--ds-border)]",
+  outline: "bg-transparent text-[var(--text-tertiary)] border-[var(--ds-border)]",
+  success: "bg-[var(--ds-success-bg)] text-[var(--ds-success)] border-[var(--ds-success-border)]",
+  danger: "bg-[var(--ds-danger-bg)] text-[var(--ds-danger)] border-[var(--ds-danger-border)]",
+  warning: "bg-[var(--ds-warning-bg)] text-[var(--ds-warning)] border-[var(--ds-warning-border)]",
+  accent: "bg-[var(--accent-subtle)] text-[var(--accent)] border-[var(--accent-muted)]",
 };
 
 export function Badge({ children, variant = "default", className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors",
+        "inline-flex min-h-6 items-center gap-1 rounded-[var(--ds-radius-pill)] border px-2 py-0.5 text-xs font-semibold leading-none transition-colors",
         variantStyles[variant],
         className
       )}

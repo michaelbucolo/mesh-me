@@ -4,8 +4,7 @@ import Link from "next/link";
 import { Bot, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlatform } from "@/hooks/use-platform";
-import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
-import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
 import { openMeshi } from "@/lib/meshi-events";
 
 interface MobileTopbarProps {
@@ -14,7 +13,6 @@ interface MobileTopbarProps {
 
 export function MobileTopbar({ username }: MobileTopbarProps) {
   const { ios } = usePlatform();
-  const meshiPrefs = useMeshiPreferences();
 
   return (
     <header
@@ -43,17 +41,10 @@ export function MobileTopbar({ username }: MobileTopbarProps) {
             <Link
               href={`/profile/${username}`}
               className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 text-xs font-medium text-[var(--text-secondary)]"
-              aria-label="Open profile"
+              aria-label="Open your Meshi profile"
             >
-              <MeshiMascot
-                size={16}
-                color={meshiPrefs.color}
-                hat={meshiPrefs.hat}
-                mood={meshiPrefs.face}
-                showGlow={false}
-                animate={false}
-              />
-              You
+              <MeshiPresenceGlyph size={16} />
+              Your Meshi
             </Link>
           </div>
       </div>

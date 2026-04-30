@@ -1,0 +1,676 @@
+"use client";
+
+import { type FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
+import { ArrowLeft, ArrowRight, Bell, Check, Eye, LayoutGrid, Link2, Loader2, Palette, Shield, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  MeshiMascot,
+  type MeshiAccessory,
+  type MeshiBadge,
+  type MeshiColor,
+  type MeshiEyeStyle,
+  type MeshiHair,
+  type MeshiHat,
+  type MeshiMood,
+  type MeshiOutfit,
+} from "@/components/meshi/meshi-mascot";
+import { updateMeshiLocalPreferences } from "@/hooks/use-meshi-preferences";
+import { completeOnboarding } from "@/lib/actions";
+import { cn, INTEREST_TAGS } from "@/lib/utils";
+
+type OnboardingFlowProps = {
+  user: {
+    email: string;
+    username: string;
+    displayName: string;
+    bio: string;
+    location: string;
+  };
+  meshi: {
+    colorTheme: string;
+    hatStyle: string;
+    faceStyle: string;
+    hairStyle: string;
+    accessoryStyle: string;
+    eyeStyle: string;
+    badgeStyle: string;
+    outfitStyle: string;
+  };
+  meshPrivacy: {
+    meshVisibility: string;
+    showConnections: boolean;
+    showStats: boolean;
+  };
+  feedPreference: {
+    layout: string;
+  };
+  notificationPreference: {
+    pushEnabled: boolean;
+    emailDigest: string;
+    messages: boolean;
+    mentions: boolean;
+    comments: boolean;
+    follows: boolean;
+    platformAlerts: boolean;
+    productUpdates: boolean;
+  };
+  platformOptions: Array<{ id: string; name: string; connected: boolean }>;
+};
+
+const steps = [
+  { id: "account", label: "Account", icon: UserRound },
+  { id: "meshi", label: "Meshi", icon: Palette },
+  { id: "privacy", label: "Privacy", icon: Shield },
+  { id: "notifications", label: "Alerts", icon: Bell },
+  { id: "style", label: "Style", icon: LayoutGrid },
+  { id: "connect", label: "Connect", icon: Link2 },
+] as const;
+
+const colors = ["blue", "purple", "pink", "green", "orange", "cyan", "gold"];
+const hats = ["none", "cap", "beanie", "flower", "headphones", "crown"];
+const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
+const faces = ["happy", "wink", "thinking", "cool", "celebrating"];
+const eyes = ["regular", "lashes"];
+const accessories = ["none", "glasses", "sunglasses", "monocle"];
+const badges = ["none", "spark", "heart", "shield"];
+const outfits = ["none", "scarf", "hoodie", "jacket", "overalls"];
+
+const interfaceStyles = [
+  { id: "simple", title: "Simple", body: "The calmest feed. Larger posts and fewer controls." },
+  { id: "balanced", title: "Balanced", body: "A familiar social feed with Mesh.me controls nearby." },
+  { id: "creator", title: "Creator", body: "More analytics, account controls, and cross-posting context." },
+  { id: "classic", title: "Classic", body: "A family-friendly layout that feels closer to older social apps." },
+];
+
+export function OnboardingFlow({
+  user,
+  meshi,
+  meshPrivacy,
+  feedPreference,
+  notificationPreference,
+  platformOptions,
+}: OnboardingFlowProps) {
+  const [step, setStep] = useState(0);
+  const [account, setAccount] = useState({
+    username: user.username,
+    displayName: user.displayName,
+    bio: user.bio,
+    location: user.location,
+  });
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [meshiState, setMeshiState] = useState({
+    colorTheme: meshi.colorTheme,
+    hatStyle: meshi.hatStyle,
+    faceStyle: meshi.faceStyle,
+    hairStyle: meshi.hairStyle,
+    accessoryStyle: meshi.accessoryStyle,
+    eyeStyle: meshi.eyeStyle,
+    badgeStyle: meshi.badgeStyle,
+    outfitStyle: meshi.outfitStyle,
+  });
+  const [privacy, setPrivacy] = useState({
+    meshVisibility: meshPrivacy.meshVisibility,
+    showConnections: meshPrivacy.showConnections,
+    showStats: meshPrivacy.showStats,
+    showInDiscovery: false,
+    hideActivityStatus: true,
+    readReceipts: false,
+  });
+  const [notifications, setNotifications] = useState({
+    pushEnabled: notificationPreference.pushEnabled,
+    emailDigest: notificationPreference.emailDigest,
+    messages: notificationPreference.messages,
+    mentions: notificationPreference.mentions,
+    comments: notificationPreference.comments,
+    follows: notificationPreference.follows,
+    platformAlerts: notificationPreference.platformAlerts,
+    productUpdates: notificationPreference.productUpdates,
+  });
+  const [interfaceStyle, setInterfaceStyle] = useState(feedPreference.layout);
+  const [firstPlatform, setFirstPlatform] = useState(platformOptions.find((platform) => !platform.connected)?.id ?? platformOptions[0]?.id ?? "");
+  const [connectFirstPlatform, setConnectFirstPlatform] = useState(true);
+  const [status, setStatus] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const currentStep = steps[step];
+  const progress = useMemo(() => Math.round(((step + 1) / steps.length) * 100), [step]);
+  const canContinue = account.username.trim().length >= 3 && account.displayName.trim().length > 0;
+
+  function toggleInterest(tag: string) {
+    setSelectedInterests((current) => (
+      current.includes(tag)
+        ? current.filter((item) => item !== tag)
+        : current.length >= 12
+          ? current
+          : [...current, tag]
+    ));
+  }
+
+  async function requestNotificationPermission() {
+    if (!("Notification" in window)) return;
+    const permission = await Notification.requestPermission();
+    setNotifications((current) => ({ ...current, pushEnabled: permission === "granted" }));
+  }
+
+  function next() {
+    if (step === 0 && !canContinue) {
+      setStatus("Choose a display name and a username with at least three characters.");
+      return;
+    }
+    setStatus(null);
+    setStep((current) => Math.min(current + 1, steps.length - 1));
+  }
+
+  function back() {
+    setStatus(null);
+    setStep((current) => Math.max(current - 1, 0));
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.set("username", account.username);
+    formData.set("displayName", account.displayName);
+    formData.set("bio", account.bio);
+    formData.set("location", account.location);
+    selectedInterests.forEach((tag) => formData.append("interests", tag));
+    formData.set("meshiColor", meshiState.colorTheme);
+    formData.set("meshiHat", meshiState.hatStyle);
+    formData.set("meshiFace", meshiState.faceStyle);
+    formData.set("meshiHair", meshiState.hairStyle);
+    formData.set("meshiAccessory", meshiState.accessoryStyle);
+    formData.set("meshiEyes", meshiState.eyeStyle);
+    formData.set("meshiBadge", meshiState.badgeStyle);
+    formData.set("meshiOutfit", meshiState.outfitStyle);
+    formData.set("meshVisibility", privacy.meshVisibility);
+    formData.set("showConnections", String(privacy.showConnections));
+    formData.set("showStats", String(privacy.showStats));
+    formData.set("showInDiscovery", String(privacy.showInDiscovery));
+    formData.set("hideActivityStatus", String(privacy.hideActivityStatus));
+    formData.set("readReceipts", String(privacy.readReceipts));
+    formData.set("pushEnabled", String(notifications.pushEnabled));
+    formData.set("emailDigest", notifications.emailDigest);
+    formData.set("notifyMessages", String(notifications.messages));
+    formData.set("notifyMentions", String(notifications.mentions));
+    formData.set("notifyComments", String(notifications.comments));
+    formData.set("notifyFollows", String(notifications.follows));
+    formData.set("notifyPlatformAlerts", String(notifications.platformAlerts));
+    formData.set("notifyProductUpdates", String(notifications.productUpdates));
+    formData.set("interfaceStyle", interfaceStyle);
+    if (firstPlatform) {
+      formData.set("firstPlatform", firstPlatform);
+      formData.append("platforms", firstPlatform);
+    }
+    formData.set("connectFirstPlatform", String(connectFirstPlatform && Boolean(firstPlatform)));
+
+    updateMeshiLocalPreferences({
+      color: meshiState.colorTheme as MeshiColor,
+      hat: meshiState.hatStyle as MeshiHat,
+      face: meshiState.faceStyle as MeshiMood,
+      hair: meshiState.hairStyle as MeshiHair,
+      accessory: meshiState.accessoryStyle as MeshiAccessory,
+      eye: meshiState.eyeStyle as MeshiEyeStyle,
+      badge: meshiState.badgeStyle as MeshiBadge,
+      outfit: meshiState.outfitStyle as MeshiOutfit,
+    });
+
+    startTransition(async () => {
+      setStatus(null);
+      const result = await completeOnboarding(formData);
+      if (result && typeof result === "object" && "error" in result) {
+        setStatus(String(result.error));
+      }
+    });
+  }
+
+  return (
+    <main className="onboarding-shell h-dvh max-h-dvh min-h-0 overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <form onSubmit={submit} className="onboarding-grid mx-auto grid h-full min-h-0 w-full max-w-6xl gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:px-8">
+        <aside className="mesh-surface h-fit rounded-lg p-4 lg:sticky lg:top-4">
+          <div className="flex items-center gap-3">
+            <MeshiMascot
+              size={54}
+              color={meshiState.colorTheme as MeshiColor}
+              hat={meshiState.hatStyle as MeshiHat}
+              mood={meshiState.faceStyle as MeshiMood}
+              hair={meshiState.hairStyle as MeshiHair}
+              accessory={meshiState.accessoryStyle as MeshiAccessory}
+              eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+              badge={meshiState.badgeStyle as MeshiBadge}
+              outfit={meshiState.outfitStyle as MeshiOutfit}
+              prop={currentStep.id === "notifications" ? "bell" : currentStep.id === "privacy" ? "shield" : currentStep.id === "connect" ? "compass" : "none"}
+              animate
+              showGlow={false}
+            />
+            <div>
+              <p className="text-sm font-black">Mesh.me setup</p>
+              <p className="text-xs text-[var(--text-muted)]">{progress}% complete</p>
+            </div>
+          </div>
+          <div className="mt-4 h-1.5 rounded-full bg-[var(--bg-tertiary)]">
+            <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
+          <nav className="mt-4 grid gap-1" aria-label="Onboarding steps">
+            {steps.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setStep(index)}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-sm font-bold transition",
+                    index === step ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
+                  )}
+                  data-testid={`onboarding-step-${item.id}`}
+                >
+                  <Icon size={17} aria-hidden="true" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+          <p className="mt-4 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3 text-xs leading-5 text-[var(--text-secondary)]">
+            Privacy-first defaults are already on. Setup only decides how your world starts.
+          </p>
+        </aside>
+
+        <section className="mesh-surface onboarding-card flex min-h-0 flex-col overflow-hidden rounded-lg p-4 md:p-5" data-testid="onboarding-flow">
+          <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border-primary)] pb-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Your World, Your Way</p>
+              <h1 className="mt-2 text-3xl font-black tracking-[0] md:text-5xl">{currentStep.label}</h1>
+            </div>
+            <div className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
+              {user.email}
+            </div>
+          </header>
+
+          {status && (
+            <div className="mt-4 rounded-md border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100" role="alert">
+              {status}
+            </div>
+          )}
+
+          <div className="onboarding-step-panel mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+            {currentStep.id === "account" && (
+              <StepShell title="Start with the basics" body="Pick the public identity people will recognize. You can change this later.">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-bold">
+                    Username
+                    <Input
+                      value={account.username}
+                      onChange={(event) => setAccount((current) => ({ ...current, username: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") }))}
+                      data-testid="onboarding-username"
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold">
+                    Display name
+                    <Input value={account.displayName} onChange={(event) => setAccount((current) => ({ ...current, displayName: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold md:col-span-2">
+                    Bio
+                    <Textarea value={account.bio} onChange={(event) => setAccount((current) => ({ ...current, bio: event.target.value }))} maxLength={160} rows={3} />
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold">
+                    Location
+                    <Input value={account.location} onChange={(event) => setAccount((current) => ({ ...current, location: event.target.value }))} placeholder="Optional" />
+                  </label>
+                </div>
+                <PickerGroup label="Interests">
+                  {INTEREST_TAGS.map((tag) => (
+                    <ChoiceButton key={tag} active={selectedInterests.includes(tag)} onClick={() => toggleInterest(tag)}>
+                      {tag}
+                    </ChoiceButton>
+                  ))}
+                </PickerGroup>
+              </StepShell>
+            )}
+
+            {currentStep.id === "meshi" && (
+              <StepShell title="Create your Meshi" body="Meshi is your character, logo, and companion across Mesh.me. Keep it simple and recognizable.">
+                <div className="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)]">
+                  <div className="grid place-items-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-6">
+                    <MeshiMascot
+                      size={132}
+                      color={meshiState.colorTheme as MeshiColor}
+                      hat={meshiState.hatStyle as MeshiHat}
+                      mood={meshiState.faceStyle as MeshiMood}
+                      hair={meshiState.hairStyle as MeshiHair}
+                      accessory={meshiState.accessoryStyle as MeshiAccessory}
+                      eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                      badge={meshiState.badgeStyle as MeshiBadge}
+                      outfit={meshiState.outfitStyle as MeshiOutfit}
+                      animate
+                      interactive
+                    />
+                  </div>
+                  <div className="grid gap-4">
+                    <PickerGroup label="Color">
+                      {colors.map((color) => (
+                        <GraphicChoice key={color} active={meshiState.colorTheme === color} label={color} onClick={() => setMeshiState((current) => ({ ...current, colorTheme: color }))}>
+                          <MeshiMascot
+                            size={30}
+                            color={color as MeshiColor}
+                            hat={meshiState.hatStyle as MeshiHat}
+                            mood={meshiState.faceStyle as MeshiMood}
+                            hair={meshiState.hairStyle as MeshiHair}
+                            accessory={meshiState.accessoryStyle as MeshiAccessory}
+                            eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                            badge={meshiState.badgeStyle as MeshiBadge}
+                            outfit={meshiState.outfitStyle as MeshiOutfit}
+                            animate={false}
+                            showGlow={false}
+                          />
+                        </GraphicChoice>
+                      ))}
+                    </PickerGroup>
+                    <PickerGroup label="Hair">
+                      {hairs.map((hair) => (
+                        <GraphicChoice key={hair} active={meshiState.hairStyle === hair} label={hair} onClick={() => setMeshiState((current) => ({ ...current, hairStyle: hair }))}>
+                          <MeshiMascot
+                            size={30}
+                            color={meshiState.colorTheme as MeshiColor}
+                            hat={meshiState.hatStyle as MeshiHat}
+                            mood={meshiState.faceStyle as MeshiMood}
+                            hair={hair as MeshiHair}
+                            accessory={meshiState.accessoryStyle as MeshiAccessory}
+                            eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                            badge={meshiState.badgeStyle as MeshiBadge}
+                            outfit={meshiState.outfitStyle as MeshiOutfit}
+                            animate={false}
+                            showGlow={false}
+                          />
+                        </GraphicChoice>
+                      ))}
+                    </PickerGroup>
+                    <PickerGroup label="Hat">
+                      {hats.map((hat) => (
+                        <GraphicChoice key={hat} active={meshiState.hatStyle === hat} label={hat} onClick={() => setMeshiState((current) => ({ ...current, hatStyle: hat }))}>
+                          <MeshiMascot
+                            size={30}
+                            color={meshiState.colorTheme as MeshiColor}
+                            hat={hat as MeshiHat}
+                            mood={meshiState.faceStyle as MeshiMood}
+                            hair={meshiState.hairStyle as MeshiHair}
+                            accessory={meshiState.accessoryStyle as MeshiAccessory}
+                            eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                            badge={meshiState.badgeStyle as MeshiBadge}
+                            outfit={meshiState.outfitStyle as MeshiOutfit}
+                            animate={false}
+                            showGlow={false}
+                          />
+                        </GraphicChoice>
+                      ))}
+                    </PickerGroup>
+                    <PickerGroup label="Eyes">
+                      {eyes.map((eye) => (
+                        <GraphicChoice key={eye} active={meshiState.eyeStyle === eye} label={eye} onClick={() => setMeshiState((current) => ({ ...current, eyeStyle: eye }))}>
+                          <MeshiMascot
+                            size={30}
+                            color={meshiState.colorTheme as MeshiColor}
+                            hat={meshiState.hatStyle as MeshiHat}
+                            mood={meshiState.faceStyle as MeshiMood}
+                            hair={meshiState.hairStyle as MeshiHair}
+                            accessory={meshiState.accessoryStyle as MeshiAccessory}
+                            eyeStyle={eye as MeshiEyeStyle}
+                            badge={meshiState.badgeStyle as MeshiBadge}
+                            outfit={meshiState.outfitStyle as MeshiOutfit}
+                            animate={false}
+                            showGlow={false}
+                          />
+                        </GraphicChoice>
+                      ))}
+                    </PickerGroup>
+                    <PickerGroup label="Accessories">
+                      {accessories.map((accessory) => (
+                        <GraphicChoice key={accessory} active={meshiState.accessoryStyle === accessory} label={accessory} onClick={() => setMeshiState((current) => ({ ...current, accessoryStyle: accessory }))}>
+                          <MeshiMascot
+                            size={30}
+                            color={meshiState.colorTheme as MeshiColor}
+                            hat={meshiState.hatStyle as MeshiHat}
+                            mood={meshiState.faceStyle as MeshiMood}
+                            hair={meshiState.hairStyle as MeshiHair}
+                            accessory={accessory as MeshiAccessory}
+                            eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                            badge={meshiState.badgeStyle as MeshiBadge}
+                            outfit={meshiState.outfitStyle as MeshiOutfit}
+                            animate={false}
+                            showGlow={false}
+                          />
+                        </GraphicChoice>
+                      ))}
+                    </PickerGroup>
+                    <PickerGroup label="Badges">
+                      {badges.map((badge) => (
+                        <GraphicChoice key={badge} active={meshiState.badgeStyle === badge} label={badge} onClick={() => setMeshiState((current) => ({ ...current, badgeStyle: badge }))}>
+                          <MeshiMascot
+                            size={30}
+                            color={meshiState.colorTheme as MeshiColor}
+                            hat={meshiState.hatStyle as MeshiHat}
+                            mood={meshiState.faceStyle as MeshiMood}
+                            hair={meshiState.hairStyle as MeshiHair}
+                            accessory={meshiState.accessoryStyle as MeshiAccessory}
+                            eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                            badge={badge as MeshiBadge}
+                            outfit={meshiState.outfitStyle as MeshiOutfit}
+                            animate={false}
+                            showGlow={false}
+                          />
+                        </GraphicChoice>
+                      ))}
+                    </PickerGroup>
+                    <PickerGroup label="Outfits">
+                      {outfits.map((outfit) => (
+                        <GraphicChoice key={outfit} active={meshiState.outfitStyle === outfit} label={outfit} onClick={() => setMeshiState((current) => ({ ...current, outfitStyle: outfit }))}>
+                          <MeshiMascot
+                            size={30}
+                            color={meshiState.colorTheme as MeshiColor}
+                            hat={meshiState.hatStyle as MeshiHat}
+                            mood={meshiState.faceStyle as MeshiMood}
+                            hair={meshiState.hairStyle as MeshiHair}
+                            accessory={meshiState.accessoryStyle as MeshiAccessory}
+                            eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                            badge={meshiState.badgeStyle as MeshiBadge}
+                            outfit={outfit as MeshiOutfit}
+                            animate={false}
+                            showGlow={false}
+                          />
+                        </GraphicChoice>
+                      ))}
+                    </PickerGroup>
+                    <PickerGroup label="Mood">
+                      {faces.map((face) => (
+                        <ChoiceButton key={face} active={meshiState.faceStyle === face} onClick={() => setMeshiState((current) => ({ ...current, faceStyle: face }))}>
+                          {face}
+                        </ChoiceButton>
+                      ))}
+                    </PickerGroup>
+                  </div>
+                </div>
+              </StepShell>
+            )}
+
+            {currentStep.id === "privacy" && (
+              <StepShell title="Choose your privacy defaults" body="Mesh.me starts private. Open only what you mean to share.">
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    { id: "private", title: "Private", body: "Only you see your Mesh." },
+                    { id: "friends", title: "Friends", body: "Mutual connections can see selected branches." },
+                    { id: "public", title: "Public", body: "Your profile and public Mesh can be discovered." },
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setPrivacy((current) => ({ ...current, meshVisibility: option.id }))}
+                      className={cn("mesh-choice rounded-md p-4 text-left", privacy.meshVisibility === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+                    >
+                      <span className="block text-base font-black">{option.title}</span>
+                      <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <Toggle label="Show me in discovery" value={privacy.showInDiscovery} onChange={(value) => setPrivacy((current) => ({ ...current, showInDiscovery: value }))} />
+                  <Toggle label="Show Mesh connections" value={privacy.showConnections} onChange={(value) => setPrivacy((current) => ({ ...current, showConnections: value }))} />
+                  <Toggle label="Show Mesh stats" value={privacy.showStats} onChange={(value) => setPrivacy((current) => ({ ...current, showStats: value }))} />
+                  <Toggle label="Read receipts" value={privacy.readReceipts} onChange={(value) => setPrivacy((current) => ({ ...current, readReceipts: value }))} />
+                  <Toggle label="Hide activity status" value={privacy.hideActivityStatus} onChange={(value) => setPrivacy((current) => ({ ...current, hideActivityStatus: value }))} />
+                </div>
+              </StepShell>
+            )}
+
+            {currentStep.id === "notifications" && (
+              <StepShell title="Set notification rules" body="Mesh.me should reduce noise, not add more. Security alerts always stay on.">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Toggle label="Messages" value={notifications.messages} onChange={(value) => setNotifications((current) => ({ ...current, messages: value }))} />
+                  <Toggle label="Mentions" value={notifications.mentions} onChange={(value) => setNotifications((current) => ({ ...current, mentions: value }))} />
+                  <Toggle label="Comments" value={notifications.comments} onChange={(value) => setNotifications((current) => ({ ...current, comments: value }))} />
+                  <Toggle label="Follows" value={notifications.follows} onChange={(value) => setNotifications((current) => ({ ...current, follows: value }))} />
+                  <Toggle label="Platform alerts" value={notifications.platformAlerts} onChange={(value) => setNotifications((current) => ({ ...current, platformAlerts: value }))} />
+                  <Toggle label="Product updates" value={notifications.productUpdates} onChange={(value) => setNotifications((current) => ({ ...current, productUpdates: value }))} />
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem]">
+                  <label className="grid gap-2 text-sm font-bold">
+                    Email digest
+                    <select value={notifications.emailDigest} onChange={(event) => setNotifications((current) => ({ ...current, emailDigest: event.target.value }))} className="simple-input h-11 px-3 text-sm">
+                      <option value="off">Off</option>
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </label>
+                  <Button type="button" variant="secondary" onClick={requestNotificationPermission} className="self-end">
+                    Ask for push permission
+                  </Button>
+                </div>
+              </StepShell>
+            )}
+
+            {currentStep.id === "style" && (
+              <StepShell title="Pick your starting layout" body="This controls the first Feed experience. The Mesh stays available from the main dashboard.">
+                <div className="grid gap-3 md:grid-cols-2">
+                  {interfaceStyles.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setInterfaceStyle(option.id)}
+                      className={cn("mesh-choice rounded-md p-4 text-left", interfaceStyle === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+                    >
+                      <span className="block text-base font-black">{option.title}</span>
+                      <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
+                    </button>
+                  ))}
+                </div>
+              </StepShell>
+            )}
+
+            {currentStep.id === "connect" && (
+              <StepShell title="Connect your first account" body="Choose the first platform Mesh.me should bring into your world. You can skip and do this later.">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {platformOptions.map((platform) => (
+                    <button
+                      key={platform.id}
+                      type="button"
+                      onClick={() => setFirstPlatform(platform.id)}
+                      className={cn("mesh-choice min-h-20 rounded-md px-4 py-3 text-left", firstPlatform === platform.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+                    >
+                      <span className="block text-sm font-black">{platform.name}</span>
+                      <span className="mt-1 block text-xs text-[var(--text-muted)]">{platform.connected ? "Already connected" : "Connect after setup"}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <Toggle label="Start OAuth connection after setup" value={connectFirstPlatform} onChange={setConnectFirstPlatform} />
+                </div>
+              </StepShell>
+            )}
+          </div>
+
+          <footer className="mt-4 flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--border-primary)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <Button type="button" variant="secondary" onClick={back} disabled={step === 0 || isPending}>
+              <ArrowLeft size={16} aria-hidden="true" />
+              Back
+            </Button>
+            {step < steps.length - 1 ? (
+              <Button type="button" onClick={next} disabled={isPending} data-testid="onboarding-next">
+                Next
+                <ArrowRight size={16} aria-hidden="true" />
+              </Button>
+            ) : (
+              <Button type="submit" disabled={isPending} data-testid="onboarding-finish">
+                {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+                Finish setup
+              </Button>
+            )}
+          </footer>
+        </section>
+      </form>
+    </main>
+  );
+}
+
+function StepShell({ title, body, children }: { title: string; body: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-5">
+      <div>
+        <h2 className="text-xl font-black">{title}</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PickerGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-black">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function ChoiceButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn("mesh-choice rounded-full px-3 py-2 text-sm font-bold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GraphicChoice({ active, label, onClick, children }: { active: boolean; label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn("mesh-choice grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-bold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+      aria-pressed={active}
+    >
+      {children}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={cn("mesh-choice flex min-h-12 items-center justify-between gap-3 rounded-md px-3 py-2 text-left", value && "border-emerald-300/30 bg-emerald-300/10")}
+      aria-pressed={value}
+    >
+      <span>
+        <span className="block text-sm font-black">{label}</span>
+        <span className="block text-xs text-[var(--text-muted)]">{value ? "On" : "Off"}</span>
+      </span>
+      <Eye size={16} aria-hidden="true" />
+    </button>
+  );
+}

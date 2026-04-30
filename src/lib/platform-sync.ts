@@ -4,6 +4,8 @@ import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { decryptSecret } from "./secret-store";
 import { resolveEnvValue } from "./oauth";
+import { getPlatformActionCapability, getPlatformImportCapability } from "./platform-capabilities";
+import { classifyContentSafety, nsfwHiddenWhere } from "./content-safety";
 
 // ─── Platform Adapter Interface ─────────────────────────────
 
@@ -109,12 +111,110 @@ interface PlatformAdapter {
 
 // ─── GitHub Adapter ─────────────────────────────────────────
 
+const COMMENT_SYNC_POST_LIMIT = 25;
+const GITHUB_API_VERSION = "2026-03-10";
+const MESH_USER_AGENT = "mesh.me/1.0";
+
+function toInt(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
+  if (typeof value === "string") {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function dateFromString(value: unknown): Date | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function dateFromUnixSeconds(value: unknown): Date | undefined {
+  const seconds = toInt(value);
+  if (!seconds) return undefined;
+  const date = new Date(seconds * 1000);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function githubHeaders(accessToken: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/vnd.github+json",
+    "User-Agent": MESH_USER_AGENT,
+    "X-GitHub-Api-Version": GITHUB_API_VERSION,
+  };
+}
+
+function redditHeaders(accessToken: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/json",
+    "User-Agent": MESH_USER_AGENT,
+  };
+}
+
+async function fetchRedditJson<T>(accessToken: string, path: string): Promise<T | null> {
+  const res = await fetch(`https://oauth.reddit.com${path}`, {
+    headers: redditHeaders(accessToken),
+  });
+  if (!res.ok) return null;
+  return (await res.json().catch(() => null)) as T | null;
+}
+
+type RedditIdentity = {
+  id?: string;
+  name?: string;
+  icon_img?: string;
+  link_karma?: number;
+  comment_karma?: number;
+  total_karma?: number;
+  created_utc?: number;
+  subreddit?: { subscribers?: number };
+};
+
+type RedditListing = {
+  data?: {
+    after?: string | null;
+    children?: Array<{ kind?: string; data?: Record<string, unknown> }>;
+  };
+};
+
+async function fetchRedditCurrentUser(accessToken: string): Promise<RedditIdentity | null> {
+  const user = await fetchRedditJson<RedditIdentity>(accessToken, "/api/v1/me");
+  return user?.name ? user : null;
+}
+
+function redditPermalink(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  return value.startsWith("http") ? value : `https://www.reddit.com${value}`;
+}
+
+function redditThumbnail(post: Record<string, unknown>): string | undefined {
+  if (typeof post.thumbnail === "string" && post.thumbnail.startsWith("http")) return post.thumbnail;
+  const images = (((post.preview as Record<string, unknown> | undefined)?.images as Record<string, unknown>[] | undefined) || []);
+  const source = images[0]?.source as Record<string, unknown> | undefined;
+  return typeof source?.url === "string" ? source.url.replaceAll("&amp;", "&") : undefined;
+}
+
+function redditPostType(post: Record<string, unknown>): string {
+  if (post.is_video) return "video";
+  if (post.is_self) return "text";
+  if (post.post_hint === "image") return "image";
+  if (post.post_hint === "rich:video") return "video";
+  return "article";
+}
+
+function redditArticleId(platformPostId: string): string {
+  return platformPostId.startsWith("t3_") ? platformPostId.slice(3) : platformPostId;
+}
+
 const githubAdapter: PlatformAdapter = {
   async fetchPosts(accessToken, cursor) {
     try {
       const page = cursor ? parseInt(cursor) : 1;
-      const res = await fetch(`https://api.github.com/user/repos?sort=updated&per_page=30&page=${page}`, {
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+      const res = await fetch(`https://api.github.com/user/repos?affiliation=owner,collaborator,organization_member&sort=updated&per_page=30&page=${page}`, {
+        headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { posts: [] };
       const repos = await res.json();
@@ -124,21 +224,21 @@ const githubAdapter: PlatformAdapter = {
         title: repo.full_name as string,
         url: repo.html_url as string,
         postType: "article",
-        likeCount: (repo.stargazers_count as number) || 0,
-        commentCount: (repo.open_issues_count as number) || 0,
-        shareCount: (repo.forks_count as number) || 0,
-        viewCount: (repo.watchers_count as number) || 0,
+        likeCount: toInt(repo.stargazers_count),
+        commentCount: toInt(repo.open_issues_count),
+        shareCount: toInt(repo.forks_count),
+        viewCount: toInt(repo.watchers_count),
         visibility: repo.private ? "private" : "public",
-        publishedAt: repo.created_at ? new Date(repo.created_at as string) : undefined,
-        rawMetadata: JSON.stringify({ language: repo.language, topics: repo.topics }),
+        publishedAt: dateFromString(repo.created_at),
+        rawMetadata: JSON.stringify({ language: repo.language, topics: repo.topics, updatedAt: repo.updated_at }),
       }));
       return { posts, nextCursor: repos.length === 30 ? String(page + 1) : undefined };
     } catch { return { posts: [] }; }
   },
   async fetchComments(accessToken, postId) {
     try {
-      const res = await fetch(`https://api.github.com/repositories/${postId}/issues?state=all&per_page=20`, {
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+      const res = await fetch(`https://api.github.com/repositories/${encodeURIComponent(postId)}/issues?state=all&filter=all&per_page=20`, {
+        headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { comments: [] };
       const issues = await res.json();
@@ -150,10 +250,10 @@ const githubAdapter: PlatformAdapter = {
         authorUsername: (issue.user as Record<string, unknown>)?.login as string,
         authorAvatarUrl: (issue.user as Record<string, unknown>)?.avatar_url as string,
         isOwnComment: false,
-        likeCount: (issue.reactions as Record<string, unknown>)?.total_count as number || 0,
-        replyCount: (issue.comments as number) || 0,
+        likeCount: toInt((issue.reactions as Record<string, unknown>)?.total_count),
+        replyCount: toInt(issue.comments),
         url: issue.html_url as string,
-        publishedAt: issue.created_at ? new Date(issue.created_at as string) : undefined,
+        publishedAt: dateFromString(issue.created_at),
       }));
       return { comments };
     } catch { return { comments: [] }; }
@@ -161,7 +261,7 @@ const githubAdapter: PlatformAdapter = {
   async fetchFollowers(accessToken) {
     try {
       const res = await fetch("https://api.github.com/user/followers?per_page=100", {
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+        headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { followers: [] };
       const users = await res.json();
@@ -181,15 +281,15 @@ const githubAdapter: PlatformAdapter = {
   async fetchAnalytics(accessToken) {
     try {
       const res = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+        headers: githubHeaders(accessToken),
       });
       if (!res.ok) return defaultAnalytics();
       const user = await res.json();
       return {
         date: new Date(),
-        followerCount: user.followers || 0,
-        followingCount: user.following || 0,
-        postCount: user.public_repos || 0,
+        followerCount: toInt(user.followers),
+        followingCount: toInt(user.following),
+        postCount: toInt(user.public_repos),
         totalLikes: 0, totalComments: 0, totalViews: 0, totalShares: 0,
         newFollowers: 0, lostFollowers: 0,
       };
@@ -206,7 +306,8 @@ const githubAdapter: PlatformAdapter = {
     try {
       const res = await fetch(`https://api.github.com/user/following/${userId}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+        headers: githubHeaders(accessToken),
+        body: "",
       });
       return res.status === 204;
     } catch { return false; }
@@ -215,7 +316,7 @@ const githubAdapter: PlatformAdapter = {
     try {
       const res = await fetch(`https://api.github.com/user/following/${userId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+        headers: githubHeaders(accessToken),
       });
       return res.status === 204;
     } catch { return false; }
@@ -469,22 +570,27 @@ const twitterAdapter: PlatformAdapter = {
 const discordAdapter: PlatformAdapter = {
   async fetchPosts(accessToken) {
     try {
-      const res = await fetch("https://discord.com/api/v10/users/@me/guilds", {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const res = await fetch("https://discord.com/api/v10/users/@me/guilds?with_counts=true&limit=200", {
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
       });
       if (!res.ok) return { posts: [] };
       const guilds = await res.json();
-      const posts: PlatformPostData[] = guilds.map((g: Record<string, unknown>) => ({
+      const posts: PlatformPostData[] = (Array.isArray(guilds) ? guilds : []).map((g: Record<string, unknown>) => ({
         platformPostId: g.id as string,
         title: g.name as string,
-        content: `Server with ${(g.approximate_member_count as number) || 0} members`,
+        content: `Server with ${toInt(g.approximate_member_count)} members`,
         url: `https://discord.com/channels/${g.id}`,
         postType: "text",
         likeCount: 0, commentCount: 0, shareCount: 0,
-        viewCount: (g.approximate_member_count as number) || 0,
+        viewCount: toInt(g.approximate_member_count),
         visibility: "private",
         thumbnailUrl: g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : undefined,
-        rawMetadata: JSON.stringify({ features: g.features, owner: g.owner }),
+        rawMetadata: JSON.stringify({
+          features: g.features,
+          owner: g.owner,
+          permissions: g.permissions,
+          approximatePresenceCount: g.approximate_presence_count,
+        }),
       }));
       return { posts };
     } catch { return { posts: [] }; }
@@ -492,7 +598,17 @@ const discordAdapter: PlatformAdapter = {
   async fetchComments() { return { comments: [] }; },
   async fetchFollowers() { return { followers: [] }; },
   async fetchMedia() { return { media: [] }; },
-  async fetchAnalytics() { return defaultAnalytics(); },
+  async fetchAnalytics(accessToken) {
+    try {
+      const result = await this.fetchPosts(accessToken);
+      return {
+        ...defaultAnalytics(),
+        postCount: result.posts.length,
+        totalViews: result.posts.reduce((sum, post) => sum + post.viewCount, 0),
+        rawData: JSON.stringify({ guildCount: result.posts.length }),
+      };
+    } catch { return defaultAnalytics(); }
+  },
   async createPost() { return null; },
   async deletePost() { return false; },
   async createComment() { return null; },
@@ -764,6 +880,133 @@ const tiktokAdapter: PlatformAdapter = {
 
 // ─── Generic / Manual Adapter (SoundCloud, Threads, Bluesky) ──
 
+const redditAdapter: PlatformAdapter = {
+  async fetchPosts(accessToken, cursor) {
+    try {
+      const currentUser = await fetchRedditCurrentUser(accessToken);
+      if (!currentUser?.name) return { posts: [] };
+
+      const params = new URLSearchParams({ limit: "50", raw_json: "1" });
+      if (cursor) params.set("after", cursor);
+      const listing = await fetchRedditJson<RedditListing>(
+        accessToken,
+        `/user/${encodeURIComponent(currentUser.name)}/submitted?${params.toString()}`,
+      );
+      const children = listing?.data?.children || [];
+      const posts: PlatformPostData[] = children
+        .map((child) => child.data)
+        .filter((post): post is Record<string, unknown> => Boolean(post?.id))
+        .map((post) => {
+          const fullname = typeof post.name === "string" ? post.name : `t3_${post.id}`;
+          const url = redditPermalink(post.permalink) || (typeof post.url === "string" ? post.url : undefined);
+          return {
+            platformPostId: fullname,
+            content: (post.selftext as string) || (post.url_overridden_by_dest as string) || "",
+            title: (post.title as string) || "",
+            url,
+            postType: redditPostType(post),
+            likeCount: toInt(post.score),
+            commentCount: toInt(post.num_comments),
+            shareCount: toInt(post.num_crossposts),
+            viewCount: 0,
+            visibility: post.hidden ? "private" : "public",
+            publishedAt: dateFromUnixSeconds(post.created_utc),
+            thumbnailUrl: redditThumbnail(post),
+            isPinned: Boolean(post.stickied),
+            rawMetadata: JSON.stringify({
+              author: post.author,
+              domain: post.domain,
+              over18: post.over_18,
+              permalink: post.permalink,
+              score: post.score,
+              spoiler: post.spoiler,
+              subreddit: post.subreddit,
+              subredditId: post.subreddit_id,
+            }),
+          };
+        });
+
+      return { posts, nextCursor: listing?.data?.after || undefined };
+    } catch { return { posts: [] }; }
+  },
+  async fetchComments(accessToken, postId) {
+    try {
+      const currentUser = await fetchRedditCurrentUser(accessToken);
+      const articleId = redditArticleId(postId);
+      const listing = await fetchRedditJson<RedditListing[]>(
+        accessToken,
+        `/comments/${encodeURIComponent(articleId)}?limit=100&raw_json=1`,
+      );
+      const commentsListing = Array.isArray(listing) ? listing[1] : null;
+      const comments: PlatformCommentData[] = (commentsListing?.data?.children || [])
+        .map((child) => child.data)
+        .filter((comment): comment is Record<string, unknown> => Boolean(comment?.id && comment?.body))
+        .map((comment) => {
+          const fullname = typeof comment.name === "string" ? comment.name : `t1_${comment.id}`;
+          const parentCommentId = typeof comment.parent_id === "string" && comment.parent_id.startsWith("t1_")
+            ? comment.parent_id
+            : undefined;
+          return {
+            platformCommentId: fullname,
+            platformPostId: postId,
+            content: (comment.body as string) || "",
+            authorName: comment.author as string,
+            authorUsername: comment.author as string,
+            isOwnComment: Boolean(currentUser?.name && comment.author === currentUser.name),
+            likeCount: toInt(comment.score),
+            replyCount: Array.isArray((comment.replies as RedditListing | undefined)?.data?.children)
+              ? ((comment.replies as RedditListing).data?.children || []).length
+              : 0,
+            parentCommentId,
+            url: redditPermalink(comment.permalink),
+            publishedAt: dateFromUnixSeconds(comment.created_utc),
+          };
+        });
+
+      return { comments };
+    } catch { return { comments: [] }; }
+  },
+  async fetchFollowers() { return { followers: [] }; },
+  async fetchMedia() { return { media: [] }; },
+  async fetchAnalytics(accessToken) {
+    try {
+      const currentUser = await fetchRedditCurrentUser(accessToken);
+      if (!currentUser) return defaultAnalytics();
+      return {
+        date: new Date(),
+        followerCount: toInt(currentUser.subreddit?.subscribers),
+        followingCount: 0,
+        postCount: 0,
+        totalLikes: toInt(currentUser.total_karma) || toInt(currentUser.link_karma) + toInt(currentUser.comment_karma),
+        totalComments: toInt(currentUser.comment_karma),
+        totalViews: 0,
+        totalShares: 0,
+        newFollowers: 0,
+        lostFollowers: 0,
+        rawData: JSON.stringify({
+          createdUtc: currentUser.created_utc,
+          linkKarma: currentUser.link_karma,
+          commentKarma: currentUser.comment_karma,
+          totalKarma: currentUser.total_karma,
+        }),
+      };
+    } catch { return defaultAnalytics(); }
+  },
+  async createPost() { return null; },
+  async deletePost() { return false; },
+  async createComment() { return null; },
+  async deleteComment() { return false; },
+  async editPost() { return false; },
+  async likePost() { return false; },
+  async unlikePost() { return false; },
+  async followUser() { return false; },
+  async unfollowUser() { return false; },
+  async sharePost() { return false; },
+  async pinPost() { return false; },
+  async unpinPost() { return false; },
+  async updateVisibility() { return false; },
+};
+
 const manualAdapter: PlatformAdapter = {
   async fetchPosts() { return { posts: [] }; },
   async fetchComments() { return { comments: [] }; },
@@ -795,12 +1038,12 @@ const adapters: Record<string, PlatformAdapter> = {
   spotify: spotifyAdapter,
   twitch: twitchAdapter,
   tiktok: tiktokAdapter,
+  reddit: redditAdapter,
   soundcloud: manualAdapter,
   threads: manualAdapter,
   bluesky: manualAdapter,
   instagram: manualAdapter,
   linkedin: manualAdapter,
-  reddit: manualAdapter,
   facebook: manualAdapter,
   pinterest: manualAdapter,
   snapchat: manualAdapter,
@@ -879,7 +1122,7 @@ async function migratePlatformCommentsIntoMeChat(account: {
     orderBy: { publishedAt: "desc" },
   });
 
-  if (comments.length === 0) return;
+  if (comments.length === 0) return 0;
 
   const usernames = [...new Set(
     comments
@@ -887,13 +1130,14 @@ async function migratePlatformCommentsIntoMeChat(account: {
       .filter((value): value is string => Boolean(value)),
   )];
 
-  if (usernames.length === 0) return;
+  if (usernames.length === 0) return 0;
 
   const users = await prisma.user.findMany({
     where: { username: { in: usernames } },
     select: { id: true, username: true, displayName: true },
   });
   const userByUsername = new Map(users.map((u) => [u.username.toLowerCase(), u]));
+  let imported = 0;
 
   for (const comment of comments) {
     const username = comment.authorUsername?.trim().toLowerCase();
@@ -927,7 +1171,10 @@ async function migratePlatformCommentsIntoMeChat(account: {
     const alreadyImported = await prisma.message.findFirst({
       where: {
         threadId: thread.id,
-        content: { startsWith: marker },
+        OR: [
+          { platformCommentId: comment.platformCommentId },
+          { content: { startsWith: marker } },
+        ],
       },
       select: { id: true },
     });
@@ -941,6 +1188,10 @@ async function migratePlatformCommentsIntoMeChat(account: {
         content: importedContent,
         senderId: sender.id,
         threadId: thread.id,
+        sourcePlatform: account.platform,
+        messageType: "imported_comment",
+        sourceUrl,
+        platformCommentId: comment.platformCommentId,
         createdAt: comment.publishedAt || new Date(),
       },
     });
@@ -948,7 +1199,31 @@ async function migratePlatformCommentsIntoMeChat(account: {
       where: { id: thread.id },
       data: { updatedAt: comment.publishedAt || new Date() },
     });
+    imported++;
   }
+
+  return imported;
+}
+
+export async function syncMeChatConversationsForCurrentUser() {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const accounts = await prisma.connectedAccount.findMany({
+    where: { userId: user.id, isActive: true },
+    select: { id: true, userId: true, platform: true },
+  });
+
+  let imported = 0;
+  for (const account of accounts) {
+    imported += await migratePlatformCommentsIntoMeChat(account);
+  }
+
+  return {
+    success: true,
+    accounts: accounts.length,
+    imported,
+  };
 }
 
 // ─── Sync Engine ────────────────────────────────────────────
@@ -961,6 +1236,10 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
+
+  const importCapability = getPlatformImportCapability(account.platform);
+  if (!importCapability.supported) return { error: importCapability.reason };
+
   const { accessToken } = getStoredConnectedAccountTokens(account);
   if (account.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
   if (!accessToken) return { error: "No access token - reconnect this platform" };
@@ -984,6 +1263,7 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
   try {
     const adapter = getAdapter(account.platform);
     let itemsSynced = 0;
+    const syncedPostRefs: Array<{ id: string; platformPostId: string }> = [];
 
     // Sync posts
     if (syncType === "full" || syncType === "posts") {
@@ -992,14 +1272,15 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
       do {
         const result = await adapter.fetchPosts(accessToken, cursor);
         for (const post of result.posts) {
-          await prisma.platformPost.upsert({
+          const safety = classifyContentSafety(post.title, post.content, post.rawMetadata);
+          const syncedPost = await prisma.platformPost.upsert({
             where: {
               connectedAccountId_platformPostId: {
                 connectedAccountId: account.id,
                 platformPostId: post.platformPostId,
               },
             },
-            create: { connectedAccountId: account.id, ...post },
+            create: { connectedAccountId: account.id, ...post, ...safety },
             update: {
               content: post.content,
               title: post.title,
@@ -1011,8 +1292,10 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
               thumbnailUrl: post.thumbnailUrl,
               rawMetadata: post.rawMetadata,
               isPinned: post.isPinned || false,
+              ...safety,
             },
           });
+          syncedPostRefs.push({ id: syncedPost.id, platformPostId: syncedPost.platformPostId });
           itemsSynced++;
         }
         cursor = result.nextCursor;
@@ -1023,6 +1306,53 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
           data: { itemsSynced, progress: Math.min(90, page * 30) },
         });
       } while (cursor && page < 10);
+    }
+
+    // Sync recent comments for providers that expose a read comment API.
+    if (syncType === "full" || syncType === "comments") {
+      const commentTargets = syncedPostRefs.length > 0
+        ? syncedPostRefs
+        : await prisma.platformPost.findMany({
+            where: { connectedAccountId: account.id },
+            select: { id: true, platformPostId: true },
+            orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+            take: COMMENT_SYNC_POST_LIMIT,
+          });
+
+      for (const postRef of commentTargets.slice(0, COMMENT_SYNC_POST_LIMIT)) {
+        const result = await adapter.fetchComments(accessToken, postRef.platformPostId);
+        for (const comment of result.comments) {
+          await prisma.platformComment.upsert({
+            where: {
+              connectedAccountId_platformCommentId: {
+                connectedAccountId: account.id,
+                platformCommentId: comment.platformCommentId,
+              },
+            },
+            create: { connectedAccountId: account.id, postId: postRef.id, ...comment },
+            update: {
+              platformPostId: comment.platformPostId,
+              content: comment.content,
+              authorName: comment.authorName,
+              authorUsername: comment.authorUsername,
+              authorAvatarUrl: comment.authorAvatarUrl,
+              isOwnComment: comment.isOwnComment,
+              likeCount: comment.likeCount,
+              replyCount: comment.replyCount,
+              parentCommentId: comment.parentCommentId,
+              url: comment.url,
+              sentiment: comment.sentiment,
+              publishedAt: comment.publishedAt,
+              postId: postRef.id,
+            },
+          });
+          itemsSynced++;
+        }
+        await prisma.platformPost.update({
+          where: { id: postRef.id },
+          data: { commentsImported: result.comments.length > 0 },
+        });
+      }
     }
 
     // Sync followers
@@ -1132,9 +1462,19 @@ export async function syncComments(connectedAccountId: string, platformPostId: s
         },
         create: { connectedAccountId: account.id, postId: post.id, ...comment },
         update: {
+          platformPostId: comment.platformPostId,
           content: comment.content,
+          authorName: comment.authorName,
+          authorUsername: comment.authorUsername,
+          authorAvatarUrl: comment.authorAvatarUrl,
+          isOwnComment: comment.isOwnComment,
           likeCount: comment.likeCount,
           replyCount: comment.replyCount,
+          parentCommentId: comment.parentCommentId,
+          url: comment.url,
+          sentiment: comment.sentiment,
+          publishedAt: comment.publishedAt,
+          postId: post.id,
         },
       });
     }
@@ -1171,6 +1511,7 @@ export async function getPlatformContent(platform?: string, postType?: string, p
   if (accountIds.length === 0) return { posts: [], total: 0 };
 
   const where = {
+    ...nsfwHiddenWhere(user),
     connectedAccountId: { in: accountIds },
     ...(postType ? { postType } : {}),
   };
@@ -1229,6 +1570,21 @@ export async function getPlatformAnalyticsSummary() {
   return summary;
 }
 
+async function getActingAccountForSourcePost(
+  userId: string,
+  sourceAccount: { id: string; userId: string; platform: string; accessToken: string | null }
+) {
+  if (sourceAccount.userId === userId) return sourceAccount;
+
+  return prisma.connectedAccount.findFirst({
+    where: {
+      userId,
+      platform: sourceAccount.platform,
+      isActive: true,
+    },
+  });
+}
+
 export async function getSyncJobs(connectedAccountId?: string) {
   const user = await getCurrentUser();
   if (!user) return [];
@@ -1260,14 +1616,17 @@ export async function deletePlatformPost(postId: string) {
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
 
-  // Try to delete from platform too
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
-  if (accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    await adapter.deletePost(accessToken, post.platformPostId);
-  }
+  const capability = getPlatformActionCapability(post.connectedAccount.platform, "delete");
+  if (!capability.supported) return { error: capability.reason };
 
-  // Delete from our DB
+  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (post.connectedAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
+  if (!accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(post.connectedAccount.platform);
+  const ok = await adapter.deletePost(accessToken, post.platformPostId);
+  if (!ok) return { error: "Delete failed - platform may not support this action" };
+
   await prisma.platformPost.delete({ where: { id: postId } });
   return { success: true };
 }
@@ -1288,6 +1647,11 @@ export async function crossPostContent(content: string, platforms: string[], med
         results[accountId] = { success: false, error: "Account not found or inactive" };
         continue;
       }
+      const capability = getPlatformActionCapability(account.platform, "cross-post");
+      if (!capability.supported) {
+        results[account.platformUsername || account.platform] = { success: false, error: capability.reason };
+        continue;
+      }
       const accessToken = getStoredAccessToken(account.accessToken);
       if (account.accessToken && !accessToken) {
         results[accountId] = { success: false, error: "Token encryption key is missing" };
@@ -1301,8 +1665,9 @@ export async function crossPostContent(content: string, platforms: string[], med
         const adapter = getAdapter(account.platform);
         const post = await adapter.createPost(accessToken, content, mediaUrls);
         if (post) {
+          const safety = classifyContentSafety(content, post.title, post.content, post.rawMetadata);
           await prisma.platformPost.create({
-            data: { connectedAccountId: account.id, ...post, isFromMesh: true },
+            data: { connectedAccountId: account.id, ...post, ...safety, isFromMesh: true },
           });
           results[account.platformUsername || account.platform] = { success: true };
         } else {
@@ -1320,20 +1685,35 @@ export async function crossPostContent(content: string, platforms: string[], med
       where: { userId: user.id, platform, isActive: true },
     });
 
-    const accessToken = getStoredAccessToken(account?.accessToken || null);
-    if (!account || !accessToken) {
-      results[platform] = { success: false, error: "Not connected or no access token" };
-      continue;
-    }
+      const capability = getPlatformActionCapability(platform, "cross-post");
+      if (!capability.supported) {
+        results[platform] = { success: false, error: capability.reason };
+        continue;
+      }
+      const accessToken = getStoredAccessToken(account?.accessToken || null);
+      if (!account) {
+        results[platform] = { success: false, error: "Not connected or no access token" };
+        continue;
+      }
+      if (account.accessToken && !accessToken) {
+        results[platform] = { success: false, error: "Token encryption key is missing" };
+        continue;
+      }
+      if (!accessToken) {
+        results[platform] = { success: false, error: "No access token" };
+        continue;
+      }
 
     try {
       const adapter = getAdapter(platform);
       const post = await adapter.createPost(accessToken, content, mediaUrls);
       if (post) {
+        const safety = classifyContentSafety(content, post.title, post.content, post.rawMetadata);
         await prisma.platformPost.create({
           data: {
             connectedAccountId: account.id,
             ...post,
+            ...safety,
             isFromMesh: true,
           },
         });
@@ -1361,6 +1741,8 @@ export async function editPlatformPost(postId: string, content: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  const capability = getPlatformActionCapability(post.connectedAccount.platform, "edit");
+  if (!capability.supported) return { error: capability.reason };
   const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -1368,7 +1750,7 @@ export async function editPlatformPost(postId: string, content: string) {
   const ok = await adapter.editPost(accessToken, post.platformPostId, content);
   if (!ok) return { error: "Platform does not support editing or the request failed" };
 
-  await prisma.platformPost.update({ where: { id: postId }, data: { content } });
+  await prisma.platformPost.update({ where: { id: postId }, data: { content, ...classifyContentSafety(post.title, content, post.rawMetadata) } });
   return { success: true };
 }
 
@@ -1381,14 +1763,21 @@ export async function likePlatformPost(postId: string) {
     where: { id: postId },
     include: { connectedAccount: true },
   });
-  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post) return { error: "Post not found" };
 
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
-  if (accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    const ok = await adapter.likePost(accessToken, post.platformPostId);
-    if (!ok) return { error: "Platform does not support liking or the request failed" };
-  }
+  const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
+  if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to like this post from Mesh.me.` };
+
+  const capability = getPlatformActionCapability(actingAccount.platform, "like");
+  if (!capability.supported) return { error: capability.reason };
+
+  const accessToken = getStoredAccessToken(actingAccount.accessToken);
+  if (actingAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
+  if (!accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(actingAccount.platform);
+  const ok = await adapter.likePost(accessToken, post.platformPostId);
+  if (!ok) return { error: "Platform does not support liking or the request failed" };
 
   await prisma.platformPost.update({
     where: { id: postId },
@@ -1406,14 +1795,21 @@ export async function unlikePlatformPost(postId: string) {
     where: { id: postId },
     include: { connectedAccount: true },
   });
-  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post) return { error: "Post not found" };
 
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
-  if (accessToken) {
-    const adapter = getAdapter(post.connectedAccount.platform);
-    const ok = await adapter.unlikePost(accessToken, post.platformPostId);
-    if (!ok) return { error: "Platform does not support unliking or the request failed" };
-  }
+  const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
+  if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to unlike this post from Mesh.me.` };
+
+  const capability = getPlatformActionCapability(actingAccount.platform, "unlike");
+  if (!capability.supported) return { error: capability.reason };
+
+  const accessToken = getStoredAccessToken(actingAccount.accessToken);
+  if (actingAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
+  if (!accessToken) return { error: "No access token" };
+
+  const adapter = getAdapter(actingAccount.platform);
+  const ok = await adapter.unlikePost(accessToken, post.platformPostId);
+  if (!ok) return { error: "Platform does not support unliking or the request failed" };
 
   // Use atomic decrement, then clamp
   await prisma.platformPost.update({
@@ -1437,6 +1833,8 @@ export async function followPlatformUser(connectedAccountId: string, platformUse
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
+  const capability = getPlatformActionCapability(account.platform, "follow");
+  if (!capability.supported) return { error: capability.reason };
   const accessToken = getStoredAccessToken(account.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -1462,6 +1860,8 @@ export async function unfollowPlatformUser(connectedAccountId: string, platformU
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
+  const capability = getPlatformActionCapability(account.platform, "unfollow");
+  if (!capability.supported) return { error: capability.reason };
   const accessToken = getStoredAccessToken(account.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -1486,11 +1886,17 @@ export async function sharePlatformPost(postId: string, comment?: string) {
     where: { id: postId },
     include: { connectedAccount: true },
   });
-  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  if (!post) return { error: "Post not found" };
+
+  const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
+  if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to share this post from Mesh.me.` };
+
+  const capability = getPlatformActionCapability(actingAccount.platform, "share");
+  if (!capability.supported) return { error: capability.reason };
+  const accessToken = getStoredAccessToken(actingAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
-  const adapter = getAdapter(post.connectedAccount.platform);
+  const adapter = getAdapter(actingAccount.platform);
   const ok = await adapter.sharePost(accessToken, post.platformPostId, comment);
   if (!ok) return { error: "Share failed — platform may not support this action" };
 
@@ -1511,6 +1917,8 @@ export async function pinPlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  const capability = getPlatformActionCapability(post.connectedAccount.platform, "pin");
+  if (!capability.supported) return { error: capability.reason };
   const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -1535,6 +1943,8 @@ export async function unpinPlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  const capability = getPlatformActionCapability(post.connectedAccount.platform, "unpin");
+  if (!capability.supported) return { error: capability.reason };
   const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -1559,6 +1969,8 @@ export async function updatePlatformPostVisibility(postId: string, visibility: s
     include: { connectedAccount: true },
   });
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  const capability = getPlatformActionCapability(post.connectedAccount.platform, "visibility");
+  if (!capability.supported) return { error: capability.reason };
   const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -1582,18 +1994,24 @@ export async function replyToPlatformComment(postId: string, content: string) {
     where: { id: postId },
     include: { connectedAccount: true },
   });
-  if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
+  if (!post) return { error: "Post not found" };
 
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
+  if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to comment on this post from Mesh.me.` };
+
+  const capability = getPlatformActionCapability(actingAccount.platform, "reply");
+  if (!capability.supported) return { error: capability.reason };
+
+  const accessToken = getStoredAccessToken(actingAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
-  const adapter = getAdapter(post.connectedAccount.platform);
+  const adapter = getAdapter(actingAccount.platform);
   const comment = await adapter.createComment(accessToken, post.platformPostId, content);
 
   if (comment) {
     await prisma.platformComment.create({
       data: {
-        connectedAccountId: post.connectedAccountId,
+        connectedAccountId: actingAccount.id,
         postId: post.id,
         ...comment,
         isOwnComment: true,
@@ -1615,6 +2033,8 @@ export async function deletePlatformComment(commentId: string) {
     include: { connectedAccount: true },
   });
   if (!comment || comment.connectedAccount.userId !== user.id) return { error: "Comment not found" };
+  const capability = getPlatformActionCapability(comment.connectedAccount.platform, "delete-comment");
+  if (!capability.supported) return { error: capability.reason };
   const accessToken = getStoredAccessToken(comment.connectedAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 

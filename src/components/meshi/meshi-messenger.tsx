@@ -92,7 +92,18 @@ export function MeshiMessenger({ recipientId, recipientName, recipientUsername, 
             {phase === "composing" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div className="flex justify-center mb-4">
-                  <MeshiMascot mood="love" size={48} color={meshiPrefs.color} hat={meshiPrefs.hat} />
+                  <MeshiMascot
+                    mood="love"
+                    size={48}
+                    color={meshiPrefs.color}
+                    hat={meshiPrefs.hat}
+                    hair={meshiPrefs.hair}
+                    accessory={meshiPrefs.accessory}
+                    eyeStyle={meshiPrefs.eye}
+                    badge={meshiPrefs.badge}
+                    outfit={meshiPrefs.outfit}
+                    prop={message.trim() ? "keyboard" : "none"}
+                  />
                 </div>
                 <p className="text-xs text-center text-[var(--text-muted)] mb-3">
                   Meshi will carry your message to {recipientName}
@@ -139,7 +150,7 @@ export function MeshiMessenger({ recipientId, recipientName, recipientUsername, 
                   }}
                   transition={{ duration: 2, ease: "easeInOut" }}
                 >
-                  <MeshiMascot mood="excited" size={56} color={meshiPrefs.color} hat={meshiPrefs.hat} prop="heart" />
+                  <MeshiMascot mood="excited" size={56} color={meshiPrefs.color} hat={meshiPrefs.hat} hair={meshiPrefs.hair} accessory={meshiPrefs.accessory} eyeStyle={meshiPrefs.eye} badge={meshiPrefs.badge} outfit={meshiPrefs.outfit} prop="envelope" />
                 </motion.div>
 
                 {/* Travel trail */}
@@ -176,7 +187,7 @@ export function MeshiMessenger({ recipientId, recipientName, recipientUsername, 
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 0.5 }}
                 >
-                  <MeshiMascot mood="celebrating" size={56} color={meshiPrefs.color} hat={meshiPrefs.hat} />
+                  <MeshiMascot mood="celebrating" size={56} color={meshiPrefs.color} hat={meshiPrefs.hat} hair={meshiPrefs.hair} accessory={meshiPrefs.accessory} eyeStyle={meshiPrefs.eye} badge={meshiPrefs.badge} outfit={meshiPrefs.outfit} />
                 </motion.div>
 
                 <motion.div

@@ -1,18 +1,5 @@
-import { MeshiFunLoadingScreen } from "@/components/meshi/meshi-loading";
+import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
 
 export default function Loading() {
-  return (
-    <MeshiFunLoadingScreen
-      title="Messages"
-      subtitle="Meshi is organizing your conversations."
-      mode="message-writing"
-      progressLabel="Threads synced"
-      steps={[
-        "Authenticating inbox",
-        "Loading recent threads",
-        "Hydrating drafts",
-        "Syncing unread counters",
-      ]}
-    />
-  );
+  return <RouteLoadingPersonality personality="messages" />;
 }

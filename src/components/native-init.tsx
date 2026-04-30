@@ -24,7 +24,7 @@ export function NativeInit() {
     }
 
     if (isIOS()) body.classList.add("platform-ios");
-    else body.classList.add("platform-android");
+    else if (!body.classList.contains("platform-spatial")) body.classList.add("platform-android");
 
     if (!isNative()) {
       return () => {

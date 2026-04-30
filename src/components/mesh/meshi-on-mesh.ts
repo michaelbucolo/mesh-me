@@ -15,6 +15,11 @@ export interface MeshiState {
   color: string;
   hatColor: string;
   hat: string;
+  hair: string;
+  accessory: string;
+  eyeStyle: string;
+  badge: string;
+  outfit: string;
   mood: MeshiMoodCanvas;
   targetNode: MeshNode | null;
   visitedNodes: Set<string>;
@@ -24,7 +29,18 @@ export interface MeshiState {
   bobPhase: number;
   trailPoints: { x: number; y: number; alpha: number }[];
   isMoving: boolean;
-  prop: "none" | "magnifying-glass" | "heart" | "compass";
+  prop:
+    | "none"
+    | "magnifying-glass"
+    | "heart"
+    | "compass"
+    | "paper"
+    | "envelope"
+    | "keyboard"
+    | "rock"
+    | "scissors"
+    | "ball"
+    | "grab";
   propTimer: number;
   username: string;
   lookAtX: number | null; // When set, Meshi's eyes look toward this point
@@ -66,8 +82,17 @@ export interface RemoteMeshi {
   y: number;
   color: string;
   hat: string;
+  hair?: string;
+  accessory?: string;
+  eyeStyle?: string;
+  badge?: string;
+  outfit?: string;
   mood: MeshiMoodCanvas;
   isOnline: boolean;
+  surface?: "mesh" | "feed";
+  activePostId?: string | null;
+  activeNodeId?: string | null;
+  viewingMesh?: string | null;
 }
 
 export const MESHI_COLORS: Record<string, string> = {
@@ -107,6 +132,11 @@ export function createMeshiState(
   color: string,
   hat: string,
   username: string,
+  hair = "none",
+  accessory = "none",
+  eyeStyle = "regular",
+  badge = "none",
+  outfit = "none",
 ): MeshiState {
   const { isTouch, isTablet, isMobile } = detectDeviceProfile();
   return {
@@ -118,6 +148,11 @@ export function createMeshiState(
     color: MESHI_COLORS[color] || MESHI_COLORS.blue,
     hatColor: MESHI_COLORS[color] || MESHI_COLORS.blue,
     hat,
+    hair,
+    accessory,
+    eyeStyle,
+    badge,
+    outfit,
     mood: "happy",
     targetNode: null,
     visitedNodes: new Set(),
@@ -529,39 +564,295 @@ function svgHatMarkup(hat: string, primary: string): string {
   }
 }
 
-// SVG prop markup matching MeshiMascot's PROP_SVGS
-function svgPropMarkup(prop: string, primary: string): string {
-  switch (prop) {
-    case "magnifying-glass":
-      return `<g transform="translate(12, -8) scale(0.6)">
-        <circle cx="0" cy="0" r="6" fill="none" stroke="${primary}" stroke-width="2.5"/>
-        <line x1="4" y1="4" x2="10" y2="10" stroke="${primary}" stroke-width="2.5" stroke-linecap="round"/>
-      </g>`;
-    case "compass":
-      return `<g transform="translate(12, -6) scale(0.55)">
-        <circle cx="0" cy="0" r="7" fill="none" stroke="${primary}" stroke-width="2"/>
-        <polygon points="0,-5 2,0 0,5 -2,0" fill="${primary}" opacity="0.7"/>
-        <circle cx="0" cy="0" r="1.5" fill="${primary}"/>
-      </g>`;
-    case "heart":
-      return `<g transform="translate(12, -6) scale(0.55)">
-        <path d="M 0 3 C -8 -2 -8 -8 -4 -8 C -1 -8 0 -5 0 -5 C 0 -5 1 -8 4 -8 C 8 -8 8 -2 0 3 Z" fill="${primary}" opacity="0.8"/>
+function svgHairMarkup(hair: string, primary: string): string {
+  switch (hair) {
+    case "fluffy":
+      return `<g transform="translate(0, -13)"><path d="M-12,3 Q-10,-8 -4,-7 Q-1,-12 3,-8 Q8,-10 12,2" fill="${primary}" opacity="0.8"/></g>`;
+    case "bangs":
+      return `<g transform="translate(0, -12)"><path d="M-13,3 Q-9,-8 0,-8 Q9,-8 13,3 L9,3 Q7,-2 4,1 Q1,-2 -2,1 Q-5,-2 -8,3 Z" fill="${primary}" opacity="0.85"/></g>`;
+    case "spikes":
+      return `<g transform="translate(0, -13)"><polygon points="-12,3 -10,-7 -6,2 -2,-8 2,2 6,-7 10,2 12,3" fill="${primary}" opacity="0.85"/></g>`;
+    case "curls":
+      return `<g transform="translate(0, -12)">
+        <circle cx="-8" cy="0" r="4" fill="${primary}" opacity="0.8"/>
+        <circle cx="-2" cy="-2" r="4.5" fill="${primary}" opacity="0.82"/>
+        <circle cx="5" cy="-1" r="4.2" fill="${primary}" opacity="0.8"/>
+        <circle cx="10" cy="1" r="3.5" fill="${primary}" opacity="0.78"/>
       </g>`;
     default:
       return "";
   }
 }
 
-/** Generate a complete SVG string that matches MeshiMascot component exactly */
-function generateMeshiSvg(colorKey: string, hat: string, mood: MeshiMoodCanvas, prop?: string): string {
+function svgAccessoryMarkup(accessory: string, primary: string): string {
+  switch (accessory) {
+    case "glasses":
+      return `<g transform="translate(0, 0)">
+        <rect x="-10" y="-4" width="7" height="5.5" rx="2" fill="none" stroke="${primary}" stroke-width="1.5"/>
+        <rect x="3" y="-4" width="7" height="5.5" rx="2" fill="none" stroke="${primary}" stroke-width="1.5"/>
+        <line x1="-3" y1="-1.25" x2="3" y2="-1.25" stroke="${primary}" stroke-width="1.5" stroke-linecap="round"/>
+      </g>`;
+    case "sunglasses":
+      return `<g transform="translate(0, 0)">
+        <rect x="-10" y="-4" width="7.5" height="5.5" rx="1.8" fill="${primary}" opacity="0.85"/>
+        <rect x="2.5" y="-4" width="7.5" height="5.5" rx="1.8" fill="${primary}" opacity="0.85"/>
+        <line x1="-2.5" y1="-1.2" x2="2.5" y2="-1.2" stroke="${primary}" stroke-width="1.4" stroke-linecap="round"/>
+      </g>`;
+    case "monocle":
+      return `<g transform="translate(0, 0)">
+        <circle cx="5.5" cy="-1.2" r="3.3" fill="none" stroke="${primary}" stroke-width="1.4"/>
+        <line x1="8.6" y1="2" x2="10" y2="5.5" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+      </g>`;
+    default:
+      return "";
+  }
+}
+
+function svgEyeStyleMarkup(eyeStyle: string, primary: string): string {
+  if (eyeStyle !== "lashes") return "";
+  return `<g transform="translate(0, 0)">
+    <path d="M-8,-3 L-9.5,-5" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M-6,-3 L-6,-5.4" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M-4,-3 L-2.8,-5" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M4,-3 L2.8,-5" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M6,-3 L6,-5.4" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M8,-3 L9.5,-5" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+  </g>`;
+}
+
+function svgBadgeMarkup(badge: string, primary: string): string {
+  switch (badge) {
+    case "spark":
+      return `<g transform="translate(9, 8)">
+        <circle cx="0" cy="0" r="4.2" fill="rgba(255,255,255,0.78)" stroke="${primary}" stroke-width="1.3"/>
+        <path d="M0 -2.4 L0.8 -0.7 L2.5 0 L0.8 0.7 L0 2.4 L-0.8 0.7 L-2.5 0 L-0.8 -0.7 Z" fill="${primary}"/>
+      </g>`;
+    case "heart":
+      return `<g transform="translate(9, 8)">
+        <circle cx="0" cy="0" r="4.3" fill="rgba(255,255,255,0.78)" stroke="${primary}" stroke-width="1.3"/>
+        <path d="M0 2.2 C-4 -0.5 -3.4 -3.1 -1.5 -3.1 C-0.5 -3.1 0 -2.2 0 -2.2 C0 -2.2 0.5 -3.1 1.5 -3.1 C3.4 -3.1 4 -0.5 0 2.2 Z" fill="${primary}"/>
+      </g>`;
+    case "shield":
+      return `<g transform="translate(9, 8)">
+        <circle cx="0" cy="0" r="4.3" fill="rgba(255,255,255,0.78)" stroke="${primary}" stroke-width="1.3"/>
+        <path d="M0 -3.1 L2.5 -1.8 L2 1.4 L0 3 L-2 1.4 L-2.5 -1.8 Z" fill="${primary}" opacity="0.9"/>
+      </g>`;
+    case "verified":
+      return `<g transform="translate(9, 8)">
+        <circle cx="0" cy="0" r="4.4" fill="#2563eb" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"/>
+        <path d="M-2 -0.1 L-0.5 1.5 L2.4 -1.8" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>`;
+    case "creator":
+      return `<g transform="translate(9, 8)">
+        <circle cx="0" cy="0" r="4.4" fill="#f59e0b" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"/>
+        <path d="M0 -2.7 L0.8 -0.8 L2.8 -0.8 L1.2 0.5 L1.8 2.5 L0 1.4 L-1.8 2.5 L-1.2 0.5 L-2.8 -0.8 L-0.8 -0.8 Z" fill="white"/>
+      </g>`;
+    case "founder":
+      return `<g transform="translate(9, 8)">
+        <circle cx="0" cy="0" r="4.4" fill="#7c3aed" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"/>
+        <path d="M-2.6 1.9 L-1.8 -1.8 L0 -0.4 L1.8 -1.8 L2.6 1.9 Z" fill="white"/>
+      </g>`;
+    default:
+      return "";
+  }
+}
+
+function svgOutfitMarkup(outfit: string, primary: string): string {
+  switch (outfit) {
+    case "scarf":
+      return `<g transform="translate(0, 7)">
+        <path d="M-12 -1 Q0 3 12 -1 L12 3 Q0 7 -12 3 Z" fill="${primary}" opacity="0.85"/>
+        <rect x="5" y="1" width="4" height="9" rx="1.4" fill="${primary}" opacity="0.72"/>
+      </g>`;
+    case "hoodie":
+      return `<g transform="translate(0, 8)">
+        <path d="M-13 -1 Q-9 -7 0 -7 Q9 -7 13 -1 L12 12 H-12 Z" fill="${primary}" opacity="0.28"/>
+        <path d="M-6 -5 Q0 -1 6 -5" fill="none" stroke="${primary}" stroke-width="1.4" stroke-linecap="round" opacity="0.75"/>
+        <line x1="-3" y1="-2" x2="-3" y2="4" stroke="${primary}" stroke-width="1" opacity="0.6"/>
+        <line x1="3" y1="-2" x2="3" y2="4" stroke="${primary}" stroke-width="1" opacity="0.6"/>
+      </g>`;
+    case "jacket":
+      return `<g transform="translate(0, 8)">
+        <path d="M-14 0 Q-8 -5 0 -5 Q8 -5 14 0 L12 12 H-12 Z" fill="${primary}" opacity="0.24"/>
+        <path d="M0 -5 L0 12" stroke="${primary}" stroke-width="1.5" opacity="0.7"/>
+        <circle cx="-4" cy="1" r="1" fill="${primary}" opacity="0.75"/>
+        <circle cx="4" cy="1" r="1" fill="${primary}" opacity="0.75"/>
+      </g>`;
+    case "overalls":
+      return `<g transform="translate(0, 8)">
+        <path d="M-10 -3 H10 L12 12 H-12 Z" fill="${primary}" opacity="0.3"/>
+        <path d="M-6 -5 V4 M6 -5 V4" stroke="${primary}" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
+        <rect x="-4" y="1" width="8" height="5" rx="1" fill="rgba(255,255,255,0.28)" stroke="${primary}" stroke-width="0.8"/>
+      </g>`;
+    case "cape":
+      return `<g transform="translate(0, 7)">
+        <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.34"/>
+        <circle cx="-5" cy="-2.5" r="1.2" fill="${primary}"/>
+        <circle cx="5" cy="-2.5" r="1.2" fill="${primary}"/>
+      </g>`;
+    case "spacesuit":
+      return `<g transform="translate(0, 8)">
+        <path d="M-13 0 Q-7 -6 0 -6 Q7 -6 13 0 L12 12 H-12 Z" fill="rgba(226,232,240,0.48)" stroke="${primary}" stroke-width="1"/>
+        <rect x="-4.5" y="-1.5" width="9" height="5" rx="1.5" fill="rgba(15,23,42,0.22)" stroke="${primary}" stroke-width="0.8"/>
+        <circle cx="0" cy="1" r="1" fill="${primary}"/>
+      </g>`;
+    default:
+      return "";
+  }
+}
+
+// SVG prop markup matching MeshiMascot's hand-held PROP_SVGS
+function svgPropMarkup(prop: string, primary: string): string {
+  switch (prop) {
+    case "magnifying-glass":
+      return `<g transform="translate(17, 8) scale(0.52) rotate(-10)">
+        <circle cx="0" cy="0" r="6" fill="none" stroke="${primary}" stroke-width="2.5"/>
+        <line x1="4" y1="4" x2="10" y2="10" stroke="${primary}" stroke-width="2.5" stroke-linecap="round"/>
+      </g>`;
+    case "clipboard":
+      return `<g transform="translate(16, 8) scale(0.48) rotate(4)">
+        <rect x="-5" y="-2" width="10" height="14" rx="1.5" fill="none" stroke="${primary}" stroke-width="2"/>
+        <rect x="-2" y="-4" width="4" height="3" rx="1" fill="${primary}"/>
+        <line x1="-3" y1="3" x2="3" y2="3" stroke="${primary}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="-3" y1="6" x2="3" y2="6" stroke="${primary}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="-3" y1="9" x2="1" y2="9" stroke="${primary}" stroke-width="1.5" stroke-linecap="round"/>
+      </g>`;
+    case "paintbrush":
+      return `<g transform="translate(17, 9) scale(0.52) rotate(-35)">
+        <rect x="-1.5" y="-2" width="3" height="12" rx="1" fill="${primary}"/>
+        <path d="M -2.5 10 Q 0 14 2.5 10" fill="${primary}" opacity="0.7"/>
+      </g>`;
+    case "megaphone":
+      return `<g transform="translate(16, 8) scale(0.5) rotate(-8)">
+        <path d="M -2 -4 L 8 -8 L 8 4 L -2 0 Z" fill="${primary}" opacity="0.8"/>
+        <rect x="-4" y="-4" width="3" height="4" rx="1" fill="${primary}"/>
+      </g>`;
+    case "shield":
+      return `<g transform="translate(16, 8) scale(0.48)">
+        <path d="M 0 -7 L 7 -3 L 6 5 L 0 8 L -6 5 L -7 -3 Z" fill="none" stroke="${primary}" stroke-width="2"/>
+        <path d="M 0 -2 L 3 1 L 0 4 L -3 1 Z" fill="${primary}" opacity="0.5"/>
+      </g>`;
+    case "compass":
+      return `<g transform="translate(16, 8) scale(0.48)">
+        <circle cx="0" cy="0" r="7" fill="none" stroke="${primary}" stroke-width="2"/>
+        <polygon points="0,-5 2,0 0,5 -2,0" fill="${primary}" opacity="0.7"/>
+        <circle cx="0" cy="0" r="1.5" fill="${primary}"/>
+      </g>`;
+    case "bell":
+      return `<g transform="translate(16, 8) scale(0.5)">
+        <path d="M -5 2 Q -5 -6 0 -7 Q 5 -6 5 2 L -5 2 Z" fill="${primary}" opacity="0.8"/>
+        <rect x="-6" y="2" width="12" height="2" rx="1" fill="${primary}"/>
+        <circle cx="0" cy="5" r="1.5" fill="${primary}"/>
+      </g>`;
+    case "heart":
+      return `<g transform="translate(0, 15) scale(0.58)">
+        <path d="M 0 3 C -8 -2 -8 -8 -4 -8 C -1 -8 0 -5 0 -5 C 0 -5 1 -8 4 -8 C 8 -8 8 -2 0 3 Z" fill="${primary}" opacity="0.8"/>
+      </g>`;
+    case "wrench":
+      return `<g transform="translate(17, 8) scale(0.52) rotate(-48)">
+        <rect x="-1.5" y="-2" width="3" height="14" rx="1" fill="${primary}"/>
+        <circle cx="0" cy="-2" r="3" fill="none" stroke="${primary}" stroke-width="2"/>
+      </g>`;
+    case "notebook":
+      return `<g transform="translate(0, 15) scale(0.46) rotate(2)">
+        <rect x="-6" y="-2" width="12" height="14" rx="1.5" fill="none" stroke="${primary}" stroke-width="2"/>
+        <line x1="-2" y1="-2" x2="-2" y2="12" stroke="${primary}" stroke-width="1.4" opacity="0.7"/>
+        <line x1="0" y1="3" x2="4" y2="-1" stroke="${primary}" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="0.5" y1="3.5" x2="3" y2="6" stroke="${primary}" stroke-width="1.4" stroke-linecap="round" opacity="0.75"/>
+      </g>`;
+    case "paper":
+      return `<g transform="translate(0, 15) scale(0.48) rotate(4)">
+        <path d="M -6 -7 H 3 L 7 -3 V 9 H -6 Z" fill="rgba(255,255,255,0.72)" stroke="${primary}" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M 3 -7 V -3 H 7" fill="none" stroke="${primary}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+        <line x1="-3" y1="-1" x2="3" y2="-1" stroke="${primary}" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
+        <line x1="-3" y1="3" x2="4" y2="3" stroke="${primary}" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
+      </g>`;
+    case "envelope":
+      return `<g transform="translate(0, 15) scale(0.5) rotate(-2)">
+        <rect x="-7" y="-4.5" width="14" height="10" rx="1.6" fill="rgba(255,255,255,0.7)" stroke="${primary}" stroke-width="1.8"/>
+        <path d="M -6 -3.5 L 0 1 L 6 -3.5" fill="none" stroke="${primary}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+        <path d="M -6 5 L -1 1.2 M 6 5 L 1 1.2" fill="none" stroke="${primary}" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+      </g>`;
+    case "keyboard":
+      return `<g transform="translate(0, 16) scale(0.5)">
+        <rect x="-9" y="-5" width="18" height="12" rx="2.2" fill="rgba(255,255,255,0.58)" stroke="${primary}" stroke-width="1.9"/>
+        <line x1="-5" y1="-1.8" x2="-5" y2="2.5" stroke="${primary}" stroke-width="1" opacity="0.65"/>
+        <line x1="0" y1="-1.8" x2="0" y2="2.5" stroke="${primary}" stroke-width="1" opacity="0.65"/>
+        <line x1="5" y1="-1.8" x2="5" y2="2.5" stroke="${primary}" stroke-width="1" opacity="0.65"/>
+        <line x1="-6" y1="2.8" x2="6" y2="2.8" stroke="${primary}" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+      </g>`;
+    case "rock":
+      return `<g transform="translate(17, 8) scale(0.52)">
+        <path d="M -5 1 C -7 -3 -4 -7 0 -7 C 5 -7 8 -3 6 2 C 5 6 1 8 -3 6 C -5 5 -6 3 -5 1 Z" fill="${primary}" opacity="0.72"/>
+        <path d="M -3 -2 C 0 -4 3 -3 4 0" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.1" stroke-linecap="round"/>
+      </g>`;
+    case "scissors":
+      return `<g transform="translate(17, 8) scale(0.5) rotate(-18)">
+        <circle cx="-4.5" cy="5" r="2.2" fill="none" stroke="${primary}" stroke-width="1.7"/>
+        <circle cx="2.5" cy="5" r="2.2" fill="none" stroke="${primary}" stroke-width="1.7"/>
+        <path d="M -2.5 3 L 7 -7 M 0.5 3 L -7 -7" stroke="${primary}" stroke-width="1.7" stroke-linecap="round"/>
+      </g>`;
+    case "ball":
+      return `<g transform="translate(17, 8) scale(0.52)">
+        <circle cx="0" cy="0" r="6" fill="rgba(255,255,255,0.58)" stroke="${primary}" stroke-width="1.9"/>
+        <path d="M -5 -1 Q 0 -4 5 -1 M -5 2 Q 0 5 5 2" fill="none" stroke="${primary}" stroke-width="1.1" stroke-linecap="round" opacity="0.65"/>
+      </g>`;
+    case "grab":
+      return `<g transform="translate(17, 8) scale(0.52)">
+        <circle cx="0" cy="0" r="5.5" fill="none" stroke="${primary}" stroke-width="1.8" stroke-dasharray="2.2 2"/>
+        <circle cx="0" cy="0" r="2" fill="${primary}" opacity="0.6"/>
+      </g>`;
+    default:
+      return "";
+  }
+}
+
+const SVG_TWO_HAND_PROPS = new Set(["keyboard", "notebook", "paper", "envelope", "heart"]);
+
+function svgHoldingHands(prop: string) {
+  if (SVG_TWO_HAND_PROPS.has(prop)) {
+    return [
+      { side: "left", shoulderX: -8.8, shoulderY: 8, elbowX: -11.6, elbowY: 11.6, handX: -10.6, handY: 15 },
+      { side: "right", shoulderX: 8.8, shoulderY: 8, elbowX: 11.6, elbowY: 11.6, handX: 10.6, handY: 15 },
+    ];
+  }
+  return [
+    { side: "right", shoulderX: 11.8, shoulderY: 5, elbowX: 15.4, elbowY: 7.8, handX: 17, handY: 10 },
+  ];
+}
+
+function svgHoldingArmsMarkup(prop: string, primary: string): string {
+  return `<g>${svgHoldingHands(prop)
+    .map((hand) => `<path d="M ${hand.shoulderX} ${hand.shoulderY} Q ${hand.elbowX} ${hand.elbowY} ${hand.handX} ${hand.handY}" fill="none" stroke="${primary}" stroke-width="1.7" stroke-linecap="round"/>`)
+    .join("")}</g>`;
+}
+
+function svgHandsMarkup(prop: string, primary: string, bg: string): string {
+  return `<g>${svgHoldingHands(prop)
+    .map((hand) => `<g>
+      <circle cx="${hand.handX}" cy="${hand.handY}" r="2.9" fill="${bg}" stroke="${primary}" stroke-width="1.45"/>
+      <path d="M ${hand.handX - 1.25} ${hand.handY - 0.1} Q ${hand.handX} ${hand.handY - 1.35} ${hand.handX + 1.25} ${hand.handY - 0.1}" fill="none" stroke="${primary}" stroke-width="0.9" stroke-linecap="round" opacity="0.82"/>
+    </g>`)
+    .join("")}</g>`;
+}
+
+/** Generate a complete SVG string that matches MeshiMascot component closely */
+function generateMeshiSvg(colorKey: string, hat: string, mood: MeshiMoodCanvas, hair = "none", accessory = "none", eyeStyle = "regular", badge = "none", outfit = "none", prop?: string): string {
   const theme = SVG_COLOR_THEMES[colorKey] || SVG_COLOR_THEMES.blue;
   const primary = theme.primary;
   const bg = theme.bg;
   const hatSvg = hat && hat !== "none" ? svgHatMarkup(hat, primary) : "";
+  const hairSvg = hair && hair !== "none" ? svgHairMarkup(hair, primary) : "";
+  const accessorySvg = accessory && accessory !== "none" ? svgAccessoryMarkup(accessory, primary) : "";
+  const eyeStyleSvg = svgEyeStyleMarkup(eyeStyle, primary);
+  const badgeSvg = badge && badge !== "none" ? svgBadgeMarkup(badge, primary) : "";
+  const outfitSvg = outfit && outfit !== "none" ? svgOutfitMarkup(outfit, primary) : "";
   const eyesSvg = svgEyesForMood(mood, primary);
   const propSvg = prop && prop !== "none" ? svgPropMarkup(prop, primary) : "";
+  const armsSvg = propSvg ? svgHoldingArmsMarkup(prop || "none", primary) : "";
+  const handsSvg = propSvg ? svgHandsMarkup(prop || "none", primary, bg) : "";
   // Use unique clip-path ID per SVG variant to avoid collisions
-  const clipId = `mc-${colorKey}-${hat}-${mood}`;
+  const clipId = `mc-${colorKey}-${hat}-${mood}-${hair}-${accessory}-${eyeStyle}-${badge}-${outfit}`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-32 -32 64 64">
     <defs>
@@ -570,23 +861,30 @@ function generateMeshiSvg(colorKey: string, hat: string, mood: MeshiMoodCanvas, 
     <circle cx="0" cy="0" r="20" fill="none" stroke="${primary}" stroke-width="1.5" opacity="0.2"/>
     <g clip-path="url(#${clipId})">
       <circle cx="0" cy="0" r="16" fill="${bg}" stroke="${primary}" stroke-width="2"/>
+      ${outfitSvg}
+      ${hairSvg}
       <g>${eyesSvg}</g>
+      ${eyeStyleSvg}
+      ${accessorySvg}
+      ${badgeSvg}
     </g>
     <g style="color:${primary}">${hatSvg}</g>
+    ${armsSvg}
     ${propSvg}
+    ${handsSvg}
   </svg>`;
 }
 
 // Image cache for rendered SVG Meshis
 const meshiImageCache = new Map<string, HTMLImageElement>();
 
-function getMeshiImage(colorKey: string, hat: string, mood: MeshiMoodCanvas, prop?: string): HTMLImageElement | null {
-  const key = `${colorKey}-${hat}-${mood}-${prop || "none"}`;
+function getMeshiImage(colorKey: string, hat: string, mood: MeshiMoodCanvas, hair = "none", accessory = "none", eyeStyle = "regular", badge = "none", outfit = "none", prop?: string): HTMLImageElement | null {
+  const key = `${colorKey}-${hat}-${mood}-${hair}-${accessory}-${eyeStyle}-${badge}-${outfit}-${prop || "none"}`;
   const cached = meshiImageCache.get(key);
   if (cached && cached.complete) return cached;
   if (cached) return null; // Still loading
 
-  const svg = generateMeshiSvg(colorKey, hat, mood, prop);
+  const svg = generateMeshiSvg(colorKey, hat, mood, hair, accessory, eyeStyle, badge, outfit, prop);
   const blob = new Blob([svg], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
   const img = new Image();
@@ -643,7 +941,7 @@ export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState): voi
 
   // Draw SVG image
   const activeProp = state.prop !== "none" && state.propTimer > 0 ? state.prop : undefined;
-  const img = getMeshiImage(colorKey, state.hat, state.mood, activeProp);
+  const img = getMeshiImage(colorKey, state.hat, state.mood, state.hair, state.accessory, state.eyeStyle, state.badge, state.outfit, activeProp);
   if (img) {
     ctx.drawImage(img, mx - drawSize / 2, my - drawSize / 2, drawSize, drawSize);
   }
@@ -693,7 +991,7 @@ export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: Re
 
     // Draw SVG image — offline Meshis are dimmer and always sleeping
     const displayMood: MeshiMoodCanvas = isOffline ? "sleeping" : rm.mood;
-    const img = getMeshiImage(colorKey, rm.hat, displayMood);
+    const img = getMeshiImage(colorKey, rm.hat, displayMood, rm.hair || "none", rm.accessory || "none", rm.eyeStyle || "regular", rm.badge || "none", rm.outfit || "none");
     if (img) {
       ctx.globalAlpha = isOffline ? 0.35 : 0.75;
       ctx.drawImage(img, mx - drawSize / 2, my - drawSize / 2, drawSize, drawSize);

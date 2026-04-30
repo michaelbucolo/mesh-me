@@ -17,9 +17,20 @@ export type MigrationTask = {
   href: string;
 };
 
+export type ReplacementJob = {
+  id: string;
+  label: string;
+  category: string;
+  status: "ready" | "foundation" | "permission-dependent";
+  coverage: string;
+  description: string;
+  href: string;
+};
+
 export type SuperAppReadinessReport = {
   overallScore: number;
   domains: ReadinessDomain[];
+  replacementJobs: ReplacementJob[];
   migrationTasks: MigrationTask[];
   recommendedActions: string[];
   metrics: {
@@ -177,11 +188,195 @@ export async function getSuperAppReadinessReport(userId: string): Promise<SuperA
     },
   ];
 
+  const replacementJobs: ReplacementJob[] = [
+    {
+      id: "feed-browsing",
+      label: "Feed browsing",
+      category: "Social feeds",
+      status: "ready",
+      coverage: "Native Feed",
+      description: "Browse native Mesh posts and connected content in one familiar surface.",
+      href: "/feed",
+    },
+    {
+      id: "video-discovery",
+      label: "Video discovery",
+      category: "Video and creator platforms",
+      status: "foundation",
+      coverage: importCapablePlatforms > 0 ? "Embeds + imports" : "Embeds + Vault",
+      description: "Surface video links, saved references, imported records, and source-labeled media.",
+      href: "/content-hub",
+    },
+    {
+      id: "messaging",
+      label: "Messaging",
+      category: "Messaging and calling",
+      status: "ready",
+      coverage: "MeChat",
+      description: "Direct conversations, source-aware shared posts, and private thread history.",
+      href: "/messages",
+    },
+    {
+      id: "group-chats",
+      label: "Group chats",
+      category: "Messaging and calling",
+      status: "foundation",
+      coverage: "MeChat rooms",
+      description: "Shared rooms and participants establish the group communication layer.",
+      href: "/messages",
+    },
+    {
+      id: "shared-scrolling",
+      label: "Shared scrolling",
+      category: "Shared social activity",
+      status: "ready",
+      coverage: "Group rooms",
+      description: "Group browsing sessions let people vote, add items, and interact as themselves.",
+      href: "/messages",
+    },
+    {
+      id: "communities",
+      label: "Communities",
+      category: "Communities and forums",
+      status: "ready",
+      coverage: "Mesh communities",
+      description: "Create, join, and post inside topic and group spaces without leaving Mesh.me.",
+      href: "/communities",
+    },
+    {
+      id: "creator-analytics",
+      label: "Creator analytics",
+      category: "Creator dashboards",
+      status: "ready",
+      coverage: "Analytics",
+      description: "View content, platform, privacy, and growth signals in one control center.",
+      href: "/analytics",
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      category: "Notification hubs",
+      status: "ready",
+      coverage: "Unified hub",
+      description: "Centralize alerts and mark them read from one calmer notification surface.",
+      href: "/notifications",
+    },
+    {
+      id: "profiles",
+      label: "Profiles",
+      category: "Digital identity",
+      status: "ready",
+      coverage: "Meshi identity",
+      description: "Mesh.me profiles combine Meshi, bio, links, visibility, and connected platforms.",
+      href: "/profile",
+    },
+    {
+      id: "native-posting",
+      label: "Native posting",
+      category: "Publishing",
+      status: "ready",
+      coverage: "Mesh posts",
+      description: "Post directly to Mesh.me and build an account-owned content base.",
+      href: "/feed",
+    },
+    {
+      id: "cross-platform-sharing",
+      label: "Cross-platform sharing",
+      category: "Publishing",
+      status: crossPostCapablePlatforms > 0 ? "permission-dependent" : "foundation",
+      coverage: "API-gated",
+      description: "Cross-posting and writeback stay bounded by provider APIs and user consent.",
+      href: "/content-hub",
+    },
+    {
+      id: "privacy-controls",
+      label: "Privacy controls",
+      category: "Trust",
+      status: "ready",
+      coverage: "Settings",
+      description: "Visibility, data export, connected account review, and deletion paths are exposed.",
+      href: "/settings",
+    },
+    {
+      id: "saved-content",
+      label: "Saved content",
+      category: "Vault",
+      status: "foundation",
+      coverage: "Mesh Vault",
+      description: "Keep important memories, links, posts, and creator references in a private archive.",
+      href: "/vault",
+    },
+    {
+      id: "voice-and-video",
+      label: "Voice and video calls",
+      category: "Messaging and calling",
+      status: "foundation",
+      coverage: "Meshi Voice + rooms",
+      description: "Voice interaction and room-based shared browsing provide the calling foundation.",
+      href: "/meshi-voice",
+    },
+    {
+      id: "creator-monetization",
+      label: "Creator monetization",
+      category: "Marketplace",
+      status: "foundation",
+      coverage: "Mesh Pro + Marketplace",
+      description: "Subscriptions, creator packs, themes, and accessories support a no-ads model.",
+      href: "/marketplace",
+    },
+    {
+      id: "identity-management",
+      label: "Digital identity management",
+      category: "Digital identity",
+      status: "ready",
+      coverage: "Profile + Meshi",
+      description: "Meshi, profile controls, connected accounts, and visibility form one identity layer.",
+      href: "/profile",
+    },
+    {
+      id: "account-syncing",
+      label: "Connected account display",
+      category: "Connected hub",
+      status: "ready",
+      coverage: `${PLATFORM_CAPABILITIES.length} providers`,
+      description: "Users can connect supported platforms or add manual public sources with revocable access.",
+      href: "/connected-accounts",
+    },
+    {
+      id: "source-credit",
+      label: "Source credit",
+      category: "Connected hub",
+      status: "ready",
+      coverage: "Origin labels",
+      description: "Imported and embedded content keeps platform and creator context visible.",
+      href: "/content-hub",
+    },
+    {
+      id: "data-export-delete",
+      label: "Data export and deletion",
+      category: "Trust",
+      status: "ready",
+      coverage: "Data controls",
+      description: "Export personal records or delete synced data from the privacy control center.",
+      href: "/settings",
+    },
+    {
+      id: "replacement-planning",
+      label: "App migration planning",
+      category: "Super app",
+      status: "ready",
+      coverage: "Top apps",
+      description: "Generate a personalized plan for replacing daily social and communication apps.",
+      href: "/super-app",
+    },
+  ];
+
   const recommendedActions = buildRecommendedActions(domains, migrationTasks);
 
   return {
     overallScore,
     domains,
+    replacementJobs,
     migrationTasks,
     recommendedActions,
     metrics: {
