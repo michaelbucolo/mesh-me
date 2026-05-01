@@ -1,4 +1,5 @@
 import { getAdvancedSocialDashboard } from "@/lib/queries";
+import { compactImageUrl, compactUserAvatar } from "@/lib/media";
 import type { AdvancedSocialData } from "@/components/social/advanced-social-workspace";
 
 type RawPerson = {
@@ -91,7 +92,7 @@ function serializePost(post: RawPost, extras: Partial<AdvancedSocialData["savedP
       id: post.author.id,
       username: post.author.username,
       displayName: post.author.displayName,
-      avatarUrl: post.author.avatarUrl,
+      avatarUrl: compactImageUrl(post.author.avatarUrl),
       isVerified: post.author.isVerified,
     },
     community: post.community
@@ -101,11 +102,16 @@ function serializePost(post: RawPost, extras: Partial<AdvancedSocialData["savedP
           slug: post.community.slug,
         }
       : null,
-    media: (post.media || []).map((media) => ({
-      id: media.id,
-      url: media.url,
-      type: media.type,
-    })),
+    media: (post.media || [])
+      .map((media) => {
+        const url = compactImageUrl(media.url);
+        return url ? {
+          id: media.id,
+          url,
+          type: media.type,
+        } : null;
+      })
+      .filter((media): media is { id: string; url: string; type: string } => Boolean(media)),
     tags: (post.tags || []).map((tag) => ({
       id: tag.id,
       tag: tag.tag,
@@ -136,7 +142,7 @@ function serializeSession(session: RawSession) {
       id: participant.id,
       userId: participant.userId,
       role: participant.role,
-      user: participant.user,
+      user: compactUserAvatar(participant.user),
     })),
     items: (session.items || []).map((item) => ({
       id: item.id,
@@ -164,7 +170,7 @@ function serializePlatformPost(post: RawPlatformPost) {
     content: post.content,
     url: post.url,
     postType: post.postType,
-    thumbnailUrl: post.thumbnailUrl,
+    thumbnailUrl: compactImageUrl(post.thumbnailUrl),
     publishedAt: post.publishedAt?.toISOString() ?? null,
     likeCount: post.likeCount,
     commentCount: post.commentCount,
@@ -174,12 +180,18 @@ function serializePlatformPost(post: RawPlatformPost) {
       platform: post.connectedAccount.platform,
       platformUsername: post.connectedAccount.platformUsername,
     },
-    media: (post.media || []).map((media) => ({
-      id: media.id,
-      url: media.url,
-      thumbnailUrl: media.thumbnailUrl,
-      mediaType: media.mediaType,
-    })),
+    media: (post.media || [])
+      .map((media) => {
+        const url = compactImageUrl(media.url);
+        const thumbnailUrl = compactImageUrl(media.thumbnailUrl);
+        return url || thumbnailUrl ? {
+          id: media.id,
+          url: url ?? thumbnailUrl,
+          thumbnailUrl,
+          mediaType: media.mediaType,
+        } : null;
+      })
+      .filter((media): media is { id: string; url: string | null; thumbnailUrl: string | null; mediaType: string } => Boolean(media)),
   };
 }
 
@@ -188,7 +200,10 @@ export async function getSerializedAdvancedSocialData(): Promise<AdvancedSocialD
   if (!dashboard) return null;
 
   return {
-    currentUser: dashboard.currentUser,
+    currentUser: {
+      ...dashboard.currentUser,
+      avatarUrl: compactImageUrl(dashboard.currentUser.avatarUrl),
+    },
     spaces: dashboard.spaces.map((space) => ({
       ...space,
       joinedAt: space.joinedAt.toISOString(),
@@ -216,7 +231,7 @@ export async function getSerializedAdvancedSocialData(): Promise<AdvancedSocialD
       id: friend.id,
       username: friend.username,
       displayName: friend.displayName,
-      avatarUrl: friend.avatarUrl,
+      avatarUrl: compactImageUrl(friend.avatarUrl),
     })),
     communityThreads: dashboard.communityThreads.map((thread) => ({
       id: thread.id,
