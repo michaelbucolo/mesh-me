@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { canViewNsfw, nsfwHiddenWhere } from "@/lib/content-safety";
+import { compactImageUrl, compactUserAvatar } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { rateLimit, sanitizeForDisplay, validateUrl } from "@/lib/security";
@@ -30,12 +31,41 @@ function buildVaultContent({ title, note, sourceUrl, sourcePlatform }: {
   ].filter(Boolean).join("\n");
 }
 
-export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+function serializeSavedPost(savedPost: Awaited<ReturnType<typeof getVaultPayload>>["savedPosts"][number]) {
+  return {
+    ...savedPost,
+    post: {
+      ...savedPost.post,
+      author: compactUserAvatar(savedPost.post.author),
+      media: savedPost.post.media
+        .map((media) => {
+          const url = compactImageUrl(media.url);
+          return url ? { ...media, url } : null;
+        })
+        .filter((media): media is typeof savedPost.post.media[number] => Boolean(media)),
+    },
+  };
+}
 
+function serializePlatformPost(post: Awaited<ReturnType<typeof getVaultPayload>>["platformPosts"][number]) {
+  return {
+    ...post,
+    thumbnailUrl: compactImageUrl(post.thumbnailUrl),
+    media: post.media
+      .map((media) => {
+        const url = compactImageUrl(media.url);
+        const thumbnailUrl = compactImageUrl(media.thumbnailUrl);
+        return url || thumbnailUrl ? {
+          ...media,
+          url: url ?? thumbnailUrl,
+          thumbnailUrl,
+        } : null;
+      })
+      .filter((media): media is typeof post.media[number] => Boolean(media)),
+  };
+}
+
+async function getVaultPayload(user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
   const [savedPosts, platformPosts] = await Promise.all([
     prisma.savedPost.findMany({
       where: { userId: user.id, post: nsfwHiddenWhere(user) },
@@ -88,9 +118,20 @@ export async function GET() {
     }),
   ]);
 
+  return { savedPosts, platformPosts };
+}
+
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { savedPosts, platformPosts } = await getVaultPayload(user);
+
   return NextResponse.json({
-    savedPosts,
-    platformPosts,
+    savedPosts: savedPosts.map(serializeSavedPost),
+    platformPosts: platformPosts.map(serializePlatformPost),
     counts: {
       savedPosts: savedPosts.length,
       platformCandidates: platformPosts.length,
