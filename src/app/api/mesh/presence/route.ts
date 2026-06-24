@@ -27,6 +27,7 @@ const presenceStore = new Map<string, {
   activeRoute: string | null;
   velocity: number;
   activity: "idle" | "traveling" | "exploring";
+  ghostMode: boolean;
   lastSeen: number;
 }>();
 
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
-    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity } = body;
+    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity, ghostMode } = body;
 
     presenceStore.set(user.id, {
       userId: user.id,
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
       activeRoute: typeof activeRoute === "string" && activeRoute.length > 0 ? activeRoute.slice(0, 160) : null,
       velocity: clampNumber(velocity, 0, 0, 1000),
       activity: activity === "traveling" || activity === "exploring" ? activity : "idle",
+      ghostMode: ghostMode === true,
       lastSeen: Date.now(),
     });
 
@@ -162,6 +164,7 @@ export async function GET(request: Request) {
     activeRoute: string | null;
     velocity: number;
     activity: "idle" | "traveling" | "exploring";
+    ghostMode: boolean;
     isOnline: boolean;
   }> = [];
 
@@ -177,6 +180,8 @@ export async function GET(request: Request) {
     const isSameFeedPost = surface === "feed" && isSameActivePost;
     const isSameMeshContent = surface === "mesh" && isSameActivePost;
 
+    // Ghost mode hides user from all other users
+    if (entry.ghostMode) continue;
     if (!isViewingOurMesh && !isViewingSameMesh && !isSameFeedPost && !isSameMeshContent) continue;
     if (surface === "feed" && activePostId && !isSameFeedPost) continue;
     if (surface === "mesh" && activePostId && !isViewingOurMesh && !isViewingSameMesh && !isSameMeshContent) continue;
@@ -209,6 +214,7 @@ export async function GET(request: Request) {
       activeRoute: entry.activeRoute,
       velocity: entry.velocity,
       activity: entry.activity,
+      ghostMode: entry.ghostMode,
       isOnline,
     });
   }

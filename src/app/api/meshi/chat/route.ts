@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { meshiQuery } from "@/lib/meshi-engine";
-import { callMeshiLLM } from "@/lib/meshi-llm";
+import { callMeshiReasoning } from "@/lib/meshi-reasoning";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { createMeshiResponse, normalizeMeshiMood, type MeshiAction, type MeshiContext, type MeshiHistoryMessage } from "@/lib/meshi-shared";
 
@@ -176,17 +176,17 @@ function getVisibleContentFactCheck(context?: MeshiContext) {
   return `Local fact-check pass: ${source}. ${claimText} ${mediaText} I can only use visible Mesh.me metadata here, so treat this as a triage check, not proof.`;
 }
 
-function getVisibleContentAiSignals(context?: MeshiContext) {
+function getVisibleContentMediaSignals(context?: MeshiContext) {
   const content = context?.focusedContent;
   if (!content) return null;
 
   const mediaText = content.mediaTypes?.length ? content.mediaTypes.join(", ") : "no visible media";
-  const signals = content.aiSignals?.filter(Boolean) || [];
+  const signals = content.mediaSignals?.filter(Boolean) || [];
   if (signals.length > 0) {
-    return `Possible AI-media cues: ${signals.join("; ")}. Media shown: ${mediaText}. This is a metadata and caption check only, not pixel-level verification.`;
+    return `Possible synthetic-media cues: ${signals.join("; ")}. Media shown: ${mediaText}. This is a metadata and caption check only, not pixel-level verification.`;
   }
 
-  return `I do not see obvious local AI-generation cues in the visible caption, source URL, or media metadata. Media shown: ${mediaText}. That does not prove the photo or video is authentic; it means Mesh.me does not have enough provenance metadata to label it as AI-generated.`;
+  return `I do not see obvious synthetic-media cues in the visible caption, source URL, or media metadata. Media shown: ${mediaText}. That does not prove the photo or video is authentic; it means Mesh.me does not have enough provenance metadata to flag it.`;
 }
 
 function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
@@ -201,11 +201,11 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
     q.includes("media") ||
     q.includes("fact") ||
     q.includes("summar") ||
-    q.includes("ai") ||
+    q.includes("machine") ||
     q.includes("generated")
   )) {
-    if (q.includes("ai") || q.includes("generated") || q.includes("synthetic") || q.includes("deepfake")) {
-      return { content: getVisibleContentAiSignals(context) || "I do not have a visible post to inspect yet.", mood: "learning" };
+    if (q.includes("machine") || q.includes("generated") || q.includes("synthetic") || q.includes("deepfake")) {
+      return { content: getVisibleContentMediaSignals(context) || "I do not have a visible post to inspect yet.", mood: "learning" };
     }
     if (q.includes("fact") || q.includes("verify") || q.includes("true") || q.includes("false")) {
       return { content: getVisibleContentFactCheck(context) || "I do not have a visible post to inspect yet.", mood: "learning" };
@@ -474,7 +474,7 @@ function findSmallestFactor(n: number): number {
   return n;
 }
 
-function isOpenEndedLLMTask(query: string): boolean {
+function isOpenEndedCreativeTask(query: string): boolean {
   const q = query.toLowerCase();
   const taskSignals = ["write", "draft", "brainstorm", "plan", "improve", "code", "email", "outline", "translate"];
   return taskSignals.some((signal) => q.includes(signal));
@@ -493,7 +493,7 @@ function isFocusedContentTask(query: string, context?: MeshiContext) {
     q.includes("fact") ||
     q.includes("verify") ||
     q.includes("summar") ||
-    q.includes("ai") ||
+    q.includes("machine") ||
     q.includes("generated") ||
     q.includes("synthetic") ||
     q.includes("deepfake")
@@ -519,7 +519,7 @@ export async function POST(req: Request) {
     }
 
     let databaseAnswer: { content: string; mood: string; action?: MeshiAction } | undefined;
-    const openEndedTask = isOpenEndedLLMTask(message);
+    const openEndedTask = isOpenEndedCreativeTask(message);
     const focusedContentTask = isFocusedContentTask(message, context);
 
     // Try the smart query engine first — it queries the database for real answers
@@ -534,7 +534,7 @@ export async function POST(req: Request) {
           };
         }
       } catch {
-        // Engine failed, fall through to LLM/local reasoning.
+        // Engine failed, fall through to local reasoning.
       }
     }
 
@@ -545,13 +545,13 @@ export async function POST(req: Request) {
         mood: result.mood,
         action: result.action,
         source: "local",
-        llmReady: false,
+        engineReady: false,
         grounded: true,
       }));
     }
 
     try {
-      const llmResult = await callMeshiLLM({
+      const engineResult = await callMeshiReasoning({
         message,
         context,
         history,
@@ -562,19 +562,19 @@ export async function POST(req: Request) {
           isMeshPro: user.isMeshPro,
         },
       });
-      if (llmResult) {
-        return NextResponse.json(llmResult);
+      if (engineResult) {
+        return NextResponse.json(engineResult);
       }
     } catch {
-      // If the LLM provider is unavailable, keep Mesh.me usable with grounded fallback responses.
+      // If the reasoning provider is unavailable, keep Mesh.me usable with grounded fallback responses.
     }
 
     if (openEndedTask) {
       return NextResponse.json(createMeshiResponse({
-        content: "My LLM reasoning layer is the right tool for that. It is wired into Mesh.me now, but this environment needs OPENAI_API_KEY configured before I can complete open-ended writing, planning, coding, and brainstorming tasks live.",
+        content: "My reasoning engine is the right tool for that. It is wired into Mesh.me now, but this environment needs the engine key configured before I can complete open-ended writing, planning, coding, and brainstorming tasks live.",
         mood: "thinking",
         source: "local",
-        llmReady: false,
+        engineReady: false,
         grounded: false,
       }));
     }
@@ -585,12 +585,12 @@ export async function POST(req: Request) {
         mood: databaseAnswer.mood,
         action: databaseAnswer.action,
         source: "database",
-        llmReady: false,
+        engineReady: false,
         grounded: true,
       }));
     }
 
-    // Fallback to local reasoning only when no LLM/database response is available.
+    // Fallback to local reasoning only when no engine/database response is available.
     const result = reason(message, context);
 
     return NextResponse.json({
@@ -599,7 +599,7 @@ export async function POST(req: Request) {
         mood: result.mood,
         action: result.action,
         source: "local",
-        llmReady: false,
+        engineReady: false,
         grounded: false,
       }),
     });

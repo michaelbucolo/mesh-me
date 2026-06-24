@@ -113,7 +113,7 @@ export class MeshEngine {
         const dx = other.x - node.x;
         const dy = other.y - node.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const minDist = node.radius + other.radius + 80;
+        const minDist = node.radius + other.radius + 100;
         if (dist < minDist * config.maxRepulsionDist) {
           const force = (minDist * config.maxRepulsionDist - dist) * config.repulsionForce;
           const fx = (dx / dist) * force * dtNorm;

@@ -48,7 +48,7 @@ export const INTEREST_TAGS = [
   "Design", "Fashion", "Writing", "Poetry", "Comedy", "Dance",
   "Fitness", "Cooking", "Travel", "Nature", "Science", "Philosophy",
   "Anime", "Sports", "Business", "Education", "Health", "Spirituality",
-  "DIY", "Podcasts", "Streaming", "3D Art", "AI", "Web Development",
+  "DIY", "Podcasts", "Streaming", "3D Art", "Machine Learning", "Web Development",
 ];
 
 export const CREATOR_TYPES = [

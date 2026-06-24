@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { impactFeedback } from "@/lib/native/haptics";
 import { getBadgeCount, isNavItemActive, resolveNavHref } from "@/components/layout/navigation-config";
 import { Bell, House, MessageCircle, PlusSquare, Search, Waypoints } from "lucide-react";
-import { usePlatform } from "@/hooks/use-platform";
 import { useKeyboard } from "@/hooks/use-keyboard";
 
 interface MobileNavProps {
@@ -26,7 +25,6 @@ const mobilePrimaryNav = [
 
 export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, username }: MobileNavProps) {
   const pathname = usePathname();
-  const { ios } = usePlatform();
   const { isKeyboardVisible } = useKeyboard();
 
   const navClass = useMemo(
@@ -35,7 +33,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
         "safe-area-bottom mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 w-full border-t border-[var(--mesh-border)] bg-[var(--mesh-bg)]/96 backdrop-blur-xl transition-all duration-200 md:hidden",
         isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0"
       ),
-    [ios, isKeyboardVisible],
+    [isKeyboardVisible],
   );
 
   const composeClass = cn(

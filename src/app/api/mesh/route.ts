@@ -4,12 +4,20 @@ import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+
+  const { searchParams } = new URL(req.url);
+  const viewUserId = searchParams.get("user");
+
+  if (viewUserId && viewUserId !== user.id) {
+    return getPublicMesh(viewUserId, user.id);
+  }
+
   const safetyWhere = nsfwHiddenWhere(user);
 
   const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData, meshiPrefData, meshCosmeticsData] = await Promise.all([
@@ -663,4 +671,143 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+async function getPublicMesh(targetUserId: string, viewerId: string) {
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      avatarUrl: true,
+      bio: true,
+      isPublic: true,
+    },
+  });
+
+  if (!targetUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const isFollowing = await prisma.follow.findFirst({
+    where: { followerId: viewerId, followingId: targetUserId },
+  });
+
+  if (!targetUser.isPublic && !isFollowing) {
+    return NextResponse.json({ error: "This mesh is private" }, { status: 403 });
+  }
+
+  const [followingData, followersData, postsData, interestsData, connectedAccountsData, meshiPrefData] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: targetUserId },
+      select: {
+        following: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
+        },
+      },
+      take: 50,
+    }),
+    prisma.follow.findMany({
+      where: { followingId: targetUserId },
+      select: {
+        follower: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
+        },
+      },
+      take: 50,
+    }),
+    prisma.post.findMany({
+      where: { authorId: targetUserId, visibility: "public" },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        media: { select: { url: true, type: true, width: true, height: true } },
+        _count: { select: { comments: true, reactions: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+    prisma.userInterest.findMany({
+      where: { userId: targetUserId },
+      select: { id: true, tag: true },
+    }),
+    prisma.connectedAccount.findMany({
+      where: { userId: targetUserId },
+      select: { id: true, platform: true, platformUsername: true, isActive: true },
+    }),
+    prisma.meshiPreference.findUnique({
+      where: { userId: targetUserId },
+      select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true },
+    }),
+  ]);
+
+  const nodes: Array<Record<string, unknown>> = [];
+  const links: Array<Record<string, unknown>> = [];
+  const selfNodeId = `self-${targetUser.id}`;
+
+  nodes.push({
+    id: selfNodeId,
+    type: "self",
+    label: targetUser.displayName || targetUser.username || "User",
+    avatarUrl: targetUser.avatarUrl,
+    username: targetUser.username,
+    bio: targetUser.bio,
+  });
+
+  for (const f of followingData) {
+    const nodeId = `following-${f.following.id}`;
+    nodes.push({ id: nodeId, type: "user", subType: "following", label: f.following.displayName || f.following.username || "User", avatarUrl: f.following.avatarUrl, username: f.following.username });
+    links.push({ source: selfNodeId, target: nodeId, type: "follows" });
+  }
+
+  for (const f of followersData) {
+    const nodeId = `follower-${f.follower.id}`;
+    const exists = nodes.some((n) => n.id === `following-${f.follower.id}`);
+    if (!exists) {
+      nodes.push({ id: nodeId, type: "user", subType: "follower", label: f.follower.displayName || f.follower.username || "User", avatarUrl: f.follower.avatarUrl, username: f.follower.username });
+    }
+    links.push({ source: exists ? `following-${f.follower.id}` : nodeId, target: selfNodeId, type: "follows" });
+  }
+
+  for (const p of postsData) {
+    const nodeId = `post-${p.id}`;
+    const firstMedia = p.media?.[0];
+    nodes.push({ id: nodeId, type: "post", label: (p.content || "").slice(0, 60), source: "mesh", mediaUrl: firstMedia?.url || null, mediaType: firstMedia?.type || null, commentCount: p._count.comments, reactionCount: p._count.reactions, createdAt: p.createdAt });
+    links.push({ source: selfNodeId, target: nodeId, type: "authored" });
+  }
+
+  for (const i of interestsData) {
+    const nodeId = `interest-${i.id}`;
+    nodes.push({ id: nodeId, type: "interest", label: i.tag });
+    links.push({ source: selfNodeId, target: nodeId, type: "interested_in" });
+  }
+
+  for (const ca of connectedAccountsData) {
+    const nodeId = `platform-${ca.id}`;
+    nodes.push({ id: nodeId, type: "platform", label: ca.platform, platformUsername: ca.platformUsername, isActive: ca.isActive });
+    links.push({ source: selfNodeId, target: nodeId, type: "connected" });
+  }
+
+  return NextResponse.json({
+    user: {
+      id: targetUser.id,
+      username: targetUser.username,
+      displayName: targetUser.displayName,
+      avatarUrl: targetUser.avatarUrl,
+      bio: targetUser.bio,
+    },
+    nodes,
+    links,
+    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "default", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
+    stats: {
+      followingCount: followingData.length,
+      followerCount: followersData.length,
+      postCount: postsData.length,
+      interestCount: interestsData.length,
+      connectedPlatformCount: connectedAccountsData.length,
+    },
+    isViewingOtherUser: true,
+  });
 }

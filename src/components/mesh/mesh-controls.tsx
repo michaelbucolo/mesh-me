@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ZoomIn, ZoomOut, Maximize2,
-  Search, Fingerprint, Plus, Layers, Shield,
+  Search, Fingerprint, Plus, Layers, Shield, EyeOff,
   Users, Hash, Globe, MessageCircle, FileText, Link2, Sparkles,
   BarChart3, Eye, RefreshCw, Activity,
 } from "lucide-react";
@@ -291,6 +291,7 @@ export function MeshStatsBar({ nodes, zoom, visible }: StatsBarProps & { edges?:
 interface ActionBarProps {
   showContentHub: boolean;
   showNodePrivacy: boolean;
+  ghostMode: boolean;
   hiddenCount: number;
   isSyncingAll?: boolean;
   onCreatePost: () => void;
@@ -298,11 +299,13 @@ interface ActionBarProps {
   onSyncAll: () => void;
   onToggleContentHub: () => void;
   onTogglePrivacy: () => void;
+  onToggleGhostMode: () => void;
 }
 
 export function MeshActionBar({
   showContentHub,
   showNodePrivacy,
+  ghostMode,
   hiddenCount,
   isSyncingAll,
   onCreatePost,
@@ -310,6 +313,7 @@ export function MeshActionBar({
   onSyncAll,
   onToggleContentHub,
   onTogglePrivacy,
+  onToggleGhostMode,
 }: ActionBarProps) {
   return (
     <div className="mesh-action-bar absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-10 flex gap-2 overflow-x-auto pb-1">
@@ -347,6 +351,18 @@ export function MeshActionBar({
       >
         <Layers className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Content</span>
+      </button>
+      <button
+        type="button"
+        onClick={onToggleGhostMode}
+        aria-pressed={ghostMode}
+        aria-label={ghostMode ? "Disable ghost mode" : "Enable ghost mode"}
+        className={"flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-300 active:scale-95 backdrop-blur-2xl border shadow-lg shadow-black/20 " + (
+          ghostMode ? "bg-purple-500/20 border-purple-400/30 text-purple-300" : "bg-black/35 border-white/[0.08] text-white/55 hover:text-white hover:bg-white/12"
+        )}
+      >
+        <EyeOff className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">{ghostMode ? "Ghost" : "Ghost"}</span>
       </button>
       <button
         type="button"

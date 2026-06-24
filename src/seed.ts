@@ -138,7 +138,7 @@ async function main() {
   const interestData = [
     { userId: alex.id, tags: ["Art", "Design", "Photography", "Technology"] },
     { userId: maya.id, tags: ["Music", "Technology", "Travel", "Film"] },
-    { userId: jordan.id, tags: ["Web Development", "AI", "Design", "Gaming"] },
+    { userId: jordan.id, tags: ["Web Development", "Machine Learning", "Design", "Gaming"] },
     { userId: luna.id, tags: ["Writing", "Poetry", "Philosophy", "Travel"] },
     { userId: sam.id, tags: ["Film", "Photography", "Music", "Art"] },
     { userId: riley.id, tags: ["Design", "Art", "Technology", "Fashion"] },

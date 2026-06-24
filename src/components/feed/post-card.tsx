@@ -90,7 +90,7 @@ function VisibilityIcon({ visibility }: { visibility?: string }) {
   return <Globe className="h-3 w-3" aria-label="Public" />;
 }
 
-function detectAiMediaSignals(post: PostCardProps["post"]) {
+function detectMediaSignals(post: PostCardProps["post"]) {
   const haystack = [
     post.content,
     post.externalUrl,
@@ -102,7 +102,6 @@ function detectAiMediaSignals(post: PostCardProps["post"]) {
 
   const signals: string[] = [];
   [
-    ["ai", "caption or media reference mentions AI"],
     ["generated", "caption or media reference says generated"],
     ["synthetic", "caption or media reference says synthetic"],
     ["deepfake", "caption or media reference says deepfake"],
@@ -176,7 +175,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const isOptimistic = Boolean(post.optimistic);
   const postHref = isOptimistic ? "/feed" : post.externalUrl || `/feed/${post.id}`;
   const mediaTypes = getMediaTypes(post.media);
-  const aiSignals = detectAiMediaSignals(post);
+  const mediaSignals = detectMediaSignals(post);
   const visualMedia = post.media.filter((item) => isVisualMedia(item.type));
   const linkMedia = post.media.filter((item) => !isVisualMedia(item.type));
   const meChatShareHref = post.sourceId && requiresSourceAccount
@@ -336,7 +335,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       data-meshi-content-media={mediaTypes.join(",")}
       data-meshi-content-url={post.externalUrl || `/feed/${post.id}`}
       data-meshi-content-rating={post.contentRating || (post.isNsfw ? "adult" : "general")}
-      data-meshi-content-ai-signals={aiSignals.join("|")}
+      data-meshi-content-media-signals={mediaSignals.join("|")}
       className={cn(
         "insta-post-card group overflow-hidden",
         post.isPinned && "ring-1 ring-[var(--accent-muted)]",

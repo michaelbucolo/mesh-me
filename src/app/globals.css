@@ -6149,6 +6149,19 @@ body,
   max-width: 42rem;
 }
 
+/* Let settings fill the viewport height so its internal panel scrolls */
+.mesh-content:has(.settings-traditional) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.mesh-content:has(.settings-traditional) > .mesh-route-slot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .settings-traditional {
   color: var(--text-primary);
 }
@@ -7594,10 +7607,17 @@ body {
   .mechat-sidebar {
     width: 100% !important;
     border-right: 0 !important;
-    border-bottom: 1px solid var(--mesh-border);
+    flex: 1;
+    min-height: 0;
   }
 
   .mechat-sidebar.mechat-sidebar-hidden {
+    display: none;
+  }
+
+  /* When viewing a thread/room, hide sidebar and show only the thread panel */
+  .mechat-layout[data-view="thread"] .mechat-sidebar,
+  .mechat-layout[data-view="room"] .mechat-sidebar {
     display: none;
   }
 
@@ -7607,7 +7627,7 @@ body {
   }
 
   .mechat-detail-panel {
-    display: none;
+    display: none !important;
   }
 }
 

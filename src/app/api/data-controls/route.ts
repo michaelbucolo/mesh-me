@@ -14,7 +14,7 @@ const POLICY_ENTITY_TYPES = [
   "platform_post",
   "messages",
   "analytics",
-  "meshi_ai",
+  "meshi_memory",
   "global_mesh",
   "notifications",
 ] as const;
@@ -67,7 +67,7 @@ async function upsertVisibilityPolicy({
   visibility,
   allowDiscovery,
   allowAnalytics,
-  allowAiUse,
+  allowMeshiUse,
   metadata,
 }: {
   userId: string;
@@ -76,7 +76,7 @@ async function upsertVisibilityPolicy({
   visibility: string;
   allowDiscovery: boolean;
   allowAnalytics: boolean;
-  allowAiUse: boolean;
+  allowMeshiUse: boolean;
   metadata?: Record<string, unknown>;
 }) {
   const existing = await prisma.dataVisibilityPolicy.findFirst({
@@ -88,7 +88,7 @@ async function upsertVisibilityPolicy({
     visibility,
     allowDiscovery,
     allowAnalytics,
-    allowAiUse,
+    allowMeshiUse,
     metadata: JSON.stringify(metadata ?? {}),
   };
 
@@ -323,7 +323,7 @@ export async function POST(req: NextRequest) {
       visibility: payload.visibility,
       allowDiscovery: payload.visibility === "public",
       allowAnalytics: payload.visibility !== "hidden",
-      allowAiUse: false,
+      allowMeshiUse: false,
       metadata: {
         title: platformPost.title,
         platform: platformPost.connectedAccount.platform,
@@ -377,7 +377,7 @@ export async function POST(req: NextRequest) {
       visibility: payload.visibility,
       allowDiscovery: readOptionalBoolean(payload, "allowDiscovery", payload.visibility === "public"),
       allowAnalytics: readOptionalBoolean(payload, "allowAnalytics", payload.visibility !== "hidden"),
-      allowAiUse: readOptionalBoolean(payload, "allowAiUse", false),
+      allowMeshiUse: readOptionalBoolean(payload, "allowMeshiUse", false),
       metadata: {
         updatedFrom: "privacy-control-center",
       },
@@ -397,7 +397,7 @@ export async function POST(req: NextRequest) {
         visibility: policy.visibility,
         allowDiscovery: policy.allowDiscovery,
         allowAnalytics: policy.allowAnalytics,
-        allowAiUse: policy.allowAiUse,
+        allowMeshiUse: policy.allowMeshiUse,
         metadata: policy.metadata,
         updatedAt: policy.updatedAt.toISOString(),
       },

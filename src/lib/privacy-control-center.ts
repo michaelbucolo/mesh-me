@@ -69,7 +69,7 @@ export async function getPrivacyControlCenter() {
         visibility: true,
         allowDiscovery: true,
         allowAnalytics: true,
-        allowAiUse: true,
+        allowMeshiUse: true,
         metadata: true,
         updatedAt: true,
       },

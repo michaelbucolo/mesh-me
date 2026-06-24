@@ -67,7 +67,7 @@ const defaultPolicyRows = [
     defaultVisibility: "private",
   },
   {
-    entityType: "meshi_ai",
+    entityType: "meshi_memory",
     label: "Meshi memory",
     description: "What Meshi can use locally to answer questions about your Mesh.",
     defaultVisibility: "private",
@@ -310,7 +310,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
             visibility,
             allowDiscovery: visibility === "public",
             allowAnalytics: visibility !== "hidden",
-            allowAiUse: row.entityType === "meshi_ai" ? visibility !== "hidden" : false,
+            allowMeshiUse: row.entityType === "meshi_memory" ? visibility !== "hidden" : false,
           }),
         }),
       (payload) => {
