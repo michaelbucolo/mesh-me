@@ -338,6 +338,44 @@ All app pages should have:
 - `animate-page-enter` class on the main content div (smooth fade/slide entrance animation)
 - `data-meshi-zone` attribute for Meshi contextual awareness
 - Verify with: `document.querySelector('.animate-page-enter') !== null` in browser console
+- Count instances: `document.querySelectorAll('.animate-page-enter').length` — most pages have 2 (outer + inner wrapper)
+
+## Animation & Micro-Interaction Testing
+
+When verifying animations added to the platform:
+
+### Page-Enter Animations
+- Every major route has `animate-page-enter` CSS class on its `<main>` wrapper
+- The animation uses `@keyframes pageEnter` with `opacity: 0 → 1` and `translateY(8px) → 0`
+- Easing: `cubic-bezier(0.16, 1, 0.3, 1)` for a satisfying deceleration feel
+- Verify with console: `document.querySelectorAll('.animate-page-enter').length` should return >= 1 on any authenticated page
+
+### Feed Post Cascade
+- The feed post list container has class `feed-posts-stagger`
+- Individual posts have `data-feed-post-id` attributes
+- CSS `@keyframes feedPostReveal` targets first 8 posts via nth-child selectors
+- Stagger delays: 0s, 0.04s, 0.08s, ..., 0.28s (first 8 only, rest appear instantly)
+- Verify: `document.querySelector('.feed-posts-stagger') !== null`
+
+### Framer-Motion Staggered Reveals
+- **Notifications** (`/notifications`): Group cards wrapped in `motion.div` with stagger delay capped at 0.4s
+- **Connected Accounts** (`/connected-accounts`): Account cards + platform cards use framer-motion with layout animation for filter transitions
+- **Search** (`/search`): Tab content uses `AnimatePresence mode="wait"` for smooth crossfade between tabs
+- Verify framer-motion: `document.querySelectorAll('[style*="opacity"]').length` counts elements with inline opacity styles from framer-motion
+
+### Interactive Press Scale
+- Action buttons (like, comment, share) use `.action-icon:active { transform: scale(0.95) }` 
+- Wrapped in `@media (hover: hover)` — only applies on desktop (not touch devices)
+- Verify CSS rule exists: Search stylesheets for `scale(0.95)` via console:
+  ```javascript
+  (() => { for (let s of document.styleSheets) { try { for (let r of s.cssRules) { if (r.cssText?.includes('scale(0.95)')) return 'FOUND: ' + r.cssText.substring(0, 120); } } catch(e) {} } return 'NOT FOUND'; })()
+  ```
+
+### Testing Tips
+- Animation classes are best verified via DOM queries rather than visual-only checks — DOM presence confirms the code is correct even if animations are too fast to see
+- For framer-motion, check for inline `style` attributes containing `opacity` and `transform` values
+- Filter/tab switching animations need AnimatePresence — verify smooth exit/enter rather than instant swap
+- Stagger delay cap (0.4s) prevents long lists from feeling sluggish — verify large lists complete animation quickly
 
 ## Testing Meshi Positioning
 
