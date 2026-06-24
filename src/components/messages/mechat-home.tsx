@@ -6,7 +6,6 @@ import { useMemo, useState, useTransition } from "react";
 import {
   Check,
   ChevronLeft,
-  Hash,
   Info,
   Link2,
   Loader2,
@@ -21,7 +20,6 @@ import {
   ShieldCheck,
   SkipForward,
   Smile,
-  UserPlus,
   Users,
   Video,
   X,
@@ -151,28 +149,6 @@ function roomTypeLabel(type: string) {
   return type.replace(/_/g, " ");
 }
 
-function buildShareQuery({
-  sharedPostId,
-  sharedPlatformPostId,
-  sharedUrl,
-  sharedTitle,
-  sourcePlatform,
-}: {
-  sharedPostId?: string;
-  sharedPlatformPostId?: string;
-  sharedUrl?: string;
-  sharedTitle?: string;
-  sourcePlatform?: string;
-}) {
-  const params = new URLSearchParams({ new: "true" });
-  if (sharedPostId) params.set("sharePostId", sharedPostId);
-  if (sharedPlatformPostId) params.set("sharePlatformPostId", sharedPlatformPostId);
-  if (sharedUrl) params.set("shareUrl", sharedUrl);
-  if (sharedTitle) params.set("shareTitle", sharedTitle);
-  if (sourcePlatform) params.set("sourcePlatform", sourcePlatform);
-  return params.toString();
-}
-
 export function MeChatHome({
   currentUser,
   initialThreads,
@@ -215,11 +191,6 @@ export function MeChatHome({
     [activeSessionId, sessions],
   );
 
-  const directShareQuery = useMemo(
-    () => buildShareQuery({ sharedPostId, sharedPlatformPostId, sharedUrl, sharedTitle, sourcePlatform }),
-    [sharedPostId, sharedPlatformPostId, sharedTitle, sharedUrl, sourcePlatform],
-  );
-
   const inboxSummary = useMemo(() => {
     const connected = connectedInboxes.length;
     const importedItems = connectedInboxes.reduce((total, inbox) => total + inbox.platformComments + inbox.platformPosts, 0);
@@ -252,8 +223,8 @@ export function MeChatHome({
 
   async function loadSession(sessionId: string) {
     const res = await fetch(`/api/mechat/sessions/${sessionId}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Could not reload room");
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) throw new Error((data as Record<string, string> | null)?.error || "Could not reload room");
     updateSession(data.session);
   }
 
@@ -263,7 +234,7 @@ export function MeChatHome({
       setStatus(null);
       try {
         const res = await fetch(`/api/search/users?q=${encodeURIComponent(recipientQuery.trim())}`);
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: "Search failed" }));
         if (!res.ok) throw new Error(data.error || "Search failed");
         setRecipients(data.users || []);
       } catch (error) {
@@ -298,7 +269,7 @@ export function MeChatHome({
             openingMessage: groupOpeningMessage.trim() || undefined,
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: "Could not create group" }));
         if (!res.ok) throw new Error(data.error || "Could not create group");
         setGroupTitle("");
         setGroupOpeningMessage("");
@@ -306,7 +277,7 @@ export function MeChatHome({
         setShowNewGroup(false);
         setStatus({ type: "success", message: "MeChat group created." });
         const threadsRes = await fetch("/api/messages");
-        const threadsData = await threadsRes.json();
+        const threadsData = await threadsRes.json().catch(() => ({}));
         if (threadsRes.ok && Array.isArray(threadsData.threads)) {
           setThreads(threadsData.threads);
         }
@@ -349,7 +320,7 @@ export function MeChatHome({
             items,
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: "Could not create room" }));
         if (!res.ok) throw new Error(data.error || "Could not create room");
         updateSession(data.session);
         setRoomTitle("Shared browsing room");
@@ -372,7 +343,7 @@ export function MeChatHome({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action, callMode }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: "Could not update room" }));
         if (!res.ok) throw new Error(data.error || "Could not update room");
         updateSession(data.session);
       } catch (error) {
@@ -396,7 +367,7 @@ export function MeChatHome({
             title: itemTitle.trim() || "Shared item",
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: "Could not add item" }));
         if (!res.ok) throw new Error(data.error || "Could not add item");
         await loadSession(sessionId);
         setItemTitle("");
@@ -416,7 +387,7 @@ export function MeChatHome({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "vote", itemId, vote: value }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: "Could not vote" }));
         if (!res.ok) throw new Error(data.error || "Could not vote");
         await loadSession(sessionId);
       } catch (error) {
@@ -430,7 +401,7 @@ export function MeChatHome({
       setStatus(null);
       try {
         const res = await fetch("/api/mechat/sync", { method: "POST" });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: "Could not sync MeChat" }));
         if (!res.ok) throw new Error(data.error || "Could not sync MeChat");
         setStatus({
           type: "success",

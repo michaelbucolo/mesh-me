@@ -60,7 +60,7 @@ export function MigrationPlanner({ apps }: { apps: Array<{ key: LegacyAppKey; la
         body: JSON.stringify({ apps: selectedApps }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ error: "Failed to generate migration plan" }));
       if (!response.ok) {
         setError(data?.error || "Failed to generate migration plan");
         setLoading(false);

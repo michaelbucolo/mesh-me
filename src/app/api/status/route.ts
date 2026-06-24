@@ -32,7 +32,10 @@ export async function PUT(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const newStatus = body.status;
     
     if (!VALID_STATUSES.includes(newStatus)) {

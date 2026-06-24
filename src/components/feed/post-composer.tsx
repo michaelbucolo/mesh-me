@@ -126,7 +126,7 @@ export function PostComposer({ user, communityId, onPostPending, onPostCreated, 
           signal: controller.signal,
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json().catch(() => ({}));
           const platforms = (data.accounts || [])
             .filter((a: { platform: string; isActive?: boolean }) => a.isActive !== false)
             .map((a: { platform: string }) => a.platform);

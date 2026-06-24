@@ -123,7 +123,7 @@ function readStoredSet(key: string): Set<string> {
 
 function storeSet(key: string, value: Set<string>) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify([...value]));
+  try { window.localStorage.setItem(key, JSON.stringify([...value])); } catch { /* storage unavailable */ }
 }
 
 function cloneNodes(nodes: MeshNode[]) {
@@ -480,7 +480,7 @@ export function MeshExperience() {
         cache: "no-store",
       });
       if (!response.ok) return;
-      const payload = (await response.json()) as PresenceResponse;
+      const payload = (await response.json().catch(() => ({}))) as PresenceResponse;
       setPresenceSummary(payload.summary || null);
       setRemoteMeshis(
         (payload.presences || []).map((presence) => {

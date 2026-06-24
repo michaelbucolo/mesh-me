@@ -51,7 +51,7 @@ export async function askMeshi(input: AskMeshiInput): Promise<MeshiResponse> {
     }
 
     if (!response.ok) return createMeshiOfflineResponse();
-    return normalizeResponse(await response.json());
+    return normalizeResponse(await response.json().catch(() => ({})));
   } catch {
     return createMeshiOfflineResponse();
   }

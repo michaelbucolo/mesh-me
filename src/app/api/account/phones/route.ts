@@ -23,7 +23,11 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { phone } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { phone } = body;
   if (!phone || typeof phone !== "string" || phone.length < 7) {
     return NextResponse.json({ error: "Valid phone number required" }, { status: 400 });
   }
@@ -56,7 +60,11 @@ export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { phoneId } = await req.json();
+  const deleteBody = await req.json().catch(() => null);
+  if (!deleteBody || typeof deleteBody !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { phoneId } = deleteBody;
   if (!phoneId) return NextResponse.json({ error: "phoneId required" }, { status: 400 });
 
   const phoneRecord = await prisma.userPhone.findUnique({ where: { id: phoneId } });

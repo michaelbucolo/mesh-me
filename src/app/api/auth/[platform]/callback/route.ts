@@ -142,7 +142,7 @@ export async function GET(
       );
     }
 
-    const tokenData = await tokenResponse.json();
+    const tokenData = await tokenResponse.json().catch(() => ({}));
     const accessToken = tokenData.access_token;
     const refreshToken = tokenData.refresh_token || null;
     const expiresIn = tokenData.expires_in;
@@ -188,7 +188,7 @@ export async function GET(
     let platformId: string | null = null;
 
     if (profileResponse.ok) {
-      const profileData = await profileResponse.json();
+      const profileData = await profileResponse.json().catch(() => ({}));
 
       // Navigate to the right data path if needed (e.g. Twitter returns {data: {...}})
       let profile = profileData;

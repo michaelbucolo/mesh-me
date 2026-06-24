@@ -23,7 +23,11 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { username, displayName, bio, avatarUrl } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { username, displayName, bio, avatarUrl } = body;
 
   if (!username || typeof username !== "string" || username.length < 3) {
     return NextResponse.json({ error: "Username must be at least 3 characters" }, { status: 400 });
