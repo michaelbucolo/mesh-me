@@ -32,10 +32,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   const navClass = useMemo(
     () =>
       cn(
-        "safe-area-bottom mobile-bottom-nav fixed bottom-[max(0.35rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-0.75rem)] max-w-md -translate-x-1/2 rounded-[1.1rem] border p-1.5 shadow-[var(--shadow-md)] transition-all duration-200 md:hidden",
-        ios
-          ? "border-[var(--border-primary)] bg-[var(--bg-primary)]/96 backdrop-blur-xl"
-          : "border-[var(--border-primary)] bg-[var(--bg-primary)]/96 backdrop-blur-xl",
+        "safe-area-bottom mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 w-full border-t border-[var(--mesh-border)] bg-[var(--mesh-bg)]/96 backdrop-blur-xl transition-all duration-200 md:hidden",
         isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0"
       ),
     [ios, isKeyboardVisible],
