@@ -217,7 +217,7 @@ const githubAdapter: PlatformAdapter = {
         headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { posts: [] };
-      const repos = await res.json().catch(() => ({}));
+      const repos = await res.json().catch(() => []);
       const posts: PlatformPostData[] = repos.map((repo: Record<string, unknown>) => ({
         platformPostId: String(repo.id),
         content: (repo.description as string) || "",
@@ -241,7 +241,7 @@ const githubAdapter: PlatformAdapter = {
         headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { comments: [] };
-      const issues = await res.json().catch(() => ({}));
+      const issues = await res.json().catch(() => []);
       const comments: PlatformCommentData[] = issues.map((issue: Record<string, unknown>) => ({
         platformCommentId: `issue-${issue.id}`,
         platformPostId: postId,
@@ -264,7 +264,7 @@ const githubAdapter: PlatformAdapter = {
         headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { followers: [] };
-      const users = await res.json().catch(() => ({}));
+      const users = await res.json().catch(() => []);
       const followers: PlatformFollowerData[] = users.map((u: Record<string, unknown>) => ({
         platformUserId: String(u.id),
         username: u.login as string,
