@@ -14,9 +14,9 @@ export default function PrivacyPage() {
       title: "Information we collect",
       content: (
         <>
-          <p>When you create a Mesh.me account, we collect the account data needed to operate the product, such as your email address, username, display name, and password hash.</p>
+          <p>When you create a Mesh.me account, we collect the account data needed to operate the product, such as your email address, username, display name, and password hash. Phone number verification may be required for account security.</p>
           <p>You may also provide optional profile information such as a bio, location, website, avatar, banner image, accent color, and interest tags.</p>
-          <p>When you connect third-party platform accounts, we store the platform name, your platform username, and the OAuth tokens required to access that service on your behalf. We only access scopes you explicitly authorize through the provider&apos;s consent flow.</p>
+          <p>When you connect third-party platform accounts (including GitHub, Discord, Spotify, X/Twitter, Twitch, YouTube, Instagram, Facebook, LinkedIn, Reddit, TikTok, Pinterest, Snapchat, Threads, SoundCloud, Patreon, and Dribbble), we store the platform name, your platform username, and encrypted OAuth tokens required to access that service on your behalf. We only access scopes you explicitly authorize through each provider&apos;s consent flow.</p>
           <p>We also collect product usage and technical data for service operation, security, debugging, and analytics. That can include pages visited, features used, device type, browser, operating system, and IP address.</p>
         </>
       ),
@@ -26,9 +26,9 @@ export default function PrivacyPage() {
       title: "How we use your information",
       content: (
         <>
-          <p>We use account and content data to operate Mesh.me, personalize the product, support connected-platform features, process subscriptions, send service communications, and improve the service.</p>
-          <p>We also use data to detect abuse, prevent fraud, maintain security, satisfy legal obligations, and power the Mesh, Feed, MeChat, Analytics, and Meshi experiences.</p>
-          <p>Mesh.me does not use your data to sell ads, build third-party advertising profiles, or participate in data-broker style monetization.</p>
+          <p>We use account and content data to operate Mesh.me, personalize the product, support connected-platform features, process MeshPro subscriptions through Stripe, and improve the service.</p>
+          <p>We also use data to detect abuse, prevent fraud, maintain security, satisfy legal obligations, enforce age verification requirements, and power the Mesh, Feed, MeChat, Communities, Analytics, and Meshi experiences.</p>
+          <p>Mesh.me does not use your data to sell ads, build third-party advertising profiles, or participate in data-broker style monetization. We will never sell your data to third parties. This is a permanent, foundational commitment.</p>
         </>
       ),
     },
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
         <>
           <p>We do not sell personal information. Public content you intentionally publish may be visible to other users and discoverable by search engines.</p>
           <p>When you trigger cross-platform actions through Mesh.me, those actions are sent through your authorized connection to the source platform, and that platform&apos;s privacy rules also apply.</p>
-          <p>We may share data with essential service providers such as hosting, payment, or email vendors under confidentiality and operational constraints, or when required by law.</p>
+          <p>We share data only with essential service providers: Vercel (hosting), Stripe (payment processing), and transactional email providers. All providers operate under confidentiality agreements and data processing addendums. We share data with law enforcement only when required by valid legal process.</p>
         </>
       ),
     },
@@ -48,8 +48,8 @@ export default function PrivacyPage() {
       title: "Retention, deletion, and portability",
       content: (
         <>
-          <p>We retain information while your account is active and as needed to provide the service. If you delete your account, we will delete or anonymize personal data within the window described in our operational policy, except where legal retention is required.</p>
-          <p>Users can request export or deletion through product controls and support channels. Backup and cached copies may persist temporarily while normal purge cycles complete.</p>
+          <p>We retain information while your account is active and as needed to provide the service. If you delete your account, we will delete or anonymize personal data within 30 days, except where legal retention is required.</p>
+          <p>Connected platform tokens are deleted immediately when you disconnect an account. Users can request full data export or deletion through product settings. Backup and cached copies may persist for up to 90 days while normal purge cycles complete.</p>
         </>
       ),
     },
@@ -69,7 +69,8 @@ export default function PrivacyPage() {
       title: "Security and contact",
       content: (
         <>
-          <p>Mesh.me applies standard safeguards including password hashing, encrypted session handling, input validation, transport security, secure headers, rate limiting, and controlled handling for provider tokens.</p>
+          <p>Mesh.me applies industry-standard safeguards including bcrypt password hashing, encrypted OAuth token storage, HTTPS transport security, secure HTTP headers, CSRF protection, rate limiting, and input validation across all endpoints.</p>
+          <p>End-to-end encryption is applied to direct messages in MeChat. Connected platform tokens are encrypted at rest. All payment processing is handled by Stripe and never touches our servers directly.</p>
           <p>No internet service can promise absolute security. If you have privacy questions or need to exercise your rights, contact privacy@mesh.me.</p>
         </>
       ),
@@ -81,7 +82,7 @@ export default function PrivacyPage() {
       eyebrow="mesh.me Privacy Policy"
       title="Your data should stay legible to you."
       summary="This page explains the launch version of how Mesh.me collects, uses, retains, protects, exports, and deletes user data. The product goal is privacy-first operation with user-visible controls, not hidden exploitation."
-      updatedLabel="Last updated: April 26, 2026"
+      updatedLabel="Last updated: June 23, 2026"
       sections={sections}
     />
   );
