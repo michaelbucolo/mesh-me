@@ -147,7 +147,7 @@ function AccountCard({
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--ds-border)] bg-[var(--accent-subtle)] text-base font-black text-[var(--accent)]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--ds-border)] bg-[var(--accent-subtle)] text-base font-bold text-[var(--accent)]">
               {platformInitial(account.platformName)}
             </div>
             <div className="min-w-0">
@@ -166,7 +166,7 @@ function AccountCard({
           {countItems.map(([label, value]) => (
             <div key={label} className="rounded-[var(--ds-radius-sm)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/55 px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
-              <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{formatCount(Number(value))}</p>
+              <p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{formatCount(Number(value))}</p>
             </div>
           ))}
         </div>
@@ -463,7 +463,7 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
               <ShieldCheck className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
               Official APIs, consent, and clear permissions
             </div>
-            <h1 className="mt-3 text-3xl font-black tracking-[0] sm:text-4xl">Connected accounts</h1>
+            <h1 className="mt-3 text-3xl font-bold tracking-[0] sm:text-4xl">Connected accounts</h1>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">
               Link the services you actually use. Mesh.me stores only the connection you authorize, shows every permission clearly, and never asks for outside passwords.
             </p>
@@ -483,8 +483,8 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
             ["Sync issues", dashboard.summary.syncErrors],
           ].map(([label, value]) => (
             <div key={label} className="rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">{label}</p>
-              <p className="mt-1 text-xl font-black text-[var(--text-primary)]">{value}</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">{label}</p>
+              <p className="mt-1 text-xl font-bold text-[var(--text-primary)]">{value}</p>
             </div>
           ))}
         </div>
@@ -508,7 +508,7 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
       <section className="grid gap-3">
         <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
           <div>
-            <h2 className="text-xl font-black">Your connections</h2>
+            <h2 className="text-xl font-bold">Your connections</h2>
             <p className="text-sm text-[var(--text-secondary)]">Sync status, permissions, and disconnect controls in one place.</p>
           </div>
         </div>
@@ -529,7 +529,7 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
         ) : (
           <div className="rounded-[var(--ds-radius-md)] border border-dashed border-[var(--ds-border)] bg-[var(--ds-surface)] px-5 py-8 text-center">
             <PlugZap className="mx-auto h-9 w-9 text-[var(--text-muted)]" aria-hidden="true" />
-            <h3 className="mt-3 text-lg font-black">No accounts connected yet</h3>
+            <h3 className="mt-3 text-lg font-bold">No accounts connected yet</h3>
             <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--text-secondary)]">
               Start with one OAuth platform or add a manual public handle. Mesh.me will keep the source visible and permission-based.
             </p>
@@ -539,7 +539,7 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
 
       <section className="grid gap-3">
         <div>
-          <h2 className="text-xl font-black">Add a manual account</h2>
+          <h2 className="text-xl font-bold">Add a manual account</h2>
           <p className="text-sm text-[var(--text-secondary)]">Use this for platforms where Mesh.me can safely reference a public handle but cannot use OAuth yet.</p>
         </div>
         <form onSubmit={connectManualAccount} className="grid gap-3 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 md:grid-cols-[12rem_1fr_1fr_auto]">
@@ -582,7 +582,7 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
       <section className="grid gap-3">
         <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
           <div>
-            <h2 className="text-xl font-black">Supported platforms</h2>
+            <h2 className="text-xl font-bold">Supported platforms</h2>
             <p className="text-sm text-[var(--text-secondary)]">OAuth where official APIs allow it. Manual references where they do not.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">

@@ -492,7 +492,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
           <div className="inline-flex items-center gap-3">
             <MeshiMascot size={46} color="blue" mood={mode === "vault" ? "love" : "happy"} prop={mode === "vault" ? "notebook" : "compass"} />
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">{headerCopy.eyebrow}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">{headerCopy.eyebrow}</p>
               <p className="text-sm font-bold text-[var(--text-secondary)]">Meshi represents {data.currentUser.displayName}</p>
             </div>
           </div>
@@ -518,7 +518,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
               <HeaderIcon size={14} aria-hidden="true" />
               Account-only social layer
             </div>
-            <h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight md:text-5xl">{headerCopy.title}</h1>
+            <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight md:text-5xl">{headerCopy.title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">{headerCopy.body}</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -610,7 +610,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                   const Icon = option.icon;
                   return (
                     <button key={option.type} type="button" onClick={() => createSession(option.type, option.callMode)} disabled={isPending} className="mesh-link-row rounded-md px-3 py-3 text-left">
-                      <span className="flex items-center gap-2 text-sm font-black">
+                      <span className="flex items-center gap-2 text-sm font-bold">
                         <Icon size={15} aria-hidden="true" />
                         {option.label}
                       </span>
@@ -629,7 +629,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {sessions.map((session) => (
                       <button key={session.id} type="button" onClick={() => setActiveSessionId(session.id)} className={`mesh-choice shrink-0 rounded-md px-3 py-2 text-left text-sm ${activeSession?.id === session.id ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-secondary)]"}`}>
-                        <span className="block font-black">{session.title}</span>
+                        <span className="block font-bold">{session.title}</span>
                         <span className="block text-xs opacity-80">{sessionLabel(session.sessionType)} - {session.status}</span>
                       </button>
                     ))}
@@ -663,7 +663,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{space.category || "space"}</p>
-                          <h3 className="mt-1 truncate text-lg font-black">{space.name}</h3>
+                          <h3 className="mt-1 truncate text-lg font-bold">{space.name}</h3>
                           <p className="mt-1 line-clamp-2 text-sm text-[var(--text-secondary)]">{space.description || "Shared posts, group chat, and collaborative browsing."}</p>
                         </div>
                         <span className="rounded-full border border-[var(--border-primary)] px-2.5 py-1 text-[11px] font-bold text-[var(--text-secondary)]">{space.role}</span>
@@ -712,7 +712,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                     <Link key={thread.id} href={`/messages/${thread.id}`} className="mesh-link-row rounded-md px-3 py-3">
                       <span className="flex items-center justify-between gap-3">
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-black">{thread.title?.replace("community:", "Community ") || "Community chat"}</span>
+                          <span className="block truncate text-sm font-bold">{thread.title?.replace("community:", "Community ") || "Community chat"}</span>
                           <span className="block truncate text-xs text-[var(--text-muted)]">
                             {thread.lastMessage?.content || "No messages yet"} - {formatRelativeTime(thread.updatedAt)}
                           </span>
@@ -755,7 +755,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                   <Link key={account.id} href="/connected-accounts" className="mesh-link-row rounded-md px-3 py-3">
                     <span className="flex items-center justify-between gap-3">
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-black">{platformLabel(account.platform)}</span>
+                        <span className="block truncate text-sm font-bold">{platformLabel(account.platform)}</span>
                         <span className="block truncate text-xs text-[var(--text-muted)]">
                           {account.platformUsername ? `@${account.platformUsername}` : "Connected"} - {account.counts.posts} posts
                         </span>
@@ -781,7 +781,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{vaultTag(post)}</p>
-                          <h3 className="mt-1 line-clamp-2 text-base font-black">{postTitle(post)}</h3>
+                          <h3 className="mt-1 line-clamp-2 text-base font-bold">{postTitle(post)}</h3>
                           <p className="mt-2 line-clamp-4 text-sm leading-6 text-[var(--text-secondary)]">{post.content}</p>
                         </div>
                         {post.media[0] && (
@@ -834,7 +834,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                 <div className="grid gap-2">
                   {watchSessions.slice(0, 6).map((session) => (
                     <button key={session.id} type="button" onClick={() => setActiveSessionId(session.id)} className="mesh-link-row rounded-md px-3 py-3 text-left">
-                      <span className="block text-sm font-black">{session.title}</span>
+                      <span className="block text-sm font-bold">{session.title}</span>
                       <span className="mt-1 block text-xs text-[var(--text-muted)]">
                         {session.items.length} queued item{session.items.length === 1 ? "" : "s"} - {session.status}
                       </span>
@@ -853,7 +853,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
 function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <section className="mesh-surface rounded-lg p-4 md:p-5">
-      <h2 className="flex items-center gap-2 text-base font-black md:text-lg">
+      <h2 className="flex items-center gap-2 text-base font-bold md:text-lg">
         {icon}
         {title}
       </h2>
@@ -866,7 +866,7 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-6 text-center">
       <MeshiMascot size={42} color="blue" mood="thinking" prop="notebook" />
-      <h3 className="mt-3 text-lg font-black">{title}</h3>
+      <h3 className="mt-3 text-lg font-bold">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
     </div>
   );
@@ -909,7 +909,7 @@ function SessionCard({
           <span className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold ${sessionStatusClass(session.status)}`}>
             {session.status}
           </span>
-          <h3 className="mt-3 text-2xl font-black">{session.title}</h3>
+          <h3 className="mt-3 text-2xl font-bold">{session.title}</h3>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             {sessionLabel(session.sessionType)} - {session.participants.length} participant{session.participants.length === 1 ? "" : "s"}
           </p>
@@ -978,7 +978,7 @@ function SessionCard({
       {currentItem && (
         <div className="mt-4 rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]/45 p-3">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Now focused</p>
-          <h4 className="mt-1 text-base font-black">{currentItem.title || "Shared item"}</h4>
+          <h4 className="mt-1 text-base font-bold">{currentItem.title || "Shared item"}</h4>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">{platformLabel(currentItem.sourcePlatform)}</p>
           {currentItem.sourceUrl && (
             <a href={currentItem.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[var(--accent)]">
@@ -1008,7 +1008,7 @@ function SessionCard({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{platformLabel(item.sourcePlatform)}</p>
-                  <h4 className="mt-1 truncate text-sm font-black">{item.title || "Shared item"}</h4>
+                  <h4 className="mt-1 truncate text-sm font-bold">{item.title || "Shared item"}</h4>
                   {item.content && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{item.content}</p>}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1062,7 +1062,7 @@ function ContentQueue({
     <Panel title="Content queue" icon={<Bookmark size={18} aria-hidden="true" />}>
       <div className="grid gap-4 lg:grid-cols-2">
         <div>
-          <h3 className="text-sm font-black">Mesh.me posts</h3>
+          <h3 className="text-sm font-bold">Mesh.me posts</h3>
           <div className="mt-3 grid gap-2">
             {recentPosts.slice(0, 6).map((post) => (
               <article key={post.id} className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3">
@@ -1088,7 +1088,7 @@ function ContentQueue({
           </div>
         </div>
         <div>
-          <h3 className="text-sm font-black">Connected platform posts</h3>
+          <h3 className="text-sm font-bold">Connected platform posts</h3>
           <div className="mt-3 grid gap-2">
             {platformPosts.slice(0, 6).map((post) => (
               <article key={post.id} className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3">

@@ -68,7 +68,7 @@ export function MeshPrivacyPanel({
             className="flex min-h-[4.4rem] flex-col justify-between rounded-xl border border-emerald-400/18 bg-emerald-500/10 p-3 text-left text-xs transition-all hover:bg-emerald-500/15 active:scale-[0.98]"
           >
             <LockKeyhole className="h-4 w-4 text-emerald-300" aria-hidden="true" />
-            <span className="font-black text-[var(--text-primary)]">Private view</span>
+            <span className="font-bold text-[var(--text-primary)]">Private view</span>
             <span className="text-[10px] text-[var(--text-muted)]">Hide branches</span>
           </button>
           <button
@@ -77,7 +77,7 @@ export function MeshPrivacyPanel({
             className="flex min-h-[4.4rem] flex-col justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 text-left text-xs transition-all hover:bg-[var(--bg-hover)] active:scale-[0.98]"
           >
             <Eye className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
-            <span className="font-black text-[var(--text-primary)]">Show all</span>
+            <span className="font-bold text-[var(--text-primary)]">Show all</span>
             <span className="text-[10px] text-[var(--text-muted)]">Restore view</span>
           </button>
         </div>

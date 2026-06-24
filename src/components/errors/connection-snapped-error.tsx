@@ -58,7 +58,7 @@ export function ConnectionSnappedError({
           compact ? "max-w-2xl" : "max-w-3xl",
         )}
       >
-        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
+        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
           <span className="connection-snapped-status-dot" aria-hidden="true" />
           500
         </div>
@@ -106,7 +106,7 @@ export function ConnectionSnappedError({
           The connection broke. I kept your world safe.
         </div>
 
-        <h1 className={cn("mx-auto mt-4 max-w-2xl font-display text-3xl font-black leading-tight text-[var(--text-primary)]", !compact && "sm:text-5xl")}>
+        <h1 className={cn("mx-auto mt-4 max-w-2xl font-display text-3xl font-bold leading-tight text-[var(--text-primary)]", !compact && "sm:text-5xl")}>
           Connection Snapped
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--text-secondary)] sm:text-base">

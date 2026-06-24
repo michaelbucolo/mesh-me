@@ -12,42 +12,42 @@
 :root, .dark {
   --font-inter: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --bg-primary: #0f1115;
-  --bg-secondary: #151922;
-  --bg-tertiary: #1d2430;
-  --bg-elevated: #151922;
-  --bg-card: #151922;
-  --bg-hover: #1d2430;
-  --bg-input: #10141d;
-  --bg-overlay: rgba(0, 0, 0, 0.74);
+  --bg-primary: #0a0e14;
+  --bg-secondary: #12161e;
+  --bg-tertiary: #1a1f2a;
+  --bg-elevated: #151a23;
+  --bg-card: #12161e;
+  --bg-hover: #1a2030;
+  --bg-input: #0d1118;
+  --bg-overlay: rgba(0, 0, 0, 0.78);
 
-  --border-primary: #2b3445;
-  --border-secondary: #39465d;
-  --border-hover: #50607c;
-  --border-focus: rgba(96, 165, 250, 0.5);
+  --border-primary: rgba(136, 153, 176, 0.12);
+  --border-secondary: rgba(136, 153, 176, 0.18);
+  --border-hover: rgba(136, 153, 176, 0.28);
+  --border-focus: rgba(56, 139, 253, 0.46);
 
-  --text-primary: #fafafa;
-  --text-secondary: #c3cedf;
-  --text-tertiary: #9ca9be;
-  --text-muted: #7f8ca3;
-  --text-inverse: #09090b;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #7d8590;
+  --text-muted: #656d76;
+  --text-inverse: #0a0e14;
 
-  --accent: #60a5fa;
-  --accent-hover: #93c5fd;
-  --accent-muted: rgba(96, 165, 250, 0.24);
-  --accent-subtle: rgba(96, 165, 250, 0.12);
-  --accent-glow: rgba(96, 165, 250, 0.28);
-  --brand-gradient: #60a5fa;
-  --brand-gradient-vibrant: #60a5fa;
+  --accent: #388bfd;
+  --accent-hover: #58a6ff;
+  --accent-muted: rgba(56, 139, 253, 0.16);
+  --accent-subtle: rgba(56, 139, 253, 0.08);
+  --accent-glow: rgba(56, 139, 253, 0.14);
+  --brand-gradient: linear-gradient(135deg, #388bfd 0%, #58a6ff 100%);
+  --brand-gradient-vibrant: linear-gradient(135deg, #388bfd 0%, #58a6ff 100%);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(45, 127, 249, 0.15);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.32);
+  --shadow-glow: 0 0 16px rgba(56, 139, 253, 0.12);
 
-  --ring-color: rgba(0, 210, 255, 0.32);
-  --scrollbar-thumb: linear-gradient(180deg, #00d2ff 0%, #0b0b0b 100%);
-  --scrollbar-hover: linear-gradient(180deg, #58e5ff 0%, #141414 100%);
+  --ring-color: rgba(56, 139, 253, 0.24);
+  --scrollbar-thumb: #1a2030;
+  --scrollbar-hover: #253040;
   --selection-bg: rgba(0, 210, 255, 0.32);
 
   --shimmer-1: #060606;
@@ -920,7 +920,7 @@ select:focus-visible {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: 700;
   transition:
     transform 180ms var(--mesh-ease-out),
     border-color 180ms var(--mesh-ease-out),
@@ -1083,7 +1083,7 @@ select:focus-visible {
   padding: 0.7rem 1rem;
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: 700;
   box-shadow: var(--shadow-sm);
 }
 
@@ -1098,7 +1098,7 @@ select:focus-visible {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: 700;
   transition:
     transform 180ms var(--mesh-ease-out),
     border-color 180ms var(--mesh-ease-out),
@@ -1209,7 +1209,7 @@ select:focus-visible {
   padding: 0.65rem 0.75rem;
   color: var(--text-secondary);
   font-size: 0.86rem;
-  font-weight: 900;
+  font-weight: 700;
   text-align: left;
   transition:
     transform 180ms var(--mesh-ease-out),
@@ -1353,12 +1353,11 @@ select:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 3.5rem;
+  min-height: 3.25rem;
   margin-inline: -0.25rem;
-  padding: 0.4rem 0.25rem 0.75rem;
-  background: linear-gradient(180deg, var(--bg-primary) 72%, color-mix(in srgb, var(--bg-primary) 0%, transparent));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  padding: 0.35rem 0.25rem 0.55rem;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-primary);
 }
 
 .insta-story-rail {
@@ -1398,23 +1397,27 @@ select:focus-visible {
 .insta-feed-tab,
 .insta-feed-tab-active {
   display: inline-flex;
-  min-height: 2.65rem;
+  min-height: 2.85rem;
   align-items: center;
   justify-content: center;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-size: 0.88rem;
-  font-weight: 800;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   transition:
-    color var(--mesh-transition-fast),
-    border-color var(--mesh-transition-fast),
-    transform var(--mesh-transition-fast);
+    color 150ms ease,
+    border-color 150ms ease;
 }
 
-.insta-feed-tab:hover,
+.insta-feed-tab:hover {
+  color: var(--text-secondary);
+}
+
 .insta-feed-tab-active {
-  border-bottom-color: var(--text-primary);
+  border-bottom-color: var(--accent);
   color: var(--text-primary);
+  font-weight: 800;
 }
 
 .insta-feed-tab:active,
@@ -1427,37 +1430,38 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.55rem;
-  min-width: 2.55rem;
+  min-height: 2.25rem;
+  min-width: 2.25rem;
   border-radius: 999px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   transition:
-    background-color var(--mesh-transition-fast),
-    color var(--mesh-transition-fast),
-    transform var(--mesh-transition-fast);
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
 }
 
 .insta-icon-button:hover,
 .insta-post-action:hover {
-  background: var(--bg-hover);
+  background: color-mix(in srgb, var(--bg-hover) 60%, transparent);
+  color: var(--text-primary);
 }
 
 .insta-icon-button:active,
 .insta-post-action:active {
-  transform: scale(0.94);
+  transform: scale(0.92);
 }
 
 .insta-post-card {
-  border: 1px solid var(--border-primary);
-  border-radius: 0.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--border-primary);
+  border-radius: 0;
   background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+  transition: background-color 150ms ease;
 }
 
 .insta-post-card:hover {
-  border-color: color-mix(in srgb, var(--border-hover) 74%, var(--border-primary));
-  box-shadow: var(--shadow-md);
+  background: color-mix(in srgb, var(--bg-secondary) 40%, var(--bg-primary));
 }
 
 .insta-text-post {
@@ -1562,7 +1566,7 @@ select:focus-visible {
   padding-inline: 0.65rem;
   color: var(--text-secondary);
   font-size: 0.73rem;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .insta-profile-privacy-pill {
@@ -1581,7 +1585,7 @@ select:focus-visible {
   padding-inline: 0.85rem;
   color: var(--text-primary);
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 600;
   transition:
     background-color var(--mesh-transition-fast),
     transform var(--mesh-transition-fast);
@@ -1633,7 +1637,7 @@ select:focus-visible {
   border-top: 2px solid var(--text-primary);
   color: var(--text-primary);
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -1659,7 +1663,7 @@ select:focus-visible {
   background: rgba(0, 0, 0, 0.52);
   color: white;
   font-size: 0.8rem;
-  font-weight: 900;
+  font-weight: 700;
   opacity: 0;
   transition: opacity var(--mesh-transition-fast);
 }
@@ -2505,7 +2509,7 @@ html {
   color: var(--accent);
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -2907,11 +2911,9 @@ html {
   position: fixed;
   inset: -8vmax;
   z-index: 1;
-  opacity: 0.98;
+  opacity: 0.7;
   pointer-events: none;
-  filter:
-    drop-shadow(0 0 8px rgba(191, 219, 254, 0.2))
-    drop-shadow(0 0 30px rgba(37, 99, 235, 0.16));
+  filter: none;
   transform: translateZ(0);
   animation: mesh-entry-border-breathe 18s ease-in-out infinite;
   contain: paint;
@@ -2932,17 +2934,13 @@ html {
 
 .mesh-entry-constellation::before {
   background:
-    linear-gradient(90deg, rgba(147, 197, 253, 0.14), transparent 17%, transparent 83%, rgba(125, 211, 252, 0.14)),
-    linear-gradient(180deg, rgba(191, 219, 254, 0.12), transparent 20%, transparent 80%, rgba(147, 197, 253, 0.1));
-  mask-image:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.96), transparent 26%, transparent 74%, rgba(0, 0, 0, 0.96)),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.92), transparent 25%, transparent 75%, rgba(0, 0, 0, 0.92));
+    linear-gradient(90deg, rgba(56, 139, 253, 0.06), transparent 20%, transparent 80%, rgba(56, 139, 253, 0.06)),
+    linear-gradient(180deg, rgba(56, 139, 253, 0.05), transparent 22%, transparent 78%, rgba(56, 139, 253, 0.05));
 }
 
 .mesh-entry-constellation::after {
   box-shadow:
-    inset 0 0 96px rgba(59, 130, 246, 0.12),
-    inset 0 0 210px rgba(2, 6, 23, 0.78);
+    inset 0 0 80px rgba(10, 14, 20, 0.6);
 }
 
 .mesh-entry-edge-line {
@@ -3047,16 +3045,12 @@ html {
 }
 
 .mesh-entry-card {
-  border: 1px solid rgba(191, 219, 254, 0.16);
-  border-radius: 1.45rem;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(2, 6, 23, 0.62)),
-    rgba(2, 6, 23, 0.38);
-  box-shadow:
-    0 30px 90px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  padding: clamp(1.1rem, 3vw, 1.45rem);
-  backdrop-filter: blur(20px) saturate(132%);
+  border: 1px solid rgba(136, 153, 176, 0.12);
+  border-radius: 1.25rem;
+  background: rgba(10, 14, 20, 0.82);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  padding: clamp(1.25rem, 3.5vw, 1.65rem);
+  backdrop-filter: blur(24px) saturate(120%);
 }
 
 .mesh-entry-identity-form {
@@ -3138,38 +3132,35 @@ html {
 
 .mesh-entry-meshi-note {
   max-width: min(20rem, calc(100vw - 3rem));
-  border: 1px solid rgba(191, 219, 254, 0.16);
-  border-radius: 999px;
-  background: rgba(2, 6, 23, 0.58);
-  color: rgba(219, 234, 254, 0.78);
+  border: 1px solid rgba(136, 153, 176, 0.12);
+  border-radius: 0.6rem;
+  background: rgba(10, 14, 20, 0.82);
+  color: rgba(230, 237, 243, 0.72);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0;
-  line-height: 1.2;
-  padding: 0.46rem 0.72rem;
+  line-height: 1.3;
+  padding: 0.5rem 0.75rem;
   text-align: center;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
 }
 
 .mesh-entry-input {
   width: 100%;
-  height: 3.65rem;
-  border: 1px solid rgba(191, 219, 254, 0.2);
-  border-radius: 999px;
-  background: rgba(2, 6, 23, 0.72);
-  color: white;
-  font-size: 1rem;
+  height: 3.25rem;
+  border: 1px solid rgba(136, 153, 176, 0.18);
+  border-radius: 0.75rem;
+  background: rgba(10, 14, 20, 0.8);
+  color: #e6edf3;
+  font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   outline: none;
-  padding: 0 1.25rem;
+  padding: 0 1rem;
   text-align: center;
-  box-shadow:
-    0 18px 70px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(18px) saturate(140%);
-  transition: border-color 220ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 220ms cubic-bezier(0.4, 0, 0.2, 1), background 220ms cubic-bezier(0.4, 0, 0.2, 1), transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 
 .mesh-entry-input::placeholder {
@@ -3182,16 +3173,12 @@ html {
 }
 
 .mesh-entry-input:hover:not(:focus) {
-  border-color: rgba(191, 219, 254, 0.36);
-  background: rgba(8, 12, 28, 0.78);
+  border-color: rgba(136, 153, 176, 0.32);
 }
 
 .mesh-entry-input:focus {
-  border-color: rgba(147, 197, 253, 0.82);
-  background: rgba(15, 23, 42, 0.74);
-  box-shadow:
-    0 0 0 4px rgba(59, 130, 246, 0.16),
-    0 0 34px rgba(96, 165, 250, 0.18);
+  border-color: rgba(56, 139, 253, 0.6);
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.15);
 }
 
 .mesh-entry-input-invalid,
@@ -3268,28 +3255,25 @@ html {
 
 .mesh-entry-primary {
   position: relative;
-  min-height: 3.35rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #f8fafc 0%, #93c5fd 46%, #2563eb 100%);
-  color: #020617;
-  font-weight: 900;
+  min-height: 3.25rem;
+  border-radius: 0.75rem;
+  background: #388bfd;
+  color: #ffffff;
+  font-weight: 700;
   overflow: hidden;
-  box-shadow: 0 18px 46px rgba(37, 99, 235, 0.34);
+  box-shadow: none;
   transform: translateZ(0);
   transition:
-    transform var(--mesh-transition-fast),
-    box-shadow var(--mesh-transition-medium),
-    filter var(--mesh-transition-fast);
+    background 150ms ease,
+    transform 150ms ease;
 }
 
 .mesh-entry-primary:hover {
-  transform: translateY(-1px);
-  filter: saturate(1.08);
-  box-shadow: 0 22px 54px rgba(37, 99, 235, 0.42);
+  background: #58a6ff;
 }
 
 .mesh-entry-primary:active {
-  transform: translateY(1px) scale(0.99);
+  transform: scale(0.98);
 }
 
 .mesh-entry-message {
@@ -3779,14 +3763,11 @@ html {
 }
 
 body {
-  background:
-    linear-gradient(180deg, #0d1117 0%, #101722 42%, #0d1117 100%);
+  background: var(--bg-primary);
 }
 
 .mesh-aurora {
-  background-image:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 96%, #172033) 0%, var(--bg-primary) 100%);
-  background-size: 100% 100%;
+  background: var(--bg-primary);
   animation: none;
 }
 
@@ -3807,24 +3788,25 @@ body {
 }
 
 .app-x-nav-link {
-  min-height: 2.78rem;
+  min-height: 2.85rem;
   border-radius: 999px;
   background: transparent;
   color: var(--text-secondary);
-  transform-origin: left center;
+  font-size: 0.94rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .app-x-nav-link:hover,
 .app-x-nav-link:focus-visible {
-  background: color-mix(in srgb, var(--bg-hover) 82%, transparent);
+  background: var(--bg-hover);
   color: var(--text-primary);
-  transform: translateX(2px);
 }
 
 .app-x-nav-link-active {
-  background: color-mix(in srgb, var(--bg-hover) 72%, var(--accent-subtle));
+  background: transparent;
   color: var(--text-primary);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .app-x-nav-link-mesh {
@@ -3849,15 +3831,14 @@ body {
 .app-compose-button,
 .mobile-compose-fab {
   background: var(--accent);
-  color: #07111c;
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--accent-glow) 46%, transparent);
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .app-compose-button:hover,
 .mobile-compose-fab:hover,
 .mobile-compose-fab:focus-visible {
   background: var(--accent-hover);
-  transform: translateY(-1px);
 }
 
 .app-profile-dock {
@@ -4349,7 +4330,7 @@ body {
   background: rgba(219, 234, 254, 0.06);
   color: rgba(219, 234, 254, 0.82);
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: 700;
   transition:
     background-color var(--mesh-transition-fast),
     border-color var(--mesh-transition-fast),
@@ -4385,7 +4366,7 @@ body {
   background: rgba(2, 6, 23, 0.34);
   color: rgba(219, 234, 254, 0.66);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
@@ -4433,11 +4414,11 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+  margin-bottom: 0;
   border-bottom: 1px solid var(--border-primary);
-  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
-  padding: 0.55rem 0;
+  background: var(--bg-primary);
+  padding: 0.4rem 0;
 }
 
 .feed-mode-strip {
@@ -4474,14 +4455,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  min-height: 2.15rem;
+  gap: 0.3rem;
+  min-height: 1.85rem;
   border: 1px solid var(--border-primary);
   border-radius: 999px;
-  color: var(--text-secondary);
-  background: var(--bg-primary);
-  font-size: 0.76rem;
-  font-weight: 800;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 700;
   white-space: nowrap;
   transition:
     border-color var(--mesh-transition-fast),
@@ -4518,9 +4499,10 @@ body {
 .feed-control-chip-active,
 .feed-mode-button-active,
 .feed-layout-button-active {
-  border-color: var(--accent-muted);
-  color: var(--text-primary);
+  border-color: var(--accent);
+  color: var(--accent);
   background: var(--accent-subtle);
+  font-weight: 800;
 }
 
 .feed-control-chip:disabled,
@@ -4552,7 +4534,7 @@ body {
 
 .feed-consumption-stack {
   display: grid;
-  gap: 0.75rem;
+  gap: 0;
 }
 
 .feed-card-shell {
@@ -4601,7 +4583,7 @@ body {
 .feed-creator-stat span {
   color: var(--text-muted);
   font-size: 0.66rem;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -4613,11 +4595,11 @@ body {
 
 .feed-post-list {
   display: grid;
-  gap: 0.75rem;
+  gap: 0;
 }
 
 .feed-post-list-compact {
-  gap: 0.35rem;
+  gap: 0;
 }
 
 .feed-post-list-compact .feed-card-shell {
@@ -4781,7 +4763,10 @@ body {
 
 .feed-x-layout .glass-card,
 .feed-x-layout .insta-post-card {
-  border-radius: 0.75rem;
+  border-radius: 0;
+  border-inline: 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--border-primary);
   box-shadow: none;
 }
 
@@ -4876,6 +4861,8 @@ body {
   .feed-x-layout .insta-post-card {
     border-inline: 0;
     border-radius: 0;
+    border-top: 0;
+    border-bottom: 1px solid var(--border-primary);
   }
 
   .feed-media-single {
@@ -5200,33 +5187,33 @@ html[data-mesh-locked="true"] body {
 /* Familiar app theme pass: calmer contrast, natural motion, less sci-fi chrome. */
 :root:not(.light),
 .dark {
-  --bg-primary: #0f141b;
-  --bg-secondary: #151b24;
-  --bg-tertiary: #1b2430;
-  --bg-elevated: #171f2a;
-  --bg-card: #151b24;
-  --bg-hover: #202a36;
-  --bg-input: #101821;
-  --border-primary: rgba(148, 163, 184, 0.18);
-  --border-secondary: rgba(148, 163, 184, 0.24);
-  --border-hover: rgba(148, 163, 184, 0.34);
-  --border-focus: rgba(74, 144, 226, 0.42);
-  --text-primary: #f5f7fb;
-  --text-secondary: #c4ccd8;
-  --text-tertiary: #9aa7b8;
-  --text-muted: #7c899a;
-  --accent: #58a6ff;
-  --accent-hover: #79b8ff;
-  --accent-contrast: #06111f;
-  --accent-muted: rgba(88, 166, 255, 0.14);
-  --accent-subtle: rgba(88, 166, 255, 0.08);
-  --accent-glow: rgba(88, 166, 255, 0.12);
-  --brand-gradient: linear-gradient(135deg, #58a6ff 0%, #79b8ff 100%);
-  --brand-gradient-vibrant: linear-gradient(135deg, #58a6ff 0%, #79b8ff 100%);
-  --ring-color: rgba(88, 166, 255, 0.2);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18);
-  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 18px 42px rgba(0, 0, 0, 0.25);
+  --bg-primary: #0a0e14;
+  --bg-secondary: #12161e;
+  --bg-tertiary: #1a1f2a;
+  --bg-elevated: #151a23;
+  --bg-card: #12161e;
+  --bg-hover: #1a2030;
+  --bg-input: #0d1118;
+  --border-primary: rgba(136, 153, 176, 0.12);
+  --border-secondary: rgba(136, 153, 176, 0.18);
+  --border-hover: rgba(136, 153, 176, 0.28);
+  --border-focus: rgba(56, 139, 253, 0.46);
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #7d8590;
+  --text-muted: #656d76;
+  --accent: #388bfd;
+  --accent-hover: #58a6ff;
+  --accent-contrast: #ffffff;
+  --accent-muted: rgba(56, 139, 253, 0.16);
+  --accent-subtle: rgba(56, 139, 253, 0.08);
+  --accent-glow: rgba(56, 139, 253, 0.14);
+  --brand-gradient: linear-gradient(135deg, #388bfd 0%, #58a6ff 100%);
+  --brand-gradient-vibrant: linear-gradient(135deg, #388bfd 0%, #58a6ff 100%);
+  --ring-color: rgba(56, 139, 253, 0.24);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.32);
   --glass-bg: var(--bg-secondary);
   --glass-elevated: var(--bg-elevated);
   --glass-surface: var(--bg-secondary);
@@ -5366,16 +5353,27 @@ body,
 .simple-card,
 .theme-card,
 .premium-surface,
-.insta-post-card,
 .app-command-bar,
 .app-route-guide,
 .insta-story-rail,
 .feed-composer-card,
-.feed-x-layout .glass-card,
-.feed-x-layout .insta-post-card {
+.feed-x-layout .glass-card {
   border-color: var(--border-primary) !important;
   background: var(--bg-secondary) !important;
   box-shadow: var(--shadow-sm) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.insta-post-card,
+.feed-x-layout .insta-post-card {
+  border-color: var(--border-primary) !important;
+  border-inline: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+  border-radius: 0 !important;
+  background: var(--bg-primary) !important;
+  box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -5387,12 +5385,18 @@ body,
 .theme-card:hover,
 .premium-surface:hover,
 .premium-surface:focus-within,
-.insta-post-card:hover,
 .feed-composer-card:hover {
   border-color: var(--border-hover) !important;
   background: var(--bg-secondary) !important;
   box-shadow: var(--shadow-md) !important;
   transform: translateY(-1px) !important;
+}
+
+.insta-post-card:hover {
+  border-color: var(--border-hover) !important;
+  background: color-mix(in srgb, var(--bg-secondary) 94%, var(--bg-hover)) !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .mesh-action,
@@ -5439,11 +5443,11 @@ body,
 .app-compose-button,
 .mobile-compose-fab,
 .mesh-entry-primary {
-  border: 1px solid color-mix(in srgb, var(--accent) 78%, #000 22%) !important;
+  border: 1px solid transparent !important;
   background: var(--accent) !important;
-  color: var(--accent-contrast, #ffffff) !important;
+  color: #ffffff !important;
   box-shadow: none !important;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .mesh-action-primary:hover {
@@ -5523,10 +5527,11 @@ body,
 .feed-x-tabs,
 .insta-feed-topbar,
 .insta-feed-tabs {
-  background: color-mix(in srgb, var(--bg-primary) 94%, transparent) !important;
+  background: var(--bg-primary) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
+  border-color: var(--border-primary) !important;
 }
 
 .app-x-nav-link:hover,
@@ -5755,7 +5760,7 @@ body,
   border-radius: 999px;
   padding-inline: 0.8rem;
   font-size: 0.8rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .app-account-action-danger,
@@ -5813,17 +5818,15 @@ body,
   display: inline-flex;
   min-width: max-content;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.65rem;
   border: 1px solid transparent;
-  border-radius: 0.75rem;
-  padding: 0.72rem 0.82rem;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.75rem;
   color: var(--text-secondary);
   text-align: left;
   transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    color 150ms ease,
-    transform 150ms ease;
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .settings-nav-item:hover,
@@ -5833,8 +5836,8 @@ body,
 }
 
 .settings-nav-item-active {
-  border-color: var(--border-primary);
-  background: var(--bg-primary);
+  border-color: transparent;
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -5859,20 +5862,26 @@ body,
 
 .settings-quick-link {
   display: inline-flex;
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  border-radius: 999px;
-  padding-inline: 0.9rem;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  padding-inline: 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.82rem;
-  font-weight: 900;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.settings-quick-link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .settings-quick-link-primary {
   background: var(--accent) !important;
-  color: #07111c !important;
+  color: #ffffff !important;
 }
 
 .settings-quick-link-danger {
@@ -5923,7 +5932,7 @@ body,
   padding: 0.75rem 0.85rem;
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .settings-action-row:hover,
@@ -5970,8 +5979,8 @@ body,
 .settings-mini-label {
   color: var(--text-muted);
   font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -6237,7 +6246,7 @@ body,
   background: #ef4444;
   color: #fff;
   font-size: 0.5rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
 }
 

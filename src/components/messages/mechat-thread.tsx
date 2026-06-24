@@ -414,7 +414,7 @@ export function MeChatThread({
                         : "border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-primary)]"
                     }`}>
                       {message.sourcePlatform !== "mesh" || message.messageType !== "text" ? (
-                        <p className={`mb-2 text-[10px] font-black uppercase tracking-[0.12em] ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
+                        <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.12em] ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
                           {message.messageType.replace("_", " ")} from {message.sourcePlatform}
                         </p>
                       ) : null}
@@ -425,7 +425,7 @@ export function MeChatThread({
                           onClick={() => setSearchQuery(message.replyTo?.content || "")}
                           className={`mb-2 w-full rounded-xl border-l-4 px-3 py-2 text-left text-xs ${isMine ? "border-white/60 bg-white/10 text-white/80" : "border-[var(--accent)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]"}`}
                         >
-                          <span className="block font-black">{message.replyTo.senderName}</span>
+                          <span className="block font-bold">{message.replyTo.senderName}</span>
                           <span className="line-clamp-2">{message.replyTo.content}</span>
                         </button>
                       )}
@@ -447,10 +447,10 @@ export function MeChatThread({
                           rel="noreferrer"
                           className={`mt-3 block rounded-xl border p-3 transition hover:translate-y-[-1px] ${isMine ? "border-white/20 bg-white/10 text-white" : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
                         >
-                          <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${isMine ? "text-white/70" : "text-[var(--text-muted)]"}`}>
+                          <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${isMine ? "text-white/70" : "text-[var(--text-muted)]"}`}>
                             {message.metadata.linkPreview.host}
                           </span>
-                          <span className="mt-1 block text-sm font-black">{message.metadata.linkPreview.title}</span>
+                          <span className="mt-1 block text-sm font-bold">{message.metadata.linkPreview.title}</span>
                           {message.metadata.linkPreview.description && (
                             <span className={`mt-1 block text-xs ${isMine ? "text-white/70" : "text-[var(--text-secondary)]"}`}>
                               {message.metadata.linkPreview.description}
@@ -464,7 +464,7 @@ export function MeChatThread({
                           href={message.sourceUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className={`mt-2 inline-flex items-center gap-1 text-xs font-black underline-offset-4 hover:underline ${isMine ? "text-white" : "text-[var(--accent)]"}`}
+                          className={`mt-2 inline-flex items-center gap-1 text-xs font-bold underline-offset-4 hover:underline ${isMine ? "text-white" : "text-[var(--accent)]"}`}
                         >
                           <Link2 size={13} aria-hidden="true" />
                           Open source
@@ -532,7 +532,7 @@ export function MeChatThread({
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/70">
               <MessageCircleReply size={24} aria-hidden="true" />
             </div>
-            <h2 className="text-xl font-black">{searchQuery ? "No matching messages" : "Start the conversation"}</h2>
+            <h2 className="text-xl font-bold">{searchQuery ? "No matching messages" : "Start the conversation"}</h2>
             <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
               {searchQuery ? "Try another search term." : "Send the first message, media link, or source-aware share."}
             </p>
@@ -573,7 +573,7 @@ export function MeChatThread({
         {replyTo && (
           <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2 text-xs">
             <span className="min-w-0">
-              <span className="block font-black">Replying to {replyTo.sender.displayName}</span>
+              <span className="block font-bold">Replying to {replyTo.sender.displayName}</span>
               <span className="block truncate text-[var(--text-muted)]">{replyTo.content}</span>
             </span>
             <button type="button" onClick={() => setReplyTo(null)} className="mesh-choice rounded-full p-1" aria-label="Cancel reply">

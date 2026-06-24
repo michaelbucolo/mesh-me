@@ -96,7 +96,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
           <div>
-            <h1 className="text-3xl font-black leading-tight md:text-5xl">Your whole digital footprint, measured clearly.</h1>
+            <h1 className="text-3xl font-bold leading-tight md:text-5xl">Your whole digital footprint, measured clearly.</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
               Personal activity, creator performance, platform comparisons, and privacy health are combined into one private dashboard.
             </p>
@@ -144,7 +144,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Charts</p>
-                <h2 className="mt-1 text-xl font-black">Engagement, growth, and activity</h2>
+                <h2 className="mt-1 text-xl font-bold">Engagement, growth, and activity</h2>
               </div>
               <span className="rounded-full border border-[var(--border-primary)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)]">
                 Last 14 days
@@ -170,7 +170,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Platform comparison</p>
-                <h2 className="mt-1 text-xl font-black">Every connected app, one scorecard</h2>
+                <h2 className="mt-1 text-xl font-bold">Every connected app, one scorecard</h2>
               </div>
               <Link href="/connected-accounts" className="mesh-action mesh-action-secondary px-3 text-sm">
                 Manage accounts
@@ -195,7 +195,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Best content</p>
-                <h2 className="mt-1 text-xl font-black">Top-performing posts</h2>
+                <h2 className="mt-1 text-xl font-bold">Top-performing posts</h2>
               </div>
               <span className="text-xs font-bold text-[var(--text-muted)]">{topContent ? `Best: ${topContent.source}` : "Waiting for data"}</span>
             </div>
@@ -217,7 +217,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Privacy permissions</p>
-                <h2 className="mt-1 text-xl font-black">App access and data inventory</h2>
+                <h2 className="mt-1 text-xl font-bold">App access and data inventory</h2>
               </div>
               <Link href="/privacy-controls" className="mesh-action mesh-action-secondary px-3 text-sm">
                 Privacy controls
@@ -241,7 +241,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
           <PrivacyHealthCard data={data} />
 
           <div className="mesh-surface rounded-lg p-4">
-            <h2 className="flex items-center gap-2 text-base font-black">
+            <h2 className="flex items-center gap-2 text-base font-bold">
               <Database size={17} aria-hidden="true" />
               Data controls
             </h2>
@@ -267,7 +267,7 @@ function StatCard({ label, value, detail, icon: Icon }: { label: string; value: 
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
         <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
       </div>
-      <p className="mt-3 text-2xl font-black">{value}</p>
+      <p className="mt-3 text-2xl font-bold">{value}</p>
       <p className="mt-1 text-xs text-[var(--text-secondary)]">{detail}</p>
     </div>
   );
@@ -285,7 +285,7 @@ function Panel({ title, eyebrow, actionHref, actionLabel, children }: {
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{eyebrow}</p>
-          <h2 className="mt-1 text-xl font-black">{title}</h2>
+          <h2 className="mt-1 text-xl font-bold">{title}</h2>
         </div>
         <Link href={actionHref} className="text-xs font-bold text-[var(--accent)]">
           {actionLabel}
@@ -328,7 +328,7 @@ function PremiumAnalyticsPanel({ data }: { data: AnalyticsDashboardData }) {
             <Crown size={15} aria-hidden="true" />
             Mesh Pro
           </p>
-          <h2 className="mt-1 text-xl font-black">Premium analytics</h2>
+          <h2 className="mt-1 text-xl font-bold">Premium analytics</h2>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             {data.user.isMeshPro
               ? "Deeper creator and platform signals are active."
@@ -347,7 +347,7 @@ function PremiumAnalyticsPanel({ data }: { data: AnalyticsDashboardData }) {
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{metric.label}</p>
               {!data.user.isMeshPro && <LockKeyhole size={13} className="text-[var(--text-muted)]" aria-hidden="true" />}
             </div>
-            <p className="mt-2 truncate text-lg font-black">{data.user.isMeshPro ? metric.value : "Locked"}</p>
+            <p className="mt-2 truncate text-lg font-bold">{data.user.isMeshPro ? metric.value : "Locked"}</p>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">{metric.detail}</p>
           </div>
         ))}
@@ -360,7 +360,7 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 px-3 py-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
-      <p className="mt-1 text-lg font-black">{value}</p>
+      <p className="mt-1 text-lg font-bold">{value}</p>
     </div>
   );
 }
@@ -373,7 +373,7 @@ function ChartCard({ title, subtitle, icon: Icon, children }: { title: string; s
           <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
         </span>
         <div>
-          <h3 className="text-sm font-black">{title}</h3>
+          <h3 className="text-sm font-bold">{title}</h3>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">{subtitle}</p>
         </div>
       </div>
@@ -429,7 +429,7 @@ function PlatformComparisonCard({ account }: { account: AnalyticsDashboardData["
     <article className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-black capitalize">{account.platform}</h3>
+          <h3 className="text-base font-bold capitalize">{account.platform}</h3>
           <p className="text-xs text-[var(--text-muted)]">{account.platformUsername || "Connected account"}</p>
         </div>
         <span className="rounded-full border border-[var(--border-primary)] px-3 py-1 text-xs font-bold text-[var(--text-secondary)]">
@@ -471,7 +471,7 @@ function TopContentCard({ post }: { post: AnalyticsDashboardData["bestContent"][
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{post.source}</p>
-              <h3 className="mt-1 line-clamp-2 text-sm font-black">{post.title}</h3>
+              <h3 className="mt-1 line-clamp-2 text-sm font-bold">{post.title}</h3>
             </div>
             <span className="rounded-full border border-[var(--border-primary)] px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)]">
               {post.postType}
@@ -499,7 +499,7 @@ function TinyStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">{label}</p>
-      <p className="text-xs font-black">{value}</p>
+      <p className="text-xs font-bold">{value}</p>
     </div>
   );
 }
@@ -510,7 +510,7 @@ function PrivacyScorePanel({ score }: { score: number }) {
     <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-4">
       <div className="flex items-center gap-4">
         <div className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 ${ringColor}`}>
-          <span className="text-xl font-black">{score}%</span>
+          <span className="text-xl font-bold">{score}%</span>
         </div>
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Privacy health</p>
@@ -526,7 +526,7 @@ function PrivacyScorePanel({ score }: { score: number }) {
 function PrivacyHealthCard({ data }: { data: AnalyticsDashboardData }) {
   return (
     <section className="mesh-surface rounded-lg p-4">
-      <h2 className="flex items-center gap-2 text-base font-black">
+      <h2 className="flex items-center gap-2 text-base font-bold">
         <ShieldCheck size={17} aria-hidden="true" />
         Privacy health score
       </h2>
@@ -564,7 +564,7 @@ function PrivacyHealthCard({ data }: { data: AnalyticsDashboardData }) {
 function InsightCard({ icon: Icon, title, body, status }: { icon: LucideIcon; title: string; body: string; status: string }) {
   return (
     <section className="mesh-surface rounded-lg p-4">
-      <h2 className="flex items-center gap-2 text-base font-black">
+      <h2 className="flex items-center gap-2 text-base font-bold">
         <Icon size={17} aria-hidden="true" />
         {title}
       </h2>
@@ -579,7 +579,7 @@ function InsightCard({ icon: Icon, title, body, status }: { icon: LucideIcon; ti
 function ActivityHistory({ items }: { items: AnalyticsDashboardData["recentActivity"] }) {
   return (
     <section className="mesh-surface rounded-lg p-4">
-      <h2 className="flex items-center gap-2 text-base font-black">
+      <h2 className="flex items-center gap-2 text-base font-bold">
         <Clock3 size={17} aria-hidden="true" />
         Activity history
       </h2>
@@ -610,7 +610,7 @@ function ActivityHistory({ items }: { items: AnalyticsDashboardData["recentActiv
 function EmptyState({ title, body, href, label }: { title: string; body: string; href: string; label: string }) {
   return (
     <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-6 text-center">
-      <h3 className="text-lg font-black">{title}</h3>
+      <h3 className="text-lg font-bold">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
       <Link href={href} className="mesh-action mesh-action-primary mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm">
         {label}

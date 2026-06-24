@@ -437,17 +437,17 @@ export function MeChatHome({
 
   return (
     <main className="simple-page grid gap-5">
-      <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-5">
+      <header className="mesh-surface mesh-pop-in rounded-xl p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <MeshiBrandLockup size={36} label="MeChat" subtitle="One private inbox" useUserMeshi />
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-100">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/8 px-3 py-1.5 text-xs font-medium text-emerald-200">
             <ShieldCheck size={14} aria-hidden="true" />
             Source-aware and account-only
           </div>
         </div>
         <div className="mt-5 max-w-3xl">
-          <h1 className="text-3xl font-black leading-tight md:text-5xl">Every conversation, share, and watch party in one inbox.</h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)] md:text-base">
+          <h1 className="text-2xl font-bold leading-tight md:text-4xl">Every conversation, share, and watch party in one inbox.</h1>
+          <p className="mt-2.5 text-sm leading-6 text-[var(--text-secondary)] md:text-base">
             MeChat combines native messages with authorized platform activity, shared posts, voice/video session state, and group browsing where every participant acts as themselves.
           </p>
         </div>
@@ -480,7 +480,7 @@ export function MeChatHome({
         <aside className="grid h-fit gap-4">
           <div className="mesh-surface rounded-lg p-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-base font-black">
+              <h2 className="flex items-center gap-2 text-base font-bold">
                 <RefreshCcw size={17} aria-hidden="true" />
                 Connected inboxes
               </h2>
@@ -512,12 +512,12 @@ export function MeChatHome({
                   <div key={inbox.id} className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 px-3 py-2">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black">{platformLabel(inbox.platform)}</p>
+                        <p className="truncate text-sm font-bold">{platformLabel(inbox.platform)}</p>
                         <p className="truncate text-xs text-[var(--text-muted)]">
                           {inbox.platformUsername ? `@${inbox.platformUsername}` : "Connected account"}
                         </p>
                       </div>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-black ${
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${
                         inbox.messageSync
                           ? "bg-emerald-300/10 text-emerald-100"
                           : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
@@ -540,7 +540,7 @@ export function MeChatHome({
           </div>
 
           <div className="mesh-surface rounded-lg p-4">
-            <h2 className="flex items-center gap-2 text-base font-black">
+            <h2 className="flex items-center gap-2 text-base font-bold">
               <MessageCircle size={17} aria-hidden="true" />
               Direct MeChats
             </h2>
@@ -640,7 +640,7 @@ export function MeChatHome({
           </div>
 
           <div className="mesh-surface rounded-lg p-4">
-            <h2 className="flex items-center gap-2 text-base font-black">
+            <h2 className="flex items-center gap-2 text-base font-bold">
               <Users size={17} aria-hidden="true" />
               Group MeChats
             </h2>
@@ -692,7 +692,7 @@ export function MeChatHome({
           </div>
 
           <div className="mesh-surface rounded-lg p-4">
-            <h2 className="flex items-center gap-2 text-base font-black">
+            <h2 className="flex items-center gap-2 text-base font-bold">
               <Plus size={17} aria-hidden="true" />
               New room
             </h2>
@@ -718,7 +718,7 @@ export function MeChatHome({
           <div className="mesh-surface rounded-lg p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-black">Rooms, calls, and shared scrolls</h2>
+                <h2 className="text-xl font-bold">Rooms, calls, and shared scrolls</h2>
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">Browse, watch, call, vote, and still like or comment from your own connected account.</p>
               </div>
               <span className="rounded-full border border-[var(--border-primary)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)]">
@@ -739,7 +739,7 @@ export function MeChatHome({
                         : "text-[var(--text-secondary)]"
                     }`}
                   >
-                    <span className="block font-black">{session.title}</span>
+                    <span className="block font-bold">{session.title}</span>
                     <span className="block text-xs opacity-80">
                       {roomTypeLabel(session.sessionType)} - {session.status}{session.callStatus === "live" ? ` - ${session.callMode} call` : ""}
                     </span>
@@ -756,7 +756,7 @@ export function MeChatHome({
                   <div className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold ${roomStatusClass(activeSession.status)}`}>
                     {activeSession.status}
                   </div>
-                  <h3 className="mt-3 text-2xl font-black">{activeSession.title}</h3>
+                  <h3 className="mt-3 text-2xl font-bold">{activeSession.title}</h3>
                   <p className="mt-1 text-sm text-[var(--text-secondary)]">
                     {activeSession.participants.length} participant{activeSession.participants.length === 1 ? "" : "s"}.
                     {" "}Every action stays tied to the person who made it.
@@ -827,7 +827,7 @@ export function MeChatHome({
                             <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                               {platformLabel(item.sourcePlatform)}
                             </p>
-                            <h4 className="mt-1 truncate text-base font-black">{item.title || "Shared item"}</h4>
+                            <h4 className="mt-1 truncate text-base font-bold">{item.title || "Shared item"}</h4>
                             {item.content && <p className="mt-1 line-clamp-2 text-sm text-[var(--text-secondary)]">{item.content}</p>}
                             {item.sourceUrl && (
                               <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[var(--accent)]">
@@ -863,7 +863,7 @@ export function MeChatHome({
                 ) : (
                   <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-6 text-center">
                     <X className="mx-auto h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />
-                    <h4 className="mt-2 font-black">No shared items yet</h4>
+                    <h4 className="mt-2 font-bold">No shared items yet</h4>
                     <p className="mt-1 text-sm text-[var(--text-secondary)]">Add a link or share a post into this room.</p>
                   </div>
                 )}
@@ -871,7 +871,7 @@ export function MeChatHome({
             </article>
           ) : (
             <div className="mesh-surface rounded-lg p-8 text-center">
-              <h3 className="text-xl font-black">Create the first room.</h3>
+              <h3 className="text-xl font-bold">Create the first room.</h3>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
                 Shared scrolling turns social media into a group activity while preserving each person as themselves.
               </p>

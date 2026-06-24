@@ -183,7 +183,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
               <RadioTower className="h-3.5 w-3.5" />
               Unified content layer
             </div>
-            <h1 className="text-3xl font-black text-[var(--text-primary)] md:text-4xl">Feed</h1>
+            <h1 className="text-xl font-bold text-[var(--text-primary)] md:text-2xl">Feed</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
               Open the app and start scrolling right away.
               Advanced controls are still available, but hidden by default to keep the experience simple.

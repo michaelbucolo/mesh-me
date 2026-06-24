@@ -416,7 +416,7 @@ function QuickCommandBar({
           placeholder="Search Mesh.me..."
           type="search"
         />
-        <kbd className="hidden rounded-md border border-[var(--border-primary)] px-1.5 py-1 text-[10px] font-black text-[var(--text-muted)] sm:inline-flex">/</kbd>
+        <kbd className="hidden rounded-md border border-[var(--border-primary)] px-1.5 py-1 text-[10px] font-bold text-[var(--text-muted)] sm:inline-flex">/</kbd>
       </form>
 
       <div className="grid grid-cols-4 gap-2 sm:flex sm:overflow-x-auto">
@@ -474,8 +474,8 @@ function ShellTopBar({
   return (
     <header className="app-topbar sticky top-0 z-30 mb-3 hidden min-w-0 items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/94 px-3 py-2 shadow-[var(--shadow-sm)] backdrop-blur-xl md:flex lg:mb-4" data-app-topbar>
       <div className="min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">{currentKicker}</p>
-        <h1 className="truncate text-base font-black text-[var(--text-primary)] lg:text-lg">{currentLabel}</h1>
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">{currentKicker}</p>
+        <h1 className="truncate text-base font-bold text-[var(--text-primary)] lg:text-lg">{currentLabel}</h1>
       </div>
 
       <form onSubmit={submitSearch} className="app-topbar-search ml-auto hidden min-w-[13rem] max-w-[30rem] flex-1 items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-input)] px-3 py-2 lg:flex">
@@ -553,7 +553,7 @@ function ShellTopBar({
           <summary className="app-profile-summary flex cursor-pointer list-none items-center gap-2 rounded-full px-2 py-1.5 [&::-webkit-details-marker]:hidden" aria-label="Profile menu">
             <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={28} />
             <span className="hidden min-w-0 text-left lg:block">
-              <span className="block max-w-[9rem] truncate text-sm font-black text-[var(--text-primary)]">{user.displayName}</span>
+              <span className="block max-w-[9rem] truncate text-sm font-bold text-[var(--text-primary)]">{user.displayName}</span>
               <span className="block max-w-[9rem] truncate text-[10px] font-bold text-[var(--text-muted)]">@{user.username}</span>
             </span>
             <ChevronDown className="hidden h-4 w-4 text-[var(--text-muted)] lg:block" aria-hidden="true" />
@@ -562,7 +562,7 @@ function ShellTopBar({
             <div className="flex items-center gap-2 rounded-lg bg-[var(--bg-secondary)] p-2">
               <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={34} />
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-[var(--text-primary)]">{user.displayName}</p>
+                <p className="truncate text-sm font-bold text-[var(--text-primary)]">{user.displayName}</p>
                 <p className="truncate text-xs font-semibold text-[var(--text-muted)]">@{user.username}</p>
               </div>
             </div>
@@ -732,7 +732,7 @@ export function AppShell({ children, user }: AppShellProps) {
             <form action={signOut}>
               <button
                 type="submit"
-                className="mobile-signout-pill inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black"
+                className="mobile-signout-pill inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold"
                 aria-label="Sign out"
                 title="Sign out"
               >
@@ -774,7 +774,7 @@ export function AppShell({ children, user }: AppShellProps) {
 
           <Link
             href="/feed?compose=true"
-            className="app-compose-button mt-3 flex min-h-12 items-center justify-center gap-2 rounded-full px-3 text-sm font-black"
+            className="app-compose-button mt-3 flex min-h-12 items-center justify-center gap-2 rounded-full px-3 text-sm font-bold"
             aria-label="Create post"
             title="Create post"
           >

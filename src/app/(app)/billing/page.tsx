@@ -41,7 +41,7 @@ export default async function BillingPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <Badge variant={isPro ? "success" : "secondary"}>{isPro ? "Mesh Pro active" : "Free plan"}</Badge>
-            <h1 className="mt-3 text-3xl font-black leading-tight md:text-5xl">Billing</h1>
+            <h1 className="mt-3 text-3xl font-bold leading-tight md:text-5xl">Billing</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
               Manage Mesh Pro payments through Stripe. Mesh.me does not store card numbers and never sells user data.
             </p>
@@ -74,7 +74,7 @@ export default async function BillingPage() {
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="mesh-surface rounded-lg p-4 md:p-5">
-          <h2 className="flex items-center gap-2 text-xl font-black">
+          <h2 className="flex items-center gap-2 text-xl font-bold">
             <CheckCircle2 className="h-5 w-5 text-[var(--ds-success)]" aria-hidden="true" />
             Subscription controls
           </h2>
@@ -86,7 +86,7 @@ export default async function BillingPage() {
         </div>
 
         <aside className="mesh-surface rounded-lg p-4 md:p-5">
-          <h2 className="flex items-center gap-2 text-lg font-black">
+          <h2 className="flex items-center gap-2 text-lg font-bold">
             <Sparkles className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
             Billing safety
           </h2>
@@ -114,7 +114,7 @@ function BillingStat({ icon: Icon, label, value, detail }: { icon: LucideIcon; l
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
         <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
       </div>
-      <p className="mt-3 truncate text-xl font-black text-[var(--text-primary)]">{value}</p>
+      <p className="mt-3 truncate text-xl font-bold text-[var(--text-primary)]">{value}</p>
       <p className="mt-1 truncate text-xs capitalize text-[var(--text-secondary)]">{detail}</p>
     </section>
   );
@@ -137,7 +137,7 @@ function ControlRow({
     <div className="rounded-lg border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-black text-[var(--text-primary)]">{title}</h3>
+          <h3 className="text-sm font-bold text-[var(--text-primary)]">{title}</h3>
           <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
         </div>
         {action}

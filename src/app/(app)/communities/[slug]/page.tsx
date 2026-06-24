@@ -44,7 +44,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent)]">
             <Lock className="h-7 w-7" />
           </div>
-          <h1 className="mt-4 text-2xl font-black tracking-[0] text-[var(--text-primary)]">Private community</h1>
+          <h1 className="mt-4 text-2xl font-bold tracking-[0] text-[var(--text-primary)]">Private community</h1>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
             This space is visible only to its members. Ask a member for an invite or discover public communities.
           </p>

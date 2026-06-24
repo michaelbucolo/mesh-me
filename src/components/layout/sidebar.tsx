@@ -47,16 +47,16 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         key={item.href}
         href={resolveNavHref(item.href, user.username)}
         className={cn(
-          "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150",
+          "group flex items-center gap-3.5 rounded-full px-3 py-2.5 text-[15px] transition-colors duration-150",
           active
-            ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]"
-            : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+            ? "font-bold text-[var(--text-primary)]"
+            : "font-normal text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
         )}
       >
-        <item.icon className={cn("h-[17px] w-[17px] shrink-0", active && "text-[var(--accent)]")} />
+        <item.icon className={cn("h-[22px] w-[22px] shrink-0", active ? "stroke-[2.5px]" : "stroke-[1.5px]")} />
         <span className="truncate">{item.label}</span>
         {badgeCount > 0 && (
-          <span className="notif-dot ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+          <span className="notif-dot ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-white">
             {badgeCount > 99 ? "99+" : badgeCount}
           </span>
         )}
@@ -65,8 +65,8 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   };
 
   return (
-    <aside data-sidebar className="hidden h-screen w-[15rem] shrink-0 flex-col border-r border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-3 lg:flex">
-      <Link href="/mesh" className="group mb-4 flex items-center gap-3 px-3 py-1">
+    <aside data-sidebar className="hidden h-screen w-[16.5rem] shrink-0 flex-col border-r border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-4 lg:flex">
+      <Link href="/mesh" className="group mb-6 flex items-center gap-3 px-3 py-1">
         <MeshiMascot
           size={30}
           color={meshiPrefs.appLogo === "custom" ? meshiPrefs.appLogoColor : "blue"}
@@ -86,7 +86,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         </p>
       </Link>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto">
+      <nav className="flex-1 space-y-5 overflow-y-auto">
         {desktopNavGroups.map((group) => {
           const isCollapsed = group.collapsible && collapsedGroups.has(group.label);
           const groupHasBadge = group.items.some((item) => getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages) > 0);
@@ -96,7 +96,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
               {group.collapsible ? (
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className="mb-1 flex w-full items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-tertiary)] transition-colors"
+                  className="mb-1.5 flex w-full items-center justify-between px-3 text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-tertiary)] transition-colors"
                 >
                   <span className="flex items-center gap-1.5">
                     {group.label}
@@ -104,10 +104,10 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
                       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                     )}
                   </span>
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", isCollapsed && "-rotate-90")} />
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isCollapsed && "-rotate-90")} />
                 </button>
               ) : (
-                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   {group.label}
                 </p>
               )}
@@ -141,7 +141,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         )}
       </nav>
 
-      <div className="mb-3 space-y-0.5">
+      <div className="mb-4 space-y-0.5">
         {desktopBottomItems.map(renderNavItem)}
         <Link
           href="/meshpro"
@@ -157,7 +157,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         </Link>
       </div>
 
-      <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
+      <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
         <div className="flex items-center gap-2.5">
           <div className="relative">
             <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />

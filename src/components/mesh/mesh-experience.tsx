@@ -942,7 +942,7 @@ export function MeshExperience() {
             <Waypoints className="h-3.5 w-3.5" />
             The Mesh
           </div>
-          <h1 id="mesh-page-title" className="mt-1 text-2xl font-black tracking-[0] text-[var(--text-primary)] md:text-3xl">
+          <h1 id="mesh-page-title" className="mt-1 text-2xl font-bold tracking-[0] text-[var(--text-primary)] md:text-3xl">
             Your social and communications dashboard.
           </h1>
         </div>
@@ -1002,49 +1002,49 @@ export function MeshExperience() {
           >
             <span className={dashboardIconClass}><PenSquare className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">Create</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Create</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Post anywhere</span>
             </span>
           </button>
           <Link href="/feed" className={dashboardActionClass} aria-label="Open the Feed from the Mesh dashboard">
             <span className={dashboardIconClass}><Rss className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">Feed</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Feed</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Scroll</span>
             </span>
           </Link>
           <Link href="/messages" className={dashboardActionClass} aria-label="Open MeChat from the Mesh dashboard">
             <span className={dashboardIconClass}><MessageCircle className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">MeChat</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">MeChat</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">MeChat</span>
             </span>
           </Link>
           <Link href="/notifications" className={dashboardActionClass} aria-label="Open notifications from the Mesh dashboard">
             <span className={dashboardIconClass}><Bell className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">Alerts</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Alerts</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Signals</span>
             </span>
           </Link>
           <Link href="/communities" className={dashboardActionClass} aria-label="Open communities from the Mesh dashboard">
             <span className={dashboardIconClass}><UsersRound className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">Groups</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Groups</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Communities</span>
             </span>
           </Link>
           <Link href="/analytics" className={dashboardActionClass} aria-label="Open Analytics from the Mesh dashboard">
             <span className={dashboardIconClass}><BarChart3 className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">Stats</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Stats</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Analytics</span>
             </span>
           </Link>
           <Link href="/connected-accounts" className={dashboardActionClass} aria-label="Open connected accounts from the Mesh dashboard">
             <span className={dashboardIconClass}><Link2 className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">Connect</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Connect</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Platforms</span>
             </span>
           </Link>
@@ -1056,7 +1056,7 @@ export function MeshExperience() {
           >
             <span className={dashboardIconClass}><Bot className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">Meshi</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Meshi</span>
               <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Ask</span>
             </span>
           </button>
@@ -1107,7 +1107,7 @@ export function MeshExperience() {
             <div className="mesh-surface flex w-[min(92vw,28rem)] items-center gap-4 rounded-xl p-5">
               <Loader2 className="h-7 w-7 animate-spin text-[var(--accent)]" />
               <div>
-                <p className="text-sm font-black text-[var(--text-primary)]">Building your Mesh</p>
+                <p className="text-sm font-bold text-[var(--text-primary)]">Building your Mesh</p>
                 <p className="text-sm text-[var(--text-secondary)]">Posts, people, platforms, and Meshi are coming online.</p>
               </div>
             </div>
@@ -1118,7 +1118,7 @@ export function MeshExperience() {
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/74 p-4 backdrop-blur-md">
             <div className="mesh-surface max-w-md rounded-xl p-6 text-center">
               <Shield className="mx-auto h-8 w-8 text-[var(--accent)]" />
-              <h2 className="mt-3 text-lg font-black text-[var(--text-primary)]">Sign in to use Mesh.me</h2>
+              <h2 className="mt-3 text-lg font-bold text-[var(--text-primary)]">Sign in to use Mesh.me</h2>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
                 The Mesh is private by default. Create an account or sign in before loading any personal data.
               </p>
@@ -1133,7 +1133,7 @@ export function MeshExperience() {
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/74 p-4 backdrop-blur-md">
             <div className="mesh-surface max-w-md rounded-xl p-6 text-center">
               <AlertTriangle className="mx-auto h-8 w-8 text-amber-400" />
-              <h2 className="mt-3 text-lg font-black text-[var(--text-primary)]">The Mesh could not load</h2>
+              <h2 className="mt-3 text-lg font-bold text-[var(--text-primary)]">The Mesh could not load</h2>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">{error || "Try again in a moment."}</p>
               <button onClick={() => loadMesh()} className="brand-button mt-5 inline-flex rounded-md px-5 py-2.5 text-sm font-bold text-white">
                 Try again
@@ -1146,7 +1146,7 @@ export function MeshExperience() {
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/60 p-4 backdrop-blur-sm">
             <div className="mesh-surface max-w-lg rounded-xl p-6 text-center">
               <Compass className="mx-auto h-9 w-9 text-[var(--accent)]" />
-              <h2 className="mt-3 text-xl font-black text-[var(--text-primary)]">Your Mesh is ready</h2>
+              <h2 className="mt-3 text-xl font-bold text-[var(--text-primary)]">Your Mesh is ready</h2>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
                 Add a post, follow people, join a group, or connect a platform. Every action becomes a node in your private digital world.
               </p>

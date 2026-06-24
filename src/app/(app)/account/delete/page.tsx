@@ -24,7 +24,7 @@ export default async function DeleteAccountPage() {
   return (
     <main className="simple-page grid gap-5">
       <header className="mesh-surface rounded-lg p-4 md:p-5">
-        <Link href="/settings" className="inline-flex items-center gap-2 text-sm font-black text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+        <Link href="/settings" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to settings
         </Link>
@@ -34,13 +34,13 @@ export default async function DeleteAccountPage() {
               <ShieldAlert className="h-4 w-4" aria-hidden="true" />
               Permanent account removal
             </div>
-            <h1 className="mt-3 text-3xl font-black leading-tight md:text-5xl">Delete your Mesh.me account</h1>
+            <h1 className="mt-3 text-3xl font-bold leading-tight md:text-5xl">Delete your Mesh.me account</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
               This is the formal account removal flow. It removes your Mesh.me profile, sessions, posts, messages, settings, Meshi preferences, and connected-account records from Mesh.me.
             </p>
           </div>
           <div className="mesh-surface rounded-lg p-4 text-sm leading-6 text-[var(--text-secondary)]">
-            <p className="flex items-center gap-2 font-black text-[var(--text-primary)]">
+            <p className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
               <ShieldCheck className="h-4 w-4 text-emerald-400" aria-hidden="true" />
               Before you delete
             </p>
