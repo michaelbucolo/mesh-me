@@ -260,10 +260,6 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
             </EmptyState>
           ) : null}
 
-          {!loadingSource && posts.length > 0 && filteredPosts.length === 0 && hasMore && (
-            <div ref={loadMoreRef} className="h-1" />
-          )}
-
           {!loadingSource && filteredPosts.length > 0 ? (
             <>
               {layout === "timeline" && (

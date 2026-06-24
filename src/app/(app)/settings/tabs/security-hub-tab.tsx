@@ -80,7 +80,8 @@ export function SecurityHubTab() {
         setIsSigningOut(false);
         return;
       }
-      setSessionMessage(`Signed out ${payload.deletedCount} other session${payload.deletedCount === 1 ? "" : "s"}.`);
+      const count = payload.deletedCount ?? 0;
+      setSessionMessage(`Signed out ${count} other session${count === 1 ? "" : "s"}.`);
       setSessions((prev) => prev.filter((item) => item.isCurrent));
     } catch {
       setSessionMessage("Could not sign out other sessions.");
