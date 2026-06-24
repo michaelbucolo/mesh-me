@@ -90,13 +90,13 @@ export async function InstagramProfileView({ username }: { username: string }) {
   const collectionCount = 0;
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {/* Profile header */}
-        <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden">
+        <section className="profile-header-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden">
           {/* Banner */}
-          <div className="relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[#0a1628] to-[var(--mesh-bg)]">
+          <div className="profile-banner relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[#0a1628] to-[var(--mesh-bg)]">
             {profile.bannerUrl ? (
               <Image src={profile.bannerUrl} alt="" fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
             ) : (
@@ -120,7 +120,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
           </div>
 
           {/* Profile info */}
-          <div className="relative px-6 pb-6">
+          <div className="profile-info relative px-6 pb-6">
             {/* Avatar */}
             <div className="-mt-16 mb-4 flex items-end gap-6">
               <div className="shrink-0">
@@ -128,7 +128,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
                   src={profile.avatarUrl}
                   alt={profile.displayName}
                   size="xl"
-                  className="h-28 w-28 rounded-full border-4 border-[var(--mesh-bg-elevated)] sm:h-32 sm:w-32"
+                  className="profile-avatar h-28 w-28 rounded-full border-4 border-[var(--mesh-bg-elevated)] sm:h-32 sm:w-32"
                 />
               </div>
             </div>
@@ -137,7 +137,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
               <div className="min-w-0 flex-1">
                 {/* Name row */}
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-2xl font-bold text-[var(--mesh-text)]">{profile.displayName}</h1>
+                  <h1 className="profile-name text-2xl font-bold text-[var(--mesh-text)]">{profile.displayName}</h1>
                   {profile.isVerified && (
                     <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--mesh-blue)]" aria-label="Verified" />
                   )}
@@ -199,7 +199,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
             </div>
 
             {/* Meshi card + Actions */}
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="profile-actions mt-5 flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-3 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5">
                 <MeshiMascot
                   size={40}
@@ -261,7 +261,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
 
         {/* Tabs */}
         {canViewProfile && (
-          <nav className="flex items-center gap-1 border-b border-[var(--mesh-border)] px-1" aria-label="Profile sections">
+          <nav className="profile-tabs-nav flex items-center gap-1 border-b border-[var(--mesh-border)] px-1" aria-label="Profile sections">
             <ProfileTab label="Posts" count={postCount} active />
             <ProfileTab label="Communities" count={communityCount} />
             <ProfileTab label="Collections" count={collectionCount} />
