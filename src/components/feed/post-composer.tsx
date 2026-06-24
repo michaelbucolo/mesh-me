@@ -387,7 +387,7 @@ export function PostComposer({ user, communityId, onPostPending, onPostCreated, 
 
           {showLinkTools && (
             <div className="mt-3 grid gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-tertiary)] p-3">
-              <label className="grid gap-1 text-[11px] font-black text-[var(--text-secondary)]">
+              <label className="grid gap-1 text-[11px] font-bold text-[var(--text-secondary)]">
                 Link preview
                 <input
                   value={linkUrl}
@@ -396,7 +396,7 @@ export function PostComposer({ user, communityId, onPostPending, onPostCreated, 
                   className="theme-input min-h-10 rounded-lg px-3 text-sm"
                 />
               </label>
-              <label className="grid gap-1 text-[11px] font-black text-[var(--text-secondary)]">
+              <label className="grid gap-1 text-[11px] font-bold text-[var(--text-secondary)]">
                 Image or video URL
                 <input
                   value={mediaUrl}
@@ -420,7 +420,7 @@ export function PostComposer({ user, communityId, onPostPending, onPostCreated, 
                     onClick={() => setVisibility(option.id)}
                     className={`rounded-lg border px-3 py-2 text-left transition ${active ? "border-[var(--accent-muted)] bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]"}`}
                   >
-                    <span className="flex items-center gap-2 text-xs font-black">
+                    <span className="flex items-center gap-2 text-xs font-bold">
                       <Icon className="h-3.5 w-3.5" />
                       {option.label}
                     </span>

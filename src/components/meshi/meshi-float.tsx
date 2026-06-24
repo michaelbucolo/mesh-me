@@ -1465,7 +1465,7 @@ export function MeshiFloat() {
                 initial={{ opacity: 0, y: 6, scale: 0.92 }}
                 animate={{ opacity: 0.82, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.92 }}
-                className="absolute bottom-full right-0 mb-1 flex items-center gap-1 rounded-full border border-[var(--accent)]/20 bg-[var(--bg-elevated)]/72 px-2 py-1 text-[10px] font-black text-[var(--text-primary)] shadow-md backdrop-blur"
+                className="absolute bottom-full right-0 mb-1 flex items-center gap-1 rounded-full border border-[var(--accent)]/20 bg-[var(--bg-elevated)]/72 px-2 py-1 text-[10px] font-bold text-[var(--text-primary)] shadow-md backdrop-blur"
               >
                 <span className="text-[var(--accent)]">Check</span>
                 <button
@@ -1525,7 +1525,7 @@ export function MeshiFloat() {
                         event.stopPropagation();
                         handleFocusedContentPrompt(mode);
                       }}
-                      className="rounded-lg bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] font-black text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      className="rounded-lg bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                     >
                       {label}
                     </button>

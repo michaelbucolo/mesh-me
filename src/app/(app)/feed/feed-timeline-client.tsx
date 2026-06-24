@@ -459,7 +459,7 @@ export function FeedTimelineClient({
         <div className="insta-feed-topbar feed-x-topbar">
           <div className="inline-flex min-w-0 items-center gap-2">
             <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={28} />
-            <h1 className="truncate text-lg font-black text-[var(--text-primary)]">Home</h1>
+            <h1 className="truncate text-lg font-bold text-[var(--text-primary)]">Home</h1>
           </div>
           <div className="feed-topbar-actions flex items-center gap-2">
             <Link href="/search" aria-label="Search" title="Search" className="insta-icon-button">
@@ -559,7 +559,7 @@ export function FeedTimelineClient({
               <ActiveModeIcon size={15} aria-hidden="true" />
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">{activeModeConfig.label} feed</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{activeModeConfig.label} feed</span>
               <span className="block truncate text-xs font-bold text-[var(--text-muted)]">{activeModeConfig.copy}</span>
             </span>
           </div>
@@ -613,7 +613,7 @@ export function FeedTimelineClient({
             </div>
           ) : (
             <div className="mesh-surface feed-empty-state rounded-lg p-8 text-center">
-              <h2 className="text-xl font-black">Nothing here yet.</h2>
+              <h2 className="text-xl font-bold">Nothing here yet.</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
                 Try a broader filter, post to Mesh.me, follow people, join communities, or connect a platform to fill this feed.
               </p>
@@ -657,17 +657,17 @@ export function FeedTimelineClient({
           <Link href={`/profile/${user.username}`} className="flex min-w-0 items-center gap-3">
             <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={42} />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-[var(--text-primary)]">@{user.username}</span>
+              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">@{user.username}</span>
               <span className="block truncate text-xs text-[var(--text-muted)]">{user.displayName}</span>
             </span>
           </Link>
-          <Link href="/settings" className="text-xs font-black text-[var(--accent)]">Edit</Link>
+          <Link href="/settings" className="text-xs font-bold text-[var(--accent)]">Edit</Link>
         </div>
 
         <div className="mt-6 grid gap-3">
           <div className="flex items-center justify-between text-sm">
             <span className="font-bold text-[var(--text-muted)]">Everything</span>
-            <Link href="/mesh" className="text-xs font-black text-[var(--text-primary)]">Open Mesh</Link>
+            <Link href="/mesh" className="text-xs font-bold text-[var(--text-primary)]">Open Mesh</Link>
           </div>
           {[
             { href: "/mesh", label: "The Mesh", icon: Grid3X3 },
@@ -708,7 +708,7 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
               style={{ left: `${left}%`, top: `${top}%` }}
             >
               <MeshiPresenceGlyph size={18} active label={`${label} is here`} />
-              <span className="max-w-[5.25rem] truncate text-[9px] font-black text-[var(--text-secondary)]">
+              <span className="max-w-[5.25rem] truncate text-[9px] font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
             </span>
@@ -728,7 +728,7 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
           ))}
         </div>
         <Sparkles size={11} aria-hidden="true" className="text-[var(--accent)]" />
-        <span className="max-w-[9rem] truncate text-[10px] font-black text-[var(--text-secondary)]">
+        <span className="max-w-[9rem] truncate text-[10px] font-bold text-[var(--text-secondary)]">
           {presences.length === 1 ? `${names} is here` : `${presences.length} Meshis here`}
         </span>
       </div>

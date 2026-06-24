@@ -437,7 +437,7 @@ function MeshPreview({ active }: { active: SectionConfig }) {
             <Icon className="h-7 w-7 sm:h-[34px] sm:w-[34px]" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="text-base font-black lg:mt-4 lg:text-lg">{active.label} is ready.</p>
+            <p className="text-base font-bold lg:mt-4 lg:text-lg">{active.label} is ready.</p>
             <p className="mt-1 truncate text-xs font-semibold text-[var(--text-muted)] lg:hidden">{active.metric}</p>
           </div>
         </div>
@@ -480,17 +480,17 @@ export async function PlatformSuite({ section, afterWorkspace }: { section: Plat
                 <ActiveIcon size={15} aria-hidden="true" />
                 {active.label}
               </div>
-              <h1 className="mt-3 max-w-3xl text-3xl font-black leading-[1.02] tracking-[0] sm:mt-4 sm:text-4xl lg:text-5xl">{active.title}</h1>
+              <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-[1.02] tracking-[0] sm:mt-4 sm:text-4xl lg:text-5xl">{active.title}</h1>
               <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--text-secondary)] sm:mt-3 sm:text-base sm:leading-7">{active.body}</p>
             </div>
             <div className="mt-5 hidden min-w-[17rem] grid-cols-2 gap-2 lg:grid">
               <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/58 px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Status</p>
-                <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{active.status}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Status</p>
+                <p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{active.status}</p>
               </div>
               <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/58 px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Signal</p>
-                <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{active.metric}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Signal</p>
+                <p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{active.metric}</p>
               </div>
             </div>
           </div>
@@ -506,7 +506,7 @@ export async function PlatformSuite({ section, afterWorkspace }: { section: Plat
               <div className="mesh-surface mesh-pop-in mesh-delay-1 rounded-lg p-3 sm:p-4 md:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-black">Workspace</h2>
+                    <h2 className="text-xl font-bold">Workspace</h2>
                     <p className="mt-1 text-sm text-[var(--text-secondary)]">Private. Permission-based.</p>
                   </div>
                   <Link href={active.href} className="mesh-action mesh-action-secondary mesh-pressable w-full px-3 text-sm sm:w-auto">

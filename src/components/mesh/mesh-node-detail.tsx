@@ -357,13 +357,13 @@ export function MeshNodeDetail({
               )}
               <div className="absolute left-2 top-2 flex flex-wrap items-center gap-1.5">
                 <span
-                  className="inline-flex items-center gap-1 rounded-full bg-black/58 px-2 py-1 text-[10px] font-black capitalize text-white backdrop-blur"
+                  className="inline-flex items-center gap-1 rounded-full bg-black/58 px-2 py-1 text-[10px] font-bold capitalize text-white backdrop-blur"
                   style={{ border: `1px solid ${node.color}66` }}
                 >
                   <PostMediaIcon node={node} />
                   {getMediaLabel(node)}
                 </span>
-                <span className="rounded-full bg-black/58 px-2 py-1 text-[10px] font-black text-white backdrop-blur">
+                <span className="rounded-full bg-black/58 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
                   {postSourceLabel}
                 </span>
               </div>
@@ -375,7 +375,7 @@ export function MeshNodeDetail({
             </div>
             <div className="space-y-3 p-3">
               <div>
-                <p className="line-clamp-2 text-sm font-black text-[var(--text-primary)]">{node.label}</p>
+                <p className="line-clamp-2 text-sm font-bold text-[var(--text-primary)]">{node.label}</p>
                 {node.content && node.imageUrl && (
                   <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--text-secondary)]">{node.content}</p>
                 )}
@@ -393,15 +393,15 @@ export function MeshNodeDetail({
 
               <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-[var(--bg-secondary)]/72 p-1.5">
                 <div className="rounded-lg px-2 py-1.5 text-center">
-                  <p className="text-xs font-black text-[var(--text-primary)]">{formatMetric(node.likeCount)}</p>
+                  <p className="text-xs font-bold text-[var(--text-primary)]">{formatMetric(node.likeCount)}</p>
                   <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">Likes</p>
                 </div>
                 <div className="rounded-lg px-2 py-1.5 text-center">
-                  <p className="text-xs font-black text-[var(--text-primary)]">{formatMetric(node.commentCount)}</p>
+                  <p className="text-xs font-bold text-[var(--text-primary)]">{formatMetric(node.commentCount)}</p>
                   <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">Replies</p>
                 </div>
                 <div className="rounded-lg px-2 py-1.5 text-center">
-                  <p className="text-xs font-black text-[var(--text-primary)]">{formatMetric(node.repostCount)}</p>
+                  <p className="text-xs font-bold text-[var(--text-primary)]">{formatMetric(node.repostCount)}</p>
                   <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">Shares</p>
                 </div>
               </div>
@@ -410,7 +410,7 @@ export function MeshNodeDetail({
                 <button
                   type="button"
                   onClick={openNodeContent}
-                  className="brand-button col-span-2 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-black text-white shadow-lg transition active:scale-95"
+                  className="brand-button col-span-2 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-bold text-white shadow-lg transition active:scale-95"
                 >
                   <Eye className="h-3.5 w-3.5" />
                   {node.sourceType === "platform" ? "View Source" : "View Post"}

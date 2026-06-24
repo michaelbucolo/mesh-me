@@ -163,7 +163,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="mesh-stat-card">
-      <p className="text-2xl font-black text-[var(--text-primary)]">{value.toLocaleString()}</p>
+      <p className="text-2xl font-bold text-[var(--text-primary)]">{value.toLocaleString()}</p>
       <p className="mt-1 text-xs text-[var(--text-muted)]">{label}</p>
     </div>
   );

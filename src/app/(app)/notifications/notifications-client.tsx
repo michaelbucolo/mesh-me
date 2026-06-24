@@ -137,7 +137,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
     <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5">
       <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-black text-[var(--text-secondary)]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
             <Bell size={15} aria-hidden="true" />
             Unified notification hub
           </div>
@@ -161,7 +161,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
           <div>
-            <h1 className="max-w-3xl text-3xl font-black leading-tight md:text-5xl">One calm place for every alert.</h1>
+            <h1 className="max-w-3xl text-2xl font-bold leading-tight md:text-4xl">One calm place for every alert.</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
               Likes, comments, follows, messages, mentions, communities, security, and privacy alerts are grouped so the important parts stay visible.
             </p>
@@ -177,7 +177,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
       <section className="grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
         <aside className="grid h-fit gap-4 xl:sticky xl:top-5">
           <div className="mesh-surface rounded-lg p-4">
-            <h2 className="text-base font-black">Smart digest</h2>
+            <h2 className="text-base font-bold">Smart digest</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{payload.smartSummary}</p>
             <div className="mt-4 grid gap-2">
               <PreferenceRow label="Push alerts" active={payload.preferences.pushEnabled} />
@@ -192,7 +192,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           </div>
 
           <div className="mesh-surface rounded-lg p-4">
-            <h2 className="text-base font-black">Duplicate app alerts</h2>
+            <h2 className="text-base font-bold">Duplicate app alerts</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
               Once a platform is connected and syncing reliably, Mesh.me can be the cleaner hub instead of letting every app interrupt you separately.
             </p>
@@ -242,7 +242,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                     key={category}
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className={`mesh-choice shrink-0 rounded-full px-3 py-2 text-xs font-black ${active ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-secondary)]"}`}
+                    className={`mesh-choice shrink-0 rounded-full px-3 py-2 text-xs font-bold ${active ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-secondary)]"}`}
                     aria-pressed={active}
                   >
                     <Icon size={14} aria-hidden="true" />
@@ -320,7 +320,7 @@ function PreferenceRow({ label, active }: { label: string; active: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 px-3 py-2 text-sm">
       <span className="font-semibold text-[var(--text-secondary)]">{label}</span>
-      <span className={`rounded-full px-2 py-1 text-[10px] font-black ${active ? "bg-emerald-300/10 text-emerald-100" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"}`}>
+      <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${active ? "bg-emerald-300/10 text-emerald-100" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"}`}>
         {active ? "On" : "Off"}
       </span>
     </div>
@@ -366,14 +366,14 @@ function NotificationGroupCard({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="min-w-0 truncate text-base font-black text-[var(--text-primary)]">{group.title}</h2>
+              <h2 className="min-w-0 truncate text-base font-bold text-[var(--text-primary)]">{group.title}</h2>
               {group.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-black text-white">
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold text-white">
                   {group.unreadCount} unread
                 </span>
               )}
               {group.priority === "high" && (
-                <span className="rounded-full border border-red-400/25 bg-red-500/10 px-2 py-0.5 text-[10px] font-black text-red-100">
+                <span className="rounded-full border border-red-400/25 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-100">
                   Priority
                 </span>
               )}

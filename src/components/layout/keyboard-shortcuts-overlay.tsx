@@ -52,7 +52,7 @@ function shortcutKey(value: string) {
   return (
     <kbd
       key={value}
-      className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-2 text-xs font-black text-[var(--text-primary)] shadow-sm"
+      className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-2 text-xs font-bold text-[var(--text-primary)] shadow-sm"
     >
       {value}
     </kbd>
@@ -112,7 +112,7 @@ function ShortcutRow({ shortcut, onAction }: { shortcut: Shortcut; onAction: (ac
   const content = (
     <>
       <span className="flex min-w-0 flex-col text-left">
-        <span className="text-sm font-black text-[var(--text-primary)]">{shortcut.label}</span>
+        <span className="text-sm font-bold text-[var(--text-primary)]">{shortcut.label}</span>
         {shortcut.description ? (
           <span className="text-xs leading-5 text-[var(--text-muted)]">{shortcut.description}</span>
         ) : null}
@@ -148,7 +148,7 @@ function ShortcutGroupCard({ group, onAction }: { group: ShortcutGroup; onAction
           <Icon className="h-4 w-4" aria-hidden />
         </span>
         <span className="min-w-0">
-          <h3 className="text-sm font-black text-[var(--text-primary)]">{group.title}</h3>
+          <h3 className="text-sm font-bold text-[var(--text-primary)]">{group.title}</h3>
           <p className="mt-0.5 text-xs leading-5 text-[var(--text-muted)]">{group.description}</p>
         </span>
       </div>
@@ -335,7 +335,7 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
                 <Keyboard className="h-5 w-5" aria-hidden />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-black text-[var(--text-primary)]">Press ? anytime outside a text field.</p>
+                <p className="text-sm font-bold text-[var(--text-primary)]">Press ? anytime outside a text field.</p>
                 <p className="text-xs leading-5 text-[var(--text-muted)]">Use G as a navigation prefix, or click any actionable row below.</p>
               </div>
             </div>
@@ -358,7 +358,7 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
 
       <div
         className={cn(
-          "pointer-events-none fixed left-1/2 top-4 z-[90] -translate-x-1/2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/95 px-3 py-2 text-xs font-black text-[var(--text-primary)] shadow-[var(--shadow-md)] backdrop-blur transition-all",
+          "pointer-events-none fixed left-1/2 top-4 z-[90] -translate-x-1/2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/95 px-3 py-2 text-xs font-bold text-[var(--text-primary)] shadow-[var(--shadow-md)] backdrop-blur transition-all",
           sequenceActive ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0",
         )}
         role="status"
