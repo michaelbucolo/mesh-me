@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -68,6 +68,22 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingSource, setLoadingSource] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const trendingTopics = useMemo(
+    () =>
+      ["Photography", "Web Development", "Privacy Tech", "Music Production", "Digital Art"].map(
+        (name) => ({ name, postCount: Math.floor(Math.random() * 200 + 50) }),
+      ),
+    [],
+  );
+
+  const filteredPosts = useMemo(() => {
+    if (filter === "all") return posts;
+    if (filter === "video") return posts.filter((p) => p.media.some((m) => m.type.startsWith("video")));
+    if (filter === "photos") return posts.filter((p) => p.media.some((m) => m.type.startsWith("image")));
+    if (filter === "clean") return posts.filter((p) => p.media.length === 0);
+    return posts;
+  }, [posts, filter]);
 
   useEffect(() => {
     try {
@@ -228,11 +244,11 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
             </div>
           )}
 
-          {!loadingSource && posts.length > 0 ? (
+          {!loadingSource && filteredPosts.length > 0 ? (
             <>
               {layout === "timeline" && (
                 <div className="space-y-3">
-                  {posts.map((post) => (
+                  {filteredPosts.map((post) => (
                     <PostCard key={post.id} post={post} currentUserId={user.id} />
                   ))}
                 </div>
@@ -240,7 +256,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
 
               {layout === "cards" && (
                 <div className="space-y-5">
-                  {posts.map((post) => (
+                  {filteredPosts.map((post) => (
                     <PostCard key={post.id} post={post} currentUserId={user.id} />
                   ))}
                 </div>
@@ -248,7 +264,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
 
               {layout === "grid" && (
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                  {posts.map((post) => (
+                  {filteredPosts.map((post) => (
                     <Link key={post.id} href={`/feed/${post.id}`}>
                       <motion.div
                         whileHover={{ scale: 1.02 }}
@@ -273,7 +289,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
 
               {layout === "reels" && (
                 <div className="scrollbar-hide -mx-4 h-[calc(100vh-10rem)] snap-y snap-mandatory overflow-y-auto sm:-mx-0">
-                  {posts.map((post) => (
+                  {filteredPosts.map((post) => (
                     <motion.div
                       key={post.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -325,7 +341,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
 
               {layout === "compact" && (
                 <div className="space-y-0.5 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-2">
-                  {posts.map((post) => (
+                  {filteredPosts.map((post) => (
                     <Link key={post.id} href={`/feed/${post.id}`}>
                       <div className="group flex items-start gap-3 rounded-xl px-4 py-3 transition-colors hover:bg-[var(--mesh-panel)]">
                         <div className="flex flex-col items-center gap-0.5 text-[var(--mesh-text-muted)]">
@@ -364,7 +380,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                     <Loader2 size={16} className="animate-spin" /> Loading more...
                   </div>
                 )}
-                {!hasMore && posts.length > 5 && (
+                {!hasMore && filteredPosts.length > 5 && (
                   <p className="text-xs text-[var(--mesh-text-muted)]">You have reached the end.</p>
                 )}
               </div>
@@ -394,11 +410,11 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
             <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
               <h3 className="mb-3 text-sm font-bold text-[var(--mesh-text)]">Trending on Mesh</h3>
               <div className="space-y-3">
-                {["Photography", "Web Development", "Privacy Tech", "Music Production", "Digital Art"].map((topic) => (
-                  <div key={topic} className="flex items-center justify-between">
+                {trendingTopics.map((topic) => (
+                  <div key={topic.name} className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-[var(--mesh-text)]">{topic}</p>
-                      <p className="text-[10px] text-[var(--mesh-text-muted)]">{Math.floor(Math.random() * 200 + 50)} posts</p>
+                      <p className="text-sm font-medium text-[var(--mesh-text)]">{topic.name}</p>
+                      <p className="text-[10px] text-[var(--mesh-text-muted)]">{topic.postCount} posts</p>
                     </div>
                     <span className="text-[10px] text-[var(--mesh-text-muted)]">Trending</span>
                   </div>
