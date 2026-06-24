@@ -89,39 +89,6 @@ function getRouteInfo(pathname: string, username: string): RouteInfo {
   return routeInfoMap[pathname] ?? routeInfoMap[firstSegment] ?? { title: "Mesh.me", description: "" };
 }
 
-const fullSurfaceSegments = new Set([
-  "account",
-  "analytics",
-  "billing",
-  "communities",
-  "connected-accounts",
-  "content-hub",
-  "explore",
-  "feature-requests",
-  "feed",
-  "feedback",
-  "innovation",
-  "marketplace",
-  "mesh",
-  "meshi-voice",
-  "meshpro",
-  "messages",
-  "notifications",
-  "privacy-controls",
-  "profile",
-  "search",
-  "settings",
-  "spaces",
-  "super-app",
-  "vault",
-  "trust",
-]);
-
-function isFullSurfacePath(pathname: string) {
-  const firstSegment = pathname.split("/").filter(Boolean)[0] ?? "";
-  return fullSurfaceSegments.has(firstSegment);
-}
-
 function AppRouteProgress({ pathname }: { pathname: string }) {
   return (
     <div
@@ -251,9 +218,8 @@ export function AppShell({ children, user }: AppShellProps) {
   const routeInfo = useMemo(() => getRouteInfo(pathname, user.username), [pathname, user.username]);
   const isFeedSurface = pathname === "/feed" || pathname.startsWith("/feed/");
   const isMeshSurface = pathname === "/mesh" || pathname.startsWith("/mesh/");
-  const isFullSurface = isFullSurfacePath(pathname);
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({
-    unreadNotifications: 3,
+    unreadNotifications: 0,
     unreadMessages: 0,
   });
 
