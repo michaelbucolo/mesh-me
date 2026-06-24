@@ -543,42 +543,46 @@ export function MeshiFloat() {
   const [isMounted, setIsMounted] = useState(false);
   const [meshiEnabled, setMeshiEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
-    return localStorage.getItem("meshiEnabled") !== "false";
+    try { return localStorage.getItem("meshiEnabled") !== "false"; } catch { return true; }
   });
   const [view, setView] = useState<MeshiView>(() => initialContinuity?.view ?? "closed");
   const [mood, setMood] = useState<MeshiMood>(() => {
     if (initialContinuity?.mood) return initialContinuity.mood;
     if (typeof window === "undefined") return "happy";
-    return (localStorage.getItem("meshiFace") || "happy") as MeshiMood;
+    try { return (localStorage.getItem("meshiFace") || "happy") as MeshiMood; } catch { return "happy" as MeshiMood; }
   });
   const [meshiColor, setMeshiColor] = useState<MeshiColor>(() => {
     if (typeof window === "undefined") return "blue";
-    return (localStorage.getItem("meshiColor") || "blue") as MeshiColor;
+    try { return (localStorage.getItem("meshiColor") || "blue") as MeshiColor; } catch { return "blue" as MeshiColor; }
   });
   const [meshiHat, setMeshiHat] = useState<MeshiHat>(() => {
     if (typeof window === "undefined") return "none";
-    return (localStorage.getItem("meshiHat") || "none") as MeshiHat;
+    try { return (localStorage.getItem("meshiHat") || "none") as MeshiHat; } catch { return "none" as MeshiHat; }
   });
   const [meshiHair, setMeshiHair] = useState<MeshiHair>(() => {
     if (typeof window === "undefined") return "none";
-    return (localStorage.getItem("meshiHair") || "none") as MeshiHair;
+    try { return (localStorage.getItem("meshiHair") || "none") as MeshiHair; } catch { return "none" as MeshiHair; }
   });
   const [meshiAccessory, setMeshiAccessory] = useState<MeshiAccessory>(() => {
     if (typeof window === "undefined") return "none";
-    const storedAccessory = localStorage.getItem("meshiAccessory");
-    return ((storedAccessory === "lashes" ? "none" : storedAccessory) || "none") as MeshiAccessory;
+    try {
+      const storedAccessory = localStorage.getItem("meshiAccessory");
+      return ((storedAccessory === "lashes" ? "none" : storedAccessory) || "none") as MeshiAccessory;
+    } catch { return "none" as MeshiAccessory; }
   });
   const [meshiEye, setMeshiEye] = useState<MeshiEyeStyle>(() => {
     if (typeof window === "undefined") return "regular";
-    return ((localStorage.getItem("meshiEye") || (localStorage.getItem("meshiAccessory") === "lashes" ? "lashes" : "")) || "regular") as MeshiEyeStyle;
+    try {
+      return ((localStorage.getItem("meshiEye") || (localStorage.getItem("meshiAccessory") === "lashes" ? "lashes" : "")) || "regular") as MeshiEyeStyle;
+    } catch { return "regular" as MeshiEyeStyle; }
   });
   const [meshiBadge, setMeshiBadge] = useState<MeshiBadge>(() => {
     if (typeof window === "undefined") return "none";
-    return (localStorage.getItem("meshiBadge") || "none") as MeshiBadge;
+    try { return (localStorage.getItem("meshiBadge") || "none") as MeshiBadge; } catch { return "none" as MeshiBadge; }
   });
   const [meshiOutfit, setMeshiOutfit] = useState<MeshiOutfit>(() => {
     if (typeof window === "undefined") return "none";
-    return (localStorage.getItem("meshiOutfit") || "none") as MeshiOutfit;
+    try { return (localStorage.getItem("meshiOutfit") || "none") as MeshiOutfit; } catch { return "none" as MeshiOutfit; }
   });
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetingText, setGreetingText] = useState("");
@@ -632,19 +636,23 @@ export function MeshiFloat() {
   const focusedContentRef = useRef<FocusedContent | null>(null);
   const lastFocusedContentIdRef = useRef<string | null>(null);
   const contentInsightTimerRef = useRef<number | null>(null);
+  const explorationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const speechBubbleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const [isIdle, setIsIdle] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [activeProp, setActiveProp] = useState<MeshiProp>("none");
   const [clickBurst, setClickBurst] = useState(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clickBurstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hasGreetedThisPage, setHasGreetedThisPage] = useState(false);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
   const [isMeshTransition, setIsMeshTransition] = useState(false);
   const prevPathnameRef = useRef("");
   const [isFirstTimeMeshi, setIsFirstTimeMeshi] = useState(() => {
     if (typeof window === "undefined") return false;
-    return !localStorage.getItem("meshiInteracted");
+    try { return !localStorage.getItem("meshiInteracted"); } catch { return false; }
   });
 
   const [speechBubbles, setSpeechBubbles] = useState<Array<{
@@ -676,10 +684,15 @@ export function MeshiFloat() {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setIsMounted(true));
+    const bubbleTimers = speechBubbleTimersRef.current;
     return () => {
       window.cancelAnimationFrame(frame);
       if (avoidingUiTimerRef.current) window.clearTimeout(avoidingUiTimerRef.current);
       if (contentInsightTimerRef.current) window.clearTimeout(contentInsightTimerRef.current);
+      explorationTimersRef.current.forEach(clearTimeout);
+      explorationTimersRef.current = [];
+      for (const t of bubbleTimers.values()) clearTimeout(t);
+      bubbleTimers.clear();
     };
   }, []);
 
@@ -969,10 +982,14 @@ export function MeshiFloat() {
       idleTimerRef.current = setTimeout(() => setIsIdle(true), 20000);
       if (view === "closed") setMood("thinking");
     };
-    const handleKeyUp = () => { setTimeout(() => setIsTyping(false), 2000); };
+    const handleKeyUp = () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => setIsTyping(false), 2000);
+    };
     const handleClick = () => {
       setClickBurst(true);
-      setTimeout(() => setClickBurst(false), 400);
+      if (clickBurstTimerRef.current) clearTimeout(clickBurstTimerRef.current);
+      clickBurstTimerRef.current = setTimeout(() => setClickBurst(false), 400);
       if (view === "closed") setMood("happy");
     };
     const handleMouseMove = () => {
@@ -991,6 +1008,8 @@ export function MeshiFloat() {
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("click", handleClick);
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (clickBurstTimerRef.current) clearTimeout(clickBurstTimerRef.current);
     };
   }, [meshiEnabled, isIdle, isTyping, view]);
 
@@ -1143,7 +1162,11 @@ export function MeshiFloat() {
   const addSpeechBubble = useCallback((role: "user" | "meshi", text: string) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);
     setSpeechBubbles((prev) => [...prev.slice(-4), { id, text, role, timestamp: Date.now() }]);
-    setTimeout(() => { setSpeechBubbles((prev) => prev.filter((b) => b.id !== id)); }, 12000);
+    const timer = setTimeout(() => {
+      setSpeechBubbles((prev) => prev.filter((b) => b.id !== id));
+      speechBubbleTimersRef.current.delete(id);
+    }, 12000);
+    speechBubbleTimersRef.current.set(id, timer);
   }, []);
 
   // Meshi exploration animation — travels through mesh nodes and indexes them
@@ -1165,16 +1188,20 @@ export function MeshiFloat() {
       "Almost done!",
     ];
 
+    explorationTimersRef.current.forEach(clearTimeout);
+    explorationTimersRef.current = [];
+
     messages.forEach((msg, i) => {
-      setTimeout(() => {
+      const t = setTimeout(() => {
         setSearchingText(msg);
         setExplorationProgress(((i + 1) / totalSteps) * 100);
         if (i === 1) setMood("learning" as MeshiMood);
         if (i === 3) setMood("thinking");
       }, i * stepDuration);
+      explorationTimersRef.current.push(t);
     });
 
-    setTimeout(() => {
+    const finishTimer = setTimeout(() => {
       setIsSearching(false);
       setIsExploring(false);
       setExplorationProgress(0);
@@ -1187,8 +1214,10 @@ export function MeshiFloat() {
       setMood("celebrating" as MeshiMood);
       setView("speech");
       addSpeechBubble("meshi", summary);
-      setTimeout(() => setMood("excited"), 2000);
+      const moodTimer = setTimeout(() => setMood("excited"), 2000);
+      explorationTimersRef.current.push(moodTimer);
     }, totalSteps * stepDuration);
+    explorationTimersRef.current.push(finishTimer);
   }, [meshStats, knowledge.knowledgeLevel, addSpeechBubble]);
 
   // Legacy triggerSearch now uses exploration
@@ -1301,7 +1330,7 @@ export function MeshiFloat() {
     // Mark first-time interaction
     if (isFirstTimeMeshi) {
       setIsFirstTimeMeshi(false);
-      localStorage.setItem("meshiInteracted", "true");
+      try { localStorage.setItem("meshiInteracted", "true"); } catch { /* storage unavailable */ }
     }
     if (view === "closed") { setView("actions"); setMood("excited"); }
     else if (view === "actions") { setView("closed"); }

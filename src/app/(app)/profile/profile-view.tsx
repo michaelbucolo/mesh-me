@@ -3,19 +3,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   Bookmark,
-  Crown,
   ExternalLink,
   EyeOff,
   Globe,
   Heart,
-  Link as LinkIcon,
   MessageCircle,
   MoreHorizontal,
   Repeat2,
   Settings,
   ShieldCheck,
-  Users,
-  UserPlus,
 } from "lucide-react";
 import {
   MeshiMascot,

@@ -14,7 +14,11 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { secondaryEmail } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { secondaryEmail } = body;
   if (!secondaryEmail || typeof secondaryEmail !== "string" || !secondaryEmail.includes("@")) {
     return NextResponse.json({ error: "Valid email of the account to merge is required" }, { status: 400 });
   }
@@ -94,7 +98,11 @@ export async function PUT(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { mergeRequestId, action, verifyToken } = await req.json();
+  const mergeBody = await req.json().catch(() => null);
+  if (!mergeBody || typeof mergeBody !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { mergeRequestId, action, verifyToken } = mergeBody;
 
   if (!mergeRequestId || !action) {
     return NextResponse.json({ error: "mergeRequestId and action required" }, { status: 400 });

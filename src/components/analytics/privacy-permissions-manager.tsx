@@ -58,7 +58,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: "Failed to update permissions" }));
       if (!res.ok) throw new Error(data.error || "Failed to update permissions");
       setItems((prev) => prev.map((item) => (item.id === accountId ? { ...item, ...data.account } : item)));
       setStatus("Privacy permissions saved.");

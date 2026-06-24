@@ -185,7 +185,7 @@ export function LiveMeshiPresence({
       }
       const res = await fetch(`/api/mesh/presence?${params}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         const list: MeshiPresence[] = data.presences || [];
         if (data.summary && onSummaryChange) onSummaryChange(data.summary);
         setPresences(list.filter((p) => p.isOnline));

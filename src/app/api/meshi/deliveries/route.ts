@@ -73,7 +73,11 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { ids } = await req.json();
+    const deliveryBody = await req.json().catch(() => null);
+    if (!deliveryBody || typeof deliveryBody !== "object") {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { ids } = deliveryBody;
     if (!Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json({ error: "ids array required" }, { status: 400 });
     }

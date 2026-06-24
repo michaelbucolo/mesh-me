@@ -43,11 +43,11 @@ export function SecurityHubTab() {
           setSessionMessage("Could not load some security details right now.");
         }
 
-        const sessionPayload = await sessionRes.json();
+        const sessionPayload = await sessionRes.json().catch(() => ({}));
         setSessions(sessionPayload.sessions ?? []);
 
         if (overviewRes.ok) {
-          const overviewPayload = await overviewRes.json();
+          const overviewPayload = await overviewRes.json().catch(() => ({}));
           setContentOverview(
             overviewPayload.content ?? {
               postsAndPhotos: 0,
@@ -74,13 +74,14 @@ export function SecurityHubTab() {
     setSessionMessage(null);
     try {
       const res = await fetch("/api/account/sessions", { method: "DELETE" });
-      const payload = await res.json();
+      const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSessionMessage(payload.error || "Could not sign out other sessions.");
         setIsSigningOut(false);
         return;
       }
-      setSessionMessage(`Signed out ${payload.deletedCount} other session${payload.deletedCount === 1 ? "" : "s"}.`);
+      const count = payload.deletedCount ?? 0;
+      setSessionMessage(`Signed out ${count} other session${count === 1 ? "" : "s"}.`);
       setSessions((prev) => prev.filter((item) => item.isCurrent));
     } catch {
       setSessionMessage("Could not sign out other sessions.");
