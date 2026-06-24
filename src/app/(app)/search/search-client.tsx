@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
   ExternalLink,
@@ -229,7 +230,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const showWeb = activeTab === "top" || activeTab === "web";
 
   return (
-    <main className="search-index-page mx-auto grid w-full max-w-[62rem] gap-3">
+    <main className="search-index-page mx-auto grid w-full max-w-[62rem] gap-3 animate-page-enter">
       <header className="sticky top-0 z-20 bg-[var(--bg-primary)]/92 pb-2 pt-1 backdrop-blur md:top-3">
         <form onSubmit={submit} className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4">
           <Search className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
@@ -289,7 +290,15 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
       {totals.top === 0 && !isPending ? <ResultEmpty query={submittedQuery} /> : null}
 
-      <section className="grid gap-3">
+      <AnimatePresence mode="wait">
+      <motion.section
+        key={activeTab + submittedQuery}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="grid gap-3"
+      >
         {showConnected && results.sourceIndex.length > 0 && (
           <ResultSection title="Social index sources" icon={Globe2}>
             <div className="grid gap-0 md:grid-cols-2">
@@ -465,7 +474,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             ))}
           </ResultSection>
         )}
-      </section>
+      </motion.section>
+      </AnimatePresence>
     </main>
   );
 }
@@ -480,7 +490,12 @@ function ResultSection({
   children: ReactNode;
 }) {
   return (
-    <section className="mesh-surface overflow-hidden rounded-lg">
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="mesh-surface overflow-hidden rounded-lg"
+    >
       <header className="flex items-center gap-2 border-b border-[var(--border-primary)] px-4 py-3">
         <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
@@ -488,6 +503,6 @@ function ResultSection({
       <div className="divide-y divide-[var(--border-primary)]">
         {children}
       </div>
-    </section>
+    </motion.section>
   );
 }

@@ -799,6 +799,33 @@ select:focus-visible {
 }
 .card-shine:hover::after { animation: cardShine 0.7s ease-out; }
 
+/* ─── Feed Post Stagger ─── */
+@keyframes feedPostReveal {
+  from { opacity: 0; transform: translateY(16px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.feed-posts-stagger > [data-feed-post-id] {
+  animation: feedPostReveal 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.feed-posts-stagger > [data-feed-post-id]:nth-child(1) { animation-delay: 0s; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(2) { animation-delay: 0.04s; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(3) { animation-delay: 0.08s; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(4) { animation-delay: 0.12s; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(5) { animation-delay: 0.16s; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(6) { animation-delay: 0.2s; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(7) { animation-delay: 0.24s; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(8) { animation-delay: 0.28s; }
+
+/* ─── Interactive Press Scale ─── */
+@media (hover: hover) and (pointer: fine) {
+  .mesh-action:active,
+  .insta-icon-button:active,
+  .feed-mode-button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
 /* ─── Shimmer Loading ─── */
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 .animate-shimmer {
