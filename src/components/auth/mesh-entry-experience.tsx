@@ -1081,7 +1081,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
       <section className="relative z-10 flex h-full min-h-0 items-center justify-center px-4 py-3 sm:px-5">
         <div className="mesh-entry-panel w-full max-w-[30rem]">
           <div className="mesh-entry-brand-shell mb-6 text-center sm:mb-8">
-            <Link href="/" className="brand-wordmark inline-flex text-xl font-black text-white" aria-label="mesh.me home">
+            <Link href="/" className="brand-wordmark inline-flex text-xl font-bold text-white" aria-label="mesh.me home">
               mesh<span className="brand-wordmark-accent">.me</span>
             </Link>
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-100/55">Your World, Your Way</p>
@@ -1180,7 +1180,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
                     <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-blue-100/15 bg-blue-100/8 text-blue-100">
                       <UserRound className="h-5 w-5" aria-hidden="true" />
                     </div>
-                    <h1 className="text-4xl font-black tracking-[0] text-white sm:text-5xl">Who are you?</h1>
+                    <h1 className="text-4xl font-bold tracking-[0] text-white sm:text-5xl">Who are you?</h1>
                     <p className="text-sm text-blue-100/62">Sign in or create your Mesh from one place.</p>
                   </div>
                   <label className="block" htmlFor="mesh-entry-identity">
@@ -1332,7 +1332,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
                     <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-blue-100/15 bg-blue-100/8 text-blue-100">
                       <LockKeyhole className="h-4 w-4" aria-hidden="true" />
                     </div>
-                    <h1 className="text-2xl font-black tracking-[0] text-white">Welcome back</h1>
+                    <h1 className="text-2xl font-bold tracking-[0] text-white">Welcome back</h1>
                     <p className="text-sm text-blue-100/62">Enter your password to reconnect.</p>
                     <p className="mx-auto max-w-[18rem] truncate text-xs font-semibold text-blue-100/42">{identifier}</p>
                     {destinationLabel ? (
@@ -1424,7 +1424,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
                     <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-blue-100/15 bg-blue-100/8 text-blue-100">
                       <LockKeyhole className="h-4 w-4" aria-hidden="true" />
                     </div>
-                    <h1 className="text-2xl font-black tracking-[0] text-white">Reset password</h1>
+                    <h1 className="text-2xl font-bold tracking-[0] text-white">Reset password</h1>
                     <p className="text-sm text-blue-100/62">Enter the email connected to your Mesh.</p>
                     <p className="mx-auto max-w-[20rem] text-xs font-semibold text-blue-100/42">
                       If the email exists, we will send a secure reset link.
@@ -1514,7 +1514,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
               >
                 <form action={submitSignup} className="mesh-entry-card space-y-4" data-testid="entry-signup-form">
                   <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-black tracking-[0] text-white">Create your Mesh</h1>
+                    <h1 className="text-2xl font-bold tracking-[0] text-white">Create your Mesh</h1>
                     <p className="text-sm text-blue-100/62">This identity is new here. Set up your account now.</p>
                   </div>
 

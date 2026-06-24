@@ -1,7 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Crown, EyeOff, Grid3X3, Hash, Link as LinkIcon, MapPin, MessageCircle, PlugZap, Settings, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  Bookmark,
+  Crown,
+  ExternalLink,
+  EyeOff,
+  Globe,
+  Heart,
+  Link as LinkIcon,
+  MessageCircle,
+  MoreHorizontal,
+  Repeat2,
+  Settings,
+  ShieldCheck,
+  Users,
+  UserPlus,
+} from "lucide-react";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -16,7 +31,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserPosts, getUserProfile } from "@/lib/queries";
-import { formatCount } from "@/lib/utils";
+import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
 
 const DEFAULT_MESHI = {
@@ -29,6 +44,34 @@ const DEFAULT_MESHI = {
   badgeStyle: "none",
   outfitStyle: "none",
 };
+
+const PLATFORM_ICONS: Record<string, { icon: string; bg: string }> = {
+  github: { icon: "GH", bg: "#24292e" },
+  linkedin: { icon: "in", bg: "#0077b5" },
+  medium: { icon: "M", bg: "#292929" },
+  spotify: { icon: "♫", bg: "#1db954" },
+  twitter: { icon: "𝕏", bg: "#1d9bf0" },
+  youtube: { icon: "▶", bg: "#ff0000" },
+  tiktok: { icon: "♪", bg: "#010101" },
+  instagram: { icon: "IG", bg: "#e4405f" },
+  discord: { icon: "DC", bg: "#5865f2" },
+  twitch: { icon: "Tw", bg: "#9146ff" },
+  facebook: { icon: "fb", bg: "#1877f2" },
+  snapchat: { icon: "👻", bg: "#fffc00" },
+};
+
+function PlatformIcon({ platform }: { platform: string }) {
+  const info = PLATFORM_ICONS[platform.toLowerCase()] ?? { icon: platform.charAt(0).toUpperCase(), bg: "var(--mesh-panel-solid)" };
+  return (
+    <div
+      className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
+      style={{ backgroundColor: info.bg }}
+      title={platform}
+    >
+      {info.icon}
+    </div>
+  );
+}
 
 export async function InstagramProfileView({ username }: { username: string }) {
   const currentUser = await getCurrentUser();
@@ -43,204 +86,402 @@ export async function InstagramProfileView({ username }: { username: string }) {
 
   const isOwnProfile = profile.isOwnProfile;
   const canViewProfile = profile.sectionVisibility.profile;
-  const website = profile.website?.replace(/^https?:\/\//, "");
   const meshi = profile.meshiPreference ?? DEFAULT_MESHI;
   const connectedAccounts = profile.connectedAccounts ?? [];
-  const interests = profile.interests ?? [];
-  const accent = profile.accentColor || "var(--accent)";
+  const links = profile.links ?? [];
+  const postCount = profile._count.posts;
+  const communityCount = 0;
+  const collectionCount = 0;
 
   return (
-    <main className="insta-profile-shell">
-      <section className="insta-profile-header">
-        <div className="insta-profile-banner" style={{ backgroundColor: accent }}>
-          {profile.bannerUrl && (
-            <Image src={profile.bannerUrl} alt="" fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover" />
-          )}
-        </div>
-
-        <div className="insta-profile-main">
-          <div className="insta-profile-avatar-stack">
-            <span className="insta-story-ring p-[3px]" style={{ background: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 18%, var(--bg-secondary)))` }}>
-              <Avatar src={profile.avatarUrl} alt={profile.displayName} size="xl" className="h-24 w-24 ring-4 ring-[var(--bg-primary)] sm:h-32 sm:w-32" />
-            </span>
-            <div className="insta-profile-meshi" aria-label={`${profile.displayName}'s Meshi`}>
-              <MeshiMascot
-                size={54}
-                color={meshi.colorTheme as MeshiColor}
-                hat={meshi.hatStyle as MeshiHat}
-                mood={meshi.faceStyle as MeshiMood}
-                hair={meshi.hairStyle as MeshiHair}
-                accessory={meshi.accessoryStyle as MeshiAccessory}
-                eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
-                badge={meshi.badgeStyle as MeshiBadge}
-                outfit={meshi.outfitStyle as MeshiOutfit}
-                animate
-                interactive={isOwnProfile}
-                showGlow={false}
-                prop={isOwnProfile ? "paintbrush" : "none"}
-              />
+    <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      {/* Main column */}
+      <div className="min-w-0 space-y-6">
+        {/* Profile header */}
+        <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden">
+          {/* Banner */}
+          <div className="relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[#0a1628] to-[var(--mesh-bg)]">
+            {profile.bannerUrl ? (
+              <Image src={profile.bannerUrl} alt="" fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
+            ) : (
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-[var(--mesh-blue)] opacity-[0.04] blur-2xl" />
+                <div className="absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-[var(--mesh-cyan)] opacity-[0.03] blur-3xl" />
+                <div className="absolute top-1/3 left-1/4 h-1 w-1 rounded-full bg-[var(--mesh-blue)] opacity-30" />
+                <div className="absolute top-1/2 right-1/3 h-0.5 w-0.5 rounded-full bg-[var(--mesh-cyan)] opacity-40" />
+                <div className="absolute bottom-1/4 left-2/3 h-1.5 w-1.5 rounded-full bg-[var(--mesh-blue)] opacity-20" />
+              </div>
+            )}
+            {/* View Public Mesh button */}
+            <div className="absolute top-4 right-4">
+              <Link
+                href={`/mesh?user=${username}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)]/80 px-4 py-2 text-sm font-medium text-[var(--mesh-text)] backdrop-blur-sm transition-colors hover:bg-[var(--mesh-panel-hover)]"
+              >
+                View Public Mesh
+              </Link>
             </div>
           </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="truncate text-xl font-black text-[var(--text-primary)] sm:text-2xl">@{profile.username}</h1>
-              {profile.isVerified && <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-label="Verified" />}
-              {profile.isMeshPro && (
-                <span className="insta-profile-privacy-pill inline-flex items-center gap-1">
-                  <Crown size={13} aria-hidden="true" />
-                  Mesh Pro
-                </span>
-              )}
-              <span className="insta-profile-privacy-pill capitalize">
-                {profile.privacyLevel === "friends" ? "friends only" : profile.privacyLevel}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {isOwnProfile ? (
-                  <>
-                    <Link href="/settings" className="insta-profile-action">
-                      <Settings size={15} aria-hidden="true" />
-                      Edit profile
-                    </Link>
-                    <Link href="/mesh" className="insta-profile-action">View Mesh</Link>
-                  </>
-                ) : (
-                  <>
-                    <FollowButton userId={profile.id} isFollowing={profile.isFollowing} />
-                    <Link href={`/messages/${profile.id}?new=true`} className="insta-profile-action">
-                      <MessageCircle size={15} aria-hidden="true" />
-                      Message
-                    </Link>
-                  </>
-                )}
+          {/* Profile info */}
+          <div className="relative px-6 pb-6">
+            {/* Avatar */}
+            <div className="-mt-16 mb-4 flex items-end gap-6">
+              <div className="shrink-0">
+                <Avatar
+                  src={profile.avatarUrl}
+                  alt={profile.displayName}
+                  size="xl"
+                  className="h-28 w-28 rounded-full border-4 border-[var(--mesh-bg-elevated)] sm:h-32 sm:w-32"
+                />
               </div>
             </div>
 
-            {profile.sectionVisibility.stats && (
-              <dl className="insta-profile-stats">
-                <div>
-                  <dt>{formatCount(profile._count.posts)}</dt>
-                  <dd>posts</dd>
-                </div>
-                <div>
-                  <dt>{formatCount(profile._count.followers)}</dt>
-                  <dd>followers</dd>
-                </div>
-                <div>
-                  <dt>{formatCount(profile._count.following)}</dt>
-                  <dd>following</dd>
-                </div>
-              </dl>
-            )}
-
-            <div className="mt-4 grid gap-1 text-sm leading-6">
-              <p className="font-black text-[var(--text-primary)]">{profile.displayName}</p>
-              {!canViewProfile && (
-                <p className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)]">
-                  <EyeOff size={14} aria-hidden="true" />
-                  This profile is private.
-                </p>
-              )}
-              {profile.bio && <p className="whitespace-pre-wrap text-[var(--text-secondary)]">{profile.bio}</p>}
-              {profile.location && (
-                <p className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-muted)]">
-                  <MapPin size={14} aria-hidden="true" />
-                  {profile.location}
-                </p>
-              )}
-              {website && (
-                <a href={profile.website || "#"} target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1 font-bold text-[var(--accent)]">
-                  <LinkIcon size={14} aria-hidden="true" />
-                  {website}
-                </a>
-              )}
-              {interests.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {interests.slice(0, 8).map((interest) => (
-                    <span key={interest.id} className="insta-profile-chip">
-                      <Hash size={13} aria-hidden="true" />
-                      {interest.tag}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                {/* Name row */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-2xl font-bold text-[var(--mesh-text)]">{profile.displayName}</h1>
+                  {profile.isVerified && (
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--mesh-blue)]" aria-label="Verified" />
+                  )}
+                  {isOwnProfile && (
+                    <span className="inline-flex items-center rounded-lg bg-[var(--mesh-blue)] px-2.5 py-0.5 text-xs font-bold text-white">
+                      Owner
                     </span>
-                  ))}
+                  )}
+                  {profile.isVerified && (
+                    <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
+                      Verified
+                    </span>
+                  )}
+                  {!isOwnProfile && !profile.isPublic && (
+                    <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-400">
+                      Private by default
+                    </span>
+                  )}
                 </div>
-              )}
-              {connectedAccounts.length > 0 && (
-                <div className="mt-3 grid gap-2">
-                  <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                    <PlugZap size={14} aria-hidden="true" />
-                    Connected platforms
+
+                {/* Username */}
+                <p className="mt-1 text-sm text-[var(--mesh-text-muted)]">@{profile.username}</p>
+
+                {/* Bio */}
+                {profile.bio && (
+                  <p className="mt-3 max-w-lg text-sm leading-relaxed text-[var(--mesh-text-secondary)]">{profile.bio}</p>
+                )}
+
+                {!canViewProfile && (
+                  <p className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-3 py-2 text-xs font-medium text-[var(--mesh-text-muted)]">
+                    <EyeOff size={14} aria-hidden="true" />
+                    This profile is private.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {connectedAccounts.map((account) => (
-                      <span key={account.id} className="insta-profile-chip capitalize">
-                        {account.platform}
-                        {account.platformUsername ? ` @${account.platformUsername}` : ""}
-                      </span>
+                )}
+              </div>
+
+              {/* Connected Platforms */}
+              {connectedAccounts.length > 0 && (
+                <div className="shrink-0">
+                  <p className="mb-2 text-xs font-medium text-[var(--mesh-text-muted)]">Connected Platforms</p>
+                  <div className="flex items-center gap-2">
+                    {connectedAccounts.slice(0, 4).map((account) => (
+                      <PlatformIcon key={account.id} platform={account.platform} />
                     ))}
+                    {connectedAccounts.length > 4 && (
+                      <Link
+                        href="/connected-accounts"
+                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-panel)] text-xs font-bold text-[var(--mesh-text-muted)]"
+                      >
+                        +{connectedAccounts.length - 4}
+                      </Link>
+                    )}
+                    <Link href="/connected-accounts" className="text-xs text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors ml-1">
+                      View all
+                    </Link>
                   </div>
                 </div>
-              )}
-              {profile.mutualFollowers.length > 0 && (
-                <p className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]">
-                  <Sparkles size={14} aria-hidden="true" />
-                  Followed by {profile.mutualFollowers.slice(0, 3).map((follower) => follower.displayName).join(", ")}
-                </p>
               )}
             </div>
-          </div>
-        </div>
-      </section>
 
-      {canViewProfile && (
-        <nav className="insta-profile-tabs" aria-label="Profile views">
-          <span className="insta-profile-tab-active">
-            <Grid3X3 size={15} aria-hidden="true" />
-            Posts
-          </span>
-        </nav>
-      )}
-
-      {!canViewProfile ? (
-        <section className="insta-profile-empty">
-          <EyeOff className="h-9 w-9 text-[var(--text-muted)]" aria-hidden="true" />
-          <h2 className="text-lg font-black text-[var(--text-primary)]">Private profile</h2>
-          <p className="text-sm text-[var(--text-secondary)]">Follow each other to unlock shared profile sections.</p>
-        </section>
-      ) : posts.length > 0 ? (
-        <section className="insta-profile-grid" aria-label={`${profile.displayName}'s posts`}>
-          {posts.map((post) => {
-            const firstMedia = post.media[0];
-
-            return (
-              <Link key={post.id} href={`/feed/${post.id}`} className="insta-profile-grid-tile group">
-                {firstMedia ? (
-                  <Image src={firstMedia.url} alt="" fill sizes="(max-width: 768px) 33vw, 220px" className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
-                ) : (
-                  <div className="flex h-full items-center justify-center p-3 text-center text-xs font-bold leading-5 text-[var(--text-secondary)]">
-                    {post.content}
+            {/* Meshi card + Actions */}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5">
+                <MeshiMascot
+                  size={40}
+                  color={meshi.colorTheme as MeshiColor}
+                  hat={meshi.hatStyle as MeshiHat}
+                  mood={meshi.faceStyle as MeshiMood}
+                  hair={meshi.hairStyle as MeshiHair}
+                  accessory={meshi.accessoryStyle as MeshiAccessory}
+                  eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
+                  badge={meshi.badgeStyle as MeshiBadge}
+                  outfit={meshi.outfitStyle as MeshiOutfit}
+                  animate
+                  interactive={isOwnProfile}
+                  showGlow={false}
+                />
+                <div>
+                  <p className="text-sm font-bold text-[var(--mesh-text)]">Meshi</p>
+                  <p className="text-xs text-[var(--mesh-text-muted)]">Your digital companion</p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--mesh-green)]" />
+                    <span className="text-[10px] text-[var(--mesh-green)]">Online</span>
                   </div>
-                )}
-                <span className="insta-profile-grid-overlay">
-                  {formatCount(post._count.reactions)} likes
-                </span>
+                </div>
+              </div>
+
+              {isOwnProfile ? (
+                <>
+                  <Link
+                    href="/settings"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5 text-sm font-medium text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
+                  >
+                    <Settings size={16} aria-hidden="true" />
+                    Edit profile
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <FollowButton userId={profile.id} isFollowing={profile.isFollowing} />
+                  <Link
+                    href={`/messages/${profile.id}?new=true`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5 text-sm font-medium text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
+                  >
+                    <MessageCircle size={16} aria-hidden="true" />
+                    Message
+                  </Link>
+                </>
+              )}
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
+                aria-label="More options"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Tabs */}
+        {canViewProfile && (
+          <nav className="flex items-center gap-1 border-b border-[var(--mesh-border)] px-1" aria-label="Profile sections">
+            <ProfileTab label="Posts" count={postCount} active />
+            <ProfileTab label="Communities" count={communityCount} />
+            <ProfileTab label="Collections" count={collectionCount} />
+            <ProfileTab label="Creator Links" count={links.length} />
+          </nav>
+        )}
+
+        {/* Posts list */}
+        {!canViewProfile ? (
+          <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+            <EyeOff className="h-10 w-10 text-[var(--mesh-text-muted)]" aria-hidden="true" />
+            <h2 className="text-lg font-bold text-[var(--mesh-text)]">Private profile</h2>
+            <p className="text-sm text-[var(--mesh-text-secondary)]">Follow each other to unlock shared profile sections.</p>
+          </section>
+        ) : posts.length > 0 ? (
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <article key={post.id} className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 transition-colors hover:border-[var(--mesh-border-active)]">
+                <div className="flex items-start gap-3">
+                  <Avatar src={profile.avatarUrl} alt={profile.displayName} size="md" className="h-10 w-10 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-[var(--mesh-text)]">{profile.displayName}</span>
+                      {profile.isVerified && <ShieldCheck className="h-3.5 w-3.5 text-[var(--mesh-blue)]" />}
+                      <span className="text-xs text-[var(--mesh-text-muted)]">@{profile.username}</span>
+                      <span className="text-xs text-[var(--mesh-text-muted)]">·</span>
+                      <span className="text-xs text-[var(--mesh-text-muted)]">{formatRelativeTime(post.createdAt)}</span>
+                      <button type="button" className="ml-auto text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]" aria-label="More">
+                        <MoreHorizontal size={16} />
+                      </button>
+                    </div>
+
+                    {post.content && (
+                      <p className="mt-2 text-sm leading-relaxed text-[var(--mesh-text)]">{post.content}</p>
+                    )}
+
+                    {post.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {post.tags.map((tag) => (
+                          <span key={tag.id} className="rounded-md bg-[var(--mesh-blue)]/10 px-2 py-0.5 text-xs font-medium text-[var(--mesh-blue)]">
+                            #{tag.tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {post.media.length > 0 && post.media[0] && (
+                      <div className="mt-3 overflow-hidden rounded-xl">
+                        <Image
+                          src={post.media[0].url}
+                          alt=""
+                          width={600}
+                          height={400}
+                          className="w-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center gap-5">
+                      <button type="button" className="flex items-center gap-1.5 text-xs text-[var(--mesh-text-muted)] hover:text-[var(--mesh-danger)] transition-colors">
+                        <Heart size={15} />
+                        <span>{formatCount(post._count.reactions)}</span>
+                      </button>
+                      <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 text-xs text-[var(--mesh-text-muted)] hover:text-[var(--mesh-blue)] transition-colors">
+                        <MessageCircle size={15} />
+                        <span>{formatCount(post._count.comments)}</span>
+                      </Link>
+                      <button type="button" className="flex items-center gap-1.5 text-xs text-[var(--mesh-text-muted)] hover:text-[var(--mesh-green)] transition-colors">
+                        <Repeat2 size={15} />
+                        <span>{formatCount(post._count.reposts)}</span>
+                      </button>
+                      <button type="button" className="ml-auto text-[var(--mesh-text-muted)] hover:text-[var(--mesh-blue)] transition-colors">
+                        <Bookmark size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+            <h2 className="text-lg font-bold text-[var(--mesh-text)]">No posts yet</h2>
+            <p className="text-sm text-[var(--mesh-text-secondary)]">
+              {isOwnProfile ? "Share your first post from Home." : `${profile.displayName} has not posted yet.`}
+            </p>
+            {isOwnProfile && (
+              <Link href="/feed?compose=true" className="mt-2 rounded-xl bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--mesh-blue)]/90">
+                Create post
               </Link>
-            );
-          })}
+            )}
+          </section>
+        )}
+      </div>
+
+      {/* Right sidebar */}
+      <aside className="hidden space-y-5 lg:block">
+        {/* Communities */}
+        <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-[var(--mesh-text)]">Communities</h3>
+            <Link href="/communities" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
+          </div>
+          <div className="space-y-3">
+            <SidebarCommunityRow name="Design Minds" members="3.1K" joined />
+            <SidebarCommunityRow name="Privacy Pioneers" members="2.4K" joined />
+            <SidebarCommunityRow name="Web3 Builders" members="5.7K" joined />
+          </div>
         </section>
-      ) : (
-        <section className="insta-profile-empty">
-          <Grid3X3 className="h-9 w-9 text-[var(--text-muted)]" aria-hidden="true" />
-          <h2 className="text-lg font-black text-[var(--text-primary)]">No posts yet</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            {isOwnProfile ? "Share your first post from Home." : `${profile.displayName} has not posted yet.`}
-          </p>
-          {isOwnProfile && (
-            <Link href="/feed?compose=true" className="mesh-action mesh-action-primary mt-2 px-4 text-sm">
-              Create post
-            </Link>
-          )}
+
+        {/* Collections */}
+        <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-[var(--mesh-text)]">Collections</h3>
+            <Link href="/vault" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <CollectionTile label="Nature Escapes" items={24} />
+            <CollectionTile label="Architecture" items={18} />
+            <CollectionTile label="Inspiration" items={32} />
+          </div>
         </section>
+
+        {/* Creator Links */}
+        {links.length > 0 && (
+          <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-[var(--mesh-text)]">Creator Links</h3>
+              <span className="text-xs text-[var(--mesh-text-muted)]">View all</span>
+            </div>
+            <div className="space-y-2.5">
+              {links.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-[var(--mesh-text-secondary)] transition-colors hover:bg-[var(--mesh-panel)]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Globe size={14} className="text-[var(--mesh-text-muted)]" />
+                    <span>{link.label || link.url.replace(/^https?:\/\//, "")}</span>
+                  </div>
+                  <ExternalLink size={12} className="text-[var(--mesh-text-muted)]" />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Connected platform links for sidebar */}
+        {connectedAccounts.length > 0 && (
+          <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+            <h3 className="mb-4 text-sm font-bold text-[var(--mesh-text)]">Platform Links</h3>
+            <div className="space-y-2.5">
+              {connectedAccounts.map((account) => (
+                <div key={account.id} className="flex items-center gap-3 text-sm">
+                  <PlatformIcon platform={account.platform} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-[var(--mesh-text)] capitalize">{account.platform}</p>
+                    {account.platformUsername && (
+                      <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{account.platformUsername}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-[var(--mesh-green)]">Connected</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </aside>
+    </div>
+  );
+}
+
+function ProfileTab({ label, count, active = false }: { label: string; count: number; active?: boolean }) {
+  return (
+    <button
+      type="button"
+      className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+        active
+          ? "border-[var(--mesh-blue)] text-[var(--mesh-text)]"
+          : "border-transparent text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
+      }`}
+    >
+      {label}
+      <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function SidebarCommunityRow({ name, members, joined }: { name: string; members: string; joined?: boolean }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--mesh-blue)]/10 text-xs font-bold text-[var(--mesh-blue)]">
+        {name.charAt(0)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-[var(--mesh-text)]">{name}</p>
+        <p className="text-[11px] text-[var(--mesh-text-muted)]">{members} members</p>
+      </div>
+      {joined && (
+        <span className="rounded-md bg-[var(--mesh-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--mesh-blue)]">Joined</span>
       )}
-    </main>
+    </div>
+  );
+}
+
+function CollectionTile({ label, items }: { label: string; items: number }) {
+  return (
+    <div className="group cursor-pointer">
+      <div className="aspect-square overflow-hidden rounded-lg bg-gradient-to-br from-[var(--mesh-bg)] to-[var(--mesh-panel-solid)] border border-[var(--mesh-border)] transition-colors group-hover:border-[var(--mesh-border-active)]" />
+      <p className="mt-1.5 truncate text-[11px] font-medium text-[var(--mesh-text)]">{label}</p>
+      <p className="text-[10px] text-[var(--mesh-text-muted)]">{items} items</p>
+    </div>
   );
 }

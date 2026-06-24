@@ -143,7 +143,7 @@ function ExpandablePostText({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="mt-1 text-xs font-black text-[var(--text-primary)] transition hover:text-[var(--accent)]"
+          className="mt-1 text-xs font-bold text-[var(--text-primary)] transition hover:text-[var(--accent)]"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -338,7 +338,7 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
       data-meshi-content-rating={post.contentRating || (post.isNsfw ? "adult" : "general")}
       data-meshi-content-ai-signals={aiSignals.join("|")}
       className={cn(
-        "insta-post-card group overflow-hidden transition-all duration-200",
+        "insta-post-card group overflow-hidden",
         post.isPinned && "ring-1 ring-[var(--accent-muted)]",
         isOptimistic && "feed-post-pending",
       )}
@@ -346,7 +346,7 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
         if (!liked && !isOptimistic) handleLike();
       }}
     >
-      <div className={cn("px-3 py-3 sm:px-4", compact && "p-3")}>
+      <div className={cn("px-3 pt-3 pb-2 sm:px-4", compact && "p-3")}>
         {post.isPinned && (
           <div className="mb-2 flex items-center gap-1.5 text-xs" style={{ color: "var(--accent)" }}>
             <Pin className="h-3 w-3" />
@@ -357,13 +357,11 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             <Link href={`/profile/${post.author.username}`}>
-              <span className="insta-story-ring insta-story-ring-small">
-                <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} className="ring-2 ring-[var(--bg-primary)]" />
-              </span>
+              <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
             </Link>
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1.5">
-                <Link href={`/profile/${post.author.username}`} className="truncate text-sm font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
+                <Link href={`/profile/${post.author.username}`} className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
                   {post.author.displayName}
                 </Link>
                 {post.author.isVerified && (
@@ -372,11 +370,11 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
                   </svg>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-xs flex-wrap" style={{ color: "var(--text-muted)" }}>
-                <Link href={`/profile/${post.author.username}`} className="hover:opacity-80">
+              <div className="flex items-center gap-1 text-[0.8rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
+                <Link href={`/profile/${post.author.username}`} className="hover:underline">
                   @{post.author.username}
                 </Link>
-                <span>&middot;</span>
+                <span className="px-0.5">&middot;</span>
                 <span>{formatRelativeTime(post.createdAt)}</span>
                 {/* Platform origin badge — non-invasive */}
                 {platformBadge && (
@@ -414,7 +412,7 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
                 {isOptimistic && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-black text-[var(--accent)]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent)]">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       Posting
                     </span>
@@ -544,7 +542,7 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
                   <ExternalLink className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-black text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
+                  <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
                   <span className="block truncate text-xs text-[var(--text-muted)]">{media.url}</span>
                 </span>
               </a>
@@ -560,21 +558,21 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
               className="text-[1.05rem] font-semibold leading-7 text-[var(--text-primary)]"
             />
             {isOptimistic ? (
-              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-[var(--text-muted)]">
+              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Saving to feed
               </p>
             ) : (
-              <Link href={postHref} className="mt-3 inline-flex text-xs font-black text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+              <Link href={postHref} className="mt-3 inline-flex text-xs font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
                 Open post
               </Link>
             )}
           </div>
         )}
 
-      <div className="px-3 py-3 sm:px-4">
+      <div className="px-3 py-2.5 sm:px-4">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={handleLike}
@@ -582,7 +580,7 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
               aria-label={liked ? "Unlike post" : "Like post"}
               className={cn("insta-post-action", liked ? "text-rose-400" : "text-[var(--text-primary)] hover:text-rose-400")}
             >
-              <Heart className={cn("h-[22px] w-[22px] transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
+              <Heart className={cn("h-5 w-5 transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
             </button>
             <Link
               href={postHref}
@@ -600,10 +598,10 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
               className="insta-post-action"
               aria-label="Comment on post"
             >
-              <MessageCircle className="h-[22px] w-[22px]" />
+              <MessageCircle className="h-5 w-5" />
             </Link>
             <button type="button" onClick={() => setShowShareMenu(!showShareMenu)} disabled={isOptimistic} className="insta-post-action" aria-label="Share post">
-              <Share2 className="h-[22px] w-[22px]" />
+              <Share2 className="h-5 w-5" />
             </button>
           </div>
           <div className="relative" ref={shareRef}>
@@ -618,12 +616,12 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
               </div>
             )}
             <button type="button" onClick={handleSave} disabled={isOptimistic} aria-label={saved ? "Unsave post" : "Save post"} className={cn("insta-post-action", saved && "text-[var(--accent)]")}>
-              <Bookmark className={cn("h-[22px] w-[22px] transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />
+              <Bookmark className={cn("h-5 w-5 transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />
             </button>
           </div>
         </div>
 
-        <p className="feed-like-count mt-2 text-sm font-black text-[var(--text-primary)]">{formatCount(likeCount)} likes</p>
+        <p className="feed-like-count mt-1.5 text-[0.82rem] font-bold text-[var(--text-primary)]">{formatCount(likeCount)} likes</p>
 
         {requiresSourceAccount && !hasSourceAccount && (
           <Link
@@ -640,7 +638,7 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
           </p>
         )}
 
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.8rem] text-[var(--text-muted)]">
           <Link
             href={postHref}
             onClick={(event) => {

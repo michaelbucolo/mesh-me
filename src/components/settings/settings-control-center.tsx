@@ -508,7 +508,7 @@ export function SettingsControlCenter({
 
   return (
     <main className="settings-traditional flex h-full min-h-0 flex-col overflow-hidden">
-      <header className="settings-traditional-header shrink-0 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 shadow-[var(--shadow-sm)] md:p-4">
+      <header className="settings-traditional-header shrink-0 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <MeshiMascot
@@ -526,8 +526,8 @@ export function SettingsControlCenter({
               interactive
             />
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-black text-[var(--text-primary)] md:text-2xl">Settings</h1>
-              <p className="truncate text-sm font-semibold text-[var(--text-muted)]">@{settings.username}</p>
+              <h1 className="truncate text-xl font-bold text-[var(--text-primary)] md:text-2xl">Settings</h1>
+              <p className="truncate text-sm text-[var(--text-muted)]">@{settings.username}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
@@ -587,8 +587,8 @@ export function SettingsControlCenter({
                 >
                   <Icon size={18} aria-hidden="true" />
                   <span className="min-w-0 flex-1 text-left">
-                    <span className="block truncate text-sm font-black">{section.label}</span>
-                    <span className="hidden truncate text-xs font-semibold text-[var(--text-muted)] lg:block">{section.description}</span>
+                    <span className="block truncate text-sm font-semibold">{section.label}</span>
+                    <span className="hidden truncate text-xs text-[var(--text-muted)] lg:block">{section.description}</span>
                   </span>
                   <ChevronRight className="hidden h-4 w-4 text-[var(--text-muted)] lg:block" aria-hidden="true" />
                 </button>
@@ -600,8 +600,8 @@ export function SettingsControlCenter({
         <section className="settings-panel min-h-0 overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)]">
           <div className="settings-panel-heading flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border-primary)] px-4 py-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Mesh.me settings</p>
-              <h2 className="mt-1 text-2xl font-black text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Mesh.me settings</p>
+              <h2 className="mt-1 text-2xl font-bold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">{activeSectionMeta.description}</p>
             </div>
           </div>
@@ -869,7 +869,7 @@ function ProfileSection({
         <div className="grid gap-3 md:grid-cols-2">
           <div className="settings-muted-box">
             <p className="settings-mini-label">Public handle</p>
-            <p className="mt-1 truncate text-sm font-black">@{settings.username}</p>
+            <p className="mt-1 truncate text-sm font-bold">@{settings.username}</p>
             <Link href={`/profile/${settings.username}`} className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[var(--accent)]">
               <LinkIcon size={13} aria-hidden="true" />
               View profile
@@ -888,7 +888,7 @@ function ProfileSection({
         </div>
         <div className="settings-muted-box mt-3">
           <div className="flex items-center justify-between gap-3">
-            <p className="inline-flex items-center gap-2 text-sm font-black">
+            <p className="inline-flex items-center gap-2 text-sm font-bold">
               <PlugZap size={16} aria-hidden="true" />
               Connected platforms
             </p>
@@ -969,7 +969,7 @@ function PrivacySection({
             </Field>
             <div className="settings-muted-box">
               <p className="settings-mini-label">Verification</p>
-              <p className="mt-1 text-sm font-black capitalize">{adultVerified ? "Verified" : sensitive.adultVerificationStatus || "Unverified"}</p>
+              <p className="mt-1 text-sm font-bold capitalize">{adultVerified ? "Verified" : sensitive.adultVerificationStatus || "Unverified"}</p>
             </div>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -981,7 +981,7 @@ function PrivacySection({
             />
             <button type="button" onClick={startAdultVerification} disabled={isPending} className="settings-action-row text-left">
               <span>
-                <span className="block text-sm font-black">Verify adult access</span>
+                <span className="block text-sm font-bold">Verify adult access</span>
                 <span className="mt-1 block text-xs text-[var(--text-muted)]">Third-party ID check. Mesh.me stores status only.</span>
               </span>
               {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <IdCard size={16} aria-hidden="true" />}
@@ -1566,11 +1566,11 @@ function MeshSection({
         <SettingsCard title="Mesh visuals" icon={WandSparkles}>
           {!isMeshPro && (
             <div className="settings-muted-box mb-4 flex flex-wrap items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 text-sm font-black">
+              <span className="inline-flex items-center gap-2 text-sm font-bold">
                 <Crown size={15} aria-hidden="true" />
                 Mesh Pro customization
               </span>
-              <Link href="/meshpro" className="text-xs font-black text-[var(--accent)]">Upgrade</Link>
+              <Link href="/meshpro" className="text-xs font-bold text-[var(--accent)]">Upgrade</Link>
             </div>
           )}
           <PickerGroup label="Connection color">
@@ -1580,7 +1580,7 @@ function MeshSection({
                 type="button"
                 disabled={!isMeshPro}
                 onClick={() => setMeshVisuals((current) => ({ ...current, connectionColor: color }))}
-                className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-black ${meshVisuals.connectionColor === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
+                className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold ${meshVisuals.connectionColor === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
                 aria-pressed={meshVisuals.connectionColor === color}
               >
                 <span className="h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
@@ -1661,7 +1661,7 @@ function MeshiSection({
             interactive
           />
           <div>
-            <h3 className="text-lg font-black">Meshi represents you.</h3>
+            <h3 className="text-lg font-bold">Meshi represents you.</h3>
             <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--text-secondary)]">
               Customize the same single Meshi that follows you across Mesh.me.
             </p>
@@ -1761,7 +1761,7 @@ function AppearanceSection({
             <p className="max-w-xl text-sm leading-6 text-[var(--text-secondary)]">
               Mesh Pro unlocks full color tuning while system light/dark mode stays available to everyone.
             </p>
-            {!isMeshPro && <Link href="/meshpro" className="text-xs font-black text-[var(--accent)]">Upgrade</Link>}
+            {!isMeshPro && <Link href="/meshpro" className="text-xs font-bold text-[var(--accent)]">Upgrade</Link>}
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(themeDraft).map(([key, value]) => (
@@ -1917,7 +1917,7 @@ function SettingsCard({ title, icon: Icon, children }: { title: string; icon: Lu
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)]">
           <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
         </span>
-        <h3 className="text-lg font-black text-[var(--text-primary)]">{title}</h3>
+        <h3 className="text-lg font-bold text-[var(--text-primary)]">{title}</h3>
       </div>
       {children}
     </section>
@@ -1929,8 +1929,8 @@ function SummaryPill({ label, value, icon: Icon }: { label: string; value: strin
     <div className="settings-summary-pill">
       <Icon size={15} aria-hidden="true" />
       <span className="min-w-0">
-        <span className="block truncate text-[10px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</span>
-        <span className="block truncate text-sm font-black text-[var(--text-primary)]">{value}</span>
+        <span className="block truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</span>
+        <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{value}</span>
       </span>
     </div>
   );
@@ -1983,7 +1983,7 @@ function Toggle({
       aria-pressed={value}
     >
       <span>
-        <span className="block text-sm font-black">{label}</span>
+        <span className="block text-sm font-bold">{label}</span>
         <span className="block text-xs text-[var(--text-muted)]">{value ? "On" : "Off"}</span>
       </span>
       {value ? <Eye size={16} aria-hidden="true" /> : <EyeOff size={16} aria-hidden="true" />}
@@ -1994,7 +1994,7 @@ function Toggle({
 function PickerGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid gap-2">
-      <p className="text-sm font-black">{label}</p>
+      <p className="text-sm font-bold">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -2016,7 +2016,7 @@ function ChoiceButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`mesh-choice rounded-md px-3 py-2 text-sm font-black capitalize ${active ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${disabled ? "opacity-55" : ""}`}
+      className={`mesh-choice rounded-md px-3 py-2 text-sm font-bold capitalize ${active ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${disabled ? "opacity-55" : ""}`}
       aria-pressed={active}
     >
       {children}
@@ -2051,7 +2051,7 @@ function GraphicOptionButton({
     >
       {children}
       <span>{label}</span>
-      {note && <span className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--text-muted)]">{note}</span>}
+      {note && <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">{note}</span>}
     </button>
   );
 }
@@ -2060,7 +2060,7 @@ function MetricTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="settings-muted-box">
       <p className="settings-mini-label">{label}</p>
-      <p className="mt-1 text-xl font-black text-[var(--text-primary)]">{value}</p>
+      <p className="mt-1 text-xl font-bold text-[var(--text-primary)]">{value}</p>
     </div>
   );
 }

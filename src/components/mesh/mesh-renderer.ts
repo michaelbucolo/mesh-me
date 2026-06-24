@@ -105,9 +105,9 @@ export function renderMesh(
 
   // Ambient background glow
   const bgGrad = ctx.createRadialGradient(logicalW / 2, logicalH / 2, 0, logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.7);
-  bgGrad.addColorStop(0, "rgba(99, 102, 241, 0.04)");
-  bgGrad.addColorStop(0.3, "rgba(99, 102, 241, 0.02)");
-  bgGrad.addColorStop(0.6, "rgba(139, 92, 246, 0.01)");
+  bgGrad.addColorStop(0, "rgba(47, 124, 255, 0.05)");
+  bgGrad.addColorStop(0.3, "rgba(47, 124, 255, 0.025)");
+  bgGrad.addColorStop(0.6, "rgba(88, 191, 255, 0.01)");
   bgGrad.addColorStop(1, "transparent");
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, logicalW, logicalH);
@@ -117,7 +117,7 @@ export function renderMesh(
   if (formationProgress > 0 && formationProgress < 0.3) {
     const flashAlpha = Math.sin((formationProgress / 0.3) * Math.PI) * 0.08;
     const flashGrad = ctx.createRadialGradient(logicalW / 2, logicalH / 2, 0, logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.5);
-    flashGrad.addColorStop(0, `rgba(99, 102, 241, ${flashAlpha})`);
+    flashGrad.addColorStop(0, `rgba(47, 124, 255, ${flashAlpha})`);
     flashGrad.addColorStop(1, "transparent");
     ctx.fillStyle = flashGrad;
     ctx.fillRect(0, 0, logicalW, logicalH);
@@ -133,11 +133,7 @@ export function renderMesh(
     ctx.globalAlpha = Math.max(0, formationProgress * 1.5 - 0.3);
   }
 
-  // Keep the user node clean; organization is carried by branches and content shapes.
   const selfNode = nodes.find((n) => n.type === "self");
-  if (selfNode) {
-    drawBranchFields(ctx, selfNode, nodes, f, motionTime, visuals);
-  }
 
   drawEdges(ctx, nodes, edges, f, hovered, selected, motionTime, visuals);
   drawDataParticles(ctx, nodes, edges, f, motionTime, hovered, selected, visuals);
@@ -256,73 +252,6 @@ function drawFocusConstellation(
     ctx.lineWidth = 4;
     ctx.stroke();
   });
-  ctx.restore();
-}
-
-const BRANCH_FIELDS: Array<{
-  type: MeshNode["type"];
-  label: string;
-  radius: number;
-  band: number;
-  color: string;
-}> = [
-  { type: "alter-ego", label: "Identities", radius: 150, band: 54, color: "192, 132, 252" },
-  { type: "activity", label: "Activity", radius: 225, band: 56, color: "56, 189, 248" },
-  { type: "platform", label: "Platforms", radius: 285, band: 70, color: "245, 158, 11" },
-  { type: "user", label: "People", radius: 475, band: 96, color: "129, 140, 248" },
-  { type: "community", label: "Communities", radius: 680, band: 86, color: "236, 72, 153" },
-  { type: "tag", label: "Interests", radius: 820, band: 76, color: "6, 182, 212" },
-  { type: "post", label: "Posts", radius: 980, band: 96, color: "16, 185, 129" },
-];
-
-function drawBranchFields(
-  ctx: CanvasRenderingContext2D,
-  self: MeshNode,
-  nodes: MeshNode[],
-  filter: FilterType,
-  time: number,
-  visuals: ResolvedMeshVisuals,
-) {
-  ctx.save();
-  ctx.globalCompositeOperation = "lighter";
-
-  for (let index = 0; index < BRANCH_FIELDS.length; index += 1) {
-    const branch = BRANCH_FIELDS[index];
-    const count = nodes.filter((node) => node.type === branch.type).length;
-    if (count === 0) continue;
-
-    const active = filter === "all" || filter === branch.type;
-    const pulse = Math.sin(time * 0.28 + index * 0.7) * 0.5 + 0.5;
-    const branchNodes = nodes.filter((node) => node.type === branch.type);
-    const primary = branchNodes.reduce<MeshNode | null>((best, node) => {
-      if (!best) return node;
-      return Math.hypot(node.x - self.x, node.y - self.y) < Math.hypot(best.x - self.x, best.y - self.y) ? node : best;
-    }, null);
-    const angle = primary
-      ? Math.atan2(primary.y - self.y, primary.x - self.x)
-      : (-Math.PI / 2) + (index / BRANCH_FIELDS.length) * Math.PI * 2;
-    const anchorDistance = Math.max(86, Math.min(branch.radius, 220 + index * 56));
-    const anchorX = self.x + Math.cos(angle) * anchorDistance;
-    const anchorY = self.y + Math.sin(angle) * anchorDistance;
-
-    const alpha = active ? 0.13 + pulse * 0.04 : 0.045;
-    const lineEndX = self.x + Math.cos(angle) * (anchorDistance - 18);
-    const lineEndY = self.y + Math.sin(angle) * (anchorDistance - 18);
-
-    ctx.beginPath();
-    ctx.moveTo(self.x + Math.cos(angle) * 42, self.y + Math.sin(angle) * 42);
-    ctx.lineTo(lineEndX, lineEndY);
-    const branchColor = visuals.connectionRgb || branch.color;
-    ctx.strokeStyle = `rgba(${branchColor}, ${alpha * 0.28})`;
-    ctx.lineWidth = visualLineWidth(active ? 1.2 : 0.8, visuals);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(anchorX, anchorY, active ? 3.4 + pulse * 1.2 : 2.4, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${branchColor}, ${alpha})`;
-    ctx.fill();
-  }
-
   ctx.restore();
 }
 
@@ -784,16 +713,6 @@ function drawNodes(
       ctx.fill();
     }
 
-    // Activity pulse for online users — smooth breathing
-    if (node.status === "online" && node.type === "user") {
-      const activityPulse = Math.sin(time * 1.2 + node.pulsePhase) * 0.5 + 0.5;
-      const activityRadius = nodeRadius + 3.5 + activityPulse * 3;
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, activityRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(34, 197, 94, ${0.08 + activityPulse * 0.05})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
 
     // Node body
     drawNodeBody(ctx, node, nodeRadius, nodeOpacity, isHovered, isSelected, imageCache, visuals);
@@ -827,7 +746,7 @@ function drawNodes(
       const barWidth = Math.min(node.engagementScore * 0.4, nodeRadius * 1.5);
       const barX = node.x - barWidth / 2;
       const barY = node.y + nodeRadius + 2;
-      ctx.fillStyle = `rgba(99, 102, 241, ${0.15 * nodeOpacity})`;
+      ctx.fillStyle = `rgba(47, 124, 255, ${0.15 * nodeOpacity})`;
       ctx.beginPath();
       ctx.roundRect(barX, barY, barWidth, 2, 1);
       ctx.fill();

@@ -51,14 +51,14 @@ function CommunityHero({ data }: { data: CommunityReadyData }) {
               {community.iconUrl ? (
                 <Image src={community.iconUrl} alt="" fill sizes="80px" className="object-cover" />
               ) : (
-                <span className="grid h-full w-full place-items-center text-3xl font-black text-[var(--accent)]">
+                <span className="grid h-full w-full place-items-center text-3xl font-bold text-[var(--accent)]">
                   {community.name.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
             <div className="min-w-0 pb-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-2xl font-black tracking-[0] text-[var(--text-primary)] sm:text-3xl">{community.name}</h1>
+                <h1 className="truncate text-2xl font-bold tracking-[0] text-[var(--text-primary)] sm:text-3xl">{community.name}</h1>
                 <Badge variant={community.isPublic ? "outline" : "warning"}>{community.isPublic ? "Public" : "Private"}</Badge>
                 {membership ? <Badge variant="accent">{membership.role}</Badge> : null}
               </div>
@@ -358,7 +358,7 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
           <ol className="mt-4 space-y-3">
             {rulesList(data.community.rules).map((rule, index) => (
               <li key={`${rule}-${index}`} className="flex gap-3 text-sm text-[var(--text-secondary)]">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-xs font-black text-[var(--accent)]">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-xs font-bold text-[var(--accent)]">
                   {index + 1}
                 </span>
                 <span>{rule}</span>

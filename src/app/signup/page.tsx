@@ -26,7 +26,7 @@ export default async function SignupPage() {
           <Link href="/" className="brand-wordmark text-xl text-[var(--text-primary)]">
             mesh<span className="brand-wordmark-accent">.me</span>
           </Link>
-          <h1 className="mt-3 text-2xl font-black tracking-tight text-[var(--text-primary)] sm:mt-4">Create account</h1>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:mt-4">Create account</h1>
         </div>
 
         <SignupForm />

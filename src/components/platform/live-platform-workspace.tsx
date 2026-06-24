@@ -653,7 +653,7 @@ function RowList({ rows, emptyTitle, emptyBody }: { rows: WorkspaceRow[]; emptyT
   if (rows.length === 0) {
     return (
       <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 p-5">
-        <p className="font-black text-[var(--text-primary)]">{emptyTitle}</p>
+        <p className="font-bold text-[var(--text-primary)]">{emptyTitle}</p>
         <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{emptyBody}</p>
       </div>
     );
@@ -696,7 +696,7 @@ function AuthPanel() {
       <div className="flex items-start gap-3">
         <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
         <div>
-          <p className="font-black">Account required.</p>
+          <p className="font-bold">Account required.</p>
           <p className="mt-1 leading-6">Log in to use private Mesh.me features.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link href="/login" className="mesh-action mesh-action-secondary mesh-pressable px-3 text-sm">Log in</Link>
@@ -1137,7 +1137,7 @@ export function LivePlatformWorkspace({ section, fallbackRows }: { section: Plat
           {summary.stats.map((stat) => (
             <div key={`${stat.label}-${stat.value}`} className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 px-3 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{stat.label}</p>
-              <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{stat.value}</p>
+              <p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -1280,7 +1280,7 @@ export function LivePlatformWorkspace({ section, fallbackRows }: { section: Plat
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="grid gap-3 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 p-4">
             <div>
-              <p className="text-sm font-black text-[var(--text-primary)]">Start a direct MeChat</p>
+              <p className="text-sm font-bold text-[var(--text-primary)]">Start a direct MeChat</p>
               <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">Find an account, open a secure thread, and send the first message.</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -1325,7 +1325,7 @@ export function LivePlatformWorkspace({ section, fallbackRows }: { section: Plat
 
           <div className="grid gap-3 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 p-4">
             <div>
-              <p className="text-sm font-black text-[var(--text-primary)]">Create a shared scrolling room</p>
+              <p className="text-sm font-bold text-[var(--text-primary)]">Create a shared scrolling room</p>
               <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">Start a group browsing session with a title and an optional source link.</p>
             </div>
             <input value={mechatTitle} onChange={(event) => setMechatTitle(event.target.value)} className="simple-input h-11 px-3 text-sm" placeholder="Session title" />
@@ -1351,7 +1351,7 @@ export function LivePlatformWorkspace({ section, fallbackRows }: { section: Plat
       {section === "pro" && loadState !== "auth" && (
         <div className="grid gap-3 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/64 p-4">
           <div>
-            <p className="text-sm font-black text-[var(--text-primary)]">
+            <p className="text-sm font-bold text-[var(--text-primary)]">
               {summary.isMeshPro ? "Mesh Pro is active" : "Start Mesh Pro"}
             </p>
             <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">

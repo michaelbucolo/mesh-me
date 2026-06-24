@@ -14,8 +14,8 @@ export default function SuperAppPage() {
       afterWorkspace={
         <section className="mesh-surface mesh-pop-in mesh-delay-2 rounded-lg p-4 md:p-5">
           <div className="mb-4 max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Top app replacement planner</p>
-            <h2 className="mt-2 text-xl font-black text-[var(--text-primary)]">Plan which apps Mesh.me can replace first.</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Top app replacement planner</p>
+            <h2 className="mt-2 text-xl font-bold text-[var(--text-primary)]">Plan which apps Mesh.me can replace first.</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
               Select the apps you use every day. Mesh.me compares them against your current account readiness, security setup,
               connected platforms, posting, messaging, and migration progress.

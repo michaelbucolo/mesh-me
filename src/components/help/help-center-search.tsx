@@ -58,7 +58,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
   return (
     <div className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
       <aside className="help-filter-panel mesh-section h-fit p-4">
-        <label htmlFor="help-search" className="text-sm font-black text-[var(--text-primary)]">
+        <label htmlFor="help-search" className="text-sm font-bold text-[var(--text-primary)]">
           Search help
         </label>
         <div className="mt-3 flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-3">
@@ -115,7 +115,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
       <section className="min-w-0">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-black text-[var(--text-primary)]">
+            <p className="text-sm font-bold text-[var(--text-primary)]">
               {filteredArticles.length} article{filteredArticles.length === 1 ? "" : "s"}
             </p>
             <p className="text-xs text-[var(--text-muted)]">
@@ -123,7 +123,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
             </p>
           </div>
           {(query || activeCategory !== "all") && (
-            <button type="button" onClick={resetSearch} className="mesh-choice inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-sm font-black text-[var(--text-secondary)]">
+            <button type="button" onClick={resetSearch} className="mesh-choice inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-sm font-bold text-[var(--text-secondary)]">
               Reset
             </button>
           )}
@@ -139,22 +139,22 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
                 <article key={article.id} id={article.id} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)]">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                         <Icon className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden="true" />
                         {meta.label}
                       </span>
-                      <h2 className="mt-3 text-lg font-black text-[var(--text-primary)]">{article.title}</h2>
+                      <h2 className="mt-3 text-lg font-bold text-[var(--text-primary)]">{article.title}</h2>
                     </div>
                   </div>
 
                   <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{article.summary}</p>
 
                   <details className="mt-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3">
-                    <summary className="cursor-pointer text-sm font-black text-[var(--text-primary)]">How to handle it</summary>
+                    <summary className="cursor-pointer text-sm font-bold text-[var(--text-primary)]">How to handle it</summary>
                     <ol className="mt-3 grid gap-2">
                       {article.steps.map((step, index) => (
                         <li key={step} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 text-sm leading-6 text-[var(--text-secondary)]">
-                          <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-xs font-black text-[var(--accent)]">
+                          <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-xs font-bold text-[var(--accent)]">
                             {index + 1}
                           </span>
                           <span>{step}</span>
@@ -165,7 +165,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {article.relatedLinks.map((link) => (
-                      <Link key={`${article.id}-${link.href}`} href={link.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[var(--border-primary)] px-3 text-xs font-black text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]">
+                      <Link key={`${article.id}-${link.href}`} href={link.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[var(--border-primary)] px-3 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]">
                         {link.label}
                         <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </Link>
@@ -178,11 +178,11 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
         ) : (
           <div className="mesh-section p-6 text-center">
             <Search className="mx-auto h-8 w-8 text-[var(--accent)]" aria-hidden="true" />
-            <h2 className="mt-3 text-lg font-black text-[var(--text-primary)]">No help articles found</h2>
+            <h2 className="mt-3 text-lg font-bold text-[var(--text-primary)]">No help articles found</h2>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
               Try a different word like password, billing, data, Meshi, platform, or error.
             </p>
-            <button type="button" onClick={resetSearch} className="brand-button mt-4 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-black text-white">
+            <button type="button" onClick={resetSearch} className="brand-button mt-4 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-bold text-white">
               Clear search
             </button>
           </div>

@@ -245,7 +245,7 @@ export function OnboardingFlow({
               showGlow={false}
             />
             <div>
-              <p className="text-sm font-black">Mesh.me setup</p>
+              <p className="text-sm font-bold">Mesh.me setup</p>
               <p className="text-xs text-[var(--text-muted)]">{progress}% complete</p>
             </div>
           </div>
@@ -280,8 +280,8 @@ export function OnboardingFlow({
         <section className="mesh-surface onboarding-card flex min-h-0 flex-col overflow-hidden rounded-lg p-4 md:p-5" data-testid="onboarding-flow">
           <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border-primary)] pb-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Your World, Your Way</p>
-              <h1 className="mt-2 text-3xl font-black tracking-[0] md:text-5xl">{currentStep.label}</h1>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Your World, Your Way</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-[0] md:text-5xl">{currentStep.label}</h1>
             </div>
             <div className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
               {user.email}
@@ -507,7 +507,7 @@ export function OnboardingFlow({
                       onClick={() => setPrivacy((current) => ({ ...current, meshVisibility: option.id }))}
                       className={cn("mesh-choice rounded-md p-4 text-left", privacy.meshVisibility === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
                     >
-                      <span className="block text-base font-black">{option.title}</span>
+                      <span className="block text-base font-bold">{option.title}</span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
                     </button>
                   ))}
@@ -558,7 +558,7 @@ export function OnboardingFlow({
                       onClick={() => setInterfaceStyle(option.id)}
                       className={cn("mesh-choice rounded-md p-4 text-left", interfaceStyle === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
                     >
-                      <span className="block text-base font-black">{option.title}</span>
+                      <span className="block text-base font-bold">{option.title}</span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
                     </button>
                   ))}
@@ -576,7 +576,7 @@ export function OnboardingFlow({
                       onClick={() => setFirstPlatform(platform.id)}
                       className={cn("mesh-choice min-h-20 rounded-md px-4 py-3 text-left", firstPlatform === platform.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
                     >
-                      <span className="block text-sm font-black">{platform.name}</span>
+                      <span className="block text-sm font-bold">{platform.name}</span>
                       <span className="mt-1 block text-xs text-[var(--text-muted)]">{platform.connected ? "Already connected" : "Connect after setup"}</span>
                     </button>
                   ))}
@@ -615,7 +615,7 @@ function StepShell({ title, body, children }: { title: string; body: string; chi
   return (
     <div className="grid gap-5">
       <div>
-        <h2 className="text-xl font-black">{title}</h2>
+        <h2 className="text-xl font-bold">{title}</h2>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
       </div>
       {children}
@@ -626,7 +626,7 @@ function StepShell({ title, body, children }: { title: string; body: string; chi
 function PickerGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid gap-2">
-      <p className="text-sm font-black">{label}</p>
+      <p className="text-sm font-bold">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -667,7 +667,7 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
       aria-pressed={value}
     >
       <span>
-        <span className="block text-sm font-black">{label}</span>
+        <span className="block text-sm font-bold">{label}</span>
         <span className="block text-xs text-[var(--text-muted)]">{value ? "On" : "Off"}</span>
       </span>
       <Eye size={16} aria-hidden="true" />

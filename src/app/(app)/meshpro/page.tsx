@@ -80,7 +80,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-center">
           <div>
             <Badge variant={isPro ? "success" : "accent"}>{isPro ? "Mesh Pro active" : "Optional upgrade"}</Badge>
-            <h1 className="mt-3 max-w-3xl text-4xl font-black leading-tight md:text-6xl">Mesh Pro</h1>
+            <h1 className="mt-3 max-w-3xl text-4xl font-bold leading-tight md:text-6xl">Mesh Pro</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
               Premium analytics, deeper customization, Pro Meshi cosmetics, badges, and billing controls without ads or data selling.
             </p>
@@ -108,8 +108,8 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
                 <MeshiMascot size={54} mood="celebrating" color="gold" hat="crown" badge="verified" outfit="cape" animate showGlow={false} />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">Current plan</p>
-                <p className="text-xl font-black text-[var(--text-primary)]">{isPro ? "Mesh Pro" : "Free"}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Current plan</p>
+                <p className="text-xl font-bold text-[var(--text-primary)]">{isPro ? "Mesh Pro" : "Free"}</p>
                 <p className="text-xs text-[var(--text-secondary)]">
                   {isPro && renewalDate
                     ? `${billing?.cancelAtPeriodEnd ? "Access through" : "Renews"} ${renewalDate}`
@@ -132,13 +132,13 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-black">{plan.label}</h2>
+                  <h2 className="text-2xl font-bold">{plan.label}</h2>
                   {plan.savings && <Badge variant="success">{plan.savings}</Badge>}
                 </div>
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">{plan.detail}</p>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-black">{plan.price}</p>
+                <p className="text-3xl font-bold">{plan.price}</p>
                 <p className="text-xs text-[var(--text-muted)]">per {plan.interval}</p>
               </div>
             </div>
@@ -164,7 +164,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
       <section className="mesh-surface rounded-lg p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="flex items-center gap-2 text-xl font-black">
+            <h2 className="flex items-center gap-2 text-xl font-bold">
               <Crown size={20} aria-hidden="true" />
               What unlocks immediately
             </h2>
@@ -181,7 +181,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
           {meshProUnlocks.map(({ title, body, href, icon: Icon }) => (
             <Link key={title} href={title === "Profile badge" ? `/profile/${user.username}` : href} className="mesh-choice rounded-lg p-4 transition hover:-translate-y-0.5">
               <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
-              <p className="mt-3 text-sm font-black text-[var(--text-primary)]">{title}</p>
+              <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">{title}</p>
               <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{body}</p>
             </Link>
           ))}
@@ -195,7 +195,7 @@ function MiniFact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-[var(--ds-border)] bg-[var(--ds-surface)] px-3 py-2">
       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
-      <p className="mt-1 truncate text-sm font-black capitalize">{value}</p>
+      <p className="mt-1 truncate text-sm font-bold capitalize">{value}</p>
     </div>
   );
 }
@@ -211,7 +211,7 @@ function FeaturePanel({
 }) {
   return (
     <section className="mesh-surface rounded-lg p-4 md:p-5">
-      <h2 className="flex items-center gap-2 text-lg font-black">
+      <h2 className="flex items-center gap-2 text-lg font-bold">
         <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
         {title}
       </h2>

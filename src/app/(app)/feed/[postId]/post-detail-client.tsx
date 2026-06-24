@@ -183,7 +183,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               {post.isNsfw && (
                 <>
                   <span>&middot;</span>
-                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-black text-amber-300">NSFW</span>
+                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">NSFW</span>
                 </>
               )}
               {post.community && (
@@ -231,7 +231,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                   <ExternalLink className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-black text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
+                  <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
                   <span className="block truncate text-xs text-[var(--text-muted)]">{media.url}</span>
                 </span>
               </a>
