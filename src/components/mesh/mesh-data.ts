@@ -182,7 +182,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     sourceType: "mesh",
     sourceId: data.user.id,
     x: cx, y: cy, vx: 0, vy: 0,
-    radius: 36,
+    radius: 48,
     color: NODE_COLORS.self,
     opacity: 1,
     pulsePhase: 0,
@@ -201,7 +201,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Alter Egos (ring 1: close to self) ---
   const alterEgos = data.alterEgos || [];
   alterEgos.forEach((ego: any, i: number) => {
-    const pos = ringPosition(cx, cy, 150, i, alterEgos.length, Math.PI / 6);
+    const pos = ringPosition(cx, cy, 180, i, alterEgos.length, Math.PI / 6);
     addNode({
       id: "alter-ego-" + ego.id,
       type: "alter-ego",
@@ -227,7 +227,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Connected Platforms (ring 2) with sub-nodes ---
   const platforms = data.connectedAccounts || [];
   platforms.forEach((acct: any, i: number) => {
-    const pos = ringPosition(cx, cy, 285, i, platforms.length, Math.PI / 4);
+    const pos = ringPosition(cx, cy, 340, i, platforms.length, Math.PI / 4);
     const platformKey = acct.platform?.toLowerCase() || "";
     const analytics = acct.analytics || null;
     const totalPosts = acct.counts?.platformPosts || 0;
@@ -381,7 +381,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
     const isMutual = !!f.isMutual;
     const interactionCount = f.interactionCount || 0;
     // Mutuals closer, high-interaction users even closer
-    const baseDist = isMutual ? 410 : 540;
+    const baseDist = isMutual ? 500 : 650;
     const interactionPull = Math.min(interactionCount * 4, 80);
     const ringRadius = baseDist - interactionPull;
     const pos = ringPosition(cx, cy, ringRadius, i, peopleToDraw.length);
@@ -651,7 +651,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Communities (ring 4) ---
   const communities = data.communities || [];
   communities.forEach((c: any, i: number) => {
-    const pos = ringPosition(cx, cy, 680, i, communities.length, Math.PI / 5);
+    const pos = ringPosition(cx, cy, 800, i, communities.length, Math.PI / 5);
     const communityId = "community-" + c.id;
     addNode({
       id: communityId,
@@ -698,7 +698,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   // --- Interests (ring 5) ---
   const interests = data.interests || [];
   interests.forEach((tag: string, i: number) => {
-    const pos = ringPosition(cx, cy, 820, i, interests.length, Math.PI / 8);
+    const pos = ringPosition(cx, cy, 960, i, interests.length, Math.PI / 8);
     const tagId = "tag-" + tag;
     addNode({
       id: tagId,
@@ -739,7 +739,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   const posts = data.posts || [];
   const maxPosts = 24;
   posts.slice(0, maxPosts).forEach((p: any, i: number) => {
-    const pos = ringPosition(cx, cy, 980, i, Math.min(posts.length, maxPosts), Math.PI / 10);
+    const pos = ringPosition(cx, cy, 1140, i, Math.min(posts.length, maxPosts), Math.PI / 10);
     const postId = "post-" + p.id;
     // Size posts by engagement
     const postEngagement = (p.likeCount || 0) + (p.commentCount || 0) * 2 + (p.repostCount || 0) * 3;
@@ -813,7 +813,7 @@ export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): Bu
   const maxActivities = 18;
   activities.slice(0, maxActivities).forEach((activity, i) => {
     const activityCount = Math.min(activities.length, maxActivities);
-    const pos = ringPosition(cx, cy, 225, i, activityCount, -Math.PI / 2);
+    const pos = ringPosition(cx, cy, 260, i, activityCount, -Math.PI / 2);
     const activityNodeId = `activity-${activity.id}`;
     const postNodeId = activity.sourcePostId ? `post-${activity.sourcePostId}` : null;
     const platformNodeId = activity.connectedAccountId ? `platform-${activity.connectedAccountId}` : null;

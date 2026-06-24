@@ -14,7 +14,7 @@ const layers = [
   { icon: Fingerprint, title: "Identity layer", copy: "A user can hold multiple linked identities, like a personal self and creator persona, with separate permissions, visibility, audiences, and connected accounts." },
   { icon: Network, title: "Mesh graph", copy: "Every imported account, post, comment, like, group, channel, mention, tag, and connection becomes a node or edge in the user's living digital footprint." },
   { icon: Bot, title: "Meshi presence", copy: "Meshi follows the user through the product as a customizable bubble companion, guide, search agent, messenger, and public active-presence marker." },
-  { icon: LockKeyhole, title: "Private compute", copy: "Personal indexing and AI context should run locally or in encrypted user-controlled spaces whenever possible, with minimal server-side knowledge." },
+  { icon: LockKeyhole, title: "Private compute", copy: "Personal indexing and context should run locally or in encrypted user-controlled spaces whenever possible, with minimal server-side knowledge." },
 ];
 
 const examples = [

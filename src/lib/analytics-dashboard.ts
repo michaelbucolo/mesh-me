@@ -323,7 +323,7 @@ export async function getAnalyticsDashboardData() {
         entityType: true,
         visibility: true,
         allowAnalytics: true,
-        allowAiUse: true,
+        allowMeshiUse: true,
         allowDiscovery: true,
       },
       orderBy: { updatedAt: "desc" },

@@ -14,7 +14,7 @@ const principles = [
   "Users own their identity, content, permissions, and connected platform choices.",
   "Useful social features should not require ads, hidden profiling, or data selling.",
   "The product should adapt to the user instead of forcing one rigid interface.",
-  "Meshi is the single integrated AI layer, not a generic assistant scattered everywhere.",
+  "Meshi is the single integrated companion layer, not a generic assistant scattered everywhere.",
   "Every imported action should preserve source credit and route engagement back when APIs allow it.",
 ];
 
@@ -39,7 +39,7 @@ export default function AboutPage() {
             </div>
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            Meshi represents presence inside the Mesh and acts as the private companion for asking questions about your own data. The product avoids generic AI sprawl so Meshi remains recognizable and trustworthy.
+            Meshi represents presence inside the Mesh and acts as the private companion for asking questions about your own data. The product avoids generic feature sprawl so Meshi remains recognizable and trustworthy.
           </p>
         </div>
       </section>

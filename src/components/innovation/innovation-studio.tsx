@@ -19,7 +19,7 @@ const sprintChecklist = [
   "Review what-if simulator assumptions and tune next sprint",
 ];
 
-const aiSparks = [
+const creatorSparks = [
   "Turn your top performing post into a mini challenge thread.",
   "Bundle three related insights into a downloadable creator playbook.",
   "Host a weekly 'build in public' recap with one measurable lesson.",
@@ -176,7 +176,7 @@ export function InnovationStudio({ brief, displayName }: InnovationStudioProps) 
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Creative sparks</h2>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">Rapid prompts to keep your next experiments premium and differentiated.</p>
           <div className="mt-4 space-y-2">
-            {aiSparks.map((spark, idx) => (
+            {creatorSparks.map((spark, idx) => (
               <article key={spark} className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3">
                 <p className="text-[11px] uppercase tracking-wide text-[var(--text-muted)]">Spark {idx + 1}</p>
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">{spark}</p>

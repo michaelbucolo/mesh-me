@@ -7,7 +7,7 @@ import {
   type MeshiResponse,
 } from "./meshi-shared";
 
-interface MeshiLLMInput {
+interface MeshiReasoningInput {
   message: string;
   context?: MeshiContext;
   history?: MeshiHistoryMessage[];
@@ -23,13 +23,13 @@ interface MeshiLLMInput {
   };
 }
 
-const MODEL = process.env.MESHI_LLM_MODEL || "gpt-4.1-mini";
+const MODEL = process.env.MESHI_ENGINE_MODEL || "gpt-4.1-mini";
 
 const MESHI_SYSTEM_PROMPT = `
-You are Meshi, the single LLM intelligence and user vessel for Mesh.me.
+You are Meshi, the single intelligence and user vessel for Mesh.me.
 
 Identity:
-- Meshi is the mascot, logo, user avatar, private AI companion, and internet vessel for Mesh.me.
+- Meshi is the mascot, logo, user avatar, private companion, and internet vessel for Mesh.me.
 - Meshi represents the user as a simple bubbly character with two eyes and no mouth.
 - Meshi follows the user page to page and helps them understand, control, and shape their digital world.
 - Meshi should feel like a loyal companion that moves as the user, speaks with care, and never treats the user like product data.
@@ -49,8 +49,8 @@ Behavior:
 - If data is unavailable, say what you can do next instead of pretending.
 - Privacy and security are always priority one.
 - Do not claim external platform actions completed unless trusted context says they did.
-- Keep AI focused through Meshi. Do not describe random AI features outside Meshi.
-- For visible post, photo, and video checks: distinguish proven facts from visible metadata, source labels, and heuristics. Do not overclaim image/video authenticity without provenance.
+- Keep intelligence focused through Meshi. Do not describe random features outside Meshi.
+- For visible post, photo, and video checks: distinguish proven facts from visible metadata, source labels, and heuristics. Do not overclaim image or video authenticity without provenance.
 - Return strict JSON only.
 `.trim();
 
@@ -85,7 +85,7 @@ function describeMeshContext(context?: MeshiContext): string {
         `author=${focused.author || "unknown"}`,
         `media=${focused.mediaTypes?.length ? focused.mediaTypes.join(",") : "none"}`,
         `rating=${focused.contentRating || "unknown"}`,
-        `aiSignals=${focused.aiSignals?.length ? focused.aiSignals.join("; ") : "none"}`,
+        `mediaSignals=${focused.mediaSignals?.length ? focused.mediaSignals.join("; ") : "none"}`,
         `text=${focused.text ? focused.text.slice(0, 900) : "none"}`,
         focused.externalUrl ? `url=${focused.externalUrl}` : "",
       ].filter(Boolean).join("\n")
@@ -140,7 +140,7 @@ function parseAction(value: unknown): MeshiAction | undefined {
   return action;
 }
 
-function parseLLMJson(raw: string, databaseAction?: MeshiAction): Omit<MeshiResponse, "source" | "meshi"> | null {
+function parseEngineJson(raw: string, databaseAction?: MeshiAction): Omit<MeshiResponse, "source" | "meshi"> | null {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const content = typeof parsed.content === "string" ? parsed.content.trim() : "";
@@ -157,7 +157,7 @@ function parseLLMJson(raw: string, databaseAction?: MeshiAction): Omit<MeshiResp
   }
 }
 
-export async function callMeshiLLM(input: MeshiLLMInput): Promise<MeshiResponse | null> {
+export async function callMeshiReasoning(input: MeshiReasoningInput): Promise<MeshiResponse | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
@@ -247,16 +247,16 @@ export async function callMeshiLLM(input: MeshiLLMInput): Promise<MeshiResponse 
   const raw = extractOutputText(await response.json().catch(() => null));
   if (!raw) return null;
 
-  const parsed = parseLLMJson(raw, input.databaseAnswer?.action);
+  const parsed = parseEngineJson(raw, input.databaseAnswer?.action);
   if (!parsed) return null;
 
   return createMeshiResponse({
     content: parsed.content,
     mood: parsed.mood,
     action: parsed.action,
-    source: "llm",
+    source: "engine",
     model: parsed.model,
-    llmReady: true,
+    engineReady: true,
     grounded: Boolean(input.databaseAnswer?.content),
   });
 }

@@ -339,7 +339,7 @@ export function MeshCanvas({
     lastMousePosRef.current = { x: e.clientX, y: e.clientY, time: performance.now() };
     velocityRef.current = { x: 0, y: 0 };
     cancelAnimationFrame(momentumRafRef.current);
-    if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
+    if (canvasRef.current) canvasRef.current.style.cursor = meshiStateRef.current ? "none" : "grabbing";
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -360,7 +360,7 @@ export function MeshCanvas({
     const coords = getWorldCoords(e.clientX, e.clientY);
     const node = getUserFacingNode(engine.findNodeAt(coords.x, coords.y, filterRef.current));
     onHoverChange(node);
-    if (canvasRef.current) canvasRef.current.style.cursor = node ? "pointer" : "grab";
+    if (canvasRef.current) canvasRef.current.style.cursor = meshiStateRef.current ? "none" : (node ? "pointer" : "grab");
 
     // Update Meshi cursor position for following behavior
     if (meshiStateRef.current) {
@@ -371,7 +371,7 @@ export function MeshCanvas({
   const handleMouseUp = useCallback(() => {
     const wasDragging = isDraggingRef.current;
     isDraggingRef.current = false;
-    if (canvasRef.current) canvasRef.current.style.cursor = "grab";
+    if (canvasRef.current) canvasRef.current.style.cursor = meshiStateRef.current ? "none" : "grab";
     setTimeout(() => { dragActiveRef.current = false; }, 50);
 
     // Momentum panning — apply deceleration after drag release
@@ -489,7 +489,7 @@ export function MeshCanvas({
       aria-describedby="mesh-canvas-instructions mesh-selection-status"
       aria-busy={loading}
       className="h-full w-full select-none"
-      style={{ cursor: "grab", touchAction: "none", overscrollBehavior: "none" }}
+      style={{ cursor: "none", touchAction: "none", overscrollBehavior: "none" }}
       onContextMenu={(event) => event.preventDefault()}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}

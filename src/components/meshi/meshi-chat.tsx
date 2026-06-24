@@ -119,8 +119,8 @@ export function MeshiChat({
 
       setMeshiMood(response.mood as MeshiMood);
       setStatusLabel(
-        response.source === "llm"
-          ? "LLM + Mesh context"
+        response.source === "engine"
+          ? "Meshi engine + Mesh context"
           : response.source === "database"
             ? "Mesh data answer"
             : response.source === "offline"

@@ -366,7 +366,7 @@ export const trustStack = [
   "Private by default for imported personal content",
   "User-owned visibility controls per account, branch, post, and interaction",
   "Encrypted credential storage and revocable platform permissions",
-  "Transparent activity logs for every sync, import, export, and AI lookup",
+  "Transparent activity logs for every sync, import, export, and lookup",
   "Meshi answers from indexed context and reports what it used",
   "Bot resistance through verification, behavior checks, and rate limits",
   "Delete, export, and disconnect controls designed into the core product",

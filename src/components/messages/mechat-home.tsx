@@ -352,6 +352,33 @@ export function MeChatHome({
     });
   }
 
+  function startCallFromThread(thread: MeChatThread, mode: "voice" | "video") {
+    const peerName = threadDisplay(thread);
+    const sessionType = mode === "voice" ? "voice_room" : "video_room";
+    startTransition(async () => {
+      setStatus(null);
+      try {
+        const res = await fetch("/api/mechat/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: `${mode === "voice" ? "Call" : "Video"} with ${peerName}`,
+            sessionType,
+            callMode: mode,
+            items: [],
+            participantIds: thread.otherUsers.map((u) => u.id).concat(thread.otherUser?.id ? [thread.otherUser.id] : []),
+          }),
+        });
+        const data = await res.json().catch(() => ({ error: "Could not start call" }));
+        if (!res.ok) throw new Error(data.error || "Could not start call");
+        updateSession(data.session);
+        setStatus({ type: "success", message: `${mode === "voice" ? "Voice" : "Video"} call started with ${peerName}` });
+      } catch (error) {
+        setStatus({ type: "error", message: error instanceof Error ? error.message : "Could not start call" });
+      }
+    });
+  }
+
   function addItem(sessionId: string) {
     if (!itemTitle.trim() && !itemUrl.trim()) return;
     startTransition(async () => {
@@ -415,7 +442,7 @@ export function MeChatHome({
   }
 
   return (
-    <div className="mechat-layout flex h-[calc(100dvh-3.5rem)] overflow-hidden animate-page-enter">
+    <div className="mechat-layout flex h-[calc(100dvh-3.5rem)] overflow-hidden animate-page-enter" data-view={selectedThreadId ? "thread" : activeSessionId ? "room" : "list"}>
       {/* Panel 1: Conversation list */}
       <div className={`mechat-sidebar flex w-full flex-col border-r border-[var(--mesh-border)] bg-[var(--mesh-bg)] md:w-[340px] md:shrink-0${selectedThreadId ? " mechat-sidebar-hidden" : ""}`}>
         {/* Header */}
@@ -463,8 +490,8 @@ export function MeChatHome({
           </label>
         </div>
 
-        {/* Connected sources badge */}
-        <div className="mx-3 mb-2 flex items-center gap-2 rounded-lg bg-[var(--mesh-bg-elevated)] px-3 py-2">
+        {/* Connected sources badge — hidden on mobile to reduce clutter */}
+        <div className="mx-3 mb-2 hidden items-center gap-2 rounded-lg bg-[var(--mesh-bg-elevated)] px-3 py-2 md:flex">
           <ShieldCheck size={13} className="shrink-0 text-[var(--mesh-green)]" />
           <span className="text-[11px] text-[var(--mesh-text-muted)]">
             {inboxSummary.connected} source{inboxSummary.connected !== 1 ? "s" : ""} connected · {inboxSummary.importedItems} items synced
@@ -660,10 +687,10 @@ export function MeChatHome({
                 <p className="text-xs text-[var(--mesh-text-muted)]">{threadSubtitle(selectedThread)}</p>
               </div>
               <div className="flex items-center gap-1.5">
-                <button type="button" className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)]" title="Voice call">
+                <button type="button" onClick={() => startCallFromThread(selectedThread, "voice")} disabled={isPending} className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)] disabled:opacity-40" title="Voice call">
                   <Phone size={16} />
                 </button>
-                <button type="button" className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)]" title="Video call">
+                <button type="button" onClick={() => startCallFromThread(selectedThread, "video")} disabled={isPending} className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)] disabled:opacity-40" title="Video call">
                   <Video size={16} />
                 </button>
                 <button type="button" onClick={() => setShowInfoPanel(!showInfoPanel)} className={`rounded-lg p-2 transition-colors ${showInfoPanel ? "bg-[var(--mesh-panel)] text-[var(--mesh-blue)]" : "text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)]"}`} title="Info">
@@ -724,6 +751,9 @@ export function MeChatHome({
           <>
             {/* Room header */}
             <div className="flex items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-4 py-3">
+              <button type="button" onClick={() => setActiveSessionId("")} className="rounded-lg p-1 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] md:hidden">
+                <ChevronLeft size={18} />
+              </button>
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--mesh-blue)]/10">
                 <Video size={15} className="text-[var(--mesh-blue)]" />
               </div>

@@ -60,8 +60,8 @@ const capabilityRows = [
   },
   {
     icon: Brain,
-    title: "Meshi is the only deep AI layer",
-    copy: "AI stays centered in Meshi so the product avoids generic AI clutter while still giving users a smart private companion.",
+    title: "Meshi is the only deep companion layer",
+    copy: "Intelligence stays centered in Meshi so the product avoids generic clutter while still giving users a smart private companion.",
   },
   {
     icon: Shield,

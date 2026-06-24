@@ -322,13 +322,13 @@ function drawSectionLabels(
   };
 
   const sections = [
-    { radius: 150, label: "Alter Egos", angle: -Math.PI / 2 - 0.3, color: "192, 132, 252" },
-    { radius: 225, label: "Activity", angle: -Math.PI / 2 + 0.45, color: "56, 189, 248" },
-    { radius: 285, label: "Platforms", angle: -Math.PI / 2 + 0.15, color: "245, 158, 11" },
-    { radius: 475, label: "People", angle: -Math.PI / 2 - 0.1, color: "129, 140, 248" },
-    { radius: 680, label: "Communities", angle: -Math.PI / 2 + 0.25, color: "236, 72, 153" },
-    { radius: 820, label: "Interests", angle: -Math.PI / 2 - 0.2, color: "6, 182, 212" },
-    { radius: 980, label: "Posts", angle: -Math.PI / 2 + 0.05, color: "16, 185, 129" },
+    { radius: 180, label: "Alter Egos", angle: -Math.PI / 2 - 0.3, color: "192, 132, 252" },
+    { radius: 260, label: "Activity", angle: -Math.PI / 2 + 0.45, color: "56, 189, 248" },
+    { radius: 340, label: "Platforms", angle: -Math.PI / 2 + 0.15, color: "245, 158, 11" },
+    { radius: 575, label: "People", angle: -Math.PI / 2 - 0.1, color: "129, 140, 248" },
+    { radius: 800, label: "Communities", angle: -Math.PI / 2 + 0.25, color: "236, 72, 153" },
+    { radius: 960, label: "Interests", angle: -Math.PI / 2 - 0.2, color: "6, 182, 212" },
+    { radius: 1140, label: "Posts", angle: -Math.PI / 2 + 0.05, color: "16, 185, 129" },
   ];
 
   const fontSize = Math.max(11, Math.min(15, 13 / zoom));
@@ -654,6 +654,13 @@ function drawNodes(
     }
 
     if (node.type === "self") {
+      // Draw prominent profile picture at center of mesh
+      drawSelfNode(ctx, node, node.radius, imageCache, time);
+      // Restore original position if modified during formation
+      if (nodeFormation < 1) {
+        node.x = origX;
+        node.y = origY;
+      }
       continue;
     }
 
@@ -787,6 +794,95 @@ function drawNodes(
       node.x = origX;
       node.y = origY;
     }
+  }
+}
+
+/** Draw the user's profile as a prominent centered node */
+function drawSelfNode(
+  ctx: CanvasRenderingContext2D,
+  node: MeshNode,
+  baseRadius: number,
+  imageCache: Map<string, HTMLImageElement | null>,
+  time: number,
+) {
+  const r = Math.max(baseRadius, 48);
+  const pulse = Math.sin(time * 0.6) * 0.5 + 0.5;
+
+  // Subtle outer glow — clean, not flashy
+  const glowR = r * 1.8 + pulse * 3;
+  const glow = ctx.createRadialGradient(node.x, node.y, r * 0.7, node.x, node.y, glowR);
+  glow.addColorStop(0, "rgba(47, 124, 255, 0.08)");
+  glow.addColorStop(0.6, "rgba(47, 124, 255, 0.03)");
+  glow.addColorStop(1, "rgba(47, 124, 255, 0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(node.x, node.y, glowR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Clean border ring
+  ctx.beginPath();
+  ctx.arc(node.x, node.y, r + 2.5, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(47, 124, 255, ${0.45 + pulse * 0.1})`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Profile picture circle
+  const cachedImg = imageCache.get(node.id);
+  const hasImage = cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0;
+
+  if (hasImage) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(cachedImg!, node.x - r, node.y - r, r * 2, r * 2);
+    ctx.restore();
+  } else {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+    const grad = ctx.createRadialGradient(node.x - r * 0.3, node.y - r * 0.3, 0, node.x, node.y, r);
+    grad.addColorStop(0, "rgba(47, 124, 255, 0.30)");
+    grad.addColorStop(1, "rgba(47, 124, 255, 0.10)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    const initials = node.label.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "ME";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.font = `bold ${Math.max(16, r * 0.45)}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(initials, node.x, node.y);
+  }
+
+  // Subtle inner highlight
+  ctx.beginPath();
+  ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Username label below — clean pill
+  const displayName = node.label || "";
+  const handle = node.sublabel || "";
+  ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const nameMetrics = ctx.measureText(displayName);
+  const handleMetrics = ctx.measureText(handle);
+  const labelW = Math.max(nameMetrics.width, handleMetrics.width);
+  const labelY = node.y + r + 10;
+  const pad = 8;
+  const labelH = handle ? 28 : 16;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  ctx.beginPath();
+  ctx.roundRect(node.x - labelW / 2 - pad, labelY - 3, labelW + pad * 2, labelH, 8);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+  ctx.fillText(displayName, node.x, labelY);
+  if (handle) {
+    ctx.font = "500 9px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.fillText(handle, node.x, labelY + 13);
   }
 }
 

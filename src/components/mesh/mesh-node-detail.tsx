@@ -12,7 +12,7 @@ import {
   Eye, EyeOff, Send, UserPlus, UserMinus, Trash2, Shield,
   Lock, ExternalLink, PenSquare, Search, MessageSquare,
   MessageCircle, ZoomIn, RefreshCw, Repeat2, Pin, PinOff,
-  Image as ImageIcon, Video, Music, Copy, Clock, Activity,
+  Image as ImageIcon, Video, Music, Copy, Clock, Activity, Compass,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toggleFollow, deletePost } from "@/lib/actions";
@@ -576,6 +576,13 @@ export function MeshNodeDetail({
         <div className="space-y-2">
           {/* User actions */}
           {node.type === "user" && !isPlatformPerson && (
+            <div className="space-y-2">
+            <button
+              onClick={() => router.push("/mesh?user=" + encodeURIComponent(node.id.replace("follower-", "").replace("following-", "")))}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-[var(--accent)] text-white transition-all active:scale-95 shadow-lg"
+            >
+              <Compass className="h-3 w-3" /> Visit Mesh
+            </button>
             <div className="flex gap-2">
               <button
                 onClick={() => router.push("/messages?to=" + node.id.replace("follower-", ""))}
@@ -600,6 +607,7 @@ export function MeshNodeDetail({
                   <><UserPlus className="h-3 w-3" /> Follow</>
                 )}
               </button>
+            </div>
             </div>
           )}
 
