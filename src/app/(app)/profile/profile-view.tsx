@@ -90,7 +90,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
   const collectionCount = 0;
 
   return (
-    <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] animate-page-enter">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {/* Profile header */}

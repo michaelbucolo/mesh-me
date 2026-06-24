@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   AtSign,
@@ -134,7 +135,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
   }
 
   return (
-    <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5">
+    <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5 animate-page-enter">
       <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
@@ -268,7 +269,15 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
 
           {filteredGroups.length > 0 ? (
             <div className="grid gap-3" data-testid="notification-group-list">
-              {filteredGroups.map((group) => (
+              <AnimatePresence mode="popLayout">
+              {filteredGroups.map((group, idx) => (
+                <motion.div
+                  key={group.key}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.28, delay: idx * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                >
                 <NotificationGroupCard
                   key={group.key}
                   group={group}
@@ -278,7 +287,9 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                   onMarkRead={() => requestNotificationAction("mark-read", group.notifications.map((item) => item.id))}
                   onMarkUnread={() => requestNotificationAction("mark-unread", group.notifications.map((item) => item.id))}
                 />
+                </motion.div>
               ))}
+              </AnimatePresence>
             </div>
           ) : (
             <div className="mesh-surface rounded-lg p-8">
@@ -309,10 +320,15 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3 text-center">
+    <motion.div
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3 text-center"
+    >
       <strong className="block text-xl text-[var(--text-primary)]">{value.toLocaleString()}</strong>
       <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -403,7 +419,15 @@ function NotificationGroupCard({
         </div>
       </div>
 
+      <AnimatePresence>
       {expanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="overflow-hidden"
+        >
         <div className="mt-4 grid gap-2 border-t border-[var(--border-primary)] pt-3">
           {group.notifications.map((notification) => (
             <Link
@@ -422,7 +446,9 @@ function NotificationGroupCard({
             </Link>
           ))}
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </article>
   );
 }

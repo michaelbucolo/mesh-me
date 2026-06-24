@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
   CheckCircle2,
@@ -515,15 +516,21 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
 
         {dashboard.accounts.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
-            {dashboard.accounts.map((account) => (
-              <AccountCard
+            {dashboard.accounts.map((account, idx) => (
+              <motion.div
                 key={account.id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.32, delay: idx * 0.06, ease: [0.16, 1, 0.3, 1] }}
+              >
+              <AccountCard
                 account={account}
                 busyKey={busyKey}
                 onSync={syncAccount}
                 onToggleActive={toggleActive}
                 onDisconnect={disconnectAccount}
               />
+              </motion.div>
             ))}
           </div>
         ) : (
@@ -605,9 +612,20 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filteredPlatforms.map((platform) => (
-            <PlatformCard key={platform.id} platform={platform} onChooseManual={chooseManualPlatform} />
+          <AnimatePresence mode="popLayout">
+          {filteredPlatforms.map((platform, idx) => (
+            <motion.div
+              key={platform.id}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.28, delay: idx * 0.035, ease: [0.16, 1, 0.3, 1] }}
+              layout
+            >
+            <PlatformCard platform={platform} onChooseManual={chooseManualPlatform} />
+            </motion.div>
           ))}
+          </AnimatePresence>
         </div>
       </section>
     </main>
