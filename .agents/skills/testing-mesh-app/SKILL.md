@@ -1,3 +1,8 @@
+---
+name: testing-mesh-app
+description: Test the mesh.me application end-to-end. Use when verifying UI changes, page layouts, navigation, design tokens, or overall app functionality.
+---
+
 # Testing mesh.me Application
 
 ## Local Dev Setup
@@ -102,21 +107,25 @@ console.log(page.url()); // http://localhost:3333/mesh
 ## Key Testing Paths
 
 ### Sidebar Navigation
-- **Structure**: Three labeled groups plus bottom section
-  - **CORE**: The Mesh, Feed, Explore
-  - **SOCIAL**: MeChat (badge shows unread count), Notifications (badge shows unread count), Communities
-  - **MANAGE** (collapsible): Content Hub, Connected Accounts — click group header to collapse/expand, chevron rotates -90° when collapsed
-  - **ADMIN** (only for admin users): Admin Console
-  - **Bottom** (separate from groups): Profile, Settings, MeshPro
-- Badge values for `alexcreates` seed data: MeChat = 1, Notifications = 2
+- **Structure (rebuilt)**: Flat nav rail with 8 items in a single list (no groups):
+  - The Mesh, Profile, Spaces, Communities, Connections, Vault, Verify, Settings
+- **Privacy First card**: Below nav items, shows "You own your data. We protect your privacy. Always." with "Learn how" link
+- **User dock**: At bottom, shows avatar + display name + @username + chevron dropdown
+- **Footer**: Copyright "© 2025 Mesh.me", theme toggle icon, settings gear icon
+- Active nav item has blue highlight background
 - Sidebar is hidden on mobile (<1024px), replaced by mobile bottom nav
+- **Note**: The old grouped structure (CORE/SOCIAL/MANAGE/ADMIN) was replaced with a flat list. If tests check for group headers or collapsible sections, they will fail.
 
 ### Header (Desktop)
-- **Location**: Sticky top bar, only visible on lg+ screens (hidden on mobile)
-- **Content**: 3 icon-only buttons (no text labels) aligned right:
-  - Search (magnifying glass) — links to /search, no badge
-  - Messages (chat bubble) — links to /messages, badge shows unread count
-  - Notifications (bell) — links to /notifications, badge shows unread count
+- **Location**: Sticky top bar with page title on left, search bar center, actions right
+- **Content**:
+  - Page title (h1) + info button (ⓘ) + subtitle text
+  - Search bar: "Search your Mesh" with ⌘ K shortcut
+  - Search icon link to /search
+  - Share button
+  - Verify link to /trust
+  - Notifications bell with badge count (links to /notifications)
+  - Owner dropdown (avatar + "Owner" label)
 - Badge counts should match sidebar badge counts
 - Badge overflow: shows "99+" when count > 99
 
@@ -212,16 +221,15 @@ console.log(page.url()); // http://localhost:3333/mesh
 - **Playwright assertion**: Count `button[disabled]` elements — should be >= 12 for a non-MeshPro user (6 hats + 6 colors). All should have `opacity-50` class.
 
 ### Feed (/feed)
-- **Navigation**: Sidebar → "Feed"
-- **Layout switching**: 5 layout toggle icons in top-right of feed page (Timeline, Grid, Reels, Compact, Cards)
-  - Timeline: Classic scrolling feed with PostCard components (has clickable links to post detail)
-  - Grid: 3-column square tiles (Instagram style)
-  - Reels: Full-screen snap-scroll cards (TikTok style) — note: posts are NOT directly clickable in this layout
-  - Compact: Dense thread view (Reddit style) — entire row is clickable
-  - Cards: Large card format (Facebook style)
-- **Infinite scroll**: Scroll to bottom of feed. If fewer than 20 posts, shows "You've reached the end". If more, triggers IntersectionObserver to load next page via `/api/feed/paginated`.
-- **Feed source tabs**: "For You" / "Following" / "Discover" — currently placeholder UI (non-functional)
-- **Post composer**: At top of feed, "What's happening?" textarea with Post button
+- **Navigation**: Sidebar → "Feed" is not directly in sidebar; use the Mesh dashboard "Feed" action button, or navigate to /feed
+- **Source tabs**: "For you" (default active), "Following", "Explore" — functional, clicking changes URL query param `?source=following` etc.
+- **Feed mode pills**: Classic (default), Text, Photo, Video, Creator, Clean — 6 mode buttons
+- **Content filter pills**: All (default), Mesh.me, Platforms, Media, Links — 5 filter pills
+- **Layout mode icons**: 3 icons on right (Timeline, Compact, Media)
+- **Post composer**: At top below filters, "What's happening?" textarea
+- **Post cards**: Show author avatar, name, @username, timestamp, community badge, content, engagement buttons (like, comment, repost, bookmark)
+- **Right sidebar**: Trending section and who-to-follow suggestions
+- **Note**: The old 5 layout modes (Timeline/Grid/Reels/Compact/Cards) were replaced with 3 (Timeline/Compact/Media). Old tests checking for Grid or Reels will fail.
 
 ### Post Detail (/feed/[postId])
 - **Navigation**: Click on a post card in Timeline or Cards layout, or click a grid tile/compact row
@@ -358,6 +366,60 @@ npx next build
 - Password reset fields: `resetToken` (unique, nullable), `resetTokenExpiry` (nullable DateTime)
 - Stripe fields on User model: `stripeCustomerId` (unique, nullable), `stripeSubscriptionId` (nullable)
 - MeshPro field: `isMeshPro` (boolean, default false) — controls access to premium cosmetics in Meshi tab
+
+## Visual / UI Testing
+
+When verifying UI overhaul or visual changes across the app:
+
+### Design Token System (--mesh-* tokens)
+The app uses a unified `--mesh-*` CSS custom property system defined in `globals.css`:
+- `--mesh-bg-deep: #020711` — deepest background
+- `--mesh-bg: #050b16` — primary background
+- `--mesh-bg-elevated: #091321` — elevated surfaces
+- `--mesh-panel: rgba(8, 18, 33, 0.90)` — panel overlays
+- `--mesh-blue: #2f7cff` — primary accent (replaced old indigo #6366f1)
+- `--mesh-cyan: #58bfff` — secondary accent
+- `--mesh-text: #f5f8fc` — primary text
+- `--mesh-text-secondary: #a9b4c7` — secondary text
+- `--mesh-text-muted: #70809a` — muted text
+- `--mesh-border: rgba(100, 166, 255, 0.16)` — borders
+- `--mesh-green: #43d49e` — success/online indicators
+
+**Key change**: The old `--bg-primary`, `--accent`, `--border-primary` variables were replaced with `--mesh-*` tokens throughout all components. If tests check for old variable names, they need updating.
+
+### Theme Mode Awareness
+- The app defaults to dark mode with the `--mesh-*` token system
+- The sidebar theme toggle button can switch between themes
+- All pages use mesh tokens consistently
+
+### Key Visual Assertions
+- **Color scheme**: Blue (#2f7cff) throughout, NOT old indigo/violet. Check mesh canvas glow, button accents, badges, active states.
+- **Typography weight**: The app uses `font-bold` (700) throughout.
+- **Post card avatars**: Plain circular avatars, no story rings.
+- **Sidebar nav**: Flat list with 8 items. Active item has blue background highlight. Privacy First card below nav.
+- **Borders**: Semi-transparent rgba-based borders using `--mesh-border`.
+- **Mesh canvas**: Background glow uses `rgba(47, 124, 255, ...)` not old `rgba(99, 102, 241, ...)`.
+
+### Pages to Verify
+Walk through these pages in order for a comprehensive visual check:
+1. `/mesh` — canvas rendering, dashboard actions (8 buttons), status bar, filter tabs, Mini Mesh map
+2. `/feed` — source tabs (For you/Following/Explore), feed mode pills, content filters, layout icons, post cards
+3. `/profile/alexcreates` — constellation hero, Meshi companion card, tabs (Posts/Communities/Collections/Creator Links), right sidebar
+4. `/communities` — featured carousel, category tabs (All/Technology/Design/etc.), directory list, detail panel
+5. `/messages` — 3-panel layout (conversation list + thread + details), E2E encryption badge
+6. `/settings` — settings sections sidebar, account details, quick actions
+7. `/` (unauthenticated) — login page
+
+### Playwright CDP for Browser Interaction
+When the computer tool has issues (click errors, scroll format errors), use Playwright via CDP as a reliable alternative:
+```javascript
+const { chromium } = require('/home/ubuntu/.npm/_npx/e41f203b7505f1fb/node_modules/playwright');
+const browser = await chromium.connectOverCDP('http://localhost:29229');
+const page = browser.contexts()[0].pages()[0];
+await page.goto('http://localhost:3333/feed');
+await page.waitForTimeout(2000);
+```
+The Playwright npm path may change between sessions — check `/home/ubuntu/.npm/_npx/` for the correct hash directory if the path above doesn't work. Alternatively use `npx playwright` which auto-installs.
 
 ## Common Issues
 
