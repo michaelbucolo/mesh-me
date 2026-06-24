@@ -316,7 +316,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
   });
 
   return (
-    <main className="mesh-aurora min-h-full overflow-hidden rounded-lg text-[var(--text-primary)]">
+    <main className="mesh-aurora min-h-full overflow-hidden rounded-lg text-[var(--text-primary)] animate-page-enter">
       <div className="mx-auto grid max-w-4xl gap-4 px-3 py-4 md:px-5 md:py-6">
         <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">

@@ -415,7 +415,7 @@ export function MeChatHome({
   }
 
   return (
-    <div className="mechat-layout flex h-[calc(100dvh-3.5rem)] overflow-hidden">
+    <div className="mechat-layout flex h-[calc(100dvh-3.5rem)] overflow-hidden animate-page-enter">
       {/* Panel 1: Conversation list */}
       <div className={`mechat-sidebar flex w-full flex-col border-r border-[var(--mesh-border)] bg-[var(--mesh-bg)] md:w-[340px] md:shrink-0${selectedThreadId ? " mechat-sidebar-hidden" : ""}`}>
         {/* Header */}

@@ -507,7 +507,7 @@ export function SettingsControlCenter({
   }
 
   return (
-    <main className="settings-traditional flex h-full min-h-0 flex-col overflow-hidden">
+    <main className="settings-traditional flex h-full min-h-0 flex-col overflow-hidden animate-page-enter">
       <header className="settings-traditional-header shrink-0 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
