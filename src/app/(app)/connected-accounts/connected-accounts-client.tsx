@@ -521,7 +521,7 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
                 key={account.id}
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.32, delay: idx * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.32, delay: Math.min(idx * 0.06, 0.4), ease: [0.16, 1, 0.3, 1] }}
               >
               <AccountCard
                 account={account}
@@ -619,7 +619,7 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.28, delay: idx * 0.035, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.28, delay: Math.min(idx * 0.035, 0.4), ease: [0.16, 1, 0.3, 1] }}
               layout
             >
             <PlatformCard platform={platform} onChooseManual={chooseManualPlatform} />
