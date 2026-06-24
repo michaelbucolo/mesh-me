@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import Image from "next/image";
@@ -25,7 +26,7 @@ const sizePixelMap = {
   xl: 80,
 };
 
-export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
+export const Avatar = memo(function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
   if (src) {
     return (
       <Image
@@ -58,4 +59,4 @@ export function Avatar({ src, alt = "", size = "md", className }: AvatarProps) {
       <MeshiLogo size={size === "xs" ? 14 : size === "sm" ? 18 : size === "md" ? 20 : size === "lg" ? 28 : 36} color="blue" mood="happy" />
     </div>
   );
-}
+});

@@ -28,7 +28,7 @@ function PaymentModal({ plan, onClose }: { plan: PaymentPlan; onClose: () => voi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: "Invalid response" }));
       if (!res.ok) {
         setError(data.error || "Something went wrong. Please try again.");
         setLoading(false);

@@ -1213,7 +1213,7 @@ function SecurityDevices() {
     setLoading(true);
     try {
       const response = await fetch("/api/account/sessions", { cache: "no-store" });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({ error: "Could not load sessions." }));
       if (!response.ok) throw new Error(payload.error || "Could not load sessions.");
       setSessions(payload.sessions ?? []);
       setTotalSessions(payload.totalSessions ?? 0);
@@ -1233,7 +1233,7 @@ function SecurityDevices() {
     setBusy(true);
     try {
       const response = await fetch("/api/account/sessions", { method: "DELETE" });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({ error: "Could not revoke sessions." }));
       if (!response.ok) throw new Error(payload.error || "Could not revoke sessions.");
       setMessage(`Signed out ${payload.deletedCount ?? 0} other session${payload.deletedCount === 1 ? "" : "s"}.`);
       await loadSessions();
@@ -1295,7 +1295,7 @@ function RecoveryMethods() {
         fetch("/api/account/emails", { cache: "no-store" }),
         fetch("/api/account/phones", { cache: "no-store" }),
       ]);
-      const [emailPayload, phonePayload] = await Promise.all([emailResponse.json(), phoneResponse.json()]);
+      const [emailPayload, phonePayload] = await Promise.all([emailResponse.json().catch(() => ({})), phoneResponse.json().catch(() => ({}))]);
       if (!emailResponse.ok) throw new Error(emailPayload.error || "Could not load recovery emails.");
       if (!phoneResponse.ok) throw new Error(phonePayload.error || "Could not load recovery phones.");
       setEmails(emailPayload.emails ?? []);
@@ -1323,7 +1323,7 @@ function RecoveryMethods() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(type === "email" ? { email: value } : { phone: value }),
       });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({ error: `Could not add ${type}.` }));
       if (!response.ok) throw new Error(payload.error || `Could not add ${type}.`);
       if (type === "email") setEmail("");
       else setPhone("");
@@ -1344,7 +1344,7 @@ function RecoveryMethods() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(type === "email" ? { emailId: id } : { phoneId: id }),
       });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({ error: `Could not remove ${type}.` }));
       if (!response.ok) throw new Error(payload.error || `Could not remove ${type}.`);
       setMessage(`${type === "email" ? "Recovery email" : "Recovery phone"} removed.`);
       await loadMethods();
@@ -1410,7 +1410,7 @@ function TwoFactorMethods() {
     setLoading(true);
     try {
       const response = await fetch("/api/account/two-factor", { cache: "no-store" });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({ error: "Could not load 2FA methods." }));
       if (!response.ok) throw new Error(payload.error || "Could not load 2FA methods.");
       setMethods(payload.methods ?? []);
       setMessage("");
@@ -1433,7 +1433,7 @@ function TwoFactorMethods() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ method }),
       });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({ error: "Could not add 2FA method." }));
       if (!response.ok) throw new Error(payload.error || "Could not add 2FA method.");
       setMessage("Two-factor method added.");
       await loadTwoFactor();
@@ -1452,7 +1452,7 @@ function TwoFactorMethods() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ methodId }),
       });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({ error: "Could not remove 2FA method." }));
       if (!response.ok) throw new Error(payload.error || "Could not remove 2FA method.");
       setMessage("Two-factor method removed.");
       await loadTwoFactor();

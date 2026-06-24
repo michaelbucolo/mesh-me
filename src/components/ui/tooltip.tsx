@@ -24,7 +24,7 @@ export function Tooltip({
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     if (!showOnce || !storageKey) return false;
-    return localStorage.getItem(`tooltip-${storageKey}`) === "true";
+    try { return localStorage.getItem(`tooltip-${storageKey}`) === "true"; } catch { return false; }
   });
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -38,7 +38,7 @@ export function Tooltip({
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (showOnce && storageKey && visible) {
       setDismissed(true);
-      localStorage.setItem(`tooltip-${storageKey}`, "true");
+      try { localStorage.setItem(`tooltip-${storageKey}`, "true"); } catch { /* storage unavailable */ }
     }
     setVisible(false);
   };

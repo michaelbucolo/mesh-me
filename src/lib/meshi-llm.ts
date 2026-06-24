@@ -244,7 +244,7 @@ export async function callMeshiLLM(input: MeshiLLMInput): Promise<MeshiResponse 
 
   if (!response.ok) return null;
 
-  const raw = extractOutputText(await response.json());
+  const raw = extractOutputText(await response.json().catch(() => null));
   if (!raw) return null;
 
   const parsed = parseLLMJson(raw, input.databaseAnswer?.action);

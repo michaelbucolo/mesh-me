@@ -6,18 +6,16 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   ChevronDown,
-  LogOut,
   Search,
   Settings,
   Share2,
   ShieldCheck,
   Sun,
-  type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/lib/actions";
 import { getRouteLoadingPersonality } from "@/lib/loading-personality";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
-import { CommandPalette, openCommandPalette } from "@/components/layout/command-palette";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { KeyboardShortcutsOverlay } from "@/components/layout/keyboard-shortcuts-overlay";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { WhatsNewDrawer } from "@/components/layout/whats-new-drawer";
@@ -101,12 +99,10 @@ function AppRouteProgress({ pathname }: { pathname: string }) {
 }
 
 function ShellTopBar({
-  pathname,
   user,
   routeInfo,
   unreadCounts,
 }: {
-  pathname: string;
   user: AppShellProps["user"];
   routeInfo: RouteInfo;
   unreadCounts: UnreadCounts;
@@ -344,7 +340,7 @@ export function AppShell({ children, user }: AppShellProps) {
 
       {/* Main Content */}
       <main className={`mesh-main flex min-h-0 min-w-0 flex-col overflow-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] md:h-dvh md:pb-0 ${isMeshSurface ? "mesh-main-mesh" : ""}`}>
-        <ShellTopBar pathname={pathname} user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />
+        <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />
 
         <div className="mesh-content flex-1 overflow-y-auto">
           <div key={pathname} className="mesh-route-slot animate-page-enter">

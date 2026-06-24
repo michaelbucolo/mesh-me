@@ -49,7 +49,7 @@ export function MeshiDelivery({
     try {
       const res = await fetch("/api/meshi/deliveries");
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (data.deliveries && data.deliveries.length > 0) {
           setDeliveries(prev => {
             const newOnes = data.deliveries.filter((d: DeliveryNotification) => !seenIds.current.has(d.id));

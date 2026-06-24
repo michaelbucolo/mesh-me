@@ -23,7 +23,11 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { email } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { email } = body;
   if (!email || typeof email !== "string" || !email.includes("@")) {
     return NextResponse.json({ error: "Valid email required" }, { status: 400 });
   }
@@ -60,7 +64,11 @@ export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { emailId } = await req.json();
+  const deleteBody = await req.json().catch(() => null);
+  if (!deleteBody || typeof deleteBody !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { emailId } = deleteBody;
   if (!emailId) return NextResponse.json({ error: "emailId required" }, { status: 400 });
 
   // Don't allow deleting primary email

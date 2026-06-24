@@ -3,8 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronRight, Globe, Lock, Plus, Search, ShieldCheck, Users } from "lucide-react";
-import { CommunityJoinButton } from "@/components/communities/community-join-button";
+import { ArrowLeft, ArrowRight, Lock, ShieldCheck } from "lucide-react";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 
@@ -64,7 +63,6 @@ function FeaturedCard({ community }: { community: Community }) {
 }
 
 function CommunityRow({ community, selected, onSelect }: { community: Community; selected: boolean; onSelect: () => void }) {
-  const membership = community.members[0];
   return (
     <button
       type="button"

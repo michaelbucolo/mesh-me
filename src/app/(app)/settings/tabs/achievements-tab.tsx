@@ -23,7 +23,7 @@ export function AchievementsTab({ showSuccess }: AchievementsTabProps) {
       try {
         await checkAndAwardAchievements();
         const r = await fetch("/api/settings");
-        const data = await r.json();
+        const data = await r.json().catch(() => ({}));
         if (cancelled) return;
         if (data.settings?.achievements) {
           setUnlockedSlugs(data.settings.achievements.map((a: { slug: string }) => a.slug));

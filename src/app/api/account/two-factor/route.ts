@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { method, label } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { method, label } = body;
   const validMethods = ["email", "sms", "totp", "passkey"];
   if (!method || !validMethods.includes(method)) {
     return NextResponse.json({ error: "Invalid 2FA method. Must be: " + validMethods.join(", ") }, { status: 400 });
@@ -66,7 +70,11 @@ export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { methodId } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { methodId } = body;
   if (!methodId) return NextResponse.json({ error: "methodId required" }, { status: 400 });
 
   // Verify ownership

@@ -43,7 +43,7 @@ export function AlterEgosTab({ showSuccess }: AlterEgosTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: newEgoUsername.trim().toLowerCase(), displayName: newEgoDisplayName.trim(), bio: newEgoBio.trim() || null }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: "Request failed" }));
       if (data.error) setAlterEgoError(data.error);
       else if (data.alterEgo) {
         setAlterEgos((prev) => [...prev, data.alterEgo]);
@@ -56,7 +56,7 @@ export function AlterEgosTab({ showSuccess }: AlterEgosTabProps) {
   const handleDelete = (id: string) => {
     startTransition(async () => {
       const res = await fetch(`/api/account/alter-egos?id=${id}`, { method: "DELETE" });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (data.success) {
         setAlterEgos((prev) => prev.filter((e) => e.id !== id));
         setDeletingEgoId(null);

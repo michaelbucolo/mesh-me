@@ -6,7 +6,7 @@ import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useTransition, useRef, useEffect, type ReactNode } from "react";
+import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
 
@@ -152,7 +152,7 @@ function ExpandablePostText({
   );
 }
 
-export function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager }: PostCardProps) {
+export const PostCard = memo(function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager }: PostCardProps) {
   const [liked, setLiked] = useState(post.reactions && post.reactions.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [saved, setSaved] = useState(post.savedBy && post.savedBy.length > 0);
@@ -677,4 +677,4 @@ export function PostCard({ post, currentUserId, connectedPlatforms = [], compact
       </div>
     </article>
   );
-}
+});
