@@ -743,52 +743,9 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     }),
   ]);
 
-  const nodes: Array<Record<string, unknown>> = [];
-  const links: Array<Record<string, unknown>> = [];
-  const selfNodeId = `self-${targetUser.id}`;
-
-  nodes.push({
-    id: selfNodeId,
-    type: "self",
-    label: targetUser.displayName || targetUser.username || "User",
-    avatarUrl: targetUser.avatarUrl,
-    username: targetUser.username,
-    bio: targetUser.bio,
-  });
-
-  for (const f of followingData) {
-    const nodeId = `following-${f.following.id}`;
-    nodes.push({ id: nodeId, type: "user", subType: "following", label: f.following.displayName || f.following.username || "User", avatarUrl: f.following.avatarUrl, username: f.following.username });
-    links.push({ source: selfNodeId, target: nodeId, type: "follows" });
-  }
-
-  for (const f of followersData) {
-    const nodeId = `follower-${f.follower.id}`;
-    const exists = nodes.some((n) => n.id === `following-${f.follower.id}`);
-    if (!exists) {
-      nodes.push({ id: nodeId, type: "user", subType: "follower", label: f.follower.displayName || f.follower.username || "User", avatarUrl: f.follower.avatarUrl, username: f.follower.username });
-    }
-    links.push({ source: exists ? `following-${f.follower.id}` : nodeId, target: selfNodeId, type: "follows" });
-  }
-
-  for (const p of postsData) {
-    const nodeId = `post-${p.id}`;
-    const firstMedia = p.media?.[0];
-    nodes.push({ id: nodeId, type: "post", label: (p.content || "").slice(0, 60), source: "mesh", mediaUrl: firstMedia?.url || null, mediaType: firstMedia?.type || null, commentCount: p._count.comments, reactionCount: p._count.reactions, createdAt: p.createdAt });
-    links.push({ source: selfNodeId, target: nodeId, type: "authored" });
-  }
-
-  for (const i of interestsData) {
-    const nodeId = `interest-${i.id}`;
-    nodes.push({ id: nodeId, type: "interest", label: i.tag });
-    links.push({ source: selfNodeId, target: nodeId, type: "interested_in" });
-  }
-
-  for (const ca of connectedAccountsData) {
-    const nodeId = `platform-${ca.id}`;
-    nodes.push({ id: nodeId, type: "platform", label: ca.platform, platformUsername: ca.platformUsername, isActive: ca.isActive });
-    links.push({ source: selfNodeId, target: nodeId, type: "connected" });
-  }
+  const following = followingData.map((f) => f.following);
+  const followers = followersData.map((f) => f.follower);
+  const interests = interestsData.map((i) => i.tag);
 
   return NextResponse.json({
     user: {
@@ -798,15 +755,24 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       avatarUrl: targetUser.avatarUrl,
       bio: targetUser.bio,
     },
-    nodes,
-    links,
+    following,
+    followers,
+    communities: [],
+    interests,
+    posts: postsData,
+    connectedAccounts: connectedAccountsData,
+    alterEgos: [],
     meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "default", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
     stats: {
       followingCount: followingData.length,
       followerCount: followersData.length,
+      mutualCount: 0,
+      communityCount: 0,
       postCount: postsData.length,
       interestCount: interestsData.length,
       connectedPlatformCount: connectedAccountsData.length,
+      alterEgoCount: 0,
+      activityCount: 0,
     },
     isViewingOtherUser: true,
   });
