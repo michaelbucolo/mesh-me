@@ -1369,7 +1369,7 @@ export function LivePlatformWorkspace({ section, fallbackRows }: { section: Plat
             ) : (
               <>
                 <button type="button" onClick={() => startCheckout("monthly")} disabled={busy} className="mesh-action mesh-action-primary mesh-pressable justify-center px-4 text-sm">Monthly - $4.99</button>
-                <button type="button" onClick={() => startCheckout("yearly")} disabled={busy} className="mesh-action mesh-action-secondary mesh-pressable justify-center px-4 text-sm">Yearly - $44.99</button>
+                <button type="button" onClick={() => startCheckout("yearly")} disabled={busy} className="mesh-action mesh-action-secondary mesh-pressable justify-center px-4 text-sm">Yearly - $39.99</button>
               </>
             )}
           </div>
