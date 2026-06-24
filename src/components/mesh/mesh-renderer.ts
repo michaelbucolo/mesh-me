@@ -105,9 +105,9 @@ export function renderMesh(
 
   // Ambient background glow
   const bgGrad = ctx.createRadialGradient(logicalW / 2, logicalH / 2, 0, logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.7);
-  bgGrad.addColorStop(0, "rgba(99, 102, 241, 0.04)");
-  bgGrad.addColorStop(0.3, "rgba(99, 102, 241, 0.02)");
-  bgGrad.addColorStop(0.6, "rgba(139, 92, 246, 0.01)");
+  bgGrad.addColorStop(0, "rgba(47, 124, 255, 0.05)");
+  bgGrad.addColorStop(0.3, "rgba(47, 124, 255, 0.025)");
+  bgGrad.addColorStop(0.6, "rgba(88, 191, 255, 0.01)");
   bgGrad.addColorStop(1, "transparent");
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, logicalW, logicalH);
@@ -117,7 +117,7 @@ export function renderMesh(
   if (formationProgress > 0 && formationProgress < 0.3) {
     const flashAlpha = Math.sin((formationProgress / 0.3) * Math.PI) * 0.08;
     const flashGrad = ctx.createRadialGradient(logicalW / 2, logicalH / 2, 0, logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.5);
-    flashGrad.addColorStop(0, `rgba(99, 102, 241, ${flashAlpha})`);
+    flashGrad.addColorStop(0, `rgba(47, 124, 255, ${flashAlpha})`);
     flashGrad.addColorStop(1, "transparent");
     ctx.fillStyle = flashGrad;
     ctx.fillRect(0, 0, logicalW, logicalH);
@@ -746,7 +746,7 @@ function drawNodes(
       const barWidth = Math.min(node.engagementScore * 0.4, nodeRadius * 1.5);
       const barX = node.x - barWidth / 2;
       const barY = node.y + nodeRadius + 2;
-      ctx.fillStyle = `rgba(99, 102, 241, ${0.15 * nodeOpacity})`;
+      ctx.fillStyle = `rgba(47, 124, 255, ${0.15 * nodeOpacity})`;
       ctx.beginPath();
       ctx.roundRect(barX, barY, barWidth, 2, 1);
       ctx.fill();

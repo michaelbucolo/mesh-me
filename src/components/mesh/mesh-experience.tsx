@@ -931,25 +931,25 @@ export function MeshExperience() {
   const activeBranchLabel = filter === "all"
     ? activePlatformLabel ? `${activePlatformLabel} branches` : "All branches"
     : `${activePlatformLabel ? `${activePlatformLabel} / ` : ""}${filter.replace("-", " ")} branch`;
-  const dashboardActionClass = "mesh-dashboard-action group flex min-h-[4.15rem] min-w-0 flex-col justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/72 p-2.5 text-left shadow-[var(--shadow-sm)] backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40 active:scale-[0.98] sm:p-3";
-  const dashboardIconClass = "mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] transition group-hover:scale-105";
+  const dashboardActionClass = "mesh-dashboard-action group flex min-h-[4.15rem] min-w-0 flex-col justify-between rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/80 p-2.5 text-left backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--mesh-border-active)] hover:bg-[var(--mesh-panel-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mesh-blue)]/40 active:scale-[0.98] sm:p-3";
+  const dashboardIconClass = "mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)] transition group-hover:scale-105";
 
   return (
-    <section data-meshi-zone="mesh" className="mesh-experience mesh-experience-fullscreen flex h-full min-h-0 flex-col overflow-hidden animate-page-enter" aria-labelledby="mesh-page-title">
+    <section data-meshi-zone="mesh" className="mesh-experience mesh-experience-fullscreen flex h-full min-h-0 flex-col overflow-hidden" aria-labelledby="mesh-page-title">
       <div className="mesh-page-header mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--mesh-blue)]">
             <Waypoints className="h-3.5 w-3.5" />
             The Mesh
           </div>
-          <h1 id="mesh-page-title" className="mt-1 text-2xl font-bold tracking-[0] text-[var(--text-primary)] md:text-3xl">
-            Your social and communications dashboard.
+          <h1 id="mesh-page-title" className="mt-1 text-xl font-bold text-[var(--mesh-text)] md:text-2xl">
+            Your World
           </h1>
         </div>
 
         <div className="flex items-center gap-2">
           {hasLoadedData && (
-            <div className="hidden items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/72 px-3 py-2 text-xs text-[var(--text-secondary)] sm:flex">
+            <div className="hidden items-center gap-2 rounded-md border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/80 px-3 py-2 text-xs text-[var(--mesh-text-secondary)] sm:flex">
               <span className="mesh-live-dot" />
               {liveCount} live
             </div>
@@ -959,7 +959,7 @@ export function MeshExperience() {
               <button
                 type="button"
                 onClick={() => fitViewToNodes()}
-                className="mesh-choice hidden h-10 w-10 items-center justify-center rounded-md p-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:inline-flex"
+                className="mesh-choice hidden h-10 w-10 items-center justify-center rounded-md p-0 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text)] sm:inline-flex"
                 title="Fit the full Mesh into view"
                 aria-label="Fit the full Mesh into view"
               >
@@ -968,7 +968,7 @@ export function MeshExperience() {
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new Event("mesh:tutorial"))}
-                className="mesh-choice inline-flex h-10 w-10 items-center justify-center rounded-md p-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="mesh-choice inline-flex h-10 w-10 items-center justify-center rounded-md p-0 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text)]"
                 title="Open Mesh guide"
                 aria-label="Open Mesh guide"
               >
@@ -979,7 +979,7 @@ export function MeshExperience() {
           <button
             type="button"
             onClick={() => loadMesh()}
-            className="mesh-choice inline-flex h-10 w-10 items-center justify-center rounded-md p-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="mesh-choice inline-flex h-10 w-10 items-center justify-center rounded-md p-0 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text)]"
             title="Refresh your Mesh"
             aria-label="Refresh your Mesh"
           >
@@ -991,7 +991,7 @@ export function MeshExperience() {
       {hasLoadedData && (
         <nav
           data-testid="mesh-dashboard-rail"
-          className="mesh-dashboard-rail mesh-page-actions mb-3 grid grid-cols-4 gap-2 md:grid-cols-8"
+          className="mesh-dashboard-rail mesh-page-actions mb-3 grid grid-cols-4 gap-1.5 md:grid-cols-8"
           aria-label="Mesh dashboard actions"
         >
           <button
@@ -1002,50 +1002,50 @@ export function MeshExperience() {
           >
             <span className={dashboardIconClass}><PenSquare className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Create</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Post anywhere</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Create</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Post anywhere</span>
             </span>
           </button>
           <Link href="/feed" className={dashboardActionClass} aria-label="Open the Feed from the Mesh dashboard">
             <span className={dashboardIconClass}><Rss className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Feed</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Scroll</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Feed</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Scroll</span>
             </span>
           </Link>
           <Link href="/messages" className={dashboardActionClass} aria-label="Open MeChat from the Mesh dashboard">
             <span className={dashboardIconClass}><MessageCircle className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">MeChat</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">MeChat</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">MeChat</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Messages</span>
             </span>
           </Link>
           <Link href="/notifications" className={dashboardActionClass} aria-label="Open notifications from the Mesh dashboard">
             <span className={dashboardIconClass}><Bell className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Alerts</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Signals</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Alerts</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Signals</span>
             </span>
           </Link>
           <Link href="/communities" className={dashboardActionClass} aria-label="Open communities from the Mesh dashboard">
             <span className={dashboardIconClass}><UsersRound className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Groups</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Communities</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Groups</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Communities</span>
             </span>
           </Link>
           <Link href="/analytics" className={dashboardActionClass} aria-label="Open Analytics from the Mesh dashboard">
             <span className={dashboardIconClass}><BarChart3 className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Stats</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Analytics</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Stats</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Analytics</span>
             </span>
           </Link>
           <Link href="/connected-accounts" className={dashboardActionClass} aria-label="Open connected accounts from the Mesh dashboard">
             <span className={dashboardIconClass}><Link2 className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Connect</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Platforms</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Connect</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Platforms</span>
             </span>
           </Link>
           <button
@@ -1056,34 +1056,31 @@ export function MeshExperience() {
           >
             <span className={dashboardIconClass}><Bot className="h-4 w-4" aria-hidden="true" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Meshi</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--text-muted)] sm:block">Ask</span>
+              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Meshi</span>
+              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Ask</span>
             </span>
           </button>
         </nav>
       )}
 
       {hasLoadedData && (
-        <div className="mesh-page-status mb-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)] sm:flex sm:overflow-x-auto sm:pb-1">
-          <div className="mesh-choice flex min-w-0 items-center gap-2 rounded-md px-3 py-2 sm:min-w-max" aria-label={`${filteredVisibleNodes.length} visible nodes`}>
-            <Waypoints className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden="true" />
-            <span className="font-bold text-[var(--text-primary)]">{filteredVisibleNodes.length}</span>
-            <span className="truncate">visible nodes</span>
+        <div className="mesh-page-status mb-3 flex flex-wrap gap-2 text-xs text-[var(--mesh-text-secondary)] sm:overflow-x-auto sm:pb-1">
+          <div className="flex items-center gap-2 rounded-md border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/60 px-3 py-1.5" aria-label={`${filteredVisibleNodes.length} visible nodes`}>
+            <Waypoints className="h-3.5 w-3.5 text-[var(--mesh-blue)]" aria-hidden="true" />
+            <span className="font-bold text-[var(--mesh-text)]">{filteredVisibleNodes.length}</span>
+            <span>nodes</span>
           </div>
-          <div className="mesh-choice flex min-w-0 items-center gap-2 rounded-md px-3 py-2 sm:min-w-max" aria-label={`Showing ${activeBranchLabel}`}>
-            <BarChart3 className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden="true" />
+          <div className="flex items-center gap-2 rounded-md border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/60 px-3 py-1.5" aria-label={`Showing ${activeBranchLabel}`}>
+            <BarChart3 className="h-3.5 w-3.5 text-[var(--mesh-blue)]" aria-hidden="true" />
             <span className="truncate">{activeBranchLabel}</span>
           </div>
-          <div className="mesh-choice flex min-w-0 items-center gap-2 rounded-md px-3 py-2 sm:min-w-max" aria-label={hiddenCount > 0 ? `${hiddenCount} hidden Mesh items` : "Private by default"}>
-            <Shield className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true" />
-            <span className="truncate">{hiddenCount > 0 ? `${hiddenCount} hidden` : "Private by default"}</span>
+          <div className="flex items-center gap-2 rounded-md border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/60 px-3 py-1.5" aria-label={hiddenCount > 0 ? `${hiddenCount} hidden Mesh items` : "Private by default"}>
+            <Shield className="h-3.5 w-3.5 text-[var(--mesh-green)]" aria-hidden="true" />
+            <span className="truncate">{hiddenCount > 0 ? `${hiddenCount} hidden` : "Private"}</span>
           </div>
-          <div className="mesh-choice col-span-2 flex min-w-0 items-center gap-2 rounded-md px-3 py-2 sm:min-w-max" aria-label={selectedNode ? `${selectedNode.label} has ${selectedConnections} links` : "Tap a node, drag to move, or press slash to search"}>
-            <span className="truncate sm:hidden">
-              {selectedNode ? `${selectedNode.label} has ${selectedConnections} links` : "Tap, drag, or search."}
-            </span>
-            <span className="hidden sm:inline">
-              {selectedNode ? `${selectedNode.label} has ${selectedConnections} links` : "Tap a node. Drag to move. Press / to search."}
+          <div className="flex items-center gap-2 rounded-md border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/60 px-3 py-1.5" aria-label={selectedNode ? `${selectedNode.label} has ${selectedConnections} links` : "Tap a node, drag to move, or press slash to search"}>
+            <span className="truncate">
+              {selectedNode ? `${selectedNode.label} · ${selectedConnections} links` : "Tap a node · Drag to move · / to search"}
             </span>
           </div>
         </div>
@@ -1096,33 +1093,33 @@ export function MeshExperience() {
         {selectedNode ? `${selectedNode.label} selected. ${selectedConnections} connected links.` : `${filteredVisibleNodes.length} Mesh nodes visible. No node selected.`}
       </p>
 
-      <div data-testid="mesh-canvas-shell" className="mesh-canvas-shell mesh-page-canvas relative min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[#070a10] shadow-2xl shadow-black/30">
+      <div data-testid="mesh-canvas-shell" className="mesh-canvas-shell mesh-page-canvas relative min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-deep)]">
         <div className="pointer-events-none absolute inset-0 opacity-70">
           <div className="absolute inset-0 mesh-soft-grid" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(96,165,250,0.16),transparent_34%),radial-gradient(circle_at_78%_18%,rgba(34,197,94,0.12),transparent_24%),radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.12),transparent_28%)]" />
         </div>
 
         {status === "loading" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/70 backdrop-blur-md">
-            <div className="mesh-surface flex w-[min(92vw,28rem)] items-center gap-4 rounded-xl p-5">
-              <Loader2 className="h-7 w-7 animate-spin text-[var(--accent)]" />
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--mesh-bg-deep)]/80 backdrop-blur-md">
+            <div className="flex w-[min(92vw,28rem)] items-center gap-4 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+              <Loader2 className="h-7 w-7 animate-spin text-[var(--mesh-blue)]" />
               <div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">Building your Mesh</p>
-                <p className="text-sm text-[var(--text-secondary)]">Posts, people, platforms, and Meshi are coming online.</p>
+                <p className="text-sm font-bold text-[var(--mesh-text)]">Building your Mesh</p>
+                <p className="text-sm text-[var(--mesh-text-secondary)]">Posts, people, platforms, and Meshi are coming online.</p>
               </div>
             </div>
           </div>
         )}
 
         {status === "unauthorized" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/74 p-4 backdrop-blur-md">
-            <div className="mesh-surface max-w-md rounded-xl p-6 text-center">
-              <Shield className="mx-auto h-8 w-8 text-[var(--accent)]" />
-              <h2 className="mt-3 text-lg font-bold text-[var(--text-primary)]">Sign in to use Mesh.me</h2>
-              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--mesh-bg-deep)]/80 p-4 backdrop-blur-md">
+            <div className="max-w-md rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-6 text-center">
+              <Shield className="mx-auto h-8 w-8 text-[var(--mesh-blue)]" />
+              <h2 className="mt-3 text-lg font-bold text-[var(--mesh-text)]">Sign in to use Mesh.me</h2>
+              <p className="mt-2 text-sm text-[var(--mesh-text-secondary)]">
                 The Mesh is private by default. Create an account or sign in before loading any personal data.
               </p>
-              <Link href="/login" className="brand-button mt-5 inline-flex rounded-md px-5 py-2.5 text-sm font-bold text-white">
+              <Link href="/login" className="mt-5 inline-flex rounded-lg bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[var(--mesh-blue)]/90">
                 Sign in
               </Link>
             </div>
@@ -1130,12 +1127,12 @@ export function MeshExperience() {
         )}
 
         {status === "error" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/74 p-4 backdrop-blur-md">
-            <div className="mesh-surface max-w-md rounded-xl p-6 text-center">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--mesh-bg-deep)]/80 p-4 backdrop-blur-md">
+            <div className="max-w-md rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-6 text-center">
               <AlertTriangle className="mx-auto h-8 w-8 text-amber-400" />
-              <h2 className="mt-3 text-lg font-bold text-[var(--text-primary)]">The Mesh could not load</h2>
-              <p className="mt-2 text-sm text-[var(--text-secondary)]">{error || "Try again in a moment."}</p>
-              <button onClick={() => loadMesh()} className="brand-button mt-5 inline-flex rounded-md px-5 py-2.5 text-sm font-bold text-white">
+              <h2 className="mt-3 text-lg font-bold text-[var(--mesh-text)]">The Mesh could not load</h2>
+              <p className="mt-2 text-sm text-[var(--mesh-text-secondary)]">{error || "Try again in a moment."}</p>
+              <button onClick={() => loadMesh()} className="mt-5 inline-flex rounded-lg bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[var(--mesh-blue)]/90">
                 Try again
               </button>
             </div>
@@ -1143,18 +1140,18 @@ export function MeshExperience() {
         )}
 
         {status === "empty" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/60 p-4 backdrop-blur-sm">
-            <div className="mesh-surface max-w-lg rounded-xl p-6 text-center">
-              <Compass className="mx-auto h-9 w-9 text-[var(--accent)]" />
-              <h2 className="mt-3 text-xl font-bold text-[var(--text-primary)]">Your Mesh is ready</h2>
-              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--mesh-bg-deep)]/70 p-4 backdrop-blur-sm">
+            <div className="max-w-lg rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-6 text-center">
+              <Compass className="mx-auto h-9 w-9 text-[var(--mesh-blue)]" />
+              <h2 className="mt-3 text-xl font-bold text-[var(--mesh-text)]">Your Mesh is ready</h2>
+              <p className="mt-2 text-sm text-[var(--mesh-text-secondary)]">
                 Add a post, follow people, join a group, or connect a platform. Every action becomes a node in your private digital world.
               </p>
               <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-                <Link href="/feed?compose=true" className="brand-button rounded-md px-5 py-2.5 text-sm font-bold text-white">
+                <Link href="/feed?compose=true" className="rounded-lg bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[var(--mesh-blue)]/90">
                   Create first post
                 </Link>
-                <Link href="/connected-accounts" className="mesh-choice rounded-md px-5 py-2.5 text-sm font-bold text-[var(--text-primary)]">
+                <Link href="/connected-accounts" className="rounded-lg border border-[var(--mesh-border)] px-5 py-2.5 text-sm font-bold text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel-hover)]">
                   Connect accounts
                 </Link>
               </div>

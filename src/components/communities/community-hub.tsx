@@ -1,223 +1,317 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Compass, Lock, MessageCircle, Plus, Search, ShieldCheck, Sparkles, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { ArrowLeft, ArrowRight, ChevronRight, Globe, Lock, Plus, Search, ShieldCheck, Users } from "lucide-react";
 import { CommunityJoinButton } from "@/components/communities/community-join-button";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 
 type CommunitiesHubData = NonNullable<Awaited<ReturnType<typeof getCommunitiesHubData>>>;
+type Community = CommunitiesHubData["communities"][number];
 
-function CommunityAvatar({ name, iconUrl }: { name: string; iconUrl?: string | null }) {
+const CATEGORY_TABS = ["All", "Technology", "Design", "Entrepreneurship", "Lifestyle", "Science", "Travel", "Gaming"];
+
+function CommunityAvatar({ name, iconUrl, size = "md" }: { name: string; iconUrl?: string | null; size?: "sm" | "md" | "lg" }) {
   const initial = name.trim().charAt(0).toUpperCase() || "M";
+  const sizeClass = size === "lg" ? "h-16 w-16" : size === "sm" ? "h-10 w-10" : "h-12 w-12";
+  const textSize = size === "lg" ? "text-2xl" : size === "sm" ? "text-base" : "text-lg";
 
   return (
-    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-[var(--ds-border)] bg-[var(--accent-subtle)]">
+    <div className={`relative ${sizeClass} shrink-0 overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-blue)]/10`}>
       {iconUrl ? (
-        <Image src={iconUrl} alt="" fill sizes="48px" className="object-cover" />
+        <Image src={iconUrl} alt="" fill sizes="64px" className="object-cover" />
       ) : (
-        <span className="grid h-full w-full place-items-center text-lg font-bold text-[var(--accent)]">{initial}</span>
+        <span className={`grid h-full w-full place-items-center ${textSize} font-bold text-[var(--mesh-blue)]`}>{initial}</span>
       )}
     </div>
   );
 }
 
-function CommunityCard({
-  community,
-  compact = false,
-}: {
-  community: CommunitiesHubData["communities"][number];
-  compact?: boolean;
-}) {
-  const membership = community.members[0];
-
+function FeaturedCard({ community }: { community: Community }) {
   return (
-    <article className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[var(--accent-muted)] hover:shadow-[var(--shadow-soft)]">
-      <div className="flex gap-3">
-        <CommunityAvatar name={community.name} iconUrl={community.iconUrl} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/communities/${community.slug}`} className="truncate text-base font-bold text-[var(--text-primary)] hover:underline">
-              {community.name}
-            </Link>
-            <Badge variant={community.isPublic ? "outline" : "warning"}>
-              {community.isPublic ? "Public" : "Private"}
-            </Badge>
-            {membership ? <Badge variant="accent">{membership.role}</Badge> : null}
+    <Link
+      href={`/communities/${community.slug}`}
+      className="group relative flex min-w-[260px] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-all duration-200 hover:border-[var(--mesh-border-active)] hover:-translate-y-0.5"
+    >
+      <div className="relative h-36 bg-gradient-to-br from-[var(--mesh-bg)] to-[#0a1628]">
+        {community.iconUrl ? (
+          <Image src={community.iconUrl} alt="" fill sizes="300px" className="object-cover opacity-60" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="lg" />
           </div>
-          <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">
-            {community.description || "A Mesh.me community for posts, chat, members, and shared spaces."}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--text-tertiary)]">
-        <span className="inline-flex items-center gap-1">
-          <Users className="h-3.5 w-3.5" />
-          {formatCount(community._count.members)} members
+        )}
+        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${community.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-amber-500/20 text-amber-400"}`}>
+          {community.isPublic ? "Public" : "Private"}
         </span>
-        <span>{formatCount(community._count.posts)} posts</span>
-        <span>Updated {formatRelativeTime(community.updatedAt)}</span>
-        {community.category ? <span>#{community.category}</span> : null}
       </div>
-
-      {!compact ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="secondary">
-            <Link href={`/communities/${community.slug}`}>Open</Link>
-          </Button>
-          <CommunityJoinButton
-            communityId={community.id}
-            isMember={Boolean(membership)}
-            isPrivate={!community.isPublic}
-            role={membership?.role}
-          />
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-center gap-2">
+          <h3 className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</h3>
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--mesh-blue)]" />
         </div>
-      ) : null}
-    </article>
+        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--mesh-text-muted)]">
+          {community.description || "A community on Mesh.me"}
+        </p>
+        <p className="mt-auto pt-3 text-[11px] text-[var(--mesh-text-muted)]">
+          {formatCount(community._count.members)} members
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+function CommunityRow({ community, selected, onSelect }: { community: Community; selected: boolean; onSelect: () => void }) {
+  const membership = community.members[0];
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition-colors ${
+        selected ? "bg-[var(--mesh-panel-hover)] border border-[var(--mesh-border-active)]" : "border border-transparent hover:bg-[var(--mesh-panel)]"
+      }`}
+    >
+      <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="sm" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</span>
+          <ShieldCheck className="h-3 w-3 shrink-0 text-[var(--mesh-blue)]" />
+        </div>
+        <p className="text-xs text-[var(--mesh-text-muted)]">
+          {community.isPublic ? "Public" : "Private"} · {community.category || "General"}
+        </p>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-bold text-[var(--mesh-text)]">{formatCount(community._count.members)}</p>
+        <p className="text-[10px] text-[var(--mesh-text-muted)]">members</p>
+      </div>
+      <div className="hidden shrink-0 text-right sm:block">
+        <p className="text-xs text-[var(--mesh-text-secondary)]">Updated {formatRelativeTime(community.updatedAt)}</p>
+      </div>
+      <div className="shrink-0">
+        {!community.isPublic ? (
+          <Lock className="h-4 w-4 text-[var(--mesh-text-muted)]" />
+        ) : (
+          <span className="h-2 w-2 rounded-full bg-[var(--mesh-blue)] inline-block" />
+        )}
+      </div>
+    </button>
   );
 }
 
 export function CommunityHub({ data }: { data: CommunitiesHubData }) {
+  const allCommunities = [...data.myCommunities, ...data.publicCommunities];
+  const uniqueMap = new Map<string, Community>();
+  for (const c of allCommunities) uniqueMap.set(c.id, c);
+  const dedupedCommunities = Array.from(uniqueMap.values());
+
   const featured = data.publicCommunities.slice(0, 6);
-  const mySpaces = data.myCommunities.slice(0, 6);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [selectedId, setSelectedId] = useState<string | null>(featured[0]?.id ?? null);
+  const [scrollOffset, setScrollOffset] = useState(0);
+
+  const filteredCommunities = activeCategory === "All"
+    ? dedupedCommunities
+    : dedupedCommunities.filter((c) => c.category?.toLowerCase() === activeCategory.toLowerCase());
+
+  const selectedCommunity = dedupedCommunities.find((c) => c.id === selectedId) ?? featured[0] ?? null;
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-5 px-3 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="min-w-0 space-y-5">
-        <div className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <Badge variant="accent" className="mb-3">
-                Communities
-              </Badge>
-              <h1 className="text-3xl font-bold tracking-[0] text-[var(--text-primary)]">Spaces for every part of your world.</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-                Create creator, friend, family, or project spaces with posts, member roles, rules, chat, and private controls.
-              </p>
+    <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      {/* Main column */}
+      <div className="min-w-0 space-y-6">
+        {/* Featured communities carousel */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[var(--mesh-text)]">Featured communities</h2>
+            <div className="flex items-center gap-2">
+              <Link href="/communities?view=featured" className="text-xs text-[var(--mesh-blue)] hover:underline">View all →</Link>
+              <button
+                type="button"
+                onClick={() => setScrollOffset(Math.max(0, scrollOffset - 1))}
+                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] transition-colors"
+                aria-label="Previous"
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setScrollOffset(Math.min(featured.length - 1, scrollOffset + 1))}
+                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] transition-colors"
+                aria-label="Next"
+              >
+                <ArrowRight size={14} />
+              </button>
             </div>
-            <Button asChild size="lg">
-              <Link href="/communities/create">
-                <Plus className="h-4 w-4" />
-                Create
-              </Link>
-            </Button>
           </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {featured.map((community) => (
+              <FeaturedCard key={community.id} community={community} />
+            ))}
+          </div>
+        </section>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.spaces)}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">available spaces</p>
-            </div>
-            <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.posts)}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">community posts</p>
-            </div>
-            <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.members)}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">memberships</p>
-            </div>
-            <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.privateSpaces)}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">private spaces</p>
-            </div>
-          </div>
+        {/* Category tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          {CATEGORY_TABS.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActiveCategory(cat)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeCategory === cat
+                  ? "bg-[var(--mesh-blue)] text-white"
+                  : "border border-[var(--mesh-border)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)]"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="rounded-full border border-[var(--mesh-border)] px-4 py-1.5 text-sm font-medium text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)] transition-colors"
+          >
+            More ↓
+          </button>
         </div>
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">Your spaces</h2>
-              <p className="text-sm text-[var(--text-secondary)]">The communities you can post and chat in.</p>
-            </div>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/search?type=communities">
-                Find more
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          {mySpaces.length ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {mySpaces.map((community) => (
-                <CommunityCard key={community.id} community={community} />
-              ))}
-            </div>
-          ) : (
-            <div className="mesh-surface rounded-[24px] border border-dashed border-[var(--ds-border)] p-8 text-center">
-              <Sparkles className="mx-auto h-8 w-8 text-[var(--accent)]" />
-              <h3 className="mt-3 text-lg font-bold text-[var(--text-primary)]">Create your first space</h3>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">Start with a creator, friend, family, or project community.</p>
-            </div>
-          )}
-        </section>
-
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">Discover</h2>
-            <p className="text-sm text-[var(--text-secondary)]">Public communities you can join right away.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {featured.map((community) => (
-              <CommunityCard key={community.id} community={community} />
-            ))}
-          </div>
-        </section>
-      </section>
-
-      <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-        <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-          <h2 className="flex items-center gap-2 text-base font-bold text-[var(--text-primary)]">
-            <ShieldCheck className="h-5 w-5 text-[var(--accent)]" />
-            Community controls
-          </h2>
-          <div className="mt-4 grid gap-3 text-sm text-[var(--text-secondary)]">
-            <div className="flex gap-3">
-              <Lock className="mt-0.5 h-4 w-4 text-[var(--accent)]" />
-              <p>Private spaces only appear to members.</p>
-            </div>
-            <div className="flex gap-3">
-              <MessageCircle className="mt-0.5 h-4 w-4 text-[var(--accent)]" />
-              <p>Every member space gets community chat.</p>
-            </div>
-            <div className="flex gap-3">
-              <Compass className="mt-0.5 h-4 w-4 text-[var(--accent)]" />
-              <p>Roles, rules, pinned posts, and moderation stay in the space.</p>
+        {/* All communities directory */}
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[var(--mesh-text)]">All communities</h2>
+            <div className="flex items-center gap-4 text-xs text-[var(--mesh-text-muted)]">
+              <span>Members</span>
+              <span>Activity</span>
             </div>
           </div>
-        </section>
-
-        <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-          <h2 className="flex items-center gap-2 text-base font-bold text-[var(--text-primary)]">
-            <Search className="h-5 w-5 text-[var(--accent)]" />
-            Categories
-          </h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {data.categories.length ? (
-              data.categories.map((category) => (
-                <Badge key={category.name} variant="secondary">
-                  #{category.name} {category.count}
-                </Badge>
+          <div className="space-y-1">
+            {filteredCommunities.length > 0 ? (
+              filteredCommunities.map((community) => (
+                <CommunityRow
+                  key={community.id}
+                  community={community}
+                  selected={selectedId === community.id}
+                  onSelect={() => setSelectedId(community.id)}
+                />
               ))
             ) : (
-              <p className="text-sm text-[var(--text-secondary)]">No categories yet.</p>
+              <div className="rounded-2xl border border-dashed border-[var(--mesh-border)] px-6 py-10 text-center">
+                <p className="text-sm text-[var(--mesh-text-muted)]">No communities found in this category.</p>
+              </div>
             )}
           </div>
+          {filteredCommunities.length > 0 && (
+            <p className="mt-4 text-center text-xs text-[var(--mesh-text-muted)]">
+              Showing 1–{filteredCommunities.length} of {dedupedCommunities.length} communities
+              <button type="button" className="ml-3 rounded-lg border border-[var(--mesh-border)] px-3 py-1 text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)] transition-colors">
+                Load more
+              </button>
+            </p>
+          )}
         </section>
+      </div>
 
-        <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-          <h2 className="text-base font-bold text-[var(--text-primary)]">Best fit</h2>
-          <div className="mt-3 grid gap-2">
-            {data.templates.map((template) => (
-              <div key={template.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
-                <p className="text-sm font-bold text-[var(--text-primary)]">{template.label}</p>
-                <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{template.description}</p>
+      {/* Right detail panel */}
+      {selectedCommunity && (
+        <aside className="hidden xl:block">
+          <div className="sticky top-24 space-y-5">
+            <section className="overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]">
+              {/* Community hero */}
+              <div className="relative h-32 bg-gradient-to-br from-[var(--mesh-bg)] to-[#0a1628]">
+                {selectedCommunity.iconUrl && (
+                  <Image src={selectedCommunity.iconUrl} alt="" fill sizes="380px" className="object-cover opacity-50" />
+                )}
+                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${selectedCommunity.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-amber-500/20 text-amber-400"}`}>
+                  {selectedCommunity.isPublic ? "Public" : "Private"}
+                </span>
+                <div className="absolute -bottom-8 left-5">
+                  <CommunityAvatar name={selectedCommunity.name} iconUrl={selectedCommunity.iconUrl} size="lg" />
+                </div>
               </div>
-            ))}
+
+              <div className="px-5 pt-12 pb-5">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-[var(--mesh-text)]">{selectedCommunity.name}</h2>
+                  <ShieldCheck className="h-4 w-4 text-[var(--mesh-blue)]" />
+                </div>
+                <p className="mt-0.5 text-xs text-[var(--mesh-text-muted)]">
+                  {selectedCommunity.isPublic ? "Public" : "Private"} Community · {formatCount(selectedCommunity._count.members)} members
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--mesh-text-secondary)]">
+                  {selectedCommunity.description || "A community on Mesh.me for sharing ideas and building together."}
+                </p>
+
+                <div className="mt-4 flex gap-3">
+                  <Link
+                    href={`/communities/${selectedCommunity.slug}`}
+                    className="flex-1 rounded-xl bg-[var(--mesh-blue)] px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-[var(--mesh-blue)]/90"
+                  >
+                    Enter Space
+                  </Link>
+                  <Link
+                    href={`/mesh?community=${selectedCommunity.slug}`}
+                    className="flex-1 rounded-xl border border-[var(--mesh-border)] px-4 py-2.5 text-center text-sm font-medium text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel)]"
+                  >
+                    View Community Mesh
+                  </Link>
+                </div>
+              </div>
+
+              {/* Detail tabs */}
+              <div className="flex border-t border-[var(--mesh-border)]">
+                {["About", "Activity", "Members", "Spaces", "Settings"].map((tab, i) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    className={`flex-1 py-2.5 text-center text-xs font-medium transition-colors ${
+                      i === 0
+                        ? "border-b-2 border-[var(--mesh-blue)] text-[var(--mesh-text)]"
+                        : "text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* About section */}
+            <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-xs font-bold text-[var(--mesh-text-muted)] mb-2">About this community</h4>
+                  <p className="text-xs leading-relaxed text-[var(--mesh-text-secondary)]">
+                    {selectedCommunity.description || "A space for sharing ideas and building meaningful projects."}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[var(--mesh-text-muted)] mb-2">Community rules</h4>
+                  <ol className="space-y-1 text-xs text-[var(--mesh-text-secondary)]">
+                    <li>1. Be respectful and kind.</li>
+                    <li>2. Share openly, give credit.</li>
+                    <li>3. No spam or self-promotion.</li>
+                    <li>4. Protect privacy and data.</li>
+                  </ol>
+                  <Link href={`/communities/${selectedCommunity.slug}`} className="mt-2 inline-block text-xs text-[var(--mesh-blue)] hover:underline">
+                    View all rules →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Tags */}
+              {selectedCommunity.category && (
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  <span className="rounded-md bg-[var(--mesh-panel)] px-2 py-0.5 text-[10px] font-medium text-[var(--mesh-text-muted)]">
+                    {selectedCommunity.category}
+                  </span>
+                </div>
+              )}
+            </section>
           </div>
-        </section>
-      </aside>
-    </main>
+        </aside>
+      )}
+    </div>
   );
 }
