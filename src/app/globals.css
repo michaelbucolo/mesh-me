@@ -93,6 +93,7 @@
   --mesh-danger: #f1727f;
   --mesh-sidebar-width: 16rem;
   --mesh-glow-blue: rgba(47, 124, 255, 0.15);
+  --compose-fg: #ffffff;
 }
 
 /* ─── Light Theme ─── */
@@ -150,6 +151,24 @@
   --glass-elevated: rgba(255, 255, 255, 0.75);
   --glass-surface: rgba(255, 255, 255, 0.6);
   --glass-input: rgba(244, 244, 245, 0.5);
+
+  --mesh-bg-deep: #f0f4f9;
+  --mesh-bg: #f7f9fc;
+  --mesh-bg-elevated: #ffffff;
+  --mesh-panel: rgba(255, 255, 255, 0.92);
+  --mesh-panel-solid: #ffffff;
+  --mesh-panel-hover: rgba(237, 244, 251, 0.96);
+  --mesh-blue: #2563eb;
+  --mesh-cyan: #0284c7;
+  --mesh-ice: #0369a1;
+  --mesh-text: #0f172a;
+  --mesh-text-secondary: #475569;
+  --mesh-text-muted: #94a3b8;
+  --mesh-border: rgba(15, 23, 42, 0.12);
+  --mesh-border-active: rgba(37, 99, 235, 0.48);
+  --mesh-green: #16a34a;
+  --mesh-danger: #dc2626;
+  --mesh-glow-blue: rgba(37, 99, 235, 0.08);
 }
 
 /* ─── Brand Palette Presets ─── */
@@ -3877,6 +3896,24 @@ html {
   --shadow-md: 0 10px 26px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.12);
   --mesh-hover-y: -1px;
+
+  --mesh-bg-deep: #f0f4f9;
+  --mesh-bg: #f7f9fc;
+  --mesh-bg-elevated: #ffffff;
+  --mesh-panel: rgba(255, 255, 255, 0.92);
+  --mesh-panel-solid: #ffffff;
+  --mesh-panel-hover: rgba(237, 244, 251, 0.96);
+  --mesh-blue: #2563eb;
+  --mesh-cyan: #0284c7;
+  --mesh-ice: #0369a1;
+  --mesh-text: #0f172a;
+  --mesh-text-secondary: #475569;
+  --mesh-text-muted: #94a3b8;
+  --mesh-border: rgba(15, 23, 42, 0.12);
+  --mesh-border-active: rgba(37, 99, 235, 0.48);
+  --mesh-green: #16a34a;
+  --mesh-danger: #dc2626;
+  --mesh-glow-blue: rgba(37, 99, 235, 0.08);
 }
 
 @media (prefers-color-scheme: light) {
@@ -3908,6 +3945,24 @@ html {
     --shadow-md: 0 10px 26px rgba(15, 23, 42, 0.08);
     --shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.12);
     --mesh-hover-y: -1px;
+
+    --mesh-bg-deep: #f0f4f9;
+    --mesh-bg: #f7f9fc;
+    --mesh-bg-elevated: #ffffff;
+    --mesh-panel: rgba(255, 255, 255, 0.92);
+    --mesh-panel-solid: #ffffff;
+    --mesh-panel-hover: rgba(237, 244, 251, 0.96);
+    --mesh-blue: #2563eb;
+    --mesh-cyan: #0284c7;
+    --mesh-ice: #0369a1;
+    --mesh-text: #0f172a;
+    --mesh-text-secondary: #475569;
+    --mesh-text-muted: #94a3b8;
+    --mesh-border: rgba(15, 23, 42, 0.12);
+    --mesh-border-active: rgba(37, 99, 235, 0.48);
+    --mesh-green: #16a34a;
+    --mesh-danger: #dc2626;
+    --mesh-glow-blue: rgba(37, 99, 235, 0.08);
   }
 }
 
@@ -5138,7 +5193,7 @@ body {
   }
 
   .feed-mode-strip {
-    min-width: 100%;
+    display: none;
   }
 
   .feed-mode-button {
@@ -5158,8 +5213,11 @@ body {
   }
 
   .feed-mode-summary {
-    border-inline: 0;
-    border-radius: 0;
+    display: none;
+  }
+
+  .feed-creator-dashboard {
+    display: none;
   }
 
   .feed-creator-dashboard {
@@ -5473,6 +5531,24 @@ html[data-mesh-locked="true"] body {
   --glass-card-hover: var(--bg-hover);
   --glass-input: var(--bg-input);
   --glass-shadow: var(--shadow-sm);
+
+  --mesh-bg-deep: #f0f4f9;
+  --mesh-bg: #f7f9fc;
+  --mesh-bg-elevated: #ffffff;
+  --mesh-panel: rgba(255, 255, 255, 0.92);
+  --mesh-panel-solid: #ffffff;
+  --mesh-panel-hover: rgba(237, 244, 251, 0.96);
+  --mesh-blue: #2563eb;
+  --mesh-cyan: #0284c7;
+  --mesh-ice: #0369a1;
+  --mesh-text: #0f172a;
+  --mesh-text-secondary: #475569;
+  --mesh-text-muted: #94a3b8;
+  --mesh-border: rgba(15, 23, 42, 0.12);
+  --mesh-border-active: rgba(37, 99, 235, 0.48);
+  --mesh-green: #16a34a;
+  --mesh-danger: #dc2626;
+  --mesh-glow-blue: rgba(37, 99, 235, 0.08);
 }
 
 @media (prefers-color-scheme: light) {
@@ -5513,6 +5589,24 @@ html[data-mesh-locked="true"] body {
     --glass-card-hover: var(--bg-hover);
     --glass-input: var(--bg-input);
     --glass-shadow: var(--shadow-sm);
+
+    --mesh-bg-deep: #f0f4f9;
+    --mesh-bg: #f7f9fc;
+    --mesh-bg-elevated: #ffffff;
+    --mesh-panel: rgba(255, 255, 255, 0.92);
+    --mesh-panel-solid: #ffffff;
+    --mesh-panel-hover: rgba(237, 244, 251, 0.96);
+    --mesh-blue: #2563eb;
+    --mesh-cyan: #0284c7;
+    --mesh-ice: #0369a1;
+    --mesh-text: #0f172a;
+    --mesh-text-secondary: #475569;
+    --mesh-text-muted: #94a3b8;
+    --mesh-border: rgba(15, 23, 42, 0.12);
+    --mesh-border-active: rgba(37, 99, 235, 0.48);
+    --mesh-green: #16a34a;
+    --mesh-danger: #dc2626;
+    --mesh-glow-blue: rgba(37, 99, 235, 0.08);
   }
 }
 
@@ -7322,33 +7416,60 @@ body {
 
 /* ─── Responsive: Mobile / Tablet / Foldable / iPad ─── */
 
-/* --- TopBar: compact on phones --- */
+/* --- TopBar: Twitter-compact on phones --- */
 @media (max-width: 767px) {
   .mesh-topbar {
-    min-height: 3.25rem;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    min-height: 2.75rem;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
   }
 
   .mesh-topbar h1 {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
   }
 
   .mesh-topbar p {
     display: none;
   }
 
-  .mesh-topbar-owner span:first-child {
+  .mesh-topbar .min-w-0 > .flex {
+    gap: 0.25rem;
+  }
+
+  .mesh-topbar .min-w-0 > .flex button[aria-label="Page info"] {
     display: none;
   }
 
   .mesh-topbar-owner {
-    padding: 0.35rem 0.5rem;
+    padding: 0.25rem 0.4rem;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .mesh-topbar-owner span:first-child {
+    display: none;
   }
 
   .mesh-topbar-btn {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .mesh-topbar-btn span {
+    display: none;
+  }
+
+  .mesh-topbar-icon {
+    padding: 0.35rem;
+  }
+
+  .mesh-shell-feed .mesh-topbar,
+  .mesh-shell-mesh .mesh-topbar {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    height: 0;
   }
 }
 
@@ -7595,6 +7716,27 @@ body {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* --- Notifications + simple pages: compact mobile --- */
+@media (max-width: 767px) {
+  .simple-page {
+    padding: 0.5rem;
+    gap: 0.75rem;
+  }
+
+  .simple-page header h1 {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .simple-page header p {
+    font-size: 0.8rem;
+  }
+
+  .simple-page .mesh-surface {
+    padding: 0.75rem;
   }
 }
 

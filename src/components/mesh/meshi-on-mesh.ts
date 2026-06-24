@@ -858,7 +858,7 @@ function generateMeshiSvg(colorKey: string, hat: string, mood: MeshiMoodCanvas, 
     <defs>
       <clipPath id="${clipId}"><circle cx="0" cy="0" r="22"/></clipPath>
     </defs>
-    <circle cx="0" cy="0" r="20" fill="none" stroke="${primary}" stroke-width="1.5" opacity="0.2"/>
+
     <g clip-path="url(#${clipId})">
       <circle cx="0" cy="0" r="16" fill="${bg}" stroke="${primary}" stroke-width="2"/>
       ${outfitSvg}
@@ -927,17 +927,7 @@ export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState): voi
     ctx.fill();
   }
 
-  // Subtle glow
-  const glowGrad = ctx.createRadialGradient(mx, my, 0, mx, my, drawSize);
   const colorKey = colorKeyFromHex(state.color);
-  const theme = SVG_COLOR_THEMES[colorKey] || SVG_COLOR_THEMES.blue;
-  glowGrad.addColorStop(0, `${theme.primary}30`);
-  glowGrad.addColorStop(0.6, `${theme.primary}10`);
-  glowGrad.addColorStop(1, "transparent");
-  ctx.fillStyle = glowGrad;
-  ctx.beginPath();
-  ctx.arc(mx, my, drawSize, 0, Math.PI * 2);
-  ctx.fill();
 
   // Draw SVG image
   const activeProp = state.prop !== "none" && state.propTimer > 0 ? state.prop : undefined;
