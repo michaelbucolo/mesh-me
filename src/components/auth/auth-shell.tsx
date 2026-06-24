@@ -27,7 +27,7 @@ export function AuthShell({
             <ShieldCheck size={15} aria-hidden="true" />
             Privacy first
           </p>
-          <h1 className="mt-4 text-3xl font-black leading-[1.04] tracking-[0] sm:mt-7 sm:text-4xl lg:text-5xl xl:text-6xl">{title}</h1>
+          <h1 className="mt-4 text-3xl font-bold leading-[1.04] tracking-[0] sm:mt-7 sm:text-4xl lg:text-5xl xl:text-6xl">{title}</h1>
           <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)] sm:mt-3 lg:text-base lg:leading-7">{description}</p>
           <div className="mt-4 hidden max-w-md flex-wrap gap-2 text-xs font-bold text-[var(--text-secondary)] sm:flex">
             {trustChips.map((item) => (

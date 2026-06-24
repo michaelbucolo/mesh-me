@@ -342,7 +342,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
                 {isGroupThread ? "MeChat group" : sourcePlatform === "mesh" ? "Mesh.me conversation" : `${sourcePlatform} source-aware conversation`}
               </p>
-              <h1 className="mt-1 truncate text-3xl font-black">
+              <h1 className="mt-1 truncate text-3xl font-bold">
                 {conversationTitle}
               </h1>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">{conversationSubtitle}</p>

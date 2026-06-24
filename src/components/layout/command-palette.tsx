@@ -361,7 +361,7 @@ function createCommands(username: string): CommandItem[] {
 
 function CommandKey({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-1.5 text-[10px] font-black text-[var(--text-muted)]">
+    <kbd className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-1.5 text-[10px] font-bold text-[var(--text-muted)]">
       {children}
     </kbd>
   );
@@ -553,7 +553,7 @@ export function CommandPalette({ username }: { username: string }) {
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1 text-left">
-                  <span className="block truncate text-sm font-black text-[var(--text-primary)]">{command.title}</span>
+                  <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{command.title}</span>
                   <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--text-muted)]">{command.description}</span>
                 </span>
                 <Badge variant={command.category === "Action" ? "accent" : "secondary"} className="command-palette-badge">

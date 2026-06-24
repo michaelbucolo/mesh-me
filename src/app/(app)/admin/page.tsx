@@ -74,7 +74,7 @@ function MetricCard({
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">{label}</p>
         <Icon className="h-5 w-5 text-[var(--accent)]" />
       </div>
-      <p className="mt-3 text-3xl font-black tracking-[0] text-[var(--text-primary)]">{formatCount(value)}</p>
+      <p className="mt-3 text-3xl font-bold tracking-[0] text-[var(--text-primary)]">{formatCount(value)}</p>
       <p className="mt-1 text-xs text-[var(--text-secondary)]">{detail}</p>
     </section>
   );
@@ -127,7 +127,7 @@ export default async function AdminPage() {
             </div>
             <div>
               <Badge variant="accent" className="mb-2">Role-gated admin</Badge>
-              <h1 className="text-3xl font-black tracking-[0] text-[var(--text-primary)]">Admin Panel</h1>
+              <h1 className="text-3xl font-bold tracking-[0] text-[var(--text-primary)]">Admin Panel</h1>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
                 Manage users, reports, communities, security alerts, analytics, and public launch readiness from one place.
               </p>
@@ -165,7 +165,7 @@ export default async function AdminPage() {
           <section id="moderation" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="flex items-center gap-2 text-xl font-black tracking-[0] text-[var(--text-primary)]">
+                <h2 className="flex items-center gap-2 text-xl font-bold tracking-[0] text-[var(--text-primary)]">
                   <MessageSquareWarning className="h-5 w-5 text-[var(--accent)]" />
                   Moderation queue
                 </h2>
@@ -234,7 +234,7 @@ export default async function AdminPage() {
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="flex items-center gap-2 text-xl font-black tracking-[0] text-[var(--text-primary)]">
+                <h2 className="flex items-center gap-2 text-xl font-bold tracking-[0] text-[var(--text-primary)]">
                   <Users className="h-5 w-5 text-[var(--accent)]" />
                   User management
                 </h2>
@@ -270,7 +270,7 @@ export default async function AdminPage() {
 
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
             <div className="mb-4">
-              <h2 className="flex items-center gap-2 text-xl font-black tracking-[0] text-[var(--text-primary)]">
+              <h2 className="flex items-center gap-2 text-xl font-bold tracking-[0] text-[var(--text-primary)]">
                 <RadioTower className="h-5 w-5 text-[var(--accent)]" />
                 Community moderation
               </h2>
@@ -312,7 +312,7 @@ export default async function AdminPage() {
 
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <section id="launch" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
-            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
               <Activity className="h-5 w-5 text-[var(--accent)]" />
               Launch readiness
             </h2>
@@ -324,7 +324,7 @@ export default async function AdminPage() {
           </section>
 
           <section id="security" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
-            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
               <ShieldAlert className="h-5 w-5 text-[var(--accent)]" />
               Security alerts
             </h2>
@@ -350,29 +350,29 @@ export default async function AdminPage() {
           </section>
 
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
-            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
               <BarChart3 className="h-5 w-5 text-[var(--accent)]" />
               Platform analytics
             </h2>
             <div className="mt-4 grid gap-3">
               <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
                 <p className="text-xs text-[var(--text-tertiary)]">Active sessions</p>
-                <p className="mt-1 text-2xl font-black text-[var(--text-primary)]">{formatCount(data.counts.activeSessions)}</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.counts.activeSessions)}</p>
               </div>
               <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
                 <p className="text-xs text-[var(--text-tertiary)]">Connected accounts</p>
-                <p className="mt-1 text-2xl font-black text-[var(--text-primary)]">{formatCount(data.counts.connectedAccounts)}</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.counts.connectedAccounts)}</p>
                 <p className="text-xs text-[var(--text-secondary)]">{data.counts.erroredConnectedAccounts} need sync attention</p>
               </div>
               <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
                 <p className="text-xs text-[var(--text-tertiary)]">Verified users</p>
-                <p className="mt-1 text-2xl font-black text-[var(--text-primary)]">{formatCount(data.counts.verifiedUsers)}</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.counts.verifiedUsers)}</p>
               </div>
             </div>
           </section>
 
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
-            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
               <Clock className="h-5 w-5 text-[var(--accent)]" />
               Admin activity
             </h2>
@@ -396,7 +396,7 @@ export default async function AdminPage() {
           </section>
 
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
-            <h2 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
               <LockKeyhole className="h-5 w-5 text-[var(--accent)]" />
               Security actions
             </h2>

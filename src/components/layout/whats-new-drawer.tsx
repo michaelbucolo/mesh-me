@@ -78,8 +78,8 @@ export function WhatsNewDrawer({ userId }: WhatsNewDrawerProps) {
             <MeshiLogo size={38} color="blue" mood="happy" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">{currentUpdate.eyebrow}</p>
-            <h2 id="whats-new-title" className="mt-1 text-base font-black text-[var(--text-primary)]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">{currentUpdate.eyebrow}</p>
+            <h2 id="whats-new-title" className="mt-1 text-base font-bold text-[var(--text-primary)]">
               {currentUpdate.title}
             </h2>
           </div>
@@ -107,7 +107,7 @@ export function WhatsNewDrawer({ userId }: WhatsNewDrawerProps) {
           <Sparkles className="h-4 w-4" aria-hidden="true" />
           {currentUpdate.primaryLink.label}
         </Link>
-        <button type="button" onClick={dismiss} className="mesh-choice inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black text-[var(--text-secondary)]">
+        <button type="button" onClick={dismiss} className="mesh-choice inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-[var(--text-secondary)]">
           Got it
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>

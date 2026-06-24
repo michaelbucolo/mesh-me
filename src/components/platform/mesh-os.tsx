@@ -68,7 +68,7 @@ export function MeshOS() {
               <span className="mesh-live-dot" aria-hidden="true" />
               Account required. No ads.
             </div>
-            <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[1.02] tracking-[0] sm:mt-5 sm:text-5xl lg:text-6xl xl:text-7xl">
+            <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[1.02] tracking-[0] sm:mt-5 sm:text-5xl lg:text-6xl xl:text-7xl">
               The internet, rebuilt around <span className="mesh-gradient-text">you.</span>
             </h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-[var(--text-secondary)] sm:mt-5 md:text-lg">
@@ -143,8 +143,8 @@ export function MeshOS() {
 
         <section className="grid gap-5 pb-10 md:grid-cols-[0.9fr_1.1fr] md:items-start">
           <div className="mesh-pop-in">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Replacement goal</p>
-            <h2 className="mt-3 text-3xl font-black leading-tight md:text-5xl">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Replacement goal</p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight md:text-5xl">
               Built to reduce the daily need for the top social and communication apps.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
@@ -165,7 +165,7 @@ export function MeshOS() {
           <div className="grid gap-3 sm:grid-cols-2">
             {replacementCategories.map((category) => (
               <article key={category.label} className="mesh-surface mesh-pressable rounded-lg p-4">
-                <h3 className="text-base font-black">{category.label}</h3>
+                <h3 className="text-base font-bold">{category.label}</h3>
                 <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{category.examples}</p>
               </article>
             ))}

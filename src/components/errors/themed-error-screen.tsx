@@ -81,7 +81,7 @@ export function ThemedErrorScreen({
       <MeshBackground density={fullScreen ? 34 : 24} mouseInfluence={0.35} fixed={fullScreen} className="opacity-20" />
 
       <div className={cn("relative z-10 mx-auto w-full max-w-3xl", compact && "max-w-xl")}>
-        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/82 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] shadow-[var(--shadow-sm)] backdrop-blur">
+        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/82 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)] shadow-[var(--shadow-sm)] backdrop-blur">
           <ShieldCheck className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden="true" />
           {eyebrow}
         </div>
@@ -92,12 +92,12 @@ export function ThemedErrorScreen({
           </div>
 
           {code && (
-            <p className="mt-5 font-mono text-xs font-black uppercase tracking-[0.22em] text-[var(--accent)]">
+            <p className="mt-5 font-mono text-xs font-bold uppercase tracking-[0.22em] text-[var(--accent)]">
               {code}
             </p>
           )}
 
-          <h1 className={cn("mx-auto mt-3 max-w-2xl font-display text-3xl font-black leading-tight text-[var(--text-primary)]", !compact && "sm:text-5xl")}>
+          <h1 className={cn("mx-auto mt-3 max-w-2xl font-display text-3xl font-bold leading-tight text-[var(--text-primary)]", !compact && "sm:text-5xl")}>
             {title}
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--text-secondary)] sm:text-base">
@@ -109,7 +109,7 @@ export function ThemedErrorScreen({
               <button
                 type="button"
                 onClick={onReset}
-                className="brand-button inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-white shadow-lg"
+                className="brand-button inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-lg"
               >
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 {resetLabel}
@@ -117,7 +117,7 @@ export function ThemedErrorScreen({
             ) : (
               <Link
                 href={primary.href}
-                className="brand-button inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-white shadow-lg"
+                className="brand-button inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-lg"
               >
                 {primary.label}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -127,7 +127,7 @@ export function ThemedErrorScreen({
             {onReset && (
               <Link
                 href={primary.href}
-                className="mesh-choice inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-[var(--text-secondary)]"
+                className="mesh-choice inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-[var(--text-secondary)]"
               >
                 {primary.label}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -136,7 +136,7 @@ export function ThemedErrorScreen({
 
             <Link
               href={secondary.href}
-              className="mesh-choice inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-[var(--text-secondary)]"
+              className="mesh-choice inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-[var(--text-secondary)]"
             >
               <Home className="h-4 w-4" aria-hidden="true" />
               {secondary.label}
@@ -149,7 +149,7 @@ export function ThemedErrorScreen({
             {cards.map((card) => (
               <Link key={card.href} href={card.href} className="mesh-choice rounded-2xl p-4 text-left">
                 {card.icon}
-                <p className="mt-3 text-sm font-black text-[var(--text-primary)]">{card.title}</p>
+                <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">{card.title}</p>
                 <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{card.description}</p>
               </Link>
             ))}

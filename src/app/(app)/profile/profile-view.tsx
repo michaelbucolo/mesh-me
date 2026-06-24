@@ -84,7 +84,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="truncate text-xl font-black text-[var(--text-primary)] sm:text-2xl">@{profile.username}</h1>
+              <h1 className="truncate text-xl font-bold text-[var(--text-primary)] sm:text-2xl">@{profile.username}</h1>
               {profile.isVerified && <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-label="Verified" />}
               {profile.isMeshPro && (
                 <span className="insta-profile-privacy-pill inline-flex items-center gap-1">
@@ -134,7 +134,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
             )}
 
             <div className="mt-4 grid gap-1 text-sm leading-6">
-              <p className="font-black text-[var(--text-primary)]">{profile.displayName}</p>
+              <p className="font-bold text-[var(--text-primary)]">{profile.displayName}</p>
               {!canViewProfile && (
                 <p className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)]">
                   <EyeOff size={14} aria-hidden="true" />
@@ -166,7 +166,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
               )}
               {connectedAccounts.length > 0 && (
                 <div className="mt-3 grid gap-2">
-                  <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                     <PlugZap size={14} aria-hidden="true" />
                     Connected platforms
                   </p>
@@ -203,7 +203,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
       {!canViewProfile ? (
         <section className="insta-profile-empty">
           <EyeOff className="h-9 w-9 text-[var(--text-muted)]" aria-hidden="true" />
-          <h2 className="text-lg font-black text-[var(--text-primary)]">Private profile</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">Private profile</h2>
           <p className="text-sm text-[var(--text-secondary)]">Follow each other to unlock shared profile sections.</p>
         </section>
       ) : posts.length > 0 ? (
@@ -230,7 +230,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
       ) : (
         <section className="insta-profile-empty">
           <Grid3X3 className="h-9 w-9 text-[var(--text-muted)]" aria-hidden="true" />
-          <h2 className="text-lg font-black text-[var(--text-primary)]">No posts yet</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">No posts yet</h2>
           <p className="text-sm text-[var(--text-secondary)]">
             {isOwnProfile ? "Share your first post from Home." : `${profile.displayName} has not posted yet.`}
           </p>

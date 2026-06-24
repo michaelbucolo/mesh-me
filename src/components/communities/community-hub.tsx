@@ -17,7 +17,7 @@ function CommunityAvatar({ name, iconUrl }: { name: string; iconUrl?: string | n
       {iconUrl ? (
         <Image src={iconUrl} alt="" fill sizes="48px" className="object-cover" />
       ) : (
-        <span className="grid h-full w-full place-items-center text-lg font-black text-[var(--accent)]">{initial}</span>
+        <span className="grid h-full w-full place-items-center text-lg font-bold text-[var(--accent)]">{initial}</span>
       )}
     </div>
   );
@@ -92,7 +92,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               <Badge variant="accent" className="mb-3">
                 Communities
               </Badge>
-              <h1 className="text-3xl font-black tracking-[0] text-[var(--text-primary)]">Spaces for every part of your world.</h1>
+              <h1 className="text-3xl font-bold tracking-[0] text-[var(--text-primary)]">Spaces for every part of your world.</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
                 Create creator, friend, family, or project spaces with posts, member roles, rules, chat, and private controls.
               </p>
@@ -107,19 +107,19 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-4">
             <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-black text-[var(--text-primary)]">{formatCount(data.stats.spaces)}</p>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.spaces)}</p>
               <p className="text-xs text-[var(--text-tertiary)]">available spaces</p>
             </div>
             <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-black text-[var(--text-primary)]">{formatCount(data.stats.posts)}</p>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.posts)}</p>
               <p className="text-xs text-[var(--text-tertiary)]">community posts</p>
             </div>
             <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-black text-[var(--text-primary)]">{formatCount(data.stats.members)}</p>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.members)}</p>
               <p className="text-xs text-[var(--text-tertiary)]">memberships</p>
             </div>
             <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
-              <p className="text-2xl font-black text-[var(--text-primary)]">{formatCount(data.stats.privateSpaces)}</p>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">{formatCount(data.stats.privateSpaces)}</p>
               <p className="text-xs text-[var(--text-tertiary)]">private spaces</p>
             </div>
           </div>

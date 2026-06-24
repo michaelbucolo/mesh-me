@@ -84,7 +84,7 @@ export function MeshMiniMap({
         <div className="flex min-w-0 items-center gap-2">
           <Waypoints className="h-3.5 w-3.5 shrink-0 text-white/62" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="truncate text-[11px] font-black text-white">Mini Mesh</p>
+            <p className="truncate text-[11px] font-bold text-white">Mini Mesh</p>
             <p className="text-[9px] font-semibold text-white/42">{visibleNodes.length} visible nodes</p>
           </div>
         </div>
