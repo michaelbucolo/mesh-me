@@ -415,9 +415,9 @@ export function MeChatHome({
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+    <div className="mechat-layout flex h-[calc(100dvh-3.5rem)] overflow-hidden">
       {/* Panel 1: Conversation list */}
-      <div className="flex w-[340px] shrink-0 flex-col border-r border-[var(--mesh-border)] bg-[var(--mesh-bg)]">
+      <div className={`mechat-sidebar flex w-full flex-col border-r border-[var(--mesh-border)] bg-[var(--mesh-bg)] md:w-[340px] md:shrink-0${selectedThreadId ? " mechat-sidebar-hidden" : ""}`}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--mesh-border)] px-4 py-3">
           <h1 className="text-lg font-bold text-[var(--mesh-text)]">MeChat</h1>
@@ -640,7 +640,7 @@ export function MeChatHome({
       </div>
 
       {/* Panel 2: Active conversation / room detail */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[var(--mesh-bg-deep)]">
+      <div className="mechat-thread-panel flex min-w-0 flex-1 flex-col bg-[var(--mesh-bg-deep)]">
         {selectedThread ? (
           <>
             {/* Conversation header */}
@@ -867,7 +867,7 @@ export function MeChatHome({
 
       {/* Panel 3: Info panel (collapsible) */}
       {showInfoPanel && (selectedThread || activeSession) && (
-        <div className="hidden w-[320px] shrink-0 flex-col border-l border-[var(--mesh-border)] bg-[var(--mesh-bg)] xl:flex">
+        <div className="mechat-detail-panel hidden w-[320px] shrink-0 flex-col border-l border-[var(--mesh-border)] bg-[var(--mesh-bg)] xl:flex">
           <div className="flex items-center justify-between border-b border-[var(--mesh-border)] px-4 py-3">
             <h3 className="text-sm font-bold text-[var(--mesh-text)]">Details</h3>
             <button type="button" onClick={() => setShowInfoPanel(false)} className="rounded-lg p-1 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)]">

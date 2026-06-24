@@ -7292,3 +7292,411 @@ body {
     width: 4.75rem;
   }
 }
+
+/* ─── Responsive: Mobile / Tablet / Foldable / iPad ─── */
+
+/* --- TopBar: compact on phones --- */
+@media (max-width: 767px) {
+  .mesh-topbar {
+    min-height: 3.25rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .mesh-topbar h1 {
+    font-size: 1.05rem;
+  }
+
+  .mesh-topbar p {
+    display: none;
+  }
+
+  .mesh-topbar-owner span:first-child {
+    display: none;
+  }
+
+  .mesh-topbar-owner {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .mesh-topbar-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* --- Sidebar: icon-rail mode for tablets (md to lg) --- */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mesh-shell {
+    --mesh-sidebar-width: 4.5rem;
+  }
+
+  .mesh-sidebar {
+    align-items: center;
+  }
+
+  .mesh-sidebar .mesh-brand-lockup span,
+  .mesh-sidebar .mesh-nav-item span:not(.sr-only),
+  .mesh-sidebar .mesh-privacy-card,
+  .mesh-sidebar .mesh-user-dock .min-w-0,
+  .mesh-sidebar .mesh-user-dock svg,
+  .mesh-sidebar > div:last-child {
+    display: none;
+  }
+
+  .mesh-sidebar .mesh-brand-lockup {
+    justify-content: center;
+  }
+
+  .mesh-sidebar > div:first-child {
+    padding: 0.75rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  .mesh-sidebar nav {
+    padding: 0 0.5rem;
+  }
+
+  .mesh-nav-item {
+    justify-content: center;
+    padding: 0.65rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .mesh-nav-item svg {
+    margin: 0;
+  }
+
+  .mesh-sidebar .mesh-user-dock {
+    justify-content: center;
+    padding: 0.5rem;
+    margin: 0 0.5rem 0.75rem;
+  }
+
+  .mesh-topbar {
+    min-height: 3.5rem;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* --- MeChat: responsive panels --- */
+@media (max-width: 767px) {
+  .mechat-layout {
+    flex-direction: column;
+    height: calc(100dvh - 3.25rem - 5rem - env(safe-area-inset-bottom));
+  }
+
+  .mechat-sidebar {
+    width: 100% !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--mesh-border);
+  }
+
+  .mechat-sidebar.mechat-sidebar-hidden {
+    display: none;
+  }
+
+  .mechat-thread-panel {
+    width: 100% !important;
+    flex: 1;
+  }
+
+  .mechat-detail-panel {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mechat-layout {
+    height: calc(100dvh - 3.5rem);
+  }
+
+  .mechat-sidebar {
+    width: 280px !important;
+    flex-shrink: 0;
+  }
+
+  .mechat-detail-panel {
+    display: none;
+  }
+}
+
+/* --- Settings: mobile improvements --- */
+@media (max-width: 767px) {
+  .settings-traditional {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .settings-traditional-header {
+    padding: 0.75rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .settings-traditional-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .settings-traditional-grid {
+    gap: 0.5rem !important;
+  }
+
+  .settings-nav-scroll {
+    gap: 0.25rem !important;
+    padding: 0.5rem !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-nav-item {
+    min-height: 2.75rem;
+    scroll-snap-align: start;
+    font-size: 0.82rem;
+    padding: 0.5rem 0.65rem;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }
+
+  .settings-nav-item svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .settings-panel {
+    border-radius: 0.75rem !important;
+  }
+
+  .settings-panel-heading {
+    padding: 0.75rem !important;
+  }
+
+  .settings-panel-heading h2 {
+    font-size: 1.1rem;
+  }
+
+  .settings-panel-scroll {
+    padding: 0.75rem !important;
+  }
+
+  .settings-summary-pill {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.6rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .settings-row,
+  .settings-action-row,
+  .settings-toggle {
+    padding: 0.7rem !important;
+    font-size: 0.88rem;
+  }
+
+  .settings-section-stack {
+    gap: 0.75rem;
+  }
+
+  .settings-meshi-preview {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+}
+
+/* --- Profile: mobile/tablet --- */
+@media (max-width: 639px) {
+  .profile-layout {
+    padding: 0 !important;
+    gap: 0.75rem;
+  }
+
+  .profile-header-card {
+    border-radius: 0 !important;
+    border-inline: 0;
+  }
+
+  .profile-header-card .profile-banner {
+    height: 7rem;
+  }
+
+  .profile-header-card .profile-info {
+    padding: 0 0.75rem 0.75rem;
+  }
+
+  .profile-header-card .profile-avatar {
+    height: 5.5rem !important;
+    width: 5.5rem !important;
+    margin-top: -2.75rem;
+  }
+
+  .profile-header-card .profile-name {
+    font-size: 1.25rem;
+  }
+
+  .profile-header-card .profile-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .profile-header-card .profile-actions > * {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.75rem;
+  }
+
+  .profile-tabs-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .profile-tabs-nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* --- Feed: tablet intermediate --- */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .insta-feed-layout,
+  .feed-x-layout {
+    width: min(100%, 42rem);
+    margin-inline: auto;
+  }
+
+  .feed-mode-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* --- Mobile nav: ensure 44px touch targets --- */
+@media (max-width: 767px) {
+  .mobile-bottom-nav .grid {
+    gap: 0;
+  }
+
+  .mobile-bottom-nav a {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .mobile-compose-fab {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+}
+
+/* --- Foldable / dual-screen devices --- */
+@media (horizontal-viewport-segments: 2) {
+  .mesh-shell {
+    grid-template-columns: env(viewport-segment-width 0 0) 1fr;
+  }
+
+  .mesh-sidebar {
+    display: flex !important;
+    width: 100%;
+  }
+
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .mesh-main {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* --- iPad landscape and large tablets --- */
+@media (min-width: 1024px) and (max-width: 1279px) and (orientation: landscape) {
+  .mesh-shell {
+    --mesh-sidebar-width: 15rem;
+  }
+}
+
+/* --- Phone landscape --- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mesh-topbar {
+    min-height: 2.5rem;
+    padding-block: 0.25rem;
+  }
+
+  .mesh-topbar p {
+    display: none;
+  }
+
+  .mobile-bottom-nav {
+    bottom: 0.15rem !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0.75rem !important;
+    max-width: 22rem;
+  }
+
+  .mobile-bottom-nav a {
+    min-height: 2.25rem;
+  }
+
+  .mobile-compose-fab {
+    display: none !important;
+  }
+
+  .mesh-content {
+    padding-bottom: 3.5rem !important;
+  }
+
+  .settings-traditional-header {
+    display: none;
+  }
+
+  .settings-traditional-grid {
+    margin-top: 0 !important;
+  }
+}
+
+/* --- Safe area insets for notched / dynamic island devices --- */
+@supports (padding: max(0px, env(safe-area-inset-top))) {
+  .mesh-topbar {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  @media (max-width: 767px) {
+    .mesh-topbar {
+      padding-top: max(0.35rem, env(safe-area-inset-top));
+      padding-left: max(0.5rem, env(safe-area-inset-left));
+      padding-right: max(0.5rem, env(safe-area-inset-right));
+    }
+  }
+
+  .mesh-content {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* --- Generic responsive utilities --- */
+.touch-pan-x { touch-action: pan-x; }
+.touch-pan-y { touch-action: pan-y; }
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-snap-start { scroll-snap-align: start; }
+
+/* iPad Pro 12.9" in split-view (roughly 680px wide) */
+@media (min-width: 640px) and (max-width: 767px) {
+  .insta-feed-layout,
+  .feed-x-layout {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* Reduce motion: disable page transitions on mobile */
+@media (prefers-reduced-motion: reduce) and (max-width: 767px) {
+  .animate-page-enter {
+    animation: none !important;
+  }
+}
