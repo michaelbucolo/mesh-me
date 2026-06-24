@@ -73,6 +73,26 @@
   --mesh-transition-medium: 260ms var(--mesh-ease-out);
   --mesh-hover-y: -2px;
   --mesh-press-scale: 0.985;
+
+  /* ─── Mesh Design System Tokens ─── */
+  --mesh-bg-deep: #020711;
+  --mesh-bg: #050b16;
+  --mesh-bg-elevated: #091321;
+  --mesh-panel: rgba(8, 18, 33, 0.90);
+  --mesh-panel-solid: #091422;
+  --mesh-panel-hover: rgba(13, 29, 51, 0.96);
+  --mesh-blue: #2f7cff;
+  --mesh-cyan: #58bfff;
+  --mesh-ice: #9edcff;
+  --mesh-text: #f5f8fc;
+  --mesh-text-secondary: #a9b4c7;
+  --mesh-text-muted: #70809a;
+  --mesh-border: rgba(100, 166, 255, 0.16);
+  --mesh-border-active: rgba(71, 137, 255, 0.72);
+  --mesh-green: #43d49e;
+  --mesh-danger: #f1727f;
+  --mesh-sidebar-width: 16rem;
+  --mesh-glow-blue: rgba(47, 124, 255, 0.15);
 }
 
 /* ─── Light Theme ─── */
@@ -280,6 +300,168 @@ select:focus-visible {
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-slide-up { animation: slideUp 0.4s ease-out; }
 .animate-slide-in { animation: slideIn 0.3s ease-out; }
+
+/* ─── Mesh Shell ─── */
+.mesh-shell {
+  background: var(--mesh-bg-deep);
+  --mesh-sidebar-width: 16rem;
+}
+
+@media (min-width: 1280px) {
+  .mesh-shell {
+    --mesh-sidebar-width: 17rem;
+  }
+}
+
+.mesh-sidebar {
+  background: var(--mesh-bg);
+  scrollbar-width: none;
+}
+
+.mesh-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+.mesh-nav-item {
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.mesh-nav-item-active {
+  position: relative;
+}
+
+.mesh-nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 4px 4px 0;
+  background: var(--mesh-blue);
+}
+
+.mesh-privacy-card {
+  background: linear-gradient(135deg, var(--mesh-bg-elevated) 0%, rgba(47, 124, 255, 0.06) 100%);
+}
+
+.mesh-user-dock {
+  transition: background-color 150ms ease, border-color 150ms ease;
+  cursor: pointer;
+}
+
+.mesh-user-dock:hover {
+  background: var(--mesh-panel-hover);
+  border-color: var(--mesh-border-active);
+}
+
+/* ─── Mesh Topbar ─── */
+.mesh-topbar {
+  min-height: 4.5rem;
+}
+
+.mesh-topbar-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  color: var(--mesh-text-muted);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.mesh-topbar-icon:hover,
+.mesh-topbar-icon:focus-visible {
+  background: var(--mesh-panel-hover);
+  color: var(--mesh-text);
+}
+
+.mesh-topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--mesh-border);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mesh-text-secondary);
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.mesh-topbar-btn:hover {
+  background: var(--mesh-panel-hover);
+  color: var(--mesh-text);
+  border-color: var(--mesh-border-active);
+}
+
+.mesh-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--mesh-text-secondary);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.mesh-dropdown-item:hover {
+  background: var(--mesh-panel-hover);
+  color: var(--mesh-text);
+}
+
+.mesh-dropdown-danger {
+  color: var(--mesh-danger);
+}
+
+.mesh-dropdown-danger:hover {
+  background: rgba(241, 114, 127, 0.1);
+  color: var(--mesh-danger);
+}
+
+/* ─── Mesh Main Content ─── */
+.mesh-main {
+  background: var(--mesh-bg-deep);
+}
+
+.mesh-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 166, 255, 0.12) transparent;
+}
+
+.mesh-content::-webkit-scrollbar { width: 5px; }
+.mesh-content::-webkit-scrollbar-track { background: transparent; }
+.mesh-content::-webkit-scrollbar-thumb { background: rgba(100, 166, 255, 0.12); border-radius: 4px; }
+.mesh-content::-webkit-scrollbar-thumb:hover { background: rgba(100, 166, 255, 0.24); }
+
+/* Mesh full-bleed for canvas pages */
+.mesh-shell-mesh .mesh-content {
+  overflow: hidden;
+}
+
+.mesh-main-mesh .mesh-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: linear-gradient(180deg, var(--mesh-bg-deep) 0%, transparent 100%);
+  border-bottom: none;
+}
+
+@keyframes meshPageEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-page-enter {
+  animation: meshPageEnter 280ms var(--mesh-ease-out) both;
+}
 
 /* ─── Satisfying Press Feedback ─── */
 .press-scale {
