@@ -117,7 +117,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
   const selectedCommunity = dedupedCommunities.find((c) => c.id === selectedId) ?? featured[0] ?? null;
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px] animate-page-enter">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {/* Featured communities carousel */}

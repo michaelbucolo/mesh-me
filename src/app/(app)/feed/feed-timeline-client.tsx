@@ -454,7 +454,7 @@ export function FeedTimelineClient({
   };
 
   return (
-    <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-adaptive-${adaptiveMode}`} data-meshi-zone="feed">
+    <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-adaptive-${adaptiveMode} animate-page-enter`} data-meshi-zone="feed">
       <section className="min-w-0">
         <div className="insta-feed-topbar feed-x-topbar">
           <div className="inline-flex min-w-0 items-center gap-2">
@@ -597,7 +597,7 @@ export function FeedTimelineClient({
           )}
 
           {posts.length > 0 ? (
-            <div ref={timelineRef} className={`feed-post-list feed-post-list-${layoutMode}`}>
+            <div ref={timelineRef} className={`feed-post-list feed-post-list-${layoutMode} feed-posts-stagger`}>
               {posts.map((post, index) => (
                 <div key={post.id} data-feed-post-id={post.id} className="feed-card-shell relative">
                   <FeedPostPresence presences={presenceByPost.get(getFeedPresenceKey(post) || post.id) || []} />
