@@ -217,7 +217,7 @@ const githubAdapter: PlatformAdapter = {
         headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { posts: [] };
-      const repos = await res.json();
+      const repos = await res.json().catch(() => ({}));
       const posts: PlatformPostData[] = repos.map((repo: Record<string, unknown>) => ({
         platformPostId: String(repo.id),
         content: (repo.description as string) || "",
@@ -241,7 +241,7 @@ const githubAdapter: PlatformAdapter = {
         headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { comments: [] };
-      const issues = await res.json();
+      const issues = await res.json().catch(() => ({}));
       const comments: PlatformCommentData[] = issues.map((issue: Record<string, unknown>) => ({
         platformCommentId: `issue-${issue.id}`,
         platformPostId: postId,
@@ -264,7 +264,7 @@ const githubAdapter: PlatformAdapter = {
         headers: githubHeaders(accessToken),
       });
       if (!res.ok) return { followers: [] };
-      const users = await res.json();
+      const users = await res.json().catch(() => ({}));
       const followers: PlatformFollowerData[] = users.map((u: Record<string, unknown>) => ({
         platformUserId: String(u.id),
         username: u.login as string,
@@ -284,7 +284,7 @@ const githubAdapter: PlatformAdapter = {
         headers: githubHeaders(accessToken),
       });
       if (!res.ok) return defaultAnalytics();
-      const user = await res.json();
+      const user = await res.json().catch(() => ({}));
       return {
         date: new Date(),
         followerCount: toInt(user.followers),
@@ -336,7 +336,7 @@ const youtubeAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return { posts: [] };
-      const channelData = await res.json();
+      const channelData = await res.json().catch(() => ({}));
       const uploadsId = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
       if (!uploadsId) return { posts: [] };
 
@@ -344,7 +344,7 @@ const youtubeAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!videosRes.ok) return { posts: [] };
-      const videosData = await videosRes.json();
+      const videosData = await videosRes.json().catch(() => ({}));
 
       // Get video stats
       const videoIds = videosData.items?.map((v: Record<string, unknown>) => (v.contentDetails as Record<string, unknown>)?.videoId).filter(Boolean).join(",");
@@ -354,7 +354,7 @@ const youtubeAdapter: PlatformAdapter = {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (statsRes.ok) {
-          const statsData = await statsRes.json();
+          const statsData = await statsRes.json().catch(() => ({}));
           for (const item of statsData.items || []) {
             statsMap[item.id] = item.statistics || {};
           }
@@ -390,7 +390,7 @@ const youtubeAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return { comments: [] };
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const comments: PlatformCommentData[] = (data.items || []).map((item: Record<string, unknown>) => {
         const snippet = ((item.snippet as Record<string, unknown>)?.topLevelComment as Record<string, unknown>)?.snippet as Record<string, unknown>;
         return {
@@ -415,7 +415,7 @@ const youtubeAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return { followers: [] };
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const followers: PlatformFollowerData[] = (data.items || []).map((item: Record<string, unknown>) => {
         const snippet = item.snippet as Record<string, unknown>;
         const resource = snippet?.resourceId as Record<string, unknown>;
@@ -438,7 +438,7 @@ const youtubeAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return defaultAnalytics();
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const stats = data.items?.[0]?.statistics || {};
       return {
         date: new Date(),
@@ -475,7 +475,7 @@ const twitterAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!meRes.ok) return { posts: [] };
-      const meData = await meRes.json();
+      const meData = await meRes.json().catch(() => ({}));
       const userId = meData.data?.id;
       if (!userId) return { posts: [] };
 
@@ -483,7 +483,7 @@ const twitterAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return { posts: [] };
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const posts: PlatformPostData[] = (data.data || []).map((tweet: Record<string, unknown>) => {
         const metrics = tweet.public_metrics as Record<string, number> || {};
         return {
@@ -509,14 +509,14 @@ const twitterAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!meRes.ok) return { followers: [] };
-      const userId = (await meRes.json()).data?.id;
+      const userId = (await meRes.json().catch(() => ({}))).data?.id;
       if (!userId) return { followers: [] };
 
       const res = await fetch(`https://api.twitter.com/2/users/${userId}/followers?max_results=100&user.fields=profile_image_url,public_metrics`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return { followers: [] };
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const followers: PlatformFollowerData[] = (data.data || []).map((u: Record<string, unknown>) => ({
         platformUserId: u.id as string,
         username: u.username as string,
@@ -537,7 +537,7 @@ const twitterAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return defaultAnalytics();
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const metrics = data.data?.public_metrics || {};
       return {
         date: new Date(),
@@ -574,7 +574,7 @@ const discordAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
       });
       if (!res.ok) return { posts: [] };
-      const guilds = await res.json();
+      const guilds = await res.json().catch(() => ({}));
       const posts: PlatformPostData[] = (Array.isArray(guilds) ? guilds : []).map((g: Record<string, unknown>) => ({
         platformPostId: g.id as string,
         title: g.name as string,
@@ -633,7 +633,7 @@ const spotifyAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return { posts: [] };
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const posts: PlatformPostData[] = (data.items || []).map((p: Record<string, unknown>) => ({
         platformPostId: p.id as string,
         title: p.name as string,
@@ -659,7 +659,7 @@ const spotifyAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return defaultAnalytics();
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       return {
         date: new Date(),
         followerCount: data.followers?.total || 0,
@@ -693,7 +693,7 @@ async function fetchTwitchCurrentUser(accessToken: string): Promise<{ id: string
     headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
   });
   if (!userRes.ok) return null;
-  const user = (await userRes.json()).data?.[0];
+  const user = (await userRes.json().catch(() => ({}))).data?.[0];
   if (!user?.id) return null;
   return {
     id: user.id as string,
@@ -715,7 +715,7 @@ const twitchAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
       if (!res.ok) return { posts: [] };
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const posts: PlatformPostData[] = (data.data || []).map((v: Record<string, unknown>) => ({
         platformPostId: v.id as string,
         title: v.title as string,
@@ -744,7 +744,7 @@ const twitchAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
       if (!followersRes.ok) return { followers: [] };
-      const followerData = await followersRes.json();
+      const followerData = await followersRes.json().catch(() => ({}));
       const followers: PlatformFollowerData[] = (followerData.data || []).map((f: Record<string, unknown>) => ({
         platformUserId: f.user_id as string,
         username: f.user_login as string,
@@ -764,7 +764,7 @@ const twitchAdapter: PlatformAdapter = {
       }
 
       if (followingRes.ok) {
-        const followingData = await followingRes.json();
+        const followingData = await followingRes.json().catch(() => ({}));
         for (const f of (followingData.data || []) as Record<string, unknown>[]) {
           const followedUserId = f.broadcaster_id as string;
           const existing = followByUserId.get(followedUserId);
@@ -801,8 +801,8 @@ const twitchAdapter: PlatformAdapter = {
         headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": twitchClientId },
       });
 
-      const followerCount = followersRes.ok ? ((await followersRes.json()).total as number) || 0 : 0;
-      const followingCount = followingRes.ok ? ((await followingRes.json()).total as number) || 0 : 0;
+      const followerCount = followersRes.ok ? ((await followersRes.json().catch(() => ({}))).total as number) || 0 : 0;
+      const followingCount = followingRes.ok ? ((await followingRes.json().catch(() => ({}))).total as number) || 0 : 0;
 
       return {
         date: new Date(),
@@ -841,7 +841,7 @@ const tiktokAdapter: PlatformAdapter = {
         body: JSON.stringify({ max_count: 50 }),
       });
       if (!res.ok) return { posts: [] };
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const posts: PlatformPostData[] = (data.data?.videos || []).map((v: Record<string, unknown>) => ({
         platformPostId: v.id as string,
         title: (v.title as string) || "",

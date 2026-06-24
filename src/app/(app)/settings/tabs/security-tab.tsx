@@ -57,9 +57,9 @@ export function SecurityTab({ showSuccess, showError }: SecurityTabProps) {
         return;
       }
 
-      const emailsPayload = await emailsRes.json();
-      const phonesPayload = await phonesRes.json();
-      const twoFactorPayload = await twoFactorRes.json();
+      const emailsPayload = await emailsRes.json().catch(() => ({}));
+      const phonesPayload = await phonesRes.json().catch(() => ({}));
+      const twoFactorPayload = await twoFactorRes.json().catch(() => ({}));
       setEmails(emailsPayload.emails ?? []);
       setPhones(phonesPayload.phones ?? []);
       setTwoFactorMethods(twoFactorPayload.methods ?? []);

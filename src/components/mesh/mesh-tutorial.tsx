@@ -74,7 +74,7 @@ export function MeshTutorial() {
 
   const handleDismiss = () => {
     setVisible(false);
-    localStorage.setItem("mesh-tutorial-seen", "true");
+    try { localStorage.setItem("mesh-tutorial-seen", "true"); } catch { /* storage unavailable */ }
   };
 
   const handleNext = () => {

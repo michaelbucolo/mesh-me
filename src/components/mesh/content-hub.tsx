@@ -166,7 +166,7 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
 
       const res = await fetch("/api/platform-content?" + params.toString());
       if (!res.ok) throw new Error("Failed to load content");
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       setPosts(data.posts || []);
       setTotal(data.total || 0);
     } catch {
@@ -181,7 +181,7 @@ export function ContentHub({ isOpen, onClose, onDeleteSuccess }: ContentHubProps
     try {
       const res = await fetch("/api/platform-content?view=analytics");
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         const analyticsRows = Array.isArray(data.analytics) ? data.analytics : [];
         setAnalytics({
           accounts: analyticsRows.length,

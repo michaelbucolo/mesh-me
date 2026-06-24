@@ -90,7 +90,7 @@ export function ProfileTab({
               fd.append("banner", file);
               try {
                 const res = await fetch("/api/banner", { method: "POST", body: fd });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({ error: "Invalid response" }));
                 if (data.error) { showError(data.error); setBannerPreview(null); }
                 else { showSuccess("Banner updated"); setSettings((prev) => prev ? { ...prev, bannerUrl: data.bannerUrl } : prev); }
               } catch { showError("Failed to upload banner"); setBannerPreview(null); }
@@ -139,7 +139,7 @@ export function ProfileTab({
                 fd.append("avatar", file);
                 try {
                   const res = await fetch("/api/avatar", { method: "POST", body: fd });
-                  const data = await res.json();
+                  const data = await res.json().catch(() => ({ error: "Invalid response" }));
                   if (data.error) { showError(data.error); setAvatarPreview(null); }
                   else { showSuccess("Profile picture updated"); setSettings((prev) => prev ? { ...prev, avatarUrl: data.avatarUrl } : prev); }
                 } catch { showError("Failed to upload image"); setAvatarPreview(null); }

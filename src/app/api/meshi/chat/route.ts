@@ -511,7 +511,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body: ChatRequest = await req.json();
+    const body: ChatRequest = await req.json().catch(() => ({ message: "" }) as ChatRequest);
     const { message, context, history } = body;
 
     if (!message || typeof message !== "string") {

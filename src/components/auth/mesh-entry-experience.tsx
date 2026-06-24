@@ -688,7 +688,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
 
       if (!response.ok) throw new Error("Meshi preview unavailable");
 
-      const payload: unknown = await response.json();
+      const payload: unknown = await response.json().catch(() => null);
       if (signal?.aborted) return null;
 
       if (!isMeshiPreviewPayload(payload)) {

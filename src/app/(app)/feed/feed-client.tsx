@@ -97,7 +97,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("meshFeedLayout", layout);
+    try { localStorage.setItem("meshFeedLayout", layout); } catch { /* storage unavailable */ }
   }, [layout]);
 
   const lastLoadTime = useRef(0);
@@ -105,7 +105,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const fetchFeedPage = useCallback(async (nextPage: number, nextSource: FeedSource) => {
     const res = await fetch(`/api/feed/paginated?page=${nextPage}&limit=20&source=${nextSource}`);
     if (!res.ok) return null;
-    return res.json() as Promise<{ posts: FeedClientProps["initialPosts"]; hasMore: boolean }>;
+    return res.json().catch(() => null) as Promise<{ posts: FeedClientProps["initialPosts"]; hasMore: boolean } | null>;
   }, []);
 
   const loadMore = useCallback(async () => {
@@ -135,6 +135,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
   const handleSourceChange = useCallback(async (nextSource: FeedSource) => {
     if (loadingSource || nextSource === source) return;
     setSource(nextSource);
+    setFilter("all");
     setLoadingSource(true);
     setPage(1);
     setHasMore(true);
@@ -242,6 +243,25 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-[var(--mesh-blue)]" />
             </div>
+          )}
+
+          {!loadingSource && posts.length > 0 && filteredPosts.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="No posts match this filter"
+              description="Try a different filter or switch back to All."
+            >
+              <button
+                onClick={() => setFilter("all")}
+                className="rounded-xl bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--mesh-blue)]/90"
+              >
+                Show all posts
+              </button>
+            </EmptyState>
+          ) : null}
+
+          {!loadingSource && posts.length > 0 && filteredPosts.length === 0 && hasMore && (
+            <div ref={loadMoreRef} className="h-1" />
           )}
 
           {!loadingSource && filteredPosts.length > 0 ? (
@@ -385,7 +405,7 @@ export function FeedClient({ user, initialPosts }: FeedClientProps) {
                 )}
               </div>
             </>
-          ) : !loadingSource ? (
+          ) : !loadingSource && posts.length === 0 ? (
             <EmptyState
               icon={FileText}
               title="Your feed is empty"

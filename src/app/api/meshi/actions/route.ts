@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body: MeshiActionRequest = await req.json();
+    const body: MeshiActionRequest = await req.json().catch(() => ({}) as MeshiActionRequest);
     const { action } = body;
 
     if (!action) {

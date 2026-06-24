@@ -14,7 +14,7 @@ export function AnalyticsControls() {
     setStatus(null);
     try {
       const res = await fetch("/api/data-controls?action=export");
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: "Export failed" }));
       if (!res.ok) throw new Error(data.error || "Export failed");
 
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -43,7 +43,7 @@ export function AnalyticsControls() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "delete-synced-data" }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: "Delete failed" }));
       if (!res.ok) throw new Error(data.error || "Delete failed");
       setStatus({ type: "success", message: `Deleted ${data.deleted.total} synced records.` });
     } catch (err) {
