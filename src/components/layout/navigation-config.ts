@@ -74,9 +74,10 @@ export const desktopBottomItems: NavItem[] = [
 ];
 
 export const mobileNavItems: NavItem[] = [
+  { href: "/feed", icon: Compass, label: "Home" },
   { href: "/mesh", icon: Waypoints, label: "Mesh" },
+  { href: "/notifications", icon: Bell, label: "Notifications", badgeKey: "notifications" },
   { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
-  { href: "/feed", icon: Compass, label: "Flow" },
 ];
 
 export function resolveNavHref(href: string, username?: string): string {
@@ -92,7 +93,7 @@ export function isNavItemActive(pathname: string, href: string, username?: strin
     return Boolean(username && pathname.includes(`/profile/${username}`));
   }
 
-  return pathname.startsWith(href);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function getBadgeCount(

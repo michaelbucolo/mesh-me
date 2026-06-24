@@ -370,9 +370,13 @@ export async function InstagramProfileView({ username }: { username: string }) {
             <Link href="/communities" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            <SidebarCommunityRow name="Design Minds" members="3.1K" joined />
-            <SidebarCommunityRow name="Privacy Pioneers" members="2.4K" joined />
-            <SidebarCommunityRow name="Web3 Builders" members="5.7K" joined />
+            {communityCount > 0 ? (
+              <p className="text-xs text-[var(--mesh-text-muted)]">Community memberships will appear here.</p>
+            ) : (
+              <p className="text-xs text-[var(--mesh-text-muted)]">
+                {isOwnProfile ? "Join communities to see them here." : "No communities yet."}
+              </p>
+            )}
           </div>
         </section>
 
@@ -382,10 +386,14 @@ export async function InstagramProfileView({ username }: { username: string }) {
             <h3 className="text-sm font-bold text-[var(--mesh-text)]">Collections</h3>
             <Link href="/vault" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <CollectionTile label="Nature Escapes" items={24} />
-            <CollectionTile label="Architecture" items={18} />
-            <CollectionTile label="Inspiration" items={32} />
+          <div className="space-y-3">
+            {collectionCount > 0 ? (
+              <p className="text-xs text-[var(--mesh-text-muted)]">Saved collections will appear here.</p>
+            ) : (
+              <p className="text-xs text-[var(--mesh-text-muted)]">
+                {isOwnProfile ? "Save posts to collections to see them here." : "No collections yet."}
+              </p>
+            )}
           </div>
         </section>
 
@@ -459,29 +467,4 @@ function ProfileTab({ label, count, active = false }: { label: string; count: nu
   );
 }
 
-function SidebarCommunityRow({ name, members, joined }: { name: string; members: string; joined?: boolean }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--mesh-blue)]/10 text-xs font-bold text-[var(--mesh-blue)]">
-        {name.charAt(0)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-[var(--mesh-text)]">{name}</p>
-        <p className="text-[11px] text-[var(--mesh-text-muted)]">{members} members</p>
-      </div>
-      {joined && (
-        <span className="rounded-md bg-[var(--mesh-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--mesh-blue)]">Joined</span>
-      )}
-    </div>
-  );
-}
 
-function CollectionTile({ label, items }: { label: string; items: number }) {
-  return (
-    <div className="group cursor-pointer">
-      <div className="aspect-square overflow-hidden rounded-lg bg-gradient-to-br from-[var(--mesh-bg)] to-[var(--mesh-panel-solid)] border border-[var(--mesh-border)] transition-colors group-hover:border-[var(--mesh-border-active)]" />
-      <p className="mt-1.5 truncate text-[11px] font-medium text-[var(--mesh-text)]">{label}</p>
-      <p className="text-[10px] text-[var(--mesh-text-muted)]">{items} items</p>
-    </div>
-  );
-}
