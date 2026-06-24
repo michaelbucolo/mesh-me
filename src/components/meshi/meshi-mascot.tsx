@@ -600,7 +600,8 @@ export function MeshiMascot({
   animate = true,
   onClick,
   className = "",
-  showGlow = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  showGlow,
   speaking = false,
   interactive = false,
   onMoodChange,
@@ -775,27 +776,10 @@ export function MeshiMascot({
           <clipPath id={`${uniqueId}-clip`}>
             <circle cx="0" cy="0" r="22" />
           </clipPath>
-          {/* Breathing glow filter */}
-          <filter id={`${uniqueId}-glow`} x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+
         </defs>
 
-        {/* Breathing ambient glow */}
-        {showGlow && (
-          <motion.circle cx="0" cy="0" r="20" fill="none" stroke={theme.primary} strokeWidth="1.5" opacity="0.2"
-            animate={animate ? {
-              scale: [1, 1.08, 1.03, 1.1, 1],
-              opacity: [0.2, 0.35, 0.25, 0.3, 0.2],
-              strokeWidth: [1.5, 2, 1.5, 1.8, 1.5],
-            } : undefined}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
-        )}
+
 
         {/* Speaking pulse rings — triple layered for rich effect */}
         {speaking && (

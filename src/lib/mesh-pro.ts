@@ -10,10 +10,10 @@ export const MESH_PRO_PRICING = {
   yearly: {
     id: "yearly",
     label: "Yearly",
-    price: "$44.99",
+    price: "$39.99",
     interval: "year",
     detail: "Best value for creators and power users.",
-    savings: "Save 25%",
+    savings: "Save 33%",
   },
 } as const;
 
