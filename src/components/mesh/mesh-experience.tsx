@@ -531,6 +531,7 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
 
   const sendPresence = useCallback(async () => {
     if (!apiData) return;
+    if (viewUserId) return;
     const lastViewport = lastViewportRef.current;
     const lastMeshi = lastMeshiPositionRef.current;
     const activity = selectedNode ? "exploring" : hoveredNode ? "traveling" : "idle";
@@ -569,7 +570,7 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
     } catch {
       // Presence is best-effort.
     }
-  }, [activePresenceNode, activePresencePostId, apiData, ghostMode, hoveredNode, selectedNode]);
+  }, [activePresenceNode, activePresencePostId, apiData, ghostMode, hoveredNode, selectedNode, viewUserId]);
 
   useEffect(() => {
     if (!apiData) return;

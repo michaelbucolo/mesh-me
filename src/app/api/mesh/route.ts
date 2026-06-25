@@ -724,7 +724,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
         content: true,
         createdAt: true,
         media: { select: { url: true, type: true, width: true, height: true } },
-        _count: { select: { comments: true, reactions: true } },
+        _count: { select: { comments: true, reactions: true, reposts: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 30,
@@ -766,10 +766,18 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     followers,
     communities: [],
     interests,
-    posts: postsData,
+    posts: postsData.map((p) => ({
+      id: p.id,
+      content: p.content.slice(0, 200),
+      createdAt: p.createdAt,
+      media: p.media,
+      likeCount: p._count.reactions,
+      commentCount: p._count.comments,
+      repostCount: p._count.reposts,
+    })),
     connectedAccounts: connectedAccountsData.filter((ca) => {
       const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
-      return !policy || policy.visibility !== "private";
+      return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
     }),
     alterEgos: [],
     meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
@@ -782,7 +790,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       interestCount: interestsData.length,
       connectedPlatformCount: connectedAccountsData.filter((ca) => {
         const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
-        return !policy || policy.visibility !== "private";
+        return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
       }).length,
       alterEgoCount: 0,
       activityCount: 0,
