@@ -121,10 +121,12 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
   const [isPending, startTransition] = useTransition();
 
   const policyByType = useMemo(() => {
+    const legacyAliases: Record<string, string> = { meshi_ai: "meshi_memory" };
     const map = new Map<string, VisibilityPolicy>();
     for (const policy of policies) {
-      if (!policy.entityId && !map.has(policy.entityType)) {
-        map.set(policy.entityType, policy);
+      const normalized = legacyAliases[policy.entityType] || policy.entityType;
+      if (!policy.entityId && !map.has(normalized)) {
+        map.set(normalized, policy);
       }
     }
     return map;
