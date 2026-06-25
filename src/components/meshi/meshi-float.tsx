@@ -1243,7 +1243,8 @@ export function MeshiFloat() {
       q.includes("summar") ||
       q.includes("verify") ||
       q.includes("generated") ||
-      q.includes("media")
+      q.includes("media") ||
+      q.includes("authenticity")
     ));
     const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("find ") || q.includes("@") ||
       q.includes("tell me about my mesh") || q.includes("summary") || q.includes("what do you know") || q.includes("knowledge level");

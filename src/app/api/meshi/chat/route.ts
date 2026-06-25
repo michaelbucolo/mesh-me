@@ -202,9 +202,10 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
     q.includes("fact") ||
     q.includes("summar") ||
     q.includes("machine") ||
-    q.includes("generated")
+    q.includes("generated") ||
+    q.includes("authenticity")
   )) {
-    if (q.includes("machine") || q.includes("generated") || q.includes("synthetic") || q.includes("deepfake")) {
+    if (q.includes("machine") || q.includes("generated") || q.includes("synthetic") || q.includes("deepfake") || q.includes("authenticity")) {
       return { content: getVisibleContentMediaSignals(context) || "I do not have a visible post to inspect yet.", mood: "learning" };
     }
     if (q.includes("fact") || q.includes("verify") || q.includes("true") || q.includes("false")) {
@@ -496,7 +497,8 @@ function isFocusedContentTask(query: string, context?: MeshiContext) {
     q.includes("machine") ||
     q.includes("generated") ||
     q.includes("synthetic") ||
-    q.includes("deepfake")
+    q.includes("deepfake") ||
+    q.includes("authenticity")
   );
 }
 

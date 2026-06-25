@@ -698,7 +698,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     return NextResponse.json({ error: "This mesh is private" }, { status: 403 });
   }
 
-  const [followingData, followersData, postsData, interestsData, connectedAccountsData, meshiPrefData] = await Promise.all([
+  const [followingData, followersData, postsData, interestsData, connectedAccountsData, meshiPrefData, followingCount, followerCount, postCount, visibilityPolicies] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: targetUserId },
       select: {
@@ -741,6 +741,13 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       where: { userId: targetUserId },
       select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true },
     }),
+    prisma.follow.count({ where: { followerId: targetUserId } }),
+    prisma.follow.count({ where: { followingId: targetUserId } }),
+    prisma.post.count({ where: { authorId: targetUserId, visibility: "public" } }),
+    prisma.dataVisibilityPolicy.findMany({
+      where: { userId: targetUserId, entityType: "connected_account" },
+      select: { entityId: true, visibility: true },
+    }),
   ]);
 
   const following = followingData.map((f) => f.following);
@@ -760,15 +767,18 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     communities: [],
     interests,
     posts: postsData,
-    connectedAccounts: connectedAccountsData,
+    connectedAccounts: connectedAccountsData.filter((ca) => {
+      const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
+      return !policy || policy.visibility !== "private";
+    }),
     alterEgos: [],
-    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "default", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
+    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
     stats: {
-      followingCount: followingData.length,
-      followerCount: followersData.length,
+      followingCount,
+      followerCount,
       mutualCount: 0,
       communityCount: 0,
-      postCount: postsData.length,
+      postCount,
       interestCount: interestsData.length,
       connectedPlatformCount: connectedAccountsData.length,
       alterEgoCount: 0,

@@ -103,6 +103,7 @@ function detectMediaSignals(post: PostCardProps["post"]) {
   const signals: string[] = [];
   [
     ["generated", "caption or media reference says generated"],
+    ["authenticity", "caption or media reference mentions authenticity"],
     ["synthetic", "caption or media reference says synthetic"],
     ["deepfake", "caption or media reference says deepfake"],
     ["sora", "media reference mentions Sora"],
