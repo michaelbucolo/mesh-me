@@ -780,7 +780,10 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       communityCount: 0,
       postCount,
       interestCount: interestsData.length,
-      connectedPlatformCount: connectedAccountsData.length,
+      connectedPlatformCount: connectedAccountsData.filter((ca) => {
+        const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
+        return !policy || policy.visibility !== "private";
+      }).length,
       alterEgoCount: 0,
       activityCount: 0,
     },
