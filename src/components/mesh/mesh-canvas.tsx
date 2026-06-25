@@ -489,7 +489,7 @@ export function MeshCanvas({
       aria-describedby="mesh-canvas-instructions mesh-selection-status"
       aria-busy={loading}
       className="h-full w-full select-none"
-      style={{ cursor: "none", touchAction: "none", overscrollBehavior: "none" }}
+      style={{ cursor: "grab", touchAction: "none", overscrollBehavior: "none" }}
       onContextMenu={(event) => event.preventDefault()}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
