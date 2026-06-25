@@ -43,7 +43,7 @@ const TUTORIAL_STEPS = [
     icon: Sparkles,
     title: "Meet Meshi",
     description:
-      "Meshi is your AI companion. Click the floating character in the bottom-right corner for quick actions, navigation, and to ask questions.",
+      "Meshi is your personal companion. Click the floating character in the bottom-right corner for quick actions, navigation, and to ask questions.",
     tip: "Meshi learns about your mesh over time and can answer questions about your connections!",
     mood: "love" as const,
   },

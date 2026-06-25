@@ -4,12 +4,20 @@ import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+
+  const { searchParams } = new URL(req.url);
+  const viewUserId = searchParams.get("user");
+
+  if (viewUserId && viewUserId !== user.id) {
+    return getPublicMesh(viewUserId, user.id);
+  }
+
   const safetyWhere = nsfwHiddenWhere(user);
 
   const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData, meshiPrefData, meshCosmeticsData] = await Promise.all([
@@ -663,4 +671,130 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+async function getPublicMesh(targetUserId: string, viewerId: string) {
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      avatarUrl: true,
+      bio: true,
+      isPublic: true,
+    },
+  });
+
+  if (!targetUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const isFollowing = await prisma.follow.findFirst({
+    where: { followerId: viewerId, followingId: targetUserId },
+  });
+
+  if (!targetUser.isPublic && !isFollowing) {
+    return NextResponse.json({ error: "This mesh is private" }, { status: 403 });
+  }
+
+  const [followingData, followersData, postsData, interestsData, connectedAccountsData, meshiPrefData, followingCount, followerCount, postCount, visibilityPolicies] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: targetUserId },
+      select: {
+        following: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
+        },
+      },
+      take: 50,
+    }),
+    prisma.follow.findMany({
+      where: { followingId: targetUserId },
+      select: {
+        follower: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
+        },
+      },
+      take: 50,
+    }),
+    prisma.post.findMany({
+      where: { authorId: targetUserId, visibility: "public" },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        media: { select: { url: true, type: true, width: true, height: true } },
+        _count: { select: { comments: true, reactions: true, reposts: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+    prisma.userInterest.findMany({
+      where: { userId: targetUserId },
+      select: { id: true, tag: true },
+    }),
+    prisma.connectedAccount.findMany({
+      where: { userId: targetUserId },
+      select: { id: true, platform: true, platformUsername: true, isActive: true },
+    }),
+    prisma.meshiPreference.findUnique({
+      where: { userId: targetUserId },
+      select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true },
+    }),
+    prisma.follow.count({ where: { followerId: targetUserId } }),
+    prisma.follow.count({ where: { followingId: targetUserId } }),
+    prisma.post.count({ where: { authorId: targetUserId, visibility: "public" } }),
+    prisma.dataVisibilityPolicy.findMany({
+      where: { userId: targetUserId, entityType: "connected_account" },
+      select: { entityId: true, visibility: true },
+    }),
+  ]);
+
+  const following = followingData.map((f) => f.following);
+  const followers = followersData.map((f) => f.follower);
+  const interests = interestsData.map((i) => i.tag);
+
+  return NextResponse.json({
+    user: {
+      id: targetUser.id,
+      username: targetUser.username,
+      displayName: targetUser.displayName,
+      avatarUrl: targetUser.avatarUrl,
+      bio: targetUser.bio,
+    },
+    following,
+    followers,
+    communities: [],
+    interests,
+    posts: postsData.map((p) => ({
+      id: p.id,
+      content: p.content.slice(0, 200),
+      createdAt: p.createdAt,
+      media: p.media,
+      likeCount: p._count.reactions,
+      commentCount: p._count.comments,
+      repostCount: p._count.reposts,
+    })),
+    connectedAccounts: connectedAccountsData.filter((ca) => {
+      const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
+      return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
+    }),
+    alterEgos: [],
+    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
+    stats: {
+      followingCount,
+      followerCount,
+      mutualCount: 0,
+      communityCount: 0,
+      postCount,
+      interestCount: interestsData.length,
+      connectedPlatformCount: connectedAccountsData.filter((ca) => {
+        const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
+        return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
+      }).length,
+      alterEgoCount: 0,
+      activityCount: 0,
+    },
+    isViewingOtherUser: true,
+  });
 }

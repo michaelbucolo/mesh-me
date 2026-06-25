@@ -664,7 +664,7 @@ export function MeshiMascot({
     return () => { cancelled = true; if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current); };
   }, [animate]);
 
-  // Global mouse tracking for eye follow (smooth, Codex-like)
+  // Global mouse tracking for smooth eye follow
   useEffect(() => {
     if (!interactive && !animate) return;
     const handleGlobalMouse = (e: MouseEvent) => {

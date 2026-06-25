@@ -14,7 +14,7 @@ const POLICY_ENTITY_TYPES = [
   "platform_post",
   "messages",
   "analytics",
-  "meshi_ai",
+  "meshi_memory",
   "global_mesh",
   "notifications",
 ] as const;
@@ -23,8 +23,17 @@ function isVisibility(value: unknown): value is (typeof VISIBILITY_VALUES)[numbe
   return typeof value === "string" && VISIBILITY_VALUES.includes(value as (typeof VISIBILITY_VALUES)[number]);
 }
 
+const LEGACY_ENTITY_ALIASES: Record<string, (typeof POLICY_ENTITY_TYPES)[number]> = {
+  meshi_ai: "meshi_memory",
+};
+
 function isPolicyEntityType(value: unknown): value is (typeof POLICY_ENTITY_TYPES)[number] {
-  return typeof value === "string" && POLICY_ENTITY_TYPES.includes(value as (typeof POLICY_ENTITY_TYPES)[number]);
+  if (typeof value !== "string") return false;
+  return POLICY_ENTITY_TYPES.includes(value as (typeof POLICY_ENTITY_TYPES)[number]) || value in LEGACY_ENTITY_ALIASES;
+}
+
+function normalizePolicyEntityType(value: string): (typeof POLICY_ENTITY_TYPES)[number] {
+  return LEGACY_ENTITY_ALIASES[value] || (value as (typeof POLICY_ENTITY_TYPES)[number]);
 }
 
 function readOptionalBoolean(payload: Record<string, unknown>, key: string, fallback = false) {
@@ -67,7 +76,7 @@ async function upsertVisibilityPolicy({
   visibility,
   allowDiscovery,
   allowAnalytics,
-  allowAiUse,
+  allowMeshiUse,
   metadata,
 }: {
   userId: string;
@@ -76,7 +85,7 @@ async function upsertVisibilityPolicy({
   visibility: string;
   allowDiscovery: boolean;
   allowAnalytics: boolean;
-  allowAiUse: boolean;
+  allowMeshiUse: boolean;
   metadata?: Record<string, unknown>;
 }) {
   const existing = await prisma.dataVisibilityPolicy.findFirst({
@@ -88,7 +97,7 @@ async function upsertVisibilityPolicy({
     visibility,
     allowDiscovery,
     allowAnalytics,
-    allowAiUse,
+    allowMeshiUse,
     metadata: JSON.stringify(metadata ?? {}),
   };
 
@@ -323,7 +332,7 @@ export async function POST(req: NextRequest) {
       visibility: payload.visibility,
       allowDiscovery: payload.visibility === "public",
       allowAnalytics: payload.visibility !== "hidden",
-      allowAiUse: false,
+      allowMeshiUse: false,
       metadata: {
         title: platformPost.title,
         platform: platformPost.connectedAccount.platform,
@@ -370,14 +379,16 @@ export async function POST(req: NextRequest) {
       await prisma.platformPost.update({ where: { id: entityId }, data: { visibility: payload.visibility } });
     }
 
+    const normalizedEntityType = normalizePolicyEntityType(payload.entityType as string);
+
     const policy = await upsertVisibilityPolicy({
       userId: user.id,
-      entityType: payload.entityType,
+      entityType: normalizedEntityType,
       entityId,
       visibility: payload.visibility,
       allowDiscovery: readOptionalBoolean(payload, "allowDiscovery", payload.visibility === "public"),
       allowAnalytics: readOptionalBoolean(payload, "allowAnalytics", payload.visibility !== "hidden"),
-      allowAiUse: readOptionalBoolean(payload, "allowAiUse", false),
+      allowMeshiUse: readOptionalBoolean(payload, "allowMeshiUse", false),
       metadata: {
         updatedFrom: "privacy-control-center",
       },
@@ -397,7 +408,7 @@ export async function POST(req: NextRequest) {
         visibility: policy.visibility,
         allowDiscovery: policy.allowDiscovery,
         allowAnalytics: policy.allowAnalytics,
-        allowAiUse: policy.allowAiUse,
+        allowMeshiUse: policy.allowMeshiUse,
         metadata: policy.metadata,
         updatedAt: policy.updatedAt.toISOString(),
       },

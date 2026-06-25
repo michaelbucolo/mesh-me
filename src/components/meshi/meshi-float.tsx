@@ -222,7 +222,7 @@ function getFocusedContentFromElement(element: Element | null): FocusedContent |
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-  const aiSignals = (card.dataset.meshiContentAiSignals || "")
+  const mediaSignals = (card.dataset.meshiContentMediaSignals || "")
     .split("|")
     .map((item) => item.trim())
     .filter(Boolean);
@@ -235,7 +235,7 @@ function getFocusedContentFromElement(element: Element | null): FocusedContent |
     mediaTypes,
     externalUrl: card.dataset.meshiContentUrl,
     contentRating: card.dataset.meshiContentRating || "general",
-    aiSignals,
+    mediaSignals,
   };
 }
 
@@ -269,10 +269,10 @@ function areFocusedContentEqual(a: FocusedContent | null, b: FocusedContent | nu
   return Boolean(a && b && a.id === b.id && a.platform === b.platform && a.text === b.text);
 }
 
-function getFocusedContentPrompt(content: FocusedContent, mode: "summary" | "fact-check" | "ai") {
+function getFocusedContentPrompt(content: FocusedContent, mode: "summary" | "fact-check" | "verify") {
   const source = content.platform ? ` from ${content.platform}` : "";
   if (mode === "summary") return `Summarize the visible post${source}.`;
-  if (mode === "ai") return `Check the visible post${source} for possible AI-generated photo or video signals.`;
+  if (mode === "verify") return `Check the visible post${source} for possible synthetic or digitally created photo or video signals.`;
   return `Fact-check the visible post${source}. Point out what is verified, what needs a source, and what I should be careful about.`;
 }
 
@@ -1241,9 +1241,10 @@ export function MeshiFloat() {
       q.includes("this image") ||
       q.includes("fact") ||
       q.includes("summar") ||
-      q.includes("ai") ||
+      q.includes("verify") ||
       q.includes("generated") ||
-      q.includes("media")
+      q.includes("media") ||
+      q.includes("authenticity")
     ));
     const isMeshQuery = q.includes("how many") || q.includes("who is") || q.includes("find ") || q.includes("@") ||
       q.includes("tell me about my mesh") || q.includes("summary") || q.includes("what do you know") || q.includes("knowledge level");
@@ -1313,7 +1314,7 @@ export function MeshiFloat() {
     submitSpeechPrompt(text);
   }, [isMeshiTyping, speechInput, submitSpeechPrompt]);
 
-  const handleFocusedContentPrompt = useCallback((mode: "summary" | "fact-check" | "ai") => {
+  const handleFocusedContentPrompt = useCallback((mode: "summary" | "fact-check" | "verify") => {
     if (!focusedContent || isMeshiTyping) return;
     setView("speech");
     setContentInsightVisible(false);
@@ -1536,7 +1537,7 @@ export function MeshiFloat() {
                       {focusedContent.platform ? <span className="text-[var(--text-muted)]"> - {focusedContent.platform}</span> : null}
                     </p>
                     <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-4 text-[var(--text-muted)]">
-                      I can summarize, check claims, or look for AI-media clues using visible metadata.
+                      I can summarize, check claims, or look for media authenticity clues using visible metadata.
                     </p>
                   </div>
                 </div>
@@ -1544,7 +1545,7 @@ export function MeshiFloat() {
                   {([
                     ["summary", "Sum"],
                     ["fact-check", "Facts"],
-                    ["ai", "AI cues"],
+                    ["verify", "Verify"],
                   ] as const).map(([mode, label]) => (
                     <button
                       key={mode}

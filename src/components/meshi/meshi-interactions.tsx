@@ -74,18 +74,18 @@ export function MeshiMeetOverlay({
   const makeRPSChoice = useCallback((choice: RPSChoice) => {
     setMyChoice(choice);
     const choices: RPSChoice[] = ["rock", "paper", "scissors"];
-    const aiChoice = choices[Math.floor(Math.random() * 3)];
-    setTheirChoice(aiChoice);
-    const result = getRPSResult(choice, aiChoice);
+    const opponentChoice = choices[Math.floor(Math.random() * 3)];
+    setTheirChoice(opponentChoice);
+    const result = getRPSResult(choice, opponentChoice);
     setRpsResult(result);
     setPhase("rps-result");
 
     if (result === "win") {
-      setMessage(`You win! ${RPS_EMOJI[choice]} beats ${RPS_EMOJI[aiChoice]}`);
+      setMessage(`You win! ${RPS_EMOJI[choice]} beats ${RPS_EMOJI[opponentChoice]}`);
       setMyMood("celebrating" as MeshiMood);
       setTheirMood("surprised");
     } else if (result === "lose") {
-      setMessage(`They win! ${RPS_EMOJI[aiChoice]} beats ${RPS_EMOJI[choice]}`);
+      setMessage(`They win! ${RPS_EMOJI[opponentChoice]} beats ${RPS_EMOJI[choice]}`);
       setMyMood("surprised");
       setTheirMood("celebrating" as MeshiMood);
     } else {

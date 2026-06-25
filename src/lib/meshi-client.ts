@@ -23,8 +23,8 @@ function normalizeResponse(data: Partial<MeshiResponse>): MeshiResponse {
     source: data.source ?? "local",
     model: data.model,
     meshi: data.meshi ?? {
-      identity: "mascot-user-vessel-llm",
-      llmReady: false,
+      identity: "mascot-user-vessel",
+      engineReady: false,
       grounded: false,
     },
   };

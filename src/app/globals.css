@@ -460,7 +460,22 @@ select:focus-visible {
 
 /* Mesh full-bleed for canvas pages */
 .mesh-shell-mesh .mesh-content {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+}
+
+.mesh-shell-mesh .mesh-content > .mesh-route-slot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mesh-shell-mesh .mesh-experience {
+  flex: 1;
+  min-height: 0;
+  position: relative;
 }
 
 .mesh-main-mesh .mesh-topbar {
@@ -473,7 +488,78 @@ select:focus-visible {
   border-bottom: none;
 }
 
-/* Mobile mesh fullscreen: canvas fills viewport */
+/* Desktop mesh: overlay header + controls so canvas fills viewport */
+.mesh-main-mesh .mesh-page-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0;
+  background: linear-gradient(180deg, var(--mesh-bg-deep) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.mesh-main-mesh .mesh-page-header * {
+  pointer-events: auto;
+}
+
+.mesh-main-mesh .mesh-dashboard-rail {
+  position: absolute;
+  top: 4.5rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  margin-bottom: 0;
+  pointer-events: none;
+}
+
+.mesh-main-mesh .mesh-dashboard-rail * {
+  pointer-events: auto;
+}
+
+.mesh-main-mesh .mesh-page-status {
+  position: absolute;
+  bottom: 5rem;
+  left: 0.75rem;
+  z-index: 20;
+  margin-bottom: 0;
+  pointer-events: none;
+}
+
+.mesh-main-mesh .mesh-page-status * {
+  pointer-events: auto;
+}
+
+.mesh-main-mesh .mesh-page-actions {
+  position: absolute;
+  bottom: max(0.8rem, env(safe-area-inset-bottom));
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  margin-bottom: 0;
+  pointer-events: none;
+}
+
+.mesh-main-mesh .mesh-page-actions * {
+  pointer-events: auto;
+}
+
+.mesh-main-mesh .mesh-canvas-shell {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  flex: none;
+  z-index: 1;
+}
+
+/* Mobile mesh fullscreen: hide dashboard + status, transparent bottom nav */
 @media (max-width: 767px) {
   .mesh-shell-mesh {
     display: flex;
@@ -487,47 +573,10 @@ select:focus-visible {
     padding-bottom: 0 !important;
   }
 
-  .mesh-main-mesh .mesh-content {
-    height: 100%;
-    min-height: 0;
-  }
-
-  .mesh-main-mesh .mesh-route-slot {
-    height: 100%;
-    min-height: 0;
-  }
-
-  .mesh-main-mesh .mesh-experience {
-    height: 100% !important;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .mesh-main-mesh .mesh-page-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 20;
-    padding: 0.75rem 1rem;
-    background: linear-gradient(180deg, var(--mesh-bg-deep) 0%, transparent 100%);
-    pointer-events: none;
-  }
-
-  .mesh-main-mesh .mesh-page-header * {
-    pointer-events: auto;
-  }
-
   .mesh-main-mesh .mesh-page-actions,
   .mesh-main-mesh .mesh-page-status,
   .mesh-main-mesh .mesh-dashboard-rail {
     display: none !important;
-  }
-
-  .mesh-main-mesh .mesh-canvas-shell {
-    flex: 1;
-    min-height: 0;
   }
 
   .mesh-shell-mesh .mobile-bottom-nav {
@@ -3071,6 +3120,20 @@ html {
   .platform-spatial .mesh-canvas-shell {
     height: min(74rem, calc(100dvh - 8rem));
     min-height: min(54rem, calc(100dvh - 8rem));
+  }
+
+  .mesh-main-mesh .mesh-canvas-shell {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    flex: none !important;
+    z-index: 1;
   }
 
   .platform-spatial .mesh-filter-bar {
@@ -6149,6 +6212,19 @@ body,
   max-width: 42rem;
 }
 
+/* Let settings fill the viewport height so its internal panel scrolls */
+.mesh-content:has(.settings-traditional) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.mesh-content:has(.settings-traditional) > .mesh-route-slot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .settings-traditional {
   color: var(--text-primary);
 }
@@ -7594,10 +7670,17 @@ body {
   .mechat-sidebar {
     width: 100% !important;
     border-right: 0 !important;
-    border-bottom: 1px solid var(--mesh-border);
+    flex: 1;
+    min-height: 0;
   }
 
   .mechat-sidebar.mechat-sidebar-hidden {
+    display: none;
+  }
+
+  /* When viewing a thread/room, hide sidebar and show only the thread panel */
+  .mechat-layout[data-view="thread"] .mechat-sidebar,
+  .mechat-layout[data-view="room"] .mechat-sidebar {
     display: none;
   }
 
@@ -7607,7 +7690,7 @@ body {
   }
 
   .mechat-detail-panel {
-    display: none;
+    display: none !important;
   }
 }
 

@@ -57,7 +57,7 @@ const controlRows = [
   {
     icon: ShieldCheck,
     title: "Meshi boundary",
-    copy: "Meshi is the only deeply integrated AI layer so the rest of the product stays clean, predictable, and less invasive.",
+    copy: "Meshi is the only deeply integrated companion layer so the rest of the product stays clean, predictable, and less invasive.",
   },
 ];
 

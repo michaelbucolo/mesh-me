@@ -93,6 +93,7 @@ export interface RemoteMeshi {
   activePostId?: string | null;
   activeNodeId?: string | null;
   viewingMesh?: string | null;
+  ghostMode?: boolean;
 }
 
 export const MESHI_COLORS: Record<string, string> = {
@@ -123,8 +124,8 @@ const WANDER_INTERVAL_MAX = 10;
 const MOVE_SPEED = 100;
 // Idle threshold — after this many seconds of no cursor movement, Meshi explores freely
 const IDLE_THRESHOLD = 5;
-// Cursor follow offset — Meshi hovers near cursor, not exactly on it
-const CURSOR_OFFSET = 28;
+// Cursor follow offset — Meshi acts as the user's cursor on the mesh
+const CURSOR_OFFSET = 6;
 
 export function createMeshiState(
   cx: number,
@@ -270,77 +271,75 @@ export function tickMeshi(
 
   // Determine behavior mode
   if (state.isMobile) {
-    // Mobile touch: stay near center, but bias toward active interactions
-    const cx = (canvasWidth || 800) / 2;
-    const cy = (canvasHeight || 600) / 2;
-    // Offset slightly from dead center to feel natural
-    const offsetX = Math.sin(state.bobPhase * 0.3) * 40;
-    const offsetY = Math.cos(state.bobPhase * 0.2) * 30;
-    let targetX = cx + offsetX;
-    let targetY = cy + offsetY;
-    if (state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 3.5) {
-      // Move toward the interaction point, but stay somewhat centered on small screens.
-      targetX = targetX * 0.55 + state.interactionX * 0.45;
-      targetY = targetY * 0.55 + state.interactionY * 0.45;
-    }
-    const w = canvasWidth || 800;
-    const h = canvasHeight || 600;
-    state.targetX = Math.max(-w * 0.15, Math.min(w * 1.15, targetX));
-    state.targetY = Math.max(-h * 0.15, Math.min(h * 1.15, targetY));
-    state.followingCursor = false;
+    // Mobile: Meshi IS the user's finger/cursor on the mesh — follows touch directly
+    if (state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 2) {
+      // Snap to where user is touching
+      state.targetX = state.interactionX;
+      state.targetY = state.interactionY;
+      state.followingCursor = true;
+      state.targetNode = null;
+      state.moveTimer = 3;
+      if (!state.isMoving) state.mood = "happy";
+    } else {
+      // No active touch — sit at center of screen as user's avatar
+      const cx = (canvasWidth || 800) / 2;
+      const cy = (canvasHeight || 600) / 2;
+      const idleBobX = Math.sin(state.bobPhase * 0.25) * 8;
+      const idleBobY = Math.cos(state.bobPhase * 0.18) * 6;
+      state.targetX = cx + idleBobX;
+      state.targetY = cy + idleBobY;
+      state.followingCursor = false;
 
-    // If idle long enough on touch, explore nearby visible nodes
-    if (isIdle && state.moveTimer <= 0) {
-      const visibleNodes = nodes.filter((n) => {
-        if (n.type === "self") return false;
+      // When idle, explore nearby nodes
+      state.moveTimer -= dt;
+      if (state.moveTimer <= 0) {
         const w = canvasWidth || 800;
         const h = canvasHeight || 600;
-        // Only pick nodes roughly in the visible viewport
-        return n.x > -w * 0.3 && n.x < w * 1.3 && n.y > -h * 0.3 && n.y < h * 1.3;
-      });
-      const next = visibleNodes.length > 0 ? pickNextTarget(state, visibleNodes) : null;
-      if (next) {
-        state.targetNode = next;
-        state.targetX = next.x;
-        state.targetY = next.y;
-        state.isMoving = true;
-        state.mood = "searching";
+        const visibleNodes = nodes.filter((n) => {
+          if (n.type === "self") return false;
+          return n.x > -w * 0.3 && n.x < w * 1.3 && n.y > -h * 0.3 && n.y < h * 1.3;
+        });
+        const next = visibleNodes.length > 0 ? pickNextTarget(state, visibleNodes) : null;
+        if (next) {
+          state.targetNode = next;
+          state.targetX = next.x;
+          state.targetY = next.y;
+          state.isMoving = true;
+          state.mood = "searching";
+        }
+        state.moveTimer = WANDER_INTERVAL_MIN + Math.random() * (WANDER_INTERVAL_MAX - WANDER_INTERVAL_MIN);
       }
-      state.moveTimer = WANDER_INTERVAL_MIN + Math.random() * (WANDER_INTERVAL_MAX - WANDER_INTERVAL_MIN);
-    } else {
-      state.moveTimer -= dt;
     }
   } else if (state.isTablet && state.cursorX !== null && state.cursorY !== null && !isIdle) {
-    // iPad/tablet with hover-capable input (e.g. Apple Pencil hover): follow hover point.
-    state.targetX = state.cursorX + CURSOR_OFFSET * 0.65;
-    state.targetY = state.cursorY + CURSOR_OFFSET * 0.65;
+    // iPad/tablet: Meshi acts as cursor
+    state.targetX = state.cursorX + CURSOR_OFFSET;
+    state.targetY = state.cursorY + CURSOR_OFFSET;
     state.followingCursor = true;
     state.targetNode = null;
     state.moveTimer = 2;
     if (!state.isMoving) state.mood = "happy";
-  } else if (state.isTablet && state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 4) {
-    // iPad/tablet: follow recent taps/clicks, and Apple Pencil hover when available.
-    state.targetX = state.interactionX + CURSOR_OFFSET * 0.65;
-    state.targetY = state.interactionY + CURSOR_OFFSET * 0.65;
+  } else if (state.isTablet && state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 3) {
+    // iPad/tablet touch: snap to tap point
+    state.targetX = state.interactionX;
+    state.targetY = state.interactionY;
     state.followingCursor = true;
     state.targetNode = null;
     state.moveTimer = 2;
     if (!state.isMoving) state.mood = "happy";
   } else if (!isIdle && state.cursorX !== null && state.cursorY !== null) {
-    // Desktop: follow cursor with a slight offset below-right
+    // Desktop: Meshi IS the cursor — follows mouse tightly
     state.targetX = state.cursorX + CURSOR_OFFSET;
     state.targetY = state.cursorY + CURSOR_OFFSET;
     state.followingCursor = true;
     state.targetNode = null;
-    state.moveTimer = 2; // Reset wander timer while following
+    state.moveTimer = 2;
     if (!state.isMoving) state.mood = "happy";
   } else {
-    // Desktop idle: explore freely (original wander behavior)
+    // Desktop idle: explore freely
     state.followingCursor = false;
     state.moveTimer -= dt;
 
     if (state.moveTimer <= 0) {
-      // Only pick nodes within the visible area
       const visibleNodes = nodes.filter((n) => {
         if (n.type === "self") return false;
         const w = canvasWidth || 800;
@@ -378,12 +377,12 @@ export function tickMeshi(
   const dy = state.targetY - state.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
 
-  // Faster follow speed when tracking cursor, normal speed when exploring
-  const effectiveSpeed = state.followingCursor ? MOVE_SPEED * 2.2 : MOVE_SPEED;
+  // Faster follow speed when acting as cursor — near-instant response
+  const effectiveSpeed = state.followingCursor ? MOVE_SPEED * 3.5 : MOVE_SPEED;
 
   if (dist > state.radius + 5) {
-    // Smooth ease-out: faster when far, decelerates as Meshi approaches
-    const approachFactor = state.followingCursor ? 4.5 : 3.0;
+    // Tight cursor tracking when following, natural ease when exploring
+    const approachFactor = state.followingCursor ? 8.0 : 3.0;
     const speed = Math.min(effectiveSpeed, dist * approachFactor) * dt;
     state.x += (dx / dist) * speed;
     state.y += (dy / dist) * speed;
@@ -953,11 +952,73 @@ export function drawMeshi(ctx: CanvasRenderingContext2D, state: MeshiState): voi
   ctx.fillText(state.username, labelX, labelY + 1);
 }
 
+/** Draw a ghost sprite for users in ghost mode */
+function drawGhostMeshi(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, time: number, phaseOffset: number) {
+  const ghostAlpha = 0.3 + Math.sin(time * 1.5 + phaseOffset) * 0.1;
+  ctx.save();
+  ctx.globalAlpha = ghostAlpha;
+
+  // Ghost body — rounded top, wavy bottom
+  ctx.beginPath();
+  ctx.arc(x, y - size * 0.15, size * 0.45, Math.PI, 0);
+  const bodyBottom = y + size * 0.35;
+  const waveCount = 4;
+  const waveWidth = (size * 0.9) / waveCount;
+  ctx.lineTo(x + size * 0.45, bodyBottom);
+  for (let i = waveCount - 1; i >= 0; i--) {
+    const wx = x - size * 0.45 + (i + 0.5) * waveWidth;
+    const wy = bodyBottom + Math.sin(time * 3 + phaseOffset + i) * 3;
+    const wx2 = x - size * 0.45 + i * waveWidth;
+    ctx.quadraticCurveTo(wx, wy, wx2, bodyBottom);
+  }
+  ctx.closePath();
+
+  const grad = ctx.createLinearGradient(x, y - size * 0.5, x, bodyBottom);
+  grad.addColorStop(0, "rgba(200, 210, 230, 0.9)");
+  grad.addColorStop(1, "rgba(160, 175, 200, 0.5)");
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Eyes — classic ghost hollow circles
+  const eyeY = y - size * 0.12;
+  const eyeSpacing = size * 0.15;
+  const eyeR = size * 0.07;
+  ctx.fillStyle = "rgba(30, 30, 50, 0.8)";
+  ctx.beginPath();
+  ctx.arc(x - eyeSpacing, eyeY, eyeR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + eyeSpacing, eyeY, eyeR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth — small "o"
+  ctx.beginPath();
+  ctx.arc(x, eyeY + size * 0.12, eyeR * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 /** Draw remote Meshi presences on the canvas using the same SVG model */
 export function drawRemoteMeshis(ctx: CanvasRenderingContext2D, remoteMeshis: RemoteMeshi[], time: number): void {
   for (const rm of remoteMeshis) {
+    // Ghost mode users get a special ghost sprite
+    if (rm.ghostMode) {
+      const phaseOffset = rm.userId.charCodeAt(0) + (rm.userId.charCodeAt(1) || 0) * 0.3;
+      const bob = Math.sin(time * 1.2 + phaseOffset) * 3;
+      drawGhostMeshi(ctx, rm.x, rm.y + bob, 30, time, phaseOffset);
+      // Ghost label
+      ctx.font = "bold 7px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = "rgba(200, 210, 230, 0.6)";
+      ctx.fillText("👻", rm.x, rm.y + 18);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+
     const isOffline = !rm.isOnline;
-    // Offline Meshis bob very slowly (sleeping), online ones bob normally
     const bobSpeed = isOffline ? 0.4 : 2;
     const bobAmplitude = isOffline ? 0.8 : 2;
     const phaseOffset = rm.userId.charCodeAt(0) + (rm.userId.charCodeAt(1) || 0) * 0.3;

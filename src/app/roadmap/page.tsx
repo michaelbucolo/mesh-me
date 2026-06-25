@@ -33,7 +33,7 @@ const launchFeatures = [
   { icon: Rss, title: "The Feed", copy: "A familiar scroll surface backed by the same unified content and source-aware data model." },
   { icon: MessageCircle, title: "MeChat", copy: "Unified messages, shared post context, and the foundation for group browsing sessions." },
   { icon: BarChart3, title: "Analytics", copy: "Creator insights, activity summaries, exports, permissions, privacy controls, and security posture." },
-  { icon: Sparkles, title: "Meshi", copy: "The mascot, user representative, customizable identity layer, and only deeply integrated AI companion." },
+  { icon: Sparkles, title: "Meshi", copy: "The mascot, user representative, customizable identity layer, and only deeply integrated companion." },
   { icon: Bell, title: "Notifications", copy: "A central notification hub designed to reduce noise and eventually replace native app alerts." },
   { icon: LockKeyhole, title: "Data controls", copy: "Clear connected-account permissions, export, deletion, visibility, and no ad-based data exploitation." },
 ];
@@ -129,7 +129,7 @@ export default function RoadmapPage() {
           <p className="mesh-kicker mb-3">Non-negotiables</p>
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">What Mesh.me should never become</h2>
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {["No ads", "No data selling", "No hidden AI sprawl", "No creator-credit theft", "No cluttered settings maze", "No one-size-fits-all interface"].map((item) => (
+            {["No ads", "No data selling", "No hidden feature sprawl", "No creator-credit theft", "No cluttered settings maze", "No one-size-fits-all interface"].map((item) => (
               <div key={item} className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-semibold text-emerald-100">
                 {item}
               </div>

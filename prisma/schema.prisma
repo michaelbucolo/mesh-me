@@ -812,7 +812,7 @@ model DataVisibilityPolicy {
   visibility     String
   allowDiscovery Boolean   @default(false)
   allowAnalytics Boolean   @default(false)
-  allowAiUse     Boolean   @default(false)
+  allowMeshiUse  Boolean   @default(false) @map("allowAiUse")
   expiresAt      DateTime?
   metadata       String    @default("{}")
   createdAt      DateTime  @default(now())
