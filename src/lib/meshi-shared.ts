@@ -47,7 +47,7 @@ export interface MeshiContext {
     mediaTypes?: string[];
     externalUrl?: string;
     contentRating?: string;
-    aiSignals?: string[];
+    mediaSignals?: string[];
   };
   currentPage?: string;
 }
@@ -57,7 +57,7 @@ export interface MeshiHistoryMessage {
   content: string;
 }
 
-export type MeshiSource = "llm" | "database" | "local" | "offline";
+export type MeshiSource = "engine" | "database" | "local" | "offline";
 
 export interface MeshiResponse {
   content: string;
@@ -66,8 +66,8 @@ export interface MeshiResponse {
   source: MeshiSource;
   model?: string;
   meshi: {
-    identity: "mascot-user-vessel-llm";
-    llmReady: boolean;
+    identity: "mascot-user-vessel";
+    engineReady: boolean;
     grounded: boolean;
   };
 }
@@ -86,7 +86,7 @@ export function createMeshiResponse(
     action?: MeshiAction;
     source: MeshiSource;
     model?: string;
-    llmReady?: boolean;
+    engineReady?: boolean;
     grounded?: boolean;
   },
 ): MeshiResponse {
@@ -97,8 +97,8 @@ export function createMeshiResponse(
     source: input.source,
     model: input.model,
     meshi: {
-      identity: "mascot-user-vessel-llm",
-      llmReady: input.llmReady ?? false,
+      identity: "mascot-user-vessel",
+      engineReady: input.engineReady ?? false,
       grounded: input.grounded ?? false,
     },
   };
@@ -109,7 +109,7 @@ export function createMeshiOfflineResponse(): MeshiResponse {
     content: "I could not reach my private reasoning engine right now. Your data stayed protected. Try again in a moment.",
     mood: "thinking",
     source: "offline",
-    llmReady: false,
+    engineReady: false,
     grounded: false,
   });
 }

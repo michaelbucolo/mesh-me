@@ -81,6 +81,7 @@ interface PresenceResponse {
     surface?: "mesh" | "feed";
     activePostId?: string | null;
     activeNodeId?: string | null;
+    ghostMode?: boolean;
     isOnline: boolean;
   }>;
   summary?: {
@@ -219,7 +220,7 @@ function isTypingTarget(target: EventTarget | null) {
   return target.isContentEditable || tagName === "input" || tagName === "textarea" || tagName === "select";
 }
 
-export function MeshExperience() {
+export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
   const router = useRouter();
   const { addToast } = useToast();
   const engineRef = useRef<MeshEngine | null>(null);
@@ -256,6 +257,7 @@ export function MeshExperience() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [showContentHub, setShowContentHub] = useState(false);
+  const [ghostMode, setGhostMode] = useState(false);
   const [remoteMeshis, setRemoteMeshis] = useState<RemoteMeshi[]>([]);
   const [presenceSummary, setPresenceSummary] = useState<PresenceResponse["summary"] | null>(null);
   const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
@@ -267,7 +269,8 @@ export function MeshExperience() {
     if (!silent) setStatus("loading");
     setError(null);
     try {
-      const response = await fetch("/api/mesh", {
+      const meshUrl = viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
+      const response = await fetch(meshUrl, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -291,7 +294,7 @@ export function MeshExperience() {
       if (!silent) setStatus("error");
       setError(err instanceof Error ? err.message : "Failed to load your Mesh.");
     }
-  }, []);
+  }, [viewUserId]);
 
   useEffect(() => {
     loadMesh();
@@ -517,6 +520,7 @@ export function MeshExperience() {
             activePostId: presence.activePostId || null,
             activeNodeId: presence.activeNodeId || null,
             viewingMesh: presence.viewingMesh || null,
+            ghostMode: presence.ghostMode || false,
           };
         }),
       );
@@ -527,6 +531,7 @@ export function MeshExperience() {
 
   const sendPresence = useCallback(async () => {
     if (!apiData) return;
+    if (viewUserId) return;
     const lastViewport = lastViewportRef.current;
     const lastMeshi = lastMeshiPositionRef.current;
     const activity = selectedNode ? "exploring" : hoveredNode ? "traveling" : "idle";
@@ -559,12 +564,13 @@ export function MeshExperience() {
           activeRoute: "/mesh",
           velocity: activity === "traveling" ? 1 : 0,
           activity,
+          ghostMode,
         }),
       });
     } catch {
       // Presence is best-effort.
     }
-  }, [activePresenceNode, activePresencePostId, apiData, hoveredNode, selectedNode]);
+  }, [activePresenceNode, activePresencePostId, apiData, ghostMode, hoveredNode, selectedNode, viewUserId]);
 
   useEffect(() => {
     if (!apiData) return;
@@ -1099,6 +1105,20 @@ export function MeshExperience() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(96,165,250,0.16),transparent_34%),radial-gradient(circle_at_78%_18%,rgba(34,197,94,0.12),transparent_24%),radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.12),transparent_28%)]" />
         </div>
 
+        {viewUserId && (
+          <div className="absolute left-0 right-0 top-0 z-30 flex items-center justify-between bg-[var(--mesh-bg-elevated)]/90 px-4 py-2 backdrop-blur-md border-b border-[var(--mesh-border)]">
+            <span className="text-sm font-medium text-[var(--mesh-text-secondary)]">
+              Visiting <span className="font-bold text-[var(--mesh-text)]">{apiData?.user.displayName || viewUserId}&apos;s</span> Mesh
+            </span>
+            <button
+              onClick={() => router.push("/mesh")}
+              className="rounded-lg bg-[var(--mesh-blue)] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[var(--mesh-blue)]/90"
+            >
+              Back to My Mesh
+            </button>
+          </div>
+        )}
+
         {status === "loading" && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--mesh-bg-deep)]/80 backdrop-blur-md">
             <div className="flex w-[min(92vw,28rem)] items-center gap-4 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
@@ -1216,6 +1236,7 @@ export function MeshExperience() {
             <MeshActionBar
               showContentHub={showContentHub}
               showNodePrivacy={showPrivacy}
+              ghostMode={ghostMode}
               hiddenCount={hiddenCount}
               isSyncingAll={isSyncingAll}
               onCreatePost={() => setShowComposer(true)}
@@ -1223,6 +1244,7 @@ export function MeshExperience() {
               onSyncAll={handleSyncAll}
               onToggleContentHub={() => setShowContentHub((current) => !current)}
               onTogglePrivacy={() => setShowPrivacy((current) => !current)}
+              onToggleGhostMode={() => setGhostMode((current) => !current)}
             />
             <MeshMiniMap
               nodes={visibleNodes}

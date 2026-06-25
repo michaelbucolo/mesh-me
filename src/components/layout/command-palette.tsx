@@ -192,7 +192,7 @@ function createCommands(username: string): CommandItem[] {
       category: "Action",
       action: "meshi",
       icon: Sparkles,
-      keywords: ["assistant", "ai", "companion", "help"],
+      keywords: ["assistant", "companion", "help", "guide"],
     },
     {
       id: "report-bug",

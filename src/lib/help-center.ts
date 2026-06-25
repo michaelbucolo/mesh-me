@@ -105,7 +105,7 @@ export const helpArticles: HelpArticle[] = [
     steps: [
       "Meshi represents your presence inside the Mesh and follows you through product surfaces.",
       "Meshi is intentionally simple: bubble body, two eyes, no mouth, and minimal accessories.",
-      "Meshi is the focused AI layer for help, navigation, and understanding your Mesh.me activity.",
+      "Meshi is the focused companion for help, navigation, and understanding your Mesh.me activity.",
       "Meshi should feel personal without covering important UI or making the app harder to use.",
     ],
     relatedLinks: [
