@@ -1241,6 +1241,7 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
         {hasLoadedData && (
           <>
             <MeshFilterBar
+              className="top-0 md:top-[5rem]"
               filter={filter}
               nodes={visibleNodes}
               platformOptions={platformOptions}
