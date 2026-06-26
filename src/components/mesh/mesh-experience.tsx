@@ -443,6 +443,12 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
     }
   }, [platformFilter, platformOptions]);
 
+  useEffect(() => {
+    if (filter !== "all" && !modeVisibleNodes.some((node) => node.type === filter)) {
+      setFilter("all");
+    }
+  }, [filter, modeVisibleNodes]);
+
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
 
   const visibleEdges = useMemo(
