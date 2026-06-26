@@ -35,7 +35,7 @@ import {
   MeshZoomControls,
   type MeshPlatformFilterOption,
 } from "./mesh-controls";
-import { buildMeshData, preloadNodeImages, type MeshApiResponse } from "./mesh-data";
+import { buildMeshData, applyViewMode, preloadNodeImages, type MeshApiResponse, type MeshViewMode } from "./mesh-data";
 import { MeshEngine } from "./mesh-engine";
 import { MeshCommandPalette } from "./mesh-command-palette";
 import { MeshFootprint } from "./mesh-footprint";
@@ -95,7 +95,17 @@ const STORAGE_KEYS = {
   hiddenNodes: "mesh:hidden-nodes",
   hiddenBranches: "mesh:hidden-branches",
   likedPosts: "mesh:liked-posts",
+  viewMode: "mesh:view-mode",
 };
+
+function readStoredViewMode(): MeshViewMode {
+  if (typeof window === "undefined") return "simplified";
+  try {
+    return window.localStorage.getItem(STORAGE_KEYS.viewMode) === "advanced" ? "advanced" : "simplified";
+  } catch {
+    return "simplified";
+  }
+}
 
 const countTotalItems = (data: MeshApiResponse | null) => {
   if (!data) return 0;
@@ -242,6 +252,7 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [showLabels, setShowLabels] = useState(true);
   const [showStats, setShowStats] = useState(false);
+  const [viewMode, setViewMode] = useState<MeshViewMode>(() => readStoredViewMode());
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<MeshNode | null>(null);
@@ -365,6 +376,11 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
   }, [hiddenNodes]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(STORAGE_KEYS.viewMode, viewMode); } catch { /* storage unavailable */ }
+  }, [viewMode]);
+
+  useEffect(() => {
     storeSet(STORAGE_KEYS.hiddenBranches, hiddenBranches);
   }, [hiddenBranches]);
 
@@ -387,14 +403,19 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
     };
   }, [apiData?.meshCosmetics]);
 
+  const modeVisibleNodes = useMemo(
+    () => applyViewMode(allNodes, viewMode),
+    [allNodes, viewMode],
+  );
+
   const privacyVisibleNodes = useMemo(() => {
-    if (hiddenNodes.size === 0 && hiddenBranches.size === 0) return allNodes;
-    return allNodes.filter((node) => {
+    if (hiddenNodes.size === 0 && hiddenBranches.size === 0) return modeVisibleNodes;
+    return modeVisibleNodes.filter((node) => {
       if (node.type === "self") return true;
       if (hiddenNodes.has(node.id)) return false;
       return !hiddenBranches.has(node.type);
     });
-  }, [allNodes, hiddenBranches, hiddenNodes]);
+  }, [modeVisibleNodes, hiddenBranches, hiddenNodes]);
 
   const platformOptions = useMemo(
     () => buildPlatformFilterOptions(apiData, privacyVisibleNodes),
@@ -1227,10 +1248,12 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
             <MeshZoomControls
               showLabels={showLabels}
               showStats={showStats}
+              advancedView={viewMode === "advanced"}
               onZoom={handleZoomDelta}
               onReset={resetView}
               onToggleLabels={() => setShowLabels((current) => !current)}
               onToggleStats={() => setShowStats((current) => !current)}
+              onToggleView={() => setViewMode((current) => (current === "advanced" ? "simplified" : "advanced"))}
             />
             <MeshStatsBar nodes={visibleNodes} zoom={zoom} visible={showStats} />
             <MeshActionBar
