@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { impactFeedback } from "@/lib/native/haptics";
 import { getBadgeCount, isNavItemActive, resolveNavHref } from "@/components/layout/navigation-config";
-import { Bell, House, MessageCircle, PlusSquare, Search, Waypoints } from "lucide-react";
+import { Compass, MessageCircle, PlusSquare, Settings, User, Waypoints } from "lucide-react";
 import { useKeyboard } from "@/hooks/use-keyboard";
 
 interface MobileNavProps {
@@ -16,11 +16,11 @@ interface MobileNavProps {
 }
 
 const mobilePrimaryNav = [
-  { href: "/feed", icon: House, label: "Home" },
-  { href: "/search", icon: Search, label: "Search" },
   { href: "/mesh", icon: Waypoints, label: "Mesh" },
-  { href: "/notifications", icon: Bell, label: "Notifications", badgeKey: "notifications" as const },
   { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" as const },
+  { href: "/feed", icon: Compass, label: "Flow" },
+  { href: "/profile", icon: User, label: "Profile" },
+  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, username }: MobileNavProps) {
