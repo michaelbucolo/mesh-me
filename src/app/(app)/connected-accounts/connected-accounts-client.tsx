@@ -13,6 +13,7 @@ import {
   PlugZap,
   RefreshCw,
   Search,
+  Sparkles,
   ShieldCheck,
   Trash2,
 } from "lucide-react";
@@ -330,7 +331,15 @@ function PlatformCard({
   );
 }
 
-export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard: ConnectedAccountsDashboard }) {
+export function ConnectedAccountsClient({
+  initialDashboard,
+  fromOnboarding = false,
+  preselectPlatforms = [],
+}: {
+  initialDashboard: ConnectedAccountsDashboard;
+  fromOnboarding?: boolean;
+  preselectPlatforms?: string[];
+}) {
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [actionState, setActionState] = useState<ActionState>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -358,6 +367,14 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
     for (const platform of dashboard.supportedPlatforms) values.add(platform.category);
     return Array.from(values).sort();
   }, [dashboard.supportedPlatforms]);
+
+  const quickMergePlatforms = useMemo(() => {
+    if (preselectPlatforms.length === 0) return [];
+    const byId = new Map(dashboard.supportedPlatforms.map((platform) => [platform.id, platform]));
+    return preselectPlatforms
+      .map((id) => byId.get(id))
+      .filter((platform): platform is SupportedPlatformView => Boolean(platform) && platform!.activeCount === 0);
+  }, [preselectPlatforms, dashboard.supportedPlatforms]);
 
   async function refreshDashboard() {
     setBusyKey("refresh");
@@ -504,6 +521,49 @@ export function ConnectedAccountsClient({ initialDashboard }: { initialDashboard
           {actionState.type === "error" ? <AlertCircle className="h-4 w-4" aria-hidden="true" /> : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
           {actionState.message}
         </div>
+      )}
+
+      {fromOnboarding && quickMergePlatforms.length > 0 && (
+        <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/40 bg-[var(--accent-subtle)] p-5">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[var(--accent)]">
+              <Sparkles className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold">Merge the apps you picked</h2>
+              <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                Connect each one to pull your presence into a single mesh. One-tap for OAuth platforms, a quick handle for the rest.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {quickMergePlatforms.map((platform) => (
+              <div
+                key={`quick-${platform.id}`}
+                className="flex items-center justify-between gap-3 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] px-3 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">{platform.name}</p>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {platform.authType === "oauth" ? "One-tap connect" : "Add handle"}
+                  </p>
+                </div>
+                {platform.authType === "oauth" && platform.configured && platform.connectHref ? (
+                  <Link href={platform.connectHref} prefetch={false} className={cn(buttonVariants({ size: "sm" }))}>
+                    <PlugZap className="h-4 w-4" aria-hidden="true" />
+                    Connect
+                  </Link>
+                ) : platform.authType === "manual" ? (
+                  <Button type="button" size="sm" variant="secondary" onClick={() => chooseManualPlatform(platform)}>
+                    Add
+                  </Button>
+                ) : (
+                  <Badge variant="warning">Setup needed</Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <section className="grid gap-3">
