@@ -91,20 +91,33 @@ export async function POST(req: NextRequest) {
   const rawItems = Array.isArray(body.items) ? body.items.slice(0, 20) : [];
   const participantIds = cleanParticipantIds(body.participantIds, user.id);
 
-  const participants = participantIds.length
-    ? await prisma.user.findMany({
-        where: {
-          id: { in: participantIds },
-          isSuspended: false,
-          isPublic: true,
-          showInDiscovery: true,
-        },
-        select: { id: true, displayName: true },
-      })
-    : [];
+  if (participantIds.length > 0) {
+    // People the user already shares a conversation with can always be invited,
+    // even if their profile is private or hidden from discovery.
+    const sharedThreadMembers = await prisma.threadMember.findMany({
+      where: {
+        userId: { in: participantIds },
+        thread: { members: { some: { userId: user.id } } },
+      },
+      select: { userId: true },
+    });
+    const connectedIds = new Set(sharedThreadMembers.map((m) => m.userId));
 
-  if (participants.length !== participantIds.length) {
-    return NextResponse.json({ error: "One or more invited people could not be added." }, { status: 400 });
+    const reachable = await prisma.user.findMany({
+      where: {
+        id: { in: participantIds },
+        isSuspended: false,
+        OR: [
+          { AND: [{ isPublic: true }, { showInDiscovery: true }] },
+          { id: { in: Array.from(connectedIds) } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (reachable.length !== participantIds.length) {
+      return NextResponse.json({ error: "One or more invited people could not be added." }, { status: 400 });
+    }
   }
 
   if (participantIds.length > 0) {
