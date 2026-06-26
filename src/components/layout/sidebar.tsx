@@ -106,11 +106,11 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
                   </span>
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isCollapsed && "-rotate-90")} />
                 </button>
-              ) : (
+              ) : desktopNavGroups.length > 1 ? (
                 <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   {group.label}
                 </p>
-              )}
+              ) : null}
               {!isCollapsed && (
                 <div className="space-y-0.5">
                   {group.items.map(renderNavItem)}
