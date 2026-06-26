@@ -7,7 +7,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition
 import { flushSync } from "react-dom";
 import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { AnimatePresence, motion, type Transition, useReducedMotion } from "framer-motion";
-import { finalizeSignInForEntry, requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
+import { requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import {
   MeshiMascot,
@@ -663,7 +663,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
 
   const meshiNote = useMemo(() => {
     if (stage === "identity") return meshiPreview ? `Hi ${previewDisplayName}. I found your Meshi.` : "";
-    if (entryState === "failed") return stage === "signup" || stage === "reset" ? "I can fix this with you." : "Connection dropped. Try again.";
+    if (entryState === "failed") return stage === "signup" || stage === "reset" ? "I can fix this with you." : "Let's try that again.";
     if (entryState === "unlocking") return stage === "signup" ? "Opening your Mesh..." : "Reconnecting your world...";
     if (stage === "reset") return resetSent ? "Check your inbox." : "I can help recover your Mesh.";
     if (stage === "signup") return "I will help you build your Mesh.";
@@ -853,24 +853,10 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
       flushSync(() => {
         setEntryState("unlocking");
       });
-      const sessionFormData = new FormData();
-      formData.forEach((value, key) => sessionFormData.append(key, value));
+      const destination = result.redirectTo || "/mesh";
       window.setTimeout(() => {
-        startTransition(async () => {
-          const sessionResult = await finalizeSignInForEntry(sessionFormData);
-          if (sessionResult?.error) {
-            setEntryState("failed");
-            setMessage(
-              sessionResult.error === "Invalid email or password"
-                ? "That password didn't work. Try again."
-                : sessionResult.error,
-            );
-            window.setTimeout(() => passwordInputRef.current?.focus(), 120);
-            return;
-          }
-          router.push(sessionResult.redirectTo || result.redirectTo || "/mesh");
-        });
-      }, reduceMotion ? 180 : 1080);
+        router.push(destination);
+      }, reduceMotion ? 160 : 620);
     });
   };
 
