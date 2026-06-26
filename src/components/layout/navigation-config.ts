@@ -1,15 +1,8 @@
 import {
-  Archive,
-  Bell,
   Compass,
-  Home,
-  Link2,
-  Layers3,
   MessageCircle,
   Settings,
-  ShieldCheck,
   User,
-  Users,
   Waypoints,
   type LucideIcon,
 } from "lucide-react";
@@ -30,13 +23,10 @@ export interface NavGroup {
 }
 
 export const sidebarNavItems: NavItem[] = [
-  { href: "/mesh", icon: Home, label: "The Mesh" },
+  { href: "/mesh", icon: Waypoints, label: "Mesh" },
+  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
+  { href: "/feed", icon: Compass, label: "Flow" },
   { href: "/profile", icon: User, label: "Profile" },
-  { href: "/spaces", icon: Layers3, label: "Spaces" },
-  { href: "/communities", icon: Users, label: "Communities" },
-  { href: "/connected-accounts", icon: Link2, label: "Connections" },
-  { href: "/vault", icon: Archive, label: "Vault" },
-  { href: "/trust", icon: ShieldCheck, label: "Verify" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -45,25 +35,8 @@ export const desktopNavGroups: NavGroup[] = [
     label: "Core",
     items: [
       { href: "/mesh", icon: Waypoints, label: "Mesh" },
-      { href: "/feed", icon: Compass, label: "Feed" },
-    ],
-  },
-  {
-    label: "Social",
-    items: [
       { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
-      { href: "/notifications", icon: Bell, label: "Alerts", badgeKey: "notifications" },
-      { href: "/communities", icon: Users, label: "Communities" },
-      { href: "/spaces", icon: Layers3, label: "Spaces" },
-    ],
-  },
-  {
-    label: "Manage",
-    collapsible: true,
-    items: [
-      { href: "/connected-accounts", icon: Link2, label: "Connections" },
-      { href: "/vault", icon: Archive, label: "Vault" },
-      { href: "/trust", icon: ShieldCheck, label: "Verify" },
+      { href: "/feed", icon: Compass, label: "Flow" },
     ],
   },
 ];
@@ -74,10 +47,10 @@ export const desktopBottomItems: NavItem[] = [
 ];
 
 export const mobileNavItems: NavItem[] = [
-  { href: "/feed", icon: Compass, label: "Home" },
   { href: "/mesh", icon: Waypoints, label: "Mesh" },
-  { href: "/notifications", icon: Bell, label: "Notifications", badgeKey: "notifications" },
   { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
+  { href: "/feed", icon: Compass, label: "Flow" },
+  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 export function resolveNavHref(href: string, username?: string): string {

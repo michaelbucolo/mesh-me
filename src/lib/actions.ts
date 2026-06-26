@@ -483,10 +483,6 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
 }
 
 export async function signInForEntry(formData: FormData) {
-  return completeSignIn(formData, { createSessionCookie: false });
-}
-
-export async function finalizeSignInForEntry(formData: FormData) {
   return completeSignIn(formData, { createSessionCookie: true });
 }
 
