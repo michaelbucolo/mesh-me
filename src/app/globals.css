@@ -7615,7 +7615,7 @@ body {
   .mesh-sidebar .mesh-nav-item span:not(.sr-only),
   .mesh-sidebar .mesh-privacy-card,
   .mesh-sidebar .mesh-user-dock .min-w-0,
-  .mesh-sidebar .mesh-user-dock svg,
+  .mesh-sidebar .mesh-user-dock svg:not(.meshi-presence-glyph-face),
   .mesh-sidebar > div:last-child {
     display: none;
   }
