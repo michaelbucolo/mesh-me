@@ -262,7 +262,7 @@ export function MeChatHome({
             sessionType: "co_browse",
             callMode: "none",
             items: [],
-            participantIds: thread.otherUsers.map((u) => u.id).concat(thread.otherUser?.id ? [thread.otherUser.id] : []),
+            participantIds: thread.otherUsers.map((u) => u.id),
           }),
         });
         const data = await res.json().catch(() => ({ error: "Could not start bubble" }));
@@ -456,7 +456,7 @@ export function MeChatHome({
             sessionType,
             callMode: mode,
             items: [],
-            participantIds: thread.otherUsers.map((u) => u.id).concat(thread.otherUser?.id ? [thread.otherUser.id] : []),
+            participantIds: thread.otherUsers.map((u) => u.id),
           }),
         });
         const data = await res.json().catch(() => ({ error: "Could not start call" }));
