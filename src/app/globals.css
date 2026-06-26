@@ -534,6 +534,8 @@ select:focus-visible {
 
 .mesh-main-mesh .mesh-page-actions {
   position: absolute;
+  top: auto;
+  height: auto;
   bottom: max(0.8rem, env(safe-area-inset-bottom));
   left: 0.75rem;
   right: 0.75rem;
