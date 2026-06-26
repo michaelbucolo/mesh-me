@@ -5,7 +5,7 @@ import { getCurrentUser, hashPassword, createSession, destroySession, verifyPass
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
-import { getBaseUrl, isPlatformOAuth, isSupportedPlatform } from "./oauth";
+import { getBaseUrl, isSupportedPlatform } from "./oauth";
 import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState, nsfwHiddenWhere } from "./content-safety";
@@ -709,13 +709,9 @@ export async function completeOnboarding(formData: FormData) {
     new Set(formData.getAll("interests").map((value) => sanitizeForDisplay(String(value).trim())).filter(Boolean)),
   ).slice(0, 12);
   const interfaceStyle = String(formData.get("interfaceStyle") || "balanced");
-  const firstPlatform = String(formData.get("firstPlatform") || "").trim().toLowerCase();
-  const connectFirstPlatform = formData.get("connectFirstPlatform") === "true";
-  const rawPlatforms = [
-    ...formData.getAll("platforms").map((value) => String(value).trim().toLowerCase()),
-    firstPlatform,
-  ].filter(Boolean);
-  const platforms = Array.from(new Set(rawPlatforms)).filter(isSupportedPlatform).slice(0, 8);
+  const quickMerge = formData.get("quickMerge") === "true";
+  const rawPlatforms = formData.getAll("platforms").map((value) => String(value).trim().toLowerCase()).filter(Boolean);
+  const platforms = Array.from(new Set(rawPlatforms)).filter(isSupportedPlatform).slice(0, 24);
   const meshVisibility = ["private", "friends", "public"].includes(String(formData.get("meshVisibility")))
     ? String(formData.get("meshVisibility"))
     : "private";
@@ -908,9 +904,8 @@ export async function completeOnboarding(formData: FormData) {
     }
   }
 
-  if (connectFirstPlatform && firstPlatform && isSupportedPlatform(firstPlatform)) {
-    if (isPlatformOAuth(firstPlatform)) redirect(`/api/auth/${firstPlatform}`);
-    redirect(`/connected-accounts?platform=${encodeURIComponent(firstPlatform)}&from=onboarding`);
+  if (quickMerge && platforms.length > 0) {
+    redirect(`/connected-accounts?from=onboarding&preselect=${encodeURIComponent(platforms.join(","))}`);
   }
 
   redirect("/mesh");
