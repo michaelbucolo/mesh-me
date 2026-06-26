@@ -95,6 +95,7 @@ model User {
   meChatSessionItems         MeChatSessionItem[]        @relation("sessionItemAuthor")
   meChatSessionVotes         MeChatSessionVote[]        @relation("sessionVoteUser")
   meshNodes                  MeshNode[]
+  meChatNotes                MeChatNote[]
   meshEdgesFrom              MeshEdge[]                 @relation("MeshEdgeFromUser")
   contentSources             ContentSource[]
   syncedContent              SyncedContent[]
@@ -1147,6 +1148,21 @@ model MeChatSessionVote {
 
   @@unique([itemId, userId])
   @@index([userId])
+}
+
+model MeChatNote {
+  id        String   @id @default(cuid())
+  userId    String
+  text      String
+  songTitle String?
+  songArtist String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model RedeemCode {
