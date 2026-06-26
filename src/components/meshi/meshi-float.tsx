@@ -79,6 +79,13 @@ function shouldHideGlobalMeshi(pathname: string) {
   return MESHI_PUBLIC_ROUTES.has(pathname) || pathname.startsWith("/login/");
 }
 
+// On the Mesh, the canvas renders the single living Meshi (the user's cursor/avatar
+// inside the world). The floating DOM body must yield to it so only ONE Meshi is ever
+// visible — they are the same entity. Chat/actions stay available as anchored overlays.
+function isMeshSurfacePath(pathname: string) {
+  return pathname === "/mesh" || pathname.startsWith("/mesh/");
+}
+
 const SEARCH_TRIGGERS = ["search", "find", "look for", "where", "show me"];
 
 const PAGE_AMBIENT_MOODS: Record<string, MeshiMood[]> = {
@@ -663,6 +670,9 @@ export function MeshiFloat() {
   const speechInputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
+  const isMeshSurface = isMeshSurfacePath(pathname);
+  const isMeshSurfaceRef = useRef(isMeshSurface);
+  useEffect(() => { isMeshSurfaceRef.current = isMeshSurface; }, [isMeshSurface]);
 
   const persistContinuityState = useCallback(
     (patch: Partial<Omit<MeshiContinuityState, "version" | "instanceId" | "updatedAt">> = {}) => {
@@ -1390,6 +1400,13 @@ export function MeshiFloat() {
     const handleMeshiOpen = (event: Event) => {
       const customEvent = event as CustomEvent<MeshiOpenMode>;
       const mode = customEvent.detail || "actions";
+      // On the Mesh the floating body is hidden, so anchored modes (speech/actions)
+      // have nothing to attach to — open the full chat modal instead.
+      if (isMeshSurfaceRef.current) {
+        setView("chat");
+        setMood("happy");
+        return;
+      }
       if (mode === "speech") {
         setView("speech");
         setMood("thinking");
@@ -1411,7 +1428,7 @@ export function MeshiFloat() {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "m") {
         e.preventDefault();
-        setView((prev) => (prev === "closed" ? "actions" : "closed"));
+        setView((prev) => (prev !== "closed" ? "closed" : isMeshSurfaceRef.current ? "chat" : "actions"));
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -1472,7 +1489,10 @@ export function MeshiFloat() {
         )}
       </AnimatePresence>
 
-      {/* THE ONE MESHI - standalone floating entity */}
+      {/* THE ONE MESHI - standalone floating entity.
+          On the Mesh the canvas draws this same entity as the user's cursor/avatar,
+          so the floating body yields there to keep Meshi a strict singleton. */}
+      {!isMeshSurface && (
       <AnimatePresence>
         <motion.div
           data-meshi-float="true"
@@ -1749,6 +1769,7 @@ export function MeshiFloat() {
             </motion.div>
           </motion.div>
       </AnimatePresence>
+      )}
 
       {/* Actions Menu — hidden on mesh page */}
       <AnimatePresence>

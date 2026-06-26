@@ -257,6 +257,14 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<MeshNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<MeshNode | null>(null);
+  const hoveredNodeRef = useRef<MeshNode | null>(null);
+  const selectedNodeRef = useRef<MeshNode | null>(null);
+  useEffect(() => {
+    hoveredNodeRef.current = hoveredNode;
+  }, [hoveredNode]);
+  useEffect(() => {
+    selectedNodeRef.current = selectedNode;
+  }, [selectedNode]);
   const [hiddenNodes, setHiddenNodes] = useState<Set<string>>(() => readStoredSet(STORAGE_KEYS.hiddenNodes));
   const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(() => readStoredSet(STORAGE_KEYS.hiddenBranches));
   const [likedPosts, setLikedPosts] = useState<Set<string>>(() => readStoredSet(STORAGE_KEYS.likedPosts));
@@ -496,21 +504,9 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
     return [...ids];
   }, [apiData]);
 
-  const refreshPresence = useCallback(async () => {
-    if (!apiData) return;
-    try {
-      const params = new URLSearchParams({
-        meshOwner: apiData.user.id,
-        connectedIds: connectedUserIds.join(","),
-        surface: "mesh",
-      });
-      if (activePresencePostId) params.set("activePostId", activePresencePostId);
-      const response = await fetch(`/api/mesh/presence?${params.toString()}`, {
-        credentials: "same-origin",
-        cache: "no-store",
-      });
-      if (!response.ok) return;
-      const payload = (await response.json().catch(() => ({}))) as PresenceResponse;
+  const applyPresencePayload = useCallback(
+    (payload: PresenceResponse) => {
+      if (!apiData) return;
       setPresenceSummary(payload.summary || null);
       setRemoteMeshis(
         (payload.presences || []).map((presence) => {
@@ -551,10 +547,30 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
           };
         }),
       );
+    },
+    [apiData, nodesByPresenceKey],
+  );
+
+  const refreshPresence = useCallback(async () => {
+    if (!apiData) return;
+    try {
+      const params = new URLSearchParams({
+        meshOwner: apiData.user.id,
+        connectedIds: connectedUserIds.join(","),
+        surface: "mesh",
+      });
+      if (activePresencePostId) params.set("activePostId", activePresencePostId);
+      const response = await fetch(`/api/mesh/presence?${params.toString()}`, {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      const payload = (await response.json().catch(() => ({}))) as PresenceResponse;
+      applyPresencePayload(payload);
     } catch {
       // Presence is additive. The Mesh should remain usable if it is unavailable.
     }
-  }, [activePresencePostId, apiData, connectedUserIds, nodesByPresenceKey]);
+  }, [activePresencePostId, apiData, connectedUserIds, applyPresencePayload]);
 
   const sendPresence = useCallback(async () => {
     if (!apiData) return;
@@ -599,24 +615,95 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
     }
   }, [activePresenceNode, activePresencePostId, apiData, ghostMode, hoveredNode, selectedNode, viewUserId]);
 
+  // Keep the latest sender in a ref so the heartbeat loop can call it without
+  // restarting every time hover/selection state changes.
+  const sendPresenceRef = useRef(sendPresence);
+  useEffect(() => {
+    sendPresenceRef.current = sendPresence;
+  }, [sendPresence]);
+
+  // Receive remote presence live over SSE. The server pushes a fresh payload the
+  // instant any Meshi moves, so others appear and glide in real time instead of
+  // snapping on a fixed interval. Falls back to a one-shot poll on error;
+  // EventSource reconnects on its own.
   useEffect(() => {
     if (!apiData) return;
-    sendPresence();
-    refreshPresence();
-    const interval = window.setInterval(() => {
-      sendPresence();
+    if (typeof window === "undefined" || typeof EventSource === "undefined") {
       refreshPresence();
-    }, 2500);
+      const poll = window.setInterval(refreshPresence, 2500);
+      return () => window.clearInterval(poll);
+    }
+
+    const params = new URLSearchParams({
+      meshOwner: apiData.user.id,
+      surface: "mesh",
+    });
+    if (activePresencePostId) params.set("activePostId", activePresencePostId);
+
+    const source = new EventSource(`/api/mesh/presence/stream?${params.toString()}`, {
+      withCredentials: true,
+    });
+
+    source.addEventListener("presence", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data) as PresenceResponse;
+        applyPresencePayload(payload);
+      } catch {
+        // Ignore malformed frames.
+      }
+    });
+
+    source.onerror = () => {
+      // EventSource retries automatically; nudge a poll so we are not blank
+      // while it reconnects.
+      refreshPresence();
+    };
 
     return () => {
-      window.clearInterval(interval);
+      source.close();
+    };
+  }, [apiData, activePresencePostId, applyPresencePayload, refreshPresence]);
+
+  // Adaptive heartbeat: report our Meshi often while it is moving or active so
+  // the live glide always has a fresh target, and back off to a slow keepalive
+  // when idle to save bandwidth.
+  useEffect(() => {
+    if (!apiData) return;
+    if (viewUserId) return;
+
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let lastSent = { x: Number.NaN, y: Number.NaN };
+    const FAST_MS = 450;
+    const SLOW_MS = 2500;
+
+    const tick = () => {
+      if (stopped) return;
+      const current = lastMeshiPositionRef.current;
+      const moved =
+        !Number.isFinite(lastSent.x) ||
+        Math.hypot(current.x - lastSent.x, current.y - lastSent.y) > 1.5;
+      const active = Boolean(selectedNodeRef.current || hoveredNodeRef.current);
+
+      sendPresenceRef.current();
+      lastSent = { x: current.x, y: current.y };
+
+      const delay = moved || active ? FAST_MS : SLOW_MS;
+      timer = setTimeout(tick, delay);
+    };
+
+    tick();
+
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
       fetch("/api/mesh/presence", {
         method: "DELETE",
         credentials: "same-origin",
         keepalive: true,
       }).catch(() => {});
     };
-  }, [apiData, refreshPresence, sendPresence]);
+  }, [apiData, viewUserId]);
 
   const handleMeshiPositionChange = useCallback((x: number, y: number, mood: string) => {
     lastMeshiPositionRef.current = { x, y, mood };

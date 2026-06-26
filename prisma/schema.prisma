@@ -1179,3 +1179,34 @@ model RedeemCode {
   redeemedAt  DateTime?
   createdAt   DateTime  @default(now())
 }
+
+model MeshPresence {
+  userId         String   @id
+  username       String
+  displayName    String
+  avatarUrl      String?
+  meshiColor     String   @default("blue")
+  meshiHat       String   @default("none")
+  meshiHair      String   @default("none")
+  meshiAccessory String   @default("none")
+  meshiEyeStyle  String   @default("regular")
+  meshiBadge     String   @default("none")
+  meshiOutfit    String   @default("none")
+  meshiMood      String   @default("happy")
+  posX           Float    @default(0)
+  posY           Float    @default(0)
+  vx             Float    @default(0.5)
+  vy             Float    @default(0.5)
+  viewingMesh    String
+  surface        String   @default("mesh")
+  activePostId   String?
+  activeNodeId   String?
+  activeRoute    String?
+  velocity       Float    @default(0)
+  activity       String   @default("idle")
+  ghostMode      Boolean  @default(false)
+  lastSeen       DateTime
+
+  @@index([lastSeen])
+  @@index([viewingMesh])
+}
