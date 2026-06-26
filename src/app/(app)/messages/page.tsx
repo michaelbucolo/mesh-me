@@ -28,7 +28,13 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
   if (!user) redirect("/login?next=/messages");
   if (!user.onboarded) redirect("/onboarding");
 
-  const [{ sharePostId, sharePlatformPostId, shareUrl, shareTitle, sourcePlatform, roomTitle, callMode }, threads, sessions, connectedAccounts] = await Promise.all([
+  const threadMemberRows = await prisma.threadMember.findMany({
+    where: { thread: { members: { some: { userId: user.id } } } },
+    select: { userId: true },
+  });
+  const noteAudienceIds = Array.from(new Set([user.id, ...threadMemberRows.map((row) => row.userId)]));
+
+  const [{ sharePostId, sharePlatformPostId, shareUrl, shareTitle, sourcePlatform, roomTitle, callMode }, threads, sessions, connectedAccounts, activeNotes] = await Promise.all([
     searchParams,
     getMessageThreads(),
     prisma.meChatSession.findMany({
@@ -74,7 +80,37 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       },
       orderBy: { updatedAt: "desc" },
     }),
+    prisma.meChatNote.findMany({
+      where: {
+        userId: { in: noteAudienceIds },
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        user: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
+
+  const seenNoteUsers = new Set<string>();
+  const initialNotes = activeNotes
+    .filter((note) => {
+      if (seenNoteUsers.has(note.userId)) return false;
+      seenNoteUsers.add(note.userId);
+      return true;
+    })
+    .map((note) => ({
+      id: note.id,
+      userId: note.userId,
+      text: note.text,
+      songTitle: note.songTitle,
+      songArtist: note.songArtist,
+      createdAt: note.createdAt.toISOString(),
+      expiresAt: note.expiresAt.toISOString(),
+      user: note.user,
+    }));
 
   const capabilityByPlatform = new Map(
     PLATFORM_CAPABILITIES.map((capability) => [normalizePlatformId(capability.id), capability]),
@@ -95,6 +131,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       sourcePlatform={sourcePlatform}
       suggestedRoomTitle={roomTitle}
       suggestedCallMode={callMode === "voice" || callMode === "video" ? callMode : undefined}
+      initialNotes={initialNotes}
       connectedInboxes={connectedAccounts.map((account) => {
         const platformId = normalizePlatformId(account.platform);
         const capability = capabilityByPlatform.get(platformId);

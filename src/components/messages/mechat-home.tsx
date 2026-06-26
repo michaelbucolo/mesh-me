@@ -10,6 +10,7 @@ import {
   Link2,
   Loader2,
   MessageCircle,
+  Music,
   Paperclip,
   Phone,
   Plus,
@@ -100,11 +101,23 @@ type ConnectedInbox = {
 
 type UserSearchResult = Person;
 
+type MeChatNoteEntry = {
+  id: string;
+  userId: string;
+  text: string;
+  songTitle: string | null;
+  songArtist: string | null;
+  createdAt: string;
+  expiresAt: string;
+  user: Person;
+};
+
 type MeChatHomeProps = {
   currentUser: Person;
   initialThreads: MeChatThread[];
   initialSessions: MeChatSession[];
   connectedInboxes: ConnectedInbox[];
+  initialNotes: MeChatNoteEntry[];
   sharedPostId?: string;
   sharedPlatformPostId?: string;
   sharedUrl?: string;
@@ -154,6 +167,7 @@ export function MeChatHome({
   initialThreads,
   initialSessions,
   connectedInboxes,
+  initialNotes,
   sharedPostId,
   sharedPlatformPostId,
   sharedUrl,
@@ -184,7 +198,79 @@ export function MeChatHome({
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewRoom, setShowNewRoom] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [notes, setNotes] = useState<MeChatNoteEntry[]>(initialNotes);
+  const [showNoteComposer, setShowNoteComposer] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [noteSong, setNoteSong] = useState("");
+  const [activeNote, setActiveNote] = useState<MeChatNoteEntry | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const myNote = useMemo(() => notes.find((note) => note.userId === currentUser.id) ?? null, [notes, currentUser.id]);
+  const friendNotes = useMemo(() => notes.filter((note) => note.userId !== currentUser.id), [notes, currentUser.id]);
+
+  function saveNote() {
+    if (!noteText.trim() && !noteSong.trim()) {
+      setShowNoteComposer(false);
+      return;
+    }
+    startTransition(async () => {
+      setStatus(null);
+      try {
+        const res = await fetch("/api/mechat/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: noteText.trim(), songTitle: noteSong.trim() }),
+        });
+        const data = await res.json().catch(() => ({ error: "Could not save note" }));
+        if (!res.ok) throw new Error(data.error || "Could not save note");
+        setNotes((current) => [data.note, ...current.filter((n) => n.userId !== currentUser.id)]);
+        setNoteText("");
+        setNoteSong("");
+        setShowNoteComposer(false);
+      } catch (error) {
+        setStatus({ type: "error", message: error instanceof Error ? error.message : "Could not save note" });
+      }
+    });
+  }
+
+  function clearNote() {
+    startTransition(async () => {
+      try {
+        await fetch("/api/mechat/notes", { method: "DELETE" });
+        setNotes((current) => current.filter((n) => n.userId !== currentUser.id));
+        setShowNoteComposer(false);
+      } catch {
+        setStatus({ type: "error", message: "Could not clear note" });
+      }
+    });
+  }
+
+  function startBubbleFromThread(thread: MeChatThread) {
+    const peerName = threadDisplay(thread);
+    startTransition(async () => {
+      setStatus(null);
+      try {
+        const res = await fetch("/api/mechat/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: `Bubble with ${peerName}`,
+            sessionType: "co_browse",
+            callMode: "none",
+            items: [],
+            participantIds: thread.otherUsers.map((u) => u.id).concat(thread.otherUser?.id ? [thread.otherUser.id] : []),
+          }),
+        });
+        const data = await res.json().catch(() => ({ error: "Could not start bubble" }));
+        if (!res.ok) throw new Error(data.error || "Could not start bubble");
+        updateSession(data.session);
+        setSelectedThreadId(null);
+        setStatus({ type: "success", message: `Bubble started with ${peerName}` });
+      } catch (error) {
+        setStatus({ type: "error", message: error instanceof Error ? error.message : "Could not start bubble" });
+      }
+    });
+  }
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? sessions[0] ?? null,
@@ -575,6 +661,64 @@ export function MeChatHome({
 
         {/* Thread list */}
         <div className="flex-1 overflow-y-auto">
+          {/* Notes & stories strip (Instagram-style) */}
+          <div className="border-b border-[var(--mesh-border)] px-3 py-3">
+            <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {/* Your note */}
+              <button
+                type="button"
+                onClick={() => {
+                  setNoteText(myNote?.text ?? "");
+                  setNoteSong(myNote?.songTitle ?? "");
+                  setShowNoteComposer(true);
+                }}
+                className="flex w-16 shrink-0 flex-col items-center gap-1.5"
+              >
+                <div className="relative">
+                  <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-14 w-14" />
+                  {myNote ? (
+                    <span className="absolute -top-2 left-1/2 max-w-[72px] -translate-x-1/2 truncate rounded-full bg-[var(--mesh-bg-elevated)] border border-[var(--mesh-border)] px-2 py-0.5 text-[9px] text-[var(--mesh-text)] shadow-sm">
+                      {myNote.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
+                      {myNote.text || myNote.songTitle}
+                    </span>
+                  ) : (
+                    <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--mesh-bg)] bg-[var(--mesh-blue)] text-white">
+                      <Plus size={11} />
+                    </span>
+                  )}
+                </div>
+                <span className="w-full truncate text-center text-[10px] text-[var(--mesh-text-muted)]">
+                  {myNote ? "Your note" : "Note"}
+                </span>
+              </button>
+
+              {/* Friends' notes */}
+              {friendNotes.map((note) => (
+                <button
+                  key={note.id}
+                  type="button"
+                  onClick={() => setActiveNote(note)}
+                  className="flex w-16 shrink-0 flex-col items-center gap-1.5"
+                >
+                  <div className="relative">
+                    <span className="absolute -top-2 left-1/2 z-10 max-w-[72px] -translate-x-1/2 truncate rounded-full bg-[var(--mesh-bg-elevated)] border border-[var(--mesh-border)] px-2 py-0.5 text-[9px] text-[var(--mesh-text)] shadow-sm">
+                      {note.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
+                      {note.text || note.songTitle}
+                    </span>
+                    <span className="block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px]">
+                      <span className="block rounded-full border-2 border-[var(--mesh-bg)]">
+                        <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-14 w-14" />
+                      </span>
+                    </span>
+                  </div>
+                  <span className="w-full truncate text-center text-[10px] text-[var(--mesh-text-muted)]">
+                    {note.user.displayName?.split(" ")[0] || note.user.username}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Rooms section */}
           {sessions.length > 0 && (
             <div className="px-3 pb-1 pt-2">
@@ -687,6 +831,10 @@ export function MeChatHome({
                 <p className="text-xs text-[var(--mesh-text-muted)]">{threadSubtitle(selectedThread)}</p>
               </div>
               <div className="flex items-center gap-1.5">
+                <button type="button" onClick={() => startBubbleFromThread(selectedThread)} disabled={isPending} className="flex items-center gap-1.5 rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40" title="Start a bubble">
+                  <MessageCircle size={14} />
+                  <span className="hidden sm:inline">Bubble</span>
+                </button>
                 <button type="button" onClick={() => startCallFromThread(selectedThread, "voice")} disabled={isPending} className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)] disabled:opacity-40" title="Voice call">
                   <Phone size={16} />
                 </button>
@@ -1012,6 +1160,71 @@ export function MeChatHome({
                 )}
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Note composer */}
+      {showNoteComposer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowNoteComposer(false)}>
+          <div className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center gap-3">
+              <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-12 w-12" />
+              <div>
+                <p className="text-sm font-bold text-[var(--mesh-text)]">Share a note</p>
+                <p className="text-xs text-[var(--mesh-text-muted)]">Disappears after 24 hours</p>
+              </div>
+            </div>
+            <input
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              maxLength={60}
+              autoFocus
+              placeholder="Share a thought..."
+              className="h-10 w-full rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3 text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+            />
+            <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3">
+              <Music size={14} className="shrink-0 text-[var(--mesh-text-muted)]" />
+              <input
+                value={noteSong}
+                onChange={(e) => setNoteSong(e.target.value)}
+                maxLength={120}
+                placeholder="Add a song (optional)"
+                className="h-10 w-full bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+              />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              {myNote && (
+                <button type="button" onClick={clearNote} disabled={isPending} className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-muted)] hover:text-red-400 disabled:opacity-50">
+                  Clear note
+                </button>
+              )}
+              <button type="button" onClick={saveNote} disabled={isPending} className="ml-auto rounded-xl bg-[var(--mesh-blue)] px-5 py-2 text-sm font-bold text-white disabled:opacity-50">
+                {isPending ? "Sharing..." : "Share"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Friend note viewer */}
+      {activeNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setActiveNote(null)}>
+          <div className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <Avatar src={activeNote.user.avatarUrl} alt={activeNote.user.displayName} size="md" className="h-12 w-12" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-[var(--mesh-text)]">{activeNote.user.displayName}</p>
+                <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{activeNote.user.username}</p>
+              </div>
+            </div>
+            {activeNote.text && <p className="mt-4 text-sm text-[var(--mesh-text)]">{activeNote.text}</p>}
+            {activeNote.songTitle && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--mesh-panel)] px-3 py-2 text-xs text-[var(--mesh-text)]">
+                <Music size={14} className="shrink-0 text-[var(--mesh-blue)]" />
+                <span className="truncate">{activeNote.songTitle}{activeNote.songArtist ? ` — ${activeNote.songArtist}` : ""}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
