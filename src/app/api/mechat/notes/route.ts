@@ -111,22 +111,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Song details too long" }, { status: 400 });
     }
 
-    // A user keeps a single active note — replace any previous one.
-    await prisma.meChatNote.deleteMany({ where: { userId: user.id } });
-
-    const created = await prisma.meChatNote.create({
-      data: {
-        userId: user.id,
-        text,
-        songTitle: songTitle || null,
-        songArtist: songArtist || null,
-        expiresAt: new Date(Date.now() + NOTE_LIFESPAN_MS),
-      },
-      include: {
-        user: {
-          select: { id: true, username: true, displayName: true, avatarUrl: true },
+    // A user keeps a single active note — replace any previous one atomically.
+    const created = await prisma.$transaction(async (tx) => {
+      await tx.meChatNote.deleteMany({ where: { userId: user.id } });
+      return tx.meChatNote.create({
+        data: {
+          userId: user.id,
+          text,
+          songTitle: songTitle || null,
+          songArtist: songArtist || null,
+          expiresAt: new Date(Date.now() + NOTE_LIFESPAN_MS),
         },
-      },
+        include: {
+          user: {
+            select: { id: true, username: true, displayName: true, avatarUrl: true },
+          },
+        },
+      });
     });
 
     return NextResponse.json({
