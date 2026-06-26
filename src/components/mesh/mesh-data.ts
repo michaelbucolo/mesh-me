@@ -150,6 +150,50 @@ function organizeNode(node: MeshNode, cx: number, cy: number): MeshNode {
   };
 }
 
+export type MeshViewMode = "simplified" | "advanced";
+
+// Caps used by the Simplified view to keep the Mesh digestible.
+const SIMPLE_MAX_PEOPLE = 12;
+const SIMPLE_MAX_POSTS = 14;
+
+/**
+ * Simplified view: keep the user at center, their identities, connected
+ * platforms, the most relevant people, and their most important posts.
+ * Low-signal clutter (loose activity items and interest tags) is set aside
+ * for the Advanced view. Returns the subset of nodes to show; edges are
+ * filtered downstream by node visibility.
+ */
+export function applyViewMode(nodes: MeshNode[], mode: MeshViewMode): MeshNode[] {
+  if (mode === "advanced") return nodes;
+
+  const byImportance = (a: MeshNode, b: MeshNode) =>
+    (b.importance ?? 0) - (a.importance ?? 0);
+
+  const topPeople = new Set(
+    nodes.filter((n) => n.type === "user").sort(byImportance).slice(0, SIMPLE_MAX_PEOPLE).map((n) => n.id),
+  );
+  const topPosts = new Set(
+    nodes.filter((n) => n.type === "post").sort(byImportance).slice(0, SIMPLE_MAX_POSTS).map((n) => n.id),
+  );
+
+  return nodes.filter((node) => {
+    switch (node.type) {
+      case "self":
+      case "alter-ego":
+      case "platform":
+      case "community":
+        return true;
+      case "user":
+        return topPeople.has(node.id);
+      case "post":
+        return topPosts.has(node.id);
+      default:
+        // activity + tag nodes are Advanced-only
+        return false;
+    }
+  });
+}
+
 export function buildMeshData(data: MeshApiResponse, cx: number, cy: number): BuildResult {
   const nodes: MeshNode[] = [];
   const edges: MeshEdge[] = [];
