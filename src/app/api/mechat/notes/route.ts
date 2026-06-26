@@ -117,7 +117,7 @@ export async function POST(req: Request) {
     const created = await prisma.meChatNote.create({
       data: {
         userId: user.id,
-        text: text || (songTitle ? `${songTitle}` : ""),
+        text,
         songTitle: songTitle || null,
         songArtist: songArtist || null,
         expiresAt: new Date(Date.now() + NOTE_LIFESPAN_MS),

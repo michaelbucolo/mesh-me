@@ -236,11 +236,15 @@ export function MeChatHome({
   function clearNote() {
     startTransition(async () => {
       try {
-        await fetch("/api/mechat/notes", { method: "DELETE" });
+        const res = await fetch("/api/mechat/notes", { method: "DELETE" });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({ error: "Could not clear note" }));
+          throw new Error(data.error || "Could not clear note");
+        }
         setNotes((current) => current.filter((n) => n.userId !== currentUser.id));
         setShowNoteComposer(false);
-      } catch {
-        setStatus({ type: "error", message: "Could not clear note" });
+      } catch (error) {
+        setStatus({ type: "error", message: error instanceof Error ? error.message : "Could not clear note" });
       }
     });
   }
