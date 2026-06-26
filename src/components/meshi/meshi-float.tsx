@@ -107,6 +107,7 @@ const MESHI_VIEWPORT_GAP = 12;
 const MESHI_AVOID_SELECTOR = [
   "[data-meshi-avoid]",
   "[data-sidebar]",
+  ".bug-report-widget",
   ".mobile-bottom-nav",
   ".mobile-compose-fab",
   ".app-route-progress",
@@ -360,7 +361,7 @@ function isAvoidElementVisible(element: Element, rect: MeshiRect) {
   const style = window.getComputedStyle(element);
   if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
 
-  const isStructuralChrome = element.matches("[data-sidebar], .mobile-bottom-nav, .mobile-compose-fab, .app-route-progress, .app-command-bar, .feed-x-topbar, .mesh-action-bar, .mesh-canvas-toolbar, [role='dialog'], dialog, [data-meshi-avoid]");
+  const isStructuralChrome = element.matches("[data-sidebar], .bug-report-widget, .mobile-bottom-nav, .mobile-compose-fab, .app-route-progress, .app-command-bar, .feed-x-topbar, .mesh-action-bar, .mesh-canvas-toolbar, [role='dialog'], dialog, [data-meshi-avoid]");
   if (style.pointerEvents === "none" && !isStructuralChrome) return false;
 
   const coversMostViewport = rect.width > window.innerWidth * 0.82 && rect.height > window.innerHeight * 0.66;

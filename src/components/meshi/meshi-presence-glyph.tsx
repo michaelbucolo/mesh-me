@@ -23,7 +23,18 @@ export function MeshiPresenceGlyph({
       aria-label={label}
       role="img"
     >
-      <span aria-hidden="true">me</span>
+      <svg
+        viewBox="0 0 64 64"
+        width="100%"
+        height="100%"
+        fill="none"
+        aria-hidden="true"
+        className="meshi-presence-glyph-face"
+      >
+        <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="4" />
+        <circle cx="25" cy="32" r="4.4" fill="currentColor" />
+        <circle cx="39" cy="32" r="4.4" fill="currentColor" />
+      </svg>
     </span>
   );
 }
