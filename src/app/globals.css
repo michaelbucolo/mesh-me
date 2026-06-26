@@ -2314,9 +2314,7 @@ select:focus-visible {
 }
 
 .meshi-presence-glyph::before {
-  inset: 20%;
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
-  opacity: 0.58;
+  display: none;
 }
 
 .meshi-presence-glyph::after {
@@ -2330,13 +2328,12 @@ select:focus-visible {
   to { transform: rotate(360deg); }
 }
 
-.meshi-presence-glyph > span {
+.meshi-presence-glyph-face {
   position: relative;
   z-index: 1;
-  font-size: max(0.5rem, calc(var(--meshi-glyph-size) * 0.28));
-  font-weight: 950;
-  letter-spacing: 0;
-  line-height: 1;
+  width: 78%;
+  height: 78%;
+  color: var(--accent);
 }
 
 .meshi-presence-glyph-active {
@@ -7619,8 +7616,8 @@ body {
   .mesh-sidebar .mesh-brand-lockup span,
   .mesh-sidebar .mesh-nav-item span:not(.sr-only),
   .mesh-sidebar .mesh-privacy-card,
-  .mesh-sidebar .mesh-user-dock .min-w-0,
-  .mesh-sidebar .mesh-user-dock svg,
+  .mesh-sidebar .mesh-user-dock .min-w-0.flex-1,
+  .mesh-sidebar .mesh-user-dock svg:not(.meshi-presence-glyph-face),
   .mesh-sidebar > div:last-child {
     display: none;
   }
@@ -7659,6 +7656,11 @@ body {
     min-height: 3.5rem;
     gap: 0.75rem;
     padding: 0.5rem 1rem;
+  }
+
+  .mesh-shell-feed .mesh-topbar,
+  .mesh-shell-mesh .mesh-topbar {
+    display: none !important;
   }
 }
 
