@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { getCurrentUser } from "@/lib/auth";
 import { getMeshiPreference } from "@/lib/actions";
-import { OAUTH_CONFIGS } from "@/lib/oauth";
+import { getSupportedPlatformAdapter } from "@/lib/platform-adapters";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -27,13 +27,26 @@ export default async function OnboardingPage() {
     }),
   ]);
 
-  const platformOptions = ["youtube", "instagram", "twitter", "threads", "facebook", "discord", "tiktok", "twitch", "reddit", "snapchat"]
-    .filter((platform) => OAUTH_CONFIGS[platform])
-    .map((platform) => ({
-      id: platform,
-      name: OAUTH_CONFIGS[platform].name,
-      connected: connectedAccounts.some((account) => account.platform === platform && account.isActive),
-    }));
+  // Popular apps people commonly use, ordered roughly by reach. OAuth-capable
+  // platforms can be quick-merged right after setup; manual ones are tracked too.
+  const popularApps = [
+    "instagram", "tiktok", "youtube", "twitter", "threads", "facebook",
+    "snapchat", "discord", "twitch", "reddit", "spotify", "linkedin",
+    "pinterest", "github", "soundcloud", "patreon", "dribbble",
+    "whatsapp", "telegram", "bluesky", "mastodon", "tumblr",
+  ];
+  const platformOptions = popularApps
+    .map((platform) => {
+      const adapter = getSupportedPlatformAdapter(platform);
+      if (!adapter) return null;
+      return {
+        id: adapter.id,
+        name: adapter.name,
+        authType: adapter.authType,
+        connected: connectedAccounts.some((account) => account.platform === platform && account.isActive),
+      };
+    })
+    .filter((option): option is { id: string; name: string; authType: "oauth" | "manual"; connected: boolean } => Boolean(option));
 
   return (
     <OnboardingFlow

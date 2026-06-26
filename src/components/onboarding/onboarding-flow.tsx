@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
-import { ArrowLeft, ArrowRight, Bell, Check, Eye, LayoutGrid, Link2, Loader2, Palette, Shield, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, Check, Eye, LayoutGrid, Loader2, Palette, Shield, Sparkles, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,7 +56,7 @@ type OnboardingFlowProps = {
     platformAlerts: boolean;
     productUpdates: boolean;
   };
-  platformOptions: Array<{ id: string; name: string; connected: boolean }>;
+  platformOptions: Array<{ id: string; name: string; authType: "oauth" | "manual"; connected: boolean }>;
 };
 
 const steps = [
@@ -65,7 +65,7 @@ const steps = [
   { id: "privacy", label: "Privacy", icon: Shield },
   { id: "notifications", label: "Alerts", icon: Bell },
   { id: "style", label: "Style", icon: LayoutGrid },
-  { id: "connect", label: "Connect", icon: Link2 },
+  { id: "apps", label: "Apps", icon: Sparkles },
 ] as const;
 
 const colors = ["blue", "purple", "pink", "green", "orange", "cyan", "gold"];
@@ -129,14 +129,20 @@ export function OnboardingFlow({
     productUpdates: notificationPreference.productUpdates,
   });
   const [interfaceStyle, setInterfaceStyle] = useState(feedPreference.layout);
-  const [firstPlatform, setFirstPlatform] = useState(platformOptions.find((platform) => !platform.connected)?.id ?? platformOptions[0]?.id ?? "");
-  const [connectFirstPlatform, setConnectFirstPlatform] = useState(true);
+  const [selectedApps, setSelectedApps] = useState<string[]>([]);
+  const [quickMerge, setQuickMerge] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const currentStep = steps[step];
   const progress = useMemo(() => Math.round(((step + 1) / steps.length) * 100), [step]);
   const canContinue = account.username.trim().length >= 3 && account.displayName.trim().length > 0;
+
+  function toggleApp(id: string) {
+    setSelectedApps((current) => (
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    ));
+  }
 
   function toggleInterest(tag: string) {
     setSelectedInterests((current) => (
@@ -199,11 +205,8 @@ export function OnboardingFlow({
     formData.set("notifyPlatformAlerts", String(notifications.platformAlerts));
     formData.set("notifyProductUpdates", String(notifications.productUpdates));
     formData.set("interfaceStyle", interfaceStyle);
-    if (firstPlatform) {
-      formData.set("firstPlatform", firstPlatform);
-      formData.append("platforms", firstPlatform);
-    }
-    formData.set("connectFirstPlatform", String(connectFirstPlatform && Boolean(firstPlatform)));
+    selectedApps.forEach((id) => formData.append("platforms", id));
+    formData.set("quickMerge", String(quickMerge && selectedApps.length > 0));
 
     updateMeshiLocalPreferences({
       color: meshiState.colorTheme as MeshiColor,
@@ -240,7 +243,7 @@ export function OnboardingFlow({
               eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
               badge={meshiState.badgeStyle as MeshiBadge}
               outfit={meshiState.outfitStyle as MeshiOutfit}
-              prop={currentStep.id === "notifications" ? "bell" : currentStep.id === "privacy" ? "shield" : currentStep.id === "connect" ? "compass" : "none"}
+              prop={currentStep.id === "notifications" ? "bell" : currentStep.id === "privacy" ? "shield" : currentStep.id === "apps" ? "compass" : "none"}
               animate
               showGlow={false}
             />
@@ -566,23 +569,36 @@ export function OnboardingFlow({
               </StepShell>
             )}
 
-            {currentStep.id === "connect" && (
-              <StepShell title="Connect your first account" body="Choose the first platform Mesh.me should bring into your world. You can skip and do this later.">
+            {currentStep.id === "apps" && (
+              <StepShell title="What apps do you use?" body="Pick the platforms you're already on. Mesh.me brings them into one place — and we'll help you connect them right after setup.">
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {platformOptions.map((platform) => (
-                    <button
-                      key={platform.id}
-                      type="button"
-                      onClick={() => setFirstPlatform(platform.id)}
-                      className={cn("mesh-choice min-h-20 rounded-md px-4 py-3 text-left", firstPlatform === platform.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
-                    >
-                      <span className="block text-sm font-bold">{platform.name}</span>
-                      <span className="mt-1 block text-xs text-[var(--text-muted)]">{platform.connected ? "Already connected" : "Connect after setup"}</span>
-                    </button>
-                  ))}
+                  {platformOptions.map((platform) => {
+                    const active = selectedApps.includes(platform.id);
+                    return (
+                      <button
+                        key={platform.id}
+                        type="button"
+                        onClick={() => toggleApp(platform.id)}
+                        aria-pressed={active}
+                        className={cn("mesh-choice min-h-20 rounded-md px-4 py-3 text-left transition", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+                        data-testid={`onboarding-app-${platform.id}`}
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="block text-sm font-bold">{platform.name}</span>
+                          {active && <Check size={15} className="text-[var(--accent)]" aria-hidden="true" />}
+                        </span>
+                        <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                          {platform.connected ? "Already connected" : platform.authType === "oauth" ? "One-tap connect" : "Add manually"}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="mt-4">
-                  <Toggle label="Start OAuth connection after setup" value={connectFirstPlatform} onChange={setConnectFirstPlatform} />
+                <div className="mt-4 grid gap-3">
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {selectedApps.length > 0 ? `${selectedApps.length} selected` : "Optional — you can skip and add apps later."}
+                  </p>
+                  <Toggle label="Help me connect these right after setup" value={quickMerge} onChange={setQuickMerge} />
                 </div>
               </StepShell>
             )}
