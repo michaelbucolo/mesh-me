@@ -166,19 +166,23 @@ export function MeshFilterBar({
 interface ZoomControlsProps {
   showLabels: boolean;
   showStats: boolean;
+  advancedView: boolean;
   onZoom: (delta: number) => void;
   onReset: () => void;
   onToggleLabels: () => void;
   onToggleStats: () => void;
+  onToggleView: () => void;
 }
 
 export function MeshZoomControls({
   showLabels,
   showStats,
+  advancedView,
   onZoom,
   onReset,
   onToggleLabels,
   onToggleStats,
+  onToggleView,
 }: ZoomControlsProps) {
   const controlClass = "p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/12 transition-all duration-300 active:scale-90";
   const activeClass = "p-2.5 rounded-xl bg-white/14 text-white shadow-sm shadow-white/10 transition-all duration-300 active:scale-90";
@@ -211,6 +215,17 @@ export function MeshZoomControls({
         aria-label={showStats ? "Hide stats" : "Show stats"}
       >
         <BarChart3 className="h-4 w-4" />
+      </button>
+      <div className="h-px bg-white/[0.06] mx-1" />
+      <button
+        onClick={onToggleView}
+        type="button"
+        aria-pressed={advancedView}
+        className={advancedView ? activeClass : controlClass}
+        title={advancedView ? "Switch to Simplified view" : "Switch to Advanced view"}
+        aria-label={advancedView ? "Switch to Simplified view (show key nodes only)" : "Switch to Advanced view (show all nodes)"}
+      >
+        <Layers className="h-4 w-4" />
       </button>
     </div>
   );
