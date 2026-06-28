@@ -195,6 +195,13 @@ function ShellTopBar({
               <Link href="/settings" className="mesh-dropdown-item">Settings</Link>
               <Link href="/privacy-controls" className="mesh-dropdown-item">Privacy Controls</Link>
               <Link href="/meshpro" className="mesh-dropdown-item">Mesh Pro</Link>
+              <button
+                type="button"
+                className="mesh-dropdown-item w-full text-left"
+                onClick={() => window.dispatchEvent(new CustomEvent("mesh:open-bug-report"))}
+              >
+                Report a bug
+              </button>
               <hr className="my-1 border-[var(--mesh-border)]" />
               <form action={signOut}>
                 <button type="submit" className="mesh-dropdown-item mesh-dropdown-danger w-full text-left">
