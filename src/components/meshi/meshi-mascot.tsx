@@ -776,7 +776,17 @@ export function MeshiMascot({
           <clipPath id={`${uniqueId}-clip`}>
             <circle cx="0" cy="0" r="22" />
           </clipPath>
-
+          {/* Glossy body fill — light gathers top-left, deepens toward the rim
+              so Meshi reads as a living, dimensional bubble rather than a flat disc. */}
+          <radialGradient id={`${uniqueId}-body`} cx="36%" cy="30%" r="80%">
+            <stop offset="0%" stopColor={theme.primary} stopOpacity="0.34" />
+            <stop offset="52%" stopColor={theme.primary} stopOpacity="0.15" />
+            <stop offset="100%" stopColor={theme.primary} stopOpacity="0.28" />
+          </radialGradient>
+          <radialGradient id={`${uniqueId}-shine`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
         </defs>
 
 
@@ -801,8 +811,8 @@ export function MeshiMascot({
 
         {/* Clipped content — everything inside the circle */}
         <g clipPath={`url(#${uniqueId}-clip)`}>
-          {/* Body — clean circle with smooth breathing animation */}
-          <motion.circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2"
+          {/* Body — glossy circle with smooth breathing animation */}
+          <motion.circle cx="0" cy="0" r="16" fill={`url(#${uniqueId}-body)`} stroke={theme.primary} strokeWidth="2"
             animate={animate ? (bouncy
               ? { y: [0, -2.5, 0, -1, 0], scaleX: [1, 0.97, 1.02, 0.99, 1], scaleY: [1, 1.04, 0.97, 1.01, 1] }
               : {
@@ -815,6 +825,13 @@ export function MeshiMascot({
               ? { duration: 2, repeat: Infinity, ease: "easeInOut" }
               : { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
             }
+          />
+          {/* Specular highlight — a soft glint that drifts gently, giving Meshi a wet, alive sheen */}
+          <motion.ellipse
+            cx="-5.5" cy="-7" rx="6" ry="4.4" fill={`url(#${uniqueId}-shine)`}
+            transform="rotate(-24 -5.5 -7)"
+            animate={animate ? { opacity: [0.75, 0.95, 0.75], cx: [-5.5, -4.8, -5.5] } : undefined}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
 
           {/* Simple outfits stay inside the bubble so Meshi remains minimal. */}
@@ -847,28 +864,9 @@ export function MeshiMascot({
           {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
         </g>
 
-        {/* Prop — rendered outside the clip for visibility */}
-        {showHands && (
-          <motion.g
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-          >
-            {holdingHands.map((hand) => (
-              <motion.path
-                key={`${hand.side}-holding-arm`}
-                d={`M ${hand.shoulderX} ${hand.shoulderY} Q ${hand.elbowX} ${hand.elbowY} ${hand.handX} ${hand.handY}`}
-                fill="none"
-                stroke={theme.primary}
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                animate={animate ? { y: [0, -0.5, 0.3, 0] } : undefined}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              />
-            ))}
-          </motion.g>
-        )}
-
+        {/* Prop — rendered outside the clip for visibility.
+            Meshi has NO arms: the hands float freely near the bubble, never
+            connected by a limb. */}
         {propSvg && (
           <motion.g
             initial={{ scale: 0, opacity: 0 }}
