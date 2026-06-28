@@ -230,7 +230,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const showWeb = activeTab === "top" || activeTab === "web";
 
   return (
-    <main className="search-index-page mx-auto grid w-full max-w-[62rem] gap-3 animate-page-enter">
+    <main className="search-index-page mx-auto grid w-full max-w-[62rem] grid-cols-[minmax(0,1fr)] gap-3 animate-page-enter">
       <header className="sticky top-0 z-20 bg-[var(--bg-primary)]/92 pb-2 pt-1 backdrop-blur md:top-3">
         <form onSubmit={submit} className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4">
           <Search className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
