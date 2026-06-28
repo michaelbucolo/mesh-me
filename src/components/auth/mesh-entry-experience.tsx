@@ -22,6 +22,8 @@ import {
   type MeshiProp,
 } from "@/components/meshi/meshi-mascot";
 import { cn } from "@/lib/utils";
+import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
+import type { IdentityProvider } from "@/lib/identity-auth";
 
 type EntryStage = "identity" | "password" | "signup" | "reset";
 type EntryState = "idle" | "connecting" | "failed" | "unlocking";
@@ -30,6 +32,8 @@ type IdentityKind = "empty" | "email" | "phone" | "username" | "invalid";
 
 type MeshEntryExperienceProps = {
   nextPath?: string | null;
+  oauthProviders?: IdentityProvider[];
+  initialError?: string | null;
 };
 
 type SignupDraft = {
@@ -594,7 +598,7 @@ function MeshConstellation({
   );
 }
 
-export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
+export function MeshEntryExperience({ nextPath, oauthProviders = [], initialError = null }: MeshEntryExperienceProps) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const identityHelpId = useId();
@@ -615,7 +619,7 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
   const [signupDraft, setSignupDraft] = useState<SignupDraft>({ email: "", username: "", phone: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialError ?? "");
   const [meshiPreview, setMeshiPreview] = useState<EntryMeshiPreview | null>(null);
   const [previewState, setPreviewState] = useState<"idle" | "looking" | "found">("idle");
   const [meshiEntrance, setMeshiEntrance] = useState<MeshiEntranceState>("idle");
@@ -818,10 +822,12 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
         return;
       }
 
-      await previewPromise;
+      // Reveal the password step immediately; the Meshi preview keeps loading
+      // in the background so the transition never waits on a round-trip.
       setEntryState("connecting");
       setStage("password");
       window.setTimeout(() => passwordInputRef.current?.focus(), reduceMotion ? 40 : 420);
+      void previewPromise;
     });
   };
 
@@ -1283,6 +1289,9 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
                   >
                     New here? Create your Mesh
                   </button>
+                  {oauthProviders.length ? (
+                    <IdentityProviderButtons providers={oauthProviders} next={nextPath} />
+                  ) : null}
                   <div className="mesh-entry-trust-row" aria-label="Mesh.me account protections">
                     <span><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> Private</span>
                     <span><LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" /> Secure</span>
@@ -1597,6 +1606,10 @@ export function MeshEntryExperience({ nextPath }: MeshEntryExperienceProps) {
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
                     Create my Mesh
                   </Button>
+
+                  {oauthProviders.length ? (
+                    <IdentityProviderButtons providers={oauthProviders} next={nextPath} />
+                  ) : null}
 
                   <button
                     type="button"
