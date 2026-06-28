@@ -1095,6 +1095,13 @@ select:focus-visible {
     bottom: calc(5.75rem + env(safe-area-inset-bottom));
   }
 }
+
+/* Meshi's open panel owns the corner — bug widget yields so they never overlap. */
+body[data-meshi-panel="open"] .bug-report-widget {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -4930,6 +4937,7 @@ body {
 
 .feed-consumption-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
 
@@ -4991,6 +4999,7 @@ body {
 
 .feed-post-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
 
@@ -5142,6 +5151,7 @@ body {
 
 .feed-text-post {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 10rem;
   align-content: center;
 }
