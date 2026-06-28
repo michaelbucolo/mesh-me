@@ -130,10 +130,10 @@ function ShellTopBar({
 
   return (
     <header className="mesh-topbar sticky top-0 z-30 flex min-h-[72px] items-center gap-4 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-6 backdrop-blur-xl">
-      <div className="min-w-0 shrink-0">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-[var(--mesh-text)]">{routeInfo.title}</h1>
-          <button type="button" className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Page info">
+      <div className="min-w-0 flex-1 lg:flex-none">
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="truncate text-xl font-bold text-[var(--mesh-text)]">{routeInfo.title}</h1>
+          <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Page info">
             <span className="text-xs">ⓘ</span>
           </button>
         </div>

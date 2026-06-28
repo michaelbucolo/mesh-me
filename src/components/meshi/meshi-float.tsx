@@ -554,6 +554,20 @@ export function MeshiFloat() {
     try { return localStorage.getItem("meshiEnabled") !== "false"; } catch { return true; }
   });
   const [view, setView] = useState<MeshiView>(() => initialContinuity?.view ?? "closed");
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const panelOpen = view === "chat" || view === "actions";
+    if (panelOpen) {
+      document.body.dataset.meshiPanel = "open";
+    } else {
+      delete document.body.dataset.meshiPanel;
+    }
+    return () => {
+      delete document.body.dataset.meshiPanel;
+    };
+  }, [view]);
+
   const [mood, setMood] = useState<MeshiMood>(() => {
     if (initialContinuity?.mood) return initialContinuity.mood;
     if (typeof window === "undefined") return "happy";
