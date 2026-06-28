@@ -164,8 +164,12 @@ export function renderMesh(
 
   ctx.restore();
 
-  // Draw mini legend in bottom-left corner (screen space)
-  drawLegend(ctx, logicalW, logicalH, f, nodes);
+  // Draw mini legend in bottom-left corner (screen space). On narrow viewports the
+  // filter bar at the top already conveys the same categories, and the legend would
+  // collide with the action bar, so it is only drawn when there is room for it.
+  if (logicalW >= 768) {
+    drawLegend(ctx, logicalW, logicalH, f, nodes);
+  }
 }
 
 // --- Ambient star field in screen space ---
