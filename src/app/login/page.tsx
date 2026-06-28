@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { MeshEntryExperience } from "@/components/auth/mesh-entry-experience";
 import { getCurrentUserRedirectState } from "@/lib/auth";
+import { getConfiguredIdentityProviders } from "@/lib/identity-auth";
 import { meshBrand } from "@/lib/brand";
 
 type LoginPageProps = {
-  searchParams?: Promise<{ next?: string | string[] }>;
+  searchParams?: Promise<{ next?: string | string[]; error?: string | string[] }>;
 };
 
 export const metadata: Metadata = {
@@ -31,9 +32,17 @@ function getSafeNextPath(value: string | string[] | undefined) {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const nextPath = getSafeNextPath(params?.next);
+  const errorParam = Array.isArray(params?.error) ? params?.error[0] : params?.error;
+  const initialError = errorParam ? errorParam.slice(0, 160) : null;
   const user = await getCurrentUserRedirectState();
   if (user?.onboarded) redirect(nextPath || "/mesh");
   if (user && !user.onboarded) redirect("/onboarding");
 
-  return <MeshEntryExperience nextPath={nextPath} />;
+  return (
+    <MeshEntryExperience
+      nextPath={nextPath}
+      oauthProviders={getConfiguredIdentityProviders()}
+      initialError={initialError}
+    />
+  );
 }

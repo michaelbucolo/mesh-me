@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/signup-form";
+import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { getCurrentUserRedirectState } from "@/lib/auth";
+import { getConfiguredIdentityProviders } from "@/lib/identity-auth";
 import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
@@ -15,6 +17,8 @@ export default async function SignupPage() {
   const user = await getCurrentUserRedirectState();
   if (user?.onboarded) redirect("/mesh");
   if (user && !user.onboarded) redirect("/onboarding");
+
+  const oauthProviders = getConfiguredIdentityProviders();
 
   return (
     <AuthShell
@@ -30,6 +34,9 @@ export default async function SignupPage() {
         </div>
 
         <SignupForm />
+        {oauthProviders.length ? (
+          <IdentityProviderButtons providers={oauthProviders} className="mt-6" />
+        ) : null}
       </section>
     </AuthShell>
   );
