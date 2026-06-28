@@ -44,10 +44,13 @@ export async function GET(
   const state = randomBytes(32).toString("hex");
   const nonce = randomBytes(16).toString("hex");
   const cookieStore = await cookies();
+  // form_post providers (Apple) return via a cross-site POST, which withholds
+  // SameSite=Lax cookies. Those flows need SameSite=None (and therefore Secure).
+  const crossSite = config.responseMode === "form_post";
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production" || crossSite,
+    sameSite: crossSite ? ("none" as const) : ("lax" as const),
     maxAge: 600,
     path: "/",
   };
