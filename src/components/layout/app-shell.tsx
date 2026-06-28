@@ -339,7 +339,7 @@ export function AppShell({ children, user }: AppShellProps) {
       </aside>
 
       {/* Main Content */}
-      <main className={`mesh-main flex min-h-0 min-w-0 flex-col overflow-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] md:h-dvh md:pb-0 ${isMeshSurface ? "mesh-main-mesh" : ""}`}>
+      <main className={`mesh-main flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 ${isMeshSurface ? "mesh-main-mesh" : ""}`}>
         <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />
 
         <div className="mesh-content flex-1 overflow-y-auto">
