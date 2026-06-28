@@ -166,9 +166,11 @@ export function renderMesh(
 
   // Draw mini legend in bottom-left corner (screen space). On phone and tablet
   // widths the filter bar at the top already conveys the same categories, and the
-  // legend would collide with the action bar, so it is only drawn on desktop where
-  // there is room for it.
-  if (logicalW >= 1024) {
+  // legend would collide with the action bar, so it is only drawn on desktop. The
+  // guard uses viewport width to match the mini map's `lg` (1024px) breakpoint,
+  // since canvas width varies with the sidebar.
+  const viewportW = typeof window !== "undefined" ? window.innerWidth : logicalW;
+  if (viewportW >= 1024) {
     drawLegend(ctx, logicalW, logicalH, f, nodes);
   }
 }
