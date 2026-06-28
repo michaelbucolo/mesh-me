@@ -95,7 +95,10 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
         },
         orderBy: { createdAt: "desc" },
       })
-      .catch(() => []),
+      .catch((error) => {
+        console.error("Failed to load MeChat notes", error);
+        return [];
+      }),
   ]);
 
   const seenNoteUsers = new Set<string>();
