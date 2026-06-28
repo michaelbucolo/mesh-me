@@ -644,6 +644,7 @@ export function MeshiMascot({
   const [isBlinking, setIsBlinking] = useState(false);
   const blinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleGestureActive = useRef(false);
 
   // Smooth blinking at random intervals (2-6 seconds)
   useEffect(() => {
@@ -753,6 +754,7 @@ export function MeshiMascot({
           return;
         }
         const side = Math.random() < 0.5 ? -1 : 1;
+        idleGestureActive.current = true;
         eyeOffsetX.set(side * 1.8);
         eyeOffsetY.set(-0.6);
         squishX.set(1.05); squishY.set(0.95); wobbleRotate.set(side * 2.5);
@@ -764,6 +766,7 @@ export function MeshiMascot({
           if (cancelled) return;
           squishX.set(1); squishY.set(1); wobbleRotate.set(0);
           eyeOffsetX.set(0); eyeOffsetY.set(0);
+          idleGestureActive.current = false;
           schedule();
         }, 520));
       }, delay);
@@ -773,10 +776,14 @@ export function MeshiMascot({
       cancelled = true;
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       settleTimers.forEach(clearTimeout);
-      // Reset to neutral so a gesture interrupted mid-flight (e.g. by speaking)
-      // never leaves Meshi stuck slightly squished or tilted.
-      squishX.set(1); squishY.set(1); wobbleRotate.set(0);
-      eyeOffsetX.set(0); eyeOffsetY.set(0);
+      // Only reset when a gesture was genuinely mid-flight (e.g. interrupted by
+      // speaking), so we never clobber the eyes' cursor tracking when nothing
+      // was animating.
+      if (idleGestureActive.current) {
+        squishX.set(1); squishY.set(1); wobbleRotate.set(0);
+        eyeOffsetX.set(0); eyeOffsetY.set(0);
+        idleGestureActive.current = false;
+      }
     };
   }, [interactive, animate, speaking, eyeOffsetX, eyeOffsetY, squishX, squishY, wobbleRotate]);
 
