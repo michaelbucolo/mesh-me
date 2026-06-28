@@ -760,13 +760,17 @@ export function MeshiMascot({
         squishX.set(1.05); squishY.set(0.95); wobbleRotate.set(side * 2.5);
         settleTimers.push(setTimeout(() => {
           if (cancelled) return;
+          // If the user started interacting mid-gesture, hand control to the
+          // pointer handlers instead of fighting them.
+          if (petCount.current > 0) { idleGestureActive.current = false; return; }
           squishX.set(0.97); squishY.set(1.03); wobbleRotate.set(-side * 1.5);
         }, 220));
         settleTimers.push(setTimeout(() => {
           if (cancelled) return;
+          idleGestureActive.current = false;
+          if (petCount.current > 0) { schedule(); return; }
           squishX.set(1); squishY.set(1); wobbleRotate.set(0);
           eyeOffsetX.set(0); eyeOffsetY.set(0);
-          idleGestureActive.current = false;
           schedule();
         }, 520));
       }, delay);
