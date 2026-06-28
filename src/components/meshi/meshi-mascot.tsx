@@ -35,13 +35,13 @@ const FACES: Record<string, { eyes: string; svg?: boolean }> = {
 const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   happy: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
-      <ellipse cx="5" cy="0" rx="2.5" ry="3" fill={color} />
+      <ellipse cx="-5" cy="0" rx="2.2" ry="3.5" fill={color} />
+      <ellipse cx="5" cy="0" rx="2.2" ry="3.5" fill={color} />
     </g>
   ),
   wink: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
+      <ellipse cx="-5" cy="0" rx="2.2" ry="3.5" fill={color} />
       <path d="M 2.5 0.5 Q 5 -2.5 7.5 0.5" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
     </g>
   ),
@@ -53,8 +53,8 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   ),
   searching: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="0" rx="2.5" ry="3" fill={color} />
-      <ellipse cx="5" cy="0" rx="2.5" ry="3" fill={color} />
+      <ellipse cx="-5" cy="0" rx="2.2" ry="3.5" fill={color} />
+      <ellipse cx="5" cy="0" rx="2.2" ry="3.5" fill={color} />
     </g>
   ),
   learning: (color: string) => (
@@ -104,13 +104,13 @@ export type MeshiProp =
 // SVG props are anchored where Meshi's hand grips them, never over the face.
 const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
   "magnifying-glass": (color: string) => (
-    <g transform="translate(17, 8) scale(0.52) rotate(-10)">
+    <g transform="translate(18, 7) scale(0.66) rotate(-10)">
       <circle cx="0" cy="0" r="6" fill="none" stroke={color} strokeWidth="2.5" />
       <line x1="4" y1="4" x2="10" y2="10" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     </g>
   ),
   clipboard: (color: string) => (
-    <g transform="translate(16, 8) scale(0.48) rotate(4)">
+    <g transform="translate(18, 7) scale(0.6) rotate(4)">
       <rect x="-5" y="-2" width="10" height="14" rx="1.5" fill="none" stroke={color} strokeWidth="2" />
       <rect x="-2" y="-4" width="4" height="3" rx="1" fill={color} />
       <line x1="-3" y1="3" x2="3" y2="3" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
@@ -119,50 +119,50 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
     </g>
   ),
   paintbrush: (color: string) => (
-    <g transform="translate(17, 9) scale(0.52) rotate(-35)">
+    <g transform="translate(18, 8) scale(0.66) rotate(-35)">
       <rect x="-1.5" y="-2" width="3" height="12" rx="1" fill={color} />
       <path d="M -2.5 10 Q 0 14 2.5 10" fill={color} opacity="0.7" />
     </g>
   ),
   megaphone: (color: string) => (
-    <g transform="translate(16, 8) scale(0.5) rotate(-8)">
+    <g transform="translate(18, 7) scale(0.64) rotate(-8)">
       <path d="M -2 -4 L 8 -8 L 8 4 L -2 0 Z" fill={color} opacity="0.8" />
       <rect x="-4" y="-4" width="3" height="4" rx="1" fill={color} />
     </g>
   ),
   shield: (color: string) => (
-    <g transform="translate(16, 8) scale(0.48)">
+    <g transform="translate(18, 7) scale(0.62)">
       <path d="M 0 -7 L 7 -3 L 6 5 L 0 8 L -6 5 L -7 -3 Z" fill="none" stroke={color} strokeWidth="2" />
       <path d="M 0 -2 L 3 1 L 0 4 L -3 1 Z" fill={color} opacity="0.5" />
     </g>
   ),
   compass: (color: string) => (
-    <g transform="translate(16, 8) scale(0.48)">
+    <g transform="translate(18, 7) scale(0.62)">
       <circle cx="0" cy="0" r="7" fill="none" stroke={color} strokeWidth="2" />
       <polygon points="0,-5 2,0 0,5 -2,0" fill={color} opacity="0.7" />
       <circle cx="0" cy="0" r="1.5" fill={color} />
     </g>
   ),
   bell: (color: string) => (
-    <g transform="translate(16, 8) scale(0.5)">
+    <g transform="translate(18, 7) scale(0.64)">
       <path d="M -5 2 Q -5 -6 0 -7 Q 5 -6 5 2 L -5 2 Z" fill={color} opacity="0.8" />
       <rect x="-6" y="2" width="12" height="2" rx="1" fill={color} />
       <circle cx="0" cy="5" r="1.5" fill={color} />
     </g>
   ),
   heart: (color: string) => (
-    <g transform="translate(0, 15) scale(0.58)">
+    <g transform="translate(0, 16) scale(0.7)">
       <path d="M 0 3 C -8 -2 -8 -8 -4 -8 C -1 -8 0 -5 0 -5 C 0 -5 1 -8 4 -8 C 8 -8 8 -2 0 3 Z" fill={color} opacity="0.8" />
     </g>
   ),
   wrench: (color: string) => (
-    <g transform="translate(17, 8) scale(0.52) rotate(-48)">
+    <g transform="translate(18, 7) scale(0.66) rotate(-48)">
       <rect x="-1.5" y="-2" width="3" height="14" rx="1" fill={color} />
       <circle cx="0" cy="-2" r="3" fill="none" stroke={color} strokeWidth="2" />
     </g>
   ),
   notebook: (color: string) => (
-    <g transform="translate(0, 15) scale(0.46) rotate(2)">
+    <g transform="translate(0, 16) scale(0.58) rotate(2)">
       <rect x="-6" y="-2" width="12" height="14" rx="1.5" fill="none" stroke={color} strokeWidth="2" />
       <line x1="-2" y1="-2" x2="-2" y2="12" stroke={color} strokeWidth="1.4" opacity="0.7" />
       <line x1="0" y1="3" x2="4" y2="-1" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
@@ -170,7 +170,7 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
     </g>
   ),
   paper: (color: string) => (
-    <g transform="translate(0, 15) scale(0.48) rotate(4)">
+    <g transform="translate(0, 16) scale(0.6) rotate(4)">
       <path d="M -6 -7 H 3 L 7 -3 V 9 H -6 Z" fill="rgba(255,255,255,0.72)" stroke={color} strokeWidth="1.8" strokeLinejoin="round" />
       <path d="M 3 -7 V -3 H 7" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
       <line x1="-3" y1="-1" x2="3" y2="-1" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.65" />
@@ -178,14 +178,14 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
     </g>
   ),
   envelope: (color: string) => (
-    <g transform="translate(0, 15) scale(0.5) rotate(-2)">
+    <g transform="translate(0, 16) scale(0.62) rotate(-2)">
       <rect x="-7" y="-4.5" width="14" height="10" rx="1.6" fill="rgba(255,255,255,0.7)" stroke={color} strokeWidth="1.8" />
       <path d="M -6 -3.5 L 0 1 L 6 -3.5" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
       <path d="M -6 5 L -1 1.2 M 6 5 L 1 1.2" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
     </g>
   ),
   keyboard: (color: string) => (
-    <g transform="translate(0, 16) scale(0.5)">
+    <g transform="translate(0, 17) scale(0.62)">
       <rect x="-9" y="-5" width="18" height="12" rx="2.2" fill="rgba(255,255,255,0.58)" stroke={color} strokeWidth="1.9" />
       {[-5, 0, 5].map((x) => (
         <line key={`keyboard-key-${x}`} x1={x} y1="-1.8" x2={x} y2="2.5" stroke={color} strokeWidth="1" opacity="0.65" />
@@ -194,26 +194,26 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
     </g>
   ),
   rock: (color: string) => (
-    <g transform="translate(17, 8) scale(0.52)">
+    <g transform="translate(18, 7) scale(0.64)">
       <path d="M -5 1 C -7 -3 -4 -7 0 -7 C 5 -7 8 -3 6 2 C 5 6 1 8 -3 6 C -5 5 -6 3 -5 1 Z" fill={color} opacity="0.72" />
       <path d="M -3 -2 C 0 -4 3 -3 4 0" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.1" strokeLinecap="round" />
     </g>
   ),
   scissors: (color: string) => (
-    <g transform="translate(17, 8) scale(0.5) rotate(-18)">
+    <g transform="translate(18, 7) scale(0.62) rotate(-18)">
       <circle cx="-4.5" cy="5" r="2.2" fill="none" stroke={color} strokeWidth="1.7" />
       <circle cx="2.5" cy="5" r="2.2" fill="none" stroke={color} strokeWidth="1.7" />
       <path d="M -2.5 3 L 7 -7 M 0.5 3 L -7 -7" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
     </g>
   ),
   ball: (color: string) => (
-    <g transform="translate(17, 8) scale(0.52)">
+    <g transform="translate(18, 7) scale(0.64)">
       <circle cx="0" cy="0" r="6" fill="rgba(255,255,255,0.58)" stroke={color} strokeWidth="1.9" />
       <path d="M -5 -1 Q 0 -4 5 -1 M -5 2 Q 0 5 5 2" fill="none" stroke={color} strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
     </g>
   ),
   grab: (color: string) => (
-    <g transform="translate(17, 8) scale(0.52)">
+    <g transform="translate(18, 7) scale(0.64)">
       <circle cx="0" cy="0" r="5.5" fill="none" stroke={color} strokeWidth="1.8" strokeDasharray="2.2 2" />
       <circle cx="0" cy="0" r="2" fill={color} opacity="0.6" />
     </g>
@@ -840,10 +840,6 @@ export function MeshiMascot({
             <stop offset="52%" stopColor={theme.primary} stopOpacity="0.15" />
             <stop offset="100%" stopColor={theme.primary} stopOpacity="0.28" />
           </radialGradient>
-          <radialGradient id={`${uniqueId}-shine`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </radialGradient>
         </defs>
 
 
@@ -883,14 +879,6 @@ export function MeshiMascot({
               : { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
             }
           />
-          {/* Specular highlight — a soft glint that drifts gently, giving Meshi a wet, alive sheen */}
-          <motion.ellipse
-            cx="-5.5" cy="-7" rx="6" ry="4.4" fill={`url(#${uniqueId}-shine)`}
-            transform="rotate(-24 -5.5 -7)"
-            animate={animate ? { opacity: [0.75, 0.95, 0.75], cx: [-5.5, -4.8, -5.5] } : undefined}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
-
           {/* Simple outfits stay inside the bubble so Meshi remains minimal. */}
           <g style={{ color: theme.primary }}>{outfitElement}</g>
 
@@ -921,21 +909,9 @@ export function MeshiMascot({
           {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
         </g>
 
-        {/* Prop — rendered outside the clip for visibility.
-            Meshi has NO arms: the hands float freely near the bubble, never
-            connected by a limb. */}
-        {propSvg && (
-          <motion.g
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 15 }}
-          >
-            {propSvg}
-          </motion.g>
-        )}
-
-        {/* Bubble hands — only shown when Meshi is actively holding a prop */}
+        {/* Bubble hands — only shown when Meshi is actively holding a prop.
+            Drawn before the prop so the held object reads clearly on top,
+            and Meshi reads as gripping it rather than hiding it. */}
         {showHands && (
           <motion.g
             initial={{ opacity: 0, y: 3, scale: 0.84 }}
@@ -960,21 +936,35 @@ export function MeshiMascot({
                 <circle
                   cx={hand.handX}
                   cy={hand.handY}
-                  r="2.9"
+                  r="2.6"
                   fill={theme.bg}
                   stroke={theme.primary}
-                  strokeWidth="1.45"
+                  strokeWidth="1.35"
                 />
                 <path
-                  d={`M ${hand.handX - 1.25} ${hand.handY - 0.1} Q ${hand.handX} ${hand.handY - 1.35} ${hand.handX + 1.25} ${hand.handY - 0.1}`}
+                  d={`M ${hand.handX - 1.1} ${hand.handY - 0.1} Q ${hand.handX} ${hand.handY - 1.2} ${hand.handX + 1.1} ${hand.handY - 0.1}`}
                   fill="none"
                   stroke={theme.primary}
-                  strokeWidth="0.9"
+                  strokeWidth="0.85"
                   strokeLinecap="round"
-                  opacity="0.82"
+                  opacity="0.75"
                 />
               </motion.g>
             ))}
+          </motion.g>
+        )}
+
+        {/* Prop — rendered on top of the hands and outside the clip so it's
+            clearly visible. Meshi has NO arms: the hands float freely near the
+            bubble, never connected by a limb. */}
+        {propSvg && (
+          <motion.g
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          >
+            {propSvg}
           </motion.g>
         )}
       </svg>
