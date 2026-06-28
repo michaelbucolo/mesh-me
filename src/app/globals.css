@@ -6261,6 +6261,37 @@ body,
   scrollbar-gutter: stable;
 }
 
+/* On tablet/mobile the settings layout collapses to a single column, so let the
+   whole page flow and scroll with the main content area instead of trapping
+   scroll inside a short inner panel. */
+@media (max-width: 1023px) {
+  .mesh-content:has(.settings-traditional) {
+    display: block;
+    overflow-y: auto;
+  }
+  .mesh-content:has(.settings-traditional) > .mesh-route-slot {
+    display: block;
+    flex: none;
+  }
+  .settings-traditional {
+    height: auto !important;
+    min-height: 0;
+    overflow: visible !important;
+  }
+  .settings-traditional-grid {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .settings-traditional-nav,
+  .settings-panel {
+    overflow: visible !important;
+  }
+  .settings-panel-scroll {
+    overflow: visible !important;
+  }
+}
+
 .settings-nav-item {
   display: inline-flex;
   min-width: max-content;

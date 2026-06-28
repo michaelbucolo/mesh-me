@@ -1,7 +1,6 @@
 import {
   Compass,
   MessageCircle,
-  Settings,
   User,
   Waypoints,
   type LucideIcon,
@@ -27,7 +26,6 @@ export const sidebarNavItems: NavItem[] = [
   { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
   { href: "/feed", icon: Compass, label: "Flow" },
   { href: "/profile", icon: User, label: "Profile" },
-  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export const desktopNavGroups: NavGroup[] = [
@@ -43,7 +41,6 @@ export const desktopNavGroups: NavGroup[] = [
 
 export const desktopBottomItems: NavItem[] = [
   { href: "/profile", icon: User, label: "Profile" },
-  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export const mobileNavItems: NavItem[] = [
