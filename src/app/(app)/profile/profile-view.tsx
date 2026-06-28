@@ -232,7 +232,7 @@ export async function InstagramProfileView({ username }: { username: string }) {
                     className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5 text-sm font-medium text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
                   >
                     <Settings size={16} aria-hidden="true" />
-                    Edit profile
+                    Settings
                   </Link>
                 </>
               ) : (

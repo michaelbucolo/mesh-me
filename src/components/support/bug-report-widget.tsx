@@ -199,11 +199,6 @@ export function BugReportWidget() {
           </form>
         </section>
       )}
-
-      <button type="button" onClick={open ? () => setOpen(false) : openWidget} className="pointer-events-auto mesh-action mesh-action-secondary rounded-full px-4 text-sm shadow-[var(--shadow-md)]">
-        <Bug className="h-4 w-4" aria-hidden="true" />
-        Report a bug
-      </button>
     </div>
   );
 }
