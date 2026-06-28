@@ -773,6 +773,10 @@ export function MeshiMascot({
       cancelled = true;
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       settleTimers.forEach(clearTimeout);
+      // Reset to neutral so a gesture interrupted mid-flight (e.g. by speaking)
+      // never leaves Meshi stuck slightly squished or tilted.
+      squishX.set(1); squishY.set(1); wobbleRotate.set(0);
+      eyeOffsetX.set(0); eyeOffsetY.set(0);
     };
   }, [interactive, animate, speaking, eyeOffsetX, eyeOffsetY, squishX, squishY, wobbleRotate]);
 
