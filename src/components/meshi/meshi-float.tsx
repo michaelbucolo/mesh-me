@@ -554,6 +554,7 @@ export function MeshiFloat() {
     try { return localStorage.getItem("meshiEnabled") !== "false"; } catch { return true; }
   });
   const [view, setView] = useState<MeshiView>(() => initialContinuity?.view ?? "closed");
+
   const [mood, setMood] = useState<MeshiMood>(() => {
     if (initialContinuity?.mood) return initialContinuity.mood;
     if (typeof window === "undefined") return "happy";
@@ -674,6 +675,26 @@ export function MeshiFloat() {
   const isMeshSurface = isMeshSurfacePath(pathname);
   const isMeshSurfaceRef = useRef(isMeshSurface);
   useEffect(() => { isMeshSurfaceRef.current = isMeshSurface; }, [isMeshSurface]);
+
+  // Flag the open chat/actions panel so the corner bug widget yields to it. The
+  // flag must clear whenever the panel isn't actually visible — including when
+  // Meshi is disabled or hidden on the current route — so it never lingers.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const panelVisible =
+      isMounted &&
+      meshiEnabled &&
+      !shouldHideGlobalMeshi(pathname) &&
+      (view === "chat" || view === "actions");
+    if (panelVisible) {
+      document.body.dataset.meshiPanel = "open";
+    } else {
+      delete document.body.dataset.meshiPanel;
+    }
+    return () => {
+      delete document.body.dataset.meshiPanel;
+    };
+  }, [isMounted, meshiEnabled, pathname, view]);
 
   const persistContinuityState = useCallback(
     (patch: Partial<Omit<MeshiContinuityState, "version" | "instanceId" | "updatedAt">> = {}) => {
