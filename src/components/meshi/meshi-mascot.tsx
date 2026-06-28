@@ -643,6 +643,7 @@ export function MeshiMascot({
   // Blinking state for smooth, lifelike animation
   const [isBlinking, setIsBlinking] = useState(false);
   const blinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Smooth blinking at random intervals (2-6 seconds)
   useEffect(() => {
@@ -733,6 +734,47 @@ export function MeshiMascot({
   }, [interactive, squishX, squishY, wobbleRotate]);
 
   useEffect(() => { return () => { if (petTimer.current) clearTimeout(petTimer.current); }; }, []);
+
+  // Spontaneous idle gestures — every so often Meshi glances around and shimmies
+  // on his own, so he feels like a living being rather than a looping animation.
+  // Purely physical (springs + a brief glance), never touching the mood system,
+  // so it never fights petting or speaking states.
+  useEffect(() => {
+    if (!interactive || !animate || speaking) return;
+    let cancelled = false;
+    const settleTimers: ReturnType<typeof setTimeout>[] = [];
+    const schedule = () => {
+      const delay = 8000 + Math.random() * 7000;
+      idleTimerRef.current = setTimeout(() => {
+        if (cancelled) return;
+        // Skip if the user is actively interacting or the tab is hidden.
+        if (petCount.current > 0 || (typeof document !== "undefined" && document.hidden)) {
+          schedule();
+          return;
+        }
+        const side = Math.random() < 0.5 ? -1 : 1;
+        eyeOffsetX.set(side * 1.8);
+        eyeOffsetY.set(-0.6);
+        squishX.set(1.05); squishY.set(0.95); wobbleRotate.set(side * 2.5);
+        settleTimers.push(setTimeout(() => {
+          if (cancelled) return;
+          squishX.set(0.97); squishY.set(1.03); wobbleRotate.set(-side * 1.5);
+        }, 220));
+        settleTimers.push(setTimeout(() => {
+          if (cancelled) return;
+          squishX.set(1); squishY.set(1); wobbleRotate.set(0);
+          eyeOffsetX.set(0); eyeOffsetY.set(0);
+          schedule();
+        }, 520));
+      }, delay);
+    };
+    schedule();
+    return () => {
+      cancelled = true;
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      settleTimers.forEach(clearTimeout);
+    };
+  }, [interactive, animate, speaking, eyeOffsetX, eyeOffsetY, squishX, squishY, wobbleRotate]);
 
   // Determine prop SVG. Hands follow visible held objects only.
   const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
