@@ -3,7 +3,8 @@
 // Configuration is read from environment variables; a provider is only offered
 // when its credentials are present, mirroring the platform-connect OAuth flow.
 
-import { createSign } from "crypto";
+import { createSign, randomBytes } from "crypto";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "./prisma";
 import { createSession, hashPassword } from "./auth";
 import { getBaseUrl } from "./oauth";
@@ -15,6 +16,8 @@ export interface IdentityProviderConfig {
   name: string;
   authUrl: string;
   tokenUrl: string;
+  issuer: string;
+  jwksUri: string;
   scopes: string[];
   // form_post providers (Apple) POST the result back to the callback
   responseMode?: "query" | "form_post";
@@ -27,6 +30,8 @@ export const IDENTITY_PROVIDERS: Record<IdentityProvider, IdentityProviderConfig
     name: "Google",
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
+    issuer: "https://accounts.google.com",
+    jwksUri: "https://www.googleapis.com/oauth2/v3/certs",
     scopes: ["openid", "email", "profile"],
     responseMode: "query",
     usesPkce: true,
@@ -36,6 +41,8 @@ export const IDENTITY_PROVIDERS: Record<IdentityProvider, IdentityProviderConfig
     name: "Apple",
     authUrl: "https://appleid.apple.com/auth/authorize",
     tokenUrl: "https://appleid.apple.com/auth/token",
+    issuer: "https://appleid.apple.com",
+    jwksUri: "https://appleid.apple.com/auth/keys",
     scopes: ["name", "email"],
     responseMode: "form_post",
     usesPkce: false,
@@ -98,20 +105,37 @@ function buildAppleClientSecret(): string | null {
   );
 
   const signingInput = `${header}.${payload}`;
-  // JWS requires the raw r||s signature encoding for ES256.
-  const signature = createSign("SHA256")
-    .update(signingInput)
-    .sign({ key: privateKey, dsaEncoding: "ieee-p1363" });
+  try {
+    // JWS requires the raw r||s signature encoding for ES256.
+    const signature = createSign("SHA256")
+      .update(signingInput)
+      .sign({ key: privateKey, dsaEncoding: "ieee-p1363" });
+    return `${signingInput}.${base64url(signature)}`;
+  } catch {
+    // Malformed private key — treat Apple as unconfigured rather than crashing.
+    return null;
+  }
+}
 
-  return `${signingInput}.${base64url(signature)}`;
+function hasAppleCredentials(): boolean {
+  return Boolean(
+    envValue("APPLE_CLIENT_ID") &&
+      envValue("APPLE_TEAM_ID") &&
+      envValue("APPLE_KEY_ID") &&
+      process.env.APPLE_PRIVATE_KEY?.trim(),
+  );
 }
 
 export function isIdentityProviderConfigured(provider: IdentityProvider): boolean {
   if (provider === "google") {
-    return Boolean(getIdentityClientId("google") && getIdentityClientSecret("google"));
+    return Boolean(
+      getIdentityClientId("google") &&
+        (envValue("GOOGLE_AUTH_CLIENT_SECRET") ?? envValue("GOOGLE_CLIENT_SECRET")),
+    );
   }
-  // Apple: secret build returns null unless every required value is present.
-  return Boolean(getIdentityClientId("apple") && getIdentityClientSecret("apple"));
+  // Apple: only check that the required env vars are present; building the
+  // ES256 client secret JWT is expensive and is deferred to the token exchange.
+  return hasAppleCredentials();
 }
 
 export function getConfiguredIdentityProviders(): IdentityProvider[] {
@@ -125,11 +149,15 @@ export interface FederatedIdentity {
   name: string | null;
 }
 
-function decodeJwtPayload(token: string): Record<string, unknown> {
-  const segments = token.split(".");
-  if (segments.length < 2) throw new Error("Malformed identity token");
-  const payload = Buffer.from(segments[1], "base64url").toString("utf8");
-  return JSON.parse(payload) as Record<string, unknown>;
+const jwksCache = new Map<IdentityProvider, ReturnType<typeof createRemoteJWKSet>>();
+
+function getProviderJwks(provider: IdentityProvider) {
+  let jwks = jwksCache.get(provider);
+  if (!jwks) {
+    jwks = createRemoteJWKSet(new URL(IDENTITY_PROVIDERS[provider].jwksUri));
+    jwksCache.set(provider, jwks);
+  }
+  return jwks;
 }
 
 function asString(value: unknown): string | null {
@@ -141,7 +169,7 @@ function asString(value: unknown): string | null {
 export async function exchangeIdentityCode(
   provider: IdentityProvider,
   code: string,
-  options: { codeVerifier?: string | null } = {},
+  options: { codeVerifier?: string | null; nonce?: string | null } = {},
 ): Promise<FederatedIdentity> {
   const config = IDENTITY_PROVIDERS[provider];
   const clientId = getIdentityClientId(provider);
@@ -176,7 +204,18 @@ export async function exchangeIdentityCode(
     throw new Error(`${config.name} did not return an identity token`);
   }
 
-  const claims = decodeJwtPayload(tokens.id_token);
+  // Verify the id_token signature against the provider's JWKS and validate the
+  // issuer/audience so a forged or mis-issued token cannot grant access.
+  const { payload: claims } = await jwtVerify(tokens.id_token, getProviderJwks(provider), {
+    issuer: config.issuer,
+    audience: clientId,
+  });
+
+  // Replay protection: the nonce in the token must match the one we issued.
+  if (options.nonce && claims.nonce !== options.nonce) {
+    throw new Error(`${config.name} sign-in could not be verified`);
+  }
+
   const providerAccountId = asString(claims.sub);
   if (!providerAccountId) {
     throw new Error(`${config.name} identity token is missing a subject`);
@@ -258,10 +297,10 @@ export async function signInWithIdentity(
   const usernameSeed = identity.email?.split("@")[0] ?? identity.name ?? provider;
   const username = await generateUniqueUsername(usernameSeed);
   const displayName = identity.name?.trim() || username;
-  // Federated accounts have no password; store an unusable random hash so the
-  // column stays populated and password sign-in cannot succeed for them.
-  const placeholderPassword = `${provider}:${identity.providerAccountId}:${Date.now()}:${Math.random()}`;
-  const passwordHash = await hashPassword(placeholderPassword);
+  // Federated accounts have no password; store an unusable hash of high-entropy
+  // random bytes so the column stays populated and password sign-in can never
+  // succeed for them.
+  const passwordHash = await hashPassword(randomBytes(48).toString("hex"));
   const email = identity.email ?? `${username}@${provider}.mesh.local`;
 
   const user = await prisma.user.create({

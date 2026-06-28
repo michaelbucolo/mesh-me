@@ -12,6 +12,14 @@ function securePrefix() {
   return process.env.NODE_ENV === "production" ? "__Host-" : "";
 }
 
+// Re-validate the post-auth redirect target. The cookie was written with this
+// same check, but cookies are client-controllable, so never trust it blindly.
+function safeNextPath(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.startsWith("/login") || value.startsWith("/signup")) return null;
+  return value;
+}
+
 function clearFlowCookies(
   store: Awaited<ReturnType<typeof cookies>>,
   provider: string,
@@ -40,7 +48,8 @@ async function handleCallback(
   const prefix = securePrefix();
   const storedState = cookieStore.get(`${prefix}identity_state_${provider}`)?.value ?? null;
   const codeVerifier = cookieStore.get(`${prefix}identity_pkce_${provider}`)?.value ?? null;
-  const nextPath = cookieStore.get(`${prefix}identity_next_${provider}`)?.value ?? null;
+  const nextPath = safeNextPath(cookieStore.get(`${prefix}identity_next_${provider}`)?.value ?? null);
+  const expectedNonce = storedState?.split(".")[1] ?? null;
 
   const failure = (message: string) => {
     clearFlowCookies(cookieStore, provider);
@@ -60,7 +69,7 @@ async function handleCallback(
 
   let identity: FederatedIdentity;
   try {
-    identity = await exchangeIdentityCode(provider, params.code, { codeVerifier });
+    identity = await exchangeIdentityCode(provider, params.code, { codeVerifier, nonce: expectedNonce });
   } catch {
     return failure(`Could not verify your ${config.name} account`);
   }
