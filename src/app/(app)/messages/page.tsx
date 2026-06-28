@@ -34,7 +34,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
   });
   const noteAudienceIds = Array.from(new Set([user.id, ...threadMemberRows.map((row) => row.userId)]));
 
-  const [{ sharePostId, sharePlatformPostId, shareUrl, shareTitle, sourcePlatform, roomTitle, callMode }, threads, sessions, connectedAccounts, activeNotes] = await Promise.all([
+  const [{ sharePostId, sharePlatformPostId, shareUrl, shareTitle, sourcePlatform, roomTitle, callMode }, threads, sessions, connectedAccounts] = await Promise.all([
     searchParams,
     getMessageThreads(),
     prisma.meChatSession.findMany({
@@ -80,7 +80,12 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.meChatNote.findMany({
+  ]);
+
+  // The notes/stories strip is an ephemeral, non-essential surface. Keep MeChat
+  // loading even if it cannot be read, so conversations are never blocked by it.
+  const activeNotes = await prisma.meChatNote
+    .findMany({
       where: {
         userId: { in: noteAudienceIds },
         expiresAt: { gt: new Date() },
@@ -91,8 +96,8 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
         },
       },
       orderBy: { createdAt: "desc" },
-    }),
-  ]);
+    })
+    .catch(() => []);
 
   const seenNoteUsers = new Set<string>();
   const initialNotes = activeNotes
