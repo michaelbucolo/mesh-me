@@ -1,9 +1,49 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { MeshiMascot } from "./meshi-mascot";
-import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import {
+  getMeshiPrefsStatic,
+  MESHI_PREFERENCES_EVENT,
+  type MeshiPreferences,
+} from "@/hooks/use-meshi-preferences";
+
+const DEFAULT_PREFS: MeshiPreferences = {
+  color: "blue",
+  hat: "none",
+  face: "happy",
+  hair: "none",
+  accessory: "none",
+  eye: "regular",
+  badge: "none",
+  outfit: "none",
+  enabled: true,
+  appLogo: "default",
+  appLogoColor: "blue",
+  title: "",
+};
+
+let cachedClientPrefs: MeshiPreferences | null = null;
+
+function subscribeToPrefs(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => {
+    cachedClientPrefs = null;
+    onChange();
+  };
+  window.addEventListener("storage", handler);
+  window.addEventListener(MESHI_PREFERENCES_EVENT, handler);
+  return () => {
+    window.removeEventListener("storage", handler);
+    window.removeEventListener(MESHI_PREFERENCES_EVENT, handler);
+  };
+}
+
+function getClientPrefs(): MeshiPreferences {
+  if (!cachedClientPrefs) cachedClientPrefs = getMeshiPrefsStatic();
+  return cachedClientPrefs;
+}
 
 const STRAND_COUNT = 12;
 
@@ -14,7 +54,7 @@ const STRAND_COUNT = 12;
  * the mesh rather than a separate, busy loading screen.
  */
 export function MeshFormationLoading() {
-  const prefs = useMeshiPreferences();
+  const prefs = useSyncExternalStore(subscribeToPrefs, getClientPrefs, () => DEFAULT_PREFS);
 
   const strands = useMemo(
     () =>
