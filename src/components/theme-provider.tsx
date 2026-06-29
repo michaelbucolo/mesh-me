@@ -27,7 +27,7 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  mode: "system",
+  mode: "dark",
   theme: "dark",
   preset: "default",
   customTheme: null,
