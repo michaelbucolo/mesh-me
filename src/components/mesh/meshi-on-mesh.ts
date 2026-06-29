@@ -272,10 +272,10 @@ export function tickMeshi(
   const isIdle = state.idleTimer > IDLE_THRESHOLD;
 
   // Determine behavior mode
-  if (state.isMobile) {
-    // Mobile: Meshi is a fixed reticle at the center of the screen. The user pans the
-    // mesh beneath it and taps to interact, so it stays centered and never wanders off.
-    // anchorX/anchorY is the canvas-space point currently under the screen center.
+  if (state.isMobile || state.isTablet) {
+    // Touch devices (phone + iPad/tablet): Meshi is a fixed reticle at the center of the
+    // screen. The user pans the mesh beneath it and taps to interact, so it stays centered
+    // and never wanders off. anchorX/anchorY is the canvas-space point under the screen center.
     const ax = anchorX ?? (canvasWidth || 800) / 2;
     const ay = anchorY ?? (canvasHeight || 600) / 2;
     const idleBobX = Math.sin(state.bobPhase * 0.5) * 3;
@@ -285,22 +285,6 @@ export function tickMeshi(
     state.followingCursor = true;
     state.targetNode = null;
     if (state.reactionTimer <= 0 && !state.isMoving) state.mood = "happy";
-  } else if (state.isTablet && state.cursorX !== null && state.cursorY !== null && !isIdle) {
-    // iPad/tablet: Meshi acts as cursor
-    state.targetX = state.cursorX + CURSOR_OFFSET;
-    state.targetY = state.cursorY + CURSOR_OFFSET;
-    state.followingCursor = true;
-    state.targetNode = null;
-    state.moveTimer = 2;
-    if (!state.isMoving) state.mood = "happy";
-  } else if (state.isTablet && state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 3) {
-    // iPad/tablet touch: snap to tap point
-    state.targetX = state.interactionX;
-    state.targetY = state.interactionY;
-    state.followingCursor = true;
-    state.targetNode = null;
-    state.moveTimer = 2;
-    if (!state.isMoving) state.mood = "happy";
   } else if (!isIdle && state.cursorX !== null && state.cursorY !== null) {
     // Desktop: Meshi IS the cursor — follows mouse tightly
     state.targetX = state.cursorX + CURSOR_OFFSET;
