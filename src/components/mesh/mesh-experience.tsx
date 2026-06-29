@@ -32,7 +32,6 @@ import { buildMeshData, applyViewMode, preloadNodeImages, type MeshApiResponse, 
 import { MeshEngine } from "./mesh-engine";
 import { MeshCommandPalette } from "./mesh-command-palette";
 import { MeshFootprint } from "./mesh-footprint";
-import { MeshMiniMap } from "./mesh-mini-map";
 import { MeshNodeDetail } from "./mesh-node-detail";
 import { MeshPostComposer } from "./mesh-post-composer";
 import { MeshPrivacyPanel } from "./mesh-privacy-panel";
@@ -274,6 +273,25 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
   const [syncPulseTime, setSyncPulseTime] = useState<number | null>(null);
   const [inAppUrl, setInAppUrl] = useState<string | null>(null);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const canvasShellRef = useRef<HTMLDivElement | null>(null);
+
+  const toggleFullscreen = useCallback(() => {
+    const el = canvasShellRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+    } else {
+      void el.requestFullscreen?.()?.catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
 
   const loadMesh = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -1098,7 +1116,7 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
         </div>
       </div>
 
-      {hasLoadedData && (
+      {hasLoadedData && advancedOpen && (
         <div className="mesh-page-status mb-3 flex flex-wrap gap-2 text-xs text-[var(--mesh-text-secondary)] sm:overflow-x-auto sm:pb-1">
           <div className="flex items-center gap-2 rounded-md border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/60 px-3 py-1.5" aria-label={`${filteredVisibleNodes.length} visible nodes`}>
             <Waypoints className="h-3.5 w-3.5 text-[var(--mesh-blue)]" aria-hidden="true" />
@@ -1128,7 +1146,7 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
         {selectedNode ? `${selectedNode.label} selected. ${selectedConnections} connected links.` : `${filteredVisibleNodes.length} Mesh nodes visible. No node selected.`}
       </p>
 
-      <div data-testid="mesh-canvas-shell" className="mesh-canvas-shell mesh-page-canvas relative min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-deep)]">
+      <div ref={canvasShellRef} data-testid="mesh-canvas-shell" className="mesh-canvas-shell mesh-page-canvas relative min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-deep)]">
         <div className="pointer-events-none absolute inset-0 opacity-70">
           <div className="absolute inset-0 mesh-soft-grid" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(96,165,250,0.16),transparent_34%),radial-gradient(circle_at_78%_18%,rgba(34,197,94,0.12),transparent_24%),radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.12),transparent_28%)]" />
@@ -1242,50 +1260,50 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
 
         {hasLoadedData && (
           <>
-            <MeshFilterBar
-              className="top-[3.75rem] md:top-[5rem]"
-              filter={filter}
-              nodes={visibleNodes}
-              platformOptions={platformOptions}
-              platformFilter={platformFilter}
-              onFilterChange={handleFilterChange}
-              onPlatformFilterChange={handlePlatformFilterChange}
-              onSearchOpen={openSearch}
-              showFootprint={showFootprint}
-              onToggleFootprint={() => setShowFootprint((current) => !current)}
-            />
             <MeshZoomControls
               showLabels={showLabels}
               showStats={showStats}
               advancedView={viewMode === "advanced"}
+              advancedOpen={advancedOpen}
+              isFullscreen={isFullscreen}
               onZoom={handleZoomDelta}
               onReset={resetView}
               onToggleLabels={() => setShowLabels((current) => !current)}
               onToggleStats={() => setShowStats((current) => !current)}
               onToggleView={() => setViewMode((current) => (current === "advanced" ? "simplified" : "advanced"))}
+              onToggleAdvanced={() => setAdvancedOpen((current) => !current)}
+              onToggleFullscreen={toggleFullscreen}
             />
-            <MeshStatsBar nodes={visibleNodes} zoom={zoom} visible={showStats} />
-            <MeshActionBar
-              showContentHub={showContentHub}
-              showNodePrivacy={showPrivacy}
-              ghostMode={ghostMode}
-              hiddenCount={hiddenCount}
-              isSyncingAll={isSyncingAll}
-              onCreatePost={() => setShowComposer(true)}
-              onConnectAccounts={() => router.push("/connected-accounts")}
-              onSyncAll={handleSyncAll}
-              onToggleContentHub={() => setShowContentHub((current) => !current)}
-              onTogglePrivacy={() => setShowPrivacy((current) => !current)}
-              onToggleGhostMode={() => setGhostMode((current) => !current)}
-            />
-            <MeshMiniMap
-              nodes={visibleNodes}
-              filter={filter}
-              selectedNode={selectedNode}
-              hoveredNode={hoveredNode}
-              onFocusNode={focusNode}
-              onFitView={() => fitViewToNodes()}
-            />
+            {advancedOpen && (
+              <>
+                <MeshFilterBar
+                  className="top-[3.75rem] md:top-[5rem]"
+                  filter={filter}
+                  nodes={visibleNodes}
+                  platformOptions={platformOptions}
+                  platformFilter={platformFilter}
+                  onFilterChange={handleFilterChange}
+                  onPlatformFilterChange={handlePlatformFilterChange}
+                  onSearchOpen={openSearch}
+                  showFootprint={showFootprint}
+                  onToggleFootprint={() => setShowFootprint((current) => !current)}
+                />
+                <MeshStatsBar nodes={visibleNodes} zoom={zoom} visible={showStats} />
+                <MeshActionBar
+                  showContentHub={showContentHub}
+                  showNodePrivacy={showPrivacy}
+                  ghostMode={ghostMode}
+                  hiddenCount={hiddenCount}
+                  isSyncingAll={isSyncingAll}
+                  onCreatePost={() => setShowComposer(true)}
+                  onConnectAccounts={() => router.push("/connected-accounts")}
+                  onSyncAll={handleSyncAll}
+                  onToggleContentHub={() => setShowContentHub((current) => !current)}
+                  onTogglePrivacy={() => setShowPrivacy((current) => !current)}
+                  onToggleGhostMode={() => setGhostMode((current) => !current)}
+                />
+              </>
+            )}
           </>
         )}
 
