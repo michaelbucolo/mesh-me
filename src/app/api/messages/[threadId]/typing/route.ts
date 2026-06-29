@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { clearMeChatTyping, getMeChatTypingUsers, setMeChatTyping } from "@/lib/mechat-presence";
+import { getUserMeshiPreference } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 
@@ -49,11 +50,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (body.typing === false) {
     clearMeChatTyping(threadId, user.id);
   } else {
+    const pref = await getUserMeshiPreference(user.id);
     setMeChatTyping(threadId, {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
+      meshi: pref
+        ? {
+            color: pref.colorTheme,
+            hat: pref.hatStyle,
+            hair: pref.hairStyle,
+            accessory: pref.accessoryStyle,
+            eyeStyle: pref.eyeStyle,
+            badge: pref.badgeStyle,
+            outfit: pref.outfitStyle,
+          }
+        : null,
     });
   }
 
