@@ -198,7 +198,10 @@ function ShellTopBar({
               <button
                 type="button"
                 className="mesh-dropdown-item w-full text-left"
-                onClick={() => window.dispatchEvent(new CustomEvent("mesh:open-bug-report"))}
+                onClick={(e) => {
+                  (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+                  window.dispatchEvent(new CustomEvent("mesh:open-bug-report"));
+                }}
               >
                 Report a bug
               </button>
