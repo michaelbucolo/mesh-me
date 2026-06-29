@@ -88,7 +88,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      meshi: await getCachedTypingMeshi(user.id),
+      meshi: await getCachedTypingMeshi(user.id).catch(() => null),
     });
   }
 
