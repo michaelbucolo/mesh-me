@@ -331,7 +331,7 @@ export function MeshActionBar({
   onToggleGhostMode,
 }: ActionBarProps) {
   return (
-    <div className="mesh-action-bar absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-10 flex gap-2 overflow-x-auto pb-1">
+    <div data-testid="mesh-action-bar" className="mesh-action-bar absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-10 flex gap-2 overflow-x-auto pb-1">
       <button type="button" onClick={onCreatePost} aria-label="Create a Mesh post" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-white transition-all duration-300 active:scale-95 shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-400 hover:shadow-indigo-500/30">
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Post</span>
