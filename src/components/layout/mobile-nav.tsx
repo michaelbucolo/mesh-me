@@ -5,8 +5,8 @@ import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { impactFeedback } from "@/lib/native/haptics";
-import { getBadgeCount, isNavItemActive, resolveNavHref } from "@/components/layout/navigation-config";
-import { Compass, MessageCircle, PlusSquare, Settings, User, Waypoints } from "lucide-react";
+import { getBadgeCount, isNavItemActive, mobileNavItems, resolveNavHref } from "@/components/layout/navigation-config";
+import { PlusSquare } from "lucide-react";
 import { useKeyboard } from "@/hooks/use-keyboard";
 
 interface MobileNavProps {
@@ -14,14 +14,6 @@ interface MobileNavProps {
   unreadMessages?: number;
   username?: string;
 }
-
-const mobilePrimaryNav = [
-  { href: "/mesh", icon: Waypoints, label: "Mesh" },
-  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" as const },
-  { href: "/feed", icon: Compass, label: "Flow" },
-  { href: "/profile", icon: User, label: "Profile" },
-  { href: "/settings", icon: Settings, label: "Settings" },
-];
 
 export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, username }: MobileNavProps) {
   const pathname = usePathname();
@@ -53,8 +45,8 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
         <PlusSquare className="h-[24px] w-[24px]" aria-hidden="true" />
       </Link>
       <nav className={navClass} aria-label="Primary mobile navigation">
-        <div className="grid grid-cols-5 items-center gap-1">
-          {mobilePrimaryNav.map((item) => {
+        <div className="grid grid-cols-4 items-center gap-1">
+          {mobileNavItems.map((item) => {
             const isActive = isNavItemActive(pathname, item.href, username);
             const badgeCount = getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages);
             const resolvedHref = resolveNavHref(item.href, username);

@@ -77,7 +77,7 @@ export function MeshMiniMap({
   return (
     <aside
       data-meshi-zone="mesh-mini-map"
-      className="mesh-mini-map absolute bottom-4 right-3 z-10 hidden w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/42 shadow-lg shadow-black/25 backdrop-blur-2xl md:block"
+      className="mesh-mini-map absolute bottom-4 right-3 z-10 hidden w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/42 shadow-lg shadow-black/25 backdrop-blur-2xl lg:block"
       aria-label="Mini Mesh map"
     >
       <div className="flex items-center justify-between border-b border-white/[0.07] px-3 py-2">
