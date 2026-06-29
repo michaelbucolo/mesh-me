@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getMeshiPreference } from "@/lib/actions";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppShell } from "@/components/layout/app-shell";
 import { NativeInit } from "@/components/native-init";
+import { MeshiPrefsBootstrap } from "@/components/meshi/meshi-prefs-bootstrap";
 import { OnboardingRedirect } from "@/components/onboarding-redirect";
 
 export const metadata: Metadata = {
@@ -43,8 +45,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return <OnboardingRedirect />;
   }
 
+  const meshiPref = await getMeshiPreference();
+  const meshiSeed = meshiPref
+    ? {
+        colorTheme: meshiPref.colorTheme,
+        hatStyle: meshiPref.hatStyle,
+        faceStyle: meshiPref.faceStyle,
+        hairStyle: meshiPref.hairStyle,
+        accessoryStyle: meshiPref.accessoryStyle,
+        eyeStyle: meshiPref.eyeStyle,
+        badgeStyle: meshiPref.badgeStyle,
+        outfitStyle: meshiPref.outfitStyle,
+      }
+    : null;
+
   return (
     <ToastProvider>
+      <MeshiPrefsBootstrap serverPref={meshiSeed} />
       <NativeInit />
       <AppShell
         user={{
