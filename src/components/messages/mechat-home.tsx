@@ -600,7 +600,12 @@ export function MeChatHome({
         {/* New group form (inline) */}
         {showNewGroup && (
           <div className="mx-3 mb-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-3">
-            <h3 className="mb-2 text-xs font-bold text-[var(--mesh-text)]">New Group</h3>
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-xs font-bold text-[var(--mesh-text)]">New Group</h3>
+              <button type="button" aria-label="Close" onClick={() => setShowNewGroup(false)} className="rounded-md p-1 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)]">
+                <X size={14} />
+              </button>
+            </div>
             <div className="flex gap-2">
               <input
                 value={recipientQuery}
@@ -647,7 +652,12 @@ export function MeChatHome({
         {/* New room form (inline) */}
         {showNewRoom && (
           <div className="mx-3 mb-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-3">
-            <h3 className="mb-2 text-xs font-bold text-[var(--mesh-text)]">New Room</h3>
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-xs font-bold text-[var(--mesh-text)]">New Room</h3>
+              <button type="button" aria-label="Close" onClick={() => setShowNewRoom(false)} className="rounded-md p-1 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)]">
+                <X size={14} />
+              </button>
+            </div>
             <input value={roomTitle} onChange={(e) => setRoomTitle(e.target.value)} className="h-8 w-full rounded-lg border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-2 text-xs text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]" placeholder="Room name" />
             <select value={roomType} onChange={(e) => setRoomType(e.target.value)} className="mt-2 h-8 w-full rounded-lg border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-2 text-xs text-[var(--mesh-text)] outline-none">
               <option value="co_browse">Shared scroll</option>
