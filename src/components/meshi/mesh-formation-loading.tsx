@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import { MeshiMascot } from "./meshi-mascot";
-import { getMeshiPrefsStatic } from "@/hooks/use-meshi-preferences";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 
 const STRAND_COUNT = 12;
 
@@ -14,7 +14,7 @@ const STRAND_COUNT = 12;
  * the mesh rather than a separate, busy loading screen.
  */
 export function MeshFormationLoading() {
-  const prefs = useMemo(() => getMeshiPrefsStatic(), []);
+  const prefs = useMeshiPreferences();
 
   const strands = useMemo(
     () =>
