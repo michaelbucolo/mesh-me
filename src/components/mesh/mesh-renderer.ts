@@ -1411,6 +1411,8 @@ function drawLegend(
   activeFilter: FilterType,
   nodes?: MeshNode[],
 ) {
+  if (w < 768) return;
+
   const TYPE_MAP: Record<string, string> = {
     "People": "user",
     "Platforms": "platform",
@@ -1436,7 +1438,7 @@ function drawLegend(
   const lineH = 22;
   const padX = 12, padY = 10;
   const boxX = 14;
-  const boxY = h - padY * 2 - items.length * lineH - 55;
+  const boxY = h - padY * 2 - items.length * lineH - 132;
 
   // Measure max width including counts
   ctx.font = `500 ${fontSize}px system-ui, -apple-system, sans-serif`;
