@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   Check,
   Loader2,
@@ -58,6 +58,7 @@ type MeChatHomeProps = {
   currentUser: Person;
   initialThreads: MeChatThread[];
   initialNotes: MeChatNoteEntry[];
+  shareQuery?: string;
 };
 
 function platformLabel(platform: string) {
@@ -81,7 +82,7 @@ function threadDisplay(thread: MeChatThread) {
   return thread.otherUser?.displayName || thread.title || "Conversation";
 }
 
-export function MeChatHome({ currentUser, initialThreads, initialNotes }: MeChatHomeProps) {
+export function MeChatHome({ currentUser, initialThreads, initialNotes, shareQuery }: MeChatHomeProps) {
   const router = useRouter();
   const [threads, setThreads] = useState(initialThreads);
   const [threadQuery, setThreadQuery] = useState("");
@@ -97,6 +98,10 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes }: MeChat
   const [noteSong, setNoteSong] = useState("");
   const [activeNote, setActiveNote] = useState<MeChatNoteEntry | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (shareQuery) setShowCompose(true);
+  }, [shareQuery]);
 
   const myNote = useMemo(() => notes.find((note) => note.userId === currentUser.id) ?? null, [notes, currentUser.id]);
   const friendNotes = useMemo(() => notes.filter((note) => note.userId !== currentUser.id), [notes, currentUser.id]);
@@ -157,6 +162,7 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes }: MeChat
     setRecipients([]);
     setSelectedMembers([]);
     setGroupTitle("");
+    setStatus(null);
     setShowCompose(true);
   }
 
@@ -209,7 +215,7 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes }: MeChat
           setThreads(threadsData.threads);
         }
         setShowCompose(false);
-        router.push(`/messages/${data.thread.id}`);
+        router.push(shareQuery ? `/messages/${data.thread.id}?${shareQuery}` : `/messages/${data.thread.id}`);
       } catch (error) {
         setStatus({ type: "error", message: error instanceof Error ? error.message : "Could not start chat" });
       }
@@ -369,7 +375,7 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes }: MeChat
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--mesh-border)] px-4 py-3">
-              <h3 className="text-sm font-bold text-[var(--mesh-text)]">New message</h3>
+              <h3 className="text-sm font-bold text-[var(--mesh-text)]">{shareQuery ? "Send to" : "New message"}</h3>
               <button type="button" onClick={() => setShowCompose(false)} className="rounded-lg p-1 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)]">
                 <X size={18} />
               </button>

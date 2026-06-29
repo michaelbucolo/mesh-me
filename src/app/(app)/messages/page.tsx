@@ -10,7 +10,17 @@ export const metadata: Metadata = {
   description: "Unified private messaging for Mesh.me.",
 };
 
-export default async function MessagesPage() {
+type MessagesPageProps = {
+  searchParams: Promise<{
+    sharePostId?: string;
+    sharePlatformPostId?: string;
+    shareUrl?: string;
+    shareTitle?: string;
+    sourcePlatform?: string;
+  }>;
+};
+
+export default async function MessagesPage({ searchParams }: MessagesPageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/messages");
   if (!user.onboarded) redirect("/onboarding");
@@ -21,7 +31,8 @@ export default async function MessagesPage() {
   });
   const noteAudienceIds = Array.from(new Set([user.id, ...threadMemberRows.map((row) => row.userId)]));
 
-  const [threads, activeNotes] = await Promise.all([
+  const [{ sharePostId, sharePlatformPostId, shareUrl, shareTitle, sourcePlatform }, threads, activeNotes] = await Promise.all([
+    searchParams,
     getMessageThreads(),
     // The notes/stories strip is an ephemeral, non-essential surface. Keep MeChat
     // loading even if it cannot be read, so conversations are never blocked by it.
@@ -62,6 +73,14 @@ export default async function MessagesPage() {
       user: note.user,
     }));
 
+  const shareParams = new URLSearchParams();
+  if (sharePostId) shareParams.set("sharePostId", sharePostId);
+  if (sharePlatformPostId) shareParams.set("sharePlatformPostId", sharePlatformPostId);
+  if (shareUrl) shareParams.set("shareUrl", shareUrl);
+  if (shareTitle) shareParams.set("shareTitle", shareTitle);
+  if (sourcePlatform) shareParams.set("sourcePlatform", sourcePlatform);
+  const shareQuery = shareParams.toString() || undefined;
+
   return (
     <MeChatHome
       currentUser={{
@@ -70,6 +89,7 @@ export default async function MessagesPage() {
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
       }}
+      shareQuery={shareQuery}
       initialNotes={initialNotes}
       initialThreads={threads.map((thread) => ({
         id: thread.id,
