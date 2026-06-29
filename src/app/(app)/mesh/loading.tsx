@@ -1,5 +1,5 @@
-import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
+import { MeshFormationLoading } from "@/components/meshi/mesh-formation-loading";
 
 export default function Loading() {
-  return <RouteLoadingPersonality personality="mesh" />;
+  return <MeshFormationLoading />;
 }

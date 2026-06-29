@@ -844,14 +844,28 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
     setShowSearch(false);
   }, []);
 
+  const enterUserMesh = useCallback((node: MeshNode) => {
+    const targetId = node.id.replace(/^follower-/, "").replace(/^following-/, "");
+    if (!targetId || targetId === viewUserId) return;
+    setSelectedNode(null);
+    router.push(`/mesh?user=${encodeURIComponent(targetId)}`);
+  }, [router, viewUserId]);
+
   const handleNodeDoubleClick = useCallback((node: MeshNode | null) => {
-    if (!node?.href) return;
+    if (!node) return;
+    // People are "stepped into" — double-tapping a friend transports you (and
+    // your Meshi) into their mesh rather than opening their profile page.
+    if (node.type === "user" && node.sourceType !== "platform") {
+      enterUserMesh(node);
+      return;
+    }
+    if (!node.href) return;
     if (/^https?:\/\//i.test(node.href)) {
       setInAppUrl(node.href);
       return;
     }
     router.push(node.href);
-  }, [router]);
+  }, [router, enterUserMesh]);
 
   useEffect(() => {
     const onMeshShortcut = (event: KeyboardEvent) => {

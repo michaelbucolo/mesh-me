@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect } from "react";
 import type {
   MeshiAccessory,
   MeshiBadge,
@@ -64,6 +64,10 @@ function canUseStorage() {
   return typeof window !== "undefined";
 }
 
+// Runs before paint on the client (so seeded preferences apply with no flash)
+// and falls back to a passive effect during server rendering.
+const useBeforePaintEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 function readMeshiPreferencesFromStorage(): MeshiPreferences {
   if (!canUseStorage()) return DEFAULTS;
 
@@ -120,8 +124,15 @@ export function updateMeshiLocalPreferences(patch: Partial<MeshiPreferences>) {
   return next;
 }
 
-async function hydrateMeshiPreferencesFromServer() {
-  const serverPref = await getMeshiPreference();
+export type ServerMeshiPreference = Awaited<ReturnType<typeof getMeshiPreference>>;
+
+/**
+ * Merge a server-side Meshi preference record into local storage and notify
+ * every Meshi surface synchronously. The server record is the source of truth
+ * for the cosmetic fields; local-only fields (enabled, app logo, title) are
+ * preserved. Returns the merged preferences.
+ */
+export function applyServerMeshiPreferences(serverPref: ServerMeshiPreference): MeshiPreferences {
   const local = readMeshiPreferencesFromStorage();
 
   if (!serverPref) return local;
@@ -143,6 +154,11 @@ async function hydrateMeshiPreferencesFromServer() {
   return merged;
 }
 
+async function hydrateMeshiPreferencesFromServer() {
+  const serverPref = await getMeshiPreference();
+  return applyServerMeshiPreferences(serverPref);
+}
+
 /**
  * Shared hook for Meshi preferences.
  *
@@ -152,6 +168,13 @@ async function hydrateMeshiPreferencesFromServer() {
  */
 export function useMeshiPreferences(): MeshiPreferences & { refresh: () => void } {
   const [prefs, setPrefs] = useState<MeshiPreferences>(DEFAULTS);
+
+  // Apply the synchronously-seeded local preferences before the first paint so
+  // sidebar/guide/settings surfaces never flash the default Meshi. The server
+  // hydration below then reconciles anything that storage was missing.
+  useBeforePaintEffect(() => {
+    setPrefs(readMeshiPreferencesFromStorage());
+  }, []);
 
   useEffect(() => {
     let mounted = true;
