@@ -11,19 +11,19 @@ const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
 }));
 
 
-// Meshi face styles — eyes only, reacts to interaction
+// Meshi face styles — every mood renders as clean, scalable SVG eyes (below).
 const FACES: Record<string, { eyes: string; svg?: boolean }> = {
   happy: { eyes: "", svg: true },
-  excited: { eyes: "★  ★" },
-  thinking: { eyes: "◑  ◐" },
-  sleepy: { eyes: "◡  ◡" },
-  surprised: { eyes: "◎  ◎" },
-  love: { eyes: "♥  ♥" },
-  cool: { eyes: "■  ■" },
+  excited: { eyes: "", svg: true },
+  thinking: { eyes: "", svg: true },
+  sleepy: { eyes: "", svg: true },
+  surprised: { eyes: "", svg: true },
+  love: { eyes: "", svg: true },
+  cool: { eyes: "", svg: true },
   wink: { eyes: "", svg: true },
-  petted: { eyes: "◠  ◠" },
-  giggle: { eyes: "≧  ≦" },
-  shy: { eyes: "·  ·" },
+  petted: { eyes: "", svg: true },
+  giggle: { eyes: "", svg: true },
+  shy: { eyes: "", svg: true },
   synergy1017: { eyes: "", svg: true },
   searching: { eyes: "", svg: true },
   learning: { eyes: "", svg: true },
@@ -31,50 +31,118 @@ const FACES: Record<string, { eyes: string; svg?: boolean }> = {
   blinking: { eyes: "", svg: true },
 };
 
-// SVG faces for clean, scalable eye rendering
+// Crisp vector eyes for each mood. Tall, slightly elliptical eyes with a soft
+// catchlight read as alive and consistent at any size (no unicode-glyph eyes).
 const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   happy: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="0" rx="2.2" ry="3.5" fill={color} />
-      <ellipse cx="5" cy="0" rx="2.2" ry="3.5" fill={color} />
+      <ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill={color} />
+      <ellipse cx="5" cy="0" rx="2.4" ry="3.7" fill={color} />
+      <circle cx="-5.8" cy="-1.4" r="0.9" fill="#fff" opacity="0.85" />
+      <circle cx="4.2" cy="-1.4" r="0.9" fill="#fff" opacity="0.85" />
+    </g>
+  ),
+  excited: (color: string) => (
+    <g>
+      <ellipse cx="-5" cy="-0.3" rx="2.9" ry="4" fill={color} />
+      <ellipse cx="5" cy="-0.3" rx="2.9" ry="4" fill={color} />
+      <circle cx="-6" cy="-2" r="1.1" fill="#fff" opacity="0.9" />
+      <circle cx="4" cy="-2" r="1.1" fill="#fff" opacity="0.9" />
+    </g>
+  ),
+  thinking: (color: string) => (
+    <g>
+      <ellipse cx="-5" cy="-1" rx="2.2" ry="3.4" fill={color} />
+      <ellipse cx="5" cy="-1" rx="2.2" ry="3.4" fill={color} />
+      <path d="M 2.4 -5.4 Q 5 -6.8 7.6 -5.4" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
+    </g>
+  ),
+  sleepy: (color: string) => (
+    <g>
+      <path d="M -7.6 -0.6 Q -5 2.2 -2.4 -0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M 2.4 -0.6 Q 5 2.2 7.6 -0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+    </g>
+  ),
+  surprised: (color: string) => (
+    <g>
+      <circle cx="-5" cy="0" r="3.3" fill="none" stroke={color} strokeWidth="1.8" />
+      <circle cx="5" cy="0" r="3.3" fill="none" stroke={color} strokeWidth="1.8" />
+      <circle cx="-5" cy="0" r="1.3" fill={color} />
+      <circle cx="5" cy="0" r="1.3" fill={color} />
+    </g>
+  ),
+  love: (color: string) => (
+    <g>
+      <path d="M -5 2.4 C -8.2 -0.4 -7.6 -3.6 -5.7 -2.4 C -5 -1.9 -5 -1.5 -5 -1.5 C -5 -1.5 -5 -1.9 -4.3 -2.4 C -2.4 -3.6 -1.8 -0.4 -5 2.4 Z" fill={color} />
+      <path d="M 5 2.4 C 1.8 -0.4 2.4 -3.6 4.3 -2.4 C 5 -1.9 5 -1.5 5 -1.5 C 5 -1.5 5 -1.9 5.7 -2.4 C 7.6 -3.6 8.2 -0.4 5 2.4 Z" fill={color} />
+    </g>
+  ),
+  cool: (color: string) => (
+    <g>
+      <rect x="-7.6" y="-1.5" width="5.2" height="3" rx="1.5" fill={color} />
+      <rect x="2.4" y="-1.5" width="5.2" height="3" rx="1.5" fill={color} />
     </g>
   ),
   wink: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="0" rx="2.2" ry="3.5" fill={color} />
-      <path d="M 2.5 0.5 Q 5 -2.5 7.5 0.5" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill={color} />
+      <circle cx="-5.8" cy="-1.4" r="0.9" fill="#fff" opacity="0.85" />
+      <path d="M 2.5 0.5 Q 5 -2.6 7.5 0.5" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" />
+    </g>
+  ),
+  petted: (color: string) => (
+    <g>
+      <path d="M -7.6 0.6 Q -5 -2.4 -2.4 0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M 2.4 0.6 Q 5 -2.4 7.6 0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+    </g>
+  ),
+  giggle: (color: string) => (
+    <g>
+      <path d="M -7.6 -0.4 Q -5 -3.3 -2.4 -0.4" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M 2.4 -0.4 Q 5 -3.3 7.6 -0.4" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+    </g>
+  ),
+  shy: (color: string) => (
+    <g>
+      <circle cx="-9.2" cy="3.4" r="2" fill="#f9a8d4" opacity="0.5" />
+      <circle cx="9.2" cy="3.4" r="2" fill="#f9a8d4" opacity="0.5" />
+      <ellipse cx="-5" cy="0.4" rx="1.9" ry="2.9" fill={color} />
+      <ellipse cx="5" cy="0.4" rx="1.9" ry="2.9" fill={color} />
     </g>
   ),
   synergy1017: (color: string) => (
     <g>
-      <ellipse cx="-4" cy="0" rx="1.8" ry="3.8" fill={color} />
-      <path d="M 2 1.5 Q 4.5 -2.5 7 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <ellipse cx="-4.5" cy="0" rx="2" ry="3.8" fill={color} />
+      <circle cx="-5.2" cy="-1.4" r="0.8" fill="#fff" opacity="0.85" />
+      <path d="M 2.2 1 Q 4.7 -2.6 7.2 1" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </g>
   ),
   searching: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="0" rx="2.2" ry="3.5" fill={color} />
-      <ellipse cx="5" cy="0" rx="2.2" ry="3.5" fill={color} />
+      <ellipse cx="-5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
+      <ellipse cx="5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
+      <path d="M -7.6 -2.6 Q -5 -3.7 -2.4 -2.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M 2.4 -2.6 Q 5 -3.7 7.6 -2.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
     </g>
   ),
   learning: (color: string) => (
     <g>
-      <ellipse cx="-5" cy="-0.5" rx="3" ry="3.5" fill={color} />
-      <ellipse cx="5" cy="-0.5" rx="3" ry="3.5" fill={color} />
-      <circle cx="-4" cy="-1.5" r="1" fill="white" opacity="0.8" />
-      <circle cx="6" cy="-1.5" r="1" fill="white" opacity="0.8" />
+      <ellipse cx="-5" cy="-0.5" rx="3" ry="3.6" fill={color} />
+      <ellipse cx="5" cy="-0.5" rx="3" ry="3.6" fill={color} />
+      <circle cx="-4" cy="-1.6" r="1" fill="white" opacity="0.85" />
+      <circle cx="6" cy="-1.6" r="1" fill="white" opacity="0.85" />
     </g>
   ),
   celebrating: (color: string) => (
     <g>
-      <path d="M -7.5 0 Q -5 -3 -2.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
-      <path d="M 2.5 0 Q 5 -3 7.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path d="M -7.6 0 Q -5 -3.1 -2.4 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
+      <path d="M 2.4 0 Q 5 -3.1 7.6 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
     </g>
   ),
   blinking: (color: string) => (
     <g>
-      <path d="M -7.5 0 Q -5 0.5 -2.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
-      <path d="M 2.5 0 Q 5 0.5 7.5 0" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path d="M -7.6 0 Q -5 0.6 -2.4 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
+      <path d="M 2.4 0 Q 5 0.6 7.6 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
     </g>
   ),
 };
@@ -233,111 +301,114 @@ const HOLDING_POSES = {
 } as const;
 
 
-// Meshi hat styles (rendered as SVG elements)
+// Meshi hats — rendered on top of (outside) the body clip so nothing is cut
+// off. Each sits on the crown (head top ≈ y -16) and stays within the viewBox.
 const HATS: Record<string, React.ReactNode> = {
   none: null,
   tophat: (
-    <g transform="translate(0, -18)">
-      <rect x="-12" y="-8" width="24" height="12" rx="2" fill="currentColor" opacity="0.9" />
-      <rect x="-16" y="2" width="32" height="4" rx="2" fill="currentColor" opacity="0.9" />
+    <g transform="translate(0, -14)">
+      <rect x="-9" y="-9" width="18" height="11" rx="1.6" fill="currentColor" opacity="0.92" />
+      <rect x="-9" y="-1.6" width="18" height="2.6" fill="#fbbf24" opacity="0.9" />
+      <rect x="-13" y="1.2" width="26" height="3.4" rx="1.7" fill="currentColor" opacity="0.92" />
     </g>
   ),
   crown: (
-    <g transform="translate(0, -16)">
-      <polygon points="-12,4 -12,-4 -8,-1 -4,-8 0,-1 4,-8 8,-1 12,-4 12,4" fill="#fbbf24" />
-      <circle cx="-4" cy="-5" r="1.5" fill="#ef4444" />
-      <circle cx="4" cy="-5" r="1.5" fill="#3b82f6" />
-      <circle cx="0" cy="-2" r="1.5" fill="#22c55e" />
+    <g transform="translate(0, -14)">
+      <polygon points="-11,3 -11,-3 -7,-0.5 -3.5,-7 0,-0.5 3.5,-7 7,-0.5 11,-3 11,3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.6" />
+      <circle cx="-3.5" cy="-3.5" r="1.3" fill="#ef4444" />
+      <circle cx="3.5" cy="-3.5" r="1.3" fill="#3b82f6" />
+      <circle cx="0" cy="-1" r="1.3" fill="#22c55e" />
     </g>
   ),
   beanie: (
-    <g transform="translate(0, -14)">
-      <ellipse cx="0" cy="0" rx="14" ry="8" fill="currentColor" opacity="0.9" />
-      <circle cx="0" cy="-6" r="3" fill="currentColor" opacity="0.7" />
+    <g transform="translate(0, -12)">
+      <path d="M-12,2 Q-12,-9 0,-9 Q12,-9 12,2 Z" fill="currentColor" opacity="0.92" />
+      <rect x="-12" y="0.6" width="24" height="3.4" rx="1.7" fill="currentColor" opacity="0.72" />
+      <circle cx="0" cy="-9" r="2.2" fill="currentColor" opacity="0.85" />
     </g>
   ),
   cap: (
     <g transform="translate(0, -12)">
-      <path d="M-14,2 Q-14,-8 0,-10 Q14,-8 14,2 Z" fill="currentColor" opacity="0.9" />
-      <path d="M10,0 Q18,0 20,4 L14,4 Q12,2 10,2 Z" fill="currentColor" opacity="0.7" />
+      <path d="M-12,1 Q-12,-9 0,-9 Q12,-9 12,1 Z" fill="currentColor" opacity="0.92" />
+      <path d="M8,-0.2 Q17,0.4 19,3.6 L9,3.2 Q8,1.4 8,-0.2 Z" fill="currentColor" opacity="0.72" />
+      <circle cx="0" cy="-9" r="1.4" fill="currentColor" opacity="0.6" />
     </g>
   ),
   hardhat: (
-    <g transform="translate(0, -13)">
-      <path d="M-14,3 Q-14,-8 0,-10 Q14,-8 14,3 Z" fill="#f59e0b" />
-      <path d="M-3,-7 L3,-7 L3,1 L-3,1 Z" fill="#fbbf24" opacity="0.85" />
-      <rect x="-16" y="2" width="32" height="3.5" rx="1.7" fill="#d97706" />
-      <path d="M-9,0 Q0,-2 9,0" fill="none" stroke="#fcd34d" strokeWidth="1.2" opacity="0.7" />
+    <g transform="translate(0, -11)">
+      <path d="M-12,2 Q-12,-9 0,-9 Q12,-9 12,2 Z" fill="#f59e0b" />
+      <rect x="-2.4" y="-8" width="4.8" height="9" rx="1" fill="#fbbf24" opacity="0.9" />
+      <rect x="-14" y="1.4" width="28" height="3.2" rx="1.6" fill="#d97706" />
     </g>
   ),
   party: (
-    <g transform="translate(0, -16)">
-      <polygon points="0,-14 -8,2 8,2" fill="#ec4899" />
-      <circle cx="0" cy="-14" r="2" fill="#fbbf24" />
-      <circle cx="-3" cy="-6" r="1" fill="#3b82f6" />
-      <circle cx="3" cy="-4" r="1" fill="#22c55e" />
-      <circle cx="1" cy="-10" r="1" fill="#f97316" />
+    <g transform="translate(0, -11)">
+      <polygon points="0,-10 -7,3 7,3" fill="#ec4899" stroke="#db2777" strokeWidth="0.5" />
+      <circle cx="0" cy="-10" r="1.6" fill="#fbbf24" />
+      <circle cx="-2.6" cy="-2.5" r="1" fill="#3b82f6" />
+      <circle cx="2.6" cy="-0.5" r="1" fill="#22c55e" />
+      <circle cx="0.6" cy="-6" r="1" fill="#f97316" />
     </g>
   ),
   flower: (
-    <g transform="translate(6, -14)">
-      <circle cx="0" cy="0" r="3" fill="#fbbf24" />
+    <g transform="translate(7, -13)">
+      <circle cx="0" cy="0" r="2.6" fill="#fbbf24" />
       {FLOWER_POSITIONS.map((pos) => (
         <circle
           key={pos.deg}
           cx={pos.cx}
           cy={pos.cy}
-          r="2.5"
+          r="2.2"
           fill="#ec4899"
-          opacity="0.8"
+          opacity="0.85"
         />
       ))}
     </g>
   ),
   // MeshPro exclusive hats
   headphones: (
-    <g transform="translate(0, -12)">
-      <path d="M-12,4 Q-12,-10 0,-12 Q12,-10 12,4" fill="none" stroke="#6b7280" strokeWidth="3" strokeLinecap="round" />
-      <rect x="-15" y="0" width="6" height="8" rx="2" fill="#374151" />
-      <rect x="9" y="0" width="6" height="8" rx="2" fill="#374151" />
+    <g transform="translate(0, -10)">
+      <path d="M-12,4 Q-12,-9 0,-9 Q12,-9 12,4" fill="none" stroke="#6b7280" strokeWidth="3" strokeLinecap="round" />
+      <rect x="-15" y="0" width="6" height="9" rx="2.5" fill="#374151" />
+      <rect x="9" y="0" width="6" height="9" rx="2.5" fill="#374151" />
     </g>
   ),
   halo: (
-    <g transform="translate(0, -20)">
-      <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fbbf24" strokeWidth="2.5" opacity="0.9" />
-      <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fde68a" strokeWidth="1" opacity="0.4" />
+    <g transform="translate(0, -18.5)">
+      <ellipse cx="0" cy="0" rx="11" ry="3.4" fill="none" stroke="#fde68a" strokeWidth="2.6" opacity="0.95" />
+      <ellipse cx="0" cy="0" rx="11" ry="3.4" fill="none" stroke="#fbbf24" strokeWidth="1" opacity="0.6" />
     </g>
   ),
   wizard: (
-    <g transform="translate(0, -16)">
-      <polygon points="0,-18 -10,2 10,2" fill="#6366f1" />
-      <rect x="-14" y="0" width="28" height="4" rx="2" fill="#6366f1" opacity="0.8" />
-      <circle cx="0" cy="-14" r="2" fill="#fbbf24" />
-      <circle cx="-4" cy="-6" r="1.2" fill="#fbbf24" opacity="0.6" />
-      <circle cx="3" cy="-9" r="1" fill="#fbbf24" opacity="0.5" />
+    <g transform="translate(0, -11)">
+      <polygon points="0,-12 -9,3 9,3" fill="#6366f1" stroke="#4f46e5" strokeWidth="0.5" />
+      <path d="M-10,3 Q0,1 10,3 L10,5 Q0,3.4 -10,5 Z" fill="#4f46e5" opacity="0.9" />
+      <circle cx="0" cy="-8.5" r="1.5" fill="#fbbf24" />
+      <circle cx="-3" cy="-2" r="1" fill="#fbbf24" opacity="0.6" />
+      <circle cx="2.6" cy="-5" r="0.9" fill="#fbbf24" opacity="0.5" />
     </g>
   ),
   astronaut: (
-    <g transform="translate(0, -14)">
-      <ellipse cx="0" cy="0" rx="16" ry="12" fill="none" stroke="#e2e8f0" strokeWidth="2.5" />
-      <ellipse cx="0" cy="0" rx="16" ry="12" fill="rgba(148, 163, 184, 0.15)" />
-      <ellipse cx="-4" cy="-2" rx="3" ry="2" fill="rgba(255,255,255,0.2)" />
+    <g transform="translate(0, -6)">
+      <path d="M-15,4 Q-15,-12 0,-12 Q15,-12 15,4 Z" fill="rgba(148,163,184,0.16)" stroke="#e2e8f0" strokeWidth="2" />
+      <ellipse cx="-5" cy="-5" rx="3" ry="2" fill="rgba(255,255,255,0.25)" />
     </g>
   ),
   pirate: (
-    <g transform="translate(0, -14)">
-      <path d="M-14,2 Q-14,-6 0,-8 Q14,-6 14,2 Z" fill="#1e1e2e" />
-      <rect x="-16" y="0" width="32" height="3" rx="1" fill="#1e1e2e" />
-      <path d="M-4,-4 L0,-6 L4,-4 L2,-2 L-2,-2 Z" fill="#e2e8f0" opacity="0.8" />
+    <g transform="translate(0, -12)">
+      <path d="M-13,2 Q-13,-6 0,-7 Q13,-6 13,2 Z" fill="#1f2937" />
+      <rect x="-14" y="0.8" width="28" height="3" rx="1" fill="#111827" />
+      <path d="M-3.6,-3.4 L0,-5.4 L3.6,-3.4 L1.8,-1.4 L-1.8,-1.4 Z" fill="#e5e7eb" />
+      <circle cx="0" cy="-2.6" r="0.85" fill="#1f2937" />
     </g>
   ),
   chef: (
-    <g transform="translate(0, -16)">
-      <ellipse cx="0" cy="0" rx="12" ry="10" fill="#f8fafc" />
-      <circle cx="-6" cy="-4" r="5" fill="#f8fafc" />
-      <circle cx="6" cy="-4" r="5" fill="#f8fafc" />
-      <circle cx="0" cy="-8" r="5" fill="#f8fafc" />
-      <rect x="-12" y="0" width="24" height="3" rx="1" fill="#e2e8f0" />
+    <g transform="translate(0, -12)">
+      <rect x="-9" y="-2" width="18" height="5" rx="1.2" fill="#f8fafc" />
+      <circle cx="-6" cy="-4" r="4.4" fill="#f8fafc" />
+      <circle cx="6" cy="-4" r="4.4" fill="#f8fafc" />
+      <circle cx="0" cy="-6" r="4.8" fill="#f8fafc" />
+      <rect x="-9" y="1.6" width="18" height="2.6" rx="1" fill="#e2e8f0" />
     </g>
   ),
 };
@@ -609,7 +680,6 @@ export function MeshiMascot({
   bouncy = false,
 }: MeshiMascotProps) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
-  const face = FACES[mood] || FACES.happy;
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
   const hairElement = HAIRS[hair] || null;
@@ -799,15 +869,13 @@ export function MeshiMascot({
     ? [HOLDING_POSES.two.left, HOLDING_POSES.two.right]
     : [HOLDING_POSES.single.right];
 
-  // Determine current face (with blinking override)
-  const getCurrentFace = () => {
-    if (isBlinking && !speaking) return { face: FACES.blinking, mood: "blinking" as MeshiMood };
-    const currentMood = interactive ? (localMood || mood) : mood;
-    const currentFace = interactive ? (FACES[localMood || mood] || FACES.happy) : face;
-    return { face: currentFace, mood: currentMood };
+  // Determine current mood (with blinking override)
+  const getCurrentMood = (): MeshiMood => {
+    if (isBlinking && !speaking) return "blinking";
+    return interactive ? (localMood || mood) : mood;
   };
 
-  const { face: renderedFace, mood: renderedMood } = getCurrentFace();
+  const renderedMood = getCurrentMood();
 
   return (
     <motion.div
@@ -881,33 +949,26 @@ export function MeshiMascot({
           />
           {/* Simple outfits stay inside the bubble so Meshi remains minimal. */}
           <g style={{ color: theme.primary }}>{outfitElement}</g>
-
-          {/* Hair and hat */}
-          <g style={{ color: theme.primary }}>{hairElement}</g>
-          <g style={{ color: theme.primary }}>{hatElement}</g>
-
-          {/* Face — eyes with smooth tracking and blinking */}
-          <motion.g
-            transform={`scale(${Math.min(scale, 1.2)})`}
-            style={{ x: smoothEyeX, y: smoothEyeY }}
-          >
-            {(() => {
-              if (renderedFace.svg && SVG_FACES[renderedMood]) {
-                return SVG_FACES[renderedMood](theme.primary);
-              }
-              return (
-                <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
-                  fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
-                  {renderedFace.eyes}
-                </text>
-              );
-            })()}
-          </motion.g>
-
-          {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
-          {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
-          {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
         </g>
+
+        {/* Headwear, face and accessories render OUTSIDE the body clip so tall
+            hats are never chopped off by the bubble's circular mask. */}
+        <g style={{ color: theme.primary }}>{hairElement}</g>
+
+        {/* Face — eyes with smooth tracking and blinking */}
+        <motion.g
+          transform={`scale(${Math.min(scale, 1.2)})`}
+          style={{ x: smoothEyeX, y: smoothEyeY }}
+        >
+          {(SVG_FACES[renderedMood] || SVG_FACES.happy)(theme.primary)}
+        </motion.g>
+
+        {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
+        {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
+        {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
+
+        {/* Hat sits on top of everything so it always reads clearly. */}
+        <g style={{ color: theme.primary }}>{hatElement}</g>
 
         {/* Bubble hands — only shown when Meshi is actively holding a prop.
             Drawn before the prop so the held object reads clearly on top,
@@ -977,16 +1038,11 @@ export function MeshiLogo({ size = 32, color = "blue", mood = "happy", className
   size?: number; color?: MeshiColor; mood?: MeshiMood; className?: string;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
-  const face = FACES[mood] || FACES.happy;
   return (
     <div className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox="-20 -20 40 40">
         <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2" />
-        {face.svg && SVG_FACES[mood] ? (
-          <g transform="scale(0.85)">{SVG_FACES[mood](theme.primary)}</g>
-        ) : (
-          <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="8" fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>{face.eyes}</text>
-        )}
+        <g transform="scale(0.85)">{(SVG_FACES[mood] || SVG_FACES.happy)(theme.primary)}</g>
       </svg>
     </div>
   );
@@ -1014,7 +1070,6 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
   size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood; hair?: MeshiHair; accessory?: MeshiAccessory; eyeStyle?: MeshiEyeStyle; badge?: MeshiBadge; outfit?: MeshiOutfit;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
-  const face = FACES[mood] || FACES.happy;
   const hatElement = HATS[hat] || null;
   const hairElement = HAIRS[hair] || null;
   const effectiveEyeStyle = accessory === "lashes" ? "lashes" : eyeStyle;
@@ -1028,20 +1083,13 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
       <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
       <g style={{ color: theme.primary }}>{outfitElement}</g>
       <g style={{ color: theme.primary }}>{hairElement}</g>
-      <g style={{ color: theme.primary }}>{hatElement}</g>
       <g transform="scale(0.8)">
-        {face.svg && SVG_FACES[mood] ? (
-          SVG_FACES[mood](theme.primary)
-        ) : (
-          <text x="0" y="1" textAnchor="middle" dominantBaseline="central" fontSize="9"
-            fill={theme.primary} fontFamily="system-ui" style={{ userSelect: "none" }}>
-            {face.eyes}
-          </text>
-        )}
+        {(SVG_FACES[mood] || SVG_FACES.happy)(theme.primary)}
       </g>
       {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
       {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
       {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
+      <g style={{ color: theme.primary }}>{hatElement}</g>
     </svg>
   );
 }
