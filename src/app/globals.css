@@ -561,6 +561,15 @@ select:focus-visible {
   z-index: 1;
 }
 
+/* Desktop mesh: the global top bar already provides search/account and the
+   right rail provides zoom/fit/full screen/advanced, so the in-canvas page
+   header would only duplicate chrome and sit beneath the top bar. */
+@media (min-width: 768px) {
+  .mesh-main-mesh .mesh-page-header {
+    display: none;
+  }
+}
+
 /* Mobile mesh fullscreen: hide dashboard + status, transparent bottom nav */
 @media (max-width: 767px) {
   .mesh-shell-mesh {
