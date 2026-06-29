@@ -4,19 +4,12 @@ import { AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   BarChart3,
-  Bell,
-  Bot,
   CircleHelp,
   Compass,
-  Link2,
   LocateFixed,
   Loader2,
-  MessageCircle,
-  PenSquare,
   RefreshCw,
-  Rss,
   Shield,
-  UsersRound,
   Waypoints,
 } from "lucide-react";
 import Link from "next/link";
@@ -45,7 +38,6 @@ import { MeshPostComposer } from "./mesh-post-composer";
 import { MeshPrivacyPanel } from "./mesh-privacy-panel";
 import { MeshTutorial } from "./mesh-tutorial";
 import { InAppBrowser } from "@/components/in-app-browser";
-import { openMeshi } from "@/lib/meshi-events";
 import type { MeshiAccessory, MeshiBadge, MeshiColor, MeshiEyeStyle, MeshiHair, MeshiHat, MeshiOutfit } from "@/components/meshi/meshi-mascot";
 import type { RemoteMeshi } from "./meshi-on-mesh";
 import { getPostNodeSize, type FilterType, type MeshEdge, type MeshNode, type MeshVisualSettings } from "./mesh-types";
@@ -1051,8 +1043,6 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
   const activeBranchLabel = filter === "all"
     ? activePlatformLabel ? `${activePlatformLabel} branches` : "All branches"
     : `${activePlatformLabel ? `${activePlatformLabel} / ` : ""}${filter.replace("-", " ")} branch`;
-  const dashboardActionClass = "mesh-dashboard-action group flex min-h-[4.15rem] min-w-0 flex-col justify-between rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]/80 p-2.5 text-left backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--mesh-border-active)] hover:bg-[var(--mesh-panel-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mesh-blue)]/40 active:scale-[0.98] sm:p-3";
-  const dashboardIconClass = "mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)] transition group-hover:scale-105";
 
   return (
     <section data-meshi-zone="mesh" className="mesh-experience mesh-experience-fullscreen flex h-full min-h-0 flex-col overflow-hidden" aria-labelledby="mesh-page-title">
@@ -1107,81 +1097,6 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
           </button>
         </div>
       </div>
-
-      {hasLoadedData && (
-        <nav
-          data-testid="mesh-dashboard-rail"
-          className="mesh-dashboard-rail mesh-page-actions mb-3 grid grid-cols-4 gap-1.5 md:grid-cols-8"
-          aria-label="Mesh dashboard actions"
-        >
-          <button
-            type="button"
-            onClick={() => setShowComposer(true)}
-            className={dashboardActionClass}
-            aria-label="Create a post from the Mesh dashboard"
-          >
-            <span className={dashboardIconClass}><PenSquare className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Create</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Post anywhere</span>
-            </span>
-          </button>
-          <Link href="/feed" className={dashboardActionClass} aria-label="Open the Feed from the Mesh dashboard">
-            <span className={dashboardIconClass}><Rss className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Feed</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Scroll</span>
-            </span>
-          </Link>
-          <Link href="/messages" className={dashboardActionClass} aria-label="Open MeChat from the Mesh dashboard">
-            <span className={dashboardIconClass}><MessageCircle className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">MeChat</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Messages</span>
-            </span>
-          </Link>
-          <Link href="/notifications" className={dashboardActionClass} aria-label="Open notifications from the Mesh dashboard">
-            <span className={dashboardIconClass}><Bell className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Alerts</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Signals</span>
-            </span>
-          </Link>
-          <Link href="/communities" className={dashboardActionClass} aria-label="Open communities from the Mesh dashboard">
-            <span className={dashboardIconClass}><UsersRound className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Groups</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Communities</span>
-            </span>
-          </Link>
-          <Link href="/analytics" className={dashboardActionClass} aria-label="Open Analytics from the Mesh dashboard">
-            <span className={dashboardIconClass}><BarChart3 className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Stats</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Analytics</span>
-            </span>
-          </Link>
-          <Link href="/connected-accounts" className={dashboardActionClass} aria-label="Open connected accounts from the Mesh dashboard">
-            <span className={dashboardIconClass}><Link2 className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Connect</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Platforms</span>
-            </span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => openMeshi("speech")}
-            className={dashboardActionClass}
-            aria-label="Ask Meshi from the Mesh dashboard"
-          >
-            <span className={dashboardIconClass}><Bot className="h-4 w-4" aria-hidden="true" /></span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[var(--mesh-text)]">Meshi</span>
-              <span className="hidden truncate text-[11px] font-semibold text-[var(--mesh-text-muted)] sm:block">Ask</span>
-            </span>
-          </button>
-        </nav>
-      )}
 
       {hasLoadedData && (
         <div className="mesh-page-status mb-3 flex flex-wrap gap-2 text-xs text-[var(--mesh-text-secondary)] sm:overflow-x-auto sm:pb-1">
