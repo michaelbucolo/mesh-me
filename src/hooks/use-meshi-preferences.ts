@@ -120,8 +120,15 @@ export function updateMeshiLocalPreferences(patch: Partial<MeshiPreferences>) {
   return next;
 }
 
-async function hydrateMeshiPreferencesFromServer() {
-  const serverPref = await getMeshiPreference();
+export type ServerMeshiPreference = Awaited<ReturnType<typeof getMeshiPreference>>;
+
+/**
+ * Merge a server-side Meshi preference record into local storage and notify
+ * every Meshi surface synchronously. The server record is the source of truth
+ * for the cosmetic fields; local-only fields (enabled, app logo, title) are
+ * preserved. Returns the merged preferences.
+ */
+export function applyServerMeshiPreferences(serverPref: ServerMeshiPreference): MeshiPreferences {
   const local = readMeshiPreferencesFromStorage();
 
   if (!serverPref) return local;
@@ -141,6 +148,11 @@ async function hydrateMeshiPreferencesFromServer() {
   writeMeshiPreferencesToStorage(merged);
   broadcastMeshiPreferences(merged);
   return merged;
+}
+
+async function hydrateMeshiPreferencesFromServer() {
+  const serverPref = await getMeshiPreference();
+  return applyServerMeshiPreferences(serverPref);
 }
 
 /**
