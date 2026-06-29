@@ -2,28 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MeChatHome } from "@/components/messages/mechat-home";
 import { getCurrentUser } from "@/lib/auth";
-import { PLATFORM_CAPABILITIES, normalizePlatformId } from "@/lib/platform-capabilities";
 import { prisma } from "@/lib/prisma";
 import { getMessageThreads } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "MeChat",
-  description: "Unified private messaging and shared scrolling for Mesh.me.",
+  description: "Unified private messaging for Mesh.me.",
 };
 
-type MessagesPageProps = {
-  searchParams: Promise<{
-    sharePostId?: string;
-    sharePlatformPostId?: string;
-    shareUrl?: string;
-    shareTitle?: string;
-    sourcePlatform?: string;
-    roomTitle?: string;
-    callMode?: string;
-  }>;
-};
-
-export default async function MessagesPage({ searchParams }: MessagesPageProps) {
+export default async function MessagesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/messages");
   if (!user.onboarded) redirect("/onboarding");
@@ -34,52 +21,8 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
   });
   const noteAudienceIds = Array.from(new Set([user.id, ...threadMemberRows.map((row) => row.userId)]));
 
-  const [{ sharePostId, sharePlatformPostId, shareUrl, shareTitle, sourcePlatform, roomTitle, callMode }, threads, sessions, connectedAccounts, activeNotes] = await Promise.all([
-    searchParams,
+  const [threads, activeNotes] = await Promise.all([
     getMessageThreads(),
-    prisma.meChatSession.findMany({
-      where: {
-        OR: [
-          { hostId: user.id },
-          { participants: { some: { userId: user.id } } },
-        ],
-      },
-      include: {
-        participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                avatarUrl: true,
-              },
-            },
-          },
-          orderBy: { joinedAt: "asc" },
-        },
-        items: {
-          include: {
-            votes: true,
-          },
-          orderBy: { position: "asc" },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 24,
-    }),
-    prisma.connectedAccount.findMany({
-      where: { userId: user.id, isActive: true },
-      include: {
-        _count: {
-          select: {
-            platformComments: true,
-            platformPosts: true,
-          },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    }),
     // The notes/stories strip is an ephemeral, non-essential surface. Keep MeChat
     // loading even if it cannot be read, so conversations are never blocked by it.
     prisma.meChatNote
@@ -119,10 +62,6 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       user: note.user,
     }));
 
-  const capabilityByPlatform = new Map(
-    PLATFORM_CAPABILITIES.map((capability) => [normalizePlatformId(capability.id), capability]),
-  );
-
   return (
     <MeChatHome
       currentUser={{
@@ -131,28 +70,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
       }}
-      sharedPostId={sharePostId}
-      sharedPlatformPostId={sharePlatformPostId}
-      sharedUrl={shareUrl}
-      sharedTitle={shareTitle}
-      sourcePlatform={sourcePlatform}
-      suggestedRoomTitle={roomTitle}
-      suggestedCallMode={callMode === "voice" || callMode === "video" ? callMode : undefined}
       initialNotes={initialNotes}
-      connectedInboxes={connectedAccounts.map((account) => {
-        const platformId = normalizePlatformId(account.platform);
-        const capability = capabilityByPlatform.get(platformId);
-        return {
-          id: account.id,
-          platform: account.platform,
-          platformUsername: account.platformUsername,
-          syncStatus: account.syncStatus,
-          messageSync: Boolean(capability?.messageSync),
-          platformComments: account._count.platformComments,
-          platformPosts: account._count.platformPosts,
-          lastSyncAt: account.lastSyncAt?.toISOString() ?? null,
-        };
-      })}
       initialThreads={threads.map((thread) => ({
         id: thread.id,
         title: thread.displayTitle,
@@ -182,37 +100,6 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
           : null,
         platform: "mesh",
         unread: thread.unreadCount,
-      }))}
-      initialSessions={sessions.map((session) => ({
-        id: session.id,
-        hostId: session.hostId,
-        title: session.title,
-        status: session.status,
-        sessionType: session.sessionType,
-        callMode: session.callMode,
-        callStatus: session.callStatus,
-        currentItemId: session.currentItemId,
-        callStartedAt: session.callStartedAt?.toISOString() ?? null,
-        callEndedAt: session.callEndedAt?.toISOString() ?? null,
-        participants: session.participants.map((participant) => ({
-          id: participant.id,
-          userId: participant.userId,
-          role: participant.role,
-          user: participant.user,
-        })),
-        items: session.items.map((item) => ({
-          id: item.id,
-          sourcePlatform: item.sourcePlatform,
-          sourceUrl: item.sourceUrl,
-          title: item.title,
-          content: item.content,
-          status: item.status,
-          votes: item.votes.map((vote) => ({
-            id: vote.id,
-            userId: vote.userId,
-            vote: vote.vote,
-          })),
-        })),
       }))}
     />
   );
