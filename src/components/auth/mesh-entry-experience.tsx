@@ -656,6 +656,12 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     setIsHydrated(true);
   }, []);
 
+  useEffect(() => {
+    if (stage === "password") {
+      router.prefetch(nextPath || "/mesh");
+    }
+  }, [stage, nextPath, router]);
+
   const previewDisplayName = meshiPreview?.displayName?.trim() || meshiPreview?.username || "you";
   const activeMeshi = meshiPreview?.meshi ?? DEFAULT_ENTRY_MESHI;
   const shouldShowEntryMeshi = stage !== "identity" || Boolean(meshiPreview);
