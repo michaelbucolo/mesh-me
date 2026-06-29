@@ -313,7 +313,7 @@ export function AppShell({ children, user }: AppShellProps) {
         </nav>
 
         {/* Privacy First (discreet) */}
-        <div className="mx-3 mb-2">
+        <div className="mesh-privacy-card mx-3 mb-2">
           <Link
             href="/privacy-controls"
             className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text-secondary)]"
