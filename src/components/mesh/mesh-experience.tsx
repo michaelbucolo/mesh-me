@@ -283,7 +283,7 @@ export function MeshExperience({ viewUserId }: { viewUserId?: string } = {}) {
     if (document.fullscreenElement) {
       void document.exitFullscreen().catch(() => {});
     } else {
-      void el.requestFullscreen?.().catch(() => {});
+      void el.requestFullscreen?.()?.catch(() => {});
     }
   }, []);
 
