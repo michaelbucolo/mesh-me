@@ -1630,14 +1630,11 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             ) : null}
           </div>
 
-          <nav className="mesh-entry-footer-nav mt-7 flex items-center justify-center text-xs font-semibold text-blue-100/76">
-            <button type="button" onClick={openInlineSignup} className="px-3 py-1 transition hover:text-white">Create account</button>
-            <span className="mesh-entry-footer-sep" aria-hidden="true" />
-            <button type="button" onClick={openResetStep} className="px-3 py-1 transition hover:text-white">Forgot password?</button>
-            <span className="mesh-entry-footer-sep" aria-hidden="true" />
-            <Link href="/privacy" className="px-3 py-1 transition hover:text-white">Privacy</Link>
-            <span className="mesh-entry-footer-sep" aria-hidden="true" />
-            <Link href="/terms" className="px-3 py-1 transition hover:text-white">Terms</Link>
+          <nav className="mesh-entry-footer-nav mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-blue-100/76">
+            <button type="button" onClick={openInlineSignup} className="transition hover:text-white">Create account</button>
+            <button type="button" onClick={openResetStep} className="transition hover:text-white">Forgot password?</button>
+            <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
+            <Link href="/terms" className="transition hover:text-white">Terms</Link>
           </nav>
 
           <div className="mt-6 flex items-center justify-center gap-2 text-xs font-semibold text-emerald-100/72">
