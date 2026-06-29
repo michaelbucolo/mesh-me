@@ -80,18 +80,25 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.meChatNote.findMany({
-      where: {
-        userId: { in: noteAudienceIds },
-        expiresAt: { gt: new Date() },
-      },
-      include: {
-        user: {
-          select: { id: true, username: true, displayName: true, avatarUrl: true },
+    // The notes/stories strip is an ephemeral, non-essential surface. Keep MeChat
+    // loading even if it cannot be read, so conversations are never blocked by it.
+    prisma.meChatNote
+      .findMany({
+        where: {
+          userId: { in: noteAudienceIds },
+          expiresAt: { gt: new Date() },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
+        include: {
+          user: {
+            select: { id: true, username: true, displayName: true, avatarUrl: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+      .catch((error) => {
+        console.error("Failed to load MeChat notes", error);
+        return [];
+      }),
   ]);
 
   const seenNoteUsers = new Set<string>();
