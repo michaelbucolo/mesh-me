@@ -326,7 +326,7 @@ const checks = [
     fix: "Keep the Mesh canvas, controls, and diagnostics-visible states accessible to browser tests.",
     run: async () => {
       const source = read("src/components/mesh/mesh-experience.tsx") + read("src/components/mesh/mesh-canvas.tsx");
-      const required = ["data-testid", "aria-label", "MeshCanvas", "mesh-dashboard-rail"];
+      const required = ["data-testid", "aria-label", "MeshCanvas", "MeshActionBar"];
       const missing = required.filter((token) => !source.includes(token));
       assert(missing.length === 0, `Missing Mesh testability markers: ${missing.join(", ")}`);
       return { evidence: "Mesh component exposes stable diagnostics markers" };
