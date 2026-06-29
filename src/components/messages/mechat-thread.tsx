@@ -576,6 +576,13 @@ export function MeChatThread({
               )}
             </div>
             {typingUsers.map((user) => user.displayName).join(", ")} {typingUsers.length === 1 ? "is" : "are"} writing
+            {typingUsers.every((user) => !user.meshi) && (
+              <span className="inline-flex gap-0.5">
+                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)]" />
+                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:120ms]" />
+                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:240ms]" />
+              </span>
+            )}
           </div>
         )}
       </div>
