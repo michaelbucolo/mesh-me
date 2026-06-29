@@ -6063,6 +6063,25 @@ body,
   }
 }
 
+.mechat-typing-meshi {
+  animation: mechatTypingBob 1.1s ease-in-out infinite;
+}
+
+@keyframes mechatTypingBob {
+  0%, 100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(1.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mechat-typing-meshi {
+    animation: none;
+  }
+}
+
 .mobile-bottom-nav {
   border-top-color: var(--mesh-border);
 }
