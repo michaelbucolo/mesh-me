@@ -24,7 +24,7 @@ function BrandContents({
     <>
       <MeshiPresenceGlyph size={size} label="Meshi presence marker" />
       {showWordmark && (
-        <span className="min-w-0">
+        <span className="brand-wordmark-wrap min-w-0">
           <span className="brand-wordmark block truncate text-[var(--text-primary)]">{label}</span>
           {subtitle && <span className="block truncate text-xs font-medium text-[var(--text-muted)]">{subtitle}</span>}
         </span>
@@ -34,7 +34,7 @@ function BrandContents({
 }
 
 export function MeshiBrandLockup({ href, className, ...props }: MeshiBrandLockupProps) {
-  const classes = cn("mesh-pressable inline-flex items-center gap-3 rounded-md text-left font-bold", className);
+  const classes = cn("mesh-brand-lockup mesh-pressable inline-flex items-center gap-3 rounded-md text-left font-bold", className);
 
   if (href) {
     return (

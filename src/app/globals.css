@@ -7654,7 +7654,7 @@ body {
     align-items: center;
   }
 
-  .mesh-sidebar .mesh-brand-lockup span,
+  .mesh-sidebar .mesh-brand-lockup .brand-wordmark-wrap,
   .mesh-sidebar .mesh-nav-item span:not(.sr-only),
   .mesh-sidebar .mesh-privacy-card,
   .mesh-sidebar .mesh-user-dock .min-w-0.flex-1,
