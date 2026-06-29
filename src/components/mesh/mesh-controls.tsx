@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ZoomIn, ZoomOut, Maximize2, Minimize2, SlidersHorizontal,
+  ZoomIn, ZoomOut, Maximize2, Expand, Shrink, SlidersHorizontal,
   Search, Fingerprint, Plus, Layers, Shield, EyeOff,
   Users, Hash, Globe, MessageCircle, FileText, Link2, Sparkles,
   BarChart3, Eye, RefreshCw, Activity,
@@ -211,7 +211,7 @@ export function MeshZoomControls({
         title={isFullscreen ? "Exit full screen" : "Full screen"}
         aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
       >
-        {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        {isFullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
       </button>
       <div className="h-px bg-white/[0.06] mx-1" />
       <button
@@ -238,6 +238,7 @@ export function MeshZoomControls({
           >
             <Eye className="h-4 w-4" />
           </button>
+          <div className="h-px bg-white/[0.06] mx-1" />
           <button
             onClick={onToggleStats}
             type="button"
@@ -248,6 +249,7 @@ export function MeshZoomControls({
           >
             <BarChart3 className="h-4 w-4" />
           </button>
+          <div className="h-px bg-white/[0.06] mx-1" />
           <button
             onClick={onToggleView}
             type="button"
