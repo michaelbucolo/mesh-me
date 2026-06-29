@@ -237,6 +237,12 @@ export function MeshCanvas({
           meshiStateRef.current.lookAtY = null;
         }
 
+        // Canvas-space point currently under the screen center, so Meshi can pin there on mobile.
+        const meshiZoom = zoomRef.current || 1;
+        const meshiCenter = engine.getCenter();
+        const anchorX = meshiCenter.x - panRef.current.x / meshiZoom;
+        const anchorY = meshiCenter.y - panRef.current.y / meshiZoom;
+
         tickMeshi(
           meshiStateRef.current,
           engine.nodes,
@@ -244,6 +250,8 @@ export function MeshCanvas({
           canvas.offsetWidth,
           canvas.offsetHeight,
           remoteMeshisRef.current,
+          anchorX,
+          anchorY,
         );
 
         // Report position every 2 seconds for presence system

@@ -257,6 +257,8 @@ export function tickMeshi(
   canvasWidth?: number,
   canvasHeight?: number,
   remoteMeshis: Array<{ x: number; y: number; isOnline: boolean }> = [],
+  anchorX?: number,
+  anchorY?: number,
 ): void {
   state.bobPhase += dt * 2.5;
   if (state.reactionTimer > 0) state.reactionTimer -= dt;
@@ -271,45 +273,18 @@ export function tickMeshi(
 
   // Determine behavior mode
   if (state.isMobile) {
-    // Mobile: Meshi IS the user's finger/cursor on the mesh — follows touch directly
-    if (state.interactionX !== null && state.interactionY !== null && state.interactionTimer < 2) {
-      // Snap to where user is touching
-      state.targetX = state.interactionX;
-      state.targetY = state.interactionY;
-      state.followingCursor = true;
-      state.targetNode = null;
-      state.moveTimer = 3;
-      if (!state.isMoving) state.mood = "happy";
-    } else {
-      // No active touch — sit at center of screen as user's avatar
-      const cx = (canvasWidth || 800) / 2;
-      const cy = (canvasHeight || 600) / 2;
-      const idleBobX = Math.sin(state.bobPhase * 0.25) * 8;
-      const idleBobY = Math.cos(state.bobPhase * 0.18) * 6;
-      state.targetX = cx + idleBobX;
-      state.targetY = cy + idleBobY;
-      state.followingCursor = false;
-
-      // When idle, explore nearby nodes
-      state.moveTimer -= dt;
-      if (state.moveTimer <= 0) {
-        const w = canvasWidth || 800;
-        const h = canvasHeight || 600;
-        const visibleNodes = nodes.filter((n) => {
-          if (n.type === "self") return false;
-          return n.x > -w * 0.3 && n.x < w * 1.3 && n.y > -h * 0.3 && n.y < h * 1.3;
-        });
-        const next = visibleNodes.length > 0 ? pickNextTarget(state, visibleNodes) : null;
-        if (next) {
-          state.targetNode = next;
-          state.targetX = next.x;
-          state.targetY = next.y;
-          state.isMoving = true;
-          state.mood = "searching";
-        }
-        state.moveTimer = WANDER_INTERVAL_MIN + Math.random() * (WANDER_INTERVAL_MAX - WANDER_INTERVAL_MIN);
-      }
-    }
+    // Mobile: Meshi is a fixed reticle at the center of the screen. The user pans the
+    // mesh beneath it and taps to interact, so it stays centered and never wanders off.
+    // anchorX/anchorY is the canvas-space point currently under the screen center.
+    const ax = anchorX ?? (canvasWidth || 800) / 2;
+    const ay = anchorY ?? (canvasHeight || 600) / 2;
+    const idleBobX = Math.sin(state.bobPhase * 0.5) * 3;
+    const idleBobY = Math.cos(state.bobPhase * 0.4) * 3;
+    state.targetX = ax + idleBobX;
+    state.targetY = ay + idleBobY;
+    state.followingCursor = true;
+    state.targetNode = null;
+    if (state.reactionTimer <= 0 && !state.isMoving) state.mood = "happy";
   } else if (state.isTablet && state.cursorX !== null && state.cursorY !== null && !isIdle) {
     // iPad/tablet: Meshi acts as cursor
     state.targetX = state.cursorX + CURSOR_OFFSET;
