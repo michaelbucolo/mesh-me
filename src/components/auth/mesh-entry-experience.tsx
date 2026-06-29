@@ -217,7 +217,7 @@ function precise(value: number) {
 
 function createEntryNodes() {
   const nodes: EntryNode[] = [];
-  const counts = [44, 38, 44, 38];
+  const counts = [72, 62, 72, 62];
   const pushNode = (x: number, y: number, index: number) => {
     const glow = 0.24 + ((index * 17) % 50) / 100;
     nodes.push({
