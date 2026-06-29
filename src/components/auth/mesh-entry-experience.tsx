@@ -217,7 +217,7 @@ function precise(value: number) {
 
 function createEntryNodes() {
   const nodes: EntryNode[] = [];
-  const counts = [154, 136, 154, 136];
+  const counts = [72, 62, 72, 62];
   const pushNode = (x: number, y: number, index: number) => {
     const glow = 0.24 + ((index * 17) % 50) / 100;
     nodes.push({
@@ -258,8 +258,8 @@ const EDGE_LINKS = EDGE_NODES.flatMap((node, index) => {
   return links;
 });
 
-const CONNECTION_IDS = Array.from({ length: 28 }, (_, index) => {
-  const nodeIndex = (Math.floor((index / 28) * EDGE_NODES.length) + 4) % EDGE_NODES.length;
+const CONNECTION_IDS = Array.from({ length: 14 }, (_, index) => {
+  const nodeIndex = (Math.floor((index / 14) * EDGE_NODES.length) + 4) % EDGE_NODES.length;
   return EDGE_NODES[nodeIndex].id;
 });
 const MESHI_STRING_ANCHORS = [
@@ -278,7 +278,7 @@ const MESHI_STRING_ANCHORS = [
 ];
 const MESHI_CONNECTION_CORE = { x: 50, y: 39 };
 
-const AMBIENT_SPARKS = Array.from({ length: 220 }, (_, index) => {
+const AMBIENT_SPARKS = Array.from({ length: 60 }, (_, index) => {
   const side = index % 4;
   const t = ((index * 23) % 100) / 100;
   const wave = Math.sin((index + 4) * 1.17);
@@ -1076,7 +1076,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             <Link href="/" className="brand-wordmark inline-flex text-xl font-bold text-white" aria-label="mesh.me home">
               mesh<span className="brand-wordmark-accent">.me</span>
             </Link>
-            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-100/55">Your World, Your Way</p>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-100/74">Your World, Your Way</p>
             <div className="mesh-entry-stage-row mt-4" aria-label={`Current step: ${stepLabel}`}>
               {["Identify", stage === "signup" ? "Create" : stage === "reset" ? "Reset" : "Unlock", "Enter"].map((label, index) => {
                 const active = label === stepLabel || (entryState === "unlocking" && label === "Enter");
@@ -1173,7 +1173,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       <UserRound className="h-5 w-5" aria-hidden="true" />
                     </div>
                     <h1 className="text-4xl font-bold tracking-[0] text-white sm:text-5xl">Who are you?</h1>
-                    <p className="text-sm text-blue-100/62">Sign in or create your Mesh from one place.</p>
+                    <p className="text-sm text-blue-100/78">Sign in or create your Mesh from one place.</p>
                   </div>
                   <label className="block" htmlFor="mesh-entry-identity">
                     <span className="sr-only">Username, email, or phone number</span>
@@ -1247,7 +1247,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: reduceMotion ? 0 : -3 }}
                         transition={{ duration: reduceMotion ? 0.01 : 0.16, ease: "easeOut" }}
-                        className="text-center text-xs font-semibold text-blue-100/46"
+                        className="text-center text-xs font-semibold text-blue-100/60"
                       >
                       Looking for your Meshi...
                       </motion.p>
@@ -1328,10 +1328,10 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       <LockKeyhole className="h-4 w-4" aria-hidden="true" />
                     </div>
                     <h1 className="text-2xl font-bold tracking-[0] text-white">Welcome back</h1>
-                    <p className="text-sm text-blue-100/62">Enter your password to reconnect.</p>
-                    <p className="mx-auto max-w-[18rem] truncate text-xs font-semibold text-blue-100/42">{identifier}</p>
+                    <p className="text-sm text-blue-100/78">Enter your password to reconnect.</p>
+                    <p className="mx-auto max-w-[18rem] truncate text-xs font-semibold text-blue-100/72">{identifier}</p>
                     {destinationLabel ? (
-                      <p className="text-xs font-semibold text-blue-100/42">Then open {destinationLabel}.</p>
+                      <p className="text-xs font-semibold text-blue-100/72">Then open {destinationLabel}.</p>
                     ) : null}
                   </div>
                   <label className="block" htmlFor="mesh-entry-password">
@@ -1399,7 +1399,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       setEntryState("idle");
                       setPreviewState(meshiPreview ? "found" : "idle");
                     }}
-                    className="w-full text-center text-xs font-semibold text-blue-100/55 transition hover:text-blue-100"
+                    className="w-full text-center text-xs font-semibold text-blue-100/74 transition hover:text-blue-100"
                   >
                     Use a different identity
                   </button>
@@ -1420,8 +1420,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       <LockKeyhole className="h-4 w-4" aria-hidden="true" />
                     </div>
                     <h1 className="text-2xl font-bold tracking-[0] text-white">Reset password</h1>
-                    <p className="text-sm text-blue-100/62">Enter the email connected to your Mesh.</p>
-                    <p className="mx-auto max-w-[20rem] text-xs font-semibold text-blue-100/42">
+                    <p className="text-sm text-blue-100/78">Enter the email connected to your Mesh.</p>
+                    <p className="mx-auto max-w-[20rem] text-xs font-semibold text-blue-100/72">
                       If the email exists, we will send a secure reset link.
                     </p>
                   </div>
@@ -1491,7 +1491,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                         window.setTimeout(() => passwordInputRef.current?.focus(), 80);
                       }
                     }}
-                    className="w-full text-center text-xs font-semibold text-blue-100/55 transition hover:text-blue-100"
+                    className="w-full text-center text-xs font-semibold text-blue-100/74 transition hover:text-blue-100"
                     data-testid="entry-reset-back-button"
                   >
                     Back to sign in
@@ -1510,11 +1510,11 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 <form action={submitSignup} className="mesh-entry-card space-y-4" data-testid="entry-signup-form">
                   <div className="space-y-1 text-center">
                     <h1 className="text-2xl font-bold tracking-[0] text-white">Create your Mesh</h1>
-                    <p className="text-sm text-blue-100/62">This identity is new here. Set up your account now.</p>
+                    <p className="text-sm text-blue-100/78">This identity is new here. Set up your account now.</p>
                   </div>
 
                   <label className="block" htmlFor="mesh-entry-display-name">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/55">Name</span>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Name</span>
                     <input
                       id="mesh-entry-display-name"
                       name="displayName"
@@ -1528,7 +1528,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                   </label>
 
                   <label className="block" htmlFor="mesh-entry-signup-username">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/55">Username</span>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Username</span>
                     <input
                       id="mesh-entry-signup-username"
                       name="username"
@@ -1543,7 +1543,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                   </label>
 
                   <label className="block" htmlFor="mesh-entry-signup-email">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/55">Email</span>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Email</span>
                     <input
                       id="mesh-entry-signup-email"
                       name="email"
@@ -1559,7 +1559,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
                   {signupDraft.phone ? (
                     <label className="block" htmlFor="mesh-entry-signup-phone">
-                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/55">Phone</span>
+                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Phone</span>
                       <input
                         id="mesh-entry-signup-phone"
                         name="phone"
@@ -1576,7 +1576,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                   )}
 
                   <label className="block" htmlFor="mesh-entry-signup-password">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/55">Password</span>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Password</span>
                     <span className="relative block">
                       <input
                         id="mesh-entry-signup-password"
@@ -1621,7 +1621,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       setMeshiPreview(null);
                       setPreviewState("idle");
                     }}
-                    className="w-full text-center text-xs font-semibold text-blue-100/55 transition hover:text-blue-100"
+                    className="w-full text-center text-xs font-semibold text-blue-100/74 transition hover:text-blue-100"
                   >
                     I already have an account
                   </button>
@@ -1630,7 +1630,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             ) : null}
           </div>
 
-          <nav className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-xs font-semibold text-blue-100/58">
+          <nav className="mesh-entry-footer-nav mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-blue-100/76">
             <button type="button" onClick={openInlineSignup} className="transition hover:text-white">Create account</button>
             <button type="button" onClick={openResetStep} className="transition hover:text-white">Forgot password?</button>
             <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
