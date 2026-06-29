@@ -300,7 +300,9 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes }: MeChat
                     {note.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
                     {note.text || note.songTitle}
                   </span>
-                  <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16" />
+                  <span className="block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px]">
+                    <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16 border-2 border-[var(--mesh-bg)]" />
+                  </span>
                 </div>
                 <span className="w-full truncate text-center text-[11px] text-[var(--mesh-text-muted)]">
                   {note.user.displayName?.split(" ")[0] || note.user.username}
@@ -372,6 +374,10 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes }: MeChat
                 <X size={18} />
               </button>
             </div>
+
+            {status?.type === "error" && (
+              <div className="mx-4 mt-2 rounded-lg bg-[var(--mesh-danger)]/10 px-3 py-2 text-xs text-[var(--mesh-danger)]">{status.message}</div>
+            )}
 
             <div className="flex items-center gap-2 border-b border-[var(--mesh-border)] px-4 py-2">
               <span className="text-sm font-medium text-[var(--mesh-text-muted)]">To:</span>
