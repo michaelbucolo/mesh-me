@@ -556,9 +556,9 @@ export function MeChatThread({
             <div className="flex -space-x-1.5">
               {typingUsers.slice(0, 3).map((user) =>
                 user.meshi ? (
-                  <span key={user.userId} className="mechat-typing-meshi inline-flex">
+                  <span key={user.userId} className="mechat-typing-meshi inline-flex h-6 w-6 items-center justify-center">
                     <MeshiMascot
-                      size={30}
+                      size={24}
                       prop="keyboard"
                       mood="happy"
                       color={user.meshi.color as MeshiColor}
