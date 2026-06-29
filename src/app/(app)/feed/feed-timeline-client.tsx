@@ -16,6 +16,7 @@ import {
   Loader2,
   Minimize2,
   MessageCircle,
+  Play,
   PlusSquare,
   Rows3,
   Search,
@@ -23,6 +24,7 @@ import {
   Type,
   Video,
 } from "lucide-react";
+import { FlowReels } from "./flow-reels";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
 import { UserMeshiBadge } from "@/components/meshi/meshi-identity";
@@ -169,6 +171,7 @@ export function FeedTimelineClient({
   const [loadingFilter, setLoadingFilter] = useState(false);
   const [feedError, setFeedError] = useState("");
   const [activeFeedItemId, setActiveFeedItemId] = useState<string | null>(initialPosts[0]?.id ?? null);
+  const [reelsOpen, setReelsOpen] = useState(false);
   const [samePostPresences, setSamePostPresences] = useState<FeedPresence[]>([]);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -462,6 +465,16 @@ export function FeedTimelineClient({
             <h1 className="truncate text-lg font-bold text-[var(--text-primary)]">Home</h1>
           </div>
           <div className="feed-topbar-actions flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setReelsOpen(true)}
+              disabled={posts.length === 0}
+              aria-label="Open immersive Flow"
+              title="Immersive Flow"
+              className="insta-icon-button"
+            >
+              <Play size={20} aria-hidden="true" />
+            </button>
             <Link href="/search" aria-label="Search" title="Search" className="insta-icon-button">
               <Search size={20} aria-hidden="true" />
             </Link>
@@ -684,6 +697,19 @@ export function FeedTimelineClient({
           })}
         </div>
       </aside>
+
+      {reelsOpen && posts.length > 0 && (
+        <FlowReels
+          posts={posts}
+          startId={activeFeedItemId}
+          currentUserId={user.id}
+          connectedPlatforms={connectedPlatforms}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          onClose={() => setReelsOpen(false)}
+          onLoadMore={() => void loadMore()}
+        />
+      )}
     </main>
   );
 }
