@@ -100,7 +100,14 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes, shareQue
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (shareQuery) setShowCompose(true);
+    if (shareQuery) {
+      setRecipientQuery("");
+      setRecipients([]);
+      setSelectedMembers([]);
+      setGroupTitle("");
+      setStatus(null);
+      setShowCompose(true);
+    }
   }, [shareQuery]);
 
   const myNote = useMemo(() => notes.find((note) => note.userId === currentUser.id) ?? null, [notes, currentUser.id]);
@@ -289,7 +296,7 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes, shareQue
                 )}
               </div>
               <span className="w-full truncate text-center text-[11px] text-[var(--mesh-text-muted)]">
-                {myNote ? "Your note" : "Your note"}
+                {myNote ? "Your note" : "Add note"}
               </span>
             </button>
 

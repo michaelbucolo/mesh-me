@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, LockKeyhole, Phone, ShieldCheck, Users, Video } from "lucide-react";
+import { ArrowLeft, LockKeyhole, ShieldCheck, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import { MeChatThread, type MeChatSerializedMessage } from "@/components/messages/mechat-thread";
@@ -350,20 +350,6 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
             <MeshiBrandLockup size={34} label="Meshi" subtitle="represents you" useUserMeshi className="text-left" />
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link href={`/messages?roomTitle=${encodeURIComponent(conversationTitle)}`} className="mesh-action mesh-action-secondary px-3 text-sm">
-              <Phone size={15} aria-hidden="true" />
-              Voice room
-            </Link>
-            <Link href={`/messages?roomTitle=${encodeURIComponent(conversationTitle)}&callMode=video`} className="mesh-action mesh-action-secondary px-3 text-sm">
-              <Video size={15} aria-hidden="true" />
-              Video room
-            </Link>
-            <Link href={`/messages?roomTitle=${encodeURIComponent(conversationTitle)}&shareTitle=${encodeURIComponent(conversationTitle)}`} className="mesh-action mesh-action-secondary px-3 text-sm">
-              <Users size={15} aria-hidden="true" />
-              Shared scroll
-            </Link>
-          </div>
         </header>
 
         <section className="mesh-surface overflow-hidden rounded-lg">
