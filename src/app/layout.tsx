@@ -43,7 +43,7 @@ const themeInitScript = `
   try {
     var root = document.documentElement;
     var storedMode = localStorage.getItem("mesh-theme");
-    var mode = validMode(storedMode) ? storedMode : "system";
+    var mode = validMode(storedMode) ? storedMode : "dark";
     var resolved = mode === "system" ? resolveSystemTheme() : mode;
     var storedPreset = localStorage.getItem("mesh-theme-preset");
     var preset = validPreset(storedPreset) ? storedPreset : "default";
@@ -60,9 +60,8 @@ const themeInitScript = `
     root.setAttribute("data-theme", preset);
     applyCustomTheme(root, customTheme);
   } catch (error) {
-    var fallbackTheme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-    document.documentElement.classList.add(fallbackTheme);
-    document.documentElement.style.colorScheme = fallbackTheme;
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
   }
 })();
 `;

@@ -9,7 +9,7 @@ const themeFallbackScript = `
   try {
     var root = document.documentElement;
     var storedMode = localStorage.getItem("mesh-theme");
-    var mode = storedMode === "light" || storedMode === "dark" || storedMode === "system" ? storedMode : "system";
+    var mode = storedMode === "light" || storedMode === "dark" || storedMode === "system" ? storedMode : "dark";
     var resolved = mode === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : mode === "light" ? "light" : "dark";
     root.classList.remove("light", "dark");
     root.classList.add(resolved);
