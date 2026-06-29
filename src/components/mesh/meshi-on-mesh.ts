@@ -405,34 +405,44 @@ const SVG_COLOR_THEMES: Record<string, { primary: string; bg: string }> = {
 function svgEyesForMood(mood: MeshiMoodCanvas, primary: string): string {
   switch (mood) {
     case "happy":
-      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
-              <ellipse cx="5" cy="0" rx="2.5" ry="3" fill="${primary}"/>`;
+      return `<ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill="${primary}"/>
+              <ellipse cx="5" cy="0" rx="2.4" ry="3.7" fill="${primary}"/>
+              <circle cx="-5.8" cy="-1.4" r="0.9" fill="#fff" opacity="0.85"/>
+              <circle cx="4.2" cy="-1.4" r="0.9" fill="#fff" opacity="0.85"/>`;
     case "excited":
-      return `<text x="-5" y="1" text-anchor="middle" dominant-baseline="central" font-size="8" fill="${primary}" font-family="system-ui">★</text>
-              <text x="5" y="1" text-anchor="middle" dominant-baseline="central" font-size="8" fill="${primary}" font-family="system-ui">★</text>`;
+      return `<ellipse cx="-5" cy="-0.3" rx="2.9" ry="4" fill="${primary}"/>
+              <ellipse cx="5" cy="-0.3" rx="2.9" ry="4" fill="${primary}"/>
+              <circle cx="-6" cy="-2" r="1.1" fill="#fff" opacity="0.9"/>
+              <circle cx="4" cy="-2" r="1.1" fill="#fff" opacity="0.9"/>`;
     case "love":
-      return `<text x="-5" y="1" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${primary}" font-family="system-ui">♥</text>
-              <text x="5" y="1" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${primary}" font-family="system-ui">♥</text>`;
+      return `<path d="M -5 2.4 C -8.2 -0.4 -7.6 -3.6 -5.7 -2.4 C -5 -1.9 -5 -1.5 -5 -1.5 C -5 -1.5 -5 -1.9 -4.3 -2.4 C -2.4 -3.6 -1.8 -0.4 -5 2.4 Z" fill="${primary}"/>
+              <path d="M 5 2.4 C 1.8 -0.4 2.4 -3.6 4.3 -2.4 C 5 -1.9 5 -1.5 5 -1.5 C 5 -1.5 5 -1.9 5.7 -2.4 C 7.6 -3.6 8.2 -0.4 5 2.4 Z" fill="${primary}"/>`;
     case "searching":
-      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
-              <ellipse cx="5" cy="0" rx="2.5" ry="3" fill="${primary}"/>`;
+      return `<ellipse cx="-5" cy="0.4" rx="2.2" ry="3.2" fill="${primary}"/>
+              <ellipse cx="5" cy="0.4" rx="2.2" ry="3.2" fill="${primary}"/>
+              <path d="M -7.6 -2.6 Q -5 -3.7 -2.4 -2.6" fill="none" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M 2.4 -2.6 Q 5 -3.7 7.6 -2.6" fill="none" stroke="${primary}" stroke-width="1.2" stroke-linecap="round"/>`;
     case "celebrating":
-      return `<path d="M -7.5 0 Q -5 -3 -2.5 0" fill="none" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>
-              <path d="M 2.5 0 Q 5 -3 7.5 0" fill="none" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>`;
+      return `<path d="M -7.6 0 Q -5 -3.1 -2.4 0" fill="none" stroke="${primary}" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M 2.4 0 Q 5 -3.1 7.6 0" fill="none" stroke="${primary}" stroke-width="2.1" stroke-linecap="round"/>`;
     case "thinking":
-      return `<ellipse cx="-5" cy="-0.5" rx="2.2" ry="2.8" fill="${primary}"/>
-              <ellipse cx="5" cy="-0.5" rx="2.8" ry="2.2" fill="${primary}"/>`;
+      return `<ellipse cx="-5" cy="-1" rx="2.2" ry="3.4" fill="${primary}"/>
+              <ellipse cx="5" cy="-1" rx="2.2" ry="3.4" fill="${primary}"/>
+              <path d="M 2.4 -5.4 Q 5 -6.8 7.6 -5.4" fill="none" stroke="${primary}" stroke-width="1.3" stroke-linecap="round"/>`;
     case "sleeping":
-      return `<path d="M -7 0 L -3 0" fill="none" stroke="${primary}" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M 3 0 L 7 0" fill="none" stroke="${primary}" stroke-width="1.8" stroke-linecap="round"/>
+      return `<path d="M -7.6 -0.6 Q -5 2.2 -2.4 -0.6" fill="none" stroke="${primary}" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M 2.4 -0.6 Q 5 2.2 7.6 -0.6" fill="none" stroke="${primary}" stroke-width="2.2" stroke-linecap="round"/>
               <text x="10" y="-6" text-anchor="middle" font-size="6" fill="${primary}" font-family="system-ui" opacity="0.6">z</text>
               <text x="13" y="-10" text-anchor="middle" font-size="5" fill="${primary}" font-family="system-ui" opacity="0.4">z</text>`;
     case "wink":
-      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
-              <path d="M 2.5 0.5 Q 5 -2.5 7.5 0.5" fill="none" stroke="${primary}" stroke-width="1.8" stroke-linecap="round"/>`;
+      return `<ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill="${primary}"/>
+              <circle cx="-5.8" cy="-1.4" r="0.9" fill="#fff" opacity="0.85"/>
+              <path d="M 2.5 0.5 Q 5 -2.6 7.5 0.5" fill="none" stroke="${primary}" stroke-width="1.9" stroke-linecap="round"/>`;
     default:
-      return `<ellipse cx="-5" cy="0" rx="2.5" ry="3" fill="${primary}"/>
-              <ellipse cx="5" cy="0" rx="2.5" ry="3" fill="${primary}"/>`;
+      return `<ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill="${primary}"/>
+              <ellipse cx="5" cy="0" rx="2.4" ry="3.7" fill="${primary}"/>
+              <circle cx="-5.8" cy="-1.4" r="0.9" fill="#fff" opacity="0.85"/>
+              <circle cx="4.2" cy="-1.4" r="0.9" fill="#fff" opacity="0.85"/>`;
   }
 }
 
@@ -440,82 +450,91 @@ function svgEyesForMood(mood: MeshiMoodCanvas, primary: string): string {
 function svgHatMarkup(hat: string, primary: string): string {
   switch (hat) {
     case "tophat":
-      return `<g transform="translate(0, -18)">
-        <rect x="-12" y="-8" width="24" height="12" rx="2" fill="${primary}" opacity="0.9"/>
-        <rect x="-16" y="2" width="32" height="4" rx="2" fill="${primary}" opacity="0.9"/>
+      return `<g transform="translate(0, -14)">
+        <rect x="-9" y="-9" width="18" height="11" rx="1.6" fill="${primary}" opacity="0.92"/>
+        <rect x="-9" y="-1.6" width="18" height="2.6" fill="#fbbf24" opacity="0.9"/>
+        <rect x="-13" y="1.2" width="26" height="3.4" rx="1.7" fill="${primary}" opacity="0.92"/>
       </g>`;
     case "crown":
-      return `<g transform="translate(0, -16)">
-        <polygon points="-12,4 -12,-4 -8,-1 -4,-8 0,-1 4,-8 8,-1 12,-4 12,4" fill="#fbbf24"/>
-        <circle cx="-4" cy="-5" r="1.5" fill="#ef4444"/>
-        <circle cx="4" cy="-5" r="1.5" fill="#3b82f6"/>
-        <circle cx="0" cy="-2" r="1.5" fill="#22c55e"/>
+      return `<g transform="translate(0, -14)">
+        <polygon points="-11,3 -11,-3 -7,-0.5 -3.5,-7 0,-0.5 3.5,-7 7,-0.5 11,-3 11,3" fill="#fbbf24" stroke="#f59e0b" stroke-width="0.6"/>
+        <circle cx="-3.5" cy="-3.5" r="1.3" fill="#ef4444"/>
+        <circle cx="3.5" cy="-3.5" r="1.3" fill="#3b82f6"/>
+        <circle cx="0" cy="-1" r="1.3" fill="#22c55e"/>
       </g>`;
     case "beanie":
-      return `<g transform="translate(0, -14)">
-        <ellipse cx="0" cy="0" rx="14" ry="8" fill="${primary}" opacity="0.9"/>
-        <circle cx="0" cy="-6" r="3" fill="${primary}" opacity="0.7"/>
+      return `<g transform="translate(0, -12)">
+        <path d="M-12,2 Q-12,-9 0,-9 Q12,-9 12,2 Z" fill="${primary}" opacity="0.92"/>
+        <rect x="-12" y="0.6" width="24" height="3.4" rx="1.7" fill="${primary}" opacity="0.72"/>
+        <circle cx="0" cy="-9" r="2.2" fill="${primary}" opacity="0.85"/>
       </g>`;
     case "cap":
       return `<g transform="translate(0, -12)">
-        <path d="M-14,2 Q-14,-8 0,-10 Q14,-8 14,2 Z" fill="${primary}" opacity="0.9"/>
-        <path d="M10,0 Q18,0 20,4 L14,4 Q12,2 10,2 Z" fill="${primary}" opacity="0.7"/>
+        <path d="M-12,1 Q-12,-9 0,-9 Q12,-9 12,1 Z" fill="${primary}" opacity="0.92"/>
+        <path d="M8,-0.2 Q17,0.4 19,3.6 L9,3.2 Q8,1.4 8,-0.2 Z" fill="${primary}" opacity="0.72"/>
+        <circle cx="0" cy="-9" r="1.4" fill="${primary}" opacity="0.6"/>
+      </g>`;
+    case "hardhat":
+      return `<g transform="translate(0, -11)">
+        <path d="M-12,2 Q-12,-9 0,-9 Q12,-9 12,2 Z" fill="#f59e0b"/>
+        <rect x="-2.4" y="-8" width="4.8" height="9" rx="1" fill="#fbbf24" opacity="0.9"/>
+        <rect x="-14" y="1.4" width="28" height="3.2" rx="1.6" fill="#d97706"/>
       </g>`;
     case "party":
-      return `<g transform="translate(0, -16)">
-        <polygon points="0,-14 -8,2 8,2" fill="#ec4899"/>
-        <circle cx="0" cy="-14" r="2" fill="#fbbf24"/>
-        <circle cx="-3" cy="-6" r="1" fill="#3b82f6"/>
-        <circle cx="3" cy="-4" r="1" fill="#22c55e"/>
-        <circle cx="1" cy="-10" r="1" fill="#f97316"/>
+      return `<g transform="translate(0, -11)">
+        <polygon points="0,-10 -7,3 7,3" fill="#ec4899" stroke="#db2777" stroke-width="0.5"/>
+        <circle cx="0" cy="-10" r="1.6" fill="#fbbf24"/>
+        <circle cx="-2.6" cy="-2.5" r="1" fill="#3b82f6"/>
+        <circle cx="2.6" cy="-0.5" r="1" fill="#22c55e"/>
+        <circle cx="0.6" cy="-6" r="1" fill="#f97316"/>
       </g>`;
     case "flower":
-      return `<g transform="translate(6, -14)">
-        <circle cx="0" cy="0" r="3" fill="#fbbf24"/>
+      return `<g transform="translate(7, -13)">
+        <circle cx="0" cy="0" r="2.6" fill="#fbbf24"/>
         ${[0, 60, 120, 180, 240, 300].map(deg => {
           const cx = Math.round(Math.cos(deg * Math.PI / 180) * 4 * 1000) / 1000;
           const cy = Math.round(Math.sin(deg * Math.PI / 180) * 4 * 1000) / 1000;
-          return `<circle cx="${cx}" cy="${cy}" r="2.5" fill="#ec4899" opacity="0.8"/>`;
+          return `<circle cx="${cx}" cy="${cy}" r="2.2" fill="#ec4899" opacity="0.85"/>`;
         }).join("")}
       </g>`;
     case "headphones":
-      return `<g transform="translate(0, -12)">
-        <path d="M-12,4 Q-12,-10 0,-12 Q12,-10 12,4" fill="none" stroke="#6b7280" stroke-width="3" stroke-linecap="round"/>
-        <rect x="-15" y="0" width="6" height="8" rx="2" fill="#374151"/>
-        <rect x="9" y="0" width="6" height="8" rx="2" fill="#374151"/>
+      return `<g transform="translate(0, -10)">
+        <path d="M-12,4 Q-12,-9 0,-9 Q12,-9 12,4" fill="none" stroke="#6b7280" stroke-width="3" stroke-linecap="round"/>
+        <rect x="-15" y="0" width="6" height="9" rx="2.5" fill="#374151"/>
+        <rect x="9" y="0" width="6" height="9" rx="2.5" fill="#374151"/>
       </g>`;
     case "halo":
-      return `<g transform="translate(0, -20)">
-        <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fbbf24" stroke-width="2.5" opacity="0.9"/>
-        <ellipse cx="0" cy="0" rx="14" ry="4" fill="none" stroke="#fde68a" stroke-width="1" opacity="0.4"/>
+      return `<g transform="translate(0, -18.5)">
+        <ellipse cx="0" cy="0" rx="11" ry="3.4" fill="none" stroke="#fde68a" stroke-width="2.6" opacity="0.95"/>
+        <ellipse cx="0" cy="0" rx="11" ry="3.4" fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.6"/>
       </g>`;
     case "wizard":
-      return `<g transform="translate(0, -16)">
-        <polygon points="0,-18 -10,2 10,2" fill="#6366f1"/>
-        <rect x="-14" y="0" width="28" height="4" rx="2" fill="#6366f1" opacity="0.8"/>
-        <circle cx="0" cy="-14" r="2" fill="#fbbf24"/>
-        <circle cx="-4" cy="-6" r="1.2" fill="#fbbf24" opacity="0.6"/>
-        <circle cx="3" cy="-9" r="1" fill="#fbbf24" opacity="0.5"/>
+      return `<g transform="translate(0, -11)">
+        <polygon points="0,-12 -9,3 9,3" fill="#6366f1" stroke="#4f46e5" stroke-width="0.5"/>
+        <path d="M-10,3 Q0,1 10,3 L10,5 Q0,3.4 -10,5 Z" fill="#4f46e5" opacity="0.9"/>
+        <circle cx="0" cy="-8.5" r="1.5" fill="#fbbf24"/>
+        <circle cx="-3" cy="-2" r="1" fill="#fbbf24" opacity="0.6"/>
+        <circle cx="2.6" cy="-5" r="0.9" fill="#fbbf24" opacity="0.5"/>
       </g>`;
     case "astronaut":
-      return `<g transform="translate(0, -14)">
-        <ellipse cx="0" cy="0" rx="16" ry="12" fill="none" stroke="#e2e8f0" stroke-width="2.5"/>
-        <ellipse cx="0" cy="0" rx="16" ry="12" fill="rgba(148, 163, 184, 0.15)"/>
-        <ellipse cx="-4" cy="-2" rx="3" ry="2" fill="rgba(255,255,255,0.2)"/>
+      return `<g transform="translate(0, -6)">
+        <path d="M-15,4 Q-15,-12 0,-12 Q15,-12 15,4 Z" fill="rgba(148,163,184,0.16)" stroke="#e2e8f0" stroke-width="2"/>
+        <ellipse cx="-5" cy="-5" rx="3" ry="2" fill="rgba(255,255,255,0.25)"/>
       </g>`;
     case "pirate":
-      return `<g transform="translate(0, -14)">
-        <path d="M-14,2 Q-14,-6 0,-8 Q14,-6 14,2 Z" fill="#1e1e2e"/>
-        <rect x="-16" y="0" width="32" height="3" rx="1" fill="#1e1e2e"/>
-        <path d="M-4,-4 L0,-6 L4,-4 L2,-2 L-2,-2 Z" fill="#e2e8f0" opacity="0.8"/>
+      return `<g transform="translate(0, -12)">
+        <path d="M-13,2 Q-13,-6 0,-7 Q13,-6 13,2 Z" fill="#1f2937"/>
+        <rect x="-14" y="0.8" width="28" height="3" rx="1" fill="#111827"/>
+        <path d="M-3.6,-3.4 L0,-5.4 L3.6,-3.4 L1.8,-1.4 L-1.8,-1.4 Z" fill="#e5e7eb"/>
+        <circle cx="0" cy="-2.6" r="0.85" fill="#1f2937"/>
       </g>`;
     case "chef":
-      return `<g transform="translate(0, -16)">
-        <ellipse cx="0" cy="0" rx="12" ry="10" fill="#f8fafc"/>
-        <circle cx="-6" cy="-4" r="5" fill="#f8fafc"/>
-        <circle cx="6" cy="-4" r="5" fill="#f8fafc"/>
-        <circle cx="0" cy="-8" r="5" fill="#f8fafc"/>
-        <rect x="-12" y="0" width="24" height="3" rx="1" fill="#e2e8f0"/>
+      return `<g transform="translate(0, -12)">
+        <rect x="-9" y="-2" width="18" height="5" rx="1.2" fill="#f8fafc"/>
+        <circle cx="-6" cy="-4" r="4.4" fill="#f8fafc"/>
+        <circle cx="6" cy="-4" r="4.4" fill="#f8fafc"/>
+        <circle cx="0" cy="-6" r="4.8" fill="#f8fafc"/>
+        <rect x="-9" y="1.6" width="18" height="2.6" rx="1" fill="#e2e8f0"/>
       </g>`;
     default:
       return "";
