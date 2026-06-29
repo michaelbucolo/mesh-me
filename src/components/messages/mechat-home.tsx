@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Music,
   Paperclip,
+  PenSquare,
   Phone,
   Plus,
   RefreshCcw,
@@ -197,6 +198,7 @@ export function MeChatHome({
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewRoom, setShowNewRoom] = useState(false);
+  const [showCompose, setShowCompose] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [notes, setNotes] = useState<MeChatNoteEntry[]>(initialNotes);
   const [showNoteComposer, setShowNoteComposer] = useState(false);
@@ -538,32 +540,57 @@ export function MeChatHome({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--mesh-border)] px-4 py-3">
           <h1 className="text-lg font-bold text-[var(--mesh-text)]">MeChat</h1>
-          <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-1">
             <button
               type="button"
               onClick={syncInboxes}
               disabled={isPending || connectedInboxes.length === 0}
-              className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)]"
+              className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)] disabled:opacity-40"
               title="Sync inboxes"
             >
               {isPending ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
             </button>
             <button
               type="button"
-              onClick={() => setShowNewGroup(!showNewGroup)}
+              onClick={() => setShowCompose((open) => !open)}
               className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)]"
-              title="New group"
+              title="New chat"
+              aria-haspopup="menu"
+              aria-expanded={showCompose}
             >
-              <Users size={16} />
+              <PenSquare size={16} />
             </button>
-            <button
-              type="button"
-              onClick={() => setShowNewRoom(!showNewRoom)}
-              className="rounded-lg p-2 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel)]"
-              title="New room"
-            >
-              <Plus size={16} />
-            </button>
+            {showCompose && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Close menu"
+                  className="fixed inset-0 z-10 cursor-default"
+                  onClick={() => setShowCompose(false)}
+                />
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] py-1 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setShowCompose(false); setShowNewRoom(false); setShowNewGroup(true); }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel)]"
+                  >
+                    <Users size={15} className="text-[var(--mesh-text-muted)]" /> New group
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setShowCompose(false); setShowNewGroup(false); setShowNewRoom(true); }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel)]"
+                  >
+                    <Video size={15} className="text-[var(--mesh-text-muted)]" /> New room
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

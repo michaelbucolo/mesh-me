@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
 import {
   buildLinkPreview,
   normalizeAttachments,
@@ -58,11 +59,22 @@ export type MeChatSerializedMessage = {
   }>;
 };
 
+type TypingMeshi = {
+  color: string;
+  hat: string;
+  hair: string;
+  accessory: string;
+  eyeStyle: string;
+  badge: string;
+  outfit: string;
+};
+
 type TypingUser = {
   userId: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  meshi: TypingMeshi | null;
 };
 
 type SharedMessageSource = {
@@ -541,17 +553,36 @@ export function MeChatThread({
 
         {typingUsers.length > 0 && (
           <div className="mt-3 flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]">
-            <div className="flex -space-x-2">
-              {typingUsers.slice(0, 3).map((user) => (
-                <Avatar key={user.userId} src={user.avatarUrl} alt={user.displayName} size="xs" />
-              ))}
+            <div className="flex -space-x-1.5">
+              {typingUsers.slice(0, 3).map((user) =>
+                user.meshi ? (
+                  <span key={user.userId} className="mechat-typing-meshi inline-flex h-6 w-6 items-center justify-center">
+                    <MeshiMascot
+                      size={24}
+                      prop="keyboard"
+                      mood="happy"
+                      color={user.meshi.color as MeshiColor}
+                      hat={user.meshi.hat as MeshiHat}
+                      hair={user.meshi.hair as MeshiHair}
+                      accessory={user.meshi.accessory as MeshiAccessory}
+                      eyeStyle={user.meshi.eyeStyle as MeshiEyeStyle}
+                      badge={user.meshi.badge as MeshiBadge}
+                      outfit={user.meshi.outfit as MeshiOutfit}
+                    />
+                  </span>
+                ) : (
+                  <Avatar key={user.userId} src={user.avatarUrl} alt={user.displayName} size="xs" />
+                ),
+              )}
             </div>
-            {typingUsers.map((user) => user.displayName).join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing
-            <span className="inline-flex gap-0.5">
-              <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)]" />
-              <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:120ms]" />
-              <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:240ms]" />
-            </span>
+            {typingUsers.map((user) => user.displayName).join(", ")} {typingUsers.length === 1 ? "is" : "are"} writing
+            {typingUsers.some((user) => !user.meshi) && (
+              <span className="inline-flex gap-0.5">
+                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)]" />
+                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:120ms]" />
+                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:240ms]" />
+              </span>
+            )}
           </div>
         )}
       </div>

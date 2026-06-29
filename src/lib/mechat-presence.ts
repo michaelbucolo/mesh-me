@@ -1,8 +1,19 @@
+export type TypingMeshi = {
+  color: string;
+  hat: string;
+  hair: string;
+  accessory: string;
+  eyeStyle: string;
+  badge: string;
+  outfit: string;
+};
+
 type TypingUser = {
   userId: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  meshi: TypingMeshi | null;
   expiresAt: number;
 };
 
@@ -32,7 +43,13 @@ function pruneThread(threadId: string) {
 
 export function setMeChatTyping(
   threadId: string,
-  user: { id: string; username: string; displayName: string; avatarUrl: string | null },
+  user: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+    meshi?: TypingMeshi | null;
+  },
   ttlMs = 6500,
 ) {
   const store = typingStore();
@@ -42,6 +59,7 @@ export function setMeChatTyping(
     username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    meshi: user.meshi ?? null,
     expiresAt: Date.now() + ttlMs,
   });
   store.set(threadId, active);
@@ -65,5 +83,6 @@ export function getMeChatTypingUsers(threadId: string, currentUserId: string) {
       username: entry.username,
       displayName: entry.displayName,
       avatarUrl: entry.avatarUrl,
+      meshi: entry.meshi,
     }));
 }
