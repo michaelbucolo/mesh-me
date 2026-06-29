@@ -507,7 +507,7 @@ export function SettingsControlCenter({
   }
 
   return (
-    <main className="settings-traditional flex h-full min-h-0 flex-col overflow-hidden animate-page-enter">
+    <main className="settings-traditional flex min-h-0 flex-col lg:h-full lg:overflow-hidden animate-page-enter">
       <header className="settings-traditional-header shrink-0 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -572,7 +572,7 @@ export function SettingsControlCenter({
       )}
 
       <section className="settings-traditional-grid mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="settings-traditional-nav min-h-0 overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)]">
+        <aside className="settings-traditional-nav overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:min-h-0">
           <nav className="settings-nav-scroll flex gap-1 overflow-x-auto p-2 lg:grid lg:overflow-y-auto lg:overflow-x-hidden" aria-label="Settings sections">
             {sectionOrder.map((section) => {
               const Icon = section.icon;
@@ -597,7 +597,7 @@ export function SettingsControlCenter({
           </nav>
         </aside>
 
-        <section className="settings-panel min-h-0 overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)]">
+        <section className="settings-panel rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:min-h-0 lg:overflow-hidden">
           <div className="settings-panel-heading flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border-primary)] px-4 py-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Mesh.me settings</p>
@@ -605,7 +605,7 @@ export function SettingsControlCenter({
               <p className="mt-1 text-sm text-[var(--text-secondary)]">{activeSectionMeta.description}</p>
             </div>
           </div>
-          <div className="settings-panel-scroll min-h-0 overflow-y-auto overflow-x-hidden px-4 py-4">
+          <div className="settings-panel-scroll overflow-x-hidden px-4 py-4 lg:min-h-0 lg:overflow-y-auto">
             {activeSection === "account" && (
               <AccountSection
                 settings={settings}

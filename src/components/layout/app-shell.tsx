@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   ChevronDown,
+  ChevronRight,
   Search,
   Settings,
   Share2,
@@ -224,6 +226,15 @@ export function AppShell({ children, user }: AppShellProps) {
   const routeInfo = useMemo(() => getRouteInfo(pathname, user.username), [pathname, user.username]);
   const isFeedSurface = pathname === "/feed" || pathname.startsWith("/feed/");
   const isMeshSurface = pathname === "/mesh" || pathname.startsWith("/mesh/");
+  const userInitials = useMemo(() => {
+    const fromName = user.displayName
+      .split(/\s+/)
+      .map((part) => part.charAt(0))
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("");
+    return (fromName || user.username.charAt(0) || "M").toUpperCase();
+  }, [user.displayName, user.username]);
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({
     unreadNotifications: 0,
     unreadMessages: 0,
@@ -301,34 +312,48 @@ export function AppShell({ children, user }: AppShellProps) {
           </div>
         </nav>
 
-        {/* Privacy First Card */}
-        <div className="mx-3 mb-3">
-          <div className="mesh-privacy-card rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-4">
-            <div className="flex items-center gap-2 text-[var(--mesh-blue)]">
-              <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-              <span className="text-sm font-bold">Privacy First</span>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--mesh-text-muted)]">
-              You own your data.<br />
-              We protect your privacy.<br />
-              Always.
-            </p>
-            <Link href="/privacy-controls" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-[var(--mesh-text)] transition-colors">
-              Learn how <span aria-hidden="true">→</span>
-            </Link>
-          </div>
+        {/* Privacy First (discreet) */}
+        <div className="mx-3 mb-2">
+          <Link
+            href="/privacy-controls"
+            className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text-secondary)]"
+          >
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--mesh-blue)]" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate text-xs font-medium">Privacy first — you own your data</span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+          </Link>
         </div>
 
         {/* User Dock */}
         <div className="mx-3 mb-3">
-          <div className="mesh-user-dock flex items-center gap-2.5 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3.5 py-3">
-            <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={32} />
+          <Link
+            href={`/profile/${user.username}`}
+            className="mesh-user-dock flex items-center gap-2.5 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3.5 py-3 transition-colors hover:bg-[var(--mesh-panel-hover)]"
+            aria-label="Open your profile"
+          >
+            {user.avatarUrl ? (
+              <Image
+                src={user.avatarUrl}
+                alt={user.displayName}
+                width={32}
+                height={32}
+                unoptimized
+                className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-[var(--mesh-border)]"
+              />
+            ) : (
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--mesh-blue)]/15 text-xs font-bold text-[var(--mesh-blue)] ring-1 ring-[var(--mesh-border)]"
+                aria-hidden="true"
+              >
+                {userInitials}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-[var(--mesh-text)]">{user.displayName}</p>
               <p className="truncate text-[11px] text-[var(--mesh-text-muted)]">@{user.username}</p>
             </div>
-            <ChevronDown className="h-4 w-4 shrink-0 text-[var(--mesh-text-muted)]" aria-hidden="true" />
-          </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-[var(--mesh-text-muted)]" aria-hidden="true" />
+          </Link>
         </div>
 
         {/* Footer */}
