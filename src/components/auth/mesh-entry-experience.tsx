@@ -1247,7 +1247,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: reduceMotion ? 0 : -3 }}
                         transition={{ duration: reduceMotion ? 0.01 : 0.16, ease: "easeOut" }}
-                        className="text-center text-xs font-semibold text-blue-100/72"
+                        className="text-center text-xs font-semibold text-blue-100/60"
                       >
                       Looking for your Meshi...
                       </motion.p>
