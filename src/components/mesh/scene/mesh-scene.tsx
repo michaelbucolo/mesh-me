@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Loader2, Maximize2, Minus, Plus, Scan, X } from "lucide-react";
+import { ArrowLeft, Loader2, Maximize2, Minus, PenLine, Plus, Scan, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,9 +18,11 @@ import {
 } from "@/components/meshi/meshi-mascot";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import type { MeshApiResponse } from "../mesh-data";
+import { PostComposer } from "@/components/feed/post-composer";
 import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from "./scene-model";
 import { layoutScene, sceneBounds } from "./scene-layout";
 import { drawScene, type Camera } from "./scene-render";
+import { createPhysicsState, stepExpansion, stepScenePhysics, type PhysicsState } from "./scene-physics";
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -73,21 +75,33 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const starsRef = useRef<{ x: number; y: number; r: number; tw: number }[]>([]);
   const sizeRef = useRef({ width: 0, height: 0 });
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
-  const dragRef = useRef<{ active: boolean; moved: boolean; lastX: number; lastY: number; pinchDist: number }>({
-    active: false,
-    moved: false,
-    lastX: 0,
-    lastY: 0,
-    pinchDist: 0,
-  });
+  const dragRef = useRef<{
+    active: boolean;
+    moved: boolean;
+    lastX: number;
+    lastY: number;
+    lastT: number;
+    vx: number;
+    vy: number;
+    pinchDist: number;
+  }>({ active: false, moved: false, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0 });
+  const flingRef = useRef({ vx: 0, vy: 0 });
+  const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
+  const physicsRef = useRef<PhysicsState>(createPhysicsState());
+  const lastFrameRef = useRef(0);
 
   const meshiCursorRef = useRef<HTMLDivElement>(null);
+  const presenceTargetsRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
+  const presenceElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const presencePosRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
   const hoverIdRef = useRef<string | null>(null);
   const cursorVpRef = useRef({ vx: 0.5, vy: 0.5 });
   const meshOwnerIdRef = useRef<string | null>(null);
 
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [isCoarsePointer, setIsCoarsePointer] = useState(true);
+  const [meshUser, setMeshUser] = useState<{ displayName: string; avatarUrl: string | null } | null>(null);
+  const [showCompose, setShowCompose] = useState(false);
   const [hoverNode, setHoverNode] = useState<SceneNode | null>(null);
   const [viewedUser, setViewedUser] = useState<{ username: string; displayName: string | null } | null>(null);
   const [remotePresences, setRemotePresences] = useState<RemotePresence[]>([]);
@@ -98,6 +112,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   const focusIdRef = useRef<string | null>(null);
+  const coarseRef = useRef(true);
 
   useEffect(() => {
     activeBranchRef.current = activeBranch;
@@ -107,7 +122,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   }, [selectedNode]);
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
-    const update = () => setIsCoarsePointer(mq.matches);
+    const update = () => {
+      coarseRef.current = mq.matches;
+      setIsCoarsePointer(mq.matches);
+    };
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
@@ -138,38 +156,61 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     cameraRef.current = { zoom, panX: -midX * zoom, panY: -midY * zoom };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    const url = viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
-    const load = async () => {
-      setStatus("loading");
+  const loadScene = useCallback(
+    async (opts?: { quiet?: boolean }) => {
+      const url = viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
+      if (!opts?.quiet) setStatus("loading");
       try {
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
         const payload: MeshApiResponse = await res.json();
-        if (cancelled) return;
         const model = buildSceneModel(payload);
         layoutScene(model);
+        const quiet = Boolean(opts?.quiet && modelRef.current);
+        if (quiet) {
+          // Carry over animated positions so a refresh doesn't re-form the sky.
+          const prev = modelRef.current!;
+          model.nodes.forEach((node) => {
+            const old = prev.nodes.get(node.id);
+            if (old) {
+              node.dx = old.dx;
+              node.dy = old.dy;
+              node.vx = old.vx;
+              node.vy = old.vy;
+            } else {
+              node.dx = node.x * 0.1;
+              node.dy = node.y * 0.1;
+            }
+          });
+        } else {
+          physicsRef.current = createPhysicsState();
+        }
         modelRef.current = model;
-        imagesRef.current = new Map();
         loadImages(model);
         meshOwnerIdRef.current = payload.user.id;
         setViewedUser(
           viewUserId ? { username: payload.user.username, displayName: payload.user.displayName } : null,
         );
-        setActiveBranch(null);
-        setSelectedNode(null);
-        fitToContent();
+        if (!viewUserId) {
+          setMeshUser({ displayName: payload.user.displayName || payload.user.username, avatarUrl: payload.user.avatarUrl });
+        }
+        if (!quiet) {
+          setActiveBranch(null);
+          setSelectedNode(null);
+          fitToContent();
+        }
         setStatus(model.branchOrder.length === 0 ? "empty" : "ready");
       } catch {
-        if (!cancelled) setStatus("error");
+        if (!opts?.quiet) setStatus("error");
       }
-    };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [viewUserId, loadImages, fitToContent]);
+    },
+    [viewUserId, loadImages, fitToContent],
+  );
+
+  useEffect(() => {
+    imagesRef.current = new Map();
+    void loadScene();
+  }, [loadScene]);
 
   // --- Canvas sizing + render loop ---
   useEffect(() => {
@@ -200,7 +241,41 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const { width, height } = sizeRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const model = modelRef.current;
+      const dt = lastFrameRef.current ? time - lastFrameRef.current : 16;
+      lastFrameRef.current = time;
       if (model && width && height) {
+        // Physics: branch expansion easing + node springs.
+        stepExpansion(
+          physicsRef.current,
+          model.branchOrder.map((id) => model.nodes.get(id)!.branch as BranchKey),
+          activeBranchRef.current,
+          dt,
+        );
+        stepScenePhysics(model, physicsRef.current, time, dt);
+
+        // Inertial pan: carry the fling velocity after release, with decay.
+        const fling = flingRef.current;
+        if (!dragRef.current.active && (Math.abs(fling.vx) > 4 || Math.abs(fling.vy) > 4)) {
+          cameraRef.current.panX += (fling.vx * dt) / 1000;
+          cameraRef.current.panY += (fling.vy * dt) / 1000;
+          const decay = Math.exp(-dt / 320);
+          fling.vx *= decay;
+          fling.vy *= decay;
+        }
+
+        // Smooth zoom: ease toward the wheel / button target around its anchor.
+        const zt = zoomTargetRef.current;
+        if (zt) {
+          const cam = cameraRef.current;
+          const k = Math.min(1, dt / 90);
+          const next = cam.zoom + (zt.zoom - cam.zoom) * k;
+          const ratio = next / cam.zoom;
+          cam.panX = zt.ax - (zt.ax - cam.panX) * ratio;
+          cam.panY = zt.ay - (zt.ay - cam.panY) * ratio;
+          cam.zoom = next;
+          if (Math.abs(zt.zoom - cam.zoom) < 0.002) zoomTargetRef.current = null;
+        }
+
         drawScene({
           ctx,
           model,
@@ -214,6 +289,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           images: imagesRef.current,
           backgroundStars: starsRef.current,
           hitboxes: hitboxesRef.current,
+          avoidCenter: coarseRef.current,
         });
 
         // Focus = item nearest screen center (the Meshi cursor's target).
@@ -291,6 +367,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     d.moved = false;
     d.lastX = e.clientX;
     d.lastY = e.clientY;
+    d.lastT = performance.now();
+    d.vx = 0;
+    d.vy = 0;
+    flingRef.current = { vx: 0, vy: 0 };
     if (pointersRef.current.size === 2) {
       const pts = [...pointersRef.current.values()];
       d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -347,6 +427,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
     cameraRef.current.panX += dx;
     cameraRef.current.panY += dy;
+    const now = performance.now();
+    const dtMove = Math.max(now - d.lastT, 1);
+    // Blend an instantaneous velocity sample (px/s) for the release fling.
+    d.vx = d.vx * 0.7 + ((dx * 1000) / dtMove) * 0.3;
+    d.vy = d.vy * 0.7 + ((dy * 1000) / dtMove) * 0.3;
+    d.lastT = now;
     d.lastX = e.clientX;
     d.lastY = e.clientY;
   }, [hitTest]);
@@ -356,7 +442,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const d = dragRef.current;
       pointersRef.current.delete(e.pointerId);
       if (pointersRef.current.size < 2) d.pinchDist = 0;
-      if (pointersRef.current.size === 0) d.active = false;
+      if (pointersRef.current.size === 0) {
+        d.active = false;
+        if (d.moved && performance.now() - d.lastT < 80) {
+          flingRef.current = { vx: d.vx, vy: d.vy };
+        }
+      }
 
       if (!d.moved) {
         const rect = containerRef.current!.getBoundingClientRect();
@@ -372,21 +463,25 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
-    const cam = cameraRef.current;
     const rect = containerRef.current!.getBoundingClientRect();
     const mx = e.clientX - rect.left - rect.width / 2;
     const my = e.clientY - rect.top - rect.height / 2;
     const factor = Math.exp(-e.deltaY * 0.0014);
-    const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cam.zoom * factor));
-    const k = next / cam.zoom;
-    cam.panX = mx - (mx - cam.panX) * k;
-    cam.panY = my - (my - cam.panY) * k;
-    cam.zoom = next;
+    const base = zoomTargetRef.current?.zoom ?? cameraRef.current.zoom;
+    zoomTargetRef.current = {
+      zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base * factor)),
+      ax: mx,
+      ay: my,
+    };
   }, []);
 
   const zoomBy = useCallback((factor: number) => {
-    const cam = cameraRef.current;
-    cam.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cam.zoom * factor));
+    const base = zoomTargetRef.current?.zoom ?? cameraRef.current.zoom;
+    zoomTargetRef.current = {
+      zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base * factor)),
+      ax: 0,
+      ay: 0,
+    };
   }, []);
 
   const toggleFullscreen = useCallback(() => {
@@ -437,14 +532,21 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         if (stopped || !data) return;
         const list: RemotePresence[] = Array.isArray(data.presences) ? data.presences : [];
         // Only Meshis of users actively viewing this exact mesh right now.
-        setRemotePresences(list.filter((p) => p.isOnline && p.viewingMesh === meshOwner));
+        const visible = list.filter((p) => p.isOnline && p.viewingMesh === meshOwner);
+        for (const p of visible) {
+          presenceTargetsRef.current.set(p.userId, {
+            vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
+            vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
+          });
+        }
+        setRemotePresences(visible);
       } catch {
         // Presence is best-effort.
       }
     };
 
-    const hb = setInterval(heartbeat, 4000);
-    const pl = setInterval(poll, 3000);
+    const hb = setInterval(heartbeat, 2500);
+    const pl = setInterval(poll, 2000);
     const kick = setTimeout(() => {
       void heartbeat();
       void poll();
@@ -462,6 +564,31 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     return () => {
       fetch("/api/mesh/presence", { method: "DELETE" }).catch(() => {});
     };
+  }, []);
+
+  // Glide remote Meshis toward their latest reported position every frame so
+  // they move like live cursors instead of jumping between poll updates.
+  useEffect(() => {
+    let raf = 0;
+    let last = 0;
+    const step = (time: number) => {
+      const dt = last ? Math.min(time - last, 50) : 16;
+      last = time;
+      const k = 1 - Math.exp(-dt / 260);
+      presenceElsRef.current.forEach((el, userId) => {
+        const target = presenceTargetsRef.current.get(userId);
+        if (!target) return;
+        const pos = presencePosRef.current.get(userId) ?? { ...target };
+        pos.vx += (target.vx - pos.vx) * k;
+        pos.vy += (target.vy - pos.vy) * k;
+        presencePosRef.current.set(userId, pos);
+        el.style.left = `${pos.vx * 100}%`;
+        el.style.top = `${pos.vy * 100}%`;
+      });
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   const enterFriendMesh = useCallback(
@@ -538,7 +665,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {remotePresences.map((p) => (
         <div
           key={p.userId}
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-out"
+          ref={(el) => {
+            if (el) presenceElsRef.current.set(p.userId, el);
+            else {
+              presenceElsRef.current.delete(p.userId);
+              presencePosRef.current.delete(p.userId);
+              presenceTargetsRef.current.delete(p.userId);
+            }
+          }}
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
           style={{
             left: `${Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)) * 100}%`,
             top: `${Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)) * 100}%`,
@@ -582,6 +717,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       {/* Right rail controls */}
       <div className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2">
+        {!viewedUser && meshUser && (
+          <RailButton label="Post to your mesh" onClick={() => setShowCompose(true)}>
+            <PenLine size={16} />
+          </RailButton>
+        )}
         <RailButton label="Zoom in" onClick={() => zoomBy(1.25)}>
           <Plus size={16} />
         </RailButton>
@@ -629,6 +769,39 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {/* Detail sheet */}
       {selectedNode && selectedNode.kind !== "self" && selectedNode.kind !== "branch" && (
         <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} onEnterMesh={enterFriendMesh} />
+      )}
+
+      {/* Compose: post straight onto your constellation */}
+      {showCompose && meshUser && (
+        <div
+          className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            if (e.target === e.currentTarget) setShowCompose(false);
+          }}
+        >
+          <div className="w-full max-w-xl animate-[slideUp_.28s_ease-out] rounded-2xl border border-white/12 bg-[#0b1020] p-3 shadow-2xl">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-sm font-semibold text-white">Post to your mesh</p>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setShowCompose(false)}
+                className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <PostComposer
+              user={meshUser}
+              onPostCreated={() => {
+                setShowCompose(false);
+                setActiveBranch("posts");
+                void loadScene({ quiet: true });
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
