@@ -681,10 +681,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             else presenceElsRef.current.delete(p.userId);
           }}
           className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
-          style={{
-            left: `${Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)) * 100}%`,
-            top: `${Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)) * 100}%`,
-          }}
+          style={(() => {
+            const pos =
+              presencePosRef.current.get(p.userId) ??
+              presenceTargetsRef.current.get(p.userId) ?? {
+                vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
+                vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
+              };
+            return { left: `${pos.vx * 100}%`, top: `${pos.vy * 100}%` };
+          })()}
         >
           <MeshiMini
             size={34}
