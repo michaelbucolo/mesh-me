@@ -73,7 +73,7 @@ export default function TermsPage() {
         <>
           <p>The service is provided on an as-is and as-available basis. To the fullest extent allowed by law, Mesh.me disclaims warranties and limits liability for indirect or consequential damages.</p>
           <p>Mesh.me reserves the right to suspend or terminate accounts that violate these terms. Users may delete their account at any time through product settings, which initiates data deletion per the privacy policy.</p>
-          <p>These terms are governed by the laws of the State of Delaware. Questions can be directed to legal@mesh.me.</p>
+          <p>These terms are governed by the laws of the State of Delaware. Questions can be directed to hello@meshs.me.</p>
         </>
       ),
     },

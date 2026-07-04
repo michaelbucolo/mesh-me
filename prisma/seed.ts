@@ -502,7 +502,26 @@ async function main() {
     ],
   });
 
-  console.log("Created message thread with 3 messages");
+  const demoThread = await prisma.messageThread.create({
+    data: {
+      members: {
+        create: [
+          { userId: demo.id },
+          { userId: alex.id },
+        ],
+      },
+    },
+  });
+
+  await prisma.message.createMany({
+    data: [
+      { content: "Welcome to Mesh.me! Your constellation is looking great already.", senderId: alex.id, threadId: demoThread.id },
+      { content: "Thanks Alex! Just connected my first few accounts.", senderId: demo.id, threadId: demoThread.id },
+      { content: "Nice — once your friends join you'll see their meshes light up too.", senderId: alex.id, threadId: demoThread.id },
+    ],
+  });
+
+  console.log("Created message threads");
 
   // Create notifications
   await prisma.notification.createMany({

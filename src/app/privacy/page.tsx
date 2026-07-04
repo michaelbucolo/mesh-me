@@ -71,7 +71,7 @@ export default function PrivacyPage() {
         <>
           <p>Mesh.me applies industry-standard safeguards including bcrypt password hashing, encrypted OAuth token storage, HTTPS transport security, secure HTTP headers, CSRF protection, rate limiting, and input validation across all endpoints.</p>
           <p>End-to-end encryption is applied to direct messages in MeChat. Connected platform tokens are encrypted at rest. All payment processing is handled by Stripe and never touches our servers directly.</p>
-          <p>No internet service can promise absolute security. If you have privacy questions or need to exercise your rights, contact privacy@mesh.me.</p>
+          <p>No internet service can promise absolute security. If you have privacy questions or need to exercise your rights, contact support@meshs.me.</p>
         </>
       ),
     },

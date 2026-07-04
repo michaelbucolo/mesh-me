@@ -406,6 +406,7 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
   }
 
   let user;
+  let unverifiedIdentifier = false;
   try {
     user = await prisma.user.findFirst({
       where: {
@@ -422,9 +423,11 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
         include: { user: true },
       });
       if (emailRecord && !emailRecord.isVerified) {
-        return { error: "This email isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
+        unverifiedIdentifier = true;
+        user = null;
+      } else {
+        user = emailRecord?.user ?? null;
       }
-      user = emailRecord?.user ?? null;
     }
 
     if (!user && normalizedPhone.length >= 7) {
@@ -436,9 +439,11 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
         include: { user: true },
       });
       if (phoneRecord && !phoneRecord.isVerified) {
-        return { error: "This phone number isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
+        unverifiedIdentifier = true;
+        user = null;
+      } else {
+        user = phoneRecord?.user ?? null;
       }
-      user = phoneRecord?.user ?? null;
     }
   } catch (error) {
     if (isAccountStorageUnavailable(error)) {
@@ -466,7 +471,9 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
   }
 
   if (!user) {
-    recordFailedLogin(lockoutKey);
+    if (!unverifiedIdentifier) {
+      recordFailedLogin(lockoutKey);
+    }
     return { error: "Invalid email or password" };
   }
 
