@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CSSProperties, FormEvent } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { flushSync } from "react-dom";
-import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
 import { AnimatePresence, motion, type Transition, useReducedMotion } from "framer-motion";
 import { requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -623,6 +623,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
   const [meshiPreview, setMeshiPreview] = useState<EntryMeshiPreview | null>(null);
   const [previewState, setPreviewState] = useState<"idle" | "looking" | "found">("idle");
   const [meshiEntrance, setMeshiEntrance] = useState<MeshiEntranceState>("idle");
+  const [identityMorphing, setIdentityMorphing] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isPending, startTransition] = useTransition();
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -828,11 +829,15 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
         return;
       }
 
-      // Reveal the password step immediately; the Meshi preview keeps loading
-      // in the background so the transition never waits on a round-trip.
+      // The identity field folds into a circle that hands off to Meshi,
+      // then the password step slides in.
       setEntryState("connecting");
-      setStage("password");
-      window.setTimeout(() => passwordInputRef.current?.focus(), reduceMotion ? 40 : 420);
+      setIdentityMorphing(true);
+      window.setTimeout(() => {
+        setStage("password");
+        setIdentityMorphing(false);
+        window.setTimeout(() => passwordInputRef.current?.focus(), reduceMotion ? 40 : 420);
+      }, reduceMotion ? 40 : 560);
       void previewPromise;
     });
   };
@@ -970,7 +975,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
           ? "thinking"
           : activeMeshi.face;
   const meshiProp: MeshiProp = isPasswordTyping || entryState === "unlocking" ? "keyboard" : stage === "reset" ? "envelope" : "none";
-  const stepLabel = stage === "identity" ? "Identify" : stage === "password" ? "Unlock" : stage === "reset" ? "Reset" : "Create";
   const meshiWrapAnimate = !shouldShowEntryMeshi
     ? {
         opacity: 0,
@@ -1083,17 +1087,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               mesh<span className="brand-wordmark-accent">.me</span>
             </Link>
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-100/74">Your World, Your Way</p>
-            <div className="mesh-entry-stage-row mt-4" aria-label={`Current step: ${stepLabel}`}>
-              {["Identify", stage === "signup" ? "Create" : stage === "reset" ? "Reset" : "Unlock", "Enter"].map((label, index) => {
-                const active = label === stepLabel || (entryState === "unlocking" && label === "Enter");
-                const completed = stage !== "identity" && index === 0;
-                return (
-                  <span key={`${label}-${index}`} className={cn("mesh-entry-stage-pill", active && "mesh-entry-stage-pill-active", completed && "mesh-entry-stage-pill-done")}>
-                    {label}
-                  </span>
-                );
-              })}
-            </div>
           </div>
 
           <div className={cn("mesh-entry-flow relative", stage === "identity" ? "min-h-[25rem]" : stage === "signup" ? "min-h-[45rem]" : stage === "reset" ? "min-h-[35rem]" : "min-h-[32rem]")}>
@@ -1170,16 +1163,12 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                     event.preventDefault();
                     beginPasswordStep();
                   }}
-                  className="mesh-entry-card mesh-entry-identity-form space-y-5"
+                  className={cn("mesh-entry-card mesh-entry-card-bare mesh-entry-identity-form space-y-5", identityMorphing && "mesh-entry-form-morphing")}
                   data-testid="entry-identity-form"
                   noValidate
                 >
-                  <div className="space-y-2 text-center">
-                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-blue-100/15 bg-blue-100/8 text-blue-100">
-                      <UserRound className="h-5 w-5" aria-hidden="true" />
-                    </div>
+                  <div className="space-y-2 text-center" data-morph-fade>
                     <h1 className="text-4xl font-bold tracking-[0] text-white sm:text-5xl">Who are you?</h1>
-                    <p className="text-sm text-blue-100/78">Sign in or create your Mesh from one place.</p>
                   </div>
                   <label className="block" htmlFor="mesh-entry-identity">
                     <span className="sr-only">Username, email, or phone number</span>
@@ -1217,7 +1206,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       enterKeyHint="next"
                       spellCheck={false}
                       inputMode={identityValidation.inputMode}
-                      className={cn("mesh-entry-input", identityHasError && "mesh-entry-input-invalid")}
+                      className={cn("mesh-entry-input", identityHasError && "mesh-entry-input-invalid", identityMorphing && "mesh-entry-input-morph")}
                       placeholder="Username, email, or phone"
                       aria-invalid={identityHasError}
                       aria-describedby={identityHasError ? `${identityHelpId} ${identityMessageId}` : identityHelpId}
@@ -1226,7 +1215,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       data-identity-kind={identityValidation.kind}
                       data-testid="entry-identity-input"
                     />
-                    <span id={identityHelpId} className="mesh-entry-identity-meta">
+                    <span id={identityHelpId} className="mesh-entry-identity-meta" data-morph-fade>
                       <span>{identityValidation.helper}</span>
                       <span className={cn("mesh-entry-identity-type", identityValidation.ok && "mesh-entry-identity-type-ready")}>
                         {identityValidation.label}
@@ -1298,11 +1287,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                   {oauthProviders.length ? (
                     <IdentityProviderButtons providers={oauthProviders} next={nextPath} />
                   ) : null}
-                  <div className="mesh-entry-trust-row" aria-label="Mesh.me account protections">
-                    <span><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> Private</span>
-                    <span><LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" /> Secure</span>
-                    <span><Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Yours</span>
-                  </div>
                 </motion.form>
               </motion.div>
             ) : null}
@@ -1315,7 +1299,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 transition={{ duration: reduceMotion ? 0.01 : 0.38, ease: "easeOut" }}
                 className="absolute inset-x-0 top-0"
               >
-                <form action={submitPassword} className="mesh-entry-card space-y-5" data-testid="entry-password-form" noValidate>
+                <form action={submitPassword} className="mesh-entry-card mesh-entry-card-bare space-y-5" data-testid="entry-password-form" noValidate>
                   <input type="hidden" name="email" value={identifier} />
                   <label className="sr-only" htmlFor="mesh-entry-password-username">Username</label>
                   <input
@@ -1330,9 +1314,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                   />
                   {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
                   <div className="space-y-1 text-center">
-                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-blue-100/15 bg-blue-100/8 text-blue-100">
-                      <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-                    </div>
                     <h1 className="text-2xl font-bold tracking-[0] text-white">Welcome back</h1>
                     <p className="text-sm text-blue-100/78">Enter your password to reconnect.</p>
                     <p className="mx-auto max-w-[18rem] truncate text-xs font-semibold text-blue-100/72">{identifier}</p>
@@ -1636,19 +1617,21 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             ) : null}
           </div>
 
-          <nav className="mesh-entry-footer-nav mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-blue-100/76">
-            <button type="button" onClick={openInlineSignup} className="transition hover:text-white">Create account</button>
-            <button type="button" onClick={openResetStep} className="transition hover:text-white">Forgot password?</button>
-            <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
-            <Link href="/terms" className="transition hover:text-white">Terms</Link>
-          </nav>
-
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs font-semibold text-emerald-100/72">
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            Private by default. No ads. No data selling.
-          </div>
         </div>
       </section>
+
+      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2.5 px-4 pb-4">
+        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-100/72">
+          <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+          Private by default. No ads. No data selling. No tracking.
+        </div>
+        <nav className="mesh-entry-footer-nav flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-blue-100/76">
+          <button type="button" onClick={openInlineSignup} className="transition hover:text-white">Create account</button>
+          <button type="button" onClick={openResetStep} className="transition hover:text-white">Forgot password?</button>
+          <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
+          <Link href="/terms" className="transition hover:text-white">Terms</Link>
+        </nav>
+      </div>
     </main>
   );
 }

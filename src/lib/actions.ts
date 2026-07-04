@@ -203,16 +203,22 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
     if (!user && isEmail) {
       const emailRecord = await prisma.userEmail.findUnique({
         where: { email: lowered },
-        select: { userId: true },
+        select: { userId: true, isVerified: true },
       });
+      if (emailRecord && !emailRecord.isVerified) {
+        return { error: "This email isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
+      }
       user = emailRecord ? { id: emailRecord.userId } : null;
     }
 
     if (!user && isPhone) {
       const phoneRecord = await prisma.userPhone.findFirst({
         where: { phone: { in: Array.from(new Set([normalizedPhone, identifier])) } },
-        select: { userId: true },
+        select: { userId: true, isVerified: true },
       });
+      if (phoneRecord && !phoneRecord.isVerified) {
+        return { error: "This phone number isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
+      }
       user = phoneRecord ? { id: phoneRecord.userId } : null;
     }
 
@@ -415,6 +421,9 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
         where: { email },
         include: { user: true },
       });
+      if (emailRecord && !emailRecord.isVerified) {
+        return { error: "This email isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
+      }
       user = emailRecord?.user ?? null;
     }
 
@@ -426,6 +435,9 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
         },
         include: { user: true },
       });
+      if (phoneRecord && !phoneRecord.isVerified) {
+        return { error: "This phone number isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
+      }
       user = phoneRecord?.user ?? null;
     }
   } catch (error) {
