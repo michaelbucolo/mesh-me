@@ -181,6 +181,28 @@ export function FeedTimelineClient({
     [activeFeedItemId, posts],
   );
   const isComposing = searchParams.get("compose") === "true";
+  const flowPostId = searchParams.get("flow");
+  useEffect(() => {
+    if (!flowPostId) {
+      setReelsOpen(false);
+      return;
+    }
+    if (posts.some((post) => post.id === flowPostId)) {
+      setActiveFeedItemId(flowPostId);
+      setReelsOpen(true);
+    } else {
+      setReelsOpen(false);
+    }
+  }, [flowPostId, posts]);
+  const closeReels = useCallback(() => {
+    setReelsOpen(false);
+    if (flowPostId) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("flow");
+      const query = params.toString();
+      window.history.replaceState(null, "", query ? `/feed?${query}` : "/feed");
+    }
+  }, [flowPostId]);
   const activePresencePostId = getFeedPresenceKey(activePost);
   const activeModeConfig = adaptiveModes.find((mode) => mode.id === adaptiveMode) || adaptiveModes[0];
   const ActiveModeIcon = activeModeConfig.icon;
@@ -203,8 +225,8 @@ export function FeedTimelineClient({
     setHasMore(initialHasMore);
     setContentFilter(initialContentFilter);
     setFeedError("");
-    setActiveFeedItemId(initialPosts[0]?.id ?? null);
-  }, [initialContentFilter, initialHasMore, initialPosts]);
+    setActiveFeedItemId(flowPostId ?? initialPosts[0]?.id ?? null);
+  }, [initialContentFilter, initialHasMore, initialPosts, flowPostId]);
 
   useEffect(() => {
     try {
@@ -706,7 +728,7 @@ export function FeedTimelineClient({
           connectedPlatforms={connectedPlatforms}
           hasMore={hasMore}
           loadingMore={loadingMore}
-          onClose={() => setReelsOpen(false)}
+          onClose={closeReels}
           onLoadMore={() => void loadMore()}
         />
       )}

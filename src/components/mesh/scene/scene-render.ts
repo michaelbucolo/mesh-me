@@ -21,10 +21,13 @@ export interface RenderOptions {
   activeBranch: BranchKey | null;
   selectedId: string | null;
   focusId: string | null;
+  hoverId?: string | null;
   images: Map<string, HTMLImageElement>;
   backgroundStars: { x: number; y: number; r: number; tw: number }[];
   /** Output: screen-space hitboxes keyed by node id. */
   hitboxes: Map<string, { x: number; y: number; r: number }>;
+  /** Output: screen-space label-pill rects keyed by node id (branch/self). */
+  pillHitboxes?: Map<string, { x: number; y: number; w: number; h: number }>;
   /** Keep labels clear of the screen center (where the pinned Meshi sits). */
   avoidCenter?: boolean;
 }
@@ -109,8 +112,20 @@ export function drawScene(o: RenderOptions): void {
   }
 
   const nodes = model.nodes;
+  o.pillHitboxes?.clear();
+
+  // Chain of ids from the hovered node back to the center — these strands light up.
+  const hoverChain = new Set<string>();
+  if (o.hoverId) {
+    let cursor: SceneNode | undefined = nodes.get(o.hoverId);
+    while (cursor) {
+      hoverChain.add(cursor.id);
+      cursor = cursor.parentId ? nodes.get(cursor.parentId) : undefined;
+    }
+  }
 
   const emphasisFor = (node: SceneNode): number => {
+    if (hoverChain.has(node.id)) return 1;
     if (o.selectedId === node.id) return 1;
     if (node.kind === "self" || node.kind === "branch") return 1;
     if (!o.activeBranch) return 0.62;
@@ -126,13 +141,14 @@ export function drawScene(o: RenderOptions): void {
     const a = project(parent, o);
     const b = project(node, o);
     const emph = Math.min(emphasisFor(node), emphasisFor(parent));
+    const onHoverPath = hoverChain.has(node.id) && hoverChain.has(parent.id);
     const baseAlpha = node.depth === 1 ? 0.34 : node.depth === 2 ? 0.22 : 0.14;
-    const alpha = baseAlpha * (0.35 + 0.65 * emph);
+    const alpha = onHoverPath ? 0.85 : baseAlpha * (0.35 + 0.65 * emph);
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
     grad.addColorStop(0, withAlpha(parent.color, alpha));
     grad.addColorStop(1, withAlpha(node.color, alpha));
     ctx.strokeStyle = grad;
-    ctx.lineWidth = (node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);
+    ctx.lineWidth = (onHoverPath ? 2.4 : node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
@@ -165,6 +181,7 @@ export function drawScene(o: RenderOptions): void {
     const pulse = 0.5 + 0.5 * Math.sin(time * 0.002 + node.x * 0.02);
     const isSelected = o.selectedId === node.id;
     const isFocus = o.focusId === node.id;
+    const isHover = o.hoverId === node.id;
 
     // Glow halo.
     const glowR = r * (node.kind === "self" ? 3.4 : 2.6);
@@ -219,11 +236,11 @@ export function drawScene(o: RenderOptions): void {
       ctx.stroke();
     }
 
-    if (isSelected || isFocus) {
+    if (isSelected || isFocus || isHover) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha("#ffffff", isSelected ? 0.9 : 0.4);
-      ctx.lineWidth = isSelected ? 2 : 1.2;
+      ctx.strokeStyle = withAlpha("#ffffff", isSelected ? 0.9 : isHover ? 0.65 : 0.4);
+      ctx.lineWidth = isSelected ? 2 : isHover ? 1.6 : 1.2;
       ctx.stroke();
     }
 
@@ -232,6 +249,7 @@ export function drawScene(o: RenderOptions): void {
       node.kind === "branch" ||
       isSelected ||
       isFocus ||
+      isHover ||
       (o.activeBranch !== null && node.branch === o.activeBranch && node.depth <= 2);
     if (showLabel) labelQueue.push({ node, x: p.x, y: p.y, r, emph });
   });
@@ -278,6 +296,7 @@ export function drawScene(o: RenderOptions): void {
       ctx.arcTo(rx, ly, rx + textW + padX * 2, ly, radius);
       ctx.closePath();
       ctx.fill();
+      o.pillHitboxes?.set(node.id, { x: rx, y: ly, w: textW + padX * 2, h });
       ctx.strokeStyle = withAlpha(node.color, 0.5);
       ctx.lineWidth = 1;
       ctx.stroke();

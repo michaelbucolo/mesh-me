@@ -31,23 +31,19 @@ const FACES: Record<string, { eyes: string; svg?: boolean }> = {
   blinking: { eyes: "", svg: true },
 };
 
-// Crisp vector eyes for each mood. Tall, slightly elliptical eyes with a soft
-// catchlight read as alive and consistent at any size (no unicode-glyph eyes).
+// Crisp vector eyes for each mood. Tall, slightly elliptical solid eyes stay
+// consistent at any size (no unicode-glyph eyes).
 const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   happy: (color: string) => (
     <g>
       <ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill={color} />
       <ellipse cx="5" cy="0" rx="2.4" ry="3.7" fill={color} />
-      <circle cx="-5.8" cy="-1.4" r="0.9" fill="#fff" opacity="0.85" />
-      <circle cx="4.2" cy="-1.4" r="0.9" fill="#fff" opacity="0.85" />
     </g>
   ),
   excited: (color: string) => (
     <g>
       <ellipse cx="-5" cy="-0.3" rx="2.9" ry="4" fill={color} />
       <ellipse cx="5" cy="-0.3" rx="2.9" ry="4" fill={color} />
-      <circle cx="-6" cy="-2" r="1.1" fill="#fff" opacity="0.9" />
-      <circle cx="4" cy="-2" r="1.1" fill="#fff" opacity="0.9" />
     </g>
   ),
   thinking: (color: string) => (
@@ -86,7 +82,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   wink: (color: string) => (
     <g>
       <ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill={color} />
-      <circle cx="-5.8" cy="-1.4" r="0.9" fill="#fff" opacity="0.85" />
       <path d="M 2.5 0.5 Q 5 -2.6 7.5 0.5" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" />
     </g>
   ),
@@ -113,7 +108,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
   synergy1017: (color: string) => (
     <g>
       <ellipse cx="-4.5" cy="0" rx="2" ry="3.8" fill={color} />
-      <circle cx="-5.2" cy="-1.4" r="0.8" fill="#fff" opacity="0.85" />
       <path d="M 2.2 1 Q 4.7 -2.6 7.2 1" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </g>
   ),
@@ -129,8 +123,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
     <g>
       <ellipse cx="-5" cy="-0.5" rx="3" ry="3.6" fill={color} />
       <ellipse cx="5" cy="-0.5" rx="3" ry="3.6" fill={color} />
-      <circle cx="-4" cy="-1.6" r="1" fill="white" opacity="0.85" />
-      <circle cx="6" cy="-1.6" r="1" fill="white" opacity="0.85" />
     </g>
   ),
   celebrating: (color: string) => (
