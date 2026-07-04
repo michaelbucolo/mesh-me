@@ -183,7 +183,10 @@ export function FeedTimelineClient({
   const isComposing = searchParams.get("compose") === "true";
   const flowPostId = searchParams.get("flow");
   useEffect(() => {
-    if (!flowPostId) return;
+    if (!flowPostId) {
+      setReelsOpen(false);
+      return;
+    }
     setActiveFeedItemId(flowPostId);
     setReelsOpen(true);
   }, [flowPostId]);
