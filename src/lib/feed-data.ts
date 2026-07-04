@@ -271,6 +271,88 @@ export async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit
   });
 }
 
+export async function getFeedPostById(user: FeedCurrentUser, id: string): Promise<FeedCardPost | null> {
+  if (id.startsWith("platform-")) {
+    const post = await prisma.platformPost.findFirst({
+      where: {
+        id: id.slice("platform-".length),
+        ...nsfwHiddenWhere(user),
+        connectedAccount: { userId: user.id, isActive: true },
+        visibility: { not: "private" },
+      },
+      include: {
+        connectedAccount: { select: { platform: true, platformUsername: true } },
+        media: true,
+      },
+    });
+    if (!post) return null;
+    const media = post.media.length > 0
+      ? post.media.map((item) => ({ id: item.id, url: item.thumbnailUrl || item.url, type: item.mediaType }))
+      : post.thumbnailUrl
+        ? [{
+            id: `${post.id}-thumbnail`,
+            url: post.thumbnailUrl,
+            type: ["video", "reel", "short", "story"].includes(post.postType) ? "video" : "image",
+          }]
+        : [];
+    const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
+    return {
+      id: `platform-${post.id}`,
+      content: content || `${post.connectedAccount.platform} post`,
+      createdAt: post.publishedAt ?? post.createdAt,
+      author: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        isVerified: user.isVerified,
+      },
+      community: null,
+      media,
+      tags: [],
+      _count: { comments: post.commentCount, reactions: post.likeCount, reposts: post.shareCount },
+      reactions: [],
+      savedBy: [],
+      isPinned: post.isPinned,
+      platform: post.connectedAccount.platform,
+      sourceId: post.id,
+      externalUrl: post.url,
+      platformPostId: post.platformPostId,
+      crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
+      isNsfw: post.isNsfw,
+      contentRating: post.contentRating,
+    };
+  }
+
+  const post = await prisma.post.findFirst({
+    where: {
+      id,
+      ...nsfwHiddenWhere(user),
+      OR: [
+        { authorId: user.id },
+        { visibility: "public" },
+      ],
+    },
+    include: {
+      author: {
+        select: { id: true, username: true, displayName: true, avatarUrl: true, isVerified: true },
+      },
+      community: { select: { id: true, name: true, slug: true } },
+      media: true,
+      tags: true,
+      _count: { select: { comments: true, reactions: true, reposts: true } },
+      reactions: { where: { userId: user.id }, select: { id: true } },
+      savedBy: { where: { userId: user.id }, select: { id: true } },
+    },
+  });
+  if (!post) return null;
+  return {
+    ...post,
+    media: post.media.map((item) => ({ id: item.id, url: item.url, type: item.type })),
+    platform: "meshme",
+  };
+}
+
 export async function getCombinedFeedPosts({
   user,
   source,
