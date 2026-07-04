@@ -194,6 +194,15 @@ export function FeedTimelineClient({
       setReelsOpen(false);
     }
   }, [flowPostId, posts]);
+  const closeReels = useCallback(() => {
+    setReelsOpen(false);
+    if (flowPostId) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("flow");
+      const query = params.toString();
+      window.history.replaceState(null, "", query ? `/feed?${query}` : "/feed");
+    }
+  }, [flowPostId]);
   const activePresencePostId = getFeedPresenceKey(activePost);
   const activeModeConfig = adaptiveModes.find((mode) => mode.id === adaptiveMode) || adaptiveModes[0];
   const ActiveModeIcon = activeModeConfig.icon;
@@ -719,7 +728,7 @@ export function FeedTimelineClient({
           connectedPlatforms={connectedPlatforms}
           hasMore={hasMore}
           loadingMore={loadingMore}
-          onClose={() => setReelsOpen(false)}
+          onClose={closeReels}
           onLoadMore={() => void loadMore()}
         />
       )}
