@@ -421,10 +421,7 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
         where: { email },
         include: { user: true },
       });
-      if (emailRecord && !emailRecord.isVerified) {
-        return { error: "This email isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
-      }
-      user = emailRecord?.user ?? null;
+      user = emailRecord?.isVerified ? emailRecord.user : null;
     }
 
     if (!user && normalizedPhone.length >= 7) {
@@ -435,10 +432,7 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
         },
         include: { user: true },
       });
-      if (phoneRecord && !phoneRecord.isVerified) {
-        return { error: "This phone number isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
-      }
-      user = phoneRecord?.user ?? null;
+      user = phoneRecord?.isVerified ? phoneRecord.user : null;
     }
   } catch (error) {
     if (isAccountStorageUnavailable(error)) {
