@@ -157,11 +157,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   }, []);
 
   const loadScene = useCallback(
-    async (opts?: { quiet?: boolean }) => {
+    async (opts?: { quiet?: boolean; signal?: AbortSignal }) => {
       const url = viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
       if (!opts?.quiet) setStatus("loading");
       try {
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch(url, { cache: "no-store", signal: opts?.signal });
+        if (opts?.signal?.aborted) return;
         if (!res.ok) throw new Error(String(res.status));
         const payload: MeshApiResponse = await res.json();
         const model = buildSceneModel(payload);
@@ -200,7 +201,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           fitToContent();
         }
         setStatus(model.branchOrder.length === 0 ? "empty" : "ready");
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         if (!opts?.quiet) setStatus("error");
       }
     },
@@ -209,7 +211,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
   useEffect(() => {
     imagesRef.current = new Map();
-    void loadScene();
+    const controller = new AbortController();
+    void loadScene({ signal: controller.signal });
+    return () => controller.abort();
   }, [loadScene]);
 
   // --- Canvas sizing + render loop ---
@@ -533,20 +537,27 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         const list: RemotePresence[] = Array.isArray(data.presences) ? data.presences : [];
         // Only Meshis of users actively viewing this exact mesh right now.
         const visible = list.filter((p) => p.isOnline && p.viewingMesh === meshOwner);
+        const visibleIds = new Set(visible.map((p) => p.userId));
         for (const p of visible) {
           presenceTargetsRef.current.set(p.userId, {
             vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
             vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
           });
         }
+        presenceTargetsRef.current.forEach((_, id) => {
+          if (!visibleIds.has(id)) {
+            presenceTargetsRef.current.delete(id);
+            presencePosRef.current.delete(id);
+          }
+        });
         setRemotePresences(visible);
       } catch {
         // Presence is best-effort.
       }
     };
 
-    const hb = setInterval(heartbeat, 2500);
-    const pl = setInterval(poll, 2000);
+    const hb = setInterval(heartbeat, 4000);
+    const pl = setInterval(poll, 3000);
     const kick = setTimeout(() => {
       void heartbeat();
       void poll();
@@ -667,11 +678,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           key={p.userId}
           ref={(el) => {
             if (el) presenceElsRef.current.set(p.userId, el);
-            else {
-              presenceElsRef.current.delete(p.userId);
-              presencePosRef.current.delete(p.userId);
-              presenceTargetsRef.current.delete(p.userId);
-            }
+            else presenceElsRef.current.delete(p.userId);
           }}
           className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
           style={{
