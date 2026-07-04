@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Loader2, Maximize2, Minus, PenLine, Plus, Scan, X } from "lucide-react";
+import { ArrowLeft, Loader2, Maximize2, Minus, PenLine, Plus, Scan, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -72,6 +72,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const modelRef = useRef<SceneModel | null>(null);
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const hitboxesRef = useRef<Map<string, { x: number; y: number; r: number }>>(new Map());
+  const pillHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
   const starsRef = useRef<{ x: number; y: number; r: number; tw: number }[]>([]);
   const sizeRef = useRef({ width: 0, height: 0 });
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -87,6 +88,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   }>({ active: false, moved: false, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0 });
   const flingRef = useRef({ vx: 0, vy: 0 });
   const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
+  const panTargetRef = useRef<{ nodeId: string } | null>(null);
   const physicsRef = useRef<PhysicsState>(createPhysicsState());
   const lastFrameRef = useRef(0);
 
@@ -108,6 +110,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
@@ -268,6 +272,24 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           fling.vy *= decay;
         }
 
+        // Glide the camera toward a fly-to node, tracking its live position so
+        // branch expansion, drift, and zoom changes are all accounted for.
+        const pt = panTargetRef.current;
+        if (pt) {
+          const target = model.nodes.get(pt.nodeId);
+          if (!target) {
+            panTargetRef.current = null;
+          } else {
+            const cam = cameraRef.current;
+            const tx = -target.dx * cam.zoom;
+            const ty = -target.dy * cam.zoom;
+            const k = Math.min(1, dt / 220);
+            cam.panX += (tx - cam.panX) * k;
+            cam.panY += (ty - cam.panY) * k;
+            if (Math.hypot(tx - cam.panX, ty - cam.panY) < 1.5) panTargetRef.current = null;
+          }
+        }
+
         // Smooth zoom: ease toward the wheel / button target around its anchor.
         const zt = zoomTargetRef.current;
         if (zt) {
@@ -291,9 +313,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           activeBranch: activeBranchRef.current,
           selectedId: selectedIdRef.current,
           focusId: focusIdRef.current,
+          hoverId: hoverIdRef.current,
           images: imagesRef.current,
           backgroundStars: starsRef.current,
           hitboxes: hitboxesRef.current,
+          pillHitboxes: pillHitboxesRef.current,
           avoidCenter: coarseRef.current,
         });
 
@@ -327,6 +351,17 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   }, [fitToContent]);
 
   // --- Interaction ---
+  const flyToNode = useCallback((node: SceneNode) => {
+    panTargetRef.current = { nodeId: node.id };
+  }, []);
+
+  const enterFriendMesh = useCallback(
+    (node: SceneNode) => {
+      if (node.userId) router.push(`/mesh?user=${encodeURIComponent(node.userId)}`);
+    },
+    [router],
+  );
+
   const activateNode = useCallback(
     (node: SceneNode) => {
       if (node.kind === "self") {
@@ -335,20 +370,40 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         fitToContent();
         return;
       }
+      if (node.kind === "person" && node.userId) {
+        enterFriendMesh(node);
+        return;
+      }
+      if (node.kind === "post" && node.href?.startsWith("/feed/")) {
+        router.push(`/feed?flow=${encodeURIComponent(node.href.slice("/feed/".length))}`);
+        return;
+      }
       if (node.kind === "branch") {
-        setActiveBranch((prev) => (prev === node.branch ? null : node.branch));
+        setActiveBranch((prev) => {
+          const next = prev === node.branch ? null : node.branch;
+          if (next) flyToNode(node);
+          return next;
+        });
         setSelectedNode(node);
         return;
       }
       setActiveBranch(node.branch);
       setSelectedNode(node);
+      flyToNode(node);
     },
-    [fitToContent],
+    [fitToContent, flyToNode, enterFriendMesh, router],
   );
 
   const hitTest = useCallback((sx: number, sy: number): SceneNode | null => {
     const model = modelRef.current;
     if (!model) return null;
+    // Label pills (branch / self) are clickable too.
+    for (const [id, pill] of pillHitboxesRef.current) {
+      if (sx >= pill.x - 4 && sx <= pill.x + pill.w + 4 && sy >= pill.y - 4 && sy <= pill.y + pill.h + 4) {
+        const node = model.nodes.get(id);
+        if (node) return node;
+      }
+    }
     let found: SceneNode | null = null;
     let bestR = Infinity;
     hitboxesRef.current.forEach((box, id) => {
@@ -376,6 +431,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     d.vx = 0;
     d.vy = 0;
     flingRef.current = { vx: 0, vy: 0 };
+    panTargetRef.current = null;
     if (pointersRef.current.size === 2) {
       const pts = [...pointersRef.current.values()];
       d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -457,8 +513,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       if (!d.moved) {
         const rect = containerRef.current!.getBoundingClientRect();
         const node = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-        if (node) activateNode(node);
-        else {
+        if (node) {
+          activateNode(node);
+        } else {
           setSelectedNode(null);
           setActiveBranch(null);
         }
@@ -603,11 +660,52 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const enterFriendMesh = useCallback(
+  // Keyboard shortcuts: / search, +/- zoom, 0 fit, Escape closes overlays.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (e.key === "Escape") {
+        setShowSearch(false);
+        setShowCompose(false);
+        setSelectedNode(null);
+        return;
+      }
+      if (typing) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        setShowSearch(true);
+      } else if (e.key === "+" || e.key === "=") zoomBy(1.25);
+      else if (e.key === "-") zoomBy(0.8);
+      else if (e.key === "0" || e.key.toLowerCase() === "f") fitToContent();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomBy, fitToContent]);
+
+  const searchResults = (() => {
+    if (!showSearch) return [];
+    const q = searchQuery.trim().toLowerCase();
+    const model = modelRef.current;
+    if (!model) return [];
+    const out: SceneNode[] = [];
+    model.nodes.forEach((node) => {
+      if (node.kind === "self" || node.kind === "branch") return;
+      if (!q || node.label.toLowerCase().includes(q) || node.sublabel?.toLowerCase().includes(q)) out.push(node);
+    });
+    out.sort((a, b) => b.weight - a.weight);
+    return out.slice(0, 8);
+  })();
+
+  const jumpToNode = useCallback(
     (node: SceneNode) => {
-      if (node.userId) router.push(`/mesh?user=${encodeURIComponent(node.userId)}`);
+      setShowSearch(false);
+      setSearchQuery("");
+      setActiveBranch(node.branch);
+      setSelectedNode(node);
+      flyToNode(node);
     },
-    [router],
+    [flyToNode],
   );
 
   return (
@@ -645,6 +743,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             outfit={prefs.outfit}
             prop="compass"
           />
+          {focusId && (() => {
+            const node = modelRef.current?.nodes.get(focusId);
+            if (!node) return null;
+            return (
+              <div className="absolute left-1/2 top-full mt-1 w-max max-w-[13rem] -translate-x-1/2 rounded-lg border border-white/12 bg-black/75 px-2.5 py-1.5 text-center backdrop-blur">
+                <p className="truncate text-[11px] font-semibold text-white">{node.label}</p>
+                {node.sublabel && <p className="truncate text-[10px] text-white/60">{node.sublabel}</p>}
+              </div>
+            );
+          })()}
         </div>
       )}
       {prefs.enabled && !isCoarsePointer && (
@@ -665,9 +773,32 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             prop="compass"
           />
           {hoverNode && hoverNode.kind !== "self" && (
-            <div className="absolute left-1/2 top-full mt-1 w-max max-w-[14rem] -translate-x-1/2 rounded-lg border border-white/12 bg-black/75 px-2.5 py-1.5 text-center backdrop-blur">
+            <div className="absolute left-1/2 top-full mt-1 w-max max-w-[16rem] -translate-x-1/2 rounded-lg border border-white/12 bg-black/75 px-2.5 py-1.5 text-center backdrop-blur">
               <p className="truncate text-[11px] font-semibold text-white">{hoverNode.label}</p>
               {hoverNode.sublabel && <p className="truncate text-[10px] text-white/60">{hoverNode.sublabel}</p>}
+              {hoverNode.content && hoverNode.content !== hoverNode.label && (
+                <p className="mt-1 line-clamp-2 text-left text-[10px] leading-snug text-white/75">{hoverNode.content}</p>
+              )}
+              {hoverNode.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={hoverNode.imageUrl} alt="" className="mt-1 h-16 w-full rounded object-cover" />
+              )}
+              {hoverNode.meta && hoverNode.meta.length > 0 && (
+                <div className="mt-1 flex flex-wrap justify-center gap-x-2.5 gap-y-0.5">
+                  {hoverNode.meta.map((m) => (
+                    <span key={m.label} className="text-[10px] text-white/60">
+                      <span className="font-semibold text-white/85">{m.value}</span> {m.label.toLowerCase()}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mt-1 text-[9px] uppercase tracking-wide text-white/40">
+                {hoverNode.kind === "person"
+                  ? "Click to visit their mesh"
+                  : hoverNode.kind === "post" && hoverNode.href?.startsWith("/feed/")
+                    ? "Click to open in the Flow"
+                    : "Click to open"}
+              </p>
             </div>
           )}
         </div>
@@ -735,6 +866,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <PenLine size={16} />
           </RailButton>
         )}
+        <RailButton label="Search your mesh" onClick={() => setShowSearch(true)}>
+          <Search size={16} />
+        </RailButton>
         <RailButton label="Zoom in" onClick={() => zoomBy(1.25)}>
           <Plus size={16} />
         </RailButton>
@@ -776,6 +910,64 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           >
             Connect your accounts
           </Link>
+        </div>
+      )}
+
+      {/* Search: jump to any star in your constellation */}
+      {showSearch && (
+        <div
+          className="absolute inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-24 backdrop-blur-sm"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            if (e.target === e.currentTarget) setShowSearch(false);
+          }}
+        >
+          <div className="w-full max-w-md animate-[slideUp_.22s_ease-out] rounded-2xl border border-white/12 bg-[#0b1020] p-2 shadow-2xl">
+            <div className="flex items-center gap-2 px-2">
+              <Search size={15} className="shrink-0 text-white/45" />
+              <input
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchResults[0]) jumpToNode(searchResults[0]);
+                }}
+                placeholder="Find a person, post, platform…"
+                className="w-full bg-transparent py-2.5 text-sm text-white placeholder:text-white/35 focus:outline-none"
+              />
+              <button
+                type="button"
+                aria-label="Close search"
+                onClick={() => setShowSearch(false)}
+                className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            {searchResults.length > 0 && (
+              <ul className="max-h-72 overflow-y-auto border-t border-white/8 pt-1">
+                {searchResults.map((node) => (
+                  <li key={node.id}>
+                    <button
+                      type="button"
+                      onClick={() => jumpToNode(node)}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                    >
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: node.color }} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-white">{node.label}</span>
+                        {node.sublabel && <span className="block truncate text-[11px] text-white/50">{node.sublabel}</span>}
+                      </span>
+                      <span className="shrink-0 text-[10px] uppercase tracking-wide text-white/35">{node.kind}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {searchQuery.trim() && searchResults.length === 0 && (
+              <p className="border-t border-white/8 px-3 py-3 text-xs text-white/45">Nothing in your mesh matches that.</p>
+            )}
+          </div>
         </div>
       )}
 
