@@ -209,8 +209,8 @@ export function FeedTimelineClient({
     setHasMore(initialHasMore);
     setContentFilter(initialContentFilter);
     setFeedError("");
-    setActiveFeedItemId(initialPosts[0]?.id ?? null);
-  }, [initialContentFilter, initialHasMore, initialPosts]);
+    setActiveFeedItemId(flowPostId ?? initialPosts[0]?.id ?? null);
+  }, [initialContentFilter, initialHasMore, initialPosts, flowPostId]);
 
   useEffect(() => {
     try {
