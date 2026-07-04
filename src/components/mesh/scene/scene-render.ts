@@ -25,12 +25,14 @@ export interface RenderOptions {
   backgroundStars: { x: number; y: number; r: number; tw: number }[];
   /** Output: screen-space hitboxes keyed by node id. */
   hitboxes: Map<string, { x: number; y: number; r: number }>;
+  /** Keep labels clear of the screen center (where the pinned Meshi sits). */
+  avoidCenter?: boolean;
 }
 
-function project(node: { x: number; y: number }, o: RenderOptions) {
+function project(node: { dx: number; dy: number }, o: RenderOptions) {
   return {
-    x: o.width / 2 + o.camera.panX + node.x * o.camera.zoom,
-    y: o.height / 2 + o.camera.panY + node.y * o.camera.zoom,
+    x: o.width / 2 + o.camera.panX + node.dx * o.camera.zoom,
+    y: o.height / 2 + o.camera.panY + node.dy * o.camera.zoom,
   };
 }
 
@@ -237,21 +239,37 @@ export function drawScene(o: RenderOptions): void {
   // --- Labels (drawn last, crisp) ---
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
+  let avoidStack = 0;
   for (const { node, x, y, r, emph } of labelQueue) {
     const isBranch = node.kind === "branch";
     const isSelf = node.kind === "self";
     const fontSize = isSelf ? 14 : isBranch ? 13 : 11;
     ctx.font = `${isBranch || isSelf ? 600 : 500} ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
     const label = isBranch && node.count != null ? `${node.label} · ${node.count}` : node.label;
-    const ly = y + r + 6;
+    let ly = y + r + 6;
 
     const textW = ctx.measureText(label).width;
+    // Keep pills fully on screen and clear of the center-pinned Meshi.
+    let lx = x;
+    if (isBranch || isSelf) {
+      const halfW = textW / 2 + 9;
+      lx = Math.max(halfW + 4, Math.min(width - halfW - 4, lx));
+      if (o.avoidCenter) {
+        const cx = width / 2;
+        const cy = height / 2;
+        const pillCy = ly + (fontSize + 7) / 2;
+        if (Math.hypot(lx - cx, pillCy - cy) < 66) {
+          ly = cy + 52 + avoidStack;
+          avoidStack += fontSize + 14;
+        }
+      }
+    }
     if (isBranch || isSelf) {
       ctx.fillStyle = withAlpha("#0b1020", 0.7);
       const padX = 7;
       const h = fontSize + 7;
       ctx.beginPath();
-      const rx = x - textW / 2 - padX;
+      const rx = lx - textW / 2 - padX;
       const radius = h / 2;
       ctx.moveTo(rx + radius, ly);
       ctx.arcTo(rx + textW + padX * 2, ly, rx + textW + padX * 2, ly + h, radius);
@@ -264,7 +282,7 @@ export function drawScene(o: RenderOptions): void {
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.fillStyle = "#eef1ff";
-      ctx.fillText(label, x, ly + 3.5);
+      ctx.fillText(label, lx, ly + 3.5);
     } else {
       ctx.fillStyle = withAlpha("#e7ebff", 0.7 + 0.3 * emph);
       ctx.shadowColor = "#04050c";
@@ -275,9 +293,9 @@ export function drawScene(o: RenderOptions): void {
   }
 }
 
-export function projectNode(node: { x: number; y: number }, width: number, height: number, camera: Camera) {
+export function projectNode(node: { dx: number; dy: number }, width: number, height: number, camera: Camera) {
   return {
-    x: width / 2 + camera.panX + node.x * camera.zoom,
-    y: height / 2 + camera.panY + node.y * camera.zoom,
+    x: width / 2 + camera.panX + node.dx * camera.zoom,
+    y: height / 2 + camera.panY + node.dy * camera.zoom,
   };
 }

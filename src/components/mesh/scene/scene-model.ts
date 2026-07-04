@@ -58,6 +58,11 @@ export interface SceneNode {
   y: number;
   angle: number;
   depth: number;
+  // Animated display position (spring-driven, updated every frame)
+  dx: number;
+  dy: number;
+  vx: number;
+  vy: number;
 }
 
 export interface SceneModel {
@@ -109,8 +114,8 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
   const nodes = new Map<string, SceneNode>();
   const branchOrder: string[] = [];
 
-  const add = (node: Omit<SceneNode, "x" | "y" | "angle" | "depth">) => {
-    const full: SceneNode = { ...node, x: 0, y: 0, angle: 0, depth: 0 };
+  const add = (node: Omit<SceneNode, "x" | "y" | "angle" | "depth" | "dx" | "dy" | "vx" | "vy">) => {
+    const full: SceneNode = { ...node, x: 0, y: 0, angle: 0, depth: 0, dx: 0, dy: 0, vx: 0, vy: 0 };
     nodes.set(full.id, full);
     if (full.parentId) {
       const parent = nodes.get(full.parentId);
