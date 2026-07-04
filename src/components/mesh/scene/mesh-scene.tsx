@@ -88,7 +88,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   }>({ active: false, moved: false, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0 });
   const flingRef = useRef({ vx: 0, vy: 0 });
   const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
-  const panTargetRef = useRef<{ x: number; y: number } | null>(null);
+  const panTargetRef = useRef<{ nodeId: string } | null>(null);
   const lastTapRef = useRef<{ id: string; time: number } | null>(null);
   const physicsRef = useRef<PhysicsState>(createPhysicsState());
   const lastFrameRef = useRef(0);
@@ -273,14 +273,22 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           fling.vy *= decay;
         }
 
-        // Glide the camera toward a fly-to target (search / node activation).
+        // Glide the camera toward a fly-to node, tracking its live position so
+        // branch expansion, drift, and zoom changes are all accounted for.
         const pt = panTargetRef.current;
         if (pt) {
-          const cam = cameraRef.current;
-          const k = Math.min(1, dt / 220);
-          cam.panX += (pt.x - cam.panX) * k;
-          cam.panY += (pt.y - cam.panY) * k;
-          if (Math.hypot(pt.x - cam.panX, pt.y - cam.panY) < 1.5) panTargetRef.current = null;
+          const target = model.nodes.get(pt.nodeId);
+          if (!target) {
+            panTargetRef.current = null;
+          } else {
+            const cam = cameraRef.current;
+            const tx = -target.dx * cam.zoom;
+            const ty = -target.dy * cam.zoom;
+            const k = Math.min(1, dt / 220);
+            cam.panX += (tx - cam.panX) * k;
+            cam.panY += (ty - cam.panY) * k;
+            if (Math.hypot(tx - cam.panX, ty - cam.panY) < 1.5) panTargetRef.current = null;
+          }
         }
 
         // Smooth zoom: ease toward the wheel / button target around its anchor.
@@ -345,8 +353,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
   // --- Interaction ---
   const flyToNode = useCallback((node: SceneNode) => {
-    const zoom = cameraRef.current.zoom;
-    panTargetRef.current = { x: -node.dx * zoom, y: -node.dy * zoom };
+    panTargetRef.current = { nodeId: node.id };
   }, []);
 
   const activateNode = useCallback(
@@ -417,6 +424,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     d.vx = 0;
     d.vy = 0;
     flingRef.current = { vx: 0, vy: 0 };
+    panTargetRef.current = null;
     if (pointersRef.current.size === 2) {
       const pts = [...pointersRef.current.values()];
       d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
