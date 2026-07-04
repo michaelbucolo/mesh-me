@@ -89,7 +89,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const flingRef = useRef({ vx: 0, vy: 0 });
   const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
   const panTargetRef = useRef<{ nodeId: string } | null>(null);
-  const lastTapRef = useRef<{ id: string; time: number } | null>(null);
   const physicsRef = useRef<PhysicsState>(createPhysicsState());
   const lastFrameRef = useRef(0);
 
@@ -515,23 +514,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         const rect = containerRef.current!.getBoundingClientRect();
         const node = hitTest(e.clientX - rect.left, e.clientY - rect.top);
         if (node) {
-          // Double-tap a person to step straight into their mesh.
-          const now = performance.now();
-          const last = lastTapRef.current;
-          lastTapRef.current = { id: node.id, time: now };
-          if (node.kind === "person" && node.userId && last?.id === node.id && now - last.time < 350) {
-            enterFriendMesh(node);
-            return;
-          }
           activateNode(node);
         } else {
-          lastTapRef.current = null;
           setSelectedNode(null);
           setActiveBranch(null);
         }
       }
     },
-    [activateNode, hitTest, enterFriendMesh],
+    [activateNode, hitTest],
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -803,7 +793,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 </div>
               )}
               <p className="mt-1 text-[9px] uppercase tracking-wide text-white/40">
-                {hoverNode.kind === "person" ? "Click to visit their mesh" : hoverNode.kind === "post" ? "Click to open in the Flow" : "Click to open"}
+                {hoverNode.kind === "person"
+                  ? "Click to visit their mesh"
+                  : hoverNode.kind === "post" && hoverNode.href?.startsWith("/feed/")
+                    ? "Click to open in the Flow"
+                    : "Click to open"}
               </p>
             </div>
           )}
