@@ -181,6 +181,12 @@ export function FeedTimelineClient({
     [activeFeedItemId, posts],
   );
   const isComposing = searchParams.get("compose") === "true";
+  const flowPostId = searchParams.get("flow");
+  useEffect(() => {
+    if (!flowPostId) return;
+    setActiveFeedItemId(flowPostId);
+    setReelsOpen(true);
+  }, [flowPostId]);
   const activePresencePostId = getFeedPresenceKey(activePost);
   const activeModeConfig = adaptiveModes.find((mode) => mode.id === adaptiveMode) || adaptiveModes[0];
   const ActiveModeIcon = activeModeConfig.icon;
