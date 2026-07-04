@@ -187,9 +187,13 @@ export function FeedTimelineClient({
       setReelsOpen(false);
       return;
     }
-    setActiveFeedItemId(flowPostId);
-    setReelsOpen(true);
-  }, [flowPostId]);
+    if (posts.some((post) => post.id === flowPostId)) {
+      setActiveFeedItemId(flowPostId);
+      setReelsOpen(true);
+    } else {
+      setReelsOpen(false);
+    }
+  }, [flowPostId, posts]);
   const activePresencePostId = getFeedPresenceKey(activePost);
   const activeModeConfig = adaptiveModes.find((mode) => mode.id === adaptiveMode) || adaptiveModes[0];
   const ActiveModeIcon = activeModeConfig.icon;
