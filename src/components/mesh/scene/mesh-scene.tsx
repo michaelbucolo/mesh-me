@@ -356,12 +356,27 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     panTargetRef.current = { nodeId: node.id };
   }, []);
 
+  const enterFriendMesh = useCallback(
+    (node: SceneNode) => {
+      if (node.userId) router.push(`/mesh?user=${encodeURIComponent(node.userId)}`);
+    },
+    [router],
+  );
+
   const activateNode = useCallback(
     (node: SceneNode) => {
       if (node.kind === "self") {
         setActiveBranch(null);
         setSelectedNode(null);
         fitToContent();
+        return;
+      }
+      if (node.kind === "person" && node.userId) {
+        enterFriendMesh(node);
+        return;
+      }
+      if (node.kind === "post" && node.href?.startsWith("/feed/")) {
+        router.push(`/feed?flow=${encodeURIComponent(node.href.slice("/feed/".length))}`);
         return;
       }
       if (node.kind === "branch") {
@@ -377,14 +392,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       setSelectedNode(node);
       flyToNode(node);
     },
-    [fitToContent, flyToNode],
-  );
-
-  const enterFriendMesh = useCallback(
-    (node: SceneNode) => {
-      if (node.userId) router.push(`/mesh?user=${encodeURIComponent(node.userId)}`);
-    },
-    [router],
+    [fitToContent, flyToNode, enterFriendMesh, router],
   );
 
   const hitTest = useCallback((sx: number, sy: number): SceneNode | null => {
@@ -775,9 +783,28 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             prop="compass"
           />
           {hoverNode && hoverNode.kind !== "self" && (
-            <div className="absolute left-1/2 top-full mt-1 w-max max-w-[14rem] -translate-x-1/2 rounded-lg border border-white/12 bg-black/75 px-2.5 py-1.5 text-center backdrop-blur">
+            <div className="absolute left-1/2 top-full mt-1 w-max max-w-[16rem] -translate-x-1/2 rounded-lg border border-white/12 bg-black/75 px-2.5 py-1.5 text-center backdrop-blur">
               <p className="truncate text-[11px] font-semibold text-white">{hoverNode.label}</p>
               {hoverNode.sublabel && <p className="truncate text-[10px] text-white/60">{hoverNode.sublabel}</p>}
+              {hoverNode.content && hoverNode.content !== hoverNode.label && (
+                <p className="mt-1 line-clamp-2 text-left text-[10px] leading-snug text-white/75">{hoverNode.content}</p>
+              )}
+              {hoverNode.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={hoverNode.imageUrl} alt="" className="mt-1 h-16 w-full rounded object-cover" />
+              )}
+              {hoverNode.meta && hoverNode.meta.length > 0 && (
+                <div className="mt-1 flex flex-wrap justify-center gap-x-2.5 gap-y-0.5">
+                  {hoverNode.meta.map((m) => (
+                    <span key={m.label} className="text-[10px] text-white/60">
+                      <span className="font-semibold text-white/85">{m.value}</span> {m.label.toLowerCase()}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mt-1 text-[9px] uppercase tracking-wide text-white/40">
+                {hoverNode.kind === "person" ? "Click to visit their mesh" : hoverNode.kind === "post" ? "Click to open in the Flow" : "Click to open"}
+              </p>
             </div>
           )}
         </div>
