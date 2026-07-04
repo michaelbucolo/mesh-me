@@ -260,9 +260,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // Inertial pan: carry the fling velocity after release, with decay.
         const fling = flingRef.current;
         if (!dragRef.current.active && (Math.abs(fling.vx) > 4 || Math.abs(fling.vy) > 4)) {
-          cameraRef.current.panX += (fling.vx * dt) / 1000;
-          cameraRef.current.panY += (fling.vy * dt) / 1000;
-          const decay = Math.exp(-dt / 320);
+          const flingDt = Math.min(dt, 50);
+          cameraRef.current.panX += (fling.vx * flingDt) / 1000;
+          cameraRef.current.panY += (fling.vy * flingDt) / 1000;
+          const decay = Math.exp(-flingDt / 320);
           fling.vx *= decay;
           fling.vy *= decay;
         }
