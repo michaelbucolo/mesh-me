@@ -677,14 +677,6 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                         <Link href={`/communities/${space.slug}`} className="mesh-action mesh-action-primary px-3 text-sm">
                           Open
                         </Link>
-                        <Link href={`/messages?roomTitle=${encodeURIComponent(space.name)}&callMode=voice`} className="mesh-action mesh-action-secondary px-3 text-sm">
-                          <Mic size={14} aria-hidden="true" />
-                          Voice
-                        </Link>
-                        <Link href={`/messages?roomTitle=${encodeURIComponent(space.name)}&callMode=video`} className="mesh-action mesh-action-secondary px-3 text-sm">
-                          <Video size={14} aria-hidden="true" />
-                          Video
-                        </Link>
                       </div>
                     </article>
                   ))}
