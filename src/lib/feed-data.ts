@@ -324,13 +324,25 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
     };
   }
 
+  const [following, communityMemberships, followers] = await Promise.all([
+    prisma.follow.findMany({ where: { followerId: user.id }, select: { followingId: true } }),
+    prisma.communityMember.findMany({ where: { userId: user.id }, select: { communityId: true } }),
+    prisma.follow.findMany({ where: { followingId: user.id }, select: { followerId: true } }),
+  ]);
+  const followingIds = following.map((follow) => follow.followingId);
+  const followerIds = new Set(followers.map((follow) => follow.followerId));
+  const friendIds = followingIds.filter((followingId) => followerIds.has(followingId));
+  const communityIds = communityMemberships.map((membership) => membership.communityId);
+
   const post = await prisma.post.findFirst({
     where: {
       id,
       ...nsfwHiddenWhere(user),
       OR: [
         { authorId: user.id },
+        { communityId: { in: communityIds } },
         { visibility: "public" },
+        { visibility: "friends", authorId: { in: friendIds } },
       ],
     },
     include: {
