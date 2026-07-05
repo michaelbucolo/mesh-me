@@ -535,6 +535,106 @@ async function main() {
   });
 
   console.log("Created notifications");
+
+  // Connected accounts with merged for-you feed items for the demo user
+  const demoReddit = await prisma.connectedAccount.create({
+    data: {
+      userId: demo.id,
+      platform: "reddit",
+      platformUsername: "demouser",
+      isActive: true,
+      lastSyncAt: new Date(),
+    },
+  });
+  const demoYoutube = await prisma.connectedAccount.create({
+    data: {
+      userId: demo.id,
+      platform: "youtube",
+      platformUsername: "Demo User",
+      isActive: true,
+      lastSyncAt: new Date(),
+    },
+  });
+
+  const hoursAgo = (hours: number) => new Date(Date.now() - hours * 60 * 60 * 1000);
+  await prisma.platformFeedItem.createMany({
+    data: [
+      {
+        connectedAccountId: demoReddit.id,
+        platformItemId: "t3_demo1",
+        authorName: "space_enthusiast",
+        authorUsername: "space_enthusiast",
+        authorUrl: "https://www.reddit.com/user/space_enthusiast",
+        title: "James Webb captures the clearest image yet of a planet forming around a young star",
+        content: "The disk structure is incredibly detailed — you can see the gaps where planets are sweeping up material.",
+        url: "https://www.reddit.com/r/space/comments/demo1",
+        postType: "post",
+        likeCount: 48211,
+        commentCount: 1932,
+        publishedAt: hoursAgo(3),
+        rawMetadata: JSON.stringify({ subreddit: "space" }),
+      },
+      {
+        connectedAccountId: demoReddit.id,
+        platformItemId: "t3_demo2",
+        authorName: "chef_marco",
+        authorUsername: "chef_marco",
+        authorUrl: "https://www.reddit.com/user/chef_marco",
+        title: "I spent 3 years perfecting my grandmother's focaccia recipe. Here's the result.",
+        url: "https://www.reddit.com/r/food/comments/demo2",
+        postType: "image",
+        likeCount: 12904,
+        commentCount: 486,
+        publishedAt: hoursAgo(7),
+        rawMetadata: JSON.stringify({ subreddit: "food" }),
+      },
+      {
+        connectedAccountId: demoReddit.id,
+        platformItemId: "t3_demo3",
+        authorName: "dev_diaries",
+        authorUsername: "dev_diaries",
+        authorUrl: "https://www.reddit.com/user/dev_diaries",
+        title: "TIL the first computer bug was an actual moth taped into a logbook in 1947",
+        url: "https://www.reddit.com/r/todayilearned/comments/demo3",
+        postType: "link",
+        likeCount: 30177,
+        commentCount: 812,
+        publishedAt: hoursAgo(12),
+        rawMetadata: JSON.stringify({ subreddit: "todayilearned" }),
+      },
+      {
+        connectedAccountId: demoYoutube.id,
+        platformItemId: "yt_demo1",
+        authorName: "Veritasium",
+        authorUsername: "Veritasium",
+        authorUrl: "https://youtube.com/@veritasium",
+        title: "The Surprising Physics of Falling Cats",
+        content: "How do cats always land on their feet? The answer involves some remarkable rotational mechanics.",
+        url: "https://youtube.com/watch?v=demo1",
+        postType: "video",
+        likeCount: 402118,
+        commentCount: 18443,
+        publishedAt: hoursAgo(5),
+        rawMetadata: JSON.stringify({ channelTitle: "Veritasium" }),
+      },
+      {
+        connectedAccountId: demoYoutube.id,
+        platformItemId: "yt_demo2",
+        authorName: "Marques Brownlee",
+        authorUsername: "MKBHD",
+        authorUrl: "https://youtube.com/@mkbhd",
+        title: "The Fastest Phone of the Year — Full Review",
+        url: "https://youtube.com/watch?v=demo2",
+        postType: "video",
+        likeCount: 289054,
+        commentCount: 9210,
+        publishedAt: hoursAgo(9),
+        rawMetadata: JSON.stringify({ channelTitle: "Marques Brownlee" }),
+      },
+    ],
+  });
+
+  console.log("Created connected accounts and merged feed items");
   console.log("\nSeeding complete!");
   console.log("\nDemo accounts (password: password123):");
   console.log("  Admin: alex@mesh.me / alexcreates");

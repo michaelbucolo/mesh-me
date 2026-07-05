@@ -49,6 +49,7 @@ interface PostCardProps {
     externalUrl?: string | null;
     platformPostId?: string;
     crossPostedTo?: string[]; // Platforms this was cross-posted to
+    externalAuthor?: { name: string; username?: string | null; avatarUrl?: string | null; profileUrl?: string | null };
     optimistic?: boolean;
     isNsfw?: boolean;
     contentRating?: string;
@@ -174,12 +175,19 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const platformLabel = originPlatform && PLATFORM_BADGE[originPlatform]?.label;
   const platformBadge = originPlatform ? PLATFORM_BADGE[originPlatform] : null;
   const isOptimistic = Boolean(post.optimistic);
+  const externalAuthor = post.externalAuthor;
+  const isExternalFeedItem = Boolean(externalAuthor);
   const postHref = isOptimistic ? "/feed" : post.externalUrl || `/feed/${post.id}`;
   const mediaTypes = getMediaTypes(post.media);
   const mediaSignals = detectMediaSignals(post);
   const visualMedia = post.media.filter((item) => isVisualMedia(item.type));
   const linkMedia = post.media.filter((item) => !isVisualMedia(item.type));
-  const meChatShareHref = post.sourceId && requiresSourceAccount
+  const meChatShareHref = isExternalFeedItem
+    ? `/messages?${new URLSearchParams({
+        ...(post.externalUrl ? { shareUrl: post.externalUrl } : {}),
+        sourcePlatform: originPlatform || "platform",
+      }).toString()}`
+    : post.sourceId && requiresSourceAccount
     ? `/messages?sharePlatformPostId=${encodeURIComponent(post.sourceId)}&sourcePlatform=${encodeURIComponent(originPlatform || "platform")}${post.externalUrl ? `&shareUrl=${encodeURIComponent(post.externalUrl)}` : ""}`
     : `/messages?sharePostId=${encodeURIComponent(post.id)}`;
 
@@ -204,6 +212,10 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
 
   const requireSourceAccount = (action: string) => {
     setPlatformActionMessage("");
+    if (isExternalFeedItem) {
+      setPlatformActionMessage(`Open this post on ${platformLabel || "its platform"} to ${action} it.`);
+      return false;
+    }
     if (!requiresSourceAccount || hasSourceAccount) return true;
     redirectToSourceConnection(action);
     return false;
@@ -322,7 +334,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     setShowShareMenu(false);
   };
 
-  const isOwner = currentUserId === post.author.id && !requiresSourceAccount;
+  const isOwner = currentUserId === post.author.id && !requiresSourceAccount && !isExternalFeedItem;
 
   if (deleted) return null;
 
@@ -356,14 +368,32 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
 
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href={`/profile/${post.author.username}`}>
+            {isExternalFeedItem && externalAuthor?.profileUrl ? (
+              <a href={externalAuthor.profileUrl} target="_blank" rel="noopener noreferrer">
+                <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
+              </a>
+            ) : isExternalFeedItem ? (
               <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
-            </Link>
+            ) : (
+              <Link href={`/profile/${post.author.username}`}>
+                <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
+              </Link>
+            )}
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1.5">
-                <Link href={`/profile/${post.author.username}`} className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
-                  {post.author.displayName}
-                </Link>
+                {isExternalFeedItem && externalAuthor?.profileUrl ? (
+                  <a href={externalAuthor.profileUrl} target="_blank" rel="noopener noreferrer" className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
+                    {post.author.displayName}
+                  </a>
+                ) : isExternalFeedItem ? (
+                  <span className="truncate text-[0.9rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                    {post.author.displayName}
+                  </span>
+                ) : (
+                  <Link href={`/profile/${post.author.username}`} className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
+                    {post.author.displayName}
+                  </Link>
+                )}
                 {post.author.isVerified && (
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent)" }}>
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -371,9 +401,17 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 )}
               </div>
               <div className="flex items-center gap-1 text-[0.8rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
-                <Link href={`/profile/${post.author.username}`} className="hover:underline">
-                  @{post.author.username}
-                </Link>
+                {isExternalFeedItem && externalAuthor?.profileUrl ? (
+                  <a href={externalAuthor.profileUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    @{post.author.username}
+                  </a>
+                ) : isExternalFeedItem ? (
+                  <span>@{post.author.username}</span>
+                ) : (
+                  <Link href={`/profile/${post.author.username}`} className="hover:underline">
+                    @{post.author.username}
+                  </Link>
+                )}
                 <span className="px-0.5">&middot;</span>
                 <span>{formatRelativeTime(post.createdAt)}</span>
                 {/* Platform origin badge — non-invasive */}
@@ -426,7 +464,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                     </span>
                   </>
                 )}
-                {!requiresSourceAccount && (
+                {!requiresSourceAccount && !isExternalFeedItem && (
                   <>
                     <span>&middot;</span>
                     <span className="inline-flex items-center gap-1">
