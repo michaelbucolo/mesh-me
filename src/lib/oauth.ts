@@ -32,10 +32,13 @@ function normalizeBaseUrl(url: string): string {
   return url.replace(/\/$/, "");
 }
 
+export const PRODUCTION_APP_URL = "https://www.meshs.me";
+
 export function getBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_APP_URL) return normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
-  if (process.env.VERCEL_URL) return normalizeBaseUrl(`https://${process.env.VERCEL_URL}`);
   if (process.env.NEXTAUTH_URL) return normalizeBaseUrl(process.env.NEXTAUTH_URL);
+  if (process.env.VERCEL_ENV === "production") return PRODUCTION_APP_URL;
+  if (process.env.VERCEL_URL) return normalizeBaseUrl(`https://${process.env.VERCEL_URL}`);
   return "http://localhost:3000";
 }
 
