@@ -1271,6 +1271,7 @@ export async function getAdvancedSocialDashboard() {
                 username: true,
                 displayName: true,
                 avatarUrl: true,
+                isVerified: true,
               },
             },
           },
