@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { PRODUCTION_APP_URL } from "./oauth";
 
 export const MESH_PRO_PLANS = {
   monthly: {
@@ -52,6 +53,7 @@ export function getAppBaseUrl(req?: Request) {
   const configuredUrl =
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     process.env.NEXTAUTH_URL?.trim() ||
+    (process.env.VERCEL_ENV === "production" ? PRODUCTION_APP_URL : undefined) ||
     process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
     process.env.VERCEL_URL?.trim();
 
@@ -68,7 +70,7 @@ export function getAppBaseUrl(req?: Request) {
     }
   }
 
-  return "https://meshme.vercel.app";
+  return PRODUCTION_APP_URL;
 }
 
 export function stripeObjectId(value: string | { id: string } | null | undefined) {
