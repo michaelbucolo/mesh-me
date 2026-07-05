@@ -43,6 +43,24 @@ interface PlatformCommentData {
   publishedAt?: Date;
 }
 
+interface PlatformFeedItemData {
+  platformItemId: string;
+  authorName?: string;
+  authorUsername?: string;
+  authorAvatarUrl?: string;
+  authorUrl?: string;
+  title?: string;
+  content?: string;
+  url?: string;
+  thumbnailUrl?: string;
+  mediaUrl?: string;
+  postType: string;
+  likeCount: number;
+  commentCount: number;
+  publishedAt?: Date;
+  rawMetadata?: string;
+}
+
 interface PlatformFollowerData {
   platformUserId: string;
   username?: string;
@@ -93,6 +111,10 @@ interface PlatformAdapter {
   fetchFollowers(accessToken: string, cursor?: string): Promise<{ followers: PlatformFollowerData[]; nextCursor?: string }>;
   fetchMedia(accessToken: string, cursor?: string): Promise<{ media: PlatformMediaData[]; nextCursor?: string }>;
   fetchAnalytics(accessToken: string): Promise<PlatformAnalyticsData>;
+  // Personalized home / for-you feed (content authored by others).
+  // Optional: only platforms whose official API exposes a personalized
+  // or trending listing implement this.
+  fetchForYouFeed?(accessToken: string): Promise<{ items: PlatformFeedItemData[] }>;
   createPost(accessToken: string, content: string, media?: string[]): Promise<PlatformPostData | null>;
   deletePost(accessToken: string, postId: string): Promise<boolean>;
   createComment(accessToken: string, postId: string, content: string): Promise<PlatformCommentData | null>;
@@ -278,6 +300,55 @@ const githubAdapter: PlatformAdapter = {
     } catch { return { followers: [] }; }
   },
   async fetchMedia() { return { media: [] }; },
+  async fetchForYouFeed(accessToken) {
+    try {
+      const userRes = await fetch("https://api.github.com/user", { headers: githubHeaders(accessToken) });
+      if (!userRes.ok) return { items: [] };
+      const login = (await userRes.json().catch(() => ({})))?.login;
+      if (!login) return { items: [] };
+      const res = await fetch(`https://api.github.com/users/${encodeURIComponent(login)}/received_events?per_page=60`, {
+        headers: githubHeaders(accessToken),
+      });
+      if (!res.ok) return { items: [] };
+      const events = await res.json().catch(() => []);
+      if (!Array.isArray(events)) return { items: [] };
+      const items: PlatformFeedItemData[] = events
+        .filter((event: Record<string, unknown>) => Boolean(event?.id && event?.repo))
+        .map((event: Record<string, unknown>) => {
+          const actor = event.actor as Record<string, unknown> | undefined;
+          const repo = event.repo as Record<string, unknown> | undefined;
+          const payload = event.payload as Record<string, unknown> | undefined;
+          const repoName = (repo?.name as string) || "";
+          const type = (event.type as string) || "Event";
+          const summaries: Record<string, string> = {
+            WatchEvent: `starred ${repoName}`,
+            ForkEvent: `forked ${repoName}`,
+            CreateEvent: `created ${(payload?.ref_type as string) || "repository"} in ${repoName}`,
+            PushEvent: `pushed to ${repoName}`,
+            ReleaseEvent: `published a release in ${repoName}`,
+            PublicEvent: `open sourced ${repoName}`,
+            IssuesEvent: `${(payload?.action as string) || "updated"} an issue in ${repoName}`,
+            PullRequestEvent: `${(payload?.action as string) || "updated"} a pull request in ${repoName}`,
+          };
+          return {
+            platformItemId: String(event.id),
+            authorName: (actor?.display_login as string) || (actor?.login as string),
+            authorUsername: actor?.login as string,
+            authorAvatarUrl: actor?.avatar_url as string,
+            authorUrl: actor?.login ? `https://github.com/${actor.login}` : undefined,
+            title: repoName,
+            content: summaries[type] || `${type.replace(/Event$/, "")} in ${repoName}`,
+            url: repoName ? `https://github.com/${repoName}` : undefined,
+            postType: "activity",
+            likeCount: 0,
+            commentCount: 0,
+            publishedAt: dateFromString(event.created_at),
+            rawMetadata: JSON.stringify({ type, repo: repoName }),
+          };
+        });
+      return { items };
+    } catch { return { items: [] }; }
+  },
   async fetchAnalytics(accessToken) {
     try {
       const res = await fetch("https://api.github.com/user", {
@@ -432,6 +503,38 @@ const youtubeAdapter: PlatformAdapter = {
     } catch { return { followers: [] }; }
   },
   async fetchMedia() { return { media: [] }; },
+  async fetchForYouFeed(accessToken) {
+    try {
+      const res = await fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=30", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) return { items: [] };
+      const data = await res.json().catch(() => ({}));
+      const items: PlatformFeedItemData[] = (data.items || [])
+        .filter((item: Record<string, unknown>) => Boolean(item?.id))
+        .map((item: Record<string, unknown>) => {
+          const snippet = item.snippet as Record<string, unknown> | undefined;
+          const stats = (item.statistics as Record<string, unknown>) || {};
+          const channelId = snippet?.channelId as string | undefined;
+          return {
+            platformItemId: item.id as string,
+            authorName: snippet?.channelTitle as string,
+            authorUsername: snippet?.channelTitle as string,
+            authorUrl: channelId ? `https://youtube.com/channel/${channelId}` : undefined,
+            title: (snippet?.title as string) || "",
+            content: (snippet?.description as string) || "",
+            url: `https://youtube.com/watch?v=${item.id}`,
+            thumbnailUrl: ((snippet?.thumbnails as Record<string, unknown>)?.high as Record<string, unknown>)?.url as string,
+            postType: "video",
+            likeCount: toInt(stats.likeCount),
+            commentCount: toInt(stats.commentCount),
+            publishedAt: dateFromString(snippet?.publishedAt),
+            rawMetadata: JSON.stringify({ channelTitle: snippet?.channelTitle, viewCount: stats.viewCount }),
+          };
+        });
+      return { items };
+    } catch { return { items: [] }; }
+  },
   async fetchAnalytics(accessToken) {
     try {
       const res = await fetch("https://www.googleapis.com/youtube/v3/channels?part=statistics&mine=true", {
@@ -968,6 +1071,41 @@ const redditAdapter: PlatformAdapter = {
   },
   async fetchFollowers() { return { followers: [] }; },
   async fetchMedia() { return { media: [] }; },
+  async fetchForYouFeed(accessToken) {
+    try {
+      const currentUser = await fetchRedditCurrentUser(accessToken);
+      const listing = await fetchRedditJson<RedditListing>(accessToken, "/best?limit=40&raw_json=1");
+      const items: PlatformFeedItemData[] = (listing?.data?.children || [])
+        .map((child) => child.data)
+        .filter((post): post is Record<string, unknown> => Boolean(post?.id))
+        .filter((post) => !currentUser?.name || post.author !== currentUser.name)
+        .map((post) => {
+          const fullname = typeof post.name === "string" ? post.name : `t3_${post.id}`;
+          const author = typeof post.author === "string" ? post.author : undefined;
+          return {
+            platformItemId: fullname,
+            authorName: author,
+            authorUsername: author,
+            authorUrl: author ? `https://www.reddit.com/user/${author}` : undefined,
+            title: (post.title as string) || "",
+            content: (post.selftext as string) || "",
+            url: redditPermalink(post.permalink) || (typeof post.url === "string" ? post.url : undefined),
+            thumbnailUrl: redditThumbnail(post),
+            postType: redditPostType(post),
+            likeCount: toInt(post.score),
+            commentCount: toInt(post.num_comments),
+            publishedAt: dateFromUnixSeconds(post.created_utc),
+            rawMetadata: JSON.stringify({
+              subreddit: post.subreddit,
+              domain: post.domain,
+              over18: post.over_18,
+              spoiler: post.spoiler,
+            }),
+          };
+        });
+      return { items };
+    } catch { return { items: [] }; }
+  },
   async fetchAnalytics(accessToken) {
     try {
       const currentUser = await fetchRedditCurrentUser(accessToken);
@@ -1306,6 +1444,40 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
           data: { itemsSynced, progress: Math.min(90, page * 30) },
         });
       } while (cursor && page < 10);
+    }
+
+    // Sync the platform's personalized home / for-you feed
+    if ((syncType === "full" || syncType === "posts") && adapter.fetchForYouFeed) {
+      const feed = await adapter.fetchForYouFeed(accessToken);
+      for (const item of feed.items) {
+        const safety = classifyContentSafety(item.title, item.content, item.rawMetadata);
+        await prisma.platformFeedItem.upsert({
+          where: {
+            connectedAccountId_platformItemId: {
+              connectedAccountId: account.id,
+              platformItemId: item.platformItemId,
+            },
+          },
+          create: { connectedAccountId: account.id, ...item, ...safety, fetchedAt: new Date() },
+          update: {
+            title: item.title,
+            content: item.content,
+            url: item.url,
+            thumbnailUrl: item.thumbnailUrl,
+            mediaUrl: item.mediaUrl,
+            authorName: item.authorName,
+            authorUsername: item.authorUsername,
+            authorAvatarUrl: item.authorAvatarUrl,
+            authorUrl: item.authorUrl,
+            likeCount: item.likeCount,
+            commentCount: item.commentCount,
+            rawMetadata: item.rawMetadata,
+            fetchedAt: new Date(),
+            ...safety,
+          },
+        });
+        itemsSynced++;
+      }
     }
 
     // Sync recent comments for providers that expose a read comment API.
