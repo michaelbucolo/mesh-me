@@ -342,7 +342,28 @@ select:focus-visible {
 }
 
 .mesh-nav-item {
-  transition: background-color 150ms ease, color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 260ms cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mesh-nav-item:hover {
+    transform: translateX(3px);
+  }
+
+  .mesh-nav-item:hover svg {
+    transform: scale(1.08);
+  }
+}
+
+.mesh-nav-item svg {
+  transition: transform 260ms cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
+.mesh-nav-item:active {
+  transform: translateX(1px) scale(0.985);
 }
 
 .mesh-nav-item-active {
@@ -359,6 +380,15 @@ select:focus-visible {
   height: 60%;
   border-radius: 0 4px 4px 0;
   background: var(--mesh-blue);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--mesh-blue) 65%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-nav-item,
+  .mesh-nav-item svg {
+    transition: none;
+    transform: none !important;
+  }
 }
 
 .mesh-privacy-card {
@@ -2224,6 +2254,18 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 .mesh-field-public {
   opacity: 0.3;
+}
+
+.mesh-field-app {
+  z-index: 0;
+  opacity: 0.2;
+  mask-image:
+    radial-gradient(circle at 62% 40%, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.3) 52%, rgba(0, 0, 0, 0.78) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.55));
+}
+
+.light .mesh-field-app {
+  opacity: 0.12;
 }
 
 .mesh-background-placeholder {
@@ -6164,21 +6206,43 @@ body,
 }
 
 .animate-page-enter {
-  animation: familiarPageEnter 160ms ease-out both !important;
+  animation: familiarPageEnter 380ms cubic-bezier(0.22, 1.2, 0.36, 1) both !important;
 }
 
 .animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface) {
-  animation: none !important;
+  animation: familiarChildEnter 420ms cubic-bezier(0.22, 1.2, 0.36, 1) both !important;
 }
+
+.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(2) { animation-delay: 40ms !important; }
+.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(3) { animation-delay: 80ms !important; }
+.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(4) { animation-delay: 120ms !important; }
 
 @keyframes familiarPageEnter {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(10px) scale(0.995);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes familiarChildEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter,
+  .animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface) {
+    animation: none !important;
   }
 }
 
