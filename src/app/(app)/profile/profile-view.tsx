@@ -295,7 +295,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     </p>
                   </div>
                   <span className="shrink-0 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
-                    {m.role === "ADMIN" ? "Admin" : m.role === "MODERATOR" ? "Moderator" : "Joined"}
+                    {m.role === "admin" ? "Admin" : m.role === "moderator" ? "Moderator" : "Joined"}
                   </span>
                 </Link>
               ))
@@ -500,6 +500,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         </section>
 
         {/* Collections */}
+        {isOwnProfile && (
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-[var(--mesh-text)]">Collections</h3>
@@ -520,6 +521,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
             )}
           </div>
         </section>
+        )}
 
         {/* Creator Links */}
         {links.length > 0 && (
