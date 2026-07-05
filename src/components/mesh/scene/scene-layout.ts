@@ -49,18 +49,24 @@ export function layoutScene(model: SceneModel): void {
     branch.y = Math.sin(baseAngle) * BRANCH_RADIUS;
 
     const items = branch.childIds.map((id) => nodes.get(id)!).filter(Boolean);
-    const ringCount = Math.max(1, Math.ceil(items.length / ITEMS_PER_RING));
+    // Post cards are much wider than stars, so they get fewer per ring and
+    // more breathing room between rings.
+    const isPostBranch = items.length > 0 && items.every((i) => i.kind === "post");
+    const perRing = isPostBranch ? 3 : ITEMS_PER_RING;
+    const ringStart = isPostBranch ? ITEM_RING_START + 60 : ITEM_RING_START;
+    const ringGap = isPostBranch ? 200 : ITEM_RING_GAP;
+    const ringCount = Math.max(1, Math.ceil(items.length / perRing));
 
     items.forEach((item, itemIndex) => {
-      const ring = Math.floor(itemIndex / ITEMS_PER_RING);
-      const ringRadius = ITEM_RING_START + ring * ITEM_RING_GAP;
+      const ring = Math.floor(itemIndex / perRing);
+      const ringRadius = ringStart + ring * ringGap;
 
       // How many items live on this ring (last ring may be partial).
       const onThisRing =
-        ring === ringCount - 1 && items.length % ITEMS_PER_RING !== 0
-          ? items.length % ITEMS_PER_RING
-          : Math.min(ITEMS_PER_RING, items.length - ring * ITEMS_PER_RING);
-      const posInRing = itemIndex % ITEMS_PER_RING;
+        ring === ringCount - 1 && items.length % perRing !== 0
+          ? items.length % perRing
+          : Math.min(perRing, items.length - ring * perRing);
+      const posInRing = itemIndex % perRing;
 
       const frac = onThisRing <= 1 ? 0.5 : posInRing / (onThisRing - 1);
       // Alternate ring offset so stacked rings interleave instead of aligning.
@@ -77,9 +83,11 @@ export function layoutScene(model: SceneModel): void {
       // outward along the same radial direction.
       const subs = item.childIds.map((id) => nodes.get(id)!).filter(Boolean);
       subs.forEach((sub, subIndex) => {
+        const isCard = sub.kind === "post";
         const subFrac = subs.length <= 1 ? 0 : subIndex / (subs.length - 1) - 0.5;
-        const subAngle = angle + subFrac * 0.42 + jitter(sub.id) * 0.04;
-        const subRadius = ringRadius + SUB_RADIUS_STEP + (subIndex % 2) * 26 + 30;
+        const subAngle = angle + subFrac * (isCard ? 0.8 : 0.42) + jitter(sub.id) * 0.04;
+        const subRadius =
+          ringRadius + SUB_RADIUS_STEP + (subIndex % 2) * (isCard ? 120 : 26) + (isCard ? 90 : 30);
         sub.angle = subAngle;
         sub.depth = 3;
         sub.x = Math.cos(subAngle) * subRadius;
