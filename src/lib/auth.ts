@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
@@ -78,7 +79,7 @@ export async function getSession() {
   return { userId: session.userId, expiresAt: session.expiresAt };
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const session = await getSession();
   if (!session) return null;
 
@@ -89,7 +90,7 @@ export async function getCurrentUser() {
   if (!user || user.isSuspended) return null;
 
   return user;
-}
+});
 
 export async function getCurrentUserRedirectState() {
   const session = await getSession();
