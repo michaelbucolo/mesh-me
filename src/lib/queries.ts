@@ -112,7 +112,7 @@ async function canCurrentUserViewNativePost(post: { authorId: string; visibility
 
 async function searchWikipedia(query: string) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1800);
+  const timeout = setTimeout(() => controller.abort(), 800);
 
   try {
     const params = new URLSearchParams({
@@ -738,55 +738,60 @@ export async function getMessageThreads() {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  const threads = await prisma.messageThread.findMany({
-    where: { members: { some: { userId: user.id } } },
-    include: {
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatarUrl: true,
+  const [threads, unreadCounts] = await Promise.all([
+    prisma.messageThread.findMany({
+      where: { members: { some: { userId: user.id } } },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
             },
           },
         },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.$queryRaw<Array<{ threadId: string; unreadCount: bigint | number }>>`
+      SELECT
+        tm.threadId AS threadId,
+        COUNT(m.id) AS unreadCount
+      FROM ThreadMember tm
+      LEFT JOIN Message m
+        ON m.threadId = tm.threadId
+       AND m.senderId != ${user.id}
+       AND m.createdAt > tm.lastRead
+      WHERE tm.userId = ${user.id}
+      GROUP BY tm.threadId
+    `,
+  ]);
 
-  return Promise.all(threads.map(async (thread) => {
-    const currentMembership = thread.members.find((member) => member.userId === user.id);
-    const unreadCount = await prisma.message.count({
-      where: {
-        threadId: thread.id,
-        senderId: { not: user.id },
-        createdAt: { gt: currentMembership?.lastRead || new Date(0) },
-      },
-    });
+  const unreadCountByThread = new Map(unreadCounts.map((row) => [row.threadId, Number(row.unreadCount)]));
 
-    return {
-      ...thread,
-      otherUsers: thread.members.filter((m) => m.userId !== user.id).map((m) => m.user),
-      otherUser: thread.members.find((m) => m.userId !== user.id)?.user,
-      memberCount: thread.members.length,
-      displayTitle:
-        thread.title ||
-        (thread.members.filter((m) => m.userId !== user.id).length > 1
-          ? thread.members
-              .filter((m) => m.userId !== user.id)
-              .map((m) => m.user.displayName)
-              .join(", ")
-          : thread.members.find((m) => m.userId !== user.id)?.user.displayName || "Conversation"),
-      lastMessage: thread.messages[0] || null,
-      unreadCount,
-    };
+  return threads.map((thread) => ({
+    ...thread,
+    otherUsers: thread.members.filter((m) => m.userId !== user.id).map((m) => m.user),
+    otherUser: thread.members.find((m) => m.userId !== user.id)?.user,
+    memberCount: thread.members.length,
+    displayTitle:
+      thread.title ||
+      (thread.members.filter((m) => m.userId !== user.id).length > 1
+        ? thread.members
+            .filter((m) => m.userId !== user.id)
+            .map((m) => m.user.displayName)
+            .join(", ")
+        : thread.members.find((m) => m.userId !== user.id)?.user.displayName || "Conversation"),
+    lastMessage: thread.messages[0] || null,
+    unreadCount: unreadCountByThread.get(thread.id) || 0,
   }));
 }
 
@@ -865,8 +870,9 @@ export async function searchAll(query: string) {
   if (!query?.trim()) return { users: [], posts: [], communities: [], platformPosts: [], platformPeople: [], messages: [], wikipedia: [], sourceIndex: [] };
 
   const q = query.trim();
+  const wikipediaPromise = searchWikipedia(q);
 
-  const [users, posts, communities, platformPosts, platformPeople, connectedSocialSources, messages, wikipedia] = await Promise.all([
+  const [users, posts, communities, platformPosts, platformPeople, connectedSocialSources, messages] = await Promise.all([
     prisma.user.findMany({
       where: {
         OR: [
@@ -1038,7 +1044,13 @@ export async function searchAll(query: string) {
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
-    searchWikipedia(q),
+  ]);
+
+  const wikipedia = await Promise.race([
+    wikipediaPromise.catch(() => []),
+    new Promise<Array<{ id: string; title: string; extract: string; url: string; thumbnailUrl: string | null; source: string }>>((resolve) => {
+      setTimeout(() => resolve([]), 850);
+    }),
   ]);
 
   const sourceIndex = SOCIAL_SEARCH_SOURCES.map((source) => {
