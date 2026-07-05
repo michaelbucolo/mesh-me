@@ -1485,6 +1485,11 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
         });
         itemsSynced++;
       }
+      // Retention: keep the feed fresh and storage bounded.
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      await prisma.platformFeedItem.deleteMany({
+        where: { connectedAccountId: account.id, fetchedAt: { lt: cutoff } },
+      });
     }
 
     // Sync recent comments for providers that expose a read comment API.
