@@ -3590,6 +3590,74 @@ html {
   text-align: left;
 }
 
+.mesh-entry-identity-form label {
+  position: relative;
+  display: block;
+}
+
+.mesh-entry-identity-form .mesh-entry-input {
+  padding-right: 3.25rem;
+}
+
+.mesh-entry-input-go {
+  position: absolute;
+  right: 0.5rem;
+  top: 1.625rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: 999px;
+  color: #07111c;
+  background: var(--accent, #388bfd);
+  box-shadow: 0 6px 18px rgba(56, 139, 253, 0.35);
+  transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease, background 150ms ease;
+}
+
+.mesh-entry-input-go:hover {
+  background: #58a6ff;
+  box-shadow: 0 8px 22px rgba(56, 139, 253, 0.45);
+}
+
+.mesh-entry-input-go:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.mesh-entry-input-go:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.mesh-entry-or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mesh-entry-or > span:first-child,
+.mesh-entry-or > span:last-child {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 200, 255, 0.24), transparent);
+}
+
+.mesh-entry-or-word {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(191, 219, 254, 0.52);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-entry-input-go {
+    transition: none !important;
+  }
+}
+
 .mesh-entry-input:hover:not(:focus) {
   border-color: rgba(136, 153, 176, 0.32);
 }
