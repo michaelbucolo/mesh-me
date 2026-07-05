@@ -26,7 +26,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { FlowIcon, MeChatIcon, MeshIcon } from "@/components/brand/nav-icons";
+import { FlowIcon, MeChatIcon, MeshIcon, ProfileIcon } from "@/components/brand/nav-icons";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { openMeshi } from "@/lib/meshi-events";
@@ -117,7 +117,7 @@ function createCommands(username: string): CommandItem[] {
       description: "View your public identity and Meshi presence.",
       category: "Go",
       href: `/profile/${username}`,
-      icon: UserRound,
+      icon: ProfileIcon,
       keywords: ["me", "identity", "bio", "public"],
     },
     {
