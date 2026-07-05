@@ -338,9 +338,9 @@ export function drawScene(o: RenderOptions): void {
     const isHover = o.hoverId === node.id;
 
     // Posts float as rich cards once the camera is close enough to read them.
-    if (node.kind === "post" && o.camera.zoom >= 0.45 && emph > 0.2) {
+    if (node.kind === "post" && o.camera.zoom >= 0.32 && emph > 0.2) {
       const cardScale =
-        Math.max(0.55, Math.min(o.camera.zoom, 1.35)) * (0.82 + node.weight * 0.36);
+        Math.max(0.6, Math.min(o.camera.zoom, 1.35)) * (0.82 + node.weight * 0.36);
       const size = drawPostCard(o, node, p.x, p.y, cardScale, emph, isHover, isSelected);
       o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(size.w, size.h) / 2 });
       return;
