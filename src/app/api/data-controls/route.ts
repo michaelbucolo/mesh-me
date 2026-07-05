@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { readJsonObject } from "@/lib/api-validation";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
+import { clearMeshCache } from "@/lib/mesh-cache";
 
 const VISIBILITY_VALUES = ["public", "friends", "private", "unlisted", "hidden"] as const;
 const POLICY_ENTITY_TYPES = [
@@ -281,6 +282,7 @@ export async function POST(req: NextRequest) {
     revalidatePath("/settings");
     revalidatePath("/mesh");
     revalidatePath("/feed");
+    clearMeshCache(user.id);
 
     return NextResponse.json({ success: true, deleted });
   }
@@ -343,6 +345,7 @@ export async function POST(req: NextRequest) {
     revalidatePath("/privacy-controls");
     revalidatePath("/mesh");
     revalidatePath("/feed");
+    clearMeshCache(user.id);
 
     return NextResponse.json({
       success: true,
@@ -428,6 +431,7 @@ export async function POST(req: NextRequest) {
     revalidatePath("/settings");
     revalidatePath("/mesh");
     revalidatePath("/feed");
+    clearMeshCache(user.id);
 
     return NextResponse.json({ success: true, deleted: deleted.count });
   }
