@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Compass, Layers3, MessageSquare, Rss, Settings, UserRound, Waypoints } from "lucide-react";
+import { ArrowRight, Layers3, Settings, UserRound } from "lucide-react";
+import { ExploreIcon, FlowIcon, MeChatIcon, MeshIcon } from "@/components/brand/nav-icons";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +22,10 @@ interface QuickLink {
 }
 
 const baseLinks: QuickLink[] = [
-  { label: "The Mesh", description: "Spatial identity view", href: "/mesh", icon: Waypoints },
-  { label: "Feed", description: "Your creator timeline", href: "/feed", icon: Rss },
-  { label: "Explore", description: "Discover people and communities", href: "/explore", icon: Compass },
-  { label: "Messages", description: "Open MeChat instantly", href: "/messages", icon: MessageSquare },
+  { label: "The Mesh", description: "Spatial identity view", href: "/mesh", icon: MeshIcon },
+  { label: "Flow", description: "Your creator timeline", href: "/feed", icon: FlowIcon },
+  { label: "Explore", description: "Discover people and communities", href: "/explore", icon: ExploreIcon },
+  { label: "MeChat", description: "Open your messages instantly", href: "/messages", icon: MeChatIcon },
   { label: "Communities", description: "Collaborative spaces", href: "/communities", icon: Layers3 },
   { label: "Settings", description: "Control your experience", href: "/settings", icon: Settings },
 ];

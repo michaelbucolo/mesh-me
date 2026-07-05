@@ -1,17 +1,10 @@
-import {
-  Compass,
-  MessageCircle,
-  Sparkles,
-  User,
-  Waypoints,
-  type LucideIcon,
-} from "lucide-react";
+import { ExploreIcon, FlowIcon, MeChatIcon, MeshIcon, ProfileIcon, type BrandIcon } from "@/components/brand/nav-icons";
 
 export type BadgeKey = "messages" | "notifications";
 
 export interface NavItem {
   href: string;
-  icon: LucideIcon;
+  icon: BrandIcon;
   label: string;
   badgeKey?: BadgeKey;
 }
@@ -23,35 +16,35 @@ export interface NavGroup {
 }
 
 export const sidebarNavItems: NavItem[] = [
-  { href: "/mesh", icon: Waypoints, label: "Mesh" },
-  { href: "/feed", icon: Compass, label: "Flow" },
-  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
-  { href: "/profile", icon: User, label: "Profile" },
-  { href: "/explore", icon: Sparkles, label: "Explore" },
+  { href: "/mesh", icon: MeshIcon, label: "Mesh" },
+  { href: "/feed", icon: FlowIcon, label: "Flow" },
+  { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
+  { href: "/profile", icon: ProfileIcon, label: "Profile" },
+  { href: "/explore", icon: ExploreIcon, label: "Explore" },
 ];
 
 export const desktopNavGroups: NavGroup[] = [
   {
     label: "Core",
     items: [
-      { href: "/mesh", icon: Waypoints, label: "Mesh" },
-      { href: "/feed", icon: Compass, label: "Flow" },
-      { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
-      { href: "/explore", icon: Sparkles, label: "Explore" },
+      { href: "/mesh", icon: MeshIcon, label: "Mesh" },
+      { href: "/feed", icon: FlowIcon, label: "Flow" },
+      { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
+      { href: "/explore", icon: ExploreIcon, label: "Explore" },
     ],
   },
 ];
 
 export const desktopBottomItems: NavItem[] = [
-  { href: "/profile", icon: User, label: "Profile" },
+  { href: "/profile", icon: ProfileIcon, label: "Profile" },
 ];
 
 export const mobileNavItems: NavItem[] = [
-  { href: "/mesh", icon: Waypoints, label: "Mesh" },
-  { href: "/feed", icon: Compass, label: "Flow" },
-  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
-  { href: "/profile", icon: User, label: "Profile" },
-  { href: "/explore", icon: Sparkles, label: "Explore" },
+  { href: "/mesh", icon: MeshIcon, label: "Mesh" },
+  { href: "/feed", icon: FlowIcon, label: "Flow" },
+  { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
+  { href: "/profile", icon: ProfileIcon, label: "Profile" },
+  { href: "/explore", icon: ExploreIcon, label: "Explore" },
 ];
 
 export function resolveNavHref(href: string, username?: string): string {
