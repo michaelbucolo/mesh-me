@@ -74,7 +74,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     authUrl: "https://accounts.spotify.com/authorize",
     tokenUrl: "https://accounts.spotify.com/api/token",
     profileUrl: "https://api.spotify.com/v1/me",
-    scopes: ["user-read-private", "user-read-email", "playlist-modify-private", "user-follow-modify"],
+    scopes: ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private", "user-follow-modify"],
     clientIdEnv: "SPOTIFY_CLIENT_ID",
     clientSecretEnv: "SPOTIFY_CLIENT_SECRET",
     usernameField: "display_name",

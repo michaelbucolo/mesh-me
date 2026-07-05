@@ -234,8 +234,8 @@ const PLATFORM_ACTION_CAPABILITIES: Record<string, Partial<Record<PlatformConten
     unfollow: supportedAction("Unfollows the user on GitHub through the official API.", ["user:follow"]),
   },
   spotify: {
-    like: supportedAction("Follows the playlist on Spotify through the official API.", ["playlist-modify-private"]),
-    unlike: supportedAction("Unfollows the playlist on Spotify through the official API.", ["playlist-modify-private"]),
+    like: supportedAction("Follows the playlist on Spotify through the official API.", ["playlist-modify-public", "playlist-modify-private"]),
+    unlike: supportedAction("Unfollows the playlist on Spotify through the official API.", ["playlist-modify-public", "playlist-modify-private"]),
     follow: supportedAction("Follows the user on Spotify through the official API.", ["user-follow-modify"]),
     unfollow: supportedAction("Unfollows the user on Spotify through the official API.", ["user-follow-modify"]),
   },
