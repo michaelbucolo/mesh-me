@@ -15,6 +15,7 @@ import {
   Sun,
 } from "lucide-react";
 import { signOut } from "@/lib/actions";
+import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { getRouteLoadingPersonality } from "@/lib/loading-personality";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
 import { CommandPalette } from "@/components/layout/command-palette";
@@ -272,6 +273,17 @@ export function AppShell({ children, user }: AppShellProps) {
   return (
     <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface ? "mesh-shell-mesh" : ""}`}>
       <AppRouteProgress pathname={pathname} />
+
+      {!isMeshSurface && (
+        <DeferredMeshBackground
+          fixed
+          interactive
+          density={26}
+          mouseInfluence={0.3}
+          className="mesh-field-app"
+          delayMs={640}
+        />
+      )}
 
       {/* Sidebar */}
       <aside className="mesh-sidebar hidden h-dvh flex-col border-r border-[var(--mesh-border)] bg-[var(--mesh-bg)] md:flex">
