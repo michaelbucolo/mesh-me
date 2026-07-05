@@ -93,6 +93,17 @@ console.log(page.url()); // http://localhost:3333/mesh
 - Login-password step: password input is `input[type="password"]` with placeholder "Password"
 - Login-password step: submit button is `button[type="submit"]` with text "Sign in"
 
+**Current entry experience selectors** (`src/components/auth/mesh-entry-experience.tsx`, may supersede the flow above):
+- Identity input: `[data-testid="entry-identity-input"]`; the continue control is a round arrow button INSIDE the input: `.mesh-entry-input-go` (also `data-testid="entry-continue-button"`) — there may be no separate "Continue" button below the field.
+- Password input: `[data-testid="entry-password-input"]`; submit: `[data-testid="entry-submit-button"]`.
+- The arrow button stays `disabled` until the identity lookup debounce completes. `page.fill()` can leave it disabled — use `pressSequentially("demouser", { delay: 40 })` then `waitForSelector(".mesh-entry-input-go:enabled")` before clicking.
+- After submit, wait with `page.waitForURL("**/mesh", { timeout: 15000 })`. The unlock path does `router.refresh()` + push with a hard-navigation fallback at 1400ms, so allow ~2s before judging a run as stuck.
+
+**Dev-server quirks when screenshotting /mesh**:
+- On a cold dev server, /mesh and /api/mesh compile lazily; the first visit can show a spinner for 10s+ (look for the "Compiling..." pill bottom-left). Do one throwaway warm-up run before capturing evidence.
+- The black circular "N" badge overlapping the bottom-left footer is the Next.js dev-mode indicator — dev only, never flag it as a layout bug.
+- Post nodes render as rich cards only above a zoom threshold (see `scene-render.ts`); at default fit zoom cards should be visible near the "Posts · N" branch.
+
 **Common login failures**:
 - If you try `input[name="username"]` or `input[placeholder*="username" i]` — these may not match because the input has no `name` attribute and placeholder text changes based on login vs signup mode
 - The landing page (/) uses `min-h-screen` layout; the authenticated app uses `h-[100dvh]`. If your viewport test finds `min-h-screen`, login failed.
