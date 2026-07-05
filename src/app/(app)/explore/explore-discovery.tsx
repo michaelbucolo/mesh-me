@@ -300,7 +300,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
             </span>
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3 pt-8">
-            <TileMeta post={post} authorName={authorName} chip={chip} />
+            <TileMeta post={post} authorName={authorName} chip={chip} overlay />
           </div>
         </div>
       ) : (
@@ -315,11 +315,11 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
   );
 }
 
-function TileMeta({ post, authorName, chip }: { post: FeedCardPost; authorName: string; chip?: { label: string; color: string } }) {
+function TileMeta({ post, authorName, chip, overlay }: { post: FeedCardPost; authorName: string; chip?: { label: string; color: string }; overlay?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-2 text-xs">
-      <span className="min-w-0 truncate font-medium text-white/90">{authorName}</span>
-      <span className="flex shrink-0 items-center gap-2 text-white/80">
+      <span className={`min-w-0 truncate font-medium ${overlay ? "text-white/90" : "text-[var(--text-primary)]"}`}>{authorName}</span>
+      <span className={`flex shrink-0 items-center gap-2 ${overlay ? "text-white/80" : "text-[var(--text-secondary)]"}`}>
         {chip && chip.label !== "mesh.me" && (
           <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${chip.color}33`, color: chip.color }}>
             {chip.label}
