@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Layers3, Settings, UserRound } from "lucide-react";
-import { ExploreIcon, FlowIcon, MeChatIcon, MeshIcon } from "@/components/brand/nav-icons";
+import { ArrowRight, Layers3, Settings } from "lucide-react";
+import { ExploreIcon, FlowIcon, MeChatIcon, MeshIcon, ProfileIcon } from "@/components/brand/nav-icons";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +51,7 @@ export function PremiumCommandCenter({ open, onClose, username }: PremiumCommand
       label: "Profile",
       description: "View your public presence",
       href: `/profile/${username}`,
-      icon: UserRound,
+      icon: ProfileIcon,
     }];
 
     if (!query.trim()) return allLinks;
