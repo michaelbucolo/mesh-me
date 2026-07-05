@@ -162,6 +162,19 @@ function dateFromUnixSeconds(value: unknown): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+async function githubRepoFullName(accessToken: string, repoId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://api.github.com/repositories/${encodeURIComponent(repoId)}`, {
+      headers: githubHeaders(accessToken),
+    });
+    if (!res.ok) return null;
+    const repo = await res.json().catch(() => null) as { full_name?: string } | null;
+    return typeof repo?.full_name === "string" ? repo.full_name : null;
+  } catch {
+    return null;
+  }
+}
+
 function githubHeaders(accessToken: string): HeadersInit {
   return {
     Authorization: `Bearer ${accessToken}`,
@@ -208,6 +221,26 @@ type RedditListing = {
 async function fetchRedditCurrentUser(accessToken: string): Promise<RedditIdentity | null> {
   const user = await fetchRedditJson<RedditIdentity>(accessToken, "/api/v1/me");
   return user?.name ? user : null;
+}
+
+async function postRedditForm(accessToken: string, path: string, form: Record<string, string>): Promise<Response | null> {
+  try {
+    return await fetch(`https://oauth.reddit.com${path}`, {
+      method: "POST",
+      headers: {
+        ...redditHeaders(accessToken),
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams(form).toString(),
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function redditVote(accessToken: string, fullname: string, dir: 1 | 0 | -1): Promise<boolean> {
+  const res = await postRedditForm(accessToken, "/api/vote", { id: fullname, dir: String(dir) });
+  return Boolean(res?.ok);
 }
 
 function redditPermalink(value: unknown): string | undefined {
@@ -374,8 +407,29 @@ const githubAdapter: PlatformAdapter = {
   async createComment() { return null; },
   async deleteComment() { return false; },
   async editPost() { return false; },
-  async likePost() { return false; },
-  async unlikePost() { return false; },
+  async likePost(accessToken, postId) {
+    const fullName = await githubRepoFullName(accessToken, postId);
+    if (!fullName) return false;
+    try {
+      const res = await fetch(`https://api.github.com/user/starred/${fullName}`, {
+        method: "PUT",
+        headers: githubHeaders(accessToken),
+        body: "",
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
+  async unlikePost(accessToken, postId) {
+    const fullName = await githubRepoFullName(accessToken, postId);
+    if (!fullName) return false;
+    try {
+      const res = await fetch(`https://api.github.com/user/starred/${fullName}`, {
+        method: "DELETE",
+        headers: githubHeaders(accessToken),
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
   async followUser(accessToken, userId) {
     try {
       const res = await fetch(`https://api.github.com/user/following/${userId}`, {
@@ -558,14 +612,97 @@ const youtubeAdapter: PlatformAdapter = {
     } catch { return defaultAnalytics(); }
   },
   async createPost() { return null; },
-  async deletePost() { return false; },
-  async createComment() { return null; },
-  async deleteComment() { return false; },
+  async deletePost(accessToken, postId) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${encodeURIComponent(postId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
+  async createComment(accessToken, postId, content) {
+    try {
+      const res = await fetch("https://www.googleapis.com/youtube/v3/commentThreads?part=snippet", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          snippet: {
+            videoId: postId,
+            topLevelComment: { snippet: { textOriginal: content } },
+          },
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => null) as { id?: string } | null;
+      if (!data?.id) return null;
+      return {
+        platformCommentId: data.id,
+        platformPostId: postId,
+        content,
+        isOwnComment: true,
+        likeCount: 0,
+        replyCount: 0,
+        publishedAt: new Date(),
+      };
+    } catch { return null; }
+  },
+  async deleteComment(accessToken, commentId) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/comments?id=${encodeURIComponent(commentId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
   async editPost() { return false; },
-  async likePost() { return false; },
-  async unlikePost() { return false; },
-  async followUser() { return false; },
-  async unfollowUser() { return false; },
+  async likePost(accessToken, postId) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/videos/rate?id=${encodeURIComponent(postId)}&rating=like`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
+  async unlikePost(accessToken, postId) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/videos/rate?id=${encodeURIComponent(postId)}&rating=none`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
+  async followUser(accessToken, userId) {
+    try {
+      const res = await fetch("https://www.googleapis.com/youtube/v3/subscriptions?part=snippet", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          snippet: { resourceId: { kind: "youtube#channel", channelId: userId } },
+        }),
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async unfollowUser(accessToken, userId) {
+    try {
+      const lookup = await fetch(`https://www.googleapis.com/youtube/v3/subscriptions?part=id&mine=true&forChannelId=${encodeURIComponent(userId)}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!lookup.ok) return false;
+      const data = await lookup.json().catch(() => null) as { items?: Array<{ id?: string }> } | null;
+      const subscriptionId = data?.items?.[0]?.id;
+      if (!subscriptionId) return false;
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/subscriptions?id=${encodeURIComponent(subscriptionId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.status === 204;
+    } catch { return false; }
+  },
   async sharePost() { return false; },
   async pinPost() { return false; },
   async unpinPost() { return false; },
@@ -573,6 +710,19 @@ const youtubeAdapter: PlatformAdapter = {
 };
 
 // ─── Twitter/X Adapter ──────────────────────────────────────
+
+async function fetchTwitterCurrentUserId(accessToken: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://api.twitter.com/2/users/me", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null) as { data?: { id?: string } } | null;
+    return data?.data?.id || null;
+  } catch {
+    return null;
+  }
+}
 
 const twitterAdapter: PlatformAdapter = {
   async fetchPosts(accessToken) {
@@ -656,16 +806,125 @@ const twitterAdapter: PlatformAdapter = {
       };
     } catch { return defaultAnalytics(); }
   },
-  async createPost() { return null; },
-  async deletePost() { return false; },
-  async createComment() { return null; },
-  async deleteComment() { return false; },
+  async createPost(accessToken, content) {
+    try {
+      const res = await fetch("https://api.twitter.com/2/tweets", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: content }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => null) as { data?: { id?: string; text?: string } } | null;
+      if (!data?.data?.id) return null;
+      return {
+        platformPostId: data.data.id,
+        content: data.data.text || content,
+        url: `https://twitter.com/i/web/status/${data.data.id}`,
+        postType: "tweet",
+        likeCount: 0,
+        commentCount: 0,
+        shareCount: 0,
+        viewCount: 0,
+        visibility: "public",
+        publishedAt: new Date(),
+      };
+    } catch { return null; }
+  },
+  async deletePost(accessToken, postId) {
+    try {
+      const res = await fetch(`https://api.twitter.com/2/tweets/${encodeURIComponent(postId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) return false;
+      const data = await res.json().catch(() => null) as { data?: { deleted?: boolean } } | null;
+      return Boolean(data?.data?.deleted);
+    } catch { return false; }
+  },
+  async createComment(accessToken, postId, content) {
+    try {
+      const res = await fetch("https://api.twitter.com/2/tweets", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: content, reply: { in_reply_to_tweet_id: postId } }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => null) as { data?: { id?: string } } | null;
+      if (!data?.data?.id) return null;
+      return {
+        platformCommentId: data.data.id,
+        platformPostId: postId,
+        content,
+        isOwnComment: true,
+        likeCount: 0,
+        replyCount: 0,
+        url: `https://twitter.com/i/web/status/${data.data.id}`,
+        publishedAt: new Date(),
+      };
+    } catch { return null; }
+  },
+  async deleteComment(accessToken, commentId) {
+    return twitterAdapter.deletePost(accessToken, commentId);
+  },
   async editPost() { return false; },
-  async likePost() { return false; },
-  async unlikePost() { return false; },
-  async followUser() { return false; },
-  async unfollowUser() { return false; },
-  async sharePost() { return false; },
+  async likePost(accessToken, postId) {
+    const userId = await fetchTwitterCurrentUserId(accessToken);
+    if (!userId) return false;
+    try {
+      const res = await fetch(`https://api.twitter.com/2/users/${userId}/likes`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ tweet_id: postId }),
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async unlikePost(accessToken, postId) {
+    const userId = await fetchTwitterCurrentUserId(accessToken);
+    if (!userId) return false;
+    try {
+      const res = await fetch(`https://api.twitter.com/2/users/${userId}/likes/${encodeURIComponent(postId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async followUser(accessToken, userId) {
+    const currentUserId = await fetchTwitterCurrentUserId(accessToken);
+    if (!currentUserId) return false;
+    try {
+      const res = await fetch(`https://api.twitter.com/2/users/${currentUserId}/following`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ target_user_id: userId }),
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async unfollowUser(accessToken, userId) {
+    const currentUserId = await fetchTwitterCurrentUserId(accessToken);
+    if (!currentUserId) return false;
+    try {
+      const res = await fetch(`https://api.twitter.com/2/users/${currentUserId}/following/${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async sharePost(accessToken, postId) {
+    const userId = await fetchTwitterCurrentUserId(accessToken);
+    if (!userId) return false;
+    try {
+      const res = await fetch(`https://api.twitter.com/2/users/${userId}/retweets`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ tweet_id: postId }),
+      });
+      return res.ok;
+    } catch { return false; }
+  },
   async pinPost() { return false; },
   async unpinPost() { return false; },
   async updateVisibility() { return false; },
@@ -780,10 +1039,43 @@ const spotifyAdapter: PlatformAdapter = {
   async createComment() { return null; },
   async deleteComment() { return false; },
   async editPost() { return false; },
-  async likePost() { return false; },
-  async unlikePost() { return false; },
-  async followUser() { return false; },
-  async unfollowUser() { return false; },
+  async likePost(accessToken, postId) {
+    try {
+      const res = await fetch(`https://api.spotify.com/v1/playlists/${encodeURIComponent(postId)}/followers`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ public: false }),
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async unlikePost(accessToken, postId) {
+    try {
+      const res = await fetch(`https://api.spotify.com/v1/playlists/${encodeURIComponent(postId)}/followers`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async followUser(accessToken, userId) {
+    try {
+      const res = await fetch(`https://api.spotify.com/v1/me/following?type=user&ids=${encodeURIComponent(userId)}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.ok;
+    } catch { return false; }
+  },
+  async unfollowUser(accessToken, userId) {
+    try {
+      const res = await fetch(`https://api.spotify.com/v1/me/following?type=user&ids=${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return res.ok;
+    } catch { return false; }
+  },
   async sharePost() { return false; },
   async pinPost() { return false; },
   async unpinPost() { return false; },
@@ -1134,15 +1426,92 @@ const redditAdapter: PlatformAdapter = {
       };
     } catch { return defaultAnalytics(); }
   },
-  async createPost() { return null; },
-  async deletePost() { return false; },
-  async createComment() { return null; },
-  async deleteComment() { return false; },
-  async editPost() { return false; },
-  async likePost() { return false; },
-  async unlikePost() { return false; },
-  async followUser() { return false; },
-  async unfollowUser() { return false; },
+  async createPost(accessToken, content) {
+    const currentUser = await fetchRedditCurrentUser(accessToken);
+    if (!currentUser?.name) return null;
+    const res = await postRedditForm(accessToken, "/api/submit", {
+      api_type: "json",
+      sr: `u_${currentUser.name}`,
+      kind: "self",
+      title: content.slice(0, 300),
+      text: content,
+    });
+    if (!res?.ok) return null;
+    const payload = await res.json().catch(() => null) as { json?: { errors?: unknown[]; data?: { name?: string; url?: string } } } | null;
+    if (!payload?.json || (payload.json.errors || []).length > 0) return null;
+    const fullname = payload.json.data?.name;
+    if (!fullname) return null;
+    return {
+      platformPostId: fullname,
+      content,
+      url: payload.json.data?.url,
+      postType: "text",
+      likeCount: 1,
+      commentCount: 0,
+      shareCount: 0,
+      viewCount: 0,
+      visibility: "public",
+      publishedAt: new Date(),
+    };
+  },
+  async deletePost(accessToken, postId) {
+    const res = await postRedditForm(accessToken, "/api/del", { id: postId });
+    return Boolean(res?.ok);
+  },
+  async createComment(accessToken, postId, content) {
+    const res = await postRedditForm(accessToken, "/api/comment", {
+      api_type: "json",
+      thing_id: postId,
+      text: content,
+    });
+    if (!res?.ok) return null;
+    const payload = await res.json().catch(() => null) as { json?: { errors?: unknown[]; data?: { things?: Array<{ data?: { name?: string; permalink?: string } }> } } } | null;
+    if (!payload?.json || (payload.json.errors || []).length > 0) return null;
+    const created = payload.json.data?.things?.[0]?.data;
+    if (!created?.name) return null;
+    return {
+      platformCommentId: created.name,
+      platformPostId: postId,
+      content,
+      isOwnComment: true,
+      likeCount: 1,
+      replyCount: 0,
+      url: redditPermalink(created.permalink),
+      publishedAt: new Date(),
+    };
+  },
+  async deleteComment(accessToken, commentId) {
+    const res = await postRedditForm(accessToken, "/api/del", { id: commentId });
+    return Boolean(res?.ok);
+  },
+  async editPost(accessToken, postId, content) {
+    const res = await postRedditForm(accessToken, "/api/editusertext", {
+      api_type: "json",
+      thing_id: postId,
+      text: content,
+    });
+    return Boolean(res?.ok);
+  },
+  async likePost(accessToken, postId) {
+    return redditVote(accessToken, postId, 1);
+  },
+  async unlikePost(accessToken, postId) {
+    return redditVote(accessToken, postId, 0);
+  },
+  async followUser(accessToken, userId) {
+    const res = await postRedditForm(accessToken, "/api/subscribe", {
+      action: "sub",
+      sr_name: userId.startsWith("u_") || userId.startsWith("r/") ? userId.replace(/^r\//, "") : `u_${userId}`,
+    });
+    return Boolean(res?.ok);
+  },
+  async unfollowUser(accessToken, userId) {
+    const res = await postRedditForm(accessToken, "/api/subscribe", {
+      action: "unsub",
+      sr_name: userId.startsWith("u_") || userId.startsWith("r/") ? userId.replace(/^r\//, "") : `u_${userId}`,
+    });
+    return Boolean(res?.ok);
+  },
   async sharePost() { return false; },
   async pinPost() { return false; },
   async unpinPost() { return false; },
@@ -1754,9 +2123,21 @@ export async function getPlatformAnalyticsSummary() {
   return summary;
 }
 
+function missingScopeError(
+  account: { platform: string; scopes: string | null },
+  capability: { requiredScopes?: string[] },
+): string | null {
+  const required = capability.requiredScopes || [];
+  if (required.length === 0 || !account.scopes) return null;
+  const granted = account.scopes.split(/[\s,]+/).filter(Boolean);
+  const missing = required.filter((scope) => !granted.includes(scope));
+  if (missing.length === 0) return null;
+  return `Reconnect your ${account.platform} account to grant the permission this action needs on ${account.platform}.`;
+}
+
 async function getActingAccountForSourcePost(
   userId: string,
-  sourceAccount: { id: string; userId: string; platform: string; accessToken: string | null }
+  sourceAccount: { id: string; userId: string; platform: string; accessToken: string | null; scopes: string | null }
 ) {
   if (sourceAccount.userId === userId) return sourceAccount;
 
@@ -1954,6 +2335,8 @@ export async function likePlatformPost(postId: string) {
 
   const capability = getPlatformActionCapability(actingAccount.platform, "like");
   if (!capability.supported) return { error: capability.reason };
+  const scopeError = missingScopeError(actingAccount, capability);
+  if (scopeError) return { error: scopeError };
 
   const accessToken = getStoredAccessToken(actingAccount.accessToken);
   if (actingAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
@@ -1986,6 +2369,8 @@ export async function unlikePlatformPost(postId: string) {
 
   const capability = getPlatformActionCapability(actingAccount.platform, "unlike");
   if (!capability.supported) return { error: capability.reason };
+  const scopeError = missingScopeError(actingAccount, capability);
+  if (scopeError) return { error: scopeError };
 
   const accessToken = getStoredAccessToken(actingAccount.accessToken);
   if (actingAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
@@ -2019,6 +2404,8 @@ export async function followPlatformUser(connectedAccountId: string, platformUse
   if (!account || account.userId !== user.id) return { error: "Account not found" };
   const capability = getPlatformActionCapability(account.platform, "follow");
   if (!capability.supported) return { error: capability.reason };
+  const followScopeError = missingScopeError(account, capability);
+  if (followScopeError) return { error: followScopeError };
   const accessToken = getStoredAccessToken(account.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -2046,6 +2433,8 @@ export async function unfollowPlatformUser(connectedAccountId: string, platformU
   if (!account || account.userId !== user.id) return { error: "Account not found" };
   const capability = getPlatformActionCapability(account.platform, "unfollow");
   if (!capability.supported) return { error: capability.reason };
+  const unfollowScopeError = missingScopeError(account, capability);
+  if (unfollowScopeError) return { error: unfollowScopeError };
   const accessToken = getStoredAccessToken(account.accessToken);
   if (!accessToken) return { error: "No access token" };
 
