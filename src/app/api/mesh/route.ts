@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 
+const meshPayloadCache = new Map<string, { expiresAt: number; payload: unknown }>();
+
 export async function GET(req: Request) {
   try {
   const user = await getCurrentUser();
@@ -16,6 +18,15 @@ export async function GET(req: Request) {
 
   if (viewUserId && viewUserId !== user.id) {
     return getPublicMesh(viewUserId, user.id);
+  }
+
+  const now = Date.now();
+  const cachedPayload = meshPayloadCache.get(user.id);
+  if (cachedPayload && cachedPayload.expiresAt > now) {
+    return NextResponse.json(cachedPayload.payload);
+  }
+  for (const [key, entry] of meshPayloadCache) {
+    if (entry.expiresAt <= now) meshPayloadCache.delete(key);
   }
 
   const safetyWhere = nsfwHiddenWhere(user);
@@ -474,7 +485,7 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
+  const payload = {
     user: {
       id: user.id, username: user.username, displayName: user.displayName,
       avatarUrl: user.avatarUrl, bio: user.bio,
@@ -663,7 +674,10 @@ export async function GET(req: Request) {
       alterEgoCount: alterEgosData.length,
       activityCount: activityData.length,
     },
-  });
+  };
+
+  meshPayloadCache.set(user.id, { expiresAt: Date.now() + 45_000, payload });
+  return NextResponse.json(payload);
   } catch (error) {
     console.error("Mesh API error:", error);
     return NextResponse.json(
