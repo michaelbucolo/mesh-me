@@ -69,19 +69,23 @@ export const PLATFORM_CAPABILITIES: PlatformCapability[] = [
     importContent: true,
     developerDocsUrl: "https://docs.github.com/en/rest",
     developerPolicyUrl: "https://docs.github.com/en/site-policy",
-    notes: "Imports authorized account and repository data through GitHub APIs. Mutating actions stay disabled until the needed scopes are approved and enabled.",
+    interactionSync: true,
+    notes: "Imports authorized account and repository data through GitHub APIs. Starring and following are written back through the official REST API when the account grants the needed scopes.",
   }),
   oauthShell("youtube", "YouTube", {
     importContent: true,
     developerDocsUrl: "https://developers.google.com/youtube/v3",
     developerPolicyUrl: "https://developers.google.com/youtube/terms/developer-policies",
-    notes: "Uses the read-only YouTube scope in this build. Likes, comments, subscriptions, uploads, and deletes are not written back.",
+    interactionSync: true,
+    notes: "Reads channel data and writes back likes, comments, and subscriptions through the official YouTube Data API when the account grants the youtube.force-ssl scope.",
   }),
   oauthShell("twitter", "X / Twitter", {
     importContent: true,
     developerDocsUrl: "https://docs.x.com/x-api",
     developerPolicyUrl: "https://developer.x.com/en/developer-terms/agreement-and-policy",
-    notes: "Uses read scopes in this build. Write actions need provider approval, write scopes, rate-limit handling, and X display/removal compliance.",
+    interactionSync: true,
+    crossPost: true,
+    notes: "Reads account data and writes back likes, reposts, replies, follows, and posts through the official X API v2 when the account grants write scopes.",
   }),
   oauthShell("discord", "Discord", {
     importContent: true,
@@ -92,7 +96,8 @@ export const PLATFORM_CAPABILITIES: PlatformCapability[] = [
   oauthShell("spotify", "Spotify", {
     importContent: true,
     developerDocsUrl: "https://developer.spotify.com/documentation/web-api",
-    notes: "Imports authorized profile and library-style data. Social write actions are not exposed.",
+    interactionSync: true,
+    notes: "Imports authorized profile and playlist data. Playlist follows and user follows are written back through the official Web API when the account grants the needed scopes.",
   }),
   oauthShell("twitch", "Twitch", {
     importContent: true,
@@ -119,7 +124,9 @@ export const PLATFORM_CAPABILITIES: PlatformCapability[] = [
   oauthShell("reddit", "Reddit", {
     importContent: true,
     developerDocsUrl: "https://www.reddit.com/dev/api/",
-    notes: "Imports authorized account identity, submitted posts, and post comment threads through Reddit OAuth read scopes. Mesh.me does not automate posting or voting on Reddit.",
+    interactionSync: true,
+    crossPost: true,
+    notes: "Imports authorized account identity, submitted posts, and post comment threads through Reddit OAuth scopes. Votes, comments, edits, deletes, posts, and subscriptions are written back only when the signed-in user takes the action.",
   }),
   oauthShell("pinterest", "Pinterest", {
     developerDocsUrl: "https://developers.pinterest.com/docs/api/v5/",
@@ -181,7 +188,58 @@ const UNSUPPORTED_ACTIONS: Record<PlatformContentAction, PlatformActionCapabilit
   unfollow: { supported: false, reason: DEFAULT_UNSUPPORTED_REASON, reviewRequired: true, userInitiatedOnly: true },
 };
 
-const PLATFORM_ACTION_CAPABILITIES: Record<string, Partial<Record<PlatformContentAction, PlatformActionCapability>>> = {};
+const supportedAction = (reason: string, requiredScopes: string[]): PlatformActionCapability => ({
+  supported: true,
+  reason,
+  requiredScopes,
+  userInitiatedOnly: true,
+});
+
+const PLATFORM_ACTION_CAPABILITIES: Record<string, Partial<Record<PlatformContentAction, PlatformActionCapability>>> = {
+  reddit: {
+    like: supportedAction("Upvotes the post on Reddit through the official API.", ["vote"]),
+    unlike: supportedAction("Removes your vote on Reddit through the official API.", ["vote"]),
+    reply: supportedAction("Posts your comment to the Reddit thread through the official API.", ["submit"]),
+    edit: supportedAction("Edits your Reddit post through the official API.", ["edit"]),
+    delete: supportedAction("Deletes your Reddit post through the official API.", ["edit"]),
+    "delete-comment": supportedAction("Deletes your Reddit comment through the official API.", ["edit"]),
+    follow: supportedAction("Follows the profile on Reddit through the official API.", ["subscribe"]),
+    unfollow: supportedAction("Unfollows the profile on Reddit through the official API.", ["subscribe"]),
+    "cross-post": supportedAction("Publishes to your Reddit profile through the official API.", ["submit"]),
+  },
+  youtube: {
+    like: supportedAction("Likes the video on YouTube through the official API.", ["https://www.googleapis.com/auth/youtube.force-ssl"]),
+    unlike: supportedAction("Removes your rating on YouTube through the official API.", ["https://www.googleapis.com/auth/youtube.force-ssl"]),
+    reply: supportedAction("Posts your comment on the YouTube video through the official API.", ["https://www.googleapis.com/auth/youtube.force-ssl"]),
+    delete: supportedAction("Deletes your YouTube video through the official API.", ["https://www.googleapis.com/auth/youtube.force-ssl"]),
+    "delete-comment": supportedAction("Deletes your YouTube comment through the official API.", ["https://www.googleapis.com/auth/youtube.force-ssl"]),
+    follow: supportedAction("Subscribes to the channel on YouTube through the official API.", ["https://www.googleapis.com/auth/youtube.force-ssl"]),
+    unfollow: supportedAction("Unsubscribes from the channel on YouTube through the official API.", ["https://www.googleapis.com/auth/youtube.force-ssl"]),
+  },
+  twitter: {
+    like: supportedAction("Likes the post on X through the official API.", ["like.write"]),
+    unlike: supportedAction("Removes your like on X through the official API.", ["like.write"]),
+    share: supportedAction("Reposts on X through the official API.", ["tweet.write"]),
+    reply: supportedAction("Posts your reply on X through the official API.", ["tweet.write"]),
+    delete: supportedAction("Deletes your post on X through the official API.", ["tweet.write"]),
+    "delete-comment": supportedAction("Deletes your reply on X through the official API.", ["tweet.write"]),
+    follow: supportedAction("Follows the account on X through the official API.", ["follows.write"]),
+    unfollow: supportedAction("Unfollows the account on X through the official API.", ["follows.write"]),
+    "cross-post": supportedAction("Publishes to X through the official API.", ["tweet.write"]),
+  },
+  github: {
+    like: supportedAction("Stars the repository on GitHub through the official API.", ["public_repo"]),
+    unlike: supportedAction("Removes your star on GitHub through the official API.", ["public_repo"]),
+    follow: supportedAction("Follows the user on GitHub through the official API.", ["user:follow"]),
+    unfollow: supportedAction("Unfollows the user on GitHub through the official API.", ["user:follow"]),
+  },
+  spotify: {
+    like: supportedAction("Follows the playlist on Spotify through the official API.", ["playlist-modify-public", "playlist-modify-private"]),
+    unlike: supportedAction("Unfollows the playlist on Spotify through the official API.", ["playlist-modify-public", "playlist-modify-private"]),
+    follow: supportedAction("Follows the user on Spotify through the official API.", ["user-follow-modify"]),
+    unfollow: supportedAction("Unfollows the user on Spotify through the official API.", ["user-follow-modify"]),
+  },
+};
 
 const CAPABILITY_BY_ID = new Map(PLATFORM_CAPABILITIES.map((capability) => [capability.id, capability]));
 
