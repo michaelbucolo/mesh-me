@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
 import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
+import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState, nsfwHiddenWhere } from "./content-safety";
 import { communityThreadTitle } from "./community-constants";
@@ -1176,6 +1177,7 @@ export async function createPost(formData: FormData) {
     const community = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
     if (community) revalidatePath(`/communities/${community.slug}`);
   }
+  clearMeshCache(user.id);
 
   return {
     success: true,
@@ -1201,6 +1203,10 @@ export async function deletePost(postId: string) {
   revalidatePath("/feed");
   revalidatePath(`/feed/${postId}`);
   revalidatePath(`/profile/${user.username}`);
+  clearMeshCache(user.id);
+  if (post.authorId !== user.id) {
+    clearMeshCache(post.authorId);
+  }
   return { success: true };
 }
 
@@ -1209,6 +1215,12 @@ export async function deletePost(postId: string) {
 export async function toggleReaction(postId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true },
+  });
+  if (!post) return { error: "Post not found" };
 
   const existing = await prisma.reaction.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
@@ -1222,8 +1234,7 @@ export async function toggleReaction(postId: string) {
     });
 
     // Create notification
-    const post = await prisma.post.findUnique({ where: { id: postId } });
-    if (post && post.authorId !== user.id) {
+    if (post.authorId !== user.id) {
       await prisma.notification.create({
         data: {
           type: "like",
@@ -1238,6 +1249,10 @@ export async function toggleReaction(postId: string) {
 
   revalidatePath("/feed");
   revalidatePath(`/feed/${postId}`);
+  clearMeshCache(user.id);
+  if (post.authorId !== user.id) {
+    clearMeshCache(post.authorId);
+  }
   return { success: true, liked: !existing };
 }
 
@@ -1257,6 +1272,12 @@ export async function createComment(formData: FormData) {
 
   const sanitizedComment = sanitizeForDisplay(content.trim());
 
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true },
+  });
+  if (!post) return { error: "Post not found" };
+
   await prisma.comment.create({
     data: {
       content: sanitizedComment,
@@ -1267,8 +1288,7 @@ export async function createComment(formData: FormData) {
   });
 
   // Create notification
-  const post = await prisma.post.findUnique({ where: { id: postId } });
-  if (post && post.authorId !== user.id) {
+  if (post.authorId !== user.id) {
     await prisma.notification.create({
       data: {
         type: "comment",
@@ -1282,6 +1302,10 @@ export async function createComment(formData: FormData) {
 
   revalidatePath("/feed");
   revalidatePath(`/feed/${postId}`);
+  clearMeshCache(user.id);
+  if (post.authorId !== user.id) {
+    clearMeshCache(post.authorId);
+  }
   return { success: true };
 }
 
@@ -1362,6 +1386,8 @@ export async function toggleFollow(targetUserId: string) {
   revalidatePath("/notifications");
   revalidatePath(`/profile/${user.username}`);
   revalidatePath(`/profile/${targetUser.username}`);
+  clearMeshCache(user.id);
+  clearMeshCache(targetUser.id);
   return { success: true, following: !existing, isFriend };
 }
 
@@ -1435,6 +1461,7 @@ export async function updateProfile(formData: FormData) {
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/settings");
   revalidatePath("/search");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -1502,6 +1529,7 @@ export async function createCommunity(formData: FormData) {
 
   revalidatePath("/communities");
   revalidatePath(`/communities/${community.slug}`);
+  clearMeshCache(user.id);
   return { success: true, communityId: community.id, slug: community.slug };
 }
 
@@ -1534,6 +1562,7 @@ export async function toggleCommunityMembership(communityId: string) {
 
   revalidatePath("/communities");
   revalidatePath(`/communities/${community.slug}`);
+  clearMeshCache(user.id);
   return { success: true, joined: !existing };
 }
 
@@ -1686,6 +1715,7 @@ export async function sendMessage(formData: FormData) {
   }
 
   revalidatePath("/messages");
+  clearMeshCache(user.id);
   return { success: true, threadId: finalThreadId };
 }
 
@@ -1876,6 +1906,8 @@ export async function toggleBlock(targetUserId: string) {
   }
 
   revalidatePath("/settings");
+  clearMeshCache(user.id);
+  clearMeshCache(targetUserId);
   return { success: true, blocked: !existing };
 }
 
@@ -2044,6 +2076,8 @@ export async function adminDeletePost(postId: string) {
 
   revalidatePath("/admin");
   revalidatePath("/feed");
+  clearMeshCache(user.id);
+  clearMeshCache(post.authorId);
   return { success: true };
 }
 
@@ -2505,6 +2539,8 @@ export async function removeMember(userId: string, communityId: string) {
 
   const removeCommunity = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
   if (removeCommunity) revalidatePath(`/communities/${removeCommunity.slug}`);
+  clearMeshCache(user.id);
+  clearMeshCache(userId);
   return { success: true };
 }
 
@@ -2541,7 +2577,7 @@ export async function moderateCommunityPost(formData: FormData) {
     prisma.communityMember.findUnique({
       where: { userId_communityId: { userId: user.id, communityId } },
     }),
-    prisma.post.findUnique({ where: { id: postId }, select: { id: true, communityId: true, isPinned: true } }),
+    prisma.post.findUnique({ where: { id: postId }, select: { id: true, communityId: true, isPinned: true, authorId: true } }),
     prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } }),
   ]);
 
@@ -2563,6 +2599,8 @@ export async function moderateCommunityPost(formData: FormData) {
   revalidatePath("/communities");
   revalidatePath("/feed");
   if (community) revalidatePath(`/communities/${community.slug}`);
+  clearMeshCache(user.id);
+  clearMeshCache(post.authorId);
   return { success: true };
 }
 
@@ -2636,6 +2674,7 @@ export async function sendCommunityMessage(formData: FormData) {
 
   revalidatePath(`/communities/${community.slug}`);
   revalidatePath("/messages");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -2647,12 +2686,22 @@ export async function deleteComment(commentId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { authorId: true, post: { select: { authorId: true } } },
+  });
   if (!comment) return { error: "Comment not found" };
   if (comment.authorId !== user.id && !user.isAdmin) return { error: "Unauthorized" };
 
   await prisma.comment.delete({ where: { id: commentId } });
   revalidatePath("/feed");
+  clearMeshCache(user.id);
+  if (comment.authorId !== user.id) {
+    clearMeshCache(comment.authorId);
+  }
+  if (comment.post.authorId !== user.id) {
+    clearMeshCache(comment.post.authorId);
+  }
   return { success: true };
 }
 
@@ -2681,6 +2730,7 @@ export async function updateUserLinks(links: { label: string; url: string }[]) {
 
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/settings");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -2703,6 +2753,7 @@ export async function updateUserInterests(interests: string[]) {
 
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/settings");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -2971,6 +3022,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
 
   revalidatePath("/mesh");
   revalidatePath("/settings");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -3025,6 +3077,7 @@ export async function updateMeshCosmetics(cosmetics: { type: string; value: stri
 
   revalidatePath("/mesh");
   revalidatePath("/settings");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -3073,6 +3126,7 @@ export async function updateMeshPrivacy(data: {
   revalidatePath("/settings");
   revalidatePath("/privacy-controls");
   revalidatePath("/mesh");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -3100,6 +3154,7 @@ export async function optIntoGlobalMesh(sharedBranches: string[]) {
 
   revalidatePath("/settings");
   revalidatePath("/mesh");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -3115,6 +3170,7 @@ export async function optOutOfGlobalMesh() {
 
   revalidatePath("/settings");
   revalidatePath("/mesh");
+  clearMeshCache(user.id);
   return { success: true };
 }
 
@@ -3223,6 +3279,7 @@ export async function redeemCode(code: string) {
   }
 
   revalidatePath("/settings");
+  clearMeshCache(user.id);
   return {
     success: true,
     reward: {

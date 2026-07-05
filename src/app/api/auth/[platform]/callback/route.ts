@@ -15,6 +15,7 @@ import { serializeScopes, syncConnectedAccountPermissions } from "@/lib/platform
 import { encryptSecret, hasSecretEncryptionKey } from "@/lib/secret-store";
 import { cookies } from "next/headers";
 import { timingSafeEqual } from "crypto";
+import { clearMeshCache } from "@/lib/mesh-cache";
 
 function safeStateEquals(storedState: string, incomingState: string) {
   if (storedState.length > 256 || incomingState.length > 256) return false;
@@ -278,6 +279,7 @@ export async function GET(
       throw new Error("Connected account was not saved");
     }
 
+    clearMeshCache(user.id);
     return NextResponse.redirect(
       `${connectedAccountsUrl}?connected=${encodedPlatform}`
     );
