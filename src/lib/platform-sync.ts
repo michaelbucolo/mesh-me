@@ -2183,6 +2183,8 @@ export async function deletePlatformPost(postId: string) {
 
   const capability = getPlatformActionCapability(post.connectedAccount.platform, "delete");
   if (!capability.supported) return { error: capability.reason };
+  const scopeError = missingScopeError(post.connectedAccount, capability);
+  if (scopeError) return { error: scopeError };
 
   const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
   if (post.connectedAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
@@ -2215,6 +2217,11 @@ export async function crossPostContent(content: string, platforms: string[], med
       const capability = getPlatformActionCapability(account.platform, "cross-post");
       if (!capability.supported) {
         results[account.platformUsername || account.platform] = { success: false, error: capability.reason };
+        continue;
+      }
+      const scopeError = missingScopeError(account, capability);
+      if (scopeError) {
+        results[account.platformUsername || account.platform] = { success: false, error: scopeError };
         continue;
       }
       const accessToken = getStoredAccessToken(account.accessToken);
@@ -2258,6 +2265,11 @@ export async function crossPostContent(content: string, platforms: string[], med
       const accessToken = getStoredAccessToken(account?.accessToken || null);
       if (!account) {
         results[platform] = { success: false, error: "Not connected or no access token" };
+        continue;
+      }
+      const scopeError = missingScopeError(account, capability);
+      if (scopeError) {
+        results[platform] = { success: false, error: scopeError };
         continue;
       }
       if (account.accessToken && !accessToken) {
@@ -2308,6 +2320,8 @@ export async function editPlatformPost(postId: string, content: string) {
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
   const capability = getPlatformActionCapability(post.connectedAccount.platform, "edit");
   if (!capability.supported) return { error: capability.reason };
+  const scopeError = missingScopeError(post.connectedAccount, capability);
+  if (scopeError) return { error: scopeError };
   const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -2466,6 +2480,8 @@ export async function sharePlatformPost(postId: string, comment?: string) {
 
   const capability = getPlatformActionCapability(actingAccount.platform, "share");
   if (!capability.supported) return { error: capability.reason };
+  const scopeError = missingScopeError(actingAccount, capability);
+  if (scopeError) return { error: scopeError };
   const accessToken = getStoredAccessToken(actingAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
@@ -2574,6 +2590,8 @@ export async function replyToPlatformComment(postId: string, content: string) {
 
   const capability = getPlatformActionCapability(actingAccount.platform, "reply");
   if (!capability.supported) return { error: capability.reason };
+  const scopeError = missingScopeError(actingAccount, capability);
+  if (scopeError) return { error: scopeError };
 
   const accessToken = getStoredAccessToken(actingAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
@@ -2608,6 +2626,8 @@ export async function deletePlatformComment(commentId: string) {
   if (!comment || comment.connectedAccount.userId !== user.id) return { error: "Comment not found" };
   const capability = getPlatformActionCapability(comment.connectedAccount.platform, "delete-comment");
   if (!capability.supported) return { error: capability.reason };
+  const scopeError = missingScopeError(comment.connectedAccount, capability);
+  if (scopeError) return { error: scopeError };
   const accessToken = getStoredAccessToken(comment.connectedAccount.accessToken);
   if (!accessToken) return { error: "No access token" };
 
