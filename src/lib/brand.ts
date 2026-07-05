@@ -55,7 +55,7 @@ export const meshBrand = {
 } as const;
 
 export function getSiteUrl() {
-  const fallback = "https://mesh.me";
+  const fallback = "https://www.meshs.me";
   const raw =
     typeof process !== "undefined"
       ? process.env.NEXT_PUBLIC_APP_URL?.trim() ||
