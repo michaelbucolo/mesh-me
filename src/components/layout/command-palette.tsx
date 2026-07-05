@@ -14,12 +14,10 @@ import {
   HelpCircle,
   Keyboard,
   Lightbulb,
-  MessageCircle,
   Network,
   Palette,
   PenSquare,
   PlugZap,
-  Rss,
   Search,
   Settings,
   ShieldCheck,
@@ -27,8 +25,8 @@ import {
   Trash2,
   UserRound,
   UsersRound,
-  Waypoints,
 } from "lucide-react";
+import { FlowIcon, MeChatIcon, MeshIcon } from "@/components/brand/nav-icons";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { openMeshi } from "@/lib/meshi-events";
@@ -74,7 +72,7 @@ function createCommands(username: string): CommandItem[] {
       description: "Scroll the unified social feed.",
       category: "Go",
       href: "/feed",
-      icon: Rss,
+      icon: FlowIcon,
       keywords: ["home", "timeline", "twitter", "x", "instagram", "posts"],
     },
     {
@@ -83,7 +81,7 @@ function createCommands(username: string): CommandItem[] {
       description: "Go to the full-screen digital footprint dashboard.",
       category: "Go",
       href: "/mesh",
-      icon: Waypoints,
+      icon: MeshIcon,
       keywords: ["dashboard", "map", "network", "nodes", "constellation"],
     },
     {
@@ -101,7 +99,7 @@ function createCommands(username: string): CommandItem[] {
       description: "Jump to messages, shared posts, and group sessions.",
       category: "Go",
       href: "/messages",
-      icon: MessageCircle,
+      icon: MeChatIcon,
       keywords: ["chat", "dm", "inbox", "conversation", "call"],
     },
     {
