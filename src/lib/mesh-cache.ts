@@ -1,5 +1,5 @@
 const MESH_CACHE_TTL_MS = 45_000;
-const MESH_CACHE_MAX_ENTRIES = 500;
+const MESH_CACHE_MAX_ENTRIES = 200;
 
 type MeshCacheEntry = {
   expiresAt: number;

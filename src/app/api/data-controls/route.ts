@@ -397,6 +397,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    clearMeshCache(user.id);
     revalidatePath("/privacy-controls");
     revalidatePath("/settings");
     revalidatePath("/mesh");
