@@ -26,7 +26,7 @@ import {
 } from "@/components/meshi/meshi-mascot";
 import { Avatar } from "@/components/ui/avatar";
 import { getCurrentUser } from "@/lib/auth";
-import { getUserPosts, getUserProfile } from "@/lib/queries";
+import { getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
 
@@ -69,25 +69,31 @@ function PlatformIcon({ platform }: { platform: string }) {
   );
 }
 
-export async function InstagramProfileView({ username }: { username: string }) {
+export async function InstagramProfileView({ username, tab }: { username: string; tab?: string }) {
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
 
-  const [profile, posts] = await Promise.all([
+  const [profile, posts, memberships] = await Promise.all([
     getUserProfile(username),
     getUserPosts(username, 1, 24),
+    getUserCommunities(username),
   ]);
 
   if (!profile) notFound();
 
   const isOwnProfile = profile.isOwnProfile;
+  const savedPosts = isOwnProfile ? await getSavedPosts(1, 24) : [];
   const canViewProfile = profile.sectionVisibility.profile;
   const meshi = profile.meshiPreference ?? DEFAULT_MESHI;
   const connectedAccounts = profile.connectedAccounts ?? [];
   const links = profile.links ?? [];
   const postCount = profile._count.posts;
-  const communityCount = 0;
-  const collectionCount = 0;
+  const communityCount = memberships.length;
+  const collectionCount = savedPosts.length;
+  const basePath = isOwnProfile ? "/profile" : `/profile/${username}`;
+  const activeTab = ["posts", "communities", "collections", "links"].includes(tab ?? "")
+    ? (tab as string)
+    : "posts";
 
   return (
     <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] animate-page-enter">
@@ -261,16 +267,124 @@ export async function InstagramProfileView({ username }: { username: string }) {
 
         {/* Tabs */}
         {canViewProfile && (
-          <nav className="profile-tabs-nav flex items-center gap-1 border-b border-[var(--mesh-border)] px-1" aria-label="Profile sections">
-            <ProfileTab label="Posts" count={postCount} active />
-            <ProfileTab label="Communities" count={communityCount} />
-            <ProfileTab label="Collections" count={collectionCount} />
-            <ProfileTab label="Creator Links" count={links.length} />
+          <nav className="profile-tabs-nav flex items-center gap-1 overflow-x-auto border-b border-[var(--mesh-border)] px-1" aria-label="Profile sections">
+            <ProfileTab label="Posts" count={postCount} href={basePath} active={activeTab === "posts"} />
+            <ProfileTab label="Communities" count={communityCount} href={`${basePath}?tab=communities`} active={activeTab === "communities"} />
+            {isOwnProfile && (
+              <ProfileTab label="Collections" count={collectionCount} href={`${basePath}?tab=collections`} active={activeTab === "collections"} />
+            )}
+            <ProfileTab label="Creator Links" count={links.length} href={`${basePath}?tab=links`} active={activeTab === "links"} />
           </nav>
         )}
 
+        {/* Active section */}
+        {canViewProfile && activeTab === "communities" && (
+          <div className="space-y-3">
+            {memberships.length > 0 ? (
+              memberships.map((m) => (
+                <Link
+                  key={m.community.id}
+                  href={`/communities/${m.community.slug}`}
+                  className="flex items-center justify-between rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-5 py-4 transition-colors hover:border-[var(--mesh-border-active)]"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[var(--mesh-text)]">{m.community.name}</p>
+                    <p className="mt-0.5 text-xs text-[var(--mesh-text-muted)]">
+                      {formatCount(m.community._count.members)} members · {formatCount(m.community._count.posts)} posts
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
+                    {m.role === "ADMIN" ? "Admin" : m.role === "MODERATOR" ? "Moderator" : "Joined"}
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+                <h2 className="text-lg font-bold text-[var(--mesh-text)]">No communities yet</h2>
+                <p className="text-sm text-[var(--mesh-text-secondary)]">
+                  {isOwnProfile ? "Join communities to see them here." : `${profile.displayName} hasn't joined any communities.`}
+                </p>
+                {isOwnProfile && (
+                  <Link href="/communities" className="mt-2 rounded-xl bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--mesh-blue)]/90">
+                    Browse communities
+                  </Link>
+                )}
+              </section>
+            )}
+          </div>
+        )}
+
+        {canViewProfile && activeTab === "collections" && isOwnProfile && (
+          <div className="space-y-4">
+            {savedPosts.length > 0 ? (
+              savedPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/feed/${post.id}`}
+                  className="block rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 transition-colors hover:border-[var(--mesh-border-active)]"
+                >
+                  <div className="flex items-start gap-3">
+                    <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size="md" className="h-10 w-10 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-[var(--mesh-text)]">{post.author.displayName}</span>
+                        <span className="text-xs text-[var(--mesh-text-muted)]">@{post.author.username}</span>
+                        <span className="text-xs text-[var(--mesh-text-muted)]">·</span>
+                        <span className="text-xs text-[var(--mesh-text-muted)]">{formatRelativeTime(post.createdAt)}</span>
+                      </div>
+                      {post.content && <p className="mt-2 text-sm leading-relaxed text-[var(--mesh-text)]">{post.content}</p>}
+                      <div className="mt-3 flex items-center gap-5 text-xs text-[var(--mesh-text-muted)]">
+                        <span className="flex items-center gap-1.5"><Heart size={14} /> {formatCount(post._count.reactions)}</span>
+                        <span className="flex items-center gap-1.5"><MessageCircle size={14} /> {formatCount(post._count.comments)}</span>
+                        <span className="ml-auto flex items-center gap-1.5 text-[var(--mesh-blue)]"><Bookmark size={14} /> Saved</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+                <h2 className="text-lg font-bold text-[var(--mesh-text)]">No saved posts yet</h2>
+                <p className="text-sm text-[var(--mesh-text-secondary)]">Bookmark posts in the Flow to collect them here.</p>
+              </section>
+            )}
+          </div>
+        )}
+
+        {canViewProfile && activeTab === "links" && (
+          <div className="space-y-3">
+            {links.length > 0 ? (
+              links.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-5 py-4 transition-colors hover:border-[var(--mesh-border-active)]"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Globe size={16} className="shrink-0 text-[var(--mesh-text-muted)]" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--mesh-text)]">{link.label || link.url.replace(/^https?:\/\//, "")}</p>
+                      <p className="truncate text-xs text-[var(--mesh-text-muted)]">{link.url}</p>
+                    </div>
+                  </div>
+                  <ExternalLink size={14} className="shrink-0 text-[var(--mesh-text-muted)]" />
+                </a>
+              ))
+            ) : (
+              <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+                <h2 className="text-lg font-bold text-[var(--mesh-text)]">No creator links yet</h2>
+                <p className="text-sm text-[var(--mesh-text-secondary)]">
+                  {isOwnProfile ? "Add links to your channels from Settings." : `${profile.displayName} hasn't added any links.`}
+                </p>
+              </section>
+            )}
+          </div>
+        )}
+
         {/* Posts list */}
-        {!canViewProfile ? (
+        {activeTab !== "posts" && canViewProfile ? null : !canViewProfile ? (
           <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
             <EyeOff className="h-10 w-10 text-[var(--mesh-text-muted)]" aria-hidden="true" />
             <h2 className="text-lg font-bold text-[var(--mesh-text)]">Private profile</h2>
@@ -367,7 +481,15 @@ export async function InstagramProfileView({ username }: { username: string }) {
           </div>
           <div className="space-y-3">
             {communityCount > 0 ? (
-              <p className="text-xs text-[var(--mesh-text-muted)]">Community memberships will appear here.</p>
+              memberships.slice(0, 3).map((m) => (
+                <Link key={m.community.id} href={`/communities/${m.community.slug}`} className="flex items-center justify-between gap-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-[var(--mesh-text)]">{m.community.name}</p>
+                    <p className="text-xs text-[var(--mesh-text-muted)]">{formatCount(m.community._count.members)} members</p>
+                  </div>
+                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">Joined</span>
+                </Link>
+              ))
             ) : (
               <p className="text-xs text-[var(--mesh-text-muted)]">
                 {isOwnProfile ? "Join communities to see them here." : "No communities yet."}
@@ -384,7 +506,12 @@ export async function InstagramProfileView({ username }: { username: string }) {
           </div>
           <div className="space-y-3">
             {collectionCount > 0 ? (
-              <p className="text-xs text-[var(--mesh-text-muted)]">Saved collections will appear here.</p>
+              savedPosts.slice(0, 3).map((post) => (
+                <Link key={post.id} href={`/feed/${post.id}`} className="block text-sm">
+                  <p className="truncate font-medium text-[var(--mesh-text)]">{post.content || "Saved post"}</p>
+                  <p className="text-xs text-[var(--mesh-text-muted)]">by @{post.author.username}</p>
+                </Link>
+              ))
             ) : (
               <p className="text-xs text-[var(--mesh-text-muted)]">
                 {isOwnProfile ? "Save posts to collections to see them here." : "No collections yet."}
@@ -445,11 +572,11 @@ export async function InstagramProfileView({ username }: { username: string }) {
   );
 }
 
-function ProfileTab({ label, count, active = false }: { label: string; count: number; active?: boolean }) {
+function ProfileTab({ label, count, href, active = false }: { label: string; count: number; href: string; active?: boolean }) {
   return (
-    <button
-      type="button"
-      className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+    <Link
+      href={href}
+      className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
         active
           ? "border-[var(--mesh-blue)] text-[var(--mesh-text)]"
           : "border-transparent text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
@@ -459,7 +586,7 @@ function ProfileTab({ label, count, active = false }: { label: string; count: nu
       <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
         {count}
       </span>
-    </button>
+    </Link>
   );
 }
 

@@ -10,7 +10,14 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   };
 }
 
-export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
+export default async function ProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { username } = await params;
-  return <InstagramProfileView username={username} />;
+  const { tab } = await searchParams;
+  return <InstagramProfileView username={username} tab={tab} />;
 }
