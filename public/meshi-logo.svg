@@ -11,13 +11,22 @@
   </defs>
   <rect x="0" y="0" width="360" height="104" rx="28" fill="#0f141b"/>
   <g transform="translate(26 18)">
-    <circle cx="34" cy="34" r="32" fill="#58a6ff" opacity="0.12"/>
+    <g stroke="#58a6ff" stroke-width="1.4" opacity="0.5">
+      <path d="M34 34 8 12M34 34 62 10M34 34 4 46M34 34 64 44M34 34 16 62M34 34 54 62"/>
+      <path d="M8 12 62 10M4 46 16 62M64 44 54 62" opacity="0.5"/>
+    </g>
+    <g fill="#79b8ff">
+      <circle cx="8" cy="12" r="3"/>
+      <circle cx="62" cy="10" r="2.4"/>
+      <circle cx="4" cy="46" r="2.4"/>
+      <circle cx="64" cy="44" r="3"/>
+      <circle cx="16" cy="62" r="2.2"/>
+      <circle cx="54" cy="62" r="2.6"/>
+    </g>
     <circle cx="34" cy="34" r="26" fill="url(#meshi-bubble)" filter="url(#meshi-shadow)"/>
     <circle cx="25" cy="32" r="4.4" fill="#0f141b"/>
     <circle cx="43" cy="32" r="4.4" fill="#0f141b"/>
-    <circle cx="23.8" cy="30.4" r="1.2" fill="#ffffff" opacity="0.86"/>
-    <circle cx="41.8" cy="30.4" r="1.2" fill="#ffffff" opacity="0.86"/>
   </g>
-  <text x="112" y="50" fill="#f7f9fc" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="0">Mesh.me</text>
+  <text x="112" y="50" fill="#f7f9fc" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="0">mesh<tspan fill="#58a6ff">.me</tspan></text>
   <text x="114" y="74" fill="#9aa7b8" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif" font-size="15" font-weight="600" letter-spacing="0">Your World, Your Way</text>
 </svg>

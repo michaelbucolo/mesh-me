@@ -15,9 +15,19 @@
   </defs>
   <rect width="128" height="128" rx="32" fill="#0f141b"/>
   <circle cx="64" cy="64" r="48" fill="url(#glow)"/>
+  <g stroke="#58a6ff" stroke-width="2" opacity="0.5">
+    <path d="M64 64 22 26M64 64 106 22M64 64 14 76M64 64 114 72M64 64 34 112M64 64 96 110"/>
+    <path d="M22 26 106 22M14 76 34 112M114 72 96 110" opacity="0.5"/>
+  </g>
+  <g fill="#79b8ff">
+    <circle cx="22" cy="26" r="4.6"/>
+    <circle cx="106" cy="22" r="3.8"/>
+    <circle cx="14" cy="76" r="3.6"/>
+    <circle cx="114" cy="72" r="4.6"/>
+    <circle cx="34" cy="112" r="3.4"/>
+    <circle cx="96" cy="110" r="4"/>
+  </g>
   <circle cx="64" cy="64" r="38" fill="url(#bubble)" filter="url(#shadow)"/>
   <circle cx="50" cy="61" r="6.4" fill="#0f141b"/>
   <circle cx="78" cy="61" r="6.4" fill="#0f141b"/>
-  <circle cx="48.2" cy="58.8" r="1.7" fill="#ffffff" opacity="0.86"/>
-  <circle cx="76.2" cy="58.8" r="1.7" fill="#ffffff" opacity="0.86"/>
 </svg>

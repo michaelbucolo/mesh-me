@@ -10,9 +10,18 @@
     </filter>
   </defs>
   <rect width="64" height="64" rx="18" fill="#0f141b"/>
+  <g stroke="#58a6ff" stroke-width="1.2" opacity="0.5">
+    <path d="M32 32 11 13M32 32 53 11M32 32 8 38M32 32 56 36M32 32 17 56M32 32 48 55"/>
+  </g>
+  <g fill="#79b8ff">
+    <circle cx="11" cy="13" r="2.4"/>
+    <circle cx="53" cy="11" r="2"/>
+    <circle cx="8" cy="38" r="1.9"/>
+    <circle cx="56" cy="36" r="2.4"/>
+    <circle cx="17" cy="56" r="1.8"/>
+    <circle cx="48" cy="55" r="2.1"/>
+  </g>
   <circle cx="32" cy="32" r="20" fill="url(#bubble)" filter="url(#soft-shadow)"/>
   <circle cx="25" cy="31" r="3.8" fill="#0f141b"/>
   <circle cx="39" cy="31" r="3.8" fill="#0f141b"/>
-  <circle cx="24" cy="29.7" r="1.1" fill="#f7f9fc" opacity="0.82"/>
-  <circle cx="38" cy="29.7" r="1.1" fill="#f7f9fc" opacity="0.82"/>
 </svg>
