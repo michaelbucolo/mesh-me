@@ -723,7 +723,7 @@ export function FeedTimelineClient({
       {reelsOpen && posts.length > 0 && (
         <FlowReels
           posts={posts}
-          startId={activeFeedItemId}
+          startId={flowPostId ?? activeFeedItemId}
           currentUserId={user.id}
           connectedPlatforms={connectedPlatforms}
           hasMore={hasMore}
