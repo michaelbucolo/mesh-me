@@ -8,8 +8,13 @@ export const metadata: Metadata = {
   description: "Manage your Mesh.me identity, Meshi presence, connected profiles, and public digital footprint.",
 };
 
-export default async function ProfileIndexPage() {
+export default async function ProfileIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/profile");
-  return <InstagramProfileView username={user.username} />;
+  const { tab } = await searchParams;
+  return <InstagramProfileView username={user.username} tab={tab} />;
 }
