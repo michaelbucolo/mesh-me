@@ -1,6 +1,7 @@
 import {
   Compass,
   MessageCircle,
+  Sparkles,
   User,
   Waypoints,
   type LucideIcon,
@@ -23,9 +24,10 @@ export interface NavGroup {
 
 export const sidebarNavItems: NavItem[] = [
   { href: "/mesh", icon: Waypoints, label: "Mesh" },
-  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
   { href: "/feed", icon: Compass, label: "Flow" },
+  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
   { href: "/profile", icon: User, label: "Profile" },
+  { href: "/explore", icon: Sparkles, label: "Explore" },
 ];
 
 export const desktopNavGroups: NavGroup[] = [
@@ -33,8 +35,9 @@ export const desktopNavGroups: NavGroup[] = [
     label: "Core",
     items: [
       { href: "/mesh", icon: Waypoints, label: "Mesh" },
-      { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
       { href: "/feed", icon: Compass, label: "Flow" },
+      { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
+      { href: "/explore", icon: Sparkles, label: "Explore" },
     ],
   },
 ];
@@ -45,9 +48,10 @@ export const desktopBottomItems: NavItem[] = [
 
 export const mobileNavItems: NavItem[] = [
   { href: "/mesh", icon: Waypoints, label: "Mesh" },
-  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
   { href: "/feed", icon: Compass, label: "Flow" },
+  { href: "/messages", icon: MessageCircle, label: "MeChat", badgeKey: "messages" },
   { href: "/profile", icon: User, label: "Profile" },
+  { href: "/explore", icon: Sparkles, label: "Explore" },
 ];
 
 export function resolveNavHref(href: string, username?: string): string {
