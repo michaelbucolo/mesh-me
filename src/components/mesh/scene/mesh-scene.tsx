@@ -112,6 +112,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [discoverUsers, setDiscoverUsers] = useState<
+    { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
+  >([]);
 
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
@@ -515,10 +518,19 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         const node = hitTest(e.clientX - rect.left, e.clientY - rect.top);
         if (node) {
           activateNode(node);
-        } else {
-          setSelectedNode(null);
-          setActiveBranch(null);
+          return;
         }
+        // On touch, Meshi is the cursor: a tap selects whatever it is on,
+        // unless the tap landed directly on another node (handled above).
+        if (coarseRef.current && focusIdRef.current) {
+          const focused = modelRef.current?.nodes.get(focusIdRef.current);
+          if (focused) {
+            activateNode(focused);
+            return;
+          }
+        }
+        setSelectedNode(null);
+        setActiveBranch(null);
       }
     },
     [activateNode, hitTest],
@@ -682,6 +694,45 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [zoomBy, fitToContent]);
+
+  // Discoverability: the mesh search also reaches across all of mesh.me, so
+  // you can find any public user and step straight into their mesh.
+  useEffect(() => {
+    if (!showSearch) return;
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setDiscoverUsers([]);
+      return;
+    }
+    const controller = new AbortController();
+    setDiscoverUsers([]);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (!data || controller.signal.aborted) return;
+        const users = Array.isArray(data.users) ? data.users : [];
+        setDiscoverUsers(
+          users
+            .filter((u: { id: string }) => u.id !== meshOwnerIdRef.current)
+            .slice(0, 5)
+            .map((u: { id: string; username: string; displayName: string | null; avatarUrl: string | null }) => ({
+              id: u.id,
+              username: u.username,
+              displayName: u.displayName,
+              avatarUrl: u.avatarUrl,
+            })),
+        );
+      } catch {
+        // Discovery search is best-effort.
+      }
+    }, 220);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [showSearch, searchQuery]);
 
   const searchResults = (() => {
     if (!showSearch) return [];
@@ -964,8 +1015,42 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 ))}
               </ul>
             )}
-            {searchQuery.trim() && searchResults.length === 0 && (
-              <p className="border-t border-white/8 px-3 py-3 text-xs text-white/45">Nothing in your mesh matches that.</p>
+            {discoverUsers.length > 0 && (
+              <div className="border-t border-white/8 pt-1">
+                <p className="px-3 pt-1.5 pb-0.5 text-[10px] uppercase tracking-wide text-white/35">Across mesh.me</p>
+                <ul className="max-h-48 overflow-y-auto">
+                  {discoverUsers.map((u) => (
+                    <li key={u.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSearch(false);
+                          setSearchQuery("");
+                          router.push(`/mesh?user=${encodeURIComponent(u.id)}`);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                      >
+                        {u.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={u.avatarUrl} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+                        ) : (
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold text-white/70">
+                            {(u.displayName || u.username).slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm text-white">{u.displayName || u.username}</span>
+                          <span className="block truncate text-[11px] text-white/50">@{u.username}</span>
+                        </span>
+                        <span className="shrink-0 text-[10px] uppercase tracking-wide text-white/35">Visit mesh</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {searchQuery.trim() && searchResults.length === 0 && discoverUsers.length === 0 && (
+              <p className="border-t border-white/8 px-3 py-3 text-xs text-white/45">Nothing on the mesh matches that.</p>
             )}
           </div>
         </div>
