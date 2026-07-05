@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, ChevronsDown, Loader2, X } from "lucide-react";
 import { PostCard } from "@/components/feed/post-card";
 
@@ -29,6 +30,10 @@ type FlowReelsProps = {
   onClose: () => void;
   onLoadMore: () => void;
 };
+
+const subscribeNoop = () => () => {};
+const getTrue = () => true;
+const getFalse = () => false;
 
 // Posts related to the anchor: same author, shared community, or overlapping tags.
 function relatedTo(anchor: ReelPost, all: ReelPost[]): ReelPost[] {
@@ -65,6 +70,7 @@ export function FlowReels({
   const laneRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [activeId, setActiveId] = useState<string | null>(startId ?? posts[0]?.id ?? null);
   const [activeHasRelated, setActiveHasRelated] = useState(false);
+  const mounted = useSyncExternalStore(subscribeNoop, getTrue, getFalse);
 
   const relatedByPost = useMemo(() => {
     const map = new Map<string, ReelPost[]>();
@@ -74,10 +80,10 @@ export function FlowReels({
 
   // Scroll the chosen starting post into view on open.
   useEffect(() => {
-    if (!startId) return;
+    if (!startId || !mounted) return;
     const lane = laneRefs.current.get(startId);
     lane?.scrollIntoView({ block: "start" });
-  }, [startId]);
+  }, [startId, mounted]);
 
   // Track which lane is centered (the active reel) + whether it has related content.
   useEffect(() => {
@@ -98,7 +104,7 @@ export function FlowReels({
     );
     laneRefs.current.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
-  }, [posts, relatedByPost]);
+  }, [posts, relatedByPost, mounted]);
 
   // Pull more reels when the viewer nears the end of the stack.
   useEffect(() => {
@@ -124,7 +130,9 @@ export function FlowReels({
     else laneRefs.current.delete(id);
   }, []);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="flow-reels-overlay" role="dialog" aria-label="Immersive Flow">
       <button type="button" onClick={onClose} className="flow-reels-close" aria-label="Exit immersive Flow">
         <X size={20} aria-hidden="true" />
@@ -178,6 +186,7 @@ export function FlowReels({
           </span>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
