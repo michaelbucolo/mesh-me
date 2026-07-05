@@ -490,7 +490,7 @@ export async function getCombinedFeedPosts({
   contentFilter: FeedContentFilter;
   limit: number;
 }) {
-  const providerLimit = Math.min(Math.max(limit * 2, limit + 12), 120);
+  const providerLimit = Math.min(Math.max(limit * 2, 48), 120);
   const [nativePosts, ownPlatformPosts, friendPlatformPosts, mergedForYouPosts] = await Promise.all([
     getNativeFeedPostsForSource(user, source, providerLimit),
     source === "discover" ? Promise.resolve([]) : getConnectedPlatformFeedPosts(user, providerLimit),

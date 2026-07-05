@@ -5,6 +5,7 @@ import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 
 const meshPayloadCache = new Map<string, { expiresAt: number; payload: unknown }>();
+const MESH_CACHE_MAX_ENTRIES = 500;
 
 export async function GET(req: Request) {
   try {
@@ -676,6 +677,11 @@ export async function GET(req: Request) {
     },
   };
 
+  meshPayloadCache.delete(user.id);
+  if (meshPayloadCache.size >= MESH_CACHE_MAX_ENTRIES) {
+    const oldest = meshPayloadCache.keys().next().value;
+    if (oldest !== undefined) meshPayloadCache.delete(oldest);
+  }
   meshPayloadCache.set(user.id, { expiresAt: Date.now() + 45_000, payload });
   return NextResponse.json(payload);
   } catch (error) {
