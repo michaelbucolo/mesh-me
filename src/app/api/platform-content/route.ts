@@ -32,6 +32,7 @@ import {
   getConnectedAccountDetails,
 } from "@/lib/platform-sync";
 import { getPlatformCapabilitiesSnapshot } from "@/lib/platform-capabilities";
+import { clearMeshCache } from "@/lib/mesh-cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -119,7 +120,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
     }
 
-    if (!(await getCurrentUser())) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const body = await readJsonObject(request);
     if (!body) {
@@ -214,6 +216,7 @@ export async function POST(request: NextRequest) {
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
+    clearMeshCache(user.id);
     return NextResponse.json({ success: true, ...result });
   } catch {
     return NextResponse.json({ error: "Action failed" }, { status: 500 });

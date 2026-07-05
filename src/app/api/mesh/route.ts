@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
+import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
 
 export async function GET(req: Request) {
   try {
@@ -16,6 +17,11 @@ export async function GET(req: Request) {
 
   if (viewUserId && viewUserId !== user.id) {
     return getPublicMesh(viewUserId, user.id);
+  }
+
+  const cachedPayload = getMeshCache(user.id);
+  if (cachedPayload !== undefined) {
+    return NextResponse.json(cachedPayload);
   }
 
   const safetyWhere = nsfwHiddenWhere(user);
@@ -474,7 +480,7 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
+  const payload = {
     user: {
       id: user.id, username: user.username, displayName: user.displayName,
       avatarUrl: user.avatarUrl, bio: user.bio,
@@ -663,7 +669,10 @@ export async function GET(req: Request) {
       alterEgoCount: alterEgosData.length,
       activityCount: activityData.length,
     },
-  });
+  };
+
+  setMeshCache(user.id, payload);
+  return NextResponse.json(payload);
   } catch (error) {
     console.error("Mesh API error:", error);
     return NextResponse.json(
