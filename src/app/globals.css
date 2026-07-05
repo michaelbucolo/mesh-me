@@ -3285,7 +3285,7 @@ html {
 
 .mesh-entry-constellation {
   position: fixed;
-  inset: -8vmax;
+  inset: 0;
   z-index: 1;
   opacity: 0.7;
   pointer-events: none;
@@ -3316,32 +3316,32 @@ html {
 
 .mesh-entry-constellation::after {
   box-shadow:
-    inset 0 0 80px rgba(10, 14, 20, 0.6);
+    inset 0 0 80px rgba(10, 14, 20, 0.34);
 }
 
 .mesh-entry-edge-line {
   stroke: url("#mesh-entry-line");
-  stroke-width: 0.055;
+  stroke-width: 1.05;
   fill: none;
-  opacity: 0.28;
+  opacity: 0.5;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 0.35 1.05;
+  stroke-dasharray: 5 15;
   animation: mesh-entry-line-pulse 8.4s ease-in-out infinite;
 }
 
 .mesh-entry-edge-line-strong {
-  stroke-width: 0.085;
-  opacity: 0.44;
-  stroke-dasharray: 0.8 1.4;
+  stroke-width: 1.5;
+  opacity: 0.66;
+  stroke-dasharray: 11 20;
 }
 
 .mesh-entry-sweep-line {
   fill: none;
   stroke: url("#mesh-entry-line");
-  stroke-width: 0.11;
+  stroke-width: 1.4;
   stroke-linecap: round;
-  stroke-dasharray: 6 18;
+  stroke-dasharray: 80 240;
   opacity: 0.36;
   animation: mesh-entry-sweep-current 12s linear infinite;
 }
@@ -3393,7 +3393,7 @@ html {
 }
 
 .mesh-entry-node {
-  opacity: 0.76;
+  opacity: 0.94;
   transform-box: fill-box;
   transform-origin: center;
   animation:
@@ -3410,7 +3410,7 @@ html {
 }
 
 .mesh-entry-spark {
-  opacity: 0.24;
+  opacity: 0.4;
   transform-box: fill-box;
   transform-origin: center;
   animation: mesh-entry-spark-drift 7.2s ease-in-out infinite;
@@ -3769,14 +3769,14 @@ html {
   }
   50% {
     opacity: 0.58;
-    stroke-dashoffset: -1.8;
+    stroke-dashoffset: -26;
   }
 }
 
 @keyframes mesh-entry-sweep-current {
   0% {
     opacity: 0;
-    stroke-dashoffset: 24;
+    stroke-dashoffset: 320;
   }
   12% {
     opacity: 0.42;
@@ -3786,7 +3786,7 @@ html {
   }
   100% {
     opacity: 0;
-    stroke-dashoffset: -60;
+    stroke-dashoffset: -800;
   }
 }
 
@@ -3795,7 +3795,7 @@ html {
     stroke-dashoffset: 0;
   }
   50% {
-    stroke-dashoffset: -2.4;
+    stroke-dashoffset: -30;
   }
 }
 
@@ -3804,7 +3804,7 @@ html {
     stroke-dashoffset: 0;
   }
   to {
-    stroke-dashoffset: -2.38;
+    stroke-dashoffset: -32.5;
   }
 }
 
