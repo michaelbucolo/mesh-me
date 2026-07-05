@@ -243,6 +243,10 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           branch: "platforms",
           href: pp.url || undefined,
           weight: clamp01(0.22 + Math.min((pp.likeCount || 0) + (pp.commentCount || 0) * 2, 400) / 800),
+          meta: [
+            { label: "Likes", value: String(pp.likeCount ?? 0) },
+            { label: "Comments", value: String(pp.commentCount ?? 0) },
+          ],
         });
       });
     });
@@ -305,6 +309,10 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           branch: "people",
           href: "/feed/" + fp.id,
           weight: 0.24,
+          meta: [
+            { label: "Likes", value: String(fp.likeCount ?? fp._count?.likes ?? 0) },
+            { label: "Comments", value: String(fp.commentCount ?? fp._count?.comments ?? 0) },
+          ],
         });
       });
     });

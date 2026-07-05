@@ -64,6 +64,159 @@ function withAlpha(hex: string, alpha: number): string {
   return hex.length === 7 ? hex + a : hex;
 }
 
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function metaValue(node: SceneNode, label: string): string | null {
+  const entry = node.meta?.find((m) => m.label === label);
+  return entry ? entry.value : null;
+}
+
+function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (ctx.measureText(text.slice(0, mid) + "…").width <= maxW) lo = mid;
+    else hi = mid - 1;
+  }
+  return text.slice(0, lo).trimEnd() + "…";
+}
+
+/** Split text into up to two lines that fit maxW; the last line is ellipsized. */
+function wrapTwoLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  if (ctx.measureText(text).width <= maxW) return [text];
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (ctx.measureText(text.slice(0, mid)).width <= maxW) lo = mid;
+    else hi = mid - 1;
+  }
+  const breakAt = text.lastIndexOf(" ", lo) > lo * 0.6 ? text.lastIndexOf(" ", lo) : lo;
+  const line1 = text.slice(0, breakAt).trimEnd();
+  const rest = text.slice(breakAt).trim();
+  return rest ? [line1, fitText(ctx, rest, maxW)] : [line1];
+}
+
+/** Rich floating card for post nodes: media, text, likes/comments, source chip. */
+function drawPostCard(
+  o: RenderOptions,
+  node: SceneNode,
+  cx: number,
+  cy: number,
+  scale: number,
+  emph: number,
+  isHover: boolean,
+  isSelected: boolean,
+): { w: number; h: number } {
+  const { ctx } = o;
+  const img = node.imageUrl ? o.images.get(node.id) : undefined;
+  const w = 148 * scale;
+  const imgH = img ? 82 * scale : 0;
+  const textH = 34 * scale;
+  const footH = 20 * scale;
+  const h = imgH + textH + footH;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  const radius = 12 * scale;
+  const alpha = 0.35 + 0.65 * emph;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Card body with soft shadow.
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 14 * scale;
+  ctx.shadowOffsetY = 3 * scale;
+  roundRectPath(ctx, x, y, w, h, radius);
+  ctx.fillStyle = "rgba(14, 19, 38, 0.92)";
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Media region.
+  if (img) {
+    ctx.save();
+    roundRectPath(ctx, x, y, w, h, radius);
+    ctx.clip();
+    // Cover-crop the media so it fills the region without distortion.
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (iw > 0 && ih > 0) {
+      const cover = Math.max(w / iw, imgH / ih);
+      const sw = w / cover;
+      const sh = imgH / cover;
+      ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, imgH);
+    }
+    const fade = ctx.createLinearGradient(0, y + imgH - 18 * scale, 0, y + imgH);
+    fade.addColorStop(0, "rgba(14,19,38,0)");
+    fade.addColorStop(1, "rgba(14,19,38,0.85)");
+    ctx.fillStyle = fade;
+    ctx.fillRect(x, y + imgH - 18 * scale, w, 18 * scale);
+    ctx.restore();
+  }
+
+  // Text snippet.
+  const pad = 9 * scale;
+  const fontSize = Math.max(8, 10.5 * scale);
+  ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = "#e7ebff";
+  const lines = wrapTwoLines(ctx, node.content || node.label, w - pad * 2);
+  ctx.fillText(lines[0], x + pad, y + imgH + 6 * scale);
+  if (lines[1]) {
+    ctx.fillStyle = withAlpha("#e7ebff", 0.75);
+    ctx.fillText(lines[1], x + pad, y + imgH + 6 * scale + fontSize + 3 * scale);
+  }
+
+  // Footer: likes · comments and source chip.
+  const footY = y + h - footH + 2 * scale;
+  const metaFont = Math.max(7.5, 9 * scale);
+  ctx.font = `600 ${metaFont}px ui-sans-serif, system-ui, sans-serif`;
+  const likes = metaValue(node, "Likes");
+  const comments = metaValue(node, "Comments");
+  ctx.fillStyle = withAlpha("#aab4e8", 0.95);
+  const parts: string[] = [];
+  if (likes != null) parts.push(`♥ ${likes}`);
+  if (comments != null) parts.push(`💬 ${comments}`);
+  if (parts.length) ctx.fillText(parts.join("   "), x + pad, footY);
+
+  if (node.sublabel) {
+    const chip = fitText(ctx, node.sublabel, w * 0.42);
+    ctx.fillStyle = withAlpha(node.color, 0.9);
+    ctx.textAlign = "right";
+    ctx.fillText(chip, x + w - pad, footY);
+    ctx.textAlign = "left";
+  }
+
+  // Border glow.
+  roundRectPath(ctx, x, y, w, h, radius);
+  ctx.strokeStyle = withAlpha(node.color, isSelected ? 0.95 : isHover ? 0.8 : 0.4 * emph + 0.15);
+  ctx.lineWidth = isSelected || isHover ? 1.8 : 1.1;
+  ctx.stroke();
+
+  ctx.restore();
+  return { w, h };
+}
+
 function roundedImage(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -174,14 +327,24 @@ export function drawScene(o: RenderOptions): void {
     const r = Math.max(2.5, baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)));
     o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(r, 14) });
 
-    // Cull offscreen.
-    if (p.x < -80 || p.x > width + 80 || p.y < -80 || p.y > height + 80) return;
+    // Cull offscreen (cards are wide, so give them a larger margin).
+    const cull = node.kind === "post" ? 170 : 80;
+    if (p.x < -cull || p.x > width + cull || p.y < -cull || p.y > height + cull) return;
 
     const emph = emphasisFor(node);
     const pulse = 0.5 + 0.5 * Math.sin(time * 0.002 + node.x * 0.02);
     const isSelected = o.selectedId === node.id;
     const isFocus = o.focusId === node.id;
     const isHover = o.hoverId === node.id;
+
+    // Posts float as rich cards once the camera is close enough to read them.
+    if (node.kind === "post" && o.camera.zoom >= 0.45 && emph > 0.2) {
+      const cardScale =
+        Math.max(0.55, Math.min(o.camera.zoom, 1.35)) * (0.82 + node.weight * 0.36);
+      const size = drawPostCard(o, node, p.x, p.y, cardScale, emph, isHover, isSelected);
+      o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(size.w, size.h) / 2 });
+      return;
+    }
 
     // Glow halo.
     const glowR = r * (node.kind === "self" ? 3.4 : 2.6);
