@@ -2128,7 +2128,10 @@ function missingScopeError(
   capability: { requiredScopes?: string[] },
 ): string | null {
   const required = capability.requiredScopes || [];
-  if (required.length === 0 || !account.scopes) return null;
+  if (required.length === 0) return null;
+  if (!account.scopes) {
+    return `Reconnect your ${account.platform} account to grant the permission this action needs on ${account.platform}.`;
+  }
   const granted = account.scopes.split(/[\s,]+/).filter(Boolean);
   const missing = required.filter((scope) => !granted.includes(scope));
   if (missing.length === 0) return null;
