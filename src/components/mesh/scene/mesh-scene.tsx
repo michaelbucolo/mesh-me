@@ -705,6 +705,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       return;
     }
     const controller = new AbortController();
+    setDiscoverUsers([]);
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
