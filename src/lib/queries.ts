@@ -1220,6 +1220,12 @@ export async function getSavedPosts(page = 1, limit = 20) {
   return saved.map((s) => s.post);
 }
 
+export async function getSavedPostCount() {
+  const user = await getCurrentUser();
+  if (!user) return 0;
+  return prisma.savedPost.count({ where: { userId: user.id, post: nsfwHiddenWhere(user) } });
+}
+
 export async function getAdvancedSocialDashboard() {
   const user = await getCurrentUser();
   if (!user) return null;

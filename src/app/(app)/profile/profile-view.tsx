@@ -26,7 +26,7 @@ import {
 } from "@/components/meshi/meshi-mascot";
 import { Avatar } from "@/components/ui/avatar";
 import { getCurrentUser } from "@/lib/auth";
-import { getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
+import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
 
@@ -73,27 +73,28 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
 
-  const [profile, posts, memberships] = await Promise.all([
+  const [profile, posts] = await Promise.all([
     getUserProfile(username),
     getUserPosts(username, 1, 24),
-    getUserCommunities(username),
   ]);
 
   if (!profile) notFound();
 
   const isOwnProfile = profile.isOwnProfile;
-  const savedPosts = isOwnProfile ? await getSavedPosts(1, 24) : [];
   const canViewProfile = profile.sectionVisibility.profile;
+  const memberships = canViewProfile ? await getUserCommunities(username) : [];
+  const [savedPosts, savedPostCount] = isOwnProfile
+    ? await Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
+    : [[], 0];
   const meshi = profile.meshiPreference ?? DEFAULT_MESHI;
   const connectedAccounts = profile.connectedAccounts ?? [];
   const links = profile.links ?? [];
   const postCount = profile._count.posts;
   const communityCount = memberships.length;
-  const collectionCount = savedPosts.length;
+  const collectionCount = savedPostCount;
   const basePath = isOwnProfile ? "/profile" : `/profile/${username}`;
-  const activeTab = ["posts", "communities", "collections", "links"].includes(tab ?? "")
-    ? (tab as string)
-    : "posts";
+  const tabs = ["posts", "communities", ...(isOwnProfile ? ["collections"] : []), "links"];
+  const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
 
   return (
     <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] animate-page-enter">
