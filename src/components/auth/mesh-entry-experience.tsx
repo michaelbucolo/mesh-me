@@ -224,7 +224,7 @@ function createEntryNodes() {
       id: `n${index + 1}`,
       x: precise(x),
       y: precise(y),
-      r: precise(0.017 + ((index * 13) % 8) / 1000),
+      r: precise(0.14 + ((index * 13) % 8) / 40),
       glow: precise(glow),
       drift: precise(((index * 29) % 100) / 100),
     });
@@ -236,11 +236,11 @@ function createEntryNodes() {
       const t = count === 1 ? 0 : step / (count - 1);
       const wave = Math.sin((index + 1) * 1.73);
       const counter = Math.cos((index + 1) * 0.91);
-      const depth = 5.4 + Math.abs(Math.sin((index + 8) * 0.77)) * 8.4;
-      if (side === 0) pushNode(-12 + t * 124 + wave * 1.9, -7.5 + counter * depth, index);
-      if (side === 1) pushNode(107.5 + wave * depth, -12 + t * 124 + counter * 2.1, index);
-      if (side === 2) pushNode(112 - t * 124 + wave * 1.9, 107.5 + counter * depth, index);
-      if (side === 3) pushNode(-7.5 + wave * depth, 112 - t * 124 + counter * 2.1, index);
+      const depth = 1.4 + Math.abs(Math.sin((index + 8) * 0.77)) * 11.2;
+      if (side === 0) pushNode(-2 + t * 104 + wave * 1.9, depth, index);
+      if (side === 1) pushNode(100 - depth, -2 + t * 104 + counter * 2.1, index);
+      if (side === 2) pushNode(102 - t * 104 + wave * 1.9, 100 - depth, index);
+      if (side === 3) pushNode(depth, 102 - t * 104 + counter * 2.1, index);
       index += 1;
     }
   });
@@ -282,10 +282,10 @@ const AMBIENT_SPARKS = Array.from({ length: 60 }, (_, index) => {
   const side = index % 4;
   const t = ((index * 23) % 100) / 100;
   const wave = Math.sin((index + 4) * 1.17);
-  if (side === 0) return { x: precise(-10 + t * 120), y: precise(-4 + wave * 10), r: precise(0.022 + (index % 5) * 0.008) };
-  if (side === 1) return { x: precise(104 + wave * 10), y: precise(-10 + t * 120), r: precise(0.022 + (index % 5) * 0.008) };
-  if (side === 2) return { x: precise(110 - t * 120), y: precise(104 + wave * 10), r: precise(0.022 + (index % 5) * 0.008) };
-  return { x: precise(-4 + wave * 10), y: precise(110 - t * 120), r: precise(0.022 + (index % 5) * 0.008) };
+  if (side === 0) return { x: precise(-2 + t * 104), y: precise(1 + Math.abs(wave) * 14), r: precise(0.07 + (index % 5) * 0.025) };
+  if (side === 1) return { x: precise(99 - Math.abs(wave) * 14), y: precise(-2 + t * 104), r: precise(0.07 + (index % 5) * 0.025) };
+  if (side === 2) return { x: precise(102 - t * 104), y: precise(99 - Math.abs(wave) * 14), r: precise(0.07 + (index % 5) * 0.025) };
+  return { x: precise(1 + Math.abs(wave) * 14), y: precise(102 - t * 104), r: precise(0.07 + (index % 5) * 0.025) };
 });
 
 const BORDER_SWEEPS = [
@@ -446,8 +446,8 @@ function MeshConstellation({
                   failed && "mesh-entry-connection-string-failed",
                 )}
                 stroke={failed ? "url(#mesh-entry-fail)" : "url(#mesh-entry-line)"}
-                strokeWidth={failed ? 0.12 : 0.06 + liveProgress * (typing ? 0.14 : 0.08)}
-                strokeDasharray={failed ? "0.18 0.82" : typing ? "1.45 0.7" : undefined}
+                strokeWidth={failed ? 1.6 : 0.9 + liveProgress * (typing ? 1.6 : 1)}
+                strokeDasharray={failed ? "2.5 11" : typing ? "20 10" : undefined}
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
                 initial={false}
@@ -466,8 +466,8 @@ function MeshConstellation({
                 d={path}
                 className="mesh-entry-connection-current"
                 stroke="url(#mesh-entry-string-live)"
-                strokeWidth={0.1 + liveProgress * 0.12}
-                strokeDasharray="0.18 2.2"
+                strokeWidth={1.3 + liveProgress * 1.4}
+                strokeDasharray="2.5 30"
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
                 initial={false}
@@ -583,7 +583,7 @@ function MeshConstellation({
                 key={`unlock-ray-${anchor.x}-${anchor.y}`}
                 d={`M ${MESHI_CONNECTION_CORE.x} ${MESHI_CONNECTION_CORE.y} L ${anchor.x + (anchor.x - MESHI_CONNECTION_CORE.x) * 3.2} ${anchor.y + (anchor.y - MESHI_CONNECTION_CORE.y) * 3.2}`}
                 stroke="#dbeafe"
-                strokeWidth="0.08"
+                strokeWidth="1.1"
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
                 initial={{ opacity: 0, pathLength: 0 }}
@@ -637,8 +637,10 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     return Math.min(1, Math.max(0.12, password.length / 12));
   }, [password.length, stage]);
 
-  const constellationProgress = stage === "signup" ? 0.34 : stage === "reset" ? 0.42 : entryState === "unlocking" ? 1 : passwordProgress;
+  const identityProgress = stage === "identity" && identifier.length > 0 ? Math.min(1, Math.max(0.12, identifier.length / 14)) : 0;
+  const constellationProgress = stage === "signup" ? 0.34 : stage === "reset" ? 0.42 : entryState === "unlocking" ? 1 : Math.max(passwordProgress, identityProgress);
   const isPasswordTyping = stage === "password" && password.length > 0 && entryState !== "failed";
+  const isIdentityTyping = stage === "identity" && identifier.length > 0 && entryState !== "failed";
   const identityValidation = useMemo(() => getEntryIdentityValidation(identifier), [identifier]);
   const identityHasError = stage === "identity" && Boolean(message || (identityTouched && !identityValidation.ok));
   const identityStatus = message || (identityTouched && !identityValidation.ok ? identityValidation.message : "");
@@ -1050,11 +1052,17 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       <MeshConstellation
         progress={constellationProgress}
         failed={entryState === "failed"}
-        typing={isPasswordTyping}
+        typing={isPasswordTyping || isIdentityTyping}
         unlocking={entryState === "unlocking"}
       />
 
       <div className="mesh-entry-depth pointer-events-none absolute inset-0" />
+      <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-5">
+        <span className="inline-flex items-center gap-2 rounded-full border border-blue-100/16 bg-blue-100/6 px-3.5 py-1.5 text-xs font-semibold text-blue-100/82 backdrop-blur-sm">
+          <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
+          Privacy first. Always.
+        </span>
+      </div>
       <AnimatePresence>
         {entryState === "unlocking" ? (
           <motion.div
@@ -1169,6 +1177,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 >
                   <div className="space-y-2 text-center" data-morph-fade>
                     <h1 className="text-4xl font-bold tracking-[0] text-white sm:text-5xl">Who are you?</h1>
+                    <p className="text-sm text-blue-100/74">Username, email, or phone number</p>
                   </div>
                   <label className="block" htmlFor="mesh-entry-identity">
                     <span className="sr-only">Username, email, or phone number</span>
@@ -1294,8 +1303,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
             {stage === "password" ? (
               <motion.div
-                initial={{ opacity: 0, y: reduceMotion ? 128 : 154, scale: 0.98 }}
-                animate={{ opacity: 1, y: 128, scale: 1 }}
+                initial={{ opacity: 0, y: reduceMotion ? 96 : 122, scale: 0.98 }}
+                animate={{ opacity: 1, y: 96, scale: 1 }}
                 transition={{ duration: reduceMotion ? 0.01 : 0.38, ease: "easeOut" }}
                 className="absolute inset-x-0 top-0"
               >
@@ -1623,13 +1632,14 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2.5 px-4 pb-4">
         <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-100/72">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-          Private by default. No ads. No data selling. No tracking.
+          Your data. Your identity. Your choice. Private by default — no ads, no data selling, no tracking.
         </div>
         <nav className="mesh-entry-footer-nav flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-blue-100/76">
           <button type="button" onClick={openInlineSignup} className="transition hover:text-white">Create account</button>
           <button type="button" onClick={openResetStep} className="transition hover:text-white">Forgot password?</button>
           <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
           <Link href="/terms" className="transition hover:text-white">Terms</Link>
+          <Link href="/help" className="transition hover:text-white">Help</Link>
         </nav>
       </div>
     </main>
