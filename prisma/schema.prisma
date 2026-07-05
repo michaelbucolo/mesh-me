@@ -441,6 +441,7 @@ model ConnectedAccount {
   platformAnalytics   PlatformAnalytics[]
   contentSources      ContentSource[]
   platformPermissions PlatformPermission[]
+  platformFeedItems   PlatformFeedItem[]
 
   @@index([userId, platform])
   @@index([platform])
@@ -502,6 +503,42 @@ model PlatformPost {
   @@index([connectedAccountId])
   @@index([publishedAt])
   @@index([postType])
+  @@index([isNsfw, publishedAt])
+}
+
+// Items pulled from the personalized home / for-you feed of a connected
+// platform (content authored by other people, not the account owner).
+model PlatformFeedItem {
+  id                 String    @id @default(cuid())
+  connectedAccountId String
+  // Original item ID on the platform
+  platformItemId     String
+  authorName         String?
+  authorUsername     String?
+  authorAvatarUrl    String?
+  authorUrl          String?
+  title              String?
+  content            String?
+  url                String?
+  thumbnailUrl       String?
+  mediaUrl           String?
+  // "post" | "video" | "image" | "link" | "stream" | "activity"
+  postType           String    @default("post")
+  likeCount          Int       @default(0)
+  commentCount       Int       @default(0)
+  isNsfw             Boolean   @default(false)
+  contentRating      String    @default("general")
+  publishedAt        DateTime?
+  fetchedAt          DateTime  @default(now())
+  rawMetadata        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([connectedAccountId, platformItemId])
+  @@index([connectedAccountId, publishedAt])
   @@index([isNsfw, publishedAt])
 }
 

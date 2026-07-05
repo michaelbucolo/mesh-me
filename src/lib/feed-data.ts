@@ -40,6 +40,10 @@ export type FeedCardPost = {
   platformPostId?: string;
   crossPostedTo?: string[];
   meshFriend?: { userId: string; username: string; displayName: string };
+  // Set when the post was authored by someone outside mesh.me (an item from
+  // a connected platform's for-you feed). The card links to their platform
+  // profile instead of a mesh profile.
+  externalAuthor?: { name: string; username?: string | null; avatarUrl?: string | null; profileUrl?: string | null };
   isNsfw?: boolean;
   contentRating?: string;
   visibility?: string;
@@ -271,7 +275,117 @@ export async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit
   });
 }
 
+export async function getMergedForYouFeedPosts(user: FeedCurrentUser, limit = 40): Promise<FeedCardPost[]> {
+  const items = await prisma.platformFeedItem.findMany({
+    where: {
+      ...nsfwHiddenWhere(user),
+      connectedAccount: { userId: user.id, isActive: true },
+    },
+    include: {
+      connectedAccount: { select: { platform: true, platformUsername: true } },
+    },
+    orderBy: [{ publishedAt: "desc" }, { fetchedAt: "desc" }],
+    take: limit,
+  });
+
+  return items.map((item) => {
+    const content = [item.title, item.content].filter(Boolean).join(item.title && item.content ? "\n\n" : "");
+    const authorName = item.authorName || item.authorUsername || item.connectedAccount.platform;
+    const media = item.mediaUrl || item.thumbnailUrl
+      ? [{
+          id: `${item.id}-media`,
+          url: item.mediaUrl || item.thumbnailUrl || "",
+          type: ["video", "reel", "short", "stream"].includes(item.postType) ? "video" : "image",
+        }]
+      : [];
+
+    return {
+      id: `feeditem-${item.id}`,
+      content: content || `${item.connectedAccount.platform} post`,
+      createdAt: item.publishedAt ?? item.fetchedAt,
+      author: {
+        id: `external-${item.id}`,
+        username: item.authorUsername || authorName,
+        displayName: authorName,
+        avatarUrl: item.authorAvatarUrl,
+        isVerified: false,
+      },
+      externalAuthor: {
+        name: authorName,
+        username: item.authorUsername,
+        avatarUrl: item.authorAvatarUrl,
+        profileUrl: item.authorUrl,
+      },
+      community: null,
+      media,
+      tags: [],
+      _count: { comments: item.commentCount, reactions: item.likeCount, reposts: 0 },
+      reactions: [],
+      savedBy: [],
+      platform: item.connectedAccount.platform,
+      sourceId: item.id,
+      externalUrl: item.url,
+      platformPostId: item.platformItemId,
+      isNsfw: item.isNsfw,
+      contentRating: item.contentRating,
+    };
+  });
+}
+
 export async function getFeedPostById(user: FeedCurrentUser, id: string): Promise<FeedCardPost | null> {
+  if (id.startsWith("feeditem-")) {
+    const item = await prisma.platformFeedItem.findFirst({
+      where: {
+        id: id.slice("feeditem-".length),
+        ...nsfwHiddenWhere(user),
+        connectedAccount: { userId: user.id, isActive: true },
+      },
+      include: {
+        connectedAccount: { select: { platform: true, platformUsername: true } },
+      },
+    });
+    if (!item) return null;
+    const content = [item.title, item.content].filter(Boolean).join(item.title && item.content ? "\n\n" : "");
+    const authorName = item.authorName || item.authorUsername || item.connectedAccount.platform;
+    const media = item.mediaUrl || item.thumbnailUrl
+      ? [{
+          id: `${item.id}-media`,
+          url: item.mediaUrl || item.thumbnailUrl || "",
+          type: ["video", "reel", "short", "stream"].includes(item.postType) ? "video" : "image",
+        }]
+      : [];
+    return {
+      id: `feeditem-${item.id}`,
+      content: content || `${item.connectedAccount.platform} post`,
+      createdAt: item.publishedAt ?? item.fetchedAt,
+      author: {
+        id: `external-${item.id}`,
+        username: item.authorUsername || authorName,
+        displayName: authorName,
+        avatarUrl: item.authorAvatarUrl,
+        isVerified: false,
+      },
+      externalAuthor: {
+        name: authorName,
+        username: item.authorUsername,
+        avatarUrl: item.authorAvatarUrl,
+        profileUrl: item.authorUrl,
+      },
+      community: null,
+      media,
+      tags: [],
+      _count: { comments: item.commentCount, reactions: item.likeCount, reposts: 0 },
+      reactions: [],
+      savedBy: [],
+      platform: item.connectedAccount.platform,
+      sourceId: item.id,
+      externalUrl: item.url,
+      platformPostId: item.platformItemId,
+      isNsfw: item.isNsfw,
+      contentRating: item.contentRating,
+    };
+  }
+
   if (id.startsWith("platform-")) {
     const post = await prisma.platformPost.findFirst({
       where: {
@@ -377,10 +491,11 @@ export async function getCombinedFeedPosts({
   limit: number;
 }) {
   const providerLimit = Math.min(Math.max(limit * 2, 48), 240);
-  const [nativePosts, ownPlatformPosts, friendPlatformPosts] = await Promise.all([
+  const [nativePosts, ownPlatformPosts, friendPlatformPosts, mergedForYouPosts] = await Promise.all([
     getNativeFeedPostsForSource(user, source, providerLimit),
     source === "discover" ? Promise.resolve([]) : getConnectedPlatformFeedPosts(user, providerLimit),
     source === "discover" ? Promise.resolve([]) : getFriendPlatformFeedPosts(user, providerLimit),
+    source === "following" ? Promise.resolve([]) : getMergedForYouFeedPosts(user, providerLimit),
   ]);
 
   return filterFeedPostsByContent(
@@ -388,6 +503,7 @@ export async function getCombinedFeedPosts({
       ...nativePosts.map(toFeedCardPost),
       ...ownPlatformPosts,
       ...(friendPlatformPosts as FriendPlatformFeedPost[]),
+      ...mergedForYouPosts,
     ]),
     contentFilter,
   ).slice(0, limit);
