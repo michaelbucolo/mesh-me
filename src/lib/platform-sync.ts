@@ -59,6 +59,9 @@ interface PlatformFeedItemData {
   commentCount: number;
   publishedAt?: Date;
   rawMetadata?: string;
+  // Platform-reported adult flag (e.g. Reddit over_18); takes precedence
+  // over keyword-based classification.
+  isNsfw?: boolean;
 }
 
 interface PlatformFollowerData {
@@ -1101,6 +1104,7 @@ const redditAdapter: PlatformAdapter = {
               over18: post.over_18,
               spoiler: post.spoiler,
             }),
+            isNsfw: post.over_18 === true,
           };
         });
       return { items };
@@ -1449,8 +1453,11 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
     // Sync the platform's personalized home / for-you feed
     if ((syncType === "full" || syncType === "posts") && adapter.fetchForYouFeed) {
       const feed = await adapter.fetchForYouFeed(accessToken);
-      for (const item of feed.items) {
-        const safety = classifyContentSafety(item.title, item.content, item.rawMetadata);
+      for (const rawItem of feed.items) {
+        const { isNsfw: platformNsfw, ...item } = rawItem;
+        const classified = classifyContentSafety(item.title, item.content, item.rawMetadata);
+        const isNsfw = platformNsfw === true || classified.isNsfw;
+        const safety = { isNsfw, contentRating: isNsfw ? "adult" : classified.contentRating };
         await prisma.platformFeedItem.upsert({
           where: {
             connectedAccountId_platformItemId: {
