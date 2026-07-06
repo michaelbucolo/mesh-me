@@ -161,9 +161,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const b = sceneBounds(model);
     const contentW = Math.max(b.maxX - b.minX, 400) + 220;
     const contentH = Math.max(b.maxY - b.minY, 400) + 220;
-    const zoom = Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, height / contentH)));
-    const midX = (b.minX + b.maxX) / 2;
-    const midY = (b.minY + b.maxY) / 2;
+    const isNarrowViewport = width < 640;
+    const zoom = isNarrowViewport
+      ? Math.max(MIN_ZOOM, 0.72)
+      : Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, height / contentH)));
+    const midX = isNarrowViewport ? 0 : (b.minX + b.maxX) / 2;
+    const midY = isNarrowViewport ? 0 : (b.minY + b.maxY) / 2;
     cameraRef.current = { zoom, panX: -midX * zoom, panY: -midY * zoom };
   }, []);
 
