@@ -35,6 +35,7 @@ export interface SceneNode {
   kind: SceneNodeKind;
   label: string;
   sublabel?: string;
+  description?: string;
   avatarUrl?: string | null;
   imageUrl?: string | null;
   content?: string;
@@ -47,6 +48,7 @@ export interface SceneNode {
   /** For person nodes: the user whose mesh we can travel into. */
   userId?: string;
   username?: string;
+  isVerified?: boolean;
   status?: string;
   /** Count shown on collapsed branch / item hubs. */
   count?: number;
@@ -130,12 +132,14 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     kind: "self",
     label: data.user.displayName || data.user.username,
     sublabel: "@" + data.user.username,
+    description: data.user.bio || undefined,
     avatarUrl: data.user.avatarUrl,
     color: "#a5b4fc",
     parentId: null,
     childIds: [],
     branch: null,
     href: "/profile/" + data.user.username,
+    isVerified: data.user.isVerified,
     weight: 1,
   });
 

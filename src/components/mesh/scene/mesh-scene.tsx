@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Maximize2, Minus, PenLine, Plus, Scan, Search, X } 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MeshDesktopChrome } from "@/components/mesh/mesh-desktop-chrome";
 import {
   MeshiMascot,
   MeshiMini,
@@ -73,6 +74,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const hitboxesRef = useRef<Map<string, { x: number; y: number; r: number }>>(new Map());
   const pillHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
+  const profileHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
   const starsRef = useRef<{ x: number; y: number; r: number; tw: number }[]>([]);
   const sizeRef = useRef({ width: 0, height: 0 });
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -103,6 +105,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [isCoarsePointer, setIsCoarsePointer] = useState(true);
   const [meshUser, setMeshUser] = useState<{ displayName: string; avatarUrl: string | null } | null>(null);
+  const [meshData, setMeshData] = useState<MeshApiResponse | null>(null);
   const [showCompose, setShowCompose] = useState(false);
   const [hoverNode, setHoverNode] = useState<SceneNode | null>(null);
   const [viewedUser, setViewedUser] = useState<{ username: string; displayName: string | null } | null>(null);
@@ -166,12 +169,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const loadScene = useCallback(
     async (opts?: { quiet?: boolean; signal?: AbortSignal }) => {
       const url = viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
-      if (!opts?.quiet) setStatus("loading");
+      if (!opts?.quiet) {
+        setStatus("loading");
+        setMeshData(null);
+      }
       try {
         const res = await fetch(url, { cache: "no-store", signal: opts?.signal });
         if (opts?.signal?.aborted) return;
         if (!res.ok) throw new Error(String(res.status));
         const payload: MeshApiResponse = await res.json();
+        setMeshData(payload);
         const model = buildSceneModel(payload);
         layoutScene(model);
         const quiet = Boolean(opts?.quiet && modelRef.current);
@@ -211,6 +218,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (!opts?.quiet) setStatus("error");
+        if (!opts?.quiet) setMeshData(null);
       }
     },
     [viewUserId, loadImages, fitToContent],
@@ -321,6 +329,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           backgroundStars: starsRef.current,
           hitboxes: hitboxesRef.current,
           pillHitboxes: pillHitboxesRef.current,
+          profileHitboxes: profileHitboxesRef.current,
           avoidCenter: coarseRef.current,
         });
 
@@ -515,6 +524,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       if (!d.moved) {
         const rect = containerRef.current!.getBoundingClientRect();
+        const profileRect = profileHitboxesRef.current.get(modelRef.current?.selfId || "");
+        if (profileRect) {
+          const sx = e.clientX - rect.left;
+          const sy = e.clientY - rect.top;
+          if (sx >= profileRect.x && sx <= profileRect.x + profileRect.w && sy >= profileRect.y && sy <= profileRect.y + profileRect.h) {
+            router.push("/profile");
+            return;
+          }
+        }
         const node = hitTest(e.clientX - rect.left, e.clientY - rect.top);
         if (node) {
           activateNode(node);
@@ -533,7 +551,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         setActiveBranch(null);
       }
     },
-    [activateNode, hitTest],
+    [activateNode, hitTest, router],
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -933,6 +951,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           <Maximize2 size={16} />
         </RailButton>
       </div>
+
+      {meshData && (
+        <MeshDesktopChrome
+          platforms={meshData.platforms}
+          recentComments={meshData.recentComments}
+          onRecenter={fitToContent}
+        />
+      )}
 
       {/* Loading / states */}
       {status === "loading" && (

@@ -8,8 +8,8 @@
 
 import type { SceneModel, SceneNode } from "./scene-model";
 
-const BRANCH_RADIUS = 250;
-const ITEM_RING_START = 470;
+const BRANCH_RADIUS = 310;
+const ITEM_RING_START = 540;
 const ITEM_RING_GAP = 120;
 const ITEMS_PER_RING = 6;
 const SUB_RADIUS_STEP = 64;
