@@ -5,6 +5,16 @@ import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
 
+function visibleCommentAuthorWhere(viewerId: string) {
+  return {
+    isSuspended: false,
+    AND: [
+      { blocks: { none: { blockedId: viewerId } } },
+      { blockedBy: { none: { blockerId: viewerId } } },
+    ],
+  };
+}
+
 export async function GET(req: Request) {
   try {
   const user = await getCurrentUser();
@@ -139,7 +149,7 @@ export async function GET(req: Request) {
     }),
   ]);
 
-  const [notificationsData, commentActivityData, reactionActivityData, messageActivityData] = await Promise.all([
+  const [notificationsData, commentActivityData, reactionActivityData, messageActivityData, recentCommentsData] = await Promise.all([
     prisma.notification.findMany({
       where: { recipientId: user.id },
       select: {
@@ -168,7 +178,10 @@ export async function GET(req: Request) {
       take: 8,
     }),
     prisma.comment.findMany({
-      where: { authorId: user.id, post: safetyWhere },
+      where: {
+        authorId: user.id,
+        post: safetyWhere,
+      },
       select: {
         id: true,
         content: true,
@@ -224,6 +237,36 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
       take: 6,
+    }),
+    prisma.comment.findMany({
+      where: {
+        authorId: { not: user.id },
+        post: { ...safetyWhere, authorId: user.id },
+        author: visibleCommentAuthorWhere(user.id),
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+        _count: { select: { replies: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 4,
     }),
   ]);
 
@@ -480,10 +523,44 @@ export async function GET(req: Request) {
     }
   }
 
+  const platforms = connectedAccountsData.map((account) => ({
+    id: account.id,
+    platform: account.platform,
+    platformUsername: account.platformUsername,
+    syncStatus: account.syncStatus,
+    isConnected: true,
+    counts: {
+      posts: account._count.platformPosts,
+      comments: account._count.platformComments,
+      followers: account._count.platformFollowers,
+      media: account._count.platformMedia,
+    },
+    manageHref: "/connected-accounts",
+    sourcesHref: "/content-hub",
+  }));
+
+  const recentComments = recentCommentsData.map((comment) => ({
+    id: comment.id,
+    content: comment.content,
+    createdAt: comment.createdAt.toISOString(),
+    replyCount: comment._count.replies,
+    author: {
+      id: comment.author.id,
+      username: comment.author.username,
+      displayName: comment.author.displayName,
+      avatarUrl: comment.author.avatarUrl,
+      isVerified: comment.author.isVerified,
+    },
+    post: {
+      id: comment.post.id,
+      content: comment.post.content,
+    },
+  }));
+
   const payload = {
     user: {
       id: user.id, username: user.username, displayName: user.displayName,
-      avatarUrl: user.avatarUrl, bio: user.bio,
+      avatarUrl: user.avatarUrl, bio: user.bio, isVerified: user.isVerified,
     },
     following: followingData.map((f) => ({
       ...f.following,
@@ -580,6 +657,8 @@ export async function GET(req: Request) {
         profileUrl: f.profileUrl,
       })),
     })),
+    platforms,
+    recentComments,
     friendMeshes: friendMeshData.map((friend) => {
       const branchOverrides = parseMeshBranchOverrides(friend.meshPrivacy?.branchOverrides);
       const meshVisibility = friend.meshPrivacy?.meshVisibility ?? "private";
@@ -691,6 +770,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       displayName: true,
       avatarUrl: true,
       bio: true,
+      isVerified: true,
       isPublic: true,
     },
   });
@@ -707,7 +787,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     return NextResponse.json({ error: "This mesh is private" }, { status: 403 });
   }
 
-  const [followingData, followersData, postsData, interestsData, connectedAccountsData, meshiPrefData, followingCount, followerCount, postCount, visibilityPolicies] = await Promise.all([
+  const [followingData, followersData, postsData, interestsData, connectedAccountsData, recentCommentsData, meshiPrefData, followingCount, followerCount, postCount, visibilityPolicies] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: targetUserId },
       select: {
@@ -746,6 +826,36 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       where: { userId: targetUserId },
       select: { id: true, platform: true, platformUsername: true, isActive: true },
     }),
+    prisma.comment.findMany({
+      where: {
+        authorId: { not: targetUserId },
+        post: { authorId: targetUserId, visibility: "public" },
+        author: visibleCommentAuthorWhere(viewerId),
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+        _count: { select: { replies: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+    }),
     prisma.meshiPreference.findUnique({
       where: { userId: targetUserId },
       select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true },
@@ -762,6 +872,37 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
   const following = followingData.map((f) => f.following);
   const followers = followersData.map((f) => f.follower);
   const interests = interestsData.map((i) => i.tag);
+  const visibleConnectedAccounts = connectedAccountsData.filter((ca) => {
+    const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
+    return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
+  });
+  const platforms = visibleConnectedAccounts.map((account) => ({
+    id: account.id,
+    platform: account.platform,
+    platformUsername: account.platformUsername,
+    syncStatus: account.isActive ? "connected" : "inactive",
+    isConnected: account.isActive,
+    counts: { posts: 0, comments: 0, followers: 0, media: 0 },
+    manageHref: "/connected-accounts",
+    sourcesHref: "/content-hub",
+  }));
+  const recentComments = recentCommentsData.map((comment) => ({
+    id: comment.id,
+    content: comment.content,
+    createdAt: comment.createdAt.toISOString(),
+    replyCount: comment._count.replies,
+    author: {
+      id: comment.author.id,
+      username: comment.author.username,
+      displayName: comment.author.displayName,
+      avatarUrl: comment.author.avatarUrl,
+      isVerified: comment.author.isVerified,
+    },
+    post: {
+      id: comment.post.id,
+      content: comment.post.content,
+    },
+  }));
 
   return NextResponse.json({
     user: {
@@ -770,6 +911,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       displayName: targetUser.displayName,
       avatarUrl: targetUser.avatarUrl,
       bio: targetUser.bio,
+      isVerified: targetUser.isVerified,
     },
     following,
     followers,
@@ -784,10 +926,9 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       commentCount: p._count.comments,
       repostCount: p._count.reposts,
     })),
-    connectedAccounts: connectedAccountsData.filter((ca) => {
-      const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
-      return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
-    }),
+    connectedAccounts: visibleConnectedAccounts,
+    platforms,
+    recentComments,
     alterEgos: [],
     meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
     stats: {
