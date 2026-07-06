@@ -8,11 +8,19 @@
 
 import type { SceneModel, SceneNode } from "./scene-model";
 
-const BRANCH_RADIUS = 250;
-const ITEM_RING_START = 470;
+const BRANCH_RADIUS = 310;
+const ITEM_RING_START = 540;
 const ITEM_RING_GAP = 120;
 const ITEMS_PER_RING = 6;
 const SUB_RADIUS_STEP = 64;
+const TOP_ANGLE = -Math.PI / 2;
+const BOTTOM_CORRIDOR_HALF = (55 * Math.PI) / 180;
+const BRANCH_SWEEP = Math.PI * 2 - BOTTOM_CORRIDOR_HALF * 2;
+
+function normalizeAngle(angle: number): number {
+  const full = Math.PI * 2;
+  return ((angle % full) + full) % full;
+}
 
 // Deterministic pseudo-random in [-1, 1] from a string id.
 function jitter(id: string): number {
@@ -36,13 +44,13 @@ export function layoutScene(model: SceneModel): void {
   }
 
   const branchCount = Math.max(branchOrder.length, 1);
-  const sectorWidth = (Math.PI * 2) / branchCount;
-  const sectorHalf = (sectorWidth / 2) * 0.82;
+  const sectorWidth = branchCount > 1 ? BRANCH_SWEEP / (branchCount - 1) : 0;
+  const sectorHalf = Math.min((sectorWidth / 2) * 0.82, (14 * Math.PI) / 180);
 
   branchOrder.forEach((branchHubId, branchIndex) => {
     const branch = nodes.get(branchHubId);
     if (!branch) return;
-    const baseAngle = -Math.PI / 2 + branchIndex * sectorWidth;
+    const baseAngle = normalizeAngle(TOP_ANGLE - BRANCH_SWEEP / 2 + branchIndex * sectorWidth);
     branch.angle = baseAngle;
     branch.depth = 1;
     branch.x = Math.cos(baseAngle) * BRANCH_RADIUS;

@@ -28,8 +28,11 @@ export interface RenderOptions {
   hitboxes: Map<string, { x: number; y: number; r: number }>;
   /** Output: screen-space label-pill rects keyed by node id (branch/self). */
   pillHitboxes?: Map<string, { x: number; y: number; w: number; h: number }>;
+  /** Output: screen-space hitbox for the self-node profile button. */
+  profileHitboxes?: Map<string, { x: number; y: number; w: number; h: number }>;
   /** Keep labels clear of the screen center (where the pinned Meshi sits). */
   avoidCenter?: boolean;
+  isOwnMesh?: boolean;
 }
 
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
@@ -115,6 +118,231 @@ function wrapTwoLines(ctx: CanvasRenderingContext2D, text: string, maxW: number)
   return rest ? [line1, fitText(ctx, rest, maxW)] : [line1];
 }
 
+function strandLabelFor(node: SceneNode): string | null {
+  if (node.kind !== "branch") return null;
+  if (node.branch === "platforms") return "Source";
+  if (node.branch === "posts" || node.branch === "communities") return "Owner";
+  return null;
+}
+
+function drawPill(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  text: string,
+  fill: string,
+  stroke: string,
+  textColor: string,
+  fontSize: number,
+  padX: number,
+) {
+  ctx.save();
+  ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  const textW = ctx.measureText(text).width;
+  const h = fontSize + 8;
+  const w = textW + padX * 2;
+  const r = h / 2;
+  const rx = x - w / 2;
+  const ry = y - h / 2;
+  ctx.beginPath();
+  ctx.moveTo(rx + r, ry);
+  ctx.arcTo(rx + w, ry, rx + w, ry + h, r);
+  ctx.arcTo(rx + w, ry + h, rx, ry + h, r);
+  ctx.arcTo(rx, ry + h, rx, ry, r);
+  ctx.arcTo(rx, ry, rx + w, ry, r);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = textColor;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y + 0.5);
+  ctx.restore();
+  return { x: rx, y: ry, w, h };
+}
+
+
+function drawSelfProfile(
+  o: RenderOptions,
+  node: SceneNode,
+  x: number,
+  y: number,
+  emph: number,
+  isHover: boolean,
+  isSelected: boolean,
+): { w: number; h: number; profileRect: { x: number; y: number; w: number; h: number } | null; avatarRadius: number } {
+  const { ctx } = o;
+  const zoomScale = Math.max(0.68, Math.min(1.18, o.camera.zoom * 1.08));
+  const avatarR = 31 * zoomScale;
+  const bodyMaxW = 272 * zoomScale;
+  const nameFont = Math.max(16, 18 * zoomScale);
+  const handleFont = Math.max(11, 12 * zoomScale);
+  const bioFont = Math.max(11, 12 * zoomScale);
+  const chipFont = Math.max(9, 9.5 * zoomScale);
+  const buttonFont = Math.max(11, 11.5 * zoomScale);
+
+  ctx.save();
+
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, avatarR * 2.15);
+  glow.addColorStop(0, withAlpha('#7cc0ff', 0.55 * emph));
+  glow.addColorStop(0.52, withAlpha('#3b82f6', 0.18 * emph));
+  glow.addColorStop(1, 'rgba(47,124,255,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, avatarR * 2.15, 0, Math.PI * 2);
+  ctx.fill();
+
+  const ring = ctx.createRadialGradient(x, y, avatarR * 0.52, x, y, avatarR * 1.38);
+  ring.addColorStop(0, 'rgba(255,255,255,0.1)');
+  ring.addColorStop(0.5, withAlpha('#7cc0ff', 0.65 * emph));
+  ring.addColorStop(1, withAlpha('#3b82f6', 0.12 * emph));
+  ctx.fillStyle = ring;
+  ctx.beginPath();
+  ctx.arc(x, y, avatarR * 1.34, 0, Math.PI * 2);
+  ctx.fill();
+
+  const img = node.avatarUrl ? o.images.get(node.id) : undefined;
+  if (img) {
+    roundedImage(ctx, img, x, y, avatarR);
+    ctx.beginPath();
+    ctx.arc(x, y, avatarR, 0, Math.PI * 2);
+    ctx.strokeStyle = withAlpha('#c7d2fe', 0.5 + 0.35 * emph);
+    ctx.lineWidth = Math.max(1.8, 2.2 * zoomScale);
+    ctx.stroke();
+  } else {
+    const fallback = ctx.createRadialGradient(x - avatarR * 0.18, y - avatarR * 0.18, 0, x, y, avatarR);
+    fallback.addColorStop(0, '#ffffff');
+    fallback.addColorStop(0.45, node.color);
+    fallback.addColorStop(1, withAlpha(node.color, 0.4));
+    ctx.fillStyle = fallback;
+    ctx.beginPath();
+    ctx.arc(x, y, avatarR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const contentTop = y + avatarR + 18 * zoomScale;
+  const chips: string[] = [];
+  if (node.isVerified) chips.push('Verified');
+  if (o.isOwnMesh) chips.push('Owner', 'Private by default');
+
+  const chipWidths = chips.map((chip) => {
+    ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
+    return ctx.measureText(chip).width + 18;
+  });
+  const chipRowW = chipWidths.reduce((sum, value) => sum + value, 0) + Math.max(0, chipWidths.length - 1) * (6 * zoomScale);
+  const chipH = chipFont + 8;
+
+  const nameText = node.label;
+  ctx.font = `700 ${nameFont}px ui-sans-serif, system-ui, sans-serif`;
+  const nameW = ctx.measureText(nameText).width;
+  const buttonText = 'View Profile';
+  ctx.font = `600 ${buttonFont}px ui-sans-serif, system-ui, sans-serif`;
+  const buttonW = ctx.measureText(buttonText).width + 28;
+  const buttonH = buttonFont + 12;
+
+  const bio = node.description || '';
+  ctx.font = `500 ${bioFont}px ui-sans-serif, system-ui, sans-serif`;
+  const bioLines = bio ? wrapTwoLines(ctx, bio, bodyMaxW).slice(0, 2) : [];
+  const bioHeight = bioLines.length > 0 ? bioLines.length * (bioFont + 4 * zoomScale) - 4 * zoomScale : 0;
+
+  const textBlockW = Math.max(bodyMaxW, buttonW, chipRowW);
+  const panelW = textBlockW + 40 * zoomScale;
+  const panelTop = contentTop - 12 * zoomScale;
+  const nameY = contentTop;
+  const handleY = nameY + nameFont + 9 * zoomScale;
+  const bioY = handleY + handleFont + 12 * zoomScale;
+  const buttonY = bioY + bioHeight + (bioLines.length > 0 ? 18 * zoomScale : 12 * zoomScale);
+  const chipsY = buttonY + buttonH + 16 * zoomScale;
+  const panelBottom = chipsY + chipH + 10 * zoomScale;
+  const panelRect = {
+    x: x - panelW / 2,
+    y: panelTop,
+    w: panelW,
+    h: panelBottom - panelTop,
+  };
+
+  roundRectPath(ctx, panelRect.x, panelRect.y, panelRect.w, panelRect.h, 22 * zoomScale);
+  ctx.fillStyle = 'rgba(7, 11, 22, 0.42)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#f2f5ff';
+  ctx.font = `700 ${nameFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillText(nameText, x, nameY);
+  if (node.isVerified) {
+    const badgeX = x + nameW / 2 + 12 * zoomScale;
+    const badgeY = nameY + nameFont * 0.53;
+    ctx.beginPath();
+    ctx.arc(badgeX, badgeY, 7 * zoomScale, 0, Math.PI * 2);
+    ctx.fillStyle = withAlpha('#60a5fa', 0.18 + 0.48 * emph);
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = withAlpha('#93c5fd', 0.8);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `700 ${Math.max(8, 9 * zoomScale)}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✓', badgeX, badgeY + 0.5);
+    ctx.textBaseline = 'top';
+  }
+
+  ctx.fillStyle = withAlpha('#d2d9ff', 0.88);
+  ctx.font = `500 ${handleFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillText(node.sublabel || '', x, handleY);
+
+  if (bioLines.length > 0) {
+    ctx.fillStyle = withAlpha('#e4e8ff', 0.84);
+    ctx.font = `500 ${bioFont}px ui-sans-serif, system-ui, sans-serif`;
+    bioLines.forEach((line, index) => {
+      ctx.fillText(line, x, bioY + index * (bioFont + 4 * zoomScale));
+    });
+  }
+
+  const buttonRect = {
+    x: x - buttonW / 2,
+    y: buttonY,
+    w: buttonW,
+    h: buttonH,
+  };
+  roundRectPath(ctx, buttonRect.x, buttonRect.y, buttonRect.w, buttonRect.h, buttonH / 2);
+  ctx.fillStyle = isSelected || isHover ? 'rgba(69,126,255,0.34)' : 'rgba(69,126,255,0.22)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(124,172,255,0.45)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `600 ${buttonFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(buttonText, x, buttonRect.y + buttonRect.h / 2 + 0.5);
+  o.profileHitboxes?.set(node.id, buttonRect);
+
+  let chipCursor = x - chipRowW / 2;
+  for (const [index, chip] of chips.entries()) {
+    const chipW = chipWidths[index];
+    const chipRect = { x: chipCursor, y: chipsY, w: chipW, h: chipH };
+    roundRectPath(ctx, chipRect.x, chipRect.y, chipRect.w, chipRect.h, chipH / 2);
+    ctx.fillStyle = chip === 'Verified' ? 'rgba(74,144,255,0.16)' : 'rgba(255,255,255,0.05)';
+    ctx.fill();
+    ctx.strokeStyle = chip === 'Verified' ? 'rgba(114,174,255,0.42)' : 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#f3f6ff';
+    ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(chip, chipRect.x + chipRect.w / 2, chipRect.y + chipRect.h / 2 + 0.5);
+    chipCursor += chipW + 6 * zoomScale;
+  }
+
+  ctx.restore();
+  return { w: panelW, h: panelRect.h, profileRect: buttonRect, avatarRadius: avatarR };
+}
 /** Rich floating card for post nodes: media, text, likes/comments, source chip. */
 function drawPostCard(
   o: RenderOptions,
@@ -266,6 +494,7 @@ export function drawScene(o: RenderOptions): void {
 
   const nodes = model.nodes;
   o.pillHitboxes?.clear();
+  o.profileHitboxes?.clear();
 
   // Chain of ids from the hovered node back to the center — these strands light up.
   const hoverChain = new Set<string>();
@@ -307,6 +536,23 @@ export function drawScene(o: RenderOptions): void {
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
 
+    const label = parent.kind === "self" ? strandLabelFor(node) : null;
+    if (label && o.camera.zoom >= 0.42) {
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      drawPill(
+        ctx,
+        mx,
+        my,
+        label,
+        "rgba(8, 12, 24, 0.82)",
+        withAlpha(node.color, 0.56),
+        "#f3f6ff",
+        Math.max(9, 9.5 * o.camera.zoom),
+        8,
+      );
+    }
+
     // A travelling spark on active strands.
     if (emph > 0.7 && node.depth <= 2) {
       const t = (Math.sin(time * 0.0009 + node.x * 0.01 + node.y * 0.01) + 1) / 2;
@@ -321,6 +567,7 @@ export function drawScene(o: RenderOptions): void {
 
   // --- Nodes ---
   const labelQueue: { node: SceneNode; x: number; y: number; r: number; emph: number }[] = [];
+  const selfQueue: { node: SceneNode; x: number; y: number; emph: number; isHover: boolean; isSelected: boolean }[] = [];
 
   nodes.forEach((node) => {
     const p = project(node, o);
@@ -337,6 +584,12 @@ export function drawScene(o: RenderOptions): void {
     const isFocus = o.focusId === node.id;
     const isHover = o.hoverId === node.id;
 
+    if (node.kind === "self") {
+      o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)), 44) });
+      selfQueue.push({ node, x: p.x, y: p.y, emph, isHover, isSelected });
+      return;
+    }
+
     // Posts float as rich cards once the camera is close enough to read them.
     if (node.kind === "post" && o.camera.zoom >= 0.32 && emph > 0.2) {
       const cardScale =
@@ -347,7 +600,7 @@ export function drawScene(o: RenderOptions): void {
     }
 
     // Glow halo.
-    const glowR = r * (node.kind === "self" ? 3.4 : 2.6);
+    const glowR = r * 2.6;
     const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
     glow.addColorStop(0, withAlpha(node.color, 0.42 * emph));
     glow.addColorStop(1, withAlpha(node.color, 0));
@@ -358,7 +611,7 @@ export function drawScene(o: RenderOptions): void {
 
     const img = node.avatarUrl ? o.images.get(node.id) : node.imageUrl ? o.images.get(node.id) : undefined;
 
-    if (img && (node.kind === "person" || node.kind === "persona" || node.kind === "self" || node.kind === "activity")) {
+    if (img && (node.kind === "person" || node.kind === "persona" || node.kind === "activity")) {
       ctx.globalAlpha = 0.3 + 0.7 * emph;
       roundedImage(ctx, img, p.x, p.y, r);
       ctx.globalAlpha = 1;
@@ -408,7 +661,6 @@ export function drawScene(o: RenderOptions): void {
     }
 
     const showLabel =
-      node.kind === "self" ||
       node.kind === "branch" ||
       isSelected ||
       isFocus ||
@@ -472,6 +724,11 @@ export function drawScene(o: RenderOptions): void {
       ctx.fillText(label, x, ly);
       ctx.shadowBlur = 0;
     }
+  }
+
+  for (const item of selfQueue) {
+    const card = drawSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected);
+    o.hitboxes.set(item.node.id, { x: item.x, y: item.y, r: Math.max(card.avatarRadius * 1.12, 26) });
   }
 }
 
