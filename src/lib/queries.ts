@@ -749,6 +749,7 @@ export async function getMessageThreads() {
               username: true,
               displayName: true,
               avatarUrl: true,
+              isVerified: true,
             },
           },
         },
