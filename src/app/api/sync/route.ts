@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { syncPlatform } from "@/lib/platform-sync";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { isSyncType, readJsonObject } from "@/lib/api-validation";
+import { clearMeshCache } from "@/lib/mesh-cache";
 
 // GET — load accounts with sync status + recent sync jobs
 export async function GET() {
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
+    clearMeshCache(user.id);
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({ error: "Sync failed" }, { status: 500 });

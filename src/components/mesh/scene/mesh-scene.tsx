@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Maximize2, Minus, PenLine, Plus, Scan, Search, X } 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MeshDesktopChrome } from "@/components/mesh/mesh-desktop-chrome";
 import {
   MeshiMascot,
   MeshiMini,
@@ -73,6 +74,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const hitboxesRef = useRef<Map<string, { x: number; y: number; r: number }>>(new Map());
   const pillHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
+  const profileHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
   const starsRef = useRef<{ x: number; y: number; r: number; tw: number }[]>([]);
   const sizeRef = useRef({ width: 0, height: 0 });
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -103,6 +105,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [isCoarsePointer, setIsCoarsePointer] = useState(true);
   const [meshUser, setMeshUser] = useState<{ displayName: string; avatarUrl: string | null } | null>(null);
+  const [meshData, setMeshData] = useState<MeshApiResponse | null>(null);
   const [showCompose, setShowCompose] = useState(false);
   const [hoverNode, setHoverNode] = useState<SceneNode | null>(null);
   const [viewedUser, setViewedUser] = useState<{ username: string; displayName: string | null } | null>(null);
@@ -115,6 +118,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [discoverUsers, setDiscoverUsers] = useState<
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
   >([]);
+  const showDesktopChrome = Boolean(meshData && !viewUserId);
 
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
@@ -157,21 +161,28 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const b = sceneBounds(model);
     const contentW = Math.max(b.maxX - b.minX, 400) + 220;
     const contentH = Math.max(b.maxY - b.minY, 400) + 220;
-    const zoom = Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, height / contentH)));
-    const midX = (b.minX + b.maxX) / 2;
-    const midY = (b.minY + b.maxY) / 2;
+    const isNarrowViewport = width < 640;
+    const zoom = isNarrowViewport
+      ? Math.max(MIN_ZOOM, 0.72)
+      : Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, height / contentH)));
+    const midX = isNarrowViewport ? 0 : (b.minX + b.maxX) / 2;
+    const midY = isNarrowViewport ? 0 : (b.minY + b.maxY) / 2;
     cameraRef.current = { zoom, panX: -midX * zoom, panY: -midY * zoom };
   }, []);
 
   const loadScene = useCallback(
     async (opts?: { quiet?: boolean; signal?: AbortSignal }) => {
       const url = viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
-      if (!opts?.quiet) setStatus("loading");
+      if (!opts?.quiet) {
+        setStatus("loading");
+        setMeshData(null);
+      }
       try {
         const res = await fetch(url, { cache: "no-store", signal: opts?.signal });
         if (opts?.signal?.aborted) return;
         if (!res.ok) throw new Error(String(res.status));
         const payload: MeshApiResponse = await res.json();
+        setMeshData(payload);
         const model = buildSceneModel(payload);
         layoutScene(model);
         const quiet = Boolean(opts?.quiet && modelRef.current);
@@ -211,6 +222,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (!opts?.quiet) setStatus("error");
+        if (!opts?.quiet) setMeshData(null);
       }
     },
     [viewUserId, loadImages, fitToContent],
@@ -321,7 +333,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           backgroundStars: starsRef.current,
           hitboxes: hitboxesRef.current,
           pillHitboxes: pillHitboxesRef.current,
+          profileHitboxes: profileHitboxesRef.current,
           avoidCenter: coarseRef.current,
+          isOwnMesh: !viewUserId,
         });
 
         // Focus = item nearest screen center (the Meshi cursor's target).
@@ -351,7 +365,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [fitToContent]);
+  }, [fitToContent, viewUserId]);
 
   // --- Interaction ---
   const flyToNode = useCallback((node: SceneNode) => {
@@ -515,6 +529,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       if (!d.moved) {
         const rect = containerRef.current!.getBoundingClientRect();
+        const profileRect = profileHitboxesRef.current.get(modelRef.current?.selfId || "");
+        if (profileRect) {
+          const sx = e.clientX - rect.left;
+          const sy = e.clientY - rect.top;
+          if (sx >= profileRect.x && sx <= profileRect.x + profileRect.w && sy >= profileRect.y && sy <= profileRect.y + profileRect.h) {
+            const selfNode = modelRef.current?.nodes.get(modelRef.current?.selfId ?? "");
+            router.push(selfNode?.href || "/profile");
+            return;
+          }
+        }
         const node = hitTest(e.clientX - rect.left, e.clientY - rect.top);
         if (node) {
           activateNode(node);
@@ -533,7 +557,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         setActiveBranch(null);
       }
     },
-    [activateNode, hitTest],
+    [activateNode, hitTest, router],
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -911,7 +935,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       </div>
 
       {/* Right rail controls */}
-      <div className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2">
+      <div
+        className="absolute top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2"
+        style={{ right: showDesktopChrome ? "min(23rem, calc(100vw - 4rem))" : "0.75rem" }}
+      >
         {!viewedUser && meshUser && (
           <RailButton label="Post to your mesh" onClick={() => setShowCompose(true)}>
             <PenLine size={16} />
@@ -933,6 +960,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           <Maximize2 size={16} />
         </RailButton>
       </div>
+
+      {showDesktopChrome && meshData ? (
+        <MeshDesktopChrome
+          platforms={meshData.platforms}
+          recentComments={meshData.recentComments}
+          onRecenter={fitToContent}
+        />
+      ) : null}
 
       {/* Loading / states */}
       {status === "loading" && (
