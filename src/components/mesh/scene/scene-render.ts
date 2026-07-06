@@ -327,9 +327,9 @@ function drawSelfProfile(
     const chipW = chipWidths[index];
     const chipRect = { x: chipCursor, y: chipsY, w: chipW, h: chipH };
     roundRectPath(ctx, chipRect.x, chipRect.y, chipRect.w, chipRect.h, chipH / 2);
-    ctx.fillStyle = index === 0 ? 'rgba(74,144,255,0.16)' : 'rgba(255,255,255,0.05)';
+    ctx.fillStyle = chip === 'Verified' ? 'rgba(74,144,255,0.16)' : 'rgba(255,255,255,0.05)';
     ctx.fill();
-    ctx.strokeStyle = index === 0 ? 'rgba(114,174,255,0.42)' : 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = chip === 'Verified' ? 'rgba(114,174,255,0.42)' : 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.fillStyle = '#f3f6ff';
