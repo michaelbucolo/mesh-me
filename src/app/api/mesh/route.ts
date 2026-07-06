@@ -5,6 +5,16 @@ import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
 
+function visibleCommentAuthorWhere(viewerId: string) {
+  return {
+    isSuspended: false,
+    AND: [
+      { blocks: { none: { blockedId: viewerId } } },
+      { blockedBy: { none: { blockerId: viewerId } } },
+    ],
+  };
+}
+
 export async function GET(req: Request) {
   try {
   const user = await getCurrentUser();
@@ -168,7 +178,10 @@ export async function GET(req: Request) {
       take: 8,
     }),
     prisma.comment.findMany({
-      where: { authorId: user.id, post: safetyWhere },
+      where: {
+        authorId: user.id,
+        post: safetyWhere,
+      },
       select: {
         id: true,
         content: true,
@@ -229,6 +242,7 @@ export async function GET(req: Request) {
       where: {
         authorId: { not: user.id },
         post: { ...safetyWhere, authorId: user.id },
+        author: visibleCommentAuthorWhere(user.id),
       },
       select: {
         id: true,
@@ -247,7 +261,6 @@ export async function GET(req: Request) {
           select: {
             id: true,
             content: true,
-            _count: { select: { reactions: true, comments: true } },
           },
         },
         _count: { select: { replies: true } },
@@ -531,7 +544,6 @@ export async function GET(req: Request) {
     content: comment.content,
     createdAt: comment.createdAt.toISOString(),
     replyCount: comment._count.replies,
-    likeCount: comment.post._count.reactions,
     author: {
       id: comment.author.id,
       username: comment.author.username,
@@ -818,6 +830,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       where: {
         authorId: { not: targetUserId },
         post: { authorId: targetUserId, visibility: "public" },
+        author: visibleCommentAuthorWhere(viewerId),
       },
       select: {
         id: true,
@@ -836,7 +849,6 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
           select: {
             id: true,
             content: true,
-            _count: { select: { reactions: true, comments: true } },
           },
         },
         _count: { select: { replies: true } },
@@ -879,7 +891,6 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     content: comment.content,
     createdAt: comment.createdAt.toISOString(),
     replyCount: comment._count.replies,
-    likeCount: comment.post._count.reactions,
     author: {
       id: comment.author.id,
       username: comment.author.username,

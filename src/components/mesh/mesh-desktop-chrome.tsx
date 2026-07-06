@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Globe2, Heart, MessageCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, Globe2, MessageCircle, ShieldCheck } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { formatRelativeTime } from "@/lib/utils";
 import type { MeshPlatform, MeshRecentComment } from "./mesh-data";
@@ -115,10 +115,6 @@ export function MeshDesktopChrome({ platforms = [], recentComments = [], onRecen
                         <span className="inline-flex items-center gap-1 rounded-full border border-[var(--mesh-border)] px-2 py-1">
                           <MessageCircle size={12} />
                           {comment.replyCount} replies
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--mesh-border)] px-2 py-1">
-                          <Heart size={12} />
-                          {comment.likeCount} likes
                         </span>
                       </div>
                     </div>

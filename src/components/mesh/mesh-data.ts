@@ -84,7 +84,6 @@ export interface MeshRecentComment {
   content: string;
   createdAt: string;
   replyCount: number;
-  likeCount: number;
   author: {
     id: string;
     username: string;
