@@ -175,7 +175,7 @@ function drawSelfProfile(
   isSelected: boolean,
 ): { w: number; h: number; profileRect: { x: number; y: number; w: number; h: number } | null; avatarRadius: number } {
   const { ctx } = o;
-  const zoomScale = Math.max(0.9, Math.min(1.18, o.camera.zoom * 1.08));
+  const zoomScale = Math.max(0.68, Math.min(1.18, o.camera.zoom * 1.08));
   const avatarR = 31 * zoomScale;
   const bodyMaxW = 272 * zoomScale;
   const nameFont = Math.max(16, 18 * zoomScale);
