@@ -7,6 +7,7 @@ import { readJsonObject } from "@/lib/api-validation";
 import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
 import { getDefaultPermissionKeysForPlatform, getSupportedPlatformAdapter } from "@/lib/platform-adapters";
 import { normalizePlatformId } from "@/lib/platform-capabilities";
+import { clearMeshCache } from "@/lib/mesh-cache";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -121,5 +122,6 @@ export async function POST(request: Request) {
     return created;
   });
 
+  clearMeshCache(user.id);
   return NextResponse.json({ account, dashboard: await getConnectedAccountsDashboard(user.id) });
 }

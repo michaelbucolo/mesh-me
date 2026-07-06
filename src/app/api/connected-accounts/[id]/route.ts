@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { normalizeScopes, syncConnectedAccountPermissions } from "@/lib/platform-permissions";
 import { getDefaultPermissionKeysForPlatform } from "@/lib/platform-adapters";
+import { clearMeshCache } from "@/lib/mesh-cache";
 
 // PATCH — update alter ego association or label
 export async function PATCH(
@@ -110,6 +111,7 @@ export async function PATCH(
     });
   }
 
+  clearMeshCache(user.id);
   return NextResponse.json({ account: updated });
 }
 
@@ -143,5 +145,6 @@ export async function DELETE(
     await tx.connectedAccount.delete({ where: { id } });
   });
 
+  clearMeshCache(user.id);
   return NextResponse.json({ success: true });
 }
