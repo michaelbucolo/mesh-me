@@ -332,6 +332,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           pillHitboxes: pillHitboxesRef.current,
           profileHitboxes: profileHitboxesRef.current,
           avoidCenter: coarseRef.current,
+          isOwnMesh: !viewUserId,
         });
 
         // Focus = item nearest screen center (the Meshi cursor's target).
@@ -361,7 +362,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [fitToContent]);
+  }, [fitToContent, viewUserId]);
 
   // --- Interaction ---
   const flyToNode = useCallback((node: SceneNode) => {
@@ -530,7 +531,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           const sx = e.clientX - rect.left;
           const sy = e.clientY - rect.top;
           if (sx >= profileRect.x && sx <= profileRect.x + profileRect.w && sy >= profileRect.y && sy <= profileRect.y + profileRect.h) {
-            router.push("/profile");
+            const selfNode = modelRef.current?.nodes.get(modelRef.current?.selfId ?? "");
+            router.push(selfNode?.href || "/profile");
             return;
           }
         }

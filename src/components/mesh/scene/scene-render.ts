@@ -32,6 +32,7 @@ export interface RenderOptions {
   profileHitboxes?: Map<string, { x: number; y: number; w: number; h: number }>;
   /** Keep labels clear of the screen center (where the pinned Meshi sits). */
   avoidCenter?: boolean;
+  isOwnMesh?: boolean;
 }
 
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
@@ -225,7 +226,7 @@ function drawSelfProfile(
   const contentTop = y + avatarR + 18 * zoomScale;
   const chips: string[] = [];
   if (node.isVerified) chips.push('Verified');
-  chips.push('Owner', 'Private by default');
+  if (o.isOwnMesh) chips.push('Owner', 'Private by default');
 
   const chipWidths = chips.map((chip) => {
     ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
