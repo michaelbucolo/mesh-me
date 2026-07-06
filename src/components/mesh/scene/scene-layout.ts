@@ -44,13 +44,18 @@ export function layoutScene(model: SceneModel): void {
   }
 
   const branchCount = Math.max(branchOrder.length, 1);
+  const isSingleBranch = branchCount === 1;
   const sectorWidth = branchCount > 1 ? BRANCH_SWEEP / (branchCount - 1) : 0;
-  const sectorHalf = Math.min((sectorWidth / 2) * 0.82, (14 * Math.PI) / 180);
+  const sectorHalf = isSingleBranch
+    ? Math.min((BRANCH_SWEEP / 2) * 0.82, (14 * Math.PI) / 180)
+    : Math.min((sectorWidth / 2) * 0.82, (14 * Math.PI) / 180);
 
   branchOrder.forEach((branchHubId, branchIndex) => {
     const branch = nodes.get(branchHubId);
     if (!branch) return;
-    const baseAngle = normalizeAngle(TOP_ANGLE - BRANCH_SWEEP / 2 + branchIndex * sectorWidth);
+    const baseAngle = normalizeAngle(
+      isSingleBranch ? TOP_ANGLE : TOP_ANGLE - BRANCH_SWEEP / 2 + branchIndex * sectorWidth,
+    );
     branch.angle = baseAngle;
     branch.depth = 1;
     branch.x = Math.cos(baseAngle) * BRANCH_RADIUS;
