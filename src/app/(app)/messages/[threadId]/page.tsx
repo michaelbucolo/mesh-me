@@ -65,7 +65,13 @@ function buildThreadInsights(messages: MeChatSerializedMessage[]) {
   let fileCount = 0;
 
   for (const message of messages) {
-    if (message.sourcePlatform) {
+    const sourcePlatform = message.sourcePlatform?.toLowerCase() || "";
+    const isNativePlatform = sourcePlatform === "mesh" || sourcePlatform === "meshme";
+    const isExternalSharedSource = Boolean(message.sourcePlatform)
+      && !isNativePlatform
+      && message.messageType !== "text";
+
+    if (isExternalSharedSource && message.sourcePlatform) {
       sourceCounts.set(message.sourcePlatform, (sourceCounts.get(message.sourcePlatform) || 0) + 1);
     }
 
@@ -388,13 +394,13 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     : null;
 
   const threadSummary = isGroupThread
-    ? `${memberCount} member${memberCount === 1 ? "" : "s"} · encrypted group chat`
+    ? `${memberCount} member${memberCount === 1 ? "" : "s"} · ${threadIsEncrypted ? "encrypted" : "private"} group chat`
     : recipient
       ? `Direct conversation with @${recipient.username}`
       : "Private conversation";
 
   return (
-    <main className="min-h-full overflow-hidden text-[var(--mesh-text)] animate-page-enter">
+    <div className="min-h-full overflow-hidden text-[var(--mesh-text)] animate-page-enter">
       <div className="grid h-full min-h-0 gap-4 px-3 py-4 lg:grid-cols-[minmax(0,1fr)_380px] md:px-5 md:py-6">
         <section className="mesh-surface mesh-pop-in flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-[var(--mesh-border)] shadow-[var(--shadow-lg)]">
           <header className="border-b border-[var(--mesh-border)] px-4 py-4 md:px-5">
@@ -504,6 +510,6 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
           />
         </div>
       </div>
-    </main>
+    </div>
   );
 }
