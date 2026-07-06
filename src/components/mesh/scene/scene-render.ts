@@ -172,7 +172,7 @@ function drawSelfProfile(
   emph: number,
   isHover: boolean,
   isSelected: boolean,
-): { w: number; h: number; profileRect: { x: number; y: number; w: number; h: number } | null } {
+): { w: number; h: number; profileRect: { x: number; y: number; w: number; h: number } | null; avatarRadius: number } {
   const { ctx } = o;
   const zoomScale = Math.max(0.9, Math.min(1.18, o.camera.zoom * 1.08));
   const avatarR = 31 * zoomScale;
@@ -340,7 +340,7 @@ function drawSelfProfile(
   }
 
   ctx.restore();
-  return { w: panelW, h: panelRect.h, profileRect: buttonRect };
+  return { w: panelW, h: panelRect.h, profileRect: buttonRect, avatarRadius: avatarR };
 }
 /** Rich floating card for post nodes: media, text, likes/comments, source chip. */
 function drawPostCard(
@@ -727,7 +727,7 @@ export function drawScene(o: RenderOptions): void {
 
   for (const item of selfQueue) {
     const card = drawSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected);
-    o.hitboxes.set(item.node.id, { x: item.x, y: item.y, r: Math.max(card.w / 2, 44) });
+    o.hitboxes.set(item.node.id, { x: item.x, y: item.y, r: Math.max(card.avatarRadius * 1.12, 26) });
   }
 }
 

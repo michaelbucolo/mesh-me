@@ -118,6 +118,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [discoverUsers, setDiscoverUsers] = useState<
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
   >([]);
+  const showDesktopChrome = Boolean(meshData && !viewUserId);
 
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
@@ -929,7 +930,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       </div>
 
       {/* Right rail controls */}
-      <div className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2">
+      <div
+        className="absolute top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2"
+        style={{ right: showDesktopChrome ? "min(23rem, calc(100vw - 4rem))" : "0.75rem" }}
+      >
         {!viewedUser && meshUser && (
           <RailButton label="Post to your mesh" onClick={() => setShowCompose(true)}>
             <PenLine size={16} />
@@ -952,13 +956,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         </RailButton>
       </div>
 
-      {meshData && (
+      {showDesktopChrome && meshData ? (
         <MeshDesktopChrome
           platforms={meshData.platforms}
           recentComments={meshData.recentComments}
           onRecenter={fitToContent}
         />
-      )}
+      ) : null}
 
       {/* Loading / states */}
       {status === "loading" && (
