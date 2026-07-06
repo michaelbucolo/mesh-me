@@ -261,12 +261,12 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
       threadIsEncrypted = existingThread.isEncrypted;
     } else {
       formRecipientId = recipient.id;
+      threadCreatedAt = new Date().toISOString();
+      threadIsEncrypted = true;
     }
     conversationTitle = recipient.displayName;
     conversationSubtitle = `@${recipient.username}`;
     conversationAvatar = recipient.avatarUrl;
-    threadCreatedAt = new Date().toISOString();
-    threadIsEncrypted = true;
     conversationMembers = [
       ...conversationMembers,
       {

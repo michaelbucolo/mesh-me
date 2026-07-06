@@ -86,7 +86,7 @@ export default async function MessagesLayout({ children }: MessagesLayoutProps) 
             username: thread.otherUser.username,
             displayName: thread.otherUser.displayName,
             avatarUrl: thread.otherUser.avatarUrl,
-            isVerified: (thread.otherUser as { isVerified?: boolean } | null)?.isVerified,
+            isVerified: thread.otherUser.isVerified,
           }
         : null,
       otherUsers: thread.otherUsers.map((member) => ({
@@ -94,7 +94,7 @@ export default async function MessagesLayout({ children }: MessagesLayoutProps) 
         username: member.username,
         displayName: member.displayName,
         avatarUrl: member.avatarUrl,
-        isVerified: (member as { isVerified?: boolean }).isVerified,
+        isVerified: member.isVerified,
       })),
       lastMessage: thread.lastMessage
         ? {
