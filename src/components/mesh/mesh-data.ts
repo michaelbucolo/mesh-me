@@ -7,13 +7,15 @@ import { NODE_COLORS, PLATFORM_COLORS, normalizeMediaAspectRatio } from "./mesh-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface MeshApiResponse {
-  user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null };
+  user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null; isVerified: boolean };
   following: any[];
   followers: any[];
   communities: any[];
   interests: string[];
   posts: any[];
   connectedAccounts: any[];
+  platforms?: MeshPlatform[];
+  recentComments?: MeshRecentComment[];
   activities?: Array<{
     id: string;
     type: string;
@@ -58,6 +60,41 @@ export interface MeshApiResponse {
     connectedPlatformCount: number;
     alterEgoCount: number;
     activityCount?: number;
+  };
+}
+
+export interface MeshPlatform {
+  id: string;
+  platform: string;
+  platformUsername: string | null;
+  syncStatus: string;
+  isConnected: boolean;
+  counts: {
+    posts: number;
+    comments: number;
+    followers: number;
+    media: number;
+  };
+  manageHref: string;
+  sourcesHref: string;
+}
+
+export interface MeshRecentComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  replyCount: number;
+  likeCount: number;
+  author: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    isVerified: boolean;
+  };
+  post: {
+    id: string;
+    content: string;
   };
 }
 
