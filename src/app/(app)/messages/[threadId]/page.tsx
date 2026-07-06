@@ -72,7 +72,7 @@ function buildThreadInsights(messages: MeChatSerializedMessage[]) {
       && message.messageType !== "text";
 
     if (isExternalSharedSource && message.sourcePlatform) {
-      sourceCounts.set(message.sourcePlatform, (sourceCounts.get(message.sourcePlatform) || 0) + 1);
+      sourceCounts.set(sourcePlatform, (sourceCounts.get(sourcePlatform) || 0) + 1);
     }
 
     for (const attachment of message.metadata.attachments || []) {
@@ -497,7 +497,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
             createdBy={threadCreatedBy}
             description={
               isGroupThread
-                ? `Encrypted group conversation with ${memberCount} members.`
+                ? `${threadIsEncrypted ? "Encrypted" : "Private"} group conversation with ${memberCount} members.`
                 : recipient
                   ? `Private direct message with @${recipient.username}.`
                   : "Private conversation."
