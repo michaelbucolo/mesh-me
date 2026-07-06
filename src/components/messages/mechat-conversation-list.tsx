@@ -228,6 +228,7 @@ export function MeChatConversationList({
         const nextUrl = shareQuery ? `/messages/${data.thread.id}?${shareQuery}` : `/messages/${data.thread.id}`;
         setShowCompose(false);
         router.push(nextUrl);
+        router.refresh();
       } catch (error) {
         setStatus({ type: "error", message: error instanceof Error ? error.message : "Could not start chat" });
       }
