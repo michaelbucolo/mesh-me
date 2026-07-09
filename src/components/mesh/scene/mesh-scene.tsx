@@ -786,11 +786,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   return (
     <div
       ref={containerRef}
+      data-testid="mesh-scene"
       className={`relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[#04050c] select-none ${!isCoarsePointer ? "cursor-none" : ""}`}
       onWheel={onWheel}
     >
       <canvas
         ref={canvasRef}
+        data-testid="mesh-canvas"
+        role="img"
+        aria-label="Your mesh constellation"
         className="block h-full w-full"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -936,6 +940,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       {/* Right rail controls */}
       <div
+        data-testid="mesh-action-bar"
+        role="toolbar"
+        aria-label="Mesh actions"
         className="absolute top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2"
         style={{ right: showDesktopChrome ? "min(23rem, calc(100vw - 4rem))" : "0.75rem" }}
       >

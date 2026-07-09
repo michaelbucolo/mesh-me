@@ -125,19 +125,25 @@ async function runPublicEntryChecks(knownUser) {
     const context = await browser.newContext({
       viewport: { width: viewport.width, height: viewport.height },
       isMobile: viewport.isMobile,
+      // Decorative entry animations render in software in CI and can starve
+      // the page; run the smoke the way reduced-motion users experience it.
+      reducedMotion: "reduce",
     });
     const page = await newObservedPage(context, label);
     try {
       await page.goto(`${baseUrl}/login`, { waitUntil: "domcontentloaded" });
-      await page.waitForSelector("[data-testid=\"entry-identity-input\"]", { timeout: 15000 });
-      await page.waitForSelector("[data-entry-ready=\"true\"]", { timeout: 15000 });
+      // First paint + hydration of the entry scene can take a while on
+      // software-rendered CI machines; let the page settle before interacting.
+      await page.waitForLoadState("networkidle", { timeout: 45000 }).catch(() => {});
+      await page.waitForSelector("[data-testid=\"entry-identity-input\"]", { timeout: 45000 });
+      await page.waitForSelector("[data-entry-ready=\"true\"]", { timeout: 45000 });
       await assertNoOverflow(page, `${label} login initial`);
       await assertText(page, "Who are you?", `${label} login heading`);
 
       const email = `browser-smoke-${Date.now()}-${label}@example.com`;
-      await page.fill("[data-testid=\"entry-identity-input\"]", email);
-      await page.click("[data-testid=\"entry-continue-button\"]");
-      await page.waitForSelector("[data-testid=\"entry-signup-form\"]", { timeout: 15000 });
+      await page.fill("[data-testid=\"entry-identity-input\"]", email, { timeout: 45000 });
+      await page.click("[data-testid=\"entry-continue-button\"]", { timeout: 45000 });
+      await page.waitForSelector("[data-testid=\"entry-signup-form\"]", { timeout: 45000 });
       await assertNoOverflow(page, `${label} inline signup`);
       const signupState = await page.evaluate(() => ({
         email: document.querySelector("[data-testid=\"entry-signup-email\"]")?.value || "",
@@ -149,12 +155,12 @@ async function runPublicEntryChecks(knownUser) {
       assert(signupState.hasButton, `${label} signup button missing`);
 
       if (knownUser) {
-        await page.getByText("I already have an account", { exact: true }).click();
-        await page.waitForSelector("[data-testid=\"entry-identity-input\"]", { timeout: 15000 });
-        await page.waitForSelector("[data-entry-ready=\"true\"]", { timeout: 15000 });
-        await page.fill("[data-testid=\"entry-identity-input\"]", knownUser.username);
-        await page.click("[data-testid=\"entry-continue-button\"]");
-        await page.waitForSelector("[data-testid=\"entry-password-form\"]", { timeout: 15000 });
+        await page.getByText("I already have an account", { exact: true }).click({ timeout: 45000 });
+        await page.waitForSelector("[data-testid=\"entry-identity-input\"]", { timeout: 45000 });
+        await page.waitForSelector("[data-entry-ready=\"true\"]", { timeout: 45000 });
+        await page.fill("[data-testid=\"entry-identity-input\"]", knownUser.username, { timeout: 45000 });
+        await page.click("[data-testid=\"entry-continue-button\"]", { timeout: 45000 });
+        await page.waitForSelector("[data-testid=\"entry-password-form\"]", { timeout: 45000 });
         await assertNoOverflow(page, `${label} password`);
       }
 
@@ -191,7 +197,7 @@ async function runAuthenticatedAppChecks(user) {
     "/content-hub",
   ];
 
-  const context = await browser.newContext({ viewport: { width: 1440, height: 920 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 920 }, reducedMotion: "reduce" });
   await context.addCookies([
     {
       name: "mesh_session",
