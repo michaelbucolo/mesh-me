@@ -19,7 +19,7 @@ const buttonVariants = cva(
         success: "border-[var(--ds-success-border)] bg-[var(--ds-success)] text-white hover:bg-emerald-500",
         warning: "border-[var(--ds-warning-border)] bg-[var(--ds-warning-bg)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
         link: "h-auto border-transparent bg-transparent p-0 text-[var(--accent)] underline-offset-4 hover:underline",
-        gradient: "border-[var(--ds-accent-border)] bg-[var(--accent)] text-[var(--accent-contrast,#ffffff)] hover:bg-[var(--accent-hover)]",
+        gradient: "btn-gradient border-transparent text-white",
       },
       size: {
         default: "h-[var(--ds-control-height)] px-4 py-2",
