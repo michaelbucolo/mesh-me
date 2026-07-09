@@ -306,7 +306,7 @@ const checks = [
         'id: "privacy"',
         'id: "notifications"',
         'id: "style"',
-        'id: "connect"',
+        'id: "apps"',
         "onboarding-step-${item.id}",
         "completeOnboarding",
         "userNotificationPreference",
@@ -325,8 +325,8 @@ const checks = [
     description: "The Mesh has stable testability/accessibility hooks",
     fix: "Keep the Mesh canvas, controls, and diagnostics-visible states accessible to browser tests.",
     run: async () => {
-      const source = read("src/components/mesh/mesh-experience.tsx") + read("src/components/mesh/mesh-canvas.tsx") + read("src/components/mesh/mesh-controls.tsx");
-      const required = ["data-testid", "aria-label", "MeshCanvas", "mesh-action-bar"];
+      const source = read("src/components/mesh/scene/mesh-scene.tsx") + read("src/components/mesh/mesh-desktop-chrome.tsx");
+      const required = ['data-testid="mesh-scene"', 'data-testid="mesh-canvas"', 'data-testid="mesh-action-bar"', "aria-label", "MeshScene"];
       const missing = required.filter((token) => !source.includes(token));
       assert(missing.length === 0, `Missing Mesh testability markers: ${missing.join(", ")}`);
       return { evidence: "Mesh component exposes stable diagnostics markers" };
@@ -354,6 +354,11 @@ const checks = [
         }
         const signedWebhook = source.includes("verifySignature") && source.includes("timingSafeEqual") && source.includes("createHmac");
         if (signedWebhook) continue;
+        // OAuth callbacks are cross-site by design (Apple returns via form_post),
+        // so they cannot demand same-origin proof. Their CSRF protection is
+        // validating the returned state against the flow cookie we issued.
+        const oauthStateValidated = source.includes("identity_state_") && source.includes("expectedState !== params.state");
+        if (oauthStateValidated) continue;
         if (!source.includes("isSameOriginRequest")) missingGuard.push(rel);
       }
 

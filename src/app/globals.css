@@ -3698,6 +3698,14 @@ html {
   .mesh-entry-input-go {
     transition: none !important;
   }
+
+  /* The constellation and depth layers are purely decorative animation.
+     They are also extremely expensive to composite without a GPU, so
+     reduced-motion users get the calm, fast entry instead. */
+  .mesh-entry-constellation,
+  .mesh-entry-depth {
+    display: none !important;
+  }
 }
 
 .mesh-entry-input:hover:not(:focus) {
