@@ -47,13 +47,18 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
         key={item.href}
         href={resolveNavHref(item.href, user.username)}
         className={cn(
-          "group flex items-center gap-3.5 rounded-full px-3 py-2.5 text-[15px] transition-colors duration-150",
+          "mesh-nav-link group relative flex items-center gap-3.5 rounded-full px-3.5 py-2.5 text-[15px] transition-all duration-200",
           active
-            ? "font-bold text-[var(--text-primary)]"
+            ? "mesh-nav-link-active font-bold text-[var(--text-primary)]"
             : "font-normal text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
         )}
       >
-        <item.icon className={cn("h-[22px] w-[22px] shrink-0", active ? "stroke-[2.5px]" : "stroke-[1.5px]")} />
+        <item.icon
+          className={cn(
+            "h-[22px] w-[22px] shrink-0 transition-transform duration-200 group-hover:scale-105",
+            active ? "stroke-[2.5px] text-[var(--accent)]" : "stroke-[1.5px]"
+          )}
+        />
         <span className="truncate">{item.label}</span>
         {badgeCount > 0 && (
           <span className="notif-dot ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-white">
