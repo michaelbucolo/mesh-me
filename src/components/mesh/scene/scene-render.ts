@@ -356,88 +356,134 @@ function drawPostCard(
 ): { w: number; h: number } {
   const { ctx } = o;
   const img = node.imageUrl ? o.images.get(node.id) : undefined;
-  const w = 148 * scale;
-  const imgH = img ? 82 * scale : 0;
-  const textH = 34 * scale;
-  const footH = 20 * scale;
-  const h = imgH + textH + footH;
+  const pad = 10 * scale;
+  const w = 172 * scale;
+  const headH = 22 * scale;
+  const imgH = img ? 96 * scale : 0;
+  const fontSize = Math.max(8, 10.5 * scale);
+  const textH = 32 * scale;
+  const footH = 22 * scale;
+  const h = headH + imgH + textH + footH;
   const x = cx - w / 2;
   const y = cy - h / 2;
-  const radius = 12 * scale;
-  const alpha = 0.35 + 0.65 * emph;
+  const radius = 16 * scale;
+  const alpha = 0.4 + 0.6 * emph;
+  const bodyFill = "rgba(13, 17, 30, 0.94)";
 
   ctx.save();
   ctx.globalAlpha = alpha;
 
-  // Card body with soft shadow.
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 14 * scale;
-  ctx.shadowOffsetY = 3 * scale;
+  // Card body with soft, layered shadow (matches the glass card language).
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = 22 * scale;
+  ctx.shadowOffsetY = 8 * scale;
   roundRectPath(ctx, x, y, w, h, radius);
-  ctx.fillStyle = "rgba(14, 19, 38, 0.92)";
+  ctx.fillStyle = bodyFill;
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
 
-  // Media region.
+  // Header row: platform dot + name (+ verified) left, time/handle right.
+  const headCy = y + headH / 2;
+  ctx.beginPath();
+  ctx.arc(x + pad + 4 * scale, headCy, 4 * scale, 0, Math.PI * 2);
+  ctx.fillStyle = node.color;
+  ctx.fill();
+  const headFont = Math.max(8, 9.5 * scale);
+  ctx.font = `700 ${headFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#eef2ff";
+  const platform = node.sublabel || "Mesh.me";
+  const headLabel = fitText(ctx, platform, w - pad * 2 - 44 * scale);
+  ctx.fillText(headLabel, x + pad + 12 * scale, headCy + 0.5);
+  const headLabelW = ctx.measureText(headLabel).width;
+  if (node.isVerified) {
+    const bx = x + pad + 12 * scale + headLabelW + 6 * scale;
+    ctx.beginPath();
+    ctx.arc(bx, headCy, 3.4 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = withAlpha("#6e8bff", 0.9);
+    ctx.fill();
+  }
+  const timeText = metaValue(node, "Time") || metaValue(node, "Ago") || node.status || "";
+  if (timeText) {
+    ctx.font = `500 ${Math.max(7.5, 8.5 * scale)}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.fillStyle = withAlpha("#9aa3bc", 0.9);
+    ctx.textAlign = "right";
+    ctx.fillText(fitText(ctx, timeText, w * 0.32), x + w - pad, headCy + 0.5);
+  }
+
+  // Media region (below header).
+  const mediaY = y + headH;
   if (img) {
     ctx.save();
-    roundRectPath(ctx, x, y, w, h, radius);
+    roundRectPath(ctx, x + 1, mediaY, w - 2, imgH, 2 * scale);
     ctx.clip();
-    // Cover-crop the media so it fills the region without distortion.
     const iw = img.naturalWidth || img.width;
     const ih = img.naturalHeight || img.height;
     if (iw > 0 && ih > 0) {
       const cover = Math.max(w / iw, imgH / ih);
       const sw = w / cover;
       const sh = imgH / cover;
-      ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, imgH);
+      ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, mediaY, w, imgH);
     }
-    const fade = ctx.createLinearGradient(0, y + imgH - 18 * scale, 0, y + imgH);
-    fade.addColorStop(0, "rgba(14,19,38,0)");
-    fade.addColorStop(1, "rgba(14,19,38,0.85)");
+    const fade = ctx.createLinearGradient(0, mediaY + imgH - 22 * scale, 0, mediaY + imgH);
+    fade.addColorStop(0, "rgba(13,17,30,0)");
+    fade.addColorStop(1, "rgba(13,17,30,0.9)");
     ctx.fillStyle = fade;
-    ctx.fillRect(x, y + imgH - 18 * scale, w, 18 * scale);
+    ctx.fillRect(x, mediaY + imgH - 22 * scale, w, 22 * scale);
     ctx.restore();
   }
 
   // Text snippet.
-  const pad = 9 * scale;
-  const fontSize = Math.max(8, 10.5 * scale);
+  const textY = mediaY + imgH + 7 * scale;
   ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillStyle = "#e7ebff";
+  ctx.fillStyle = "#eef2ff";
   const lines = wrapTwoLines(ctx, node.content || node.label, w - pad * 2);
-  ctx.fillText(lines[0], x + pad, y + imgH + 6 * scale);
+  ctx.fillText(lines[0], x + pad, textY);
   if (lines[1]) {
-    ctx.fillStyle = withAlpha("#e7ebff", 0.75);
-    ctx.fillText(lines[1], x + pad, y + imgH + 6 * scale + fontSize + 3 * scale);
+    ctx.fillStyle = withAlpha("#c8cfe6", 0.8);
+    ctx.fillText(lines[1], x + pad, textY + fontSize + 3 * scale);
   }
 
-  // Footer: likes · comments and source chip.
-  const footY = y + h - footH + 2 * scale;
+  // Footer: likes · comments and a "Source" chip.
+  const footY = y + h - footH + footH / 2;
   const metaFont = Math.max(7.5, 9 * scale);
   ctx.font = `600 ${metaFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textBaseline = "middle";
   const likes = metaValue(node, "Likes");
   const comments = metaValue(node, "Comments");
-  ctx.fillStyle = withAlpha("#aab4e8", 0.95);
+  ctx.fillStyle = withAlpha("#9aa3bc", 0.95);
   const parts: string[] = [];
   if (likes != null) parts.push(`♥ ${likes}`);
   if (comments != null) parts.push(`💬 ${comments}`);
   if (parts.length) ctx.fillText(parts.join("   "), x + pad, footY);
 
-  if (node.sublabel) {
-    const chip = fitText(ctx, node.sublabel, w * 0.42);
-    ctx.fillStyle = withAlpha(node.color, 0.9);
-    ctx.textAlign = "right";
-    ctx.fillText(chip, x + w - pad, footY);
-    ctx.textAlign = "left";
-  }
+  // Source chip (pill) on the right.
+  const chipText = "Source";
+  ctx.font = `600 ${Math.max(7, 8 * scale)}px ui-sans-serif, system-ui, sans-serif`;
+  const chipTW = ctx.measureText(chipText).width;
+  const chipPadX = 6 * scale;
+  const chipW = chipTW + chipPadX * 2;
+  const chipH = 13 * scale;
+  const chipX = x + w - pad - chipW;
+  const chipY = footY - chipH / 2;
+  roundRectPath(ctx, chipX, chipY, chipW, chipH, chipH / 2);
+  ctx.fillStyle = withAlpha(node.color, 0.16);
+  ctx.fill();
+  ctx.strokeStyle = withAlpha(node.color, 0.5);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = withAlpha(node.color, 0.95);
+  ctx.textAlign = "center";
+  ctx.fillText(chipText, chipX + chipW / 2, footY + 0.5);
 
-  // Border glow.
+  // Border + soft glow.
+  ctx.textAlign = "left";
   roundRectPath(ctx, x, y, w, h, radius);
-  ctx.strokeStyle = withAlpha(node.color, isSelected ? 0.95 : isHover ? 0.8 : 0.4 * emph + 0.15);
+  ctx.strokeStyle = withAlpha(node.color, isSelected ? 0.95 : isHover ? 0.8 : 0.32 * emph + 0.14);
   ctx.lineWidth = isSelected || isHover ? 1.8 : 1.1;
   ctx.stroke();
 
