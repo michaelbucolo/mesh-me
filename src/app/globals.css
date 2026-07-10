@@ -6754,10 +6754,11 @@ body,
   --brand-privacy-green: #22c55e;
   --brand-warning-amber: #f59e0b;
   --brand-danger-red: #ef4444;
-  --ds-radius-xs: 0.25rem;
-  --ds-radius-sm: 0.375rem;
-  --ds-radius-md: 0.5rem;
-  --ds-radius-lg: 0.75rem;
+  /* Generous, modern radii to match the reference cards. */
+  --ds-radius-xs: 0.4rem;
+  --ds-radius-sm: 0.65rem;
+  --ds-radius-md: 0.95rem;
+  --ds-radius-lg: 1.2rem;
   --ds-radius-pill: 999px;
   --ds-space-1: 0.25rem;
   --ds-space-2: 0.5rem;
@@ -6769,10 +6770,10 @@ body,
   --ds-control-height-sm: 2rem;
   --ds-control-height: 2.5rem;
   --ds-control-height-lg: 3rem;
-  --ds-surface: var(--bg-secondary);
+  --ds-surface: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
   --ds-surface-muted: var(--bg-tertiary);
   --ds-surface-raised: var(--bg-elevated);
-  --ds-surface-glass: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+  --ds-surface-glass: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
   --ds-border: var(--border-primary);
   --ds-border-strong: var(--border-hover);
   --ds-accent-border: color-mix(in srgb, var(--accent) 78%, #000 22%);
@@ -6803,16 +6804,18 @@ body,
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
-  box-shadow: var(--ds-shadow-card);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
 .ds-glass-panel {
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-lg);
   background: var(--ds-surface-glass);
-  box-shadow: var(--ds-shadow-floating);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 20px 48px -28px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
 }
 
 .ds-focus-ring {
