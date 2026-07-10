@@ -487,13 +487,12 @@ export function FeedTimelineClient({
             <h1 className="truncate text-lg font-bold text-[var(--text-primary)]">Home</h1>
           </div>
           <div className="feed-topbar-actions flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setReelsOpen(true)}
-              disabled={posts.length === 0}
-              aria-label="Open immersive Flow"
-              title="Immersive Flow"
-              className="insta-icon-button"
+          <button
+            type="button"
+            onClick={() => setReelsOpen(true)}
+            aria-label="Open immersive Flow"
+            title="Immersive Flow"
+            className="insta-icon-button"
             >
               <Play size={20} aria-hidden="true" />
             </button>
@@ -720,7 +719,7 @@ export function FeedTimelineClient({
         </div>
       </aside>
 
-      {reelsOpen && posts.length > 0 && (
+      {reelsOpen && (
         <FlowReels
           posts={posts}
           startId={flowPostId ?? activeFeedItemId}
