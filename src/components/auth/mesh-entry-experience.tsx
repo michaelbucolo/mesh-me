@@ -740,26 +740,10 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     }
   }, []);
 
-  useEffect(() => {
-    if (stage !== "identity") return;
-
-    const username = getUsernamePreviewCandidate(identifier);
-    if (!username) {
-      setMeshiPreview(null);
-      setPreviewState("idle");
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => {
-      void loadMeshiPreview(username, controller.signal);
-    }, 260);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, [identifier, loadMeshiPreview, stage]);
+  // Intentionally no per-keystroke Meshi lookup. The Meshi is only resolved
+  // when the person submits their identifier (see beginPasswordStep): if it
+  // maps to an account we reveal their Meshi and ask for the password,
+  // otherwise we move into sign-up. Typing stays quiet.
 
   useEffect(() => {
     if (!visibleMeshiKey) {
@@ -1200,14 +1184,13 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       value={identifier}
                       onChange={(event) => {
                         const nextValue = event.target.value;
-                        const nextPreviewUsername = getUsernamePreviewCandidate(nextValue);
                         setIdentifier(nextValue);
                         setResetSent(false);
                         setResetUrl("");
-                        if (meshiPreview && nextPreviewUsername !== meshiPreview.username) {
-                          setMeshiPreview(null);
-                          setPreviewState(nextPreviewUsername ? "looking" : "idle");
-                        }
+                        // No lookup while typing — clear any stale preview so the
+                        // Meshi only appears after submit resolves the account.
+                        if (meshiPreview) setMeshiPreview(null);
+                        if (previewState !== "idle") setPreviewState("idle");
                         if (message) setMessage("");
                         if (entryState === "failed") setEntryState("idle");
                       }}
@@ -1230,7 +1213,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                       spellCheck={false}
                       inputMode={identityValidation.inputMode}
                       className={cn("mesh-entry-input", identityHasError && "mesh-entry-input-invalid", identityMorphing && "mesh-entry-input-morph")}
-                      placeholder="Username, email, or phone"
+                      placeholder="Enter your username, email, or phone"
                       aria-invalid={identityHasError}
                       aria-describedby={identityHasError ? `${identityHelpId} ${identityMessageId}` : identityHelpId}
                       maxLength={96}
@@ -1247,39 +1230,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                     >
                       {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="h-4 w-4" aria-hidden="true" />}
                     </button>
-                    <span id={identityHelpId} className="mesh-entry-identity-meta" data-morph-fade>
-                      <span>{identityValidation.helper}</span>
-                      <span className={cn("mesh-entry-identity-type", identityValidation.ok && "mesh-entry-identity-type-ready")}>
-                        {identityValidation.label}
-                      </span>
-                    </span>
+                    <span id={identityHelpId} className="sr-only">{identityValidation.helper}</span>
                   </label>
-                  <AnimatePresence mode="wait">
-                    {meshiPreview ? (
-                      <motion.p
-                        key="meshi-preview-found"
-                        initial={{ opacity: 0, y: reduceMotion ? 0 : 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: reduceMotion ? 0 : -3 }}
-                        transition={{ duration: reduceMotion ? 0.01 : 0.16, ease: "easeOut" }}
-                        className="text-center text-xs font-semibold text-blue-100/72"
-                        data-testid="entry-meshi-preview-ready"
-                      >
-                        Hi {previewDisplayName}. Your Meshi is ready.
-                      </motion.p>
-                    ) : previewState === "looking" ? (
-                      <motion.p
-                        key="meshi-preview-looking"
-                        initial={{ opacity: 0, y: reduceMotion ? 0 : 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: reduceMotion ? 0 : -3 }}
-                        transition={{ duration: reduceMotion ? 0.01 : 0.16, ease: "easeOut" }}
-                        className="text-center text-xs font-semibold text-blue-100/60"
-                      >
-                      Looking for your Meshi...
-                      </motion.p>
-                    ) : null}
-                  </AnimatePresence>
                   <AnimatePresence mode="wait">
                     {identityStatus ? (
                       <motion.p
