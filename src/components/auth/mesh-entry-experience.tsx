@@ -16,7 +16,7 @@ import {
   type MeshiMood,
   type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
-import { MeshMark } from "@/components/brand/mesh-mark";
+import { MeshiBrandMark } from "@/components/brand/meshi-brand-mark";
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
 import {
@@ -241,7 +241,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
       <main className="mesh-signin-stage">
         <Link href="/" className="mesh-signin-brand" aria-label="mesh.me home">
-          <MeshMark size={38} />
+          <MeshiBrandMark size={40} />
           <span className="mesh-signin-wordmark brand-wordmark">
             mesh<span className="brand-wordmark-accent">.me</span>
           </span>
