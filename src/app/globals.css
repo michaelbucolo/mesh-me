@@ -8575,3 +8575,81 @@ body > * { position: relative; z-index: 1; }
     transform: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   AURORA INTERACTIONS — seamless navigation + satisfying feedback.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Slim top progress bar for route navigation — makes moving around feel
+   instant and continuous rather than a hard page swap. */
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 200;
+  height: 2.5px;
+  pointer-events: none;
+}
+.nav-progress-bar {
+  height: 100%;
+  background: var(--brand-gradient-vibrant);
+  box-shadow: 0 0 12px rgba(110, 139, 255, 0.6), 0 0 4px rgba(236, 72, 153, 0.5);
+  border-radius: 0 2px 2px 0;
+  transition: width 220ms var(--mesh-ease-out), opacity 220ms ease;
+}
+
+/* Satisfying like: a ring bursts outward from the heart on tap. */
+.like-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%) scale(0.2);
+  border-radius: 999px;
+  border: 2px solid rgba(251, 113, 133, 0.9);
+  opacity: 0;
+  pointer-events: none;
+}
+.like-burst-active {
+  animation: likeBurst 0.45s var(--mesh-ease-out);
+}
+@keyframes likeBurst {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.2); border-width: 3px; }
+  70% { opacity: 0.35; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); border-width: 0.5px; }
+}
+
+/* Universal tactile press: every interactive control gives a subtle,
+   consistent "give" when pressed. Keeps the whole app feeling responsive. */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):active,
+  a[role="button"]:active,
+  [role="tab"]:active,
+  .mesh-choice:active,
+  label[role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 80ms var(--mesh-ease-out);
+  }
+}
+
+/* Content settles in with a gentle fade+rise on each navigation, so pages
+   arrive rather than blink. Scoped to the main content shell. */
+.app-content-enter {
+  animation: appContentEnter 0.34s var(--mesh-ease-out) both;
+}
+@keyframes appContentEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-bar { transition: opacity 120ms ease; }
+  .like-burst-active,
+  .app-content-enter,
+  button:not(:disabled):active,
+  a[role="button"]:active,
+  [role="tab"]:active {
+    animation: none !important;
+    transform: none !important;
+  }
+}

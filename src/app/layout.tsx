@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type React from "react";
+import { Suspense } from "react";
 import Script from "next/script";
+import { NavigationProgress } from "@/components/ui/navigation-progress";
 import { RootClientEffects } from "@/components/root-client-effects";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getBrandTitle, getSiteUrl, meshBrand } from "@/lib/brand";
@@ -147,6 +149,9 @@ export default function RootLayout({
       <body className="mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <Script id="mesh-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <ThemeProvider>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
           {children}
           <RootClientEffects />
         </ThemeProvider>
