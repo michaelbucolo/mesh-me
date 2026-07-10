@@ -8655,26 +8655,23 @@ body > * { position: relative; z-index: 1; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   MESH SIGN-IN — a clean, smooth, canvas-driven entry. The mesh lives on
-   the perimeter and reacts to the person; their Meshi appears once a valid
-   username resolves. Replaces the old heavy framer-motion entry.
+   MESH ENTRY — a blank black page. The mesh lives loose on the perimeter
+   and reels inward as you type; on submit the field becomes your Meshi,
+   who asks for the password and then pulls the whole mesh together into
+   the app. Fully fluid: sizes off clamp()/vw so it reflows to any aspect
+   ratio — phone, foldable, tablet, desktop, headset.
    ═══════════════════════════════════════════════════════════════════ */
-.mesh-signin {
+.mesh-gate {
   position: fixed;
   inset: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  background:
-    radial-gradient(120% 90% at 50% -10%, rgba(110, 139, 255, 0.10), transparent 55%),
-    radial-gradient(90% 70% at 50% 120%, rgba(168, 85, 247, 0.08), transparent 55%),
-    #05060f;
-  color: #f3f5fb;
+  overflow: hidden;
+  background: #000005;
+  color: #f4f6ff;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  -webkit-tap-highlight-color: transparent;
 }
-.mesh-signin-canvas {
+.mesh-gate-canvas {
   position: fixed;
   inset: 0;
   width: 100%;
@@ -8682,217 +8679,199 @@ body > * { position: relative; z-index: 1; }
   z-index: 0;
   pointer-events: none;
 }
-.mesh-signin-vignette {
+/* A whisper of light behind the question so the black never feels dead. */
+.mesh-gate-halo {
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(58% 46% at 50% 50%, rgba(5, 6, 15, 0.9) 0%, rgba(5, 6, 15, 0.55) 45%, transparent 78%);
-}
-.mesh-signin-badge {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top));
-  right: 18px;
-  z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(226, 232, 255, 0.8);
-  background: rgba(12, 17, 30, 0.6);
-  border: 1px solid rgba(148, 163, 210, 0.16);
-  backdrop-filter: blur(10px);
+  background: radial-gradient(42% 34% at 50% 46%, rgba(110, 139, 255, 0.10), transparent 72%);
 }
 
-.mesh-signin-stage {
+.mesh-gate-core {
   position: relative;
-  z-index: 3;
-  width: 100%;
-  max-width: 27rem;
-  margin: 0 auto;
-  flex: 1 0 auto;
-  padding: 4.5rem 1.5rem 1.5rem;
+  z-index: 2;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   text-align: center;
-}
-.mesh-signin-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-bottom: 1.75rem;
-}
-.mesh-signin-wordmark { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
-.mesh-signin-tagline {
-  flex-basis: 100%;
-  margin-top: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: rgba(154, 163, 188, 0.7);
+  padding: clamp(1.5rem, 5vh, 4rem) clamp(1rem, 5vw, 2.5rem);
+  gap: clamp(1rem, 3.2vh, 1.9rem);
 }
 
-.mesh-signin-slot { width: 100%; }
-.mesh-signin-card {
+.mesh-gate-focus {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  animation: meshSigninCard 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  align-items: center;
+  gap: clamp(0.9rem, 2.6vh, 1.5rem);
+  width: min(94vw, 30rem);
+  animation: meshEntryIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-@keyframes meshSigninCard {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes meshEntryIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.mesh-signin-title { font-size: 2.75rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.02; }
-.mesh-signin-title-sm { font-size: 1.9rem; }
-.mesh-signin-sub { font-size: 0.9rem; color: rgba(154, 163, 188, 0.85); margin-top: -0.2rem; }
+/* The question. */
+.mesh-gate-q {
+  font-size: clamp(2.2rem, 8vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+.mesh-gate-q-sm { font-size: clamp(1.6rem, 6vw, 2.2rem); }
 
-.mesh-signin-field { position: relative; margin-top: 0.35rem; }
-.mesh-signin-input {
+/* Bare field — no box. A hairline baseline that lights up as strands latch on. */
+.mesh-gate-inputwrap {
+  position: relative;
   width: 100%;
-  height: 3.75rem;
-  border: 1px solid rgba(148, 163, 210, 0.16);
-  border-radius: 1rem;
-  background: rgba(12, 16, 27, 0.6);
-  backdrop-filter: blur(18px) saturate(150%);
-  color: #f3f5fb;
-  font-size: 1.05rem;
-  padding: 0 3.6rem 0 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mesh-gate-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(148, 163, 210, 0.22);
   outline: none;
-  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+  text-align: center;
+  color: #ffffff;
+  caret-color: #7d9bff;
+  font-size: clamp(1.05rem, 4vw, 1.5rem);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.6rem 2.4rem;
+  transition: border-color 220ms ease, box-shadow 220ms ease;
 }
-.mesh-signin-input::placeholder { color: rgba(148, 163, 210, 0.42); }
-.mesh-signin-input:focus {
-  border-color: rgba(110, 139, 255, 0.6);
-  box-shadow: 0 0 0 1px rgba(110, 139, 255, 0.25), 0 22px 50px -30px rgba(110, 139, 255, 0.6);
-  background: rgba(14, 19, 32, 0.7);
+.mesh-gate-input::placeholder { color: rgba(148, 163, 210, 0.4); font-weight: 400; }
+.mesh-gate-input,
+.mesh-gate-input:focus,
+.mesh-gate-input:focus-visible {
+  outline: none;
+  border-radius: 0;
 }
-.mesh-signin-input-plain { height: 3.1rem; padding: 0 1.1rem; font-size: 0.98rem; text-align: left; }
+.mesh-gate-input:focus {
+  border-bottom-color: rgba(125, 155, 255, 0.85);
+  box-shadow: 0 14px 40px -30px rgba(125, 155, 255, 0.9);
+}
+.mesh-gate-input:disabled { opacity: 0.55; }
+.mesh-gate-input-line { text-align: left; padding: 0.55rem 0.2rem; font-size: 1.02rem; font-weight: 500; }
 
-.mesh-signin-go {
+/* Subtle enter affordance — appears once there's something to submit. */
+.mesh-gate-go {
   position: absolute;
-  right: 0.5rem;
+  right: 0;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scale(0.85);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2.85rem;
-  width: 2.85rem;
+  height: 2.2rem;
+  width: 2.2rem;
   border-radius: 999px;
   color: #fff;
   background: var(--brand-gradient);
-  box-shadow: 0 8px 22px -8px rgba(110, 139, 255, 0.7);
-  transition: filter 150ms ease, transform 120ms ease;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 22px -10px rgba(110, 139, 255, 0.8);
+  transition: opacity 200ms ease, transform 200ms ease, filter 150ms ease;
 }
-.mesh-signin-go:hover { filter: brightness(1.08); }
-.mesh-signin-go:active { transform: translateY(-50%) scale(0.94); }
-.mesh-signin-go:disabled { opacity: 0.6; }
-.mesh-signin-peek {
+.mesh-gate-go.is-ready { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
+.mesh-gate-go:hover { filter: brightness(1.08); }
+.mesh-gate-go:active { transform: translateY(-50%) scale(0.92); }
+.mesh-gate-go:disabled { opacity: 0.5; }
+.mesh-gate-peek {
   position: absolute;
-  right: 0.75rem;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(154, 163, 188, 0.7);
-  padding: 0.4rem;
-  border-radius: 0.5rem;
+  color: rgba(154, 163, 188, 0.65);
+  padding: 0.3rem;
 }
-.mesh-signin-peek:hover { color: #f3f5fb; }
+.mesh-gate-peek:hover { color: #f3f5fb; }
 
-.mesh-signin-primary {
-  height: 3.4rem;
-  border-radius: 0.95rem;
-  background: var(--brand-gradient);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 12px 30px -10px rgba(110, 139, 255, 0.55);
-  transition: filter 150ms ease, transform 120ms ease, box-shadow 150ms ease;
-  margin-top: 0.35rem;
-}
-.mesh-signin-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
-.mesh-signin-primary:active { transform: translateY(0) scale(0.98); }
-.mesh-signin-primary:disabled { opacity: 0.7; }
-
-.mesh-signin-secondary {
-  height: 3rem;
-  border-radius: 0.95rem;
-  border: 1px solid rgba(148, 163, 210, 0.18);
-  background: rgba(219, 234, 254, 0.04);
-  color: rgba(219, 234, 254, 0.85);
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: background 150ms ease, border-color 150ms ease, transform 120ms ease;
-}
-.mesh-signin-secondary:hover { background: rgba(219, 234, 254, 0.08); border-color: rgba(148, 163, 210, 0.3); }
-.mesh-signin-secondary:active { transform: scale(0.98); }
-
-.mesh-signin-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  text-align: left;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(154, 163, 188, 0.85);
-}
-
-.mesh-signin-row { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.1rem; }
-.mesh-signin-link {
+.mesh-gate-hint {
   font-size: 0.82rem;
-  font-weight: 600;
-  color: rgba(154, 163, 188, 0.85);
-  transition: color 150ms ease;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(154, 163, 188, 0.55);
 }
-.mesh-signin-link:hover { color: #f3f5fb; }
-
-.mesh-signin-message {
-  font-size: 0.82rem;
+.mesh-gate-msg {
+  font-size: 0.85rem;
   font-weight: 600;
   color: #fecaca;
-  background: rgba(127, 29, 29, 0.24);
-  border: 1px solid rgba(248, 113, 113, 0.32);
-  border-radius: 0.75rem;
-  padding: 0.55rem 0.8rem;
+  max-width: 26rem;
 }
 
-.mesh-signin-meshi {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.4rem;
-  animation: meshSigninMeshi 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+.mesh-gate-textlink {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(179, 190, 220, 0.82);
+  transition: color 150ms ease;
 }
-@keyframes meshSigninMeshi {
-  from { opacity: 0; transform: scale(0.4); }
+.mesh-gate-textlink:hover { color: #ffffff; }
+.mesh-gate-inline { display: flex; gap: 1.4rem; }
+.mesh-gate-providers { width: 100%; margin-top: 0.2rem; }
+
+/* Identity → password morph: the field collapses to a point. */
+.mesh-gate-leaving {
+  animation: meshEntryCollapse 0.42s cubic-bezier(0.6, 0, 0.35, 1) forwards;
+}
+@keyframes meshEntryCollapse {
+  to { opacity: 0; transform: scale(0.2); filter: blur(2px); }
+}
+
+/* Meshi, re-formed from the field. */
+.mesh-gate-meshi {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: meshEntryPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes meshEntryPop {
+  from { opacity: 0; transform: scale(0.35); }
   to { opacity: 1; transform: scale(1); }
 }
-.mesh-signin-bubble {
-  position: relative;
-  max-width: 20rem;
-  padding: 0.55rem 0.9rem;
-  border-radius: 1rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: rgba(230, 237, 243, 0.9);
-  background: rgba(12, 17, 30, 0.9);
-  border: 1px solid rgba(110, 139, 255, 0.22);
-  box-shadow: 0 14px 34px -14px rgba(110, 139, 255, 0.4);
+/* A ring that closes around Meshi the instant he forms. */
+.mesh-gate-ring {
+  position: absolute;
+  inset: -14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(125, 155, 255, 0.55);
+  animation: meshEntryRing 0.7s ease-out both;
+  pointer-events: none;
 }
-.mesh-signin-bubble::after {
+@keyframes meshEntryRing {
+  from { opacity: 0.9; transform: scale(1.7); }
+  to { opacity: 0; transform: scale(1); }
+}
+.mesh-gate-meshi.is-success { animation: meshEntryGather 0.9s ease-in forwards; }
+@keyframes meshEntryGather {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(0.9); filter: brightness(1.4); }
+}
+
+.mesh-gate-bubble {
+  position: relative;
+  max-width: 22rem;
+  padding: 0.6rem 1rem;
+  border-radius: 1rem;
+  font-size: clamp(0.86rem, 2.6vw, 0.98rem);
+  font-weight: 600;
+  color: rgba(233, 239, 247, 0.95);
+  background: rgba(14, 19, 34, 0.72);
+  border: 1px solid rgba(125, 155, 255, 0.24);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px -20px rgba(110, 139, 255, 0.55);
+  animation: meshEntryIn 0.45s ease 0.12s both;
+}
+.mesh-gate-bubble::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -8900,38 +8879,91 @@ body > * { position: relative; z-index: 1; }
   width: 12px;
   height: 12px;
   transform: translateX(-50%) rotate(45deg);
-  background: rgba(12, 17, 30, 0.9);
-  border-left: 1px solid rgba(110, 139, 255, 0.22);
-  border-top: 1px solid rgba(110, 139, 255, 0.22);
+  background: rgba(14, 19, 34, 0.72);
+  border-left: 1px solid rgba(125, 155, 255, 0.24);
+  border-top: 1px solid rgba(125, 155, 255, 0.24);
 }
 
-.mesh-signin-footer {
-  position: relative;
-  z-index: 3;
-  flex-shrink: 0;
-  width: 100%;
-  padding: 1rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+/* Signup / reset keep the same bare, boxless language. */
+.mesh-gate-form {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(0.7rem, 2vh, 1.05rem);
+  width: min(94vw, 24rem);
+  text-align: center;
+  animation: meshEntryIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.mesh-gate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(154, 163, 188, 0.72);
+}
+.mesh-gate-primary {
+  height: 3.3rem;
+  border-radius: 999px;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16px 36px -14px rgba(110, 139, 255, 0.6);
+  transition: filter 150ms ease, transform 120ms ease;
+  margin-top: 0.3rem;
+}
+.mesh-gate-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.mesh-gate-primary:active { transform: translateY(0) scale(0.98); }
+.mesh-gate-primary:disabled { opacity: 0.7; }
+
+/* Foot — truthful privacy line + the four essentials. */
+.mesh-gate-foot {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.9rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+  text-align: center;
+}
+.mesh-gate-shield {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: clamp(0.66rem, 2.4vw, 0.74rem);
+  font-weight: 500;
+  color: rgba(154, 163, 188, 0.62);
+}
+.mesh-gate-shield svg { color: #7d9bff; }
+.mesh-gate-links {
+  display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.9rem, 4vw, 1.6rem);
+  font-size: clamp(0.76rem, 2.6vw, 0.84rem);
+  font-weight: 600;
+  color: rgba(179, 190, 220, 0.72);
 }
-.mesh-signin-privacy { display: flex; align-items: flex-start; gap: 0.55rem; text-align: left; font-size: 0.72rem; color: rgba(154, 163, 188, 0.7); }
-.mesh-signin-privacy strong { display: block; color: rgba(226, 232, 255, 0.85); font-size: 0.74rem; }
-.mesh-signin-privacy-sub { display: block; }
-.mesh-signin-links { display: flex; gap: 1.1rem; font-size: 0.78rem; font-weight: 600; color: rgba(154, 163, 188, 0.78); }
-.mesh-signin-links > * { transition: color 150ms ease; }
-.mesh-signin-links > *:hover { color: #f3f5fb; }
+.mesh-gate-links > * { transition: color 150ms ease; }
+.mesh-gate-links > *:hover { color: #ffffff; }
 
-.mesh-signin-success .mesh-signin-card { transition: opacity 0.4s ease, transform 0.4s ease; opacity: 0; transform: scale(1.04); }
+/* Success: fade the focal element as Meshi becomes the mesh and we hand off. */
+.mesh-gate-done .mesh-gate-core { transition: opacity 0.5s ease; }
 
-@media (max-width: 640px) {
-  .mesh-signin-title { font-size: 2.2rem; }
-  .mesh-signin-footer { flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; }
-  .mesh-signin-privacy { text-align: center; }
-  .mesh-signin-links { flex-wrap: wrap; justify-content: center; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .mesh-signin-card, .mesh-signin-meshi { animation: none; }
+  .mesh-gate-focus,
+  .mesh-gate-form,
+  .mesh-gate-meshi,
+  .mesh-gate-bubble,
+  .mesh-gate-ring,
+  .mesh-gate-leaving { animation: none; }
+  .mesh-gate-leaving { opacity: 0; }
 }

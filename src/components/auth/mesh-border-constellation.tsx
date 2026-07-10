@@ -3,7 +3,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 export type EntryStage = "identity" | "password" | "signup" | "reset";
-export type EntryPhase = "idle" | "success" | "failed";
+export type EntryPhase = "idle" | "forming" | "success" | "failed";
 
 /**
  * Shared, mutable state the constellation reads every animation frame. The
@@ -142,6 +142,11 @@ export function MeshBorderConstellation({
       s.energy = Math.max(0, s.energy - 0.012);
       const energy = Math.min(1, s.energy);
       const success = s.phase === "success";
+      // "forming" = the field is morphing into Meshi: the whole perimeter reels
+      // its strands inward toward the anchor, but in the live blue/violet tone
+      // rather than the pink success bloom.
+      const forming = s.phase === "forming";
+      const converge = success || forming;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
@@ -190,20 +195,20 @@ export function MeshBorderConstellation({
       // Reach strands: the nearest perimeter nodes send a live thread toward the
       // field, intensifying as the person types (energy) — or, on success,
       // converging to form the mesh.
-      const reachStrength = success ? 1 : energy;
+      const reachStrength = converge ? 1 : energy;
       if (reachStrength > 0.02) {
         // Sort a shallow copy by distance to anchor, take the closest few.
         const near = nodes
           .map((n, idx) => ({ idx, d: Math.hypot(n.x - ax, n.y - ay) }))
           .sort((p, q) => p.d - q.d)
-          .slice(0, success ? nodes.length : 10);
+          .slice(0, converge ? nodes.length : 10);
         const dash = (time * 0.06) % 24;
         for (const { idx } of near) {
           const n = nodes[idx];
-          const a = success ? 0.5 : reachStrength * 0.55;
+          const a = converge ? 0.5 : reachStrength * 0.55;
           ctx.strokeStyle = rgba(success ? COLORS.success : COLORS.strandHot, a);
-          ctx.lineWidth = success ? 1.4 : 1.1;
-          ctx.setLineDash(success ? [] : [3, 6]);
+          ctx.lineWidth = converge ? 1.4 : 1.1;
+          ctx.setLineDash(converge ? [] : [3, 6]);
           ctx.lineDashOffset = -dash;
           ctx.beginPath();
           ctx.moveTo(n.x, n.y);
@@ -247,5 +252,5 @@ export function MeshBorderConstellation({
     };
   }, [state, anchorRef, reducedMotion]);
 
-  return <canvas ref={canvasRef} className="mesh-signin-canvas" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className="mesh-gate-canvas" aria-hidden="true" />;
 }
