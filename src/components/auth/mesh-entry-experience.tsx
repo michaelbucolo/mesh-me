@@ -21,6 +21,7 @@ import {
   type MeshiOutfit,
   type MeshiProp,
 } from "@/components/meshi/meshi-mascot";
+import { MeshMark } from "@/components/brand/mesh-mark";
 import { cn } from "@/lib/utils";
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
@@ -1101,8 +1102,11 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       <section className="relative z-10 flex h-full min-h-0 items-center justify-center px-4 py-3 sm:px-5">
         <div className="mesh-entry-panel w-full max-w-[30rem]">
           <div className="mesh-entry-brand-shell mb-6 text-center sm:mb-8">
-            <Link href="/" className="brand-wordmark inline-flex text-xl font-bold text-white" aria-label="mesh.me home">
-              mesh<span className="brand-wordmark-accent">.me</span>
+            <Link href="/" className="inline-flex items-center gap-2.5" aria-label="mesh.me home">
+              <MeshMark size={34} />
+              <span className="brand-wordmark text-xl font-bold text-white">
+                mesh<span className="brand-wordmark-accent">.me</span>
+              </span>
             </Link>
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-100/74">Your World, Your Way</p>
           </div>
