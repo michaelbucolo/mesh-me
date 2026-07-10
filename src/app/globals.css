@@ -8590,3 +8590,10 @@ body > * { position: relative; z-index: 1; }
 .mesh-entry {
   min-height: 100svh;
 }
+
+/* MeChat: sent bubbles carry the brand gradient with a soft glow — a
+   premium, familiar direct-message feel. */
+.mechat-bubble-mine {
+  background: var(--brand-gradient);
+  box-shadow: 0 8px 22px -10px rgba(110, 139, 255, 0.6);
+}
