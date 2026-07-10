@@ -200,32 +200,33 @@ export async function getNativeFeedPostsForSource(user: FeedCurrentUser, source:
 }
 
 export async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20): Promise<FeedCardPost[]> {
-  const platformPosts = await prisma.platformPost.findMany({
-    where: {
-      ...nsfwHiddenWhere(user),
-      connectedAccount: {
-        userId: user.id,
-        isActive: true,
-      },
-      visibility: { not: "private" },
-    },
-    include: {
-      connectedAccount: {
-        select: {
-          platform: true,
-          platformUsername: true,
+  try {
+    const platformPosts = await prisma.platformPost.findMany({
+      where: {
+        ...nsfwHiddenWhere(user),
+        connectedAccount: {
+          userId: user.id,
+          isActive: true,
         },
+        visibility: { not: "private" },
       },
-      media: true,
-    },
-    orderBy: [
-      { publishedAt: "desc" },
-      { createdAt: "desc" },
-    ],
-    take: limit,
-  });
+      include: {
+        connectedAccount: {
+          select: {
+            platform: true,
+            platformUsername: true,
+          },
+        },
+        media: true,
+      },
+      orderBy: [
+        { publishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: limit,
+    });
 
-  return platformPosts.map((post) => {
+    return platformPosts.map((post) => {
     const media = post.media.length > 0
       ? post.media.map((item) => ({
           id: item.id,
@@ -272,23 +273,28 @@ export async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit
       isNsfw: post.isNsfw,
       contentRating: post.contentRating,
     };
-  });
+    });
+  } catch (error) {
+    console.error("[feed-data] Connected platform posts unavailable", error);
+    return [];
+  }
 }
 
 export async function getMergedForYouFeedPosts(user: FeedCurrentUser, limit = 40): Promise<FeedCardPost[]> {
-  const items = await prisma.platformFeedItem.findMany({
-    where: {
-      ...nsfwHiddenWhere(user),
-      connectedAccount: { userId: user.id, isActive: true },
-    },
-    include: {
-      connectedAccount: { select: { platform: true, platformUsername: true } },
-    },
-    orderBy: [{ publishedAt: "desc" }, { fetchedAt: "desc" }],
-    take: limit,
-  });
+  try {
+    const items = await prisma.platformFeedItem.findMany({
+      where: {
+        ...nsfwHiddenWhere(user),
+        connectedAccount: { userId: user.id, isActive: true },
+      },
+      include: {
+        connectedAccount: { select: { platform: true, platformUsername: true } },
+      },
+      orderBy: [{ publishedAt: "desc" }, { fetchedAt: "desc" }],
+      take: limit,
+    });
 
-  return items.map((item) => {
+    return items.map((item) => {
     const content = [item.title, item.content].filter(Boolean).join(item.title && item.content ? "\n\n" : "");
     const authorName = item.authorName || item.authorUsername || item.connectedAccount.platform;
     const media = item.mediaUrl || item.thumbnailUrl
@@ -329,113 +335,127 @@ export async function getMergedForYouFeedPosts(user: FeedCurrentUser, limit = 40
       isNsfw: item.isNsfw,
       contentRating: item.contentRating,
     };
-  });
+    });
+  } catch (error) {
+    console.error("[feed-data] Merged platform feed unavailable", error);
+    return [];
+  }
 }
 
 export async function getFeedPostById(user: FeedCurrentUser, id: string): Promise<FeedCardPost | null> {
   if (id.startsWith("feeditem-")) {
-    const item = await prisma.platformFeedItem.findFirst({
-      where: {
-        id: id.slice("feeditem-".length),
-        ...nsfwHiddenWhere(user),
-        connectedAccount: { userId: user.id, isActive: true },
-      },
-      include: {
-        connectedAccount: { select: { platform: true, platformUsername: true } },
-      },
-    });
-    if (!item) return null;
-    const content = [item.title, item.content].filter(Boolean).join(item.title && item.content ? "\n\n" : "");
-    const authorName = item.authorName || item.authorUsername || item.connectedAccount.platform;
-    const media = item.mediaUrl || item.thumbnailUrl
-      ? [{
-          id: `${item.id}-media`,
-          url: item.mediaUrl || item.thumbnailUrl || "",
-          type: ["video", "reel", "short", "stream"].includes(item.postType) ? "video" : "image",
-        }]
-      : [];
-    return {
-      id: `feeditem-${item.id}`,
-      content: content || `${item.connectedAccount.platform} post`,
-      createdAt: item.publishedAt ?? item.fetchedAt,
-      author: {
-        id: `external-${item.id}`,
-        username: item.authorUsername || authorName,
-        displayName: authorName,
-        avatarUrl: item.authorAvatarUrl,
-        isVerified: false,
-      },
-      externalAuthor: {
-        name: authorName,
-        username: item.authorUsername,
-        avatarUrl: item.authorAvatarUrl,
-        profileUrl: item.authorUrl,
-      },
-      community: null,
-      media,
-      tags: [],
-      _count: { comments: item.commentCount, reactions: item.likeCount, reposts: 0 },
-      reactions: [],
-      savedBy: [],
-      platform: item.connectedAccount.platform,
-      sourceId: item.id,
-      externalUrl: item.url,
-      platformPostId: item.platformItemId,
-      isNsfw: item.isNsfw,
-      contentRating: item.contentRating,
-    };
+    try {
+      const item = await prisma.platformFeedItem.findFirst({
+        where: {
+          id: id.slice("feeditem-".length),
+          ...nsfwHiddenWhere(user),
+          connectedAccount: { userId: user.id, isActive: true },
+        },
+        include: {
+          connectedAccount: { select: { platform: true, platformUsername: true } },
+        },
+      });
+      if (!item) return null;
+      const content = [item.title, item.content].filter(Boolean).join(item.title && item.content ? "\n\n" : "");
+      const authorName = item.authorName || item.authorUsername || item.connectedAccount.platform;
+      const media = item.mediaUrl || item.thumbnailUrl
+        ? [{
+            id: `${item.id}-media`,
+            url: item.mediaUrl || item.thumbnailUrl || "",
+            type: ["video", "reel", "short", "stream"].includes(item.postType) ? "video" : "image",
+          }]
+        : [];
+      return {
+        id: `feeditem-${item.id}`,
+        content: content || `${item.connectedAccount.platform} post`,
+        createdAt: item.publishedAt ?? item.fetchedAt,
+        author: {
+          id: `external-${item.id}`,
+          username: item.authorUsername || authorName,
+          displayName: authorName,
+          avatarUrl: item.authorAvatarUrl,
+          isVerified: false,
+        },
+        externalAuthor: {
+          name: authorName,
+          username: item.authorUsername,
+          avatarUrl: item.authorAvatarUrl,
+          profileUrl: item.authorUrl,
+        },
+        community: null,
+        media,
+        tags: [],
+        _count: { comments: item.commentCount, reactions: item.likeCount, reposts: 0 },
+        reactions: [],
+        savedBy: [],
+        platform: item.connectedAccount.platform,
+        sourceId: item.id,
+        externalUrl: item.url,
+        platformPostId: item.platformItemId,
+        isNsfw: item.isNsfw,
+        contentRating: item.contentRating,
+      };
+    } catch (error) {
+      console.error("[feed-data] Connected feed item unavailable", error);
+      return null;
+    }
   }
 
   if (id.startsWith("platform-")) {
-    const post = await prisma.platformPost.findFirst({
-      where: {
-        id: id.slice("platform-".length),
-        ...nsfwHiddenWhere(user),
-        connectedAccount: { userId: user.id, isActive: true },
-        visibility: { not: "private" },
-      },
-      include: {
-        connectedAccount: { select: { platform: true, platformUsername: true } },
-        media: true,
-      },
-    });
-    if (!post) return null;
-    const media = post.media.length > 0
-      ? post.media.map((item) => ({ id: item.id, url: item.thumbnailUrl || item.url, type: item.mediaType }))
-      : post.thumbnailUrl
-        ? [{
-            id: `${post.id}-thumbnail`,
-            url: post.thumbnailUrl,
-            type: ["video", "reel", "short", "story"].includes(post.postType) ? "video" : "image",
-          }]
-        : [];
-    const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
-    return {
-      id: `platform-${post.id}`,
-      content: content || `${post.connectedAccount.platform} post`,
-      createdAt: post.publishedAt ?? post.createdAt,
-      author: {
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        isVerified: user.isVerified,
-      },
-      community: null,
-      media,
-      tags: [],
-      _count: { comments: post.commentCount, reactions: post.likeCount, reposts: post.shareCount },
-      reactions: [],
-      savedBy: [],
-      isPinned: post.isPinned,
-      platform: post.connectedAccount.platform,
-      sourceId: post.id,
-      externalUrl: post.url,
-      platformPostId: post.platformPostId,
-      crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
-      isNsfw: post.isNsfw,
-      contentRating: post.contentRating,
-    };
+    try {
+      const post = await prisma.platformPost.findFirst({
+        where: {
+          id: id.slice("platform-".length),
+          ...nsfwHiddenWhere(user),
+          connectedAccount: { userId: user.id, isActive: true },
+          visibility: { not: "private" },
+        },
+        include: {
+          connectedAccount: { select: { platform: true, platformUsername: true } },
+          media: true,
+        },
+      });
+      if (!post) return null;
+      const media = post.media.length > 0
+        ? post.media.map((item) => ({ id: item.id, url: item.thumbnailUrl || item.url, type: item.mediaType }))
+        : post.thumbnailUrl
+          ? [{
+              id: `${post.id}-thumbnail`,
+              url: post.thumbnailUrl,
+              type: ["video", "reel", "short", "story"].includes(post.postType) ? "video" : "image",
+            }]
+          : [];
+      const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
+      return {
+        id: `platform-${post.id}`,
+        content: content || `${post.connectedAccount.platform} post`,
+        createdAt: post.publishedAt ?? post.createdAt,
+        author: {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          isVerified: user.isVerified,
+        },
+        community: null,
+        media,
+        tags: [],
+        _count: { comments: post.commentCount, reactions: post.likeCount, reposts: post.shareCount },
+        reactions: [],
+        savedBy: [],
+        isPinned: post.isPinned,
+        platform: post.connectedAccount.platform,
+        sourceId: post.id,
+        externalUrl: post.url,
+        platformPostId: post.platformPostId,
+        crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
+        isNsfw: post.isNsfw,
+        contentRating: post.contentRating,
+      };
+    } catch (error) {
+      console.error("[feed-data] Connected platform post unavailable", error);
+      return null;
+    }
   }
 
   const [following, communityMemberships, followers] = await Promise.all([

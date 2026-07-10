@@ -138,54 +138,72 @@ export function FlowReels({
         <X size={20} aria-hidden="true" />
       </button>
 
-      <div ref={verticalRef} className="flow-reels-vertical">
-        {posts.map((post) => {
-          const related = relatedByPost.get(post.id) ?? [];
-          const lane = [post, ...related];
-          return (
-            <section
-              key={post.id}
-              ref={(node) => setLaneRef(post.id, node)}
-              data-reel-id={post.id}
-              className="flow-reels-lane"
-            >
-              <div className="flow-reels-horizontal">
-                {lane.map((item, index) => (
-                  <article key={item.id} className="flow-reels-slide">
-                    {index > 0 && (
-                      <span className="flow-reels-related-tag">Related to @{post.author.username}</span>
-                    )}
-                    <div className="flow-reels-card">
-                      <PostCard
-                        post={item}
-                        currentUserId={currentUserId}
-                        connectedPlatforms={connectedPlatforms}
-                      />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+      {posts.length === 0 ? (
+        <div className="flex min-h-full flex-col items-center justify-center px-6 text-center">
+          <p className="text-lg font-semibold text-[var(--text-primary)]">Nothing to flow through yet</p>
+          <p className="mt-2 max-w-sm text-sm text-[var(--text-secondary)]">
+            Connect an account or follow more meshes to find your next strand.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-6 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-tertiary)]"
+          >
+            Back to feed
+          </button>
+        </div>
+      ) : (
+        <div ref={verticalRef} className="flow-reels-vertical">
+          {posts.map((post) => {
+            const related = relatedByPost.get(post.id) ?? [];
+            const lane = [post, ...related];
+            return (
+              <section
+                key={post.id}
+                ref={(node) => setLaneRef(post.id, node)}
+                data-reel-id={post.id}
+                className="flow-reels-lane"
+              >
+                <div className="flow-reels-horizontal">
+                  {lane.map((item, index) => (
+                    <article key={item.id} className="flow-reels-slide">
+                      {index > 0 && (
+                        <span className="flow-reels-related-tag">Related to @{post.author.username}</span>
+                      )}
+                      <div className="flow-reels-card">
+                        <PostCard
+                          post={item}
+                          currentUserId={currentUserId}
+                          connectedPlatforms={connectedPlatforms}
+                        />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
 
-        {loadingMore && (
-          <div className="flow-reels-loading" role="status">
-            <Loader2 size={18} className="animate-spin" aria-hidden="true" />
-          </div>
-        )}
-      </div>
+          {loadingMore && (
+            <div className="flow-reels-loading" role="status">
+              <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+            </div>
+          )}
+        </div>
+      )}
 
-      <div className="flow-reels-hints" aria-hidden="true">
-        <span className="flow-reels-hint">
-          <ChevronsDown size={14} /> Swipe for more
-        </span>
-        {activeHasRelated && (
+      {posts.length > 0 && (
+        <div className="flow-reels-hints" aria-hidden="true">
           <span className="flow-reels-hint">
-            <ChevronLeft size={14} /> Related <ChevronRight size={14} />
+            <ChevronsDown size={14} /> Swipe for more
           </span>
-        )}
-      </div>
+          {activeHasRelated && (
+            <span className="flow-reels-hint">
+              <ChevronLeft size={14} /> Related <ChevronRight size={14} />
+            </span>
+          )}
+        </div>
+      )}
     </div>,
     document.body,
   );
