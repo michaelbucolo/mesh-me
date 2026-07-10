@@ -420,10 +420,10 @@ export function MeChatThread({
                 >
                   {!isMine && <Avatar src={message.sender.avatarUrl} alt={message.sender.displayName} size="sm" />}
                   <div className={`max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1.5`}>
-                    <div className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                    <div className={`px-4 py-3 text-sm ${
                       isMine
-                        ? "bg-[var(--accent)] text-white"
-                        : "border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-primary)]"
+                        ? "mechat-bubble-mine rounded-[1.35rem] rounded-br-md text-white"
+                        : "rounded-[1.35rem] rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-primary)] shadow-sm"
                     }`}>
                       {message.sourcePlatform !== "mesh" || message.messageType !== "text" ? (
                         <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.12em] ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
