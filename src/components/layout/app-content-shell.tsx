@@ -42,7 +42,7 @@ export function AppContentShell({ children }: { children: React.ReactNode }) {
         </section>
       )}
 
-      <div className="app-content-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+      <div key={pathname} className="app-content-scroll app-content-enter min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
         {children}
       </div>
     </div>
