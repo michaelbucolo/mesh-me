@@ -8612,3 +8612,62 @@ body > * { position: relative; z-index: 1; }
   background: var(--brand-gradient);
   box-shadow: 0 8px 22px -10px rgba(110, 139, 255, 0.6);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   AURORA MOTION — premium interaction polish, felt platform-wide.
+   Cards lift and deepen on hover; interactive surfaces press crisply.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Interactive cards/surfaces get a subtle lift + brighter edge + depth. */
+.ds-interactive {
+  transition:
+    background-color 200ms var(--mesh-ease-out),
+    border-color 200ms var(--mesh-ease-out),
+    box-shadow 240ms var(--mesh-ease-out),
+    color 140ms var(--mesh-ease-out),
+    transform 200ms var(--mesh-ease-out);
+  will-change: transform;
+}
+.ds-interactive:hover {
+  border-color: var(--ds-border-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(110, 139, 255, 0.10);
+}
+.ds-interactive:active {
+  transform: translateY(0) scale(0.994);
+  transition-duration: 90ms;
+}
+
+/* Glass panels breathe on hover: edge picks up the brand tint. */
+.ds-glass-panel {
+  transition: border-color 220ms var(--mesh-ease-out), box-shadow 260ms var(--mesh-ease-out), transform 220ms var(--mesh-ease-out);
+}
+
+/* Primary/gradient buttons get a confident press + lift. */
+.btn-gradient,
+[data-variant="gradient"],
+[data-variant="default"] {
+  transition: filter 160ms var(--mesh-ease-out), transform 140ms var(--mesh-ease-out), box-shadow 180ms var(--mesh-ease-out) !important;
+}
+.btn-gradient:hover,
+[data-variant="gradient"]:hover,
+[data-variant="default"]:hover {
+  transform: translateY(-1px);
+}
+.btn-gradient:active,
+[data-variant="gradient"]:active,
+[data-variant="default"]:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Honor reduced-motion: no transforms, keep the color feedback. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-interactive,
+  .ds-interactive:hover,
+  .ds-interactive:active,
+  .btn-gradient,
+  [data-variant="gradient"],
+  [data-variant="default"] {
+    transform: none !important;
+  }
+}
