@@ -187,8 +187,8 @@ function drawSelfProfile(
   ctx.save();
 
   const glow = ctx.createRadialGradient(x, y, 0, x, y, avatarR * 2.15);
-  glow.addColorStop(0, withAlpha('#7cc0ff', 0.55 * emph));
-  glow.addColorStop(0.52, withAlpha('#3b82f6', 0.18 * emph));
+  glow.addColorStop(0, withAlpha('#8aa1ff', 0.55 * emph));
+  glow.addColorStop(0.52, withAlpha('#6e8bff', 0.18 * emph));
   glow.addColorStop(1, 'rgba(47,124,255,0)');
   ctx.fillStyle = glow;
   ctx.beginPath();
@@ -197,8 +197,8 @@ function drawSelfProfile(
 
   const ring = ctx.createRadialGradient(x, y, avatarR * 0.52, x, y, avatarR * 1.38);
   ring.addColorStop(0, 'rgba(255,255,255,0.1)');
-  ring.addColorStop(0.5, withAlpha('#7cc0ff', 0.65 * emph));
-  ring.addColorStop(1, withAlpha('#3b82f6', 0.12 * emph));
+  ring.addColorStop(0.5, withAlpha('#8aa1ff', 0.65 * emph));
+  ring.addColorStop(1, withAlpha('#8b5cf6', 0.14 * emph));
   ctx.fillStyle = ring;
   ctx.beginPath();
   ctx.arc(x, y, avatarR * 1.34, 0, Math.PI * 2);
