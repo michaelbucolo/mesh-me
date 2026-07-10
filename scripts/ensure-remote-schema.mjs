@@ -17,8 +17,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
 
-const url = process.env.DATABASE_URL || "";
-const authToken = process.env.DATABASE_AUTH_TOKEN || undefined;
+const url = (process.env.DATABASE_URL || "").trim();
+const authToken = (process.env.DATABASE_AUTH_TOKEN || "").trim() || undefined;
 
 // Only sync remote databases. Local dev/CI uses a file DB + migrations.
 if (!url || url.startsWith("file:")) {
