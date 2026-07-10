@@ -395,8 +395,9 @@ export function MeChatThread({
             data-testid="mechat-search-input"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--text-muted)]"
+            className="mesh-search-input min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--text-muted)]"
             placeholder="Search this conversation"
+            suppressHydrationWarning
           />
           {searchQuery && (
             <span className="text-xs font-bold text-[var(--text-muted)]">{searchCount}</span>
