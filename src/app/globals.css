@@ -8519,3 +8519,71 @@ body > * { position: relative; z-index: 1; }
   background: linear-gradient(180deg, rgba(110, 139, 255, 0.55), rgba(139, 92, 246, 0.4));
   background-clip: padding-box;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   AURORA ENTRY — the login ritual: a boxless field on a blank field of
+   space, with the mesh constellation living on the perimeter.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Kill the card framing on the identity ("Who are you?") step entirely —
+   no square, no panel, no glass. Just the question and an open field. */
+.mesh-entry-identity-form.mesh-entry-card,
+.mesh-entry-identity-form.mesh-entry-card-bare {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.mesh-entry-identity-form.mesh-entry-card::before,
+.mesh-entry-identity-form.mesh-entry-card::after,
+.mesh-entry-identity-form.mesh-entry-card-bare::before,
+.mesh-entry-identity-form.mesh-entry-card-bare::after {
+  display: none !important;
+}
+
+/* Refined identity field to match the reference: a wide, softly-glassed
+   input with a hairline border and left-aligned text — elegant and minimal,
+   floating on the field of space rather than a heavy pill. */
+.mesh-entry-identity-form .mesh-entry-input {
+  height: 4rem;
+  border: 1px solid rgba(148, 163, 210, 0.14);
+  border-radius: 1rem;
+  background: rgba(12, 16, 27, 0.55);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: left;
+  padding: 0 4rem 0 1.35rem;
+  transition: border-color 220ms var(--mesh-ease-out), box-shadow 220ms var(--mesh-ease-out), background 220ms var(--mesh-ease-out);
+}
+.mesh-entry-identity-form .mesh-entry-input::placeholder {
+  color: rgba(148, 163, 210, 0.40);
+  font-weight: 400;
+}
+.mesh-entry-identity-form .mesh-entry-input:focus,
+.mesh-entry-identity-form .mesh-entry-input:not(:placeholder-shown) {
+  border-color: rgba(110, 139, 255, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(110, 139, 255, 0.25),
+    0 26px 64px -34px var(--accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: rgba(14, 19, 32, 0.62);
+}
+/* Circular go-button sits inside the field on the right, per the reference. */
+.mesh-entry-identity-form .mesh-entry-input-go {
+  right: 0.55rem;
+  height: 2.85rem;
+  width: 2.85rem;
+}
+
+/* Reduced-motion users still get the aurora depth; only the perimeter
+   constellation animation is suppressed (handled earlier). The entry stays
+   a blank field of space regardless of viewport — fully aspect-ratio fluid. */
+.mesh-entry-shell,
+.mesh-entry {
+  min-height: 100svh;
+}
