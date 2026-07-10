@@ -311,10 +311,12 @@ export function SettingsControlCenter({
     borderPrimary: customTheme?.borderPrimary ?? "#2d3848",
   });
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const selectSection = useCallback((sectionId: SettingsSectionId) => {
     setActiveSection(sectionId);
+    setMobileDetailOpen(true);
     if (typeof window === "undefined") return;
 
     const nextHash = `#${sectionId}`;
@@ -326,7 +328,12 @@ export function SettingsControlCenter({
   useEffect(() => {
     const syncSectionFromHash = () => {
       const sectionId = getSettingsSectionFromHash(window.location.hash);
-      if (sectionId) setActiveSection(sectionId);
+      if (sectionId) {
+        setActiveSection(sectionId);
+        setMobileDetailOpen(true);
+      } else {
+        setMobileDetailOpen(false);
+      }
     };
 
     syncSectionFromHash();
@@ -346,6 +353,12 @@ export function SettingsControlCenter({
   });
   const nsfwPolicy = getNsfwPolicyForRegion(sensitive.adultVerificationRegion);
   const connectedCount = settings.connectedAccounts.filter((account) => account.isActive).length;
+
+  const showMobileSectionList = useCallback(() => {
+    setMobileDetailOpen(false);
+    if (typeof window === "undefined" || !window.location.hash) return;
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   function runSave(label: string, task: () => Promise<unknown>) {
     startTransition(async () => {
@@ -572,8 +585,8 @@ export function SettingsControlCenter({
       )}
 
       <section className="settings-traditional-grid mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="settings-traditional-nav overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:min-h-0">
-          <nav className="settings-nav-scroll flex gap-1 overflow-x-auto p-2 lg:grid lg:overflow-y-auto lg:overflow-x-hidden" aria-label="Settings sections">
+        <aside className={`settings-traditional-nav overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:min-h-0 ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+          <nav className="settings-nav-scroll flex flex-col gap-1 overflow-x-hidden p-2 lg:grid lg:overflow-y-auto lg:overflow-x-hidden" aria-label="Settings sections">
             {sectionOrder.map((section) => {
               const Icon = section.icon;
               const active = activeSection === section.id;
@@ -582,24 +595,32 @@ export function SettingsControlCenter({
                   key={section.id}
                   type="button"
                   onClick={() => selectSection(section.id)}
-                  className={`settings-nav-item ${active ? "settings-nav-item-active" : ""}`}
+                  className={`settings-nav-item w-full min-w-0 shrink-0 ${active ? "settings-nav-item-active" : ""}`}
                   aria-current={active ? "page" : undefined}
                 >
                   <Icon size={18} aria-hidden="true" />
                   <span className="min-w-0 flex-1 text-left">
                     <span className="block truncate text-sm font-semibold">{section.label}</span>
-                    <span className="hidden truncate text-xs text-[var(--text-muted)] lg:block">{section.description}</span>
+                    <span className="block truncate text-xs text-[var(--text-muted)]">{section.description}</span>
                   </span>
-                  <ChevronRight className="hidden h-4 w-4 text-[var(--text-muted)] lg:block" aria-hidden="true" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
                 </button>
               );
             })}
           </nav>
         </aside>
 
-        <section className="settings-panel rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:min-h-0 lg:overflow-hidden">
+        <section className={`settings-panel rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:min-h-0 lg:overflow-hidden ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
           <div className="settings-panel-heading flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border-primary)] px-4 py-4">
-            <div>
+            <div className="w-full">
+              <button
+                type="button"
+                onClick={showMobileSectionList}
+                className="mb-3 inline-flex items-center gap-1 text-sm font-bold text-[var(--accent)] lg:hidden"
+              >
+                <span aria-hidden="true" className="text-lg leading-none">‹</span>
+                Settings
+              </button>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Mesh.me settings</p>
               <h2 className="mt-1 text-2xl font-bold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">{activeSectionMeta.description}</p>
