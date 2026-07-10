@@ -2,13 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { CSSProperties, FormEvent } from "react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
-import { flushSync } from "react-dom";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
-import { AnimatePresence, motion, type Transition, useReducedMotion } from "framer-motion";
 import { requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
-import { Button } from "@/components/ui/button";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -19,17 +15,15 @@ import {
   type MeshiHat,
   type MeshiMood,
   type MeshiOutfit,
-  type MeshiProp,
 } from "@/components/meshi/meshi-mascot";
 import { MeshMark } from "@/components/brand/mesh-mark";
-import { cn } from "@/lib/utils";
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
-
-type EntryStage = "identity" | "password" | "signup" | "reset";
-type EntryState = "idle" | "connecting" | "failed" | "unlocking";
-type MeshiEntranceState = "idle" | "arriving" | "handoff" | "settled";
-type IdentityKind = "empty" | "email" | "phone" | "username" | "invalid";
+import {
+  MeshBorderConstellation,
+  type ConstellationState,
+  type EntryStage,
+} from "@/components/auth/mesh-border-constellation";
 
 type MeshEntryExperienceProps = {
   nextPath?: string | null;
@@ -37,1577 +31,481 @@ type MeshEntryExperienceProps = {
   initialError?: string | null;
 };
 
-type SignupDraft = {
-  email: string;
-  username: string;
-  phone: string;
-};
-
-type EntryMeshiAppearance = {
-  color: MeshiColor;
-  hat: MeshiHat;
-  face: MeshiMood;
-  hair: MeshiHair;
-  accessory: MeshiAccessory;
-  eye: MeshiEyeStyle;
-  badge: MeshiBadge;
-  outfit: MeshiOutfit;
-};
-
-type EntryMeshiPreview = {
+type MeshiPreview = {
   username: string;
   displayName: string;
-  meshi: EntryMeshiAppearance;
-};
-
-type EntryNode = {
-  id: string;
-  x: number;
-  y: number;
-  r: number;
-  glow: number;
-  drift: number;
-};
-
-const USERNAME_PREVIEW_PATTERN = /^[a-z0-9_]{2,24}$/;
-const EMAIL_ENTRY_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_ENTRY_PATTERN = /^@?[a-z0-9_]{2,30}$/i;
-const PHONE_ENTRY_PATTERN = /^[+\d\s().-]+$/;
-
-const DEFAULT_ENTRY_MESHI: EntryMeshiAppearance = {
-  color: "blue",
-  hat: "none",
-  face: "happy",
-  hair: "none",
-  accessory: "none",
-  eye: "regular",
-  badge: "none",
-  outfit: "none",
-};
-
-function getUsernamePreviewCandidate(value: string) {
-  const raw = value.trim();
-  if (!raw || raw.includes("@")) return null;
-
-  const phoneLike = /^[+\d\s().-]+$/.test(raw) && raw.replace(/[^\d]/g, "").length >= 7;
-  if (phoneLike) return null;
-
-  const normalized = raw.replace(/^@+/, "").toLowerCase();
-  return USERNAME_PREVIEW_PATTERN.test(normalized) ? normalized : null;
-}
-
-function getEntryIdentityValidation(value: string): {
-  ok: boolean;
-  kind: IdentityKind;
-  normalized: string;
-  helper: string;
-  message: string;
-  inputMode: "email" | "tel" | "text";
-  label: string;
-} {
-  const raw = value.trim();
-
-  if (!raw) {
-    return {
-      ok: false,
-      kind: "empty",
-      normalized: "",
-      helper: "Use your username, email, or phone number.",
-      message: "Enter your username, email, or phone number.",
-      inputMode: "email",
-      label: "Identity",
-    };
-  }
-
-  if (raw.length > 96) {
-    return {
-      ok: false,
-      kind: "invalid",
-      normalized: raw,
-      helper: "Keep this under 96 characters.",
-      message: "That identity is too long.",
-      inputMode: "text",
-      label: "Too long",
-    };
-  }
-
-  const lowered = raw.toLowerCase();
-  const digits = raw.replace(/[^\d]/g, "");
-
-  if (raw.includes("@")) {
-    const ok = EMAIL_ENTRY_PATTERN.test(lowered);
-    return {
-      ok,
-      kind: ok ? "email" : "invalid",
-      normalized: lowered,
-      helper: ok ? "Email detected." : "Use a full email address, like you@example.com.",
-      message: ok ? "" : "Enter a valid email address.",
-      inputMode: "email",
-      label: ok ? "Email" : "Check email",
-    };
-  }
-
-  if (PHONE_ENTRY_PATTERN.test(raw) && digits.length >= 7) {
-    return {
-      ok: true,
-      kind: "phone",
-      normalized: raw.replace(/[^\d+]/g, ""),
-      helper: "Phone number detected.",
-      message: "",
-      inputMode: "tel",
-      label: "Phone",
-    };
-  }
-
-  if (PHONE_ENTRY_PATTERN.test(raw) && /\d/.test(raw)) {
-    return {
-      ok: false,
-      kind: "invalid",
-      normalized: raw,
-      helper: "Phone numbers need at least 7 digits.",
-      message: "Enter a valid phone number.",
-      inputMode: "tel",
-      label: "Check phone",
-    };
-  }
-
-  if (!USERNAME_ENTRY_PATTERN.test(raw)) {
-    return {
-      ok: false,
-      kind: "invalid",
-      normalized: lowered,
-      helper: "Usernames use letters, numbers, and underscores.",
-      message: "Enter a valid username, email, or phone number.",
-      inputMode: "text",
-      label: "Check entry",
-    };
-  }
-
-  const username = lowered.replace(/^@+/, "");
-  return {
-    ok: true,
-    kind: "username",
-    normalized: username,
-    helper: "Username detected.",
-    message: "",
-    inputMode: "text",
-    label: "Username",
+  meshi: {
+    color: MeshiColor;
+    hat: MeshiHat;
+    face: MeshiMood;
+    hair: MeshiHair;
+    accessory: MeshiAccessory;
+    eye: MeshiEyeStyle;
+    badge: MeshiBadge;
+    outfit: MeshiOutfit;
   };
-}
-
-function isMeshiPreviewPayload(value: unknown): value is {
-  found: true;
-  username: string;
-  displayName: string;
-  meshi: Record<string, string>;
-} {
-  if (!value || typeof value !== "object") return false;
-  const payload = value as Record<string, unknown>;
-  return (
-    payload.found === true &&
-    typeof payload.username === "string" &&
-    typeof payload.displayName === "string" &&
-    Boolean(payload.meshi) &&
-    typeof payload.meshi === "object"
-  );
-}
-
-function precise(value: number) {
-  return Number(value.toFixed(2));
-}
-
-function createEntryNodes() {
-  const nodes: EntryNode[] = [];
-  const counts = [72, 62, 72, 62];
-  const pushNode = (x: number, y: number, index: number) => {
-    const glow = 0.24 + ((index * 17) % 50) / 100;
-    nodes.push({
-      id: `n${index + 1}`,
-      x: precise(x),
-      y: precise(y),
-      r: precise(0.14 + ((index * 13) % 8) / 40),
-      glow: precise(glow),
-      drift: precise(((index * 29) % 100) / 100),
-    });
-  };
-
-  let index = 0;
-  counts.forEach((count, side) => {
-    for (let step = 0; step < count; step += 1) {
-      const t = count === 1 ? 0 : step / (count - 1);
-      const wave = Math.sin((index + 1) * 1.73);
-      const counter = Math.cos((index + 1) * 0.91);
-      const depth = 1.4 + Math.abs(Math.sin((index + 8) * 0.77)) * 11.2;
-      if (side === 0) pushNode(-2 + t * 104 + wave * 1.9, depth, index);
-      if (side === 1) pushNode(100 - depth, -2 + t * 104 + counter * 2.1, index);
-      if (side === 2) pushNode(102 - t * 104 + wave * 1.9, 100 - depth, index);
-      if (side === 3) pushNode(depth, 102 - t * 104 + counter * 2.1, index);
-      index += 1;
-    }
-  });
-
-  return nodes;
-}
-
-const EDGE_NODES = createEntryNodes();
-
-const EDGE_LINKS = EDGE_NODES.flatMap((node, index) => {
-  const links: Array<[string, string]> = [[node.id, EDGE_NODES[(index + 1) % EDGE_NODES.length].id]];
-  if (index % 2 === 0) links.push([node.id, EDGE_NODES[(index + 2) % EDGE_NODES.length].id]);
-  if (index % 5 === 0) links.push([node.id, EDGE_NODES[(index + 7) % EDGE_NODES.length].id]);
-  if (index % 13 === 0) links.push([node.id, EDGE_NODES[(index + 19) % EDGE_NODES.length].id]);
-  return links;
-});
-
-const CONNECTION_IDS = Array.from({ length: 14 }, (_, index) => {
-  const nodeIndex = (Math.floor((index / 14) * EDGE_NODES.length) + 4) % EDGE_NODES.length;
-  return EDGE_NODES[nodeIndex].id;
-});
-const MESHI_STRING_ANCHORS = [
-  { x: 47.1, y: 36.6 },
-  { x: 49.2, y: 35.4 },
-  { x: 51.2, y: 35.6 },
-  { x: 53.1, y: 36.9 },
-  { x: 54.0, y: 39.1 },
-  { x: 53.2, y: 41.4 },
-  { x: 51.1, y: 42.7 },
-  { x: 48.8, y: 42.6 },
-  { x: 46.8, y: 41.3 },
-  { x: 45.9, y: 39.1 },
-  { x: 46.3, y: 37.4 },
-  { x: 50.0, y: 39.0 },
-];
-const MESHI_CONNECTION_CORE = { x: 50, y: 39 };
-
-const AMBIENT_SPARKS = Array.from({ length: 60 }, (_, index) => {
-  const side = index % 4;
-  const t = ((index * 23) % 100) / 100;
-  const wave = Math.sin((index + 4) * 1.17);
-  if (side === 0) return { x: precise(-2 + t * 104), y: precise(1 + Math.abs(wave) * 14), r: precise(0.07 + (index % 5) * 0.025) };
-  if (side === 1) return { x: precise(99 - Math.abs(wave) * 14), y: precise(-2 + t * 104), r: precise(0.07 + (index % 5) * 0.025) };
-  if (side === 2) return { x: precise(102 - t * 104), y: precise(99 - Math.abs(wave) * 14), r: precise(0.07 + (index % 5) * 0.025) };
-  return { x: precise(1 + Math.abs(wave) * 14), y: precise(102 - t * 104), r: precise(0.07 + (index % 5) * 0.025) };
-});
-
-const BORDER_SWEEPS = [
-  "M -9 8 C 18 -4 38 10 61 -1 S 94 8 109 -6",
-  "M 106 -4 C 92 25 111 42 101 61 S 111 92 94 109",
-  "M 110 92 C 80 103 62 91 39 104 S 6 94 -10 108",
-  "M -6 105 C 8 82 -10 58 -1 38 S -10 8 8 -8",
-  "M -8 22 C 22 15 37 26 54 17 S 87 25 109 16",
-  "M 84 -8 C 91 20 79 42 91 65 S 82 94 103 111",
-];
-
-const DESTINATION_LABELS: Record<string, string> = {
-  analytics: "Analytics",
-  communities: "Communities",
-  "connected-accounts": "Connected accounts",
-  "content-hub": "Content Hub",
-  explore: "Explore",
-  feed: "Feed",
-  marketplace: "Marketplace",
-  mesh: "The Mesh",
-  "meshi-voice": "Meshi Voice",
-  meshpro: "Mesh Pro",
-  messages: "MeChat",
-  notifications: "Notifications",
-  profile: "Profile",
-  search: "Search",
-  settings: "Settings",
-  spaces: "Spaces",
-  "super-app": "Super App",
-  vault: "Vault",
 };
 
-function nodeById(id: string) {
-  return EDGE_NODES.find((node) => node.id === id) ?? EDGE_NODES[0];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function detectIdentity(raw: string): { kind: "email" | "phone" | "username" | "empty"; label: string } {
+  const value = raw.trim();
+  if (!value) return { kind: "empty", label: "" };
+  if (EMAIL_RE.test(value.toLowerCase())) return { kind: "email", label: "Email" };
+  const digits = value.replace(/[^\d]/g, "");
+  if (!value.includes("@") && digits.length >= 7) return { kind: "phone", label: "Phone" };
+  return { kind: "username", label: "Username" };
 }
 
-function meshPath(from: { x: number; y: number }, to: { x: number; y: number }, bend: number) {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const midX = (from.x + to.x) / 2;
-  const midY = (from.y + to.y) / 2;
-  const controlX = midX - (dy / length) * bend;
-  const controlY = midY + (dx / length) * bend;
-  return `M ${from.x} ${from.y} Q ${controlX.toFixed(2)} ${controlY.toFixed(2)} ${to.x} ${to.y}`;
-}
-
-function MeshConstellation({
-  progress,
-  failed,
-  typing,
-  unlocking,
-}: {
-  progress: number;
-  failed: boolean;
-  typing: boolean;
-  unlocking: boolean;
-}) {
-  const reduceMotion = useReducedMotion();
-  const stringProgress = unlocking ? 1 : typing || failed ? progress : 0;
-  const liveProgress = Math.max(0, Math.min(1, stringProgress));
-  const connectionOpacity = unlocking ? 0.98 : typing ? Math.max(0.34, liveProgress * 0.96) : Math.max(0.08, liveProgress);
-
-  return (
-    <div className="mesh-entry-constellation" aria-hidden="true">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
-        <defs>
-          <filter id="mesh-entry-soft-glow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="0.9" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <radialGradient id="mesh-entry-node" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="white" stopOpacity="1" />
-            <stop offset="45%" stopColor="#93c5fd" stopOpacity="0.96" />
-            <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id="mesh-entry-line" x1="0%" x2="100%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.34" />
-            <stop offset="55%" stopColor="#60a5fa" stopOpacity="0.78" />
-            <stop offset="100%" stopColor="#f8fafc" stopOpacity="0.3" />
-          </linearGradient>
-          <linearGradient id="mesh-entry-string-live" x1="0%" x2="100%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor="#93c5fd" stopOpacity="0" />
-            <stop offset="34%" stopColor="#dbeafe" stopOpacity="0.58" />
-            <stop offset="70%" stopColor="#38bdf8" stopOpacity="0.92" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.42" />
-          </linearGradient>
-          <linearGradient id="mesh-entry-fail" x1="0%" x2="100%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor="#fecaca" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="#f87171" stopOpacity="0.56" />
-          </linearGradient>
-          <linearGradient id="mesh-entry-rail" x1="0%" x2="100%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor="#bfdbfe" stopOpacity="0" />
-            <stop offset="18%" stopColor="#dbeafe" stopOpacity="0.28" />
-            <stop offset="52%" stopColor="#60a5fa" stopOpacity="0.42" />
-            <stop offset="84%" stopColor="#bae6fd" stopOpacity="0.24" />
-            <stop offset="100%" stopColor="#bfdbfe" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient id="mesh-entry-core" cx="50%" cy="39%" r="30%">
-            <stop offset="0%" stopColor="#dbeafe" stopOpacity="0.22" />
-            <stop offset="70%" stopColor="#60a5fa" stopOpacity="0.05" />
-            <stop offset="100%" stopColor="#020617" stopOpacity="0" />
-          </radialGradient>
-          <mask id="mesh-entry-border-mask">
-            <rect x="-12" y="-12" width="124" height="124" fill="white" />
-            <ellipse cx="50" cy="46" rx="29" ry="35" fill="black" opacity="0.82" />
-            <ellipse cx="50" cy="46" rx="37" ry="43" fill="black" opacity="0.24" />
-          </mask>
-        </defs>
-
-        <g mask="url(#mesh-entry-border-mask)">
-          <rect x="-10" y="-10" width="120" height="120" rx="11" fill="none" stroke="url(#mesh-entry-rail)" strokeWidth="0.1" vectorEffect="non-scaling-stroke" />
-          <circle cx="50" cy="39" r="20" fill="url(#mesh-entry-core)" />
-
-          {BORDER_SWEEPS.map((path, index) => (
-            <path
-              key={`sweep-${index}`}
-              d={path}
-              className="mesh-entry-sweep-line"
-              vectorEffect="non-scaling-stroke"
-              style={{ animationDelay: `${index * 740}ms` }}
-            />
-          ))}
-
-          {EDGE_LINKS.map(([fromId, toId], index) => {
-            const from = nodeById(fromId);
-            const to = nodeById(toId);
-            return (
-              <path
-                key={`${fromId}-${toId}`}
-                d={meshPath(from, to, ((index % 5) - 2) * 0.92)}
-                className={cn("mesh-entry-edge-line", index % 13 === 0 && "mesh-entry-edge-line-strong")}
-                vectorEffect="non-scaling-stroke"
-                style={{ animationDelay: `${index * 22}ms` }}
-              />
-            );
-          })}
-        </g>
-
-        {CONNECTION_IDS.map((id, index) => {
-          const node = nodeById(id);
-          const anchor = typing || unlocking || failed ? MESHI_STRING_ANCHORS[index % MESHI_STRING_ANCHORS.length] : MESHI_CONNECTION_CORE;
-          const revealStart = (index / CONNECTION_IDS.length) * 0.78;
-          const revealProgress = unlocking || failed ? 1 : Math.max(0, Math.min(1, (liveProgress - revealStart) / 0.24));
-          const isVisible = revealProgress > 0 || unlocking || failed;
-          const path = meshPath(node, anchor, index % 2 === 0 ? 2.8 : -2.8);
-          const lineOpacity = isVisible ? connectionOpacity * Math.min(1, revealProgress * 1.35) : 0;
-          return (
-            <g key={`connection-${id}`}>
-              <motion.path
-                d={path}
-                className={cn(
-                  "mesh-entry-connection-string",
-                  (typing || unlocking) && "mesh-entry-connection-string-active",
-                  failed && "mesh-entry-connection-string-failed",
-                )}
-                stroke={failed ? "url(#mesh-entry-fail)" : "url(#mesh-entry-line)"}
-                strokeWidth={failed ? 1.6 : 0.9 + liveProgress * (typing ? 1.6 : 1)}
-                strokeDasharray={failed ? "2.5 11" : typing ? "20 10" : undefined}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                initial={false}
-                animate={{
-                  opacity: failed ? [0.84, 0.5, 0.2] : lineOpacity,
-                  pathLength: failed ? [1, 0.34, 0.14] : revealProgress,
-                  pathOffset: failed ? [0, 0.08, 0.18] : 0,
-                }}
-                transition={{
-                  duration: reduceMotion ? 0.01 : failed ? 0.34 : 0.32,
-                  ease: "easeOut",
-                  delay: reduceMotion ? 0 : failed ? index * 0.006 : index * 0.014,
-                }}
-              />
-              <motion.path
-                d={path}
-                className="mesh-entry-connection-current"
-                stroke="url(#mesh-entry-string-live)"
-                strokeWidth={1.3 + liveProgress * 1.4}
-                strokeDasharray="2.5 30"
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                initial={false}
-                animate={{
-                  opacity: typing && isVisible && !failed ? 0.16 + liveProgress * 0.54 : 0,
-                  pathLength: revealProgress,
-                }}
-                transition={{
-                  duration: reduceMotion ? 0.01 : 0.22,
-                  ease: "easeOut",
-                  delay: reduceMotion ? 0 : index * 0.012,
-                }}
-              />
-            </g>
-          );
-        })}
-
-        {(typing || unlocking) && !failed ? MESHI_STRING_ANCHORS.map((anchor, index) => (
-          <motion.circle
-            key={`meshi-string-anchor-${anchor.x}-${anchor.y}`}
-            cx={anchor.x}
-            cy={anchor.y}
-            r={0.12 + liveProgress * 0.24}
-            fill="#dbeafe"
-            initial={false}
-            animate={{
-              opacity: liveProgress > index / MESHI_STRING_ANCHORS.length ? 0.22 + liveProgress * 0.58 : 0,
-              scale: reduceMotion ? 1 : [0.86, 1.32, 0.94, 1],
-            }}
-            transition={{
-              duration: reduceMotion ? 0.01 : 1.1,
-              repeat: reduceMotion ? 0 : Infinity,
-              ease: "easeInOut",
-              delay: index * 0.08,
-            }}
-          />
-        )) : null}
-
-        {(typing || unlocking) && !failed ? (
-          <motion.g className="mesh-entry-meshi-link-core">
-            <motion.circle
-              cx={MESHI_CONNECTION_CORE.x}
-              cy={MESHI_CONNECTION_CORE.y}
-              r={1.6 + liveProgress * 3.8}
-              fill="none"
-              stroke="#dbeafe"
-              strokeWidth={0.08 + liveProgress * 0.1}
-              initial={false}
-              animate={{
-                opacity: reduceMotion ? 0.18 + liveProgress * 0.26 : [0.18 + liveProgress * 0.22, 0.36 + liveProgress * 0.26, 0.18 + liveProgress * 0.22],
-                scale: reduceMotion ? 1 : [0.96, 1.08, 0.96],
-              }}
-              transition={{ duration: reduceMotion ? 0.01 : 1.45, repeat: reduceMotion ? 0 : Infinity, ease: "easeInOut" }}
-            />
-            <motion.circle
-              cx={MESHI_CONNECTION_CORE.x}
-              cy={MESHI_CONNECTION_CORE.y}
-              r={0.4 + liveProgress * 0.68}
-              fill="#ffffff"
-              initial={false}
-              animate={{ opacity: 0.32 + liveProgress * 0.5 }}
-              transition={{ duration: reduceMotion ? 0.01 : 0.18 }}
-            />
-          </motion.g>
-        ) : null}
-
-        {AMBIENT_SPARKS.map((spark, index) => (
-          <circle
-            key={`spark-${spark.x}-${spark.y}`}
-            cx={spark.x}
-            cy={spark.y}
-            r={spark.r}
-            fill="#dbeafe"
-            className="mesh-entry-spark"
-            style={{ animationDelay: `${index * 210}ms` }}
-          />
-        ))}
-
-        <g mask="url(#mesh-entry-border-mask)" filter={unlocking ? "url(#mesh-entry-soft-glow)" : undefined}>
-          {EDGE_NODES.map((node, index) => (
-            <g
-              key={node.id}
-              className="mesh-entry-node"
-              style={{
-                animationDelay: `${index * 31}ms`,
-                "--entry-node-drift": `${node.drift}`,
-              } as CSSProperties}
-            >
-              <circle className="mesh-entry-node-halo" cx={node.x} cy={node.y} r={node.r * (unlocking ? 6.2 : 4.1)} fill="url(#mesh-entry-node)" opacity={0.1 + node.glow * 0.18} />
-              <circle className="mesh-entry-node-core" cx={node.x} cy={node.y} r={node.r * (unlocking ? 1.62 : 1.03)} fill="#f8fafc" opacity={0.62 + node.glow * 0.22} />
-            </g>
-          ))}
-        </g>
-
-        {unlocking && !reduceMotion ? (
-          <motion.g className="mesh-entry-unlock-bloom">
-            {[0, 1, 2].map((index) => (
-              <motion.circle
-                key={`unlock-bloom-${index}`}
-                cx="50"
-                cy="39"
-                r={2.4 + index * 1.2}
-                fill="none"
-                stroke={index === 0 ? "#ffffff" : "#dbeafe"}
-                strokeWidth={0.18 - index * 0.035}
-                initial={{ opacity: 0.74 - index * 0.14, scale: 0.36 }}
-                animate={{ opacity: 0, scale: 8.4 + index * 2.4 }}
-                transition={{ duration: 0.9 + index * 0.18, ease: "easeOut", delay: index * 0.08 }}
-              />
-            ))}
-            {MESHI_STRING_ANCHORS.map((anchor, index) => (
-              <motion.path
-                key={`unlock-ray-${anchor.x}-${anchor.y}`}
-                d={`M ${MESHI_CONNECTION_CORE.x} ${MESHI_CONNECTION_CORE.y} L ${anchor.x + (anchor.x - MESHI_CONNECTION_CORE.x) * 3.2} ${anchor.y + (anchor.y - MESHI_CONNECTION_CORE.y) * 3.2}`}
-                stroke="#dbeafe"
-                strokeWidth="1.1"
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                initial={{ opacity: 0, pathLength: 0 }}
-                animate={{ opacity: [0, 0.62, 0], pathLength: [0, 1, 1] }}
-                transition={{ duration: 0.78, ease: "easeOut", delay: index * 0.018 }}
-              />
-            ))}
-          </motion.g>
-        ) : null}
-      </svg>
-    </div>
-  );
+function usernameCandidate(raw: string): string | null {
+  const value = raw.trim().replace(/^@+/, "").toLowerCase();
+  return /^[a-z0-9_]{2,24}$/.test(value) ? value : null;
 }
 
 export function MeshEntryExperience({ nextPath, oauthProviders = [], initialError = null }: MeshEntryExperienceProps) {
   const router = useRouter();
-  const reduceMotion = useReducedMotion();
-  const identityHelpId = useId();
-  const identityMessageId = useId();
-  const passwordHelpId = useId();
-  const passwordMessageId = useId();
-  const resetMessageId = useId();
+
   const [stage, setStage] = useState<EntryStage>("identity");
-  const [entryState, setEntryState] = useState<EntryState>("idle");
   const [identifier, setIdentifier] = useState("");
-  const [identityTouched, setIdentityTouched] = useState(false);
   const [password, setPassword] = useState("");
-  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState(initialError ?? "");
+  const [preview, setPreview] = useState<MeshiPreview | null>(null);
+  const [signupDraft, setSignupDraft] = useState({ email: "", username: "", phone: "" });
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
-  const [resetUrl, setResetUrl] = useState("");
-  const [resetReturnStage, setResetReturnStage] = useState<"identity" | "password">("identity");
-  const [signupDraft, setSignupDraft] = useState<SignupDraft>({ email: "", username: "", phone: "" });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [message, setMessage] = useState(initialError ?? "");
-  const [meshiPreview, setMeshiPreview] = useState<EntryMeshiPreview | null>(null);
-  const [previewState, setPreviewState] = useState<"idle" | "looking" | "found">("idle");
-  const [meshiEntrance, setMeshiEntrance] = useState<MeshiEntranceState>("idle");
-  const [identityMorphing, setIdentityMorphing] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const passwordInputRef = useRef<HTMLInputElement>(null);
-  const meshiAnchorRef = useRef<HTMLDivElement>(null);
-  const meshiEntranceKeyRef = useRef("");
-  const requestedMeshiEntranceRef = useRef<MeshiEntranceState | null>(null);
 
-  const passwordProgress = useMemo(() => {
-    if (stage !== "password") return 0;
-    if (password.length === 0) return 0;
-    return Math.min(1, Math.max(0.12, password.length / 12));
-  }, [password.length, stage]);
+  const reduceMotion = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+    [],
+  );
 
-  const identityProgress = stage === "identity" && identifier.length > 0 ? Math.min(1, Math.max(0.12, identifier.length / 14)) : 0;
-  const constellationProgress = stage === "signup" ? 0.34 : stage === "reset" ? 0.42 : entryState === "unlocking" ? 1 : Math.max(passwordProgress, identityProgress);
-  const isPasswordTyping = stage === "password" && password.length > 0 && entryState !== "failed";
-  const isIdentityTyping = stage === "identity" && identifier.length > 0 && entryState !== "failed";
-  const identityValidation = useMemo(() => getEntryIdentityValidation(identifier), [identifier]);
-  const identityHasError = stage === "identity" && Boolean(message || (identityTouched && !identityValidation.ok));
-  const identityStatus = message || (identityTouched && !identityValidation.ok ? identityValidation.message : "");
-  const passwordStatus = stage === "password"
-    ? message || (passwordTouched && password.length === 0 ? "Enter your password." : "")
-    : "";
-  const passwordHasError = stage === "password" && Boolean(passwordStatus);
+  const fx = useRef<ConstellationState>({ energy: 0, stage: "identity", phase: "idle" });
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
-  const destinationLabel = useMemo(() => {
-    if (!nextPath) return null;
-    const segment = nextPath.split(/[?#]/)[0].split("/").filter(Boolean)[0];
-    return segment ? DESTINATION_LABELS[segment] || "your last page" : null;
-  }, [nextPath]);
-
+  useEffect(() => setHydrated(true), []);
   useEffect(() => {
-    setIsHydrated(true);
+    fx.current.stage = stage;
+  }, [stage]);
+
+  const spark = useCallback(() => {
+    fx.current.energy = 1;
   }, []);
 
-  useEffect(() => {
-    if (stage === "password") {
-      router.prefetch(nextPath || "/mesh");
-    }
-  }, [stage, nextPath, router]);
+  const identity = useMemo(() => detectIdentity(identifier), [identifier]);
 
-  const previewDisplayName = meshiPreview?.displayName?.trim() || meshiPreview?.username || "you";
-  const activeMeshi = meshiPreview?.meshi ?? DEFAULT_ENTRY_MESHI;
-  const shouldShowEntryMeshi = stage !== "identity" || Boolean(meshiPreview);
-  const visibleMeshiKey = shouldShowEntryMeshi
-    ? stage === "identity"
-      ? `identity:${meshiPreview?.username ?? "preview"}`
-      : `${stage}:${identifier || meshiPreview?.username || "default"}`
-    : "";
-
-  const meshiNote = useMemo(() => {
-    if (stage === "identity") return meshiPreview ? `Hi ${previewDisplayName}. I found your Meshi.` : "";
-    if (entryState === "failed") return stage === "signup" || stage === "reset" ? "I can fix this with you." : "Let's try that again.";
-    if (entryState === "unlocking") return stage === "signup" ? "Opening your Mesh..." : "Reconnecting your world...";
-    if (stage === "reset") return resetSent ? "Check your inbox." : "I can help recover your Mesh.";
-    if (stage === "signup") return "I will help you build your Mesh.";
-    return meshiPreview
-      ? `Hi ${previewDisplayName}. I've missed you.`
-      : "Hi, I'm Meshi. I've missed you.";
-  }, [entryState, meshiPreview, previewDisplayName, resetSent, stage]);
-
-  const loadMeshiPreview = useCallback(async (rawIdentifier: string, signal?: AbortSignal) => {
-    const username = getUsernamePreviewCandidate(rawIdentifier);
-    if (!username) {
-      setMeshiPreview(null);
-      setPreviewState("idle");
-      return null;
-    }
-
-    setPreviewState("looking");
-
+  const loadPreview = useCallback(async (username: string): Promise<MeshiPreview | null> => {
     try {
-      const response = await fetch(`/api/auth/meshi-preview?username=${encodeURIComponent(username)}`, {
+      const res = await fetch(`/api/auth/meshi-preview?username=${encodeURIComponent(username)}`, {
         headers: { Accept: "application/json" },
-        signal,
       });
-
-      if (!response.ok) throw new Error("Meshi preview unavailable");
-
-      const payload: unknown = await response.json().catch(() => null);
-      if (signal?.aborted) return null;
-
-      if (!isMeshiPreviewPayload(payload)) {
-        setMeshiPreview(null);
-        setPreviewState("idle");
-        return null;
-      }
-
-      const preview: EntryMeshiPreview = {
-        username: payload.username,
-        displayName: payload.displayName,
+      const data = await res.json().catch(() => null);
+      if (!data?.found) return null;
+      return {
+        username: data.username,
+        displayName: data.displayName,
         meshi: {
-          color: payload.meshi.color as MeshiColor,
-          hat: payload.meshi.hat as MeshiHat,
-          face: payload.meshi.face as MeshiMood,
-          hair: payload.meshi.hair as MeshiHair,
-          accessory: payload.meshi.accessory as MeshiAccessory,
-          eye: payload.meshi.eye as MeshiEyeStyle,
-          badge: (payload.meshi.badge || "none") as MeshiBadge,
-          outfit: (payload.meshi.outfit || "none") as MeshiOutfit,
+          color: data.meshi.color,
+          hat: data.meshi.hat,
+          face: data.meshi.face,
+          hair: data.meshi.hair,
+          accessory: data.meshi.accessory,
+          eye: data.meshi.eye,
+          badge: data.meshi.badge,
+          outfit: data.meshi.outfit,
         },
       };
-
-      setMeshiPreview(preview);
-      setPreviewState("found");
-      return preview;
     } catch {
-      if (!signal?.aborted) {
-        setMeshiPreview(null);
-        setPreviewState("idle");
-      }
       return null;
     }
   }, []);
 
-  // Intentionally no per-keystroke Meshi lookup. The Meshi is only resolved
-  // when the person submits their identifier (see beginPasswordStep): if it
-  // maps to an account we reveal their Meshi and ask for the password,
-  // otherwise we move into sign-up. Typing stays quiet.
-
-  useEffect(() => {
-    if (!visibleMeshiKey) {
-      meshiEntranceKeyRef.current = "";
-      requestedMeshiEntranceRef.current = null;
-      setMeshiEntrance("idle");
+  // ── Step 1: resolve who they are ───────────────────────────────────────
+  const submitIdentity = (event?: React.FormEvent) => {
+    event?.preventDefault();
+    const value = identifier.trim();
+    if (!value) {
+      setMessage("Enter your username, email, or phone number.");
       return;
     }
-
-    if (visibleMeshiKey !== meshiEntranceKeyRef.current) {
-      meshiEntranceKeyRef.current = visibleMeshiKey;
-      setMeshiEntrance(requestedMeshiEntranceRef.current ?? "arriving");
-      requestedMeshiEntranceRef.current = null;
-    }
-  }, [visibleMeshiKey]);
-
-  useEffect(() => {
-    let meshiPos: { x: number; y: number } | null = null;
-    if (meshiAnchorRef.current) {
-      const rect = meshiAnchorRef.current.getBoundingClientRect();
-      meshiPos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    }
-
-    window.dispatchEvent(new CustomEvent("mesh-activity", {
-      detail: {
-        field: stage === "password" ? "password" : null,
-        totalChars: stage === "password" ? password.length : 0,
-        meshiPos,
-      },
-    }));
-  }, [password.length, stage, entryState]);
-
-  useEffect(() => {
-    if (entryState === "unlocking") {
-      window.dispatchEvent(new CustomEvent("mesh-converge"));
-    }
-  }, [entryState]);
-
-  const beginPasswordStep = () => {
-    const validation = getEntryIdentityValidation(identifier);
-    const nextIdentifier = validation.normalized;
-
-    setIdentityTouched(true);
-
-    if (!validation.ok) {
-      setMessage(validation.message);
-      setEntryState("idle");
-      requestedMeshiEntranceRef.current = null;
-      return;
-    }
-
-    setIdentifier(nextIdentifier);
     setMessage("");
-    setEntryState("connecting");
-    requestedMeshiEntranceRef.current = meshiPreview ? "handoff" : "arriving";
-    const previewPromise = loadMeshiPreview(nextIdentifier);
+    spark();
     startTransition(async () => {
-      const result = await resolveEntryIdentity(nextIdentifier);
-      if (result?.error) {
-        setEntryState("failed");
+      const result = await resolveEntryIdentity(value);
+      if (result && "error" in result && result.error) {
         setMessage(result.error);
         return;
       }
-
       if (result?.mode === "sign-up") {
-        setMeshiPreview(null);
-        setPreviewState("idle");
-        setSignupDraft(result.prefill);
+        setPreview(null);
+        setSignupDraft(result.prefill ?? { email: "", username: "", phone: "" });
         setStage("signup");
-        setEntryState("idle");
-        requestedMeshiEntranceRef.current = "arriving";
         return;
       }
-
-      // The identity field folds into a circle that hands off to Meshi,
-      // then the password step slides in.
-      setEntryState("connecting");
-      setIdentityMorphing(true);
-      window.setTimeout(() => {
-        setStage("password");
-        setIdentityMorphing(false);
-        window.setTimeout(() => passwordInputRef.current?.focus(), reduceMotion ? 40 : 420);
-      }, reduceMotion ? 40 : 560);
-      void previewPromise;
+      // Valid account → reveal their Meshi, then ask for the password.
+      const candidate = usernameCandidate(value);
+      const loaded = candidate ? await loadPreview(candidate) : null;
+      setPreview(loaded);
+      setStage("password");
+      setPassword("");
+      setTimeout(() => passwordRef.current?.focus(), 420);
     });
   };
 
-  const submitPassword = (formData: FormData) => {
-    const submittedPassword = formData.get("password");
-    setPasswordTouched(true);
-    if (typeof submittedPassword !== "string" || submittedPassword.length === 0) {
-      setEntryState("idle");
+  // ── Step 2: password ───────────────────────────────────────────────────
+  const submitPassword = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!password) {
       setMessage("Enter your password.");
-      window.setTimeout(() => passwordInputRef.current?.focus(), 80);
       return;
     }
-
     setMessage("");
-    setEntryState("connecting");
     startTransition(async () => {
-      const result = await signInForEntry(formData);
-      if (result?.error) {
-        setEntryState("failed");
-        setMessage(
-          result.error === "Invalid email or password"
-            ? "That password didn't work. Try again."
-            : result.error,
-        );
-        window.setTimeout(() => passwordInputRef.current?.focus(), 120);
+      const form = new FormData();
+      form.set("email", identifier.trim());
+      form.set("password", password);
+      if (nextPath) form.set("next", nextPath);
+      const result = await signInForEntry(form);
+      if (result && "error" in result && result.error) {
+        setMessage(result.error === "Invalid email or password" ? "That password didn't work. Try again." : result.error);
+        setTimeout(() => passwordRef.current?.focus(), 80);
         return;
       }
-
-      flushSync(() => {
-        setEntryState("unlocking");
-      });
-      const destination = result.redirectTo || "/mesh";
-      window.setTimeout(() => {
+      // Success: pull the whole mesh together, then land in the app.
+      setSuccess(true);
+      fx.current.phase = "success";
+      const destination = (result && "redirectTo" in result && result.redirectTo) || "/mesh";
+      setTimeout(() => {
         router.refresh();
         router.push(destination);
-        // The client router can race the freshly minted session cookie and land
-        // back on /login; fall back to a full navigation if that happens.
-        window.setTimeout(() => {
-          if (window.location.pathname.startsWith("/login")) {
+        setTimeout(() => {
+          if (window.location.pathname.startsWith("/login") || window.location.pathname === "/") {
             window.location.assign(destination);
           }
         }, 1400);
-      }, reduceMotion ? 160 : 620);
+      }, reduceMotion ? 200 : 720);
     });
   };
 
+  // ── Sign up ─────────────────────────────────────────────────────────────
   const submitSignup = (formData: FormData) => {
     setMessage("");
-    setEntryState("unlocking");
     startTransition(async () => {
       const result = await signUp(formData);
-      if (result?.error) {
-        setEntryState("failed");
-        setMessage(result.error);
-      }
+      if (result?.error) setMessage(result.error);
     });
   };
 
-  const openResetStep = () => {
-    const emailCandidate = identityValidation.kind === "email" ? identityValidation.normalized : "";
-    setResetEmail(emailCandidate);
-    setResetSent(false);
-    setResetUrl("");
-    setResetReturnStage(stage === "password" ? "password" : "identity");
-    setPasswordTouched(false);
-    setMessage("");
-    setEntryState("idle");
-    requestedMeshiEntranceRef.current = shouldShowEntryMeshi ? "handoff" : "arriving";
-    setStage("reset");
-  };
-
-  const submitResetRequest = (event: FormEvent<HTMLFormElement>) => {
+  // ── Reset ────────────────────────────────────────────────────────────────
+  const submitReset = (event: React.FormEvent) => {
     event.preventDefault();
-    const normalizedEmail = resetEmail.trim().toLowerCase();
-
-    if (!EMAIL_ENTRY_PATTERN.test(normalizedEmail)) {
-      setResetSent(false);
-      setResetUrl("");
-      setEntryState("idle");
+    const email = resetEmail.trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) {
       setMessage("Enter the email connected to your Mesh.");
       return;
     }
-
-    setResetEmail(normalizedEmail);
     setMessage("");
-    setResetSent(false);
-    setResetUrl("");
-    setEntryState("connecting");
     startTransition(async () => {
-      const result = await requestPasswordReset(normalizedEmail);
-      if (result?.error) {
-        setEntryState("failed");
+      const result = await requestPasswordReset(email);
+      if (result && "error" in result && result.error) {
         setMessage(result.error);
         return;
       }
-
-      setEntryState("idle");
       setResetSent(true);
-      setMessage("");
-      setResetUrl(result && "resetUrl" in result && typeof result.resetUrl === "string" ? result.resetUrl : "");
     });
   };
 
-  const openInlineSignup = () => {
-    const nextIdentifier = identifier.trim();
-    const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextIdentifier.toLowerCase());
-    const phone = nextIdentifier && !looksLikeEmail && nextIdentifier.replace(/[^\d+]/g, "").length >= 7
-      ? nextIdentifier.replace(/[^\d+]/g, "")
-      : "";
-    const username = nextIdentifier && !looksLikeEmail && !phone
-      ? nextIdentifier.toLowerCase().replace(/[^a-z0-9_]/g, "_").replace(/_+/g, "_").slice(0, 24)
-      : "";
-
-    setSignupDraft({
-      email: looksLikeEmail ? nextIdentifier.toLowerCase() : "",
-      username,
-      phone,
-    });
-    setPassword("");
+  const backToIdentity = () => {
+    setStage("identity");
     setMessage("");
-    setEntryState("idle");
-    setMeshiPreview(null);
-    setPreviewState("idle");
-    requestedMeshiEntranceRef.current = shouldShowEntryMeshi ? "handoff" : "arriving";
-    setStage("signup");
+    setPreview(null);
+    setPassword("");
+    setResetSent(false);
   };
 
-  const meshiEntranceActive = (meshiEntrance === "arriving" || meshiEntrance === "handoff")
-    && shouldShowEntryMeshi
-    && entryState !== "failed"
-    && entryState !== "unlocking";
-  const meshiHoverActive = shouldShowEntryMeshi && !meshiEntranceActive && entryState !== "failed" && entryState !== "unlocking";
-  const meshiMood = entryState === "failed"
-    ? "surprised"
-    : entryState === "unlocking"
-      ? "celebrating"
-      : meshiEntranceActive
-        ? "excited"
-        : stage === "reset"
-          ? "thinking"
-        : stage === "signup"
-          ? "thinking"
-          : activeMeshi.face;
-  const meshiProp: MeshiProp = isPasswordTyping || entryState === "unlocking" ? "keyboard" : stage === "reset" ? "envelope" : "none";
-  const meshiWrapAnimate = !shouldShowEntryMeshi
-    ? {
-        opacity: 0,
-        x: reduceMotion ? 0 : -560,
-        y: reduceMotion ? 12 : -170,
-        scale: reduceMotion ? 0.98 : 0.72,
-        rotate: reduceMotion ? 0 : -16,
-      }
-    : entryState === "failed"
-      ? {
-          opacity: 1,
-          x: reduceMotion ? 0 : [0, -8, 8, -5, 5, 0],
-          y: reduceMotion ? 0 : [0, 3, -2, 0],
-          scale: reduceMotion ? 1 : [1, 0.94, 1.04, 1],
-          rotate: reduceMotion ? 0 : [0, -4, 3, 0],
-        }
-      : entryState === "unlocking"
-        ? {
-            opacity: 1,
-            x: 0,
-            y: reduceMotion ? 0 : [0, -4, -10],
-            scale: reduceMotion ? 1 : [1, 1.08, 1.2],
-            rotate: 0,
-          }
-        : meshiEntrance === "handoff"
-          ? {
-              opacity: 1,
-              x: reduceMotion ? 0 : [0, 16, -8, 0],
-              y: reduceMotion ? 0 : [0, -18, 4, 0],
-              scale: reduceMotion ? 1 : [1, 1.08, 0.98, 1],
-              rotate: reduceMotion ? 0 : [0, 4, -2, 0],
-            }
-          : meshiEntrance === "arriving"
-            ? {
-                opacity: 1,
-                x: reduceMotion ? 0 : [-560, 24, -8, 0],
-                y: reduceMotion ? 0 : [-170, -22, 5, 0],
-                scale: reduceMotion ? 1 : [0.72, 1.08, 0.98, 1],
-                rotate: reduceMotion ? 0 : [-16, 6, -2, 0],
-              }
-            : {
-                opacity: 1,
-                x: 0,
-                y: 0,
-                scale: 1,
-                rotate: 0,
-              };
-  const meshiWrapTransition: Transition = reduceMotion
-    ? { duration: 0.01 }
-    : entryState === "failed"
-      ? { duration: 0.38, ease: "easeOut" }
-      : entryState === "unlocking"
-        ? { duration: 0.62, ease: "easeInOut" }
-        : meshiEntranceActive
-          ? { duration: meshiEntrance === "handoff" ? 0.54 : 0.86, ease: "easeOut", times: [0, 0.58, 0.82, 1] }
-          : { duration: 0.24, ease: "easeOut" };
-  const meshiBodyAnimate = reduceMotion || !meshiHoverActive
-    ? undefined
-    : {
-        y: [0, -5, 0, 3, 0],
-        rotate: [0, -0.9, 0, 0.8, 0],
-      };
+  const displayName = preview?.displayName?.trim() || preview?.username || "you";
 
   return (
-    <main
-      className="mesh-entry h-dvh max-h-dvh min-h-0 overflow-hidden bg-[#030712] text-white"
-      data-entry-stage={stage}
-      data-entry-state={entryState}
-      data-entry-ready={isHydrated ? "true" : "false"}
-      data-password-typing={isPasswordTyping ? "true" : "false"}
-      data-testid="mesh-entry"
-    >
-      <MeshConstellation
-        progress={constellationProgress}
-        failed={entryState === "failed"}
-        typing={isPasswordTyping || isIdentityTyping}
-        unlocking={entryState === "unlocking"}
-      />
+    <div className={`mesh-signin${success ? " mesh-signin-success" : ""}`} data-entry-ready={hydrated ? "true" : undefined}>
+      <MeshBorderConstellation state={fx} anchorRef={anchorRef} reducedMotion={Boolean(reduceMotion)} />
+      <div className="mesh-signin-vignette" aria-hidden="true" />
 
-      <div className="mesh-entry-depth pointer-events-none absolute inset-0" />
-      <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-5">
-        <span className="inline-flex items-center gap-2 rounded-full border border-blue-100/16 bg-blue-100/6 px-3.5 py-1.5 text-xs font-semibold text-blue-100/82 backdrop-blur-sm">
-          <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
-          Privacy first. Always.
-        </span>
-      </div>
-      <AnimatePresence>
-        {entryState === "unlocking" ? (
-          <motion.div
-            key="mesh-entry-world-open"
-            className="mesh-entry-world-open pointer-events-none absolute inset-0"
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.08 }}
-            transition={{ duration: reduceMotion ? 0.01 : 0.48, ease: "easeOut" }}
-            aria-hidden="true"
-          />
-        ) : null}
-        {entryState === "failed" && stage === "password" ? (
-          <motion.div
-            key="mesh-entry-failure-flash"
-            className="mesh-entry-failure-flash pointer-events-none absolute inset-0"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0.01 : 0.46, ease: "easeOut" }}
-            aria-hidden="true"
-          />
-        ) : null}
-      </AnimatePresence>
+      <span className="mesh-signin-badge">
+        <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
+        Privacy first. Always.
+      </span>
 
-      <section className="relative z-10 flex h-full min-h-0 items-center justify-center px-4 py-3 sm:px-5">
-        <div className="mesh-entry-panel w-full max-w-[30rem]">
-          <div className="mesh-entry-brand-shell mb-6 text-center sm:mb-8">
-            <Link href="/" className="inline-flex items-center gap-2.5" aria-label="mesh.me home">
-              <MeshMark size={34} />
-              <span className="brand-wordmark text-xl font-bold text-white">
-                mesh<span className="brand-wordmark-accent">.me</span>
-              </span>
-            </Link>
-            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.28em] text-blue-100/74">Your World, Your Way</p>
-          </div>
+      <main className="mesh-signin-stage">
+        <Link href="/" className="mesh-signin-brand" aria-label="mesh.me home">
+          <MeshMark size={38} />
+          <span className="mesh-signin-wordmark brand-wordmark">
+            mesh<span className="brand-wordmark-accent">.me</span>
+          </span>
+          <span className="mesh-signin-tagline">Your World, Your Way</span>
+        </Link>
 
-          <div className={cn("mesh-entry-flow relative", stage === "identity" ? "min-h-[25rem]" : stage === "signup" ? "min-h-[45rem]" : stage === "reset" ? "min-h-[35rem]" : "min-h-[32rem]")}>
-            <motion.div
-              ref={meshiAnchorRef}
-              className={cn(
-                "mesh-entry-meshi-wrap",
-                stage === "identity" && "pointer-events-none",
-                meshiEntranceActive && "mesh-entry-meshi-wrap-entering",
-                meshiHoverActive && "mesh-entry-meshi-wrap-alive",
-                entryState === "unlocking" && "mesh-entry-meshi-wrap-unlocking",
-                entryState === "failed" && "mesh-entry-meshi-wrap-failed",
-              )}
-              initial={false}
-              animate={meshiWrapAnimate}
-              transition={meshiWrapTransition}
-              onAnimationComplete={() => {
-                if (meshiEntrance === "arriving" || meshiEntrance === "handoff") setMeshiEntrance("settled");
-              }}
-              aria-hidden={!shouldShowEntryMeshi}
-              data-meshi-prop={meshiProp}
-              data-testid="entry-meshi"
-            >
-              <motion.div
-                className="mesh-entry-meshi-body"
-                animate={meshiBodyAnimate}
-                transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <MeshiMascot
-                  size={96}
-                  color={activeMeshi.color}
-                  mood={meshiMood}
-                  hat={activeMeshi.hat}
-                  hair={activeMeshi.hair}
-                  accessory={activeMeshi.accessory}
-                  eyeStyle={activeMeshi.eye}
-                  badge={activeMeshi.badge}
-                  outfit={activeMeshi.outfit}
-                  prop={meshiProp}
-                  showGlow
-                  bouncy={entryState !== "failed"}
-                  interactive={stage !== "identity"}
-                />
-              </motion.div>
-              <AnimatePresence mode="wait">
-                {meshiNote ? (
-                  <motion.p
-                    key={meshiNote}
-                    initial={{ opacity: 0, y: reduceMotion ? 0 : 6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: reduceMotion ? 0 : -4, scale: 0.98 }}
-                    transition={{ duration: reduceMotion ? 0.01 : 0.18, ease: "easeOut" }}
-                    className="mesh-entry-meshi-note"
-                  >
-                    {meshiNote}
-                  </motion.p>
-                ) : null}
-              </AnimatePresence>
-            </motion.div>
-
-            <AnimatePresence mode="wait">
-            {stage === "identity" ? (
-              <motion.div
-                key="identity-entry"
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: reduceMotion ? 0 : -18, scale: reduceMotion ? 1 : 0.985 }}
-                transition={{ duration: reduceMotion ? 0.01 : 0.28, ease: "easeOut" }}
-              >
-                <motion.form
-                  action="#"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    beginPasswordStep();
+        <div ref={anchorRef} className="mesh-signin-slot">
+          {/* IDENTITY */}
+          {stage === "identity" && (
+            <form key="identity" onSubmit={submitIdentity} className="mesh-signin-card" noValidate>
+              <h1 className="mesh-signin-title">Who are you?</h1>
+              <p className="mesh-signin-sub">Username, email, or phone number</p>
+              <div className="mesh-signin-field">
+                <input
+                  autoFocus
+                  value={identifier}
+                  onChange={(e) => {
+                    setIdentifier(e.target.value);
+                    if (message) setMessage("");
+                    spark();
                   }}
-                  className={cn("mesh-entry-card mesh-entry-card-bare mesh-entry-identity-form space-y-5", identityMorphing && "mesh-entry-form-morphing")}
-                  data-testid="entry-identity-form"
-                  noValidate
+                  placeholder="Enter your username, email, or phone"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  inputMode={identity.kind === "email" ? "email" : identity.kind === "phone" ? "tel" : "text"}
+                  maxLength={96}
+                  className="mesh-signin-input"
+                  aria-label="Username, email, or phone number"
+                  data-testid="entry-identity-input"
+                />
+                <button
+                  type="submit"
+                  className="mesh-signin-go"
+                  disabled={isPending || !hydrated}
+                  aria-label="Continue"
+                  data-testid="entry-continue-button"
                 >
-                  <div className="space-y-2 text-center" data-morph-fade>
-                    <h1 className="text-4xl font-bold tracking-[0] text-white sm:text-5xl">Who are you?</h1>
-                    <p className="text-sm text-blue-100/74">Username, email, or phone number</p>
-                  </div>
-                  <label className="block" htmlFor="mesh-entry-identity">
-                    <span className="sr-only">Username, email, or phone number</span>
-                    <input
-                      id="mesh-entry-identity"
-                      value={identifier}
-                      onChange={(event) => {
-                        const nextValue = event.target.value;
-                        setIdentifier(nextValue);
-                        setResetSent(false);
-                        setResetUrl("");
-                        // No lookup while typing — clear any stale preview so the
-                        // Meshi only appears after submit resolves the account.
-                        if (meshiPreview) setMeshiPreview(null);
-                        if (previewState !== "idle") setPreviewState("idle");
-                        if (message) setMessage("");
-                        if (entryState === "failed") setEntryState("idle");
-                      }}
-                      onBlur={() => setIdentityTouched(true)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Escape") {
-                          event.preventDefault();
-                          setIdentifier("");
-                          setIdentityTouched(false);
-                          setMeshiPreview(null);
-                          setPreviewState("idle");
-                          setMessage("");
-                          setEntryState("idle");
-                        }
-                      }}
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      enterKeyHint="next"
-                      spellCheck={false}
-                      inputMode={identityValidation.inputMode}
-                      className={cn("mesh-entry-input", identityHasError && "mesh-entry-input-invalid", identityMorphing && "mesh-entry-input-morph")}
-                      placeholder="Enter your username, email, or phone"
-                      aria-invalid={identityHasError}
-                      aria-describedby={identityHasError ? `${identityHelpId} ${identityMessageId}` : identityHelpId}
-                      maxLength={96}
-                      required
-                      data-identity-kind={identityValidation.kind}
-                      data-testid="entry-identity-input"
-                    />
-                    <button
-                      type="submit"
-                      className="mesh-entry-input-go"
-                      disabled={isPending || !isHydrated}
-                      aria-label="Continue"
-                      data-testid="entry-continue-button"
-                    >
-                      {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                    </button>
-                    <span id={identityHelpId} className="sr-only">{identityValidation.helper}</span>
-                  </label>
-                  <AnimatePresence mode="wait">
-                    {identityStatus ? (
-                      <motion.p
-                        id={identityMessageId}
-                        key={identityStatus}
-                        initial={{ opacity: 0, y: reduceMotion ? 0 : -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
-                        transition={{ duration: reduceMotion ? 0.01 : 0.16, ease: "easeOut" }}
-                        className="mesh-entry-message"
-                        role="alert"
-                      >
-                        {identityStatus}
-                      </motion.p>
-                    ) : null}
-                  </AnimatePresence>
-                  <button
-                    type="button"
-                    onClick={openInlineSignup}
-                    className="mesh-entry-secondary-button w-full"
-                    data-testid="entry-open-signup-button"
-                  >
-                    New here? Create your Mesh
-                  </button>
-                  {oauthProviders.length ? (
-                    <IdentityProviderButtons providers={oauthProviders} next={nextPath} />
-                  ) : null}
-                </motion.form>
-              </motion.div>
-            ) : null}
-            </AnimatePresence>
-
-            {stage === "password" ? (
-              <motion.div
-                initial={{ opacity: 0, y: reduceMotion ? 116 : 140, scale: 0.98 }}
-                animate={{ opacity: 1, y: 116, scale: 1 }}
-                transition={{ duration: reduceMotion ? 0.01 : 0.38, ease: "easeOut" }}
-                className="absolute inset-x-0 top-0"
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                </button>
+              </div>
+              {message && <p className="mesh-signin-message" role="alert">{message}</p>}
+              <button
+                type="button"
+                onClick={() => {
+                  const looksEmail = EMAIL_RE.test(identifier.trim().toLowerCase());
+                  setSignupDraft({
+                    email: looksEmail ? identifier.trim().toLowerCase() : "",
+                    username: usernameCandidate(identifier) ?? "",
+                    phone: "",
+                  });
+                  setStage("signup");
+                  setMessage("");
+                }}
+                className="mesh-signin-secondary"
+                data-testid="entry-open-signup-button"
               >
-                <form action={submitPassword} className="mesh-entry-card mesh-entry-card-bare space-y-5" data-testid="entry-password-form" noValidate>
-                  <input type="hidden" name="email" value={identifier} />
-                  <label className="sr-only" htmlFor="mesh-entry-password-username">Username</label>
-                  <input
-                    id="mesh-entry-password-username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    value={identifier}
-                    readOnly
-                    tabIndex={-1}
-                    className="sr-only"
-                  />
-                  {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
-                  <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-bold tracking-[0] text-white">Welcome back</h1>
-                    <p className="text-sm text-blue-100/78">Enter your password.</p>
-                    <p className="mx-auto max-w-[18rem] truncate text-xs font-semibold text-blue-100/72">{identifier}</p>
-                    {destinationLabel ? (
-                      <p className="text-xs font-semibold text-blue-100/72">Then open {destinationLabel}.</p>
-                    ) : null}
-                  </div>
-                  <label className="block" htmlFor="mesh-entry-password">
-                    <span className="sr-only">Password</span>
-                    <span className="relative block">
-                      <input
-                        ref={passwordInputRef}
-                        id="mesh-entry-password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(event) => {
-                          setPassword(event.target.value);
-                          if (entryState === "failed") setEntryState("connecting");
-                          if (message) setMessage("");
-                        }}
-                        onBlur={() => setPasswordTouched(true)}
-                        autoComplete="current-password"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        maxLength={128}
-                        className={cn("mesh-entry-input pr-12", passwordHasError && "mesh-entry-input-invalid")}
-                        placeholder="Enter your password"
-                        aria-invalid={passwordHasError}
-                        aria-describedby={passwordHasError ? `${passwordHelpId} ${passwordMessageId}` : passwordHelpId}
-                        required
-                        data-testid="entry-password-input"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((value) => !value)}
-                        className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-blue-100/72 transition hover:bg-white/8 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/70"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </span>
-                    <span id={passwordHelpId} className="mesh-entry-password-meta">
-                      <span>Verified securely on Mesh.me.</span>
-                      <button type="button" onClick={openResetStep} className="mesh-entry-text-button" data-testid="entry-forgot-password-button">
-                        Forgot password?
-                      </button>
-                    </span>
-                  </label>
-                  <div className="mesh-entry-progress" aria-hidden="true">
-                    <motion.span
-                      animate={{ width: `${Math.round((entryState === "unlocking" ? 1 : passwordProgress) * 100)}%` }}
-                      transition={{ duration: reduceMotion ? 0.01 : 0.18 }}
-                      className={cn(entryState === "failed" && "mesh-entry-progress-failed")}
-                    />
-                  </div>
-                  {passwordStatus ? <p id={passwordMessageId} className="mesh-entry-message" role="alert">{passwordStatus}</p> : null}
-                  <Button type="submit" size="lg" className="mesh-entry-primary w-full" disabled={isPending} data-testid="entry-submit-button">
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                    Enter my world
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStage("identity");
-                      setPassword("");
-                      setPasswordTouched(false);
-                      setMessage("");
-                      setEntryState("idle");
-                      setPreviewState(meshiPreview ? "found" : "idle");
-                    }}
-                    className="w-full text-center text-xs font-semibold text-blue-100/74 transition hover:text-blue-100"
-                  >
-                    Use a different identity
-                  </button>
-                </form>
-              </motion.div>
-            ) : null}
+                New here? Create your Mesh
+              </button>
+              {oauthProviders.length > 0 && <IdentityProviderButtons providers={oauthProviders} next={nextPath} />}
+            </form>
+          )}
 
-            {stage === "reset" ? (
-              <motion.div
-                initial={{ opacity: 0, y: reduceMotion ? 128 : 154, scale: 0.98 }}
-                animate={{ opacity: 1, y: 128, scale: 1 }}
-                transition={{ duration: reduceMotion ? 0.01 : 0.38, ease: "easeOut" }}
-                className="absolute inset-x-0 top-0"
-              >
-                <form onSubmit={submitResetRequest} className="mesh-entry-card space-y-5" data-testid="entry-reset-form" noValidate>
-                  <div className="space-y-1 text-center">
-                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-blue-100/15 bg-blue-100/8 text-blue-100">
-                      <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-                    </div>
-                    <h1 className="text-2xl font-bold tracking-[0] text-white">Reset password</h1>
-                    <p className="text-sm text-blue-100/78">Enter the email connected to your Mesh.</p>
-                    <p className="mx-auto max-w-[20rem] text-xs font-semibold text-blue-100/72">
-                      If the email exists, we will send a secure reset link.
-                    </p>
-                  </div>
+          {/* PASSWORD — the user's own Meshi greets them */}
+          {stage === "password" && (
+            <form key="password" onSubmit={submitPassword} className="mesh-signin-card" data-testid="entry-password-form" noValidate>
+              <div className="mesh-signin-meshi">
+                <MeshiMascot
+                  size={78}
+                  color={preview?.meshi.color}
+                  mood={success ? "celebrating" : "excited"}
+                  hat={preview?.meshi.hat}
+                  hair={preview?.meshi.hair}
+                  accessory={preview?.meshi.accessory}
+                  eyeStyle={preview?.meshi.eye}
+                  badge={preview?.meshi.badge}
+                  outfit={preview?.meshi.outfit}
+                  showGlow
+                  animate
+                  bouncy
+                />
+                <span className="mesh-signin-bubble">
+                  {preview ? `Hi ${displayName}. I've missed you.` : "Welcome back."}
+                </span>
+              </div>
+              <h1 className="mesh-signin-title mesh-signin-title-sm">Welcome back</h1>
+              <p className="mesh-signin-sub">Enter your password{preview ? `, @${preview.username}` : ""}</p>
+              <div className="mesh-signin-field">
+                <input
+                  ref={passwordRef}
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (message) setMessage("");
+                    spark();
+                  }}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className="mesh-signin-input"
+                  aria-label="Password"
+                  data-testid="entry-password-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="mesh-signin-peek"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {message && <p className="mesh-signin-message" role="alert">{message}</p>}
+              <button type="submit" className="mesh-signin-primary" disabled={isPending || success} data-testid="entry-submit-button">
+                {isPending || success ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enter my world"}
+              </button>
+              <div className="mesh-signin-row">
+                <button type="button" onClick={backToIdentity} className="mesh-signin-link">
+                  Not you?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetEmail(identity.kind === "email" ? identifier.trim().toLowerCase() : "");
+                    setResetSent(false);
+                    setMessage("");
+                    setStage("reset");
+                  }}
+                  className="mesh-signin-link"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            </form>
+          )}
 
-                  <label className="block" htmlFor="mesh-entry-reset-email">
-                    <span className="sr-only">Email address</span>
+          {/* SIGN UP */}
+          {stage === "signup" && (
+            <form key="signup" action={submitSignup} className="mesh-signin-card" data-testid="entry-signup-form" noValidate>
+              <h1 className="mesh-signin-title mesh-signin-title-sm">Create your Mesh</h1>
+              <p className="mesh-signin-sub">Your world, your way — private by default.</p>
+              <input type="hidden" name="phone" value={signupDraft.phone} />
+              <label className="mesh-signin-label">
+                <span>Email</span>
+                <input
+                  name="email"
+                  type="email"
+                  defaultValue={signupDraft.email}
+                  onChange={spark}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                  className="mesh-signin-input mesh-signin-input-plain"
+                  data-testid="entry-signup-email"
+                />
+              </label>
+              <label className="mesh-signin-label">
+                <span>Username</span>
+                <input
+                  name="username"
+                  defaultValue={signupDraft.username}
+                  onChange={spark}
+                  placeholder="yourname"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  required
+                  minLength={2}
+                  maxLength={24}
+                  className="mesh-signin-input mesh-signin-input-plain"
+                  data-testid="entry-signup-username"
+                />
+              </label>
+              <label className="mesh-signin-label">
+                <span>Display name</span>
+                <input
+                  name="displayName"
+                  onChange={spark}
+                  placeholder="Your name"
+                  required
+                  maxLength={48}
+                  className="mesh-signin-input mesh-signin-input-plain"
+                  data-testid="entry-signup-display-name"
+                />
+              </label>
+              <label className="mesh-signin-label">
+                <span>Password</span>
+                <input
+                  name="password"
+                  type="password"
+                  onChange={spark}
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  className="mesh-signin-input mesh-signin-input-plain"
+                  data-testid="entry-signup-password"
+                />
+              </label>
+              {message && <p className="mesh-signin-message" role="alert">{message}</p>}
+              <button type="submit" className="mesh-signin-primary" disabled={isPending} data-testid="entry-create-account-button">
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create your Mesh"}
+              </button>
+              <button type="button" onClick={backToIdentity} className="mesh-signin-secondary">
+                I already have an account
+              </button>
+            </form>
+          )}
+
+          {/* RESET */}
+          {stage === "reset" && (
+            <form key="reset" onSubmit={submitReset} className="mesh-signin-card" noValidate>
+              <h1 className="mesh-signin-title mesh-signin-title-sm">Reset password</h1>
+              {resetSent ? (
+                <p className="mesh-signin-sub">If that email is connected to a Mesh, a reset link is on its way.</p>
+              ) : (
+                <>
+                  <p className="mesh-signin-sub">We&apos;ll send a secure reset link.</p>
+                  <div className="mesh-signin-field">
                     <input
-                      id="mesh-entry-reset-email"
-                      name="email"
-                      type="email"
                       value={resetEmail}
-                      onChange={(event) => {
-                        setResetEmail(event.target.value);
-                        setResetSent(false);
-                        setResetUrl("");
+                      onChange={(e) => {
+                        setResetEmail(e.target.value);
                         if (message) setMessage("");
-                        if (entryState === "failed") setEntryState("idle");
+                        spark();
                       }}
-                      autoComplete="email"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      inputMode="email"
-                      className={cn("mesh-entry-input", message && !resetSent && "mesh-entry-input-invalid")}
-                      placeholder="you@example.com"
-                      aria-invalid={Boolean(message && !resetSent)}
-                      aria-describedby={resetMessageId}
-                      required
-                      data-testid="entry-reset-email"
-                    />
-                  </label>
-
-                  {resetSent ? (
-                    <p id={resetMessageId} className="mesh-entry-message mesh-entry-message-success" role="status">
-                      Check your inbox for a reset link.
-                    </p>
-                  ) : message ? (
-                    <p id={resetMessageId} className="mesh-entry-message" role="alert">
-                      {message}
-                    </p>
-                  ) : (
-                    <p id={resetMessageId} className="mesh-entry-reset-hint">
-                      Reset requests are rate-limited and do not reveal whether an account exists.
-                    </p>
-                  )}
-
-                  {resetUrl ? (
-                    <Link href={resetUrl} className="mesh-entry-secondary-button w-full" data-testid="entry-dev-reset-link">
-                      Open local reset link
-                    </Link>
-                  ) : null}
-
-                  <Button type="submit" size="lg" className="mesh-entry-primary w-full" disabled={isPending} data-testid="entry-reset-submit-button">
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                    Send reset link
-                  </Button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMessage("");
-                      setResetSent(false);
-                      setResetUrl("");
-                      setEntryState("idle");
-                      setStage(resetReturnStage);
-                      if (resetReturnStage === "password") {
-                        window.setTimeout(() => passwordInputRef.current?.focus(), 80);
-                      }
-                    }}
-                    className="w-full text-center text-xs font-semibold text-blue-100/74 transition hover:text-blue-100"
-                    data-testid="entry-reset-back-button"
-                  >
-                    Back to sign in
-                  </button>
-                </form>
-              </motion.div>
-            ) : null}
-
-            {stage === "signup" ? (
-              <motion.div
-                initial={{ opacity: 0, y: reduceMotion ? 128 : 154, scale: 0.98 }}
-                animate={{ opacity: 1, y: 128, scale: 1 }}
-                transition={{ duration: reduceMotion ? 0.01 : 0.38, ease: "easeOut" }}
-                className="absolute inset-x-0 top-0"
-              >
-                <form action={submitSignup} className="mesh-entry-card space-y-4" data-testid="entry-signup-form">
-                  <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-bold tracking-[0] text-white">Create your Mesh</h1>
-                    <p className="text-sm text-blue-100/78">This identity is new here. Set up your account now.</p>
-                  </div>
-
-                  <label className="block" htmlFor="mesh-entry-display-name">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Name</span>
-                    <input
-                      id="mesh-entry-display-name"
-                      name="displayName"
-                      type="text"
-                      autoComplete="name"
-                      className="mesh-entry-input mesh-entry-input-left"
-                      placeholder="Your name"
-                      required
-                      data-testid="entry-signup-display-name"
-                    />
-                  </label>
-
-                  <label className="block" htmlFor="mesh-entry-signup-username">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Username</span>
-                    <input
-                      id="mesh-entry-signup-username"
-                      name="username"
-                      type="text"
-                      autoComplete="username"
-                      defaultValue={signupDraft.username}
-                      className="mesh-entry-input mesh-entry-input-left"
-                      placeholder="username"
-                      required
-                      data-testid="entry-signup-username"
-                    />
-                  </label>
-
-                  <label className="block" htmlFor="mesh-entry-signup-email">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Email</span>
-                    <input
-                      id="mesh-entry-signup-email"
-                      name="email"
                       type="email"
-                      autoComplete="email"
-                      defaultValue={signupDraft.email}
-                      className="mesh-entry-input mesh-entry-input-left"
                       placeholder="you@example.com"
-                      required
-                      data-testid="entry-signup-email"
+                      autoComplete="email"
+                      className="mesh-signin-input"
+                      aria-label="Email"
                     />
-                  </label>
-
-                  {signupDraft.phone ? (
-                    <label className="block" htmlFor="mesh-entry-signup-phone">
-                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Phone</span>
-                      <input
-                        id="mesh-entry-signup-phone"
-                        name="phone"
-                        type="tel"
-                        autoComplete="tel"
-                        defaultValue={signupDraft.phone}
-                        className="mesh-entry-input mesh-entry-input-left"
-                        placeholder="Phone number"
-                        data-testid="entry-signup-phone"
-                      />
-                    </label>
-                  ) : (
-                    <input type="hidden" name="phone" value="" />
-                  )}
-
-                  <label className="block" htmlFor="mesh-entry-signup-password">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-blue-100/74">Password</span>
-                    <span className="relative block">
-                      <input
-                        id="mesh-entry-signup-password"
-                        name="password"
-                        type={showSignupPassword ? "text" : "password"}
-                        autoComplete="new-password"
-                        minLength={12}
-                        className="mesh-entry-input mesh-entry-input-left pr-12"
-                        placeholder="12+ chars with number and symbol"
-                        required
-                        data-testid="entry-signup-password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSignupPassword((value) => !value)}
-                        className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-blue-100/72 transition hover:bg-white/8 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/70"
-                        aria-label={showSignupPassword ? "Hide password" : "Show password"}
-                      >
-                        {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </span>
-                  </label>
-
-                  {message ? <p className="mesh-entry-message" role="alert">{message}</p> : null}
-
-                  <Button type="submit" size="lg" className="mesh-entry-primary w-full" disabled={isPending} data-testid="entry-create-account-button">
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                    Create my Mesh
-                  </Button>
-
-                  {oauthProviders.length ? (
-                    <IdentityProviderButtons providers={oauthProviders} next={nextPath} />
-                  ) : null}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStage("identity");
-                      setPassword("");
-                      setMessage("");
-                      setEntryState("idle");
-                      setMeshiPreview(null);
-                      setPreviewState("idle");
-                    }}
-                    className="w-full text-center text-xs font-semibold text-blue-100/74 transition hover:text-blue-100"
-                  >
-                    I already have an account
+                  </div>
+                  {message && <p className="mesh-signin-message" role="alert">{message}</p>}
+                  <button type="submit" className="mesh-signin-primary" disabled={isPending}>
+                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
                   </button>
-                </form>
-              </motion.div>
-            ) : null}
-          </div>
-
+                </>
+              )}
+              <button type="button" onClick={backToIdentity} className="mesh-signin-secondary">
+                Back to sign in
+              </button>
+            </form>
+          )}
         </div>
-      </section>
+      </main>
 
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-5 pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-center gap-2.5 text-left">
-          <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-200/80" aria-hidden="true" />
-          <div>
-            <p className="text-xs font-semibold text-blue-50/88">Your data. Your identity. Your choice.</p>
-            <p className="text-[11px] font-medium text-blue-100/56">Private by default — no ads, no data selling, no tracking.</p>
-          </div>
+      <footer className="mesh-signin-footer">
+        <div className="mesh-signin-privacy">
+          <ShieldCheck className="h-4 w-4 text-[var(--mesh-blue)]" aria-hidden="true" />
+          <span>
+            <strong>Your data. Your identity. Your choice.</strong>
+            <span className="mesh-signin-privacy-sub">Private by default — no ads, no data selling, no tracking.</span>
+          </span>
         </div>
-        <nav className="mesh-entry-footer-nav flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-semibold text-blue-100/76">
-          <button type="button" onClick={openInlineSignup} className="transition hover:text-white">Create account</button>
-          <button type="button" onClick={openResetStep} className="transition hover:text-white">Forgot password?</button>
-          <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
-          <Link href="/terms" className="transition hover:text-white">Terms</Link>
-          <Link href="/help" className="transition hover:text-white">Help</Link>
+        <nav className="mesh-signin-links">
+          <button type="button" onClick={() => setStage("signup")}>Create account</button>
+          <button type="button" onClick={() => { setStage("reset"); setResetSent(false); }}>Forgot password?</button>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/support">Help</Link>
         </nav>
-      </div>
-    </main>
+      </footer>
+    </div>
   );
 }
