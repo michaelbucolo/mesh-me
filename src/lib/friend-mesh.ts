@@ -94,45 +94,46 @@ export async function getMutualFriendIds(userId: string, limit = 80) {
 }
 
 export async function getFriendPlatformFeedPosts(user: FriendMeshCurrentUser, limit = 20): Promise<FriendPlatformFeedPost[]> {
-  const mutualIds = await getMutualFriendIds(user.id, 120);
-  if (mutualIds.length === 0) return [];
+  try {
+    const mutualIds = await getMutualFriendIds(user.id, 120);
+    if (mutualIds.length === 0) return [];
 
-  const platformPosts = await prisma.platformPost.findMany({
-    where: {
-      ...nsfwHiddenWhere(user),
-      visibility: { in: ["public", "friends"] },
-      connectedAccount: {
-        userId: { in: mutualIds },
-        isActive: true,
-        user: { isSuspended: false },
+    const platformPosts = await prisma.platformPost.findMany({
+      where: {
+        ...nsfwHiddenWhere(user),
+        visibility: { in: ["public", "friends"] },
+        connectedAccount: {
+          userId: { in: mutualIds },
+          isActive: true,
+          user: { isSuspended: false },
+        },
       },
-    },
-    include: {
-      connectedAccount: {
-        select: {
-          platform: true,
-          platformUsername: true,
-          user: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatarUrl: true,
-              isVerified: true,
+      include: {
+        connectedAccount: {
+          select: {
+            platform: true,
+            platformUsername: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+                isVerified: true,
+              },
             },
           },
         },
+        media: true,
       },
-      media: true,
-    },
-    orderBy: [
-      { publishedAt: "desc" },
-      { createdAt: "desc" },
-    ],
-    take: limit,
-  });
+      orderBy: [
+        { publishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: limit,
+    });
 
-  return platformPosts.map((post) => {
+    return platformPosts.map((post) => {
     const media = post.media.length > 0
       ? post.media.map((item) => ({
           id: item.id,
@@ -183,5 +184,9 @@ export async function getFriendPlatformFeedPosts(user: FriendMeshCurrentUser, li
         displayName: friend.displayName,
       },
     };
-  });
+    });
+  } catch (error) {
+    console.error("[friend-mesh] Connected friend platform posts unavailable", error);
+    return [];
+  }
 }
