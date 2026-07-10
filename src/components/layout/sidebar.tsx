@@ -8,6 +8,7 @@ import { LogOut, Shield, Crown, ChevronDown } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { MeshMark } from "@/components/brand/mesh-mark";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { desktopBottomItems, desktopNavGroups, getBadgeCount, isNavItemActive, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
 
@@ -72,20 +73,24 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
   return (
     <aside data-sidebar className="hidden h-screen w-[16.5rem] shrink-0 flex-col border-r border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-4 lg:flex">
       <Link href="/mesh" className="group mb-6 flex items-center gap-3 px-3 py-1">
-        <MeshiMascot
-          size={30}
-          color={meshiPrefs.appLogo === "custom" ? meshiPrefs.appLogoColor : "blue"}
-          mood={meshiPrefs.appLogo === "custom" ? meshiPrefs.face : "happy"}
-          hat={meshiPrefs.appLogo === "custom" ? meshiPrefs.hat : "none"}
-          hair={meshiPrefs.appLogo === "custom" ? meshiPrefs.hair : "none"}
-          accessory={meshiPrefs.appLogo === "custom" ? meshiPrefs.accessory : "none"}
-          eyeStyle={meshiPrefs.appLogo === "custom" ? meshiPrefs.eye : "regular"}
-          badge={meshiPrefs.appLogo === "custom" ? meshiPrefs.badge : "none"}
-          outfit={meshiPrefs.appLogo === "custom" ? meshiPrefs.outfit : "none"}
-          animate
-          showGlow={false}
-          bouncy
-        />
+        {meshiPrefs.appLogo === "custom" ? (
+          <MeshiMascot
+            size={30}
+            color={meshiPrefs.appLogoColor}
+            mood={meshiPrefs.face}
+            hat={meshiPrefs.hat}
+            hair={meshiPrefs.hair}
+            accessory={meshiPrefs.accessory}
+            eyeStyle={meshiPrefs.eye}
+            badge={meshiPrefs.badge}
+            outfit={meshiPrefs.outfit}
+            animate
+            showGlow={false}
+            bouncy
+          />
+        ) : (
+          <MeshMark size={32} className="shrink-0 transition-transform duration-200 group-hover:scale-105" />
+        )}
         <p className="brand-wordmark text-lg text-[var(--text-primary)]">
           mesh<span className="brand-wordmark-accent">.me</span>
         </p>
