@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
+import { MeshMark } from "@/components/brand/mesh-mark";
 
 interface MeshiBrandLockupProps {
   href?: string;
@@ -19,10 +20,15 @@ function BrandContents({
   label = "Mesh.me",
   subtitle,
   showWordmark = true,
+  useUserMeshi = false,
 }: MeshiBrandLockupProps) {
   return (
     <>
-      <MeshiPresenceGlyph size={size} label="Meshi presence marker" />
+      {useUserMeshi ? (
+        <MeshiPresenceGlyph size={size} label="Meshi presence marker" />
+      ) : (
+        <MeshMark size={size + 2} className="shrink-0 transition-transform duration-200 group-hover:scale-105" />
+      )}
       {showWordmark && (
         <span className="mesh-brand-wordmark-wrap min-w-0">
           <span className="brand-wordmark block truncate text-[var(--text-primary)]">{label}</span>
