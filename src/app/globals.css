@@ -1535,80 +1535,6 @@ body[data-meshi-panel="open"] .bug-report-widget {
   color: var(--accent-contrast, #fff);
 }
 
-.whats-new-drawer {
-  position: fixed;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: calc(1rem + env(safe-area-inset-bottom));
-  z-index: 58;
-  width: min(24rem, calc(100vw - 2rem));
-  overflow: hidden;
-  border: 1px solid var(--border-primary);
-  border-radius: 1.35rem;
-  background: color-mix(in srgb, var(--bg-primary) 94%, var(--bg-secondary));
-  padding: 1rem;
-  box-shadow:
-    var(--shadow-md),
-    0 0 42px color-mix(in srgb, var(--accent) 14%, transparent);
-  animation: whatsNewDrawerIn 340ms var(--mesh-ease-out);
-}
-
-.whats-new-drawer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, white 5%, transparent), transparent 38%),
-    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 36%);
-}
-
-.whats-new-drawer-glow {
-  position: absolute;
-  right: -4rem;
-  top: -4rem;
-  width: 10rem;
-  height: 10rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  filter: blur(30px);
-}
-
-.whats-new-meshi {
-  display: grid;
-  width: 2.7rem;
-  height: 2.7rem;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-primary));
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.whats-new-close {
-  display: inline-flex;
-  width: 2.25rem;
-  height: 2.25rem;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-primary);
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  transition:
-    transform 180ms var(--mesh-ease-out),
-    color 180ms var(--mesh-ease-out),
-    background-color 180ms var(--mesh-ease-out);
-}
-
-.whats-new-close:hover,
-.whats-new-close:focus-visible {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  transform: translateY(var(--mesh-hover-y));
-}
-
 .help-filter-panel {
   position: sticky;
   top: 0;
@@ -1647,32 +1573,6 @@ body[data-meshi-panel="open"] .bug-report-widget {
   border-color: var(--accent-muted);
   background: var(--accent-subtle);
   color: var(--text-primary);
-}
-
-@keyframes whatsNewDrawerIn {
-  from {
-    opacity: 0;
-    transform: translateY(1rem) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (max-width: 767px) {
-  .whats-new-drawer {
-    right: 0.75rem;
-    bottom: calc(5.9rem + env(safe-area-inset-bottom));
-    width: calc(100vw - 1.5rem);
-    border-radius: 1.1rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .whats-new-drawer {
-    animation: none !important;
-  }
 }
 
 @keyframes connectionStatusPulse {
@@ -2165,6 +2065,10 @@ body[data-meshi-panel="open"] .bug-report-widget {
   border-color: var(--border-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(var(--mesh-hover-y));
+}
+
+.mesh-search-input {
+  caret-color: var(--mesh-text);
 }
 
 .simple-input {

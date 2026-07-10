@@ -21,7 +21,6 @@ import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-ident
 import { CommandPalette } from "@/components/layout/command-palette";
 import { KeyboardShortcutsOverlay } from "@/components/layout/keyboard-shortcuts-overlay";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { WhatsNewDrawer } from "@/components/layout/whats-new-drawer";
 import { sidebarNavItems, resolveNavHref, isNavItemActive } from "@/components/layout/navigation-config";
 
 interface AppShellProps {
@@ -153,9 +152,10 @@ function ShellTopBar({
           ref={searchInputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+          className="mesh-search-input min-w-0 flex-1 bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
           placeholder="Search your Mesh"
           type="search"
+          suppressHydrationWarning
         />
         <kbd className="hidden rounded-md border border-[var(--mesh-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--mesh-text-muted)] sm:inline-flex">⌘ K</kbd>
       </form>
@@ -397,7 +397,6 @@ export function AppShell({ children, user }: AppShellProps) {
       </main>
 
       <MobileNav username={user.username} unreadMessages={unreadCounts.unreadMessages} unreadNotifications={unreadCounts.unreadNotifications} />
-      <WhatsNewDrawer userId={user.id} />
       <CommandPalette username={user.username} />
       <KeyboardShortcutsOverlay username={user.username} />
     </div>
