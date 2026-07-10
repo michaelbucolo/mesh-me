@@ -8,6 +8,7 @@ import {
   Bell,
   ChevronDown,
   ChevronRight,
+  Moon,
   Search,
   Settings,
   Share2,
@@ -15,6 +16,8 @@ import {
   Sun,
 } from "lucide-react";
 import { signOut } from "@/lib/actions";
+import { useTheme } from "@/components/theme-provider";
+import { useToast } from "@/components/ui/toast";
 import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { getRouteLoadingPersonality } from "@/lib/loading-personality";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
@@ -110,6 +113,7 @@ function ShellTopBar({
   unreadCounts: UnreadCounts;
 }) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [query, setQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,14 +134,30 @@ function ShellTopBar({
     router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search");
   }
 
+  async function shareCurrent() {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const shareData = { title: `${routeInfo.title} · mesh.me`, text: routeInfo.description || "mesh.me", url };
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        addToast("Link copied to clipboard", "success");
+        return;
+      }
+      addToast("Sharing isn’t supported here", "info");
+    } catch {
+      // User dismissed the share sheet — no error to surface.
+    }
+  }
+
   return (
     <header className="mesh-topbar sticky top-0 z-30 flex min-h-[72px] items-center gap-4 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-6 backdrop-blur-xl">
       <div className="min-w-0 flex-1 lg:flex-none">
         <div className="flex min-w-0 items-center gap-2">
           <h1 className="truncate text-xl font-bold text-[var(--mesh-text)]">{routeInfo.title}</h1>
-          <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Page info">
-            <span className="text-xs">ⓘ</span>
-          </button>
         </div>
         {routeInfo.description && (
           <p className="mt-0.5 text-sm text-[var(--mesh-text-muted)]">{routeInfo.description}</p>
@@ -164,7 +184,7 @@ function ShellTopBar({
         <Link href="/search" className="mesh-topbar-icon lg:hidden" aria-label="Search" title="Search">
           <Search className="h-4 w-4" aria-hidden="true" />
         </Link>
-        <button type="button" className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share">
+        <button type="button" onClick={shareCurrent} className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
         </button>
@@ -182,7 +202,7 @@ function ShellTopBar({
 
         <details className="relative">
           <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-xl border border-[var(--mesh-border)] px-3 py-1.5 text-sm font-semibold text-[var(--mesh-text)] hover:bg-[var(--mesh-panel-hover)] transition-colors [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-            <span>Owner</span>
+            <span className="max-w-[9rem] truncate">{user.displayName}</span>
             <ChevronDown className="h-3.5 w-3.5 text-[var(--mesh-text-muted)]" aria-hidden="true" />
           </summary>
           <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg z-50">
@@ -224,6 +244,7 @@ function ShellTopBar({
 
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
+  const { theme, setMode } = useTheme();
   const routeInfo = useMemo(() => getRouteInfo(pathname, user.username), [pathname, user.username]);
   const isFeedSurface = pathname === "/feed" || pathname.startsWith("/feed/");
   const isMeshSurface = pathname === "/mesh" || pathname.startsWith("/mesh/");
@@ -375,8 +396,14 @@ export function AppShell({ children, user }: AppShellProps) {
             <p>All rights reserved</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className="rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Toggle theme">
-              <Sun className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={() => setMode(theme === "dark" ? "light" : "dark")}
+              className="mesh-pressable rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <Link href="/settings" className="rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Settings">
               <Settings className="h-4 w-4" />
