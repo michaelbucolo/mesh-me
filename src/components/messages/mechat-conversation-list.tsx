@@ -333,8 +333,9 @@ export function MeChatConversationList({
           <input
             value={threadQuery}
             onChange={(event) => setThreadQuery(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+            className="mesh-search-input min-w-0 flex-1 bg-transparent text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
             placeholder="Search conversations"
+            suppressHydrationWarning
           />
         </label>
       </div>
@@ -542,8 +543,9 @@ export function MeChatConversationList({
                   }
                 }}
                 autoFocus
-                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+                className="mesh-search-input min-w-0 flex-1 bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
                 placeholder="Search people"
+                suppressHydrationWarning
               />
               <button
                 type="button"

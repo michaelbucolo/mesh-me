@@ -252,8 +252,9 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes, shareQue
           <input
             value={threadQuery}
             onChange={(event) => setThreadQuery(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+            className="mesh-search-input min-w-0 flex-1 bg-transparent text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
             placeholder="Search"
+            suppressHydrationWarning
           />
         </label>
       </div>
@@ -404,8 +405,9 @@ export function MeChatHome({ currentUser, initialThreads, initialNotes, shareQue
                   }
                 }}
                 autoFocus
-                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+                className="mesh-search-input min-w-0 flex-1 bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
                 placeholder="Search people"
+                suppressHydrationWarning
               />
               <button type="button" onClick={searchPeople} disabled={isPending} className="shrink-0 rounded-lg p-1.5 text-[var(--mesh-blue)] hover:bg-[var(--mesh-panel)]">
                 {isPending ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
