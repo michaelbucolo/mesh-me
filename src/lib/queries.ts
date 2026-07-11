@@ -1091,22 +1091,52 @@ export async function getDiscoverUsers() {
   });
   const tags = userInterests.map((i) => i.tag);
 
-  const suggestedUsers = await prisma.user.findMany({
-    where: {
-      id: { notIn: [...followingIds, user.id] },
-      isSuspended: false,
-      isPublic: true,
-      showInDiscovery: true,
-      ...(tags.length > 0 ? { interests: { some: { tag: { in: tags } } } } : {}),
-    },
-    include: {
-      interests: true,
-      _count: { select: { followers: true, posts: true } },
-    },
-    take: 20,
-  });
+  const exclude = [...followingIds, user.id];
+  const include = {
+    interests: true,
+    _count: { select: { followers: true, posts: true } },
+  } as const;
+  // Discoverable != public. A private account can still opt in to being
+  // *found* (and then approve followers), so discovery only requires
+  // showInDiscovery — content visibility stays governed by isPublic elsewhere.
+  const baseWhere = {
+    isSuspended: false,
+    showInDiscovery: true,
+  };
 
-  return suggestedUsers;
+  // Interest-matched suggestions first, so discovery feels personal.
+  const interestMatched = tags.length > 0
+    ? await prisma.user.findMany({
+        where: {
+          ...baseWhere,
+          id: { notIn: exclude },
+          interests: { some: { tag: { in: tags } } },
+        },
+        include,
+        orderBy: { followers: { _count: "desc" } },
+        take: 20,
+      })
+    : [];
+
+  // Always backfill with popular people to follow, so the discovery rail is
+  // never empty just because interests don't overlap. Deduped against the
+  // people already shown and anyone you follow.
+  const suggested = [...interestMatched];
+  if (suggested.length < 12) {
+    const already = new Set([...exclude, ...suggested.map((u) => u.id)]);
+    const popular = await prisma.user.findMany({
+      where: {
+        ...baseWhere,
+        id: { notIn: Array.from(already) },
+      },
+      include,
+      orderBy: { followers: { _count: "desc" } },
+      take: 20 - suggested.length,
+    });
+    suggested.push(...popular);
+  }
+
+  return suggested;
 }
 
 export async function getTrendingCommunities() {

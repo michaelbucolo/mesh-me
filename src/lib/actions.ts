@@ -333,7 +333,10 @@ export async function signUp(formData: FormData) {
         displayName,
         passwordHash,
         isPublic: false,
-        showInDiscovery: false,
+        // Findable by default (you can appear as a suggestion and approve
+        // followers) while your content stays private via isPublic. Users can
+        // opt out of discovery in settings.
+        showInDiscovery: true,
         hideActivityStatus: true,
         readReceipts: false,
         nsfwEnabled: false,
@@ -780,7 +783,7 @@ export async function completeOnboarding(formData: FormData) {
       bio: bio || null,
       location: location || null,
       isPublic: meshVisibility === "public",
-      showInDiscovery: bool("showInDiscovery", false) && meshVisibility !== "private",
+      showInDiscovery: bool("showInDiscovery", true) && meshVisibility !== "private",
       hideActivityStatus: bool("hideActivityStatus", true),
       readReceipts: bool("readReceipts", false),
       onboarded: true,

@@ -62,6 +62,28 @@ try {
     }
   }
   console.log(`[ensure-schema] Remote schema in sync (${created} applied, ${skipped} pre-existing).`);
+
+  // ── One-time data normalizations ────────────────────────────────────────
+  // Guarded by a marker table so each runs exactly once — they must never
+  // re-run, or they'd clobber choices users have since made.
+  await client.execute(
+    "CREATE TABLE IF NOT EXISTS _MeshDataMigration (id TEXT PRIMARY KEY, appliedAt TEXT NOT NULL)",
+  );
+  const runOnce = async (id, apply) => {
+    const done = await client.execute({ sql: "SELECT id FROM _MeshDataMigration WHERE id = ?", args: [id] });
+    if (done.rows.length) return;
+    await apply();
+    await client.execute({ sql: "INSERT INTO _MeshDataMigration (id, appliedAt) VALUES (?, ?)", args: [id, new Date().toISOString()] });
+    console.log(`[ensure-schema] Applied one-time data migration: ${id}`);
+  };
+
+  // Early accounts were created under an over-conservative default that left the
+  // whole network undiscoverable (nobody could be found or followed). Bring
+  // existing non-suspended accounts in line with the corrected "findable by
+  // default" behaviour, once. Content visibility (isPublic) is untouched.
+  await runOnce("discovery-default-2026", async () => {
+    await client.execute("UPDATE User SET showInDiscovery = 1 WHERE showInDiscovery = 0 AND isSuspended = 0");
+  });
 } finally {
   await client.close?.();
 }
