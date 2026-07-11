@@ -7772,26 +7772,21 @@ body {
   }
 
   .mesh-topbar-owner {
-    padding: 0.25rem 0.4rem;
+    padding: 0;
     gap: 0.25rem;
     font-size: 0.8rem;
   }
 
-  .mesh-topbar-owner span:first-child {
-    display: none;
-  }
-
-  .mesh-topbar-btn {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .mesh-topbar-btn span {
-    display: none;
-  }
-
   .mesh-topbar-icon {
     padding: 0.35rem;
+  }
+
+  /* Mobile top bar = clean and minimal: just the page title, one bell, and
+     the account avatar. Share, Verify, and the desktop search live in the
+     account menu / other surfaces so the bar never feels cluttered. */
+  .mesh-topbar [aria-label="Share this page"],
+  .mesh-topbar [aria-label="Trust and verification"] {
+    display: none !important;
   }
 
   .mesh-shell-feed .mesh-topbar,
