@@ -54,6 +54,81 @@ function birthProgress(node: SceneNode, time: number): number {
   return 1 - Math.pow(1 - age / BIRTH_MS, 3);
 }
 
+/**
+ * Draw a node as a lit glass gem: soft outer bloom, a dimensional body shaded
+ * from a light crown to a deep rim, a bright specular catch-light top-left, and
+ * a reflected rim light bottom-right. This is what separates a premium orb from
+ * a flat coloured dot.
+ */
+function drawGem(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  color: string,
+  emph: number,
+  light: string,
+): void {
+  // Two-layer soft bloom.
+  const bloom = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 3.4);
+  bloom.addColorStop(0, withAlpha(color, 0.34 * emph + 0.05));
+  bloom.addColorStop(0.5, withAlpha(color, 0.12 * emph));
+  bloom.addColorStop(1, withAlpha(color, 0));
+  ctx.fillStyle = bloom;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 3.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Dimensional body: light gathers top-left, deepens toward the lower rim.
+  const body = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.08, x + r * 0.15, y + r * 0.25, r * 1.25);
+  body.addColorStop(0, withAlpha(light, 0.95));
+  body.addColorStop(0.35, withAlpha(color, 0.95 * emph + 0.05));
+  body.addColorStop(1, withAlpha(shade(color, 0.55), 0.9 * emph + 0.08));
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Reflected rim light along the lower-right edge.
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.97, Math.PI * 0.08, Math.PI * 0.72);
+  ctx.strokeStyle = withAlpha(light, 0.5 * emph + 0.15);
+  ctx.lineWidth = Math.max(0.8, r * 0.11);
+  ctx.stroke();
+
+  // Specular catch-light.
+  const spec = ctx.createRadialGradient(x - r * 0.34, y - r * 0.4, 0, x - r * 0.34, y - r * 0.4, r * 0.55);
+  spec.addColorStop(0, withAlpha("#ffffff", 0.9 * emph + 0.1));
+  spec.addColorStop(1, withAlpha("#ffffff", 0));
+  ctx.fillStyle = spec;
+  ctx.beginPath();
+  ctx.ellipse(x - r * 0.34, y - r * 0.4, r * 0.42, r * 0.3, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Darken a #rrggbb hex toward black by factor (0..1 keeps→black).
+function shade(hex: string, factor: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = Math.round(((n >> 16) & 255) * factor);
+  const g = Math.round(((n >> 8) & 255) * factor);
+  const b = Math.round((n & 255) * factor);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
+// Lighten a #rrggbb hex toward white by amount (0..1 → white).
+function tint(hex: string, amount: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  const r = mix((n >> 16) & 255);
+  const g = mix((n >> 8) & 255);
+  const b = mix(n & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
 function baseRadius(node: SceneNode): number {
   switch (node.kind) {
     case "self":
@@ -567,6 +642,22 @@ export function drawScene(o: RenderOptions): void {
     ctx.fill();
   }
 
+  // Focal vignette — the outer field falls into shadow so the eye is drawn to
+  // the living center. Drawn over the sky but under the nodes, so stars fade at
+  // the rim while every node stays crisp and lit.
+  const vig = ctx.createRadialGradient(
+    width / 2,
+    height / 2,
+    Math.min(width, height) * 0.32,
+    width / 2,
+    height / 2,
+    Math.max(width, height) * 0.72,
+  );
+  vig.addColorStop(0, "rgba(3,4,9,0)");
+  vig.addColorStop(1, "rgba(2,3,7,0.62)");
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, width, height);
+
   const nodes = model.nodes;
   o.pillHitboxes?.clear();
   o.profileHitboxes?.clear();
@@ -754,67 +845,45 @@ export function drawScene(o: RenderOptions): void {
       return;
     }
 
-    // Glow halo.
-    const glowR = r * 2.6;
-    const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
-    glow.addColorStop(0, withAlpha(node.color, 0.42 * emph));
-    glow.addColorStop(1, withAlpha(node.color, 0));
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
-    ctx.fill();
-
+    const light = tint(node.color, 0.72);
     const img = node.avatarUrl ? o.images.get(node.id) : node.imageUrl ? o.images.get(node.id) : undefined;
 
-    if (img && (node.kind === "person" || node.kind === "persona" || node.kind === "activity")) {
-      ctx.globalAlpha = 0.3 + 0.7 * emph;
-      roundedImage(ctx, img, p.x, p.y, r);
-      ctx.globalAlpha = 1;
+    if (img && (node.kind === "person" || node.kind === "persona" || node.kind === "activity" || node.kind === "post")) {
+      // Bloom behind the avatar, then the image inside a lit rim.
+      const bloom = ctx.createRadialGradient(p.x, p.y, r * 0.4, p.x, p.y, r * 3);
+      bloom.addColorStop(0, withAlpha(node.color, 0.3 * emph + 0.04));
+      bloom.addColorStop(1, withAlpha(node.color, 0));
+      ctx.fillStyle = bloom;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(node.color, 0.7 * emph + 0.2);
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else if (img && node.kind === "post") {
-      ctx.globalAlpha = 0.3 + 0.7 * emph;
-      roundedImage(ctx, img, p.x, p.y, r);
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(node.color, 0.5 * emph);
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-    } else if ((node.kind === "person" || node.kind === "persona" || node.kind === "community") && r >= 11) {
-      // Avatar-less entities render as a glossy tinted disc with their initial,
-      // so people and communities read as real presences rather than dots.
-      const disc = ctx.createRadialGradient(p.x - r * 0.3, p.y - r * 0.35, r * 0.1, p.x, p.y, r);
-      disc.addColorStop(0, withAlpha(node.color, 0.55 * emph + 0.25));
-      disc.addColorStop(1, withAlpha(node.color, 0.16 * emph + 0.06));
-      ctx.fillStyle = disc;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r * (0.94 + 0.06 * pulse), 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, r * 3, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 0.35 + 0.65 * emph;
+      roundedImage(ctx, img, p.x, p.y, r);
+      ctx.globalAlpha = 1;
       ctx.beginPath();
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(node.color, 0.55 * emph + 0.2);
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = withAlpha(light, 0.7 * emph + 0.2);
+      ctx.lineWidth = 1.8;
       ctx.stroke();
-      const initial = (node.label || "?").trim().charAt(0).toUpperCase();
-      ctx.fillStyle = withAlpha("#ffffff", 0.9 * emph + 0.1);
-      ctx.font = `600 ${Math.round(r * 1.05)}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(initial, p.x, p.y + r * 0.04);
+      // Specular catch-light on the glassy rim.
+      const spec = ctx.createRadialGradient(p.x - r * 0.34, p.y - r * 0.4, 0, p.x - r * 0.34, p.y - r * 0.4, r * 0.5);
+      spec.addColorStop(0, withAlpha("#ffffff", 0.5 * emph));
+      spec.addColorStop(1, withAlpha("#ffffff", 0));
+      ctx.fillStyle = spec;
+      ctx.beginPath();
+      ctx.ellipse(p.x - r * 0.34, p.y - r * 0.4, r * 0.4, r * 0.26, -0.5, 0, Math.PI * 2);
+      ctx.fill();
     } else {
-      // Star core.
-      const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-      core.addColorStop(0, withAlpha("#ffffff", 0.85 * emph + 0.1));
-      core.addColorStop(0.4, withAlpha(node.color, emph));
-      core.addColorStop(1, withAlpha(node.color, 0.15 * emph));
-      ctx.fillStyle = core;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r * (0.9 + 0.1 * pulse), 0, Math.PI * 2);
-      ctx.fill();
+      // Everything else is a lit glass gem.
+      drawGem(ctx, p.x, p.y, r * (0.95 + 0.05 * pulse), node.color, emph, light);
+      if ((node.kind === "person" || node.kind === "persona" || node.kind === "community") && r >= 11) {
+        const initial = (node.label || "?").trim().charAt(0).toUpperCase();
+        ctx.fillStyle = withAlpha("#ffffff", 0.96 * emph + 0.08);
+        ctx.font = `600 ${Math.round(r)}px ui-sans-serif, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(initial, p.x, p.y + r * 0.04);
+      }
     }
 
     // Online status dot for people.
