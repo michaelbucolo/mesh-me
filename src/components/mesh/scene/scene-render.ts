@@ -45,18 +45,20 @@ function project(node: { dx: number; dy: number }, o: RenderOptions) {
 function baseRadius(node: SceneNode): number {
   switch (node.kind) {
     case "self":
-      return 26;
+      return 30;
     case "branch":
-      return 15;
+      return 18;
     case "person":
     case "persona":
-      return 11 + node.weight * 12;
+      return 16 + node.weight * 14;
     case "platform":
-      return 9 + node.weight * 10;
+      return 13 + node.weight * 11;
     case "community":
-      return 9 + node.weight * 9;
+      return 14 + node.weight * 11;
+    case "interest":
+      return 10 + node.weight * 10;
     default:
-      return 5 + node.weight * 9;
+      return 8 + node.weight * 10;
   }
 }
 
@@ -727,6 +729,27 @@ export function drawScene(o: RenderOptions): void {
       ctx.strokeStyle = withAlpha(node.color, 0.5 * emph);
       ctx.lineWidth = 1.4;
       ctx.stroke();
+    } else if ((node.kind === "person" || node.kind === "persona" || node.kind === "community") && r >= 11) {
+      // Avatar-less entities render as a glossy tinted disc with their initial,
+      // so people and communities read as real presences rather than dots.
+      const disc = ctx.createRadialGradient(p.x - r * 0.3, p.y - r * 0.35, r * 0.1, p.x, p.y, r);
+      disc.addColorStop(0, withAlpha(node.color, 0.55 * emph + 0.25));
+      disc.addColorStop(1, withAlpha(node.color, 0.16 * emph + 0.06));
+      ctx.fillStyle = disc;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * (0.94 + 0.06 * pulse), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = withAlpha(node.color, 0.55 * emph + 0.2);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      const initial = (node.label || "?").trim().charAt(0).toUpperCase();
+      ctx.fillStyle = withAlpha("#ffffff", 0.9 * emph + 0.1);
+      ctx.font = `600 ${Math.round(r * 1.05)}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(initial, p.x, p.y + r * 0.04);
     } else {
       // Star core.
       const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
