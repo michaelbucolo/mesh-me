@@ -33,6 +33,8 @@ export interface RenderOptions {
   /** Keep labels clear of the screen center (where the pinned Meshi sits). */
   avoidCenter?: boolean;
   isOwnMesh?: boolean;
+  /** Live strand control points from physics, keyed "parent>child". */
+  strands?: Map<string, { mx: number; my: number }>;
 }
 
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
@@ -585,6 +587,10 @@ export function drawScene(o: RenderOptions): void {
     if (!parent) return;
     const a = project(parent, o);
     const b = project(node, o);
+    // Physical strand: bend the line through its live control point so it
+    // droops and sways like an elastic filament instead of a rigid spoke.
+    const sp = o.strands?.get(`${parent.id}>${node.id}`);
+    const c = sp ? project({ dx: sp.mx, dy: sp.my }, o) : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const emph = Math.min(emphasisFor(node), emphasisFor(parent));
     const onHoverPath = hoverChain.has(node.id) && hoverChain.has(parent.id);
     const baseAlpha = node.depth === 1 ? 0.34 : node.depth === 2 ? 0.22 : 0.14;
@@ -596,13 +602,14 @@ export function drawScene(o: RenderOptions): void {
     ctx.lineWidth = (onHoverPath ? 2.4 : node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
+    ctx.quadraticCurveTo(c.x, c.y, b.x, b.y);
     ctx.stroke();
 
     const label = parent.kind === "self" ? strandLabelFor(node) : null;
     if (label && o.camera.zoom >= 0.42) {
-      const mx = (a.x + b.x) / 2;
-      const my = (a.y + b.y) / 2;
+      // Sit the label on the strand's own hanging midpoint (curve at t=0.5).
+      const mx = 0.25 * a.x + 0.5 * c.x + 0.25 * b.x;
+      const my = 0.25 * a.y + 0.5 * c.y + 0.25 * b.y;
       drawPill(
         ctx,
         mx,
@@ -616,11 +623,12 @@ export function drawScene(o: RenderOptions): void {
       );
     }
 
-    // A travelling spark on active strands.
+    // A travelling spark that rides along the curved strand.
     if (emph > 0.7 && node.depth <= 2) {
       const t = (Math.sin(time * 0.0009 + node.x * 0.01 + node.y * 0.01) + 1) / 2;
-      const sx = a.x + (b.x - a.x) * t;
-      const sy = a.y + (b.y - a.y) * t;
+      const mt = 1 - t;
+      const sx = mt * mt * a.x + 2 * mt * t * c.x + t * t * b.x;
+      const sy = mt * mt * a.y + 2 * mt * t * c.y + t * t * b.y;
       ctx.beginPath();
       ctx.arc(sx, sy, 1.6 * Math.max(0.8, o.camera.zoom), 0, Math.PI * 2);
       ctx.fillStyle = withAlpha(node.color, 0.6 * emph);
