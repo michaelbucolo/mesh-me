@@ -508,26 +508,41 @@ function roundedImage(
   ctx.restore();
 }
 
+const NEBULAE = [
+  { hue: "#3b62c9", ax: 0.24, ay: 0.28, rad: 0.55, sp: 0.00007, a: 0.1 },
+  { hue: "#7c3aed", ax: 0.78, ay: 0.34, rad: 0.5, sp: -0.00005, a: 0.09 },
+  { hue: "#d6438f", ax: 0.6, ay: 0.82, rad: 0.6, sp: 0.00006, a: 0.07 },
+];
+
 export function drawScene(o: RenderOptions): void {
   const { ctx, model, width, height, time } = o;
   ctx.clearRect(0, 0, width, height);
 
-  // Deep-space background.
-  const bg = ctx.createRadialGradient(
-    width / 2 + o.camera.panX * 0.3,
-    height / 2 + o.camera.panY * 0.3,
-    0,
-    width / 2,
-    height / 2,
-    Math.max(width, height) * 0.8,
-  );
-  bg.addColorStop(0, "#0b1020");
-  bg.addColorStop(0.6, "#070a16");
-  bg.addColorStop(1, "#04050c");
+  // Deep-space background with your core's glow anchored at centre.
+  const gcx = width / 2 + o.camera.panX;
+  const gcy = height / 2 + o.camera.panY;
+  const bg = ctx.createRadialGradient(gcx, gcy, 0, width / 2, height / 2, Math.max(width, height) * 0.85);
+  bg.addColorStop(0, "#0c1226");
+  bg.addColorStop(0.55, "#070a16");
+  bg.addColorStop(1, "#030409");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  // Faint static sky stars (parallax with pan).
+  // Drifting aurora nebulae in the brand hues — slow, additive, alive.
+  ctx.globalCompositeOperation = "lighter";
+  for (const n of NEBULAE) {
+    const px = width * n.ax + Math.sin(time * n.sp) * width * 0.05 + o.camera.panX * 0.04;
+    const py = height * n.ay + Math.cos(time * n.sp * 1.3) * height * 0.05 + o.camera.panY * 0.04;
+    const rr = Math.max(width, height) * n.rad;
+    const g = ctx.createRadialGradient(px, py, 0, px, py, rr);
+    g.addColorStop(0, withAlpha(n.hue, n.a));
+    g.addColorStop(1, withAlpha(n.hue, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  // Faint parallax sky stars.
   for (const s of o.backgroundStars) {
     const sx = (s.x + o.camera.panX * 0.05) % width;
     const sy = (s.y + o.camera.panY * 0.05) % height;
@@ -610,6 +625,43 @@ export function drawScene(o: RenderOptions): void {
       ctx.fill();
     }
   });
+
+  // --- Web cross-links ---
+  // Beyond the parent→child spokes, weave faint threads between spatially near
+  // nodes so the whole thing reads as one interconnected mesh — a living web,
+  // not a spoke diagram. Post cards are excluded so the weave stays airy.
+  const webNodes: { node: SceneNode; x: number; y: number }[] = [];
+  nodes.forEach((node) => {
+    if (node.kind === "self" || node.kind === "post") return;
+    const p = project(node, o);
+    if (p.x < -60 || p.x > width + 60 || p.y < -60 || p.y > height + 60) return;
+    webNodes.push({ node, x: p.x, y: p.y });
+  });
+  const linkDist = 168 * Math.max(0.6, o.camera.zoom);
+  for (let i = 0; i < webNodes.length; i += 1) {
+    const A = webNodes[i];
+    for (let j = i + 1; j < webNodes.length; j += 1) {
+      const B = webNodes[j];
+      // Skip pairs already joined by a spoke.
+      if (A.node.parentId === B.node.id || B.node.parentId === A.node.id) continue;
+      const dx = A.x - B.x;
+      const dy = A.y - B.y;
+      const d = Math.hypot(dx, dy);
+      if (d > linkDist) continue;
+      const emph = Math.min(emphasisFor(A.node), emphasisFor(B.node));
+      const alpha = (1 - d / linkDist) * 0.14 * (0.35 + 0.65 * emph);
+      if (alpha < 0.012) continue;
+      const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+      grad.addColorStop(0, withAlpha(A.node.color, alpha));
+      grad.addColorStop(1, withAlpha(B.node.color, alpha));
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 0.9 * Math.max(0.7, o.camera.zoom);
+      ctx.beginPath();
+      ctx.moveTo(A.x, A.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.stroke();
+    }
+  }
 
   // --- Nodes ---
   const labelQueue: { node: SceneNode; x: number; y: number; r: number; emph: number }[] = [];
