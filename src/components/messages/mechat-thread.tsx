@@ -9,9 +9,11 @@ import {
   Loader2,
   MessageCircleReply,
   Paperclip,
+  Pencil,
   Search,
   Send,
   SmilePlus,
+  Undo2,
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -213,6 +215,8 @@ export function MeChatThread({
   const [attachmentType, setAttachmentType] = useState<MeChatAttachmentType>("image");
   const [attachments, setAttachments] = useState<MeChatAttachment[]>([]);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<number | null>(null);
@@ -386,6 +390,56 @@ export function MeChatThread({
     });
   }
 
+  function beginEdit(message: MeChatSerializedMessage) {
+    setEditingId(message.id);
+    setEditDraft(message.content);
+  }
+
+  function saveEdit(messageId: string) {
+    if (!activeThreadId) return;
+    const nextContent = editDraft.trim();
+    if (!nextContent) return;
+    startTransition(async () => {
+      setError("");
+      try {
+        const response = await fetch(`/api/messages/${activeThreadId}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "edit", messageId, content: nextContent }),
+        });
+        const data = await safeFetchJson<{ message?: MeChatSerializedMessage; error?: string }>(response);
+        if (!response.ok || !data.message) throw new Error(data.error || "Could not edit message");
+        setMessages((current) => current.map((message) => (message.id === messageId ? data.message! : message)));
+        setEditingId(null);
+        setEditDraft("");
+      } catch (editError) {
+        setError(editError instanceof Error ? editError.message : "Could not edit message");
+      }
+    });
+  }
+
+  function unsendMessage(messageId: string) {
+    if (!activeThreadId) return;
+    startTransition(async () => {
+      setError("");
+      try {
+        const response = await fetch(`/api/messages/${activeThreadId}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "unsend", messageId }),
+        });
+        const data = await safeFetchJson<{ message?: MeChatSerializedMessage; error?: string }>(response);
+        if (!response.ok || !data.message) throw new Error(data.error || "Could not unsend message");
+        setMessages((current) => current.map((message) => (message.id === messageId ? data.message! : message)));
+        if (editingId === messageId) setEditingId(null);
+      } catch (unsendError) {
+        setError(unsendError instanceof Error ? unsendError.message : "Could not unsend message");
+      }
+    });
+  }
+
   return (
     <div data-testid="mechat-thread" className="grid h-full min-h-0 grid-rows-[auto_1fr_auto]">
       <div className="border-b border-[var(--border-primary)] p-3">
@@ -443,9 +497,39 @@ export function MeChatThread({
                         </button>
                       )}
 
-                      <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+                      {message.metadata.unsent ? (
+                        <p className={`whitespace-pre-wrap italic leading-6 ${isMine ? "text-white/70" : "text-[var(--text-muted)]"}`}>
+                          {isMine ? "You unsent a message" : "This message was unsent"}
+                        </p>
+                      ) : editingId === message.id ? (
+                        <div className="flex flex-col gap-2">
+                          <textarea
+                            value={editDraft}
+                            onChange={(event) => setEditDraft(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" && !event.shiftKey) {
+                                event.preventDefault();
+                                saveEdit(message.id);
+                              }
+                              if (event.key === "Escape") {
+                                setEditingId(null);
+                                setEditDraft("");
+                              }
+                            }}
+                            rows={2}
+                            autoFocus
+                            className={`w-full resize-none rounded-xl px-3 py-2 text-sm outline-none ${isMine ? "bg-white/15 text-white placeholder:text-white/60" : "border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
+                          />
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => saveEdit(message.id)} disabled={isPending} className={`rounded-full px-3 py-1 text-[11px] font-bold ${isMine ? "bg-white/20 text-white" : "bg-[var(--accent)] text-white"}`}>Save</button>
+                            <button type="button" onClick={() => { setEditingId(null); setEditDraft(""); }} className={`rounded-full px-3 py-1 text-[11px] font-bold ${isMine ? "text-white/80" : "text-[var(--text-secondary)]"}`}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+                      )}
 
-                      {message.metadata.attachments && message.metadata.attachments.length > 0 && (
+                      {!message.metadata.unsent && message.metadata.attachments && message.metadata.attachments.length > 0 && (
                         <div className="mt-3 grid gap-2">
                           {message.metadata.attachments.map((attachment) => (
                             <AttachmentPreview key={attachment.id} attachment={attachment} isMine={isMine} />
@@ -505,6 +589,12 @@ export function MeChatThread({
                       <span>{isMine ? "You" : message.sender.displayName}</span>
                       <span>-</span>
                       <span>{formatRelativeTime(message.createdAt)}</span>
+                      {message.metadata.edited && !message.metadata.unsent && (
+                        <>
+                          <span>-</span>
+                          <span>Edited</span>
+                        </>
+                      )}
                       {readers && (
                         <>
                           <span>-</span>
@@ -513,27 +603,49 @@ export function MeChatThread({
                       )}
                     </div>
 
-                    <div className={`flex flex-wrap gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 ${isMine ? "justify-end" : "justify-start"}`}>
-                      <button
-                        type="button"
-                        onClick={() => setReplyTo(message)}
-                        className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
-                      >
-                        <MessageCircleReply size={12} aria-hidden="true" />
-                        Reply
-                      </button>
-                      {QUICK_REACTIONS.map((emoji) => (
+                    {!message.metadata.unsent && (
+                      <div className={`flex flex-wrap gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 ${isMine ? "justify-end" : "justify-start"}`}>
                         <button
-                          key={emoji}
                           type="button"
-                          onClick={() => toggleReaction(message.id, emoji)}
+                          onClick={() => setReplyTo(message)}
                           className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
-                          aria-label={`React ${emoji}`}
                         >
-                          {emoji}
+                          <MessageCircleReply size={12} aria-hidden="true" />
+                          Reply
                         </button>
-                      ))}
-                    </div>
+                        {QUICK_REACTIONS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => toggleReaction(message.id, emoji)}
+                            className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
+                            aria-label={`React ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                        {isMine && message.messageType === "text" && editingId !== message.id && (
+                          <button
+                            type="button"
+                            onClick={() => beginEdit(message)}
+                            className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
+                          >
+                            <Pencil size={12} aria-hidden="true" />
+                            Edit
+                          </button>
+                        )}
+                        {isMine && (
+                          <button
+                            type="button"
+                            onClick={() => unsendMessage(message.id)}
+                            className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
+                          >
+                            <Undo2 size={12} aria-hidden="true" />
+                            Unsend
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </article>
               );
