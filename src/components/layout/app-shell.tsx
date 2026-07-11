@@ -19,7 +19,6 @@ import { signOut } from "@/lib/actions";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
-import { getRouteLoadingPersonality } from "@/lib/loading-personality";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { KeyboardShortcutsOverlay } from "@/components/layout/keyboard-shortcuts-overlay";
@@ -91,17 +90,6 @@ function getRouteInfo(pathname: string, username: string): RouteInfo {
 
   const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
   return routeInfoMap[pathname] ?? routeInfoMap[firstSegment] ?? { title: "Mesh.me", description: "" };
-}
-
-function AppRouteProgress({ pathname }: { pathname: string }) {
-  return (
-    <div
-      key={pathname}
-      className="app-route-progress"
-      data-loading-personality={getRouteLoadingPersonality(pathname)}
-      aria-hidden="true"
-    />
-  );
 }
 
 function ShellTopBar({
@@ -303,7 +291,6 @@ export function AppShell({ children, user }: AppShellProps) {
 
   return (
     <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface ? "mesh-shell-mesh" : ""}`}>
-      <AppRouteProgress pathname={pathname} />
 
       {!isMeshSurface && (
         <DeferredMeshBackground
