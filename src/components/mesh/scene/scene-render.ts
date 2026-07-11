@@ -55,12 +55,12 @@ function birthProgress(node: SceneNode, time: number): number {
 }
 
 /**
- * Draw a node as a lit glass gem: soft outer bloom, a dimensional body shaded
- * from a light crown to a deep rim, a bright specular catch-light top-left, and
- * a reflected rim light bottom-right. This is what separates a premium orb from
- * a flat coloured dot.
+ * Draw a node as a clean luminous orb: a soft ambient halo, a flat solid body
+ * in the node's colour with a barely-there top sheen for form, and a crisp
+ * lit hairline on the rim. Restrained and modern — a point of light on the
+ * web, not a glossy gemstone.
  */
-function drawGem(
+function drawOrb(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -69,52 +69,30 @@ function drawGem(
   emph: number,
   light: string,
 ): void {
-  // Two-layer soft bloom.
-  const bloom = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 3.4);
-  bloom.addColorStop(0, withAlpha(color, 0.34 * emph + 0.05));
-  bloom.addColorStop(0.5, withAlpha(color, 0.12 * emph));
-  bloom.addColorStop(1, withAlpha(color, 0));
-  ctx.fillStyle = bloom;
+  // Soft ambient halo — single, gentle, so the node glows without smearing.
+  const halo = ctx.createRadialGradient(x, y, r * 0.7, x, y, r * 2.4);
+  halo.addColorStop(0, withAlpha(color, 0.22 * emph));
+  halo.addColorStop(1, withAlpha(color, 0));
+  ctx.fillStyle = halo;
   ctx.beginPath();
-  ctx.arc(x, y, r * 3.4, 0, Math.PI * 2);
+  ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
   ctx.fill();
 
-  // Dimensional body: light gathers top-left, deepens toward the lower rim.
-  const body = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.08, x + r * 0.15, y + r * 0.25, r * 1.25);
-  body.addColorStop(0, withAlpha(light, 0.95));
-  body.addColorStop(0.35, withAlpha(color, 0.95 * emph + 0.05));
-  body.addColorStop(1, withAlpha(shade(color, 0.55), 0.9 * emph + 0.08));
+  // Flat body with a subtle top-down sheen — reads as a solid, lit surface.
+  const body = ctx.createLinearGradient(x, y - r, x, y + r);
+  body.addColorStop(0, withAlpha(tint(color, 0.18), 0.92 * emph + 0.08));
+  body.addColorStop(1, withAlpha(color, 0.92 * emph + 0.08));
   ctx.fillStyle = body;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 
-  // Reflected rim light along the lower-right edge.
+  // Crisp lit hairline defines the edge cleanly.
   ctx.beginPath();
-  ctx.arc(x, y, r * 0.97, Math.PI * 0.08, Math.PI * 0.72);
-  ctx.strokeStyle = withAlpha(light, 0.5 * emph + 0.15);
-  ctx.lineWidth = Math.max(0.8, r * 0.11);
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.strokeStyle = withAlpha(light, 0.55 * emph + 0.12);
+  ctx.lineWidth = 1;
   ctx.stroke();
-
-  // Specular catch-light.
-  const spec = ctx.createRadialGradient(x - r * 0.34, y - r * 0.4, 0, x - r * 0.34, y - r * 0.4, r * 0.55);
-  spec.addColorStop(0, withAlpha("#ffffff", 0.9 * emph + 0.1));
-  spec.addColorStop(1, withAlpha("#ffffff", 0));
-  ctx.fillStyle = spec;
-  ctx.beginPath();
-  ctx.ellipse(x - r * 0.34, y - r * 0.4, r * 0.42, r * 0.3, -0.5, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-// Darken a #rrggbb hex toward black by factor (0..1 keeps→black).
-function shade(hex: string, factor: number): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return hex;
-  const n = parseInt(m[1], 16);
-  const r = Math.round(((n >> 16) & 255) * factor);
-  const g = Math.round(((n >> 8) & 255) * factor);
-  const b = Math.round((n & 255) * factor);
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
 // Lighten a #rrggbb hex toward white by amount (0..1 → white).
@@ -654,7 +632,7 @@ export function drawScene(o: RenderOptions): void {
     Math.max(width, height) * 0.72,
   );
   vig.addColorStop(0, "rgba(3,4,9,0)");
-  vig.addColorStop(1, "rgba(2,3,7,0.62)");
+  vig.addColorStop(1, "rgba(2,3,7,0.45)");
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, width, height);
 
@@ -862,20 +840,12 @@ export function drawScene(o: RenderOptions): void {
       ctx.globalAlpha = 1;
       ctx.beginPath();
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(light, 0.7 * emph + 0.2);
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = withAlpha(light, 0.6 * emph + 0.18);
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-      // Specular catch-light on the glassy rim.
-      const spec = ctx.createRadialGradient(p.x - r * 0.34, p.y - r * 0.4, 0, p.x - r * 0.34, p.y - r * 0.4, r * 0.5);
-      spec.addColorStop(0, withAlpha("#ffffff", 0.5 * emph));
-      spec.addColorStop(1, withAlpha("#ffffff", 0));
-      ctx.fillStyle = spec;
-      ctx.beginPath();
-      ctx.ellipse(p.x - r * 0.34, p.y - r * 0.4, r * 0.4, r * 0.26, -0.5, 0, Math.PI * 2);
-      ctx.fill();
     } else {
-      // Everything else is a lit glass gem.
-      drawGem(ctx, p.x, p.y, r * (0.95 + 0.05 * pulse), node.color, emph, light);
+      // Everything else is a clean luminous orb.
+      drawOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, light);
       if ((node.kind === "person" || node.kind === "persona" || node.kind === "community") && r >= 11) {
         const initial = (node.label || "?").trim().charAt(0).toUpperCase();
         ctx.fillStyle = withAlpha("#ffffff", 0.96 * emph + 0.08);
