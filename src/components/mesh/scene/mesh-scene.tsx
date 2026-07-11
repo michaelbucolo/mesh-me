@@ -122,6 +122,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
   >([]);
   const showDesktopChrome = Boolean(meshData && !viewUserId);
+  // On your OWN mesh, the owner Meshi pinned at the heart already is you — so
+  // don't ALSO render the pointer-following cursor Meshi, or there are two of
+  // you. The cursor Meshi is for exploring: show it only when visiting someone
+  // else's mesh, or as a fallback when there's no owner Meshi to stand in.
+  const showCursorMeshi = prefs.enabled && (Boolean(viewUserId) || !meshData?.meshiPreference);
 
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
@@ -852,7 +857,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       />
 
       {/* Meshi — you, the cursor exploring the mesh. Center-pinned on touch, follows the pointer on desktop. */}
-      {prefs.enabled && isCoarsePointer && (
+      {showCursorMeshi && isCoarsePointer && (
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <MeshiMascot
             size={62}
@@ -878,7 +883,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           })()}
         </div>
       )}
-      {prefs.enabled && !isCoarsePointer && (
+      {showCursorMeshi && !isCoarsePointer && (
         <div
           ref={meshiCursorRef}
           className="pointer-events-none absolute left-0 top-0 z-20 opacity-0 transition-opacity duration-150"
@@ -976,7 +981,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
                 vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
               };
-            return { left: `${pos.vx * 100}%`, top: `${pos.vy * 100}%` };
+            // Keep other visitors in the open canvas, never tucked behind the
+            // right-hand desktop chrome panel where they read as clipped clutter.
+            const maxVx = showDesktopChrome ? 0.68 : 0.95;
+            return { left: `${Math.min(pos.vx, maxVx) * 100}%`, top: `${pos.vy * 100}%` };
           })()}
         >
           <MeshiMini

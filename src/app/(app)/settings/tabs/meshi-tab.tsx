@@ -71,13 +71,13 @@ export function MeshiTab({ showSuccess, isMeshPro = false }: MeshiTabProps) {
 
   const BASIC_COLORS: MeshiColor[] = ["blue", "purple", "green"];
   const PRO_COLORS: MeshiColor[] = ["pink", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"];
-  const PRO_HATS: MeshiHat[] = ["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
+  const PRO_HATS: MeshiHat[] = ["none", "tophat", "beanie", "cap", "party", "crown", "flower", "beret", "headband", "bow", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"];
   const PRO_FACES: MeshiMood[] = ["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", "searching", "learning", "celebrating", "shy", "giggle"];
   const PRO_HAIRS: MeshiHair[] = ["none", "fluffy", "bangs", "spikes", "curls"];
   const PRO_EYES: MeshiEyeStyle[] = ["regular", "lashes"];
-  const PRO_ACCESSORIES: MeshiAccessory[] = ["none", "glasses", "sunglasses", "monocle"];
+  const PRO_ACCESSORIES: MeshiAccessory[] = ["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star"];
   const PRO_BADGES: MeshiBadge[] = ["none", "spark", "heart", "shield", "verified", "creator", "founder"];
-  const PRO_OUTFITS: MeshiOutfit[] = ["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit"];
+  const PRO_OUTFITS: MeshiOutfit[] = ["none", "scarf", "hoodie", "jacket", "overalls", "turtleneck", "varsity", "cape", "spacesuit"];
 
   const resetToSaved = () => {
     setMeshiHat(hat);
