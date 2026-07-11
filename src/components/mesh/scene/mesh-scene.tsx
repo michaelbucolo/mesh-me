@@ -337,6 +337,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           profileHitboxes: profileHitboxesRef.current,
           avoidCenter: coarseRef.current,
           isOwnMesh: !viewUserId,
+          strands: physicsRef.current.strands,
         });
 
         // Focus = item nearest screen center (the Meshi cursor's target).
