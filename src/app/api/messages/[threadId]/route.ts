@@ -411,5 +411,67 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     });
   }
 
+  if (action === "edit" || action === "unsend") {
+    const messageId = cleanText(body.messageId, 120);
+    if (!messageId) {
+      return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    }
+
+    const message = await prisma.message.findFirst({
+      where: { id: messageId, threadId },
+      select: { id: true, senderId: true, metadata: true, content: true },
+    });
+    if (!message) {
+      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    }
+    // Only the author can edit or unsend their own message.
+    if (message.senderId !== user.id) {
+      return NextResponse.json({ error: "You can only change your own messages." }, { status: 403 });
+    }
+
+    const current = parseMeChatMetadata(message.metadata);
+    if (current.unsent) {
+      return NextResponse.json({ error: "This message was already unsent." }, { status: 400 });
+    }
+
+    let data: { content?: string; metadata: string | null };
+    if (action === "unsend") {
+      // Retract: drop the content and any media/link, keep a tombstone flag.
+      data = {
+        content: "",
+        metadata: serializeMeChatMetadata({ unsent: true, replyToMessageId: current.replyToMessageId }),
+      };
+    } else {
+      const nextContent = cleanText(body.content, 4000);
+      if (!nextContent) {
+        return NextResponse.json({ error: "Edited message can't be empty." }, { status: 400 });
+      }
+      data = {
+        content: nextContent,
+        metadata: serializeMeChatMetadata({ ...current, edited: true, linkPreview: buildLinkPreview(nextContent) }),
+      };
+    }
+
+    const updated = await prisma.message.update({
+      where: { id: message.id },
+      data,
+      include: {
+        sender: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
+        },
+      },
+    });
+
+    const messageMap = new Map([[updated.id, {
+      id: updated.id,
+      content: updated.content,
+      sender: { displayName: updated.sender.displayName, username: updated.sender.username },
+    }]]);
+
+    return NextResponse.json({
+      message: serializeMessage(updated, thread, messageMap),
+    });
+  }
+
   return NextResponse.json({ error: "Unsupported message action." }, { status: 400 });
 }
