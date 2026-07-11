@@ -1048,8 +1048,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         data-testid="mesh-action-bar"
         role="toolbar"
         aria-label="Mesh actions"
-        className="absolute top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2"
-        style={{ right: showDesktopChrome ? "min(23rem, calc(100vw - 4rem))" : "0.75rem" }}
+        className={`absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2 ${
+          showDesktopChrome ? "lg:right-[min(23rem,calc(100vw_-_4rem))]" : ""
+        }`}
       >
         {!viewedUser && meshUser && (
           <RailButton label="Create on your mesh" onClick={() => setShowCompose(true)}>
