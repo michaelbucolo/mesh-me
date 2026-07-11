@@ -246,6 +246,8 @@ export function AppShell({ children, user }: AppShellProps) {
   const routeInfo = useMemo(() => getRouteInfo(pathname, user.username), [pathname, user.username]);
   const isFeedSurface = pathname === "/feed" || pathname.startsWith("/feed/");
   const isMeshSurface = pathname === "/mesh" || pathname.startsWith("/mesh/");
+  // The Flow is a full-bleed reel stage: no top bar, no ambient background.
+  const isFlowSurface = pathname === "/flow" || pathname.startsWith("/flow/");
   const userInitials = useMemo(() => {
     const fromName = user.displayName
       .split(/\s+/)
@@ -290,9 +292,9 @@ export function AppShell({ children, user }: AppShellProps) {
   }, []);
 
   return (
-    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface ? "mesh-shell-mesh" : ""}`}>
+    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""}`}>
 
-      {!isMeshSurface && (
+      {!isMeshSurface && !isFlowSurface && (
         <DeferredMeshBackground
           fixed
           interactive
@@ -411,7 +413,7 @@ export function AppShell({ children, user }: AppShellProps) {
 
       {/* Main Content */}
       <main className={`mesh-main flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 ${isMeshSurface ? "mesh-main-mesh" : ""}`}>
-        <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />
+        {!isFlowSurface && <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />}
 
         <div className="mesh-content flex-1 overflow-y-auto">
           <div key={pathname} className="mesh-route-slot animate-page-enter">
