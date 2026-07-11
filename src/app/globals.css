@@ -9100,8 +9100,8 @@ body > * { position: relative; z-index: 1; }
   animation: meshOwnerSnooze 4.5s ease-in-out infinite;
 }
 @keyframes meshOwnerSnooze {
-  0%, 100% { transform: rotate(8deg) scale(1); }
-  50% { transform: rotate(8deg) scale(1.03); }
+  0%, 100% { transform: rotate(8deg) translateY(0); }
+  50% { transform: rotate(8deg) translateY(-3px); }
 }
 .mesh-owner-zzz {
   position: absolute;
