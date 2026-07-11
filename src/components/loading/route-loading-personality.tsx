@@ -1,4 +1,4 @@
-import { MeshiFunLoadingScreen } from "@/components/meshi/meshi-loading";
+import { MeshiLoader } from "@/components/meshi/meshi-loader";
 import { getLoadingPersonality, type LoadingPersonalityKey } from "@/lib/loading-personality";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +18,7 @@ export function RouteLoadingPersonality({
   return (
     <section
       className={cn(
-        "loading-personality-shell flex min-h-full min-w-0 items-center justify-center bg-[var(--bg-primary)] px-4 py-6 text-[var(--text-primary)]",
-        surface === "public" && "h-dvh overflow-hidden",
+        "loading-personality-shell flex min-h-full min-w-0 flex-1",
         className,
       )}
       role="status"
@@ -28,12 +27,11 @@ export function RouteLoadingPersonality({
       data-loading-personality={personality}
     >
       <p className="sr-only">{loading.ariaLabel ?? `Loading ${loading.title}`}</p>
-      <MeshiFunLoadingScreen
+      <MeshiLoader
         title={loading.title}
         subtitle={loading.subtitle}
         mode={loading.mode}
-        progressLabel={loading.progressLabel}
-        steps={[...loading.steps]}
+        fullHeight={surface === "public"}
       />
     </section>
   );
