@@ -1,9 +1,11 @@
 "use client";
 
-import { ArrowLeft, Loader2, Maximize2, Minus, PenLine, Plus, Scan, Search, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, Maximize2, MessageCircle, Minus, PenLine, Plus, Scan, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { toggleReaction } from "@/lib/actions";
+import { MeshiLoader } from "@/components/meshi/meshi-loader";
 import { MeshDesktopChrome } from "@/components/mesh/mesh-desktop-chrome";
 import {
   MeshiMascot,
@@ -397,10 +399,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         enterFriendMesh(node);
         return;
       }
-      if (node.kind === "post" && node.href?.startsWith("/feed/")) {
-        router.push(`/feed?flow=${encodeURIComponent(node.href.slice("/feed/".length))}`);
-        return;
-      }
       if (node.kind === "branch") {
         setActiveBranch((prev) => {
           const next = prev === node.branch ? null : node.branch;
@@ -415,6 +413,32 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       flyToNode(node);
     },
     [fitToContent, flyToNode, enterFriendMesh, router],
+  );
+
+  // Every readable piece of content on the mesh, in reading order — so the
+  // content lens can glide from one to the next like a stream you scroll.
+  const contentList = useCallback((): SceneNode[] => {
+    const model = modelRef.current;
+    if (!model) return [];
+    const out: SceneNode[] = [];
+    model.nodes.forEach((n) => {
+      if (n.kind === "post" || n.kind === "activity") out.push(n);
+    });
+    return out;
+  }, []);
+
+  const navigateContent = useCallback(
+    (dir: 1 | -1) => {
+      const list = contentList();
+      if (list.length === 0) return;
+      const cur = selectedIdRef.current;
+      const i = list.findIndex((n) => n.id === cur);
+      const next = list[((i === -1 ? 0 : i) + dir + list.length) % list.length];
+      setSelectedNode(next);
+      setActiveBranch(next.branch);
+      flyToNode(next);
+    },
+    [contentList, flyToNode],
   );
 
   const hitTest = useCallback((sx: number, sy: number): SceneNode | null => {
@@ -1000,7 +1024,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         style={{ right: showDesktopChrome ? "min(23rem, calc(100vw - 4rem))" : "0.75rem" }}
       >
         {!viewedUser && meshUser && (
-          <RailButton label="Post to your mesh" onClick={() => setShowCompose(true)}>
+          <RailButton label="Create on your mesh" onClick={() => setShowCompose(true)}>
             <PenLine size={16} />
           </RailButton>
         )}
@@ -1031,8 +1055,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       {/* Loading / states */}
       {status === "loading" && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#04050c]">
-          <Loader2 className="animate-spin text-white/60" size={28} />
+        <div className="absolute inset-0 z-40 bg-[#04050c]">
+          <MeshiLoader
+            title={viewUserId ? "Opening their mesh" : "Weaving your mesh"}
+            subtitle="Meshi is arranging your world into view."
+            mode="mesh-building"
+          />
         </div>
       )}
       {status === "error" && (
@@ -1151,10 +1179,24 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         </div>
       )}
 
-      {/* Detail sheet */}
-      {selectedNode && selectedNode.kind !== "self" && selectedNode.kind !== "branch" && (
-        <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} onEnterMesh={enterFriendMesh} />
+      {/* Content lens — consume posts & activity right on the mesh */}
+      {selectedNode && (selectedNode.kind === "post" || selectedNode.kind === "activity") && (
+        <ContentLens
+          node={selectedNode}
+          list={contentList()}
+          onClose={() => setSelectedNode(null)}
+          onNavigate={navigateContent}
+        />
       )}
+
+      {/* Detail sheet — people, platforms, communities, interests */}
+      {selectedNode &&
+        selectedNode.kind !== "self" &&
+        selectedNode.kind !== "branch" &&
+        selectedNode.kind !== "post" &&
+        selectedNode.kind !== "activity" && (
+          <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} onEnterMesh={enterFriendMesh} />
+        )}
 
       {/* Compose: post straight onto your constellation */}
       {showCompose && meshUser && (
@@ -1166,8 +1208,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           }}
         >
           <div className="w-full max-w-xl animate-[slideUp_.28s_ease-out] rounded-2xl border border-white/12 bg-[#0b1020] p-3 shadow-2xl">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <p className="text-sm font-semibold text-white">Post to your mesh</p>
+            <div className="mb-2 flex items-start justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Sparkles size={15} className="text-[var(--mesh-blue)]" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Create on your mesh</p>
+                  <p className="text-[11px] text-white/45">Watch it weave itself into your web.</p>
+                </div>
+              </div>
               <button
                 type="button"
                 aria-label="Close"
@@ -1278,6 +1326,215 @@ function NodeDetail({
           >
             {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
           </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// The native Post id behind a content node, if it's one of our own posts a
+// signed-in user can react to (external platform posts return null).
+function nativePostId(node: SceneNode): string | null {
+  if (node.id.startsWith("post:")) return node.id.slice("post:".length);
+  if (node.id.startsWith("friend-post:")) {
+    const parts = node.id.split(":");
+    return parts[parts.length - 1] || null;
+  }
+  return null;
+}
+
+function metaCount(node: SceneNode, label: string): number {
+  const v = node.meta?.find((m) => m.label === label)?.value;
+  const n = v ? parseInt(v, 10) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * The Content Lens — an immersive reader that opens over the mesh when you tap
+ * a post or activity. You read the full content and its media, react to it, and
+ * glide to the next piece of content on your mesh without ever leaving the web.
+ * This is what turns the mesh from a map into a medium you actually consume.
+ */
+function ContentLens({
+  node,
+  list,
+  onClose,
+  onNavigate,
+}: {
+  node: SceneNode;
+  list: SceneNode[];
+  onClose: () => void;
+  onNavigate: (dir: 1 | -1) => void;
+}) {
+  const index = list.findIndex((n) => n.id === node.id);
+  const total = list.length;
+  const postId = nativePostId(node);
+  const isExternal = Boolean(node.href && node.href.startsWith("http"));
+
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(metaCount(node, "Likes"));
+  const [likePending, startLike] = useTransition();
+
+  // Reset engagement each time a different piece of content is shown.
+  useEffect(() => {
+    setLiked(false);
+    setLikeCount(metaCount(node, "Likes"));
+  }, [node.id]);
+
+  // Keyboard: arrows browse, Escape closes.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") onNavigate(1);
+      else if (e.key === "ArrowLeft") onNavigate(-1);
+      else if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onNavigate, onClose]);
+
+  const handleLike = () => {
+    if (!postId) return;
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((c) => c + (next ? 1 : -1));
+    startLike(async () => {
+      const res = await toggleReaction(postId);
+      if (res && "error" in res) {
+        setLiked(!next);
+        setLikeCount((c) => c + (next ? -1 : 1));
+      }
+    });
+  };
+
+  const commentCount = metaCount(node, "Comments");
+
+  return (
+    <div
+      className="absolute inset-0 z-50 flex items-end justify-center bg-black/65 p-3 backdrop-blur-md sm:items-center"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="relative flex w-full max-w-lg animate-[slideUp_.3s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0b1020]/95 shadow-2xl"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {/* Media */}
+        {node.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={node.imageUrl}
+            alt=""
+            className="max-h-[46vh] w-full object-cover"
+          />
+        )}
+
+        <div className="flex flex-col gap-3 p-5">
+          {/* Source */}
+          <div className="flex items-center gap-3">
+            {node.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={node.avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            ) : (
+              <span
+                className="h-9 w-9 shrink-0 rounded-full"
+                style={{ background: `radial-gradient(circle at 34% 30%, #ffffff55, ${node.color})` }}
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{node.label}</p>
+              {node.sublabel && <p className="truncate text-xs text-white/50">{node.sublabel}</p>}
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/45">
+              <Sparkles size={11} />
+              {node.kind === "activity" ? "Activity" : "Post"}
+            </span>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClose}
+              className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Body */}
+          {node.content ? (
+            <p className="max-h-[28vh] overflow-y-auto whitespace-pre-wrap text-[15px] leading-relaxed text-white/85">
+              {node.content}
+            </p>
+          ) : (
+            <p className="text-sm text-white/45">{node.label}</p>
+          )}
+
+          {/* Engagement */}
+          <div className="flex items-center gap-2 border-t border-white/8 pt-3">
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={!postId || likePending}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                liked ? "bg-rose-500/15 text-rose-300" : "bg-white/6 text-white/75 hover:bg-white/10"
+              } ${!postId ? "cursor-default opacity-70" : ""}`}
+            >
+              <Heart size={14} fill={liked ? "currentColor" : "none"} />
+              {likeCount}
+            </button>
+
+            {node.href && !isExternal ? (
+              <Link
+                href={node.href}
+                onClick={onClose}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+              >
+                <MessageCircle size={14} />
+                {commentCount > 0 ? commentCount : "Comment"}
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/55">
+                <MessageCircle size={14} />
+                {commentCount}
+              </span>
+            )}
+
+            {isExternal && node.href && (
+              <Link
+                href={node.href}
+                target="_blank"
+                className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+              >
+                <ExternalLink size={13} />
+                Open on {node.sublabel || "source"}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Stream controls — browse content across the mesh */}
+        {total > 1 && (
+          <div className="flex items-center justify-between border-t border-white/8 bg-black/30 px-4 py-2.5">
+            <button
+              type="button"
+              onClick={() => onNavigate(-1)}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <ChevronLeft size={15} />
+              Prev
+            </button>
+            <span className="text-[11px] font-medium tracking-wide text-white/40">
+              {index >= 0 ? index + 1 : 1} / {total} on your mesh
+            </span>
+            <button
+              type="button"
+              onClick={() => onNavigate(1)}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Next
+              <ChevronRight size={15} />
+            </button>
+          </div>
         )}
       </div>
     </div>
