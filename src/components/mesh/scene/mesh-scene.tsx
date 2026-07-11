@@ -97,6 +97,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const lastFrameRef = useRef(0);
 
   const meshiCursorRef = useRef<HTMLDivElement>(null);
+  // Where the pointer actually is (target) vs where Meshi currently is. Meshi
+  // ambles casually toward the pointer instead of being glued to it, so the
+  // mesh feels calm rather than a cursor skin.
+  const cursorTargetRef = useRef<{ x: number; y: number; seen: boolean }>({ x: 0, y: 0, seen: false });
+  const cursorPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const presenceTargetsRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
   const presenceElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const presencePosRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
@@ -497,7 +502,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const sy = e.clientY - rect.top;
       const cursor = meshiCursorRef.current;
       if (cursor) {
-        cursor.style.transform = `translate(${sx}px, ${sy}px) translate(-50%, -50%)`;
+        const t = cursorTargetRef.current;
+        if (!t.seen) {
+          // First sighting: start Meshi at the pointer so it doesn't fly in from a corner.
+          cursorPosRef.current.x = sx;
+          cursorPosRef.current.y = sy;
+          t.seen = true;
+        }
+        t.x = sx;
+        t.y = sy;
         cursor.style.opacity = "1";
       }
       if (rect.width > 0 && rect.height > 0) {
@@ -714,7 +727,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const step = (time: number) => {
       const dt = last ? Math.min(time - last, 50) : 16;
       last = time;
-      const k = 1 - Math.exp(-dt / 260);
+      // Casual, unhurried easing — remote Meshis drift toward where their
+      // user is looking rather than mirroring a mouse at full speed.
+      const k = 1 - Math.exp(-dt / 650);
       presenceElsRef.current.forEach((el, userId) => {
         const target = presenceTargetsRef.current.get(userId);
         if (!target) return;
@@ -725,6 +740,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         el.style.left = `${pos.vx * 100}%`;
         el.style.top = `${pos.vy * 100}%`;
       });
+
+      // Your own Meshi ambles after the pointer with the same lazy ease, so
+      // it reads as a companion wandering the mesh, not a cursor skin.
+      const cursorEl = meshiCursorRef.current;
+      if (cursorEl && cursorTargetRef.current.seen) {
+        const ck = 1 - Math.exp(-dt / 420);
+        const p = cursorPosRef.current;
+        const t = cursorTargetRef.current;
+        p.x += (t.x - p.x) * ck;
+        p.y += (t.y - p.y) * ck;
+        cursorEl.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
+      }
 
       // The mesh owner's own Meshi lives at the heart of their mesh. The self
       // node sits at world origin, so its screen point is simply the container
@@ -860,7 +887,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {showCursorMeshi && isCoarsePointer && (
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <MeshiMascot
-            size={62}
+            size={56}
             color={prefs.color}
             hat={prefs.hat}
             mood={focusId ? "excited" : prefs.face}
@@ -889,7 +916,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           className="pointer-events-none absolute left-0 top-0 z-20 opacity-0 transition-opacity duration-150"
         >
           <MeshiMascot
-            size={52}
+            size={56}
             color={prefs.color}
             hat={prefs.hat}
             mood={hoverNode ? "excited" : prefs.face}
@@ -947,7 +974,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
               {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
               <MeshiMascot
-                size={64}
+                size={56}
                 color={(m.colorTheme || "blue") as MeshiColor}
                 hat={(m.hatStyle || "none") as MeshiHat}
                 hair={(m.hairStyle || "none") as MeshiHair}
@@ -957,7 +984,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 outfit={(m.outfitStyle || "none") as MeshiOutfit}
                 mood={ownerOnline ? ((m.faceStyle || "happy") as MeshiMood) : "sleepy"}
                 animate={ownerOnline}
-                bouncy={ownerOnline}
                 showGlow={ownerOnline}
               />
             </div>
@@ -988,7 +1014,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           })()}
         >
           <MeshiMini
-            size={34}
+            size={56}
             color={p.meshiColor as MeshiColor}
             hat={p.meshiHat as MeshiHat}
             hair={(p.meshiHair || "none") as MeshiHair}

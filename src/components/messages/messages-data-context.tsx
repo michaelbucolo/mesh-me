@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Person = {
   id: string;
@@ -53,7 +53,46 @@ export function MessagesDataProvider({
   value: MessagesSidebarData;
   children: ReactNode;
 }) {
-  return <MessagesDataContext.Provider value={value}>{children}</MessagesDataContext.Provider>;
+  // The server renders the initial inbox; from there the thread list stays
+  // live by polling while the tab is visible, so new conversations, latest
+  // messages, and unread counts appear without a reload.
+  const [threads, setThreads] = useState(value.initialThreads);
+
+  useEffect(() => {
+    setThreads(value.initialThreads);
+  }, [value.initialThreads]);
+
+  useEffect(() => {
+    let stopped = false;
+    const refresh = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch("/api/messages", { cache: "no-store", credentials: "same-origin" });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (!stopped && data && Array.isArray(data.threads)) setThreads(data.threads);
+      } catch {
+        // Best-effort — the next tick retries.
+      }
+    };
+    const interval = window.setInterval(refresh, 5000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  const live = useMemo(
+    () => ({ ...value, initialThreads: threads }),
+    [value, threads],
+  );
+
+  return <MessagesDataContext.Provider value={live}>{children}</MessagesDataContext.Provider>;
 }
 
 export function useMessagesData() {
