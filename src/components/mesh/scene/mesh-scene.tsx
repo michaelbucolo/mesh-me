@@ -101,6 +101,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const hoverIdRef = useRef<string | null>(null);
   const cursorVpRef = useRef({ vx: 0.5, vy: 0.5 });
   const meshOwnerIdRef = useRef<string | null>(null);
+  const ownerMeshiElRef = useRef<HTMLDivElement>(null);
 
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [isCoarsePointer, setIsCoarsePointer] = useState(true);
@@ -690,6 +691,20 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         el.style.left = `${pos.vx * 100}%`;
         el.style.top = `${pos.vy * 100}%`;
       });
+
+      // The mesh owner's own Meshi lives at the heart of their mesh. The self
+      // node sits at world origin, so its screen point is simply the container
+      // centre plus the current camera pan; float the Meshi just above it.
+      const ownerEl = ownerMeshiElRef.current;
+      const container = containerRef.current;
+      if (ownerEl && container) {
+        const cam = cameraRef.current;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        ownerEl.style.left = `${w / 2 + cam.panX}px`;
+        ownerEl.style.top = `${h / 2 + cam.panY - 6}px`;
+      }
+
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -882,6 +897,39 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           )}
         </div>
       )}
+
+      {/* The mesh owner's Meshi at the heart of their mesh. Awake and adrift
+          when they're online; curled up asleep with a soft "Zzz" when they're
+          offline, so a visited mesh always shows whether its owner is around. */}
+      {meshData?.meshiPreference && (() => {
+        const m = meshData.meshiPreference;
+        const ownerOnline = !viewUserId || remotePresences.some((p) => p.userId === viewUserId);
+        return (
+          <div
+            ref={ownerMeshiElRef}
+            className="pointer-events-none absolute left-1/2 top-1/2 z-[6] -translate-x-1/2 -translate-y-1/2"
+            aria-hidden="true"
+          >
+            <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
+              {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
+              <MeshiMascot
+                size={64}
+                color={(m.colorTheme || "blue") as MeshiColor}
+                hat={(m.hatStyle || "none") as MeshiHat}
+                hair={(m.hairStyle || "none") as MeshiHair}
+                accessory={(m.accessoryStyle || "none") as MeshiAccessory}
+                eyeStyle={(m.eyeStyle || "regular") as MeshiEyeStyle}
+                badge={(m.badgeStyle || "none") as MeshiBadge}
+                outfit={(m.outfitStyle || "none") as MeshiOutfit}
+                mood={ownerOnline ? ((m.faceStyle || "happy") as MeshiMood) : "sleepy"}
+                animate={ownerOnline}
+                bouncy={ownerOnline}
+                showGlow={ownerOnline}
+              />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Other users' Meshis — visible only while they're viewing this same mesh */}
       {remotePresences.map((p) => (
