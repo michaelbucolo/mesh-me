@@ -50,7 +50,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
     <g>
       <ellipse cx="-5" cy="-1" rx="2.2" ry="3.4" fill={color} />
       <ellipse cx="5" cy="-1" rx="2.2" ry="3.4" fill={color} />
-      <path d="M 2.4 -5.4 Q 5 -6.8 7.6 -5.4" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
     </g>
   ),
   sleepy: (color: string) => (
@@ -115,8 +114,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
     <g>
       <ellipse cx="-5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
       <ellipse cx="5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
-      <path d="M -7.6 -2.6 Q -5 -3.7 -2.4 -2.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M 2.4 -2.6 Q 5 -3.7 7.6 -2.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
     </g>
   ),
   learning: (color: string) => (
