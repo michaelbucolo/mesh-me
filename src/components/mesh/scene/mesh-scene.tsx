@@ -190,6 +190,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         if (quiet) {
           // Carry over animated positions so a refresh doesn't re-form the sky.
           const prev = modelRef.current!;
+          const bornStamp = (typeof performance !== "undefined" ? performance.now() : Date.now());
           model.nodes.forEach((node) => {
             const old = prev.nodes.get(node.id);
             if (old) {
@@ -198,8 +199,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               node.vx = old.vx;
               node.vy = old.vy;
             } else {
-              node.dx = node.x * 0.1;
-              node.dy = node.y * 0.1;
+              // New content: land at its place and play the arrival animation,
+              // then its strands draw out to everything it connects to.
+              node.dx = node.x;
+              node.dy = node.y;
+              node.bornAt = bornStamp;
             }
           });
         } else {
