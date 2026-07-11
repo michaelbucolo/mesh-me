@@ -290,6 +290,15 @@ function drawSelfProfile(
     ctx.fill();
   }
 
+  // The profile panel (name, bio, View Profile, chips) appears only when the
+  // center is hovered or selected — at rest the heart of the mesh is just the
+  // living Meshi, not a floating ID card.
+  if (!isHover && !isSelected) {
+    o.profileHitboxes?.delete(node.id);
+    ctx.restore();
+    return { w: avatarR * 2, h: avatarR * 2, profileRect: null, avatarRadius: avatarR };
+  }
+
   const contentTop = y + avatarR + 18 * zoomScale;
   const chips: string[] = [];
   if (node.isVerified) chips.push('Verified');
@@ -707,7 +716,9 @@ export function drawScene(o: RenderOptions): void {
       ctx.stroke();
     }
 
-    const label = parent.kind === "self" ? strandLabelFor(node) : null;
+    // Relationship pills only appear when you're tracing that strand — the
+    // resting mesh stays clean.
+    const label = parent.kind === "self" && hoverChain.has(node.id) ? strandLabelFor(node) : null;
     if (label && o.camera.zoom >= 0.42) {
       // Sit the label on the strand's own hanging midpoint (curve at t=0.5).
       const mx = 0.25 * a.x + 0.5 * c.x + 0.25 * b.x;

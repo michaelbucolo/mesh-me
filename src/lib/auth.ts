@@ -80,13 +80,32 @@ export async function getSession() {
 }
 
 export const getCurrentUser = cache(async () => {
-  const session = await getSession();
-  if (!session) return null;
+  // One round trip for session + user — this runs on every request, and each
+  // extra query is a full network hop to the remote database in production.
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
+  if (!sessionId) return null;
+  if (!SESSION_ID_REGEX.test(sessionId)) {
+    await clearSessionCookiesBestEffort();
+    return null;
+  }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { user: true },
   });
 
+  if (!session) {
+    await clearSessionCookiesBestEffort();
+    return null;
+  }
+  if (session.expiresAt < new Date()) {
+    await prisma.session.delete({ where: { id: sessionId } }).catch(() => {});
+    await clearSessionCookiesBestEffort();
+    return null;
+  }
+
+  const user = session.user;
   if (!user || user.isSuspended) return null;
 
   return user;

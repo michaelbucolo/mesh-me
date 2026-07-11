@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, Maximize2, MessageCircle, Minus, PenLine, Plus, Scan, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -630,12 +630,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     };
   }, []);
 
-  const toggleFullscreen = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-    else el.requestFullscreen?.().catch(() => {});
-  }, []);
 
   // --- Live presence: broadcast where I am and show Meshis of users viewing this same mesh ---
   useEffect(() => {
@@ -1070,12 +1064,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         </RailButton>
         <RailButton label="Zoom out" onClick={() => zoomBy(0.8)}>
           <Minus size={16} />
-        </RailButton>
-        <RailButton label="Fit" onClick={fitToContent}>
-          <Scan size={16} />
-        </RailButton>
-        <RailButton label="Fullscreen" onClick={toggleFullscreen}>
-          <Maximize2 size={16} />
         </RailButton>
       </div>
 
