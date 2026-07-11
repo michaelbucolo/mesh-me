@@ -354,6 +354,25 @@ const HATS: Record<string, React.ReactNode> = {
       ))}
     </g>
   ),
+  beret: (
+    <g transform="translate(0, -12)">
+      <path d="M-11 1 Q-11 -7 0 -7 Q11 -7 11 0 Q6 3 -4 3 Q-9 3 -11 1 Z" fill="currentColor" opacity="0.9" />
+      <circle cx="3" cy="-6.6" r="1.4" fill="currentColor" />
+    </g>
+  ),
+  headband: (
+    <g transform="translate(0, -9)">
+      <path d="M-12 -1 Q0 -7 12 -1 L12 1.6 Q0 -4.4 -12 1.6 Z" fill="currentColor" opacity="0.9" />
+      <circle cx="-9" cy="-1.2" r="1.7" fill="currentColor" />
+    </g>
+  ),
+  bow: (
+    <g transform="translate(0, -14)">
+      <path d="M0 0 L-7 -3.6 L-7 3.6 Z" fill="currentColor" opacity="0.92" />
+      <path d="M0 0 L7 -3.6 L7 3.6 Z" fill="currentColor" opacity="0.92" />
+      <circle cx="0" cy="0" r="1.9" fill="currentColor" />
+    </g>
+  ),
   // MeshPro exclusive hats
   headphones: (
     <g transform="translate(0, -10)">
@@ -461,6 +480,48 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
       <line x1="8.6" y1="2" x2="10" y2="5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </g>
   ),
+  earrings: (
+    <g>
+      <circle cx="-15" cy="5.4" r="1.5" fill="currentColor" />
+      <circle cx="15" cy="5.4" r="1.5" fill="currentColor" />
+      <circle cx="-15" cy="8.2" r="1.1" fill="#fbbf24" />
+      <circle cx="15" cy="8.2" r="1.1" fill="#fbbf24" />
+    </g>
+  ),
+  bowtie: (
+    <g transform="translate(0, 14.5)">
+      <path d="M0 0 L-6 -3.2 L-6 3.2 Z" fill="currentColor" opacity="0.92" />
+      <path d="M0 0 L6 -3.2 L6 3.2 Z" fill="currentColor" opacity="0.92" />
+      <rect x="-1.6" y="-1.9" width="3.2" height="3.8" rx="0.9" fill="currentColor" />
+    </g>
+  ),
+  freckles: (
+    <g fill="currentColor" opacity="0.55">
+      <circle cx="-10" cy="3" r="0.7" />
+      <circle cx="-8" cy="4.3" r="0.7" />
+      <circle cx="-11.6" cy="4.7" r="0.7" />
+      <circle cx="10" cy="3" r="0.7" />
+      <circle cx="8" cy="4.3" r="0.7" />
+      <circle cx="11.6" cy="4.7" r="0.7" />
+    </g>
+  ),
+  blush: (
+    <g>
+      <ellipse cx="-9" cy="3.6" rx="2.5" ry="1.5" fill="#f9a8d4" opacity="0.5" />
+      <ellipse cx="9" cy="3.6" rx="2.5" ry="1.5" fill="#f9a8d4" opacity="0.5" />
+    </g>
+  ),
+  eyepatch: (
+    <g>
+      <path d="M -13 -6.5 L 13 -3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
+      <ellipse cx="5" cy="0" rx="4" ry="4.5" fill="#1f2937" stroke="currentColor" strokeWidth="0.8" />
+    </g>
+  ),
+  star: (
+    <g transform="translate(9, 4.5) scale(0.85)">
+      <path d="M0 -3 L0.9 -0.9 L3 -0.9 L1.3 0.6 L1.9 2.8 L0 1.5 L-1.9 2.8 L-1.3 0.6 L-3 -0.9 L-0.9 -0.9 Z" fill="#fbbf24" />
+    </g>
+  ),
 };
 
 const BADGES: Record<string, React.ReactNode> = {
@@ -534,6 +595,19 @@ const OUTFITS: Record<string, React.ReactNode> = {
       <rect x="-4" y="1" width="8" height="5" rx="1" fill="rgba(255,255,255,0.28)" stroke="currentColor" strokeWidth="0.8" />
     </g>
   ),
+  turtleneck: (
+    <g transform="translate(0, 9)">
+      <path d="M-11 -2 Q0 2 11 -2 L11 12 H-11 Z" fill="currentColor" opacity="0.32" />
+      <path d="M-6 -3 Q0 1 6 -3 L6 0.4 Q0 4.4 -6 0.4 Z" fill="currentColor" opacity="0.5" />
+    </g>
+  ),
+  varsity: (
+    <g transform="translate(0, 8)">
+      <path d="M-13 0 Q-7 -5 0 -5 Q7 -5 13 0 L12 12 H-12 Z" fill="currentColor" opacity="0.26" />
+      <path d="M0 -5 L0 12" stroke="#f8fafc" strokeWidth="1.4" opacity="0.55" />
+      <path d="M-9 4 h4 M9 4 h-4" stroke="#f8fafc" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" />
+    </g>
+  ),
   cape: (
     <g transform="translate(0, 7)">
       <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.34" />
@@ -584,12 +658,12 @@ const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }
 };
 
 // Which hats are MeshPro exclusive
-export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef"]);
+export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow"]);
 export const MESHPRO_COLORS: Set<string> = new Set(["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]);
 export const MESHPRO_HAIRS: Set<string> = new Set(["spikes", "curls"]);
-export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle"]);
+export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star"]);
 export const MESHPRO_BADGES: Set<string> = new Set(["verified", "creator", "founder"]);
-export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit"]);
+export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit", "turtleneck", "varsity"]);
 
 // Achievement titles — earned through milestones
 export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: string; requirement: string }> = {

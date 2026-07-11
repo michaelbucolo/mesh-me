@@ -2920,14 +2920,14 @@ export async function setActiveTitle(title: string | null) {
 // ─── Meshi Customization Actions ────────────────────────────
 
 const MESHI_OPTION_VALUES = {
-  hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"]),
+  hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow"]),
   faces: new Set(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", "searching", "learning", "celebrating", "shy", "giggle", "synergy1017"]),
   colors: new Set(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]),
   hairs: new Set(["none", "fluffy", "bangs", "spikes", "curls"]),
-  accessories: new Set(["none", "glasses", "sunglasses", "monocle"]),
+  accessories: new Set(["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star"]),
   eyes: new Set(["regular", "lashes"]),
   badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder"]),
-  outfits: new Set(["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit"]),
+  outfits: new Set(["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit", "turtleneck", "varsity"]),
 };
 
 function cleanMeshiOption(value: string | undefined, allowed: Set<string>, fallback?: string) {
