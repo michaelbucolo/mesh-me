@@ -8967,3 +8967,99 @@ body > * { position: relative; z-index: 1; }
   .mesh-gate-leaving { animation: none; }
   .mesh-gate-leaving { opacity: 0; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REACTIVE INTERACTION LAYER — carry the login's alive, springy feel to
+   every surface. A cursor-tracked spotlight on cards, a universal tactile
+   press on anything clickable, and a gentle lift on hover. All motion is
+   guarded behind prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Cursor-reactive spotlight. ReactiveSurfaces writes --mx/--my as the
+     pointer moves; a soft brand-tinted glow follows it and the surface
+     lifts, so cards feel responsive the way the sign-in mesh does. */
+  .ds-interactive,
+  .glass-card,
+  .simple-card,
+  .mesh-surface,
+  .premium-surface,
+  .ds-glass-panel,
+  [data-reactive] {
+    position: relative;
+    transition:
+      transform 320ms var(--mesh-ease-out),
+      box-shadow 320ms var(--mesh-ease-out),
+      border-color 320ms ease;
+  }
+  .ds-interactive::after,
+  .glass-card::after,
+  .simple-card::after,
+  .mesh-surface::after,
+  .premium-surface::after,
+  .ds-glass-panel::after,
+  [data-reactive]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+    background: radial-gradient(
+      22rem 22rem at var(--mx, 50%) var(--my, 50%),
+      rgba(125, 155, 255, 0.14),
+      transparent 60%
+    );
+    z-index: 0;
+  }
+  .ds-interactive[data-hot]::after,
+  .glass-card[data-hot]::after,
+  .simple-card[data-hot]::after,
+  .mesh-surface[data-hot]::after,
+  .premium-surface[data-hot]::after,
+  .ds-glass-panel[data-hot]::after,
+  [data-reactive][data-hot]::after {
+    opacity: 1;
+  }
+  .ds-interactive[data-hot],
+  .glass-card[data-hot],
+  .simple-card[data-hot],
+  .mesh-surface[data-hot],
+  .premium-surface[data-hot],
+  .ds-glass-panel[data-hot],
+  [data-reactive][data-hot] {
+    transform: translateY(-2px);
+    border-color: rgba(125, 155, 255, 0.28);
+  }
+  /* Keep real content above the glow overlay. */
+  .ds-interactive > *,
+  .glass-card > *,
+  .simple-card > *,
+  .mesh-surface > *,
+  .premium-surface > *,
+  .ds-glass-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Universal tactile press — every clickable thing springs on tap, the
+     way the login's controls do. Transient scale only, so layout is safe. */
+  button:not(:disabled):not([data-no-press]),
+  [role="button"]:not([aria-disabled="true"]),
+  label[role="button"],
+  summary,
+  .mesh-pressable,
+  .mesh-choice,
+  a[data-pressable] {
+    transition: transform 150ms var(--mesh-ease-press), filter 150ms ease, box-shadow 150ms ease;
+  }
+  button:not(:disabled):not([data-no-press]):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  label[role="button"]:active,
+  summary:active,
+  .mesh-pressable:active,
+  .mesh-choice:active,
+  a[data-pressable]:active {
+    transform: scale(0.95);
+  }
+}

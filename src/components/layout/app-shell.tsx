@@ -24,6 +24,7 @@ import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-ident
 import { CommandPalette } from "@/components/layout/command-palette";
 import { KeyboardShortcutsOverlay } from "@/components/layout/keyboard-shortcuts-overlay";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ReactiveSurfaces } from "@/components/layout/reactive-surfaces";
 import { sidebarNavItems, resolveNavHref, isNavItemActive } from "@/components/layout/navigation-config";
 
 interface AppShellProps {
@@ -423,6 +424,7 @@ export function AppShell({ children, user }: AppShellProps) {
         </div>
       </main>
 
+      <ReactiveSurfaces />
       <MobileNav username={user.username} unreadMessages={unreadCounts.unreadMessages} unreadNotifications={unreadCounts.unreadNotifications} />
       <CommandPalette username={user.username} />
       <KeyboardShortcutsOverlay username={user.username} />
