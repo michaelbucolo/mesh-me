@@ -43,9 +43,13 @@ export function createPhysicsState(): PhysicsState {
 // nodes it links drift or get flung. Loose spring + light damping = natural.
 const STRAND_K = 52;
 const STRAND_DAMP = 6.5;
+// Radius (world units) each node clears around itself for strand routing.
+const NODE_CLEARANCE = 56;
+const STRAND_PUSH = 90;
 
 function stepStrands(model: SceneModel, state: PhysicsState, dt: number): void {
   const seen = new Set<string>();
+  const list = Array.from(model.nodes.values());
   model.nodes.forEach((node) => {
     if (!node.parentId) return;
     const parent = model.nodes.get(node.parentId);
@@ -67,6 +71,23 @@ function stepStrands(model: SceneModel, state: PhysicsState, dt: number): void {
     }
     s.vx += (restX - s.mx) * STRAND_K * dt - s.vx * STRAND_DAMP * dt;
     s.vy += (restY - s.my) * STRAND_K * dt - s.vy * STRAND_DAMP * dt;
+
+    // Route around obstacles: any node other than this strand's own endpoints
+    // pushes the control point away, so the strand bows around it instead of
+    // cutting through — strands never overlap a node, and long strands split
+    // their path around whatever's in the way.
+    for (let k = 0; k < list.length; k += 1) {
+      const other = list[k];
+      if (other.id === node.id || other.id === parent.id) continue;
+      const dx = s.mx - other.dx;
+      const dy = s.my - other.dy;
+      const d = Math.hypot(dx, dy);
+      if (d >= NODE_CLEARANCE || d < 0.001) continue;
+      const push = ((NODE_CLEARANCE - d) / NODE_CLEARANCE) * STRAND_PUSH;
+      s.vx += (dx / d) * push * dt;
+      s.vy += (dy / d) * push * dt;
+    }
+
     s.mx += s.vx * dt;
     s.my += s.vy * dt;
   });

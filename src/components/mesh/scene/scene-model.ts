@@ -65,6 +65,8 @@ export interface SceneNode {
   dy: number;
   vx: number;
   vy: number;
+  /** Timestamp (rAF clock) this node joined the mesh, for the arrival animation. */
+  bornAt?: number;
 }
 
 export interface SceneModel {

@@ -44,6 +44,16 @@ function project(node: { dx: number; dy: number }, o: RenderOptions) {
   };
 }
 
+const BIRTH_MS = 1150;
+
+/** 0→1 arrival progress (easeOutCubic) for a freshly joined node; 1 if settled. */
+function birthProgress(node: SceneNode, time: number): number {
+  if (node.bornAt == null) return 1;
+  const age = time - node.bornAt;
+  if (age < 0 || age >= BIRTH_MS) return 1;
+  return 1 - Math.pow(1 - age / BIRTH_MS, 3);
+}
+
 function baseRadius(node: SceneNode): number {
   switch (node.kind) {
     case "self":
@@ -600,10 +610,33 @@ export function drawScene(o: RenderOptions): void {
     grad.addColorStop(1, withAlpha(node.color, alpha));
     ctx.strokeStyle = grad;
     ctx.lineWidth = (onHoverPath ? 2.4 : node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);
+
+    // When the child just joined the mesh, the strand draws itself out from the
+    // parent to the new node, with a bright tip leading the way.
+    const strandGrow = birthProgress(node, time);
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
-    ctx.quadraticCurveTo(c.x, c.y, b.x, b.y);
-    ctx.stroke();
+    if (strandGrow < 1) {
+      const steps = 18;
+      const end = Math.max(0.02, strandGrow);
+      let tipX = a.x;
+      let tipY = a.y;
+      for (let si = 1; si <= steps; si += 1) {
+        const tt = (si / steps) * end;
+        const mt = 1 - tt;
+        tipX = mt * mt * a.x + 2 * mt * tt * c.x + tt * tt * b.x;
+        tipY = mt * mt * a.y + 2 * mt * tt * c.y + tt * tt * b.y;
+        ctx.lineTo(tipX, tipY);
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, 2.4 * Math.max(0.8, o.camera.zoom), 0, Math.PI * 2);
+      ctx.fillStyle = withAlpha(node.color, 0.9 * (1 - strandGrow) + 0.2);
+      ctx.fill();
+    } else {
+      ctx.quadraticCurveTo(c.x, c.y, b.x, b.y);
+      ctx.stroke();
+    }
 
     const label = parent.kind === "self" ? strandLabelFor(node) : null;
     if (label && o.camera.zoom >= 0.42) {
@@ -679,12 +712,26 @@ export function drawScene(o: RenderOptions): void {
 
   nodes.forEach((node) => {
     const p = project(node, o);
-    const r = Math.max(2.5, baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)));
+    let r = Math.max(2.5, baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)));
     o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(r, 14) });
 
     // Cull offscreen (cards are wide, so give them a larger margin).
     const cull = node.kind === "post" ? 170 : 80;
     if (p.x < -cull || p.x > width + cull || p.y < -cull || p.y > height + cull) return;
+
+    // Arrival: new content pops into its place with a grow + expanding burst
+    // ring before its strands draw out to everything it connects to.
+    const born = birthProgress(node, time);
+    if (born < 1 && node.kind !== "self") {
+      const burstR = r * (1.2 + born * 3.2);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, burstR, 0, Math.PI * 2);
+      ctx.strokeStyle = withAlpha(node.color, 0.5 * (1 - born));
+      ctx.lineWidth = 2 * (1 - born) + 0.5;
+      ctx.stroke();
+      // Overshoot grow-in.
+      r *= 0.35 + 0.75 * born - 0.1 * Math.sin(born * Math.PI);
+    }
 
     const emph = emphasisFor(node);
     const pulse = 0.5 + 0.5 * Math.sin(time * 0.002 + node.x * 0.02);
