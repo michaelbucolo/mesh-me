@@ -8577,19 +8577,38 @@ body > * { position: relative; z-index: 1; }
 
 /* Slim top progress bar for route navigation — makes moving around feel
    instant and continuous rather than a hard page swap. */
-.nav-progress {
+/* Navigation feedback: a luminous light sweeps across the top edge while a
+   route is loading — energetic and on-brand, not a filling progress bar. */
+.nav-sweep {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 200;
-  height: 2.5px;
+  height: 2px;
+  overflow: hidden;
   pointer-events: none;
+  animation: navSweepFade 240ms ease;
 }
-.nav-progress-bar {
+.nav-sweep-line {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
-  background: var(--brand-gradient-vibrant);
-  box-shadow: 0 0 12px rgba(110, 139, 255, 0.6), 0 0 4px rgba(236, 72, 153, 0.5);
-  border-radius: 0 2px 2px 0;
-  transition: width 220ms var(--mesh-ease-out), opacity 220ms ease;
+  width: 42%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #5b8def 30%, #8b5cf6 55%, #ec4899 78%, transparent);
+  box-shadow: 0 0 14px rgba(125, 155, 255, 0.7);
+  animation: navSweep 0.9s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+}
+@keyframes navSweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+@keyframes navSweepFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-sweep-line { animation: none; width: 100%; opacity: 0.6; }
 }
 
 /* Satisfying like: a ring bursts outward from the heart on tap. */
