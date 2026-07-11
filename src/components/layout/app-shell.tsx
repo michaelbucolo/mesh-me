@@ -154,14 +154,23 @@ function ShellTopBar({
     }
   }
 
+  const ownerInitials = (
+    user.displayName
+      .split(/\s+/)
+      .map((part) => part.charAt(0))
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("") || user.username.charAt(0) || "M"
+  ).toUpperCase();
+
   return (
-    <header className="mesh-topbar sticky top-0 z-30 flex min-h-[72px] items-center gap-4 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-6 backdrop-blur-xl">
+    <header className="mesh-topbar sticky top-0 z-30 flex min-h-[54px] items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:min-h-[72px] lg:gap-4 lg:px-6">
       <div className="min-w-0 flex-1 lg:flex-none">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-xl font-bold text-[var(--mesh-text)]">{routeInfo.title}</h1>
+          <h1 className="truncate text-[19px] font-bold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
         </div>
         {routeInfo.description && (
-          <p className="mt-0.5 text-sm text-[var(--mesh-text-muted)]">{routeInfo.description}</p>
+          <p className="mt-0.5 hidden text-sm text-[var(--mesh-text-muted)] lg:block">{routeInfo.description}</p>
         )}
       </div>
 
@@ -181,15 +190,12 @@ function ShellTopBar({
         <kbd className="hidden rounded-md border border-[var(--mesh-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--mesh-text-muted)] sm:inline-flex">⌘ K</kbd>
       </form>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        <Link href="/search" className="mesh-topbar-icon lg:hidden" aria-label="Search" title="Search">
-          <Search className="h-4 w-4" aria-hidden="true" />
-        </Link>
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
         <button type="button" onClick={shareCurrent} className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
         </button>
-        <Link href="/trust" className="mesh-topbar-icon" aria-label="Trust and verification" title="Verify">
+        <Link href="/trust" className="mesh-topbar-icon hidden lg:inline-flex" aria-label="Trust and verification" title="Verify">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
         </Link>
         <Link href="/notifications" className="mesh-topbar-icon relative" aria-label="Notifications" title="Notifications">
@@ -202,9 +208,10 @@ function ShellTopBar({
         </Link>
 
         <details className="relative">
-          <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-xl border border-[var(--mesh-border)] px-3 py-1.5 text-sm font-semibold text-[var(--mesh-text)] hover:bg-[var(--mesh-panel-hover)] transition-colors [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-            <span className="max-w-[9rem] truncate">{user.displayName}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-[var(--mesh-text-muted)]" aria-hidden="true" />
+          <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-full border-0 p-0 text-sm font-semibold text-[var(--mesh-text)] transition-colors lg:rounded-xl lg:border lg:border-[var(--mesh-border)] lg:px-3 lg:py-1.5 lg:hover:bg-[var(--mesh-panel-hover)] [&::-webkit-details-marker]:hidden" aria-label="Account menu">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--mesh-blue)]/15 text-xs font-bold text-[var(--mesh-blue)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
+            <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
+            <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
           </summary>
           <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg z-50">
             <div className="flex items-center gap-3 rounded-lg bg-[var(--mesh-bg-elevated)] p-3">
@@ -217,6 +224,8 @@ function ShellTopBar({
             <div className="mt-2 grid gap-0.5">
               <Link href={`/profile/${user.username}`} className="mesh-dropdown-item">Profile</Link>
               <Link href="/settings" className="mesh-dropdown-item">Settings</Link>
+              <Link href="/search" className="mesh-dropdown-item lg:hidden">Search</Link>
+              <Link href="/trust" className="mesh-dropdown-item lg:hidden">Verify</Link>
               <Link href="/privacy-controls" className="mesh-dropdown-item">Privacy Controls</Link>
               <Link href="/meshpro" className="mesh-dropdown-item">Mesh Pro</Link>
               <button
