@@ -9058,3 +9058,48 @@ body > * { position: relative; z-index: 1; }
     transform: scale(0.95);
   }
 }
+
+/* ── Mesh owner Meshi (centre-of-mesh presence) ─────────────────────
+   Awake and softly adrift when the owner is online; curled asleep with a
+   drifting Zzz when they're offline. */
+.mesh-owner-meshi {
+  position: relative;
+  display: inline-flex;
+  filter: drop-shadow(0 10px 26px rgba(110, 139, 255, 0.35));
+}
+.mesh-owner-meshi.is-online {
+  animation: meshOwnerFloat 5s ease-in-out infinite;
+}
+@keyframes meshOwnerFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.mesh-owner-meshi.is-asleep {
+  transform: rotate(8deg);
+  opacity: 0.85;
+  filter: grayscale(0.25) drop-shadow(0 8px 20px rgba(90, 104, 150, 0.3));
+  animation: meshOwnerSnooze 4.5s ease-in-out infinite;
+}
+@keyframes meshOwnerSnooze {
+  0%, 100% { transform: rotate(8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1.03); }
+}
+.mesh-owner-zzz {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: rgba(190, 205, 255, 0.9);
+  animation: meshOwnerZzz 3s ease-in-out infinite;
+}
+@keyframes meshOwnerZzz {
+  0% { opacity: 0; transform: translateY(4px) scale(0.7); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-16px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-owner-meshi.is-online,
+  .mesh-owner-meshi.is-asleep,
+  .mesh-owner-zzz { animation: none; }
+}
