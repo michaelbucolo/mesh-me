@@ -12,7 +12,17 @@ function createPrismaClient() {
     url: databaseUrl || "file:./prisma/dev.db",
     authToken: process.env.DATABASE_AUTH_TOKEN?.trim(),
   });
-  return new PrismaClient({ adapter });
+  const client = new PrismaClient({
+    adapter,
+    log: process.env.PRISMA_QUERY_LOG ? [{ emit: "event", level: "query" }] : [],
+  });
+  if (process.env.PRISMA_QUERY_LOG) {
+    (client as unknown as { $on: (e: string, cb: (ev: { query: string; duration: number }) => void) => void }).$on(
+      "query",
+      (e) => console.log(`[q ${e.duration}ms]`, e.query.slice(0, 110)),
+    );
+  }
+  return client;
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
