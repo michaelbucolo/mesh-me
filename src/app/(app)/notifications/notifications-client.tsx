@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -133,6 +133,42 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
       }
     });
   }
+
+  // The hub stays live on its own: silent background refresh while the tab is
+  // visible (and on re-focus), applying state only when something changed —
+  // no manual Refresh clicking required.
+  useEffect(() => {
+    let stopped = false;
+    const silentRefresh = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const response = await fetch("/api/notifications?limit=100", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        if (!response.ok) return;
+        const data = (await response.json().catch(() => null)) as (Partial<NotificationCenterPayload> & { error?: string }) | null;
+        if (stopped || !data || data.error || !data.groups || !data.categories || !data.notifications) return;
+        setPayload((prev) =>
+          JSON.stringify(prev.notifications) === JSON.stringify(data.notifications)
+            ? prev
+            : (data as NotificationCenterPayload),
+        );
+      } catch {
+        // Best-effort — the next tick retries.
+      }
+    };
+    const interval = window.setInterval(silentRefresh, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void silentRefresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   return (
     <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5 animate-page-enter">
