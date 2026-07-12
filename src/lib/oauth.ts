@@ -91,6 +91,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     scopes: ["tweet.read", "tweet.write", "users.read", "like.read", "like.write", "follows.read", "follows.write", "offline.access"],
     clientIdEnv: "TWITTER_CLIENT_ID",
     clientSecretEnv: "TWITTER_CLIENT_SECRET",
+    tokenAuthMethod: "client_secret_basic",
     usernameField: "username",
     profileDataPath: "data",
     extraAuthParams: { code_challenge_method: "S256" },
