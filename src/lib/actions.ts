@@ -335,9 +335,11 @@ export async function signUp(formData: FormData) {
         isPublic: false,
         // Findable by default (you can appear as a suggestion and approve
         // followers) while your content stays private via isPublic. Users can
-        // opt out of discovery in settings.
+        // opt out of discovery in settings. Presence is likewise visible by
+        // default — hiding it silently kills every live-Meshi feature — and
+        // can be turned off in privacy settings.
         showInDiscovery: true,
-        hideActivityStatus: true,
+        hideActivityStatus: false,
         readReceipts: false,
         nsfwEnabled: false,
         adultVerificationStatus: "unverified",
@@ -784,7 +786,7 @@ export async function completeOnboarding(formData: FormData) {
       location: location || null,
       isPublic: meshVisibility === "public",
       showInDiscovery: bool("showInDiscovery", true) && meshVisibility !== "private",
-      hideActivityStatus: bool("hideActivityStatus", true),
+      hideActivityStatus: bool("hideActivityStatus", false),
       readReceipts: bool("readReceipts", false),
       onboarded: true,
     },

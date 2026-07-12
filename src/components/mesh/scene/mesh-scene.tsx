@@ -105,6 +105,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const presenceTargetsRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
   const presenceElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const presencePosRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
+  // "room" = viewing this same mesh (drifts like a live cursor);
+  // "perch" = a connection online elsewhere, perched on their own node.
+  const presenceModeRef = useRef<Map<string, "room" | "perch">>(new Map());
+  const perchPosRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const hoverIdRef = useRef<string | null>(null);
   const cursorVpRef = useRef({ vx: 0.5, vy: 0.5 });
   const meshOwnerIdRef = useRef<string | null>(null);
@@ -671,19 +675,32 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         const data = await res.json().catch(() => null);
         if (stopped || !data) return;
         const list: RemotePresence[] = Array.isArray(data.presences) ? data.presences : [];
-        // Only Meshis of users actively viewing this exact mesh right now.
-        const visible = list.filter((p) => p.isOnline && p.viewingMesh === meshOwner);
+        // Everyone online: people viewing THIS mesh drift as live cursors;
+        // connections online elsewhere perch on their own node in the web.
+        const visible = list.filter((p) => p.isOnline);
         const visibleIds = new Set(visible.map((p) => p.userId));
         for (const p of visible) {
-          presenceTargetsRef.current.set(p.userId, {
-            vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
-            vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
-          });
+          if (p.viewingMesh === meshOwner) {
+            presenceModeRef.current.set(p.userId, "room");
+            presenceTargetsRef.current.set(p.userId, {
+              vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
+              vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
+            });
+          } else {
+            presenceModeRef.current.set(p.userId, "perch");
+            presenceTargetsRef.current.delete(p.userId);
+          }
         }
         presenceTargetsRef.current.forEach((_, id) => {
           if (!visibleIds.has(id)) {
             presenceTargetsRef.current.delete(id);
             presencePosRef.current.delete(id);
+          }
+        });
+        presenceModeRef.current.forEach((_, id) => {
+          if (!visibleIds.has(id)) {
+            presenceModeRef.current.delete(id);
+            perchPosRef.current.delete(id);
           }
         });
         setRemotePresences(visible);
@@ -725,8 +742,28 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       // user is looking rather than mirroring a mouse at full speed.
       const k = 1 - Math.exp(-dt / 650);
       presenceElsRef.current.forEach((el, userId) => {
+        // Connections online elsewhere perch above their own node in the web,
+        // tracking it as the mesh pans and drifts.
+        if (presenceModeRef.current.get(userId) === "perch") {
+          const hb = hitboxesRef.current.get(`person:${userId}`);
+          if (!hb) {
+            el.style.opacity = "0";
+            return;
+          }
+          const tx = hb.x;
+          const ty = hb.y - hb.r - 24;
+          const pos = perchPosRef.current.get(userId) ?? { x: tx, y: ty };
+          pos.x += (tx - pos.x) * k;
+          pos.y += (ty - pos.y) * k;
+          perchPosRef.current.set(userId, pos);
+          el.style.opacity = "1";
+          el.style.left = `${pos.x}px`;
+          el.style.top = `${pos.y}px`;
+          return;
+        }
         const target = presenceTargetsRef.current.get(userId);
         if (!target) return;
+        el.style.opacity = "1";
         const pos = presencePosRef.current.get(userId) ?? { ...target };
         pos.vx += (target.vx - pos.vx) * k;
         pos.vy += (target.vy - pos.vy) * k;
@@ -995,6 +1032,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           }}
           className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
           style={(() => {
+            // Perched connections are positioned per-frame from their node;
+            // start invisible so they never flash in at the viewport centre.
+            if (presenceModeRef.current.get(p.userId) === "perch") {
+              const pos = perchPosRef.current.get(p.userId);
+              return pos
+                ? { left: `${pos.x}px`, top: `${pos.y}px` }
+                : { left: "50%", top: "50%", opacity: 0 };
+            }
             const pos =
               presencePosRef.current.get(p.userId) ??
               presenceTargetsRef.current.get(p.userId) ?? {
