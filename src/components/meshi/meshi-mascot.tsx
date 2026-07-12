@@ -282,6 +282,12 @@ const TWO_HAND_PROPS: Set<MeshiProp> = new Set(["keyboard", "notebook", "paper",
 // Accessories that hang and should swing like pendulums when Meshi moves.
 const DANGLING_ACCESSORIES = new Set(["earrings", "necklace"]);
 
+// Hats that leave the crown open — hair renders at full size under these.
+// Every other hat compresses the hair so strands tuck under the brim instead
+// of poking through the shell.
+const OPEN_HATS = new Set(["none", "halo", "headband", "bow", "flower"]);
+const HAIR_TUCK_TRANSFORM = "translate(0, 2.4) scale(0.88)";
+
 const HOLDING_POSES = {
   single: {
     right: { side: "right", shoulderX: 11.8, shoulderY: 5, elbowX: 15.4, elbowY: 7.8, handX: 17, handY: 10 },
@@ -310,10 +316,15 @@ const HATS: Record<string, React.ReactNode> = {
   ),
   crown: (
     <g transform="translate(0, -14)">
-      <polygon points="-11,3 -11,-3 -7,-0.5 -3.5,-7 0,-0.5 3.5,-7 7,-0.5 11,-3 11,3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.6" />
-      <circle cx="-3.5" cy="-3.5" r="1.3" fill="#ef4444" />
-      <circle cx="3.5" cy="-3.5" r="1.3" fill="#3b82f6" />
-      <circle cx="0" cy="-1" r="1.3" fill="#22c55e" />
+      <polygon points="-11,3 -11,-3 -7,-0.5 -3.5,-7 0,-0.5 3.5,-7 7,-0.5 11,-3 11,3" fill="#fbbf24" stroke="#d97706" strokeWidth="0.7" strokeLinejoin="round" />
+      <polygon points="-11,3 -11,-3 -7,-0.5 -3.5,-7 -1.8,-3.6 -1.8,3" fill="rgba(255,255,255,0.16)" />
+      <rect x="-11" y="1.2" width="22" height="2.4" rx="1" fill="#f59e0b" />
+      <path d="M-9 2.4 H9" stroke="rgba(255,255,255,0.28)" strokeWidth="0.6" strokeLinecap="round" />
+      <circle cx="-3.5" cy="-3.8" r="1.3" fill="#ef4444" stroke="rgba(255,255,255,0.4)" strokeWidth="0.4" />
+      <circle cx="3.5" cy="-3.8" r="1.3" fill="#3b82f6" stroke="rgba(255,255,255,0.4)" strokeWidth="0.4" />
+      <circle cx="0" cy="-1.4" r="1.3" fill="#22c55e" stroke="rgba(255,255,255,0.4)" strokeWidth="0.4" />
+      <circle cx="-3.9" cy="-4.2" r="0.4" fill="rgba(255,255,255,0.75)" />
+      <circle cx="3.1" cy="-4.2" r="0.4" fill="rgba(255,255,255,0.75)" />
     </g>
   ),
   beanie: (
@@ -339,112 +350,160 @@ const HATS: Record<string, React.ReactNode> = {
   hardhat: (
     <g transform="translate(0, -11)">
       <path d="M-12,2 Q-12,-9 0,-9 Q12,-9 12,2 Z" fill="#f59e0b" />
-      <rect x="-2.4" y="-8" width="4.8" height="9" rx="1" fill="#fbbf24" opacity="0.9" />
+      <path d="M-12,2 Q-12,-9 0,-9 L0,2 Z" fill="rgba(0,0,0,0.14)" />
+      <rect x="-2.4" y="-8.6" width="4.8" height="10" rx="1.6" fill="#fbbf24" />
+      <path d="M-8,-4.5 Q-9.4,-1 -9.4,2 M8,-4.5 Q9.4,-1 9.4,2" fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="0.9" />
       <rect x="-14" y="1.4" width="28" height="3.2" rx="1.6" fill="#d97706" />
+      <path d="M-12.5 3 H12.5" stroke="rgba(255,255,255,0.2)" strokeWidth="0.7" strokeLinecap="round" />
+      <path d="M-7 -6.5 Q-3.5 -8.6 0 -8.7" stroke="rgba(255,255,255,0.35)" strokeWidth="1" fill="none" strokeLinecap="round" />
     </g>
   ),
   party: (
     <g transform="translate(0, -11)">
-      <polygon points="0,-10 -7,3 7,3" fill="#ec4899" stroke="#db2777" strokeWidth="0.5" />
-      <circle cx="0" cy="-10" r="1.6" fill="#fbbf24" />
-      <circle cx="-2.6" cy="-2.5" r="1" fill="#3b82f6" />
-      <circle cx="2.6" cy="-0.5" r="1" fill="#22c55e" />
-      <circle cx="0.6" cy="-6" r="1" fill="#f97316" />
+      <polygon points="0,-10 -7,3 7,3" fill="#ec4899" stroke="#db2777" strokeWidth="0.5" strokeLinejoin="round" />
+      <path d="M0,-10 L-7,3 L-3.2,3 Z" fill="rgba(255,255,255,0.16)" />
+      <path d="M-4.9,-1 Q0,1.4 4.9,-1 M-2.8,-4.8 Q0,-3.4 2.8,-4.8" fill="none" stroke="#fbbf24" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M-7,3 Q0,4.6 7,3" fill="none" stroke="#db2777" strokeWidth="1.1" strokeLinecap="round" />
+      <circle cx="0" cy="-10.6" r="1.8" fill="#fbbf24" />
+      <circle cx="-0.6" cy="-11.2" r="0.6" fill="rgba(255,255,255,0.7)" />
     </g>
   ),
   flower: (
     <g transform="translate(7, -13)">
-      <circle cx="0" cy="0" r="2.6" fill="#fbbf24" />
       {FLOWER_POSITIONS.map((pos) => (
-        <circle
+        <ellipse
           key={pos.deg}
           cx={pos.cx}
           cy={pos.cy}
-          r="2.2"
+          rx="2.5"
+          ry="2"
+          transform={`rotate(${pos.deg} ${pos.cx} ${pos.cy})`}
           fill="#ec4899"
-          opacity="0.85"
+          stroke="#db2777"
+          strokeWidth="0.4"
+          opacity="0.95"
         />
       ))}
+      <path d="M-4.5 3.5 Q-8 4.5 -9.5 8 Q-5.5 7.5 -4 4.8 Z" fill="#22c55e" opacity="0.9" />
+      <circle cx="0" cy="0" r="2.7" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.5" />
+      <circle cx="-0.7" cy="-0.7" r="0.8" fill="rgba(255,255,255,0.55)" />
     </g>
   ),
   beret: (
     <g transform="translate(0, -12)">
-      <path d="M-11 1 Q-11 -7 0 -7 Q11 -7 11 0 Q6 3 -4 3 Q-9 3 -11 1 Z" fill="currentColor" opacity="0.9" />
-      <circle cx="3" cy="-6.6" r="1.4" fill="currentColor" />
+      <path d="M-11 1 Q-12 -6 -3 -7.4 Q6 -8.4 11 -1 Q11.6 1.4 6 2.6 Q-4 4 -9.5 2.6 Q-11 2 -11 1 Z" fill="currentColor" opacity="0.94" />
+      <path d="M-11 1 Q-12 -6 -3 -7.4 L-2 2.8 Q-7 3.4 -9.5 2.6 Q-11 2 -11 1 Z" fill="rgba(0,0,0,0.14)" />
+      <path d="M-8 -4.5 Q-2 -7.6 5 -5.5" stroke="rgba(255,255,255,0.28)" strokeWidth="1" fill="none" strokeLinecap="round" />
+      <path d="M-7 1.8 Q0 3.2 8 1.6" fill="none" stroke="rgba(0,0,0,0.22)" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M2.4 -7.2 Q3 -9 4.2 -9.4" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
     </g>
   ),
   headband: (
     <g transform="translate(0, -9)">
-      <path d="M-12 -1 Q0 -7 12 -1 L12 1.6 Q0 -4.4 -12 1.6 Z" fill="currentColor" opacity="0.9" />
-      <circle cx="-9" cy="-1.2" r="1.7" fill="currentColor" />
+      <path d="M-12 -1 Q0 -7.4 12 -1 L12 2 Q0 -4.4 -12 2 Z" fill="currentColor" opacity="0.94" />
+      <path d="M-12 -1 Q0 -7.4 12 -1 L12 0 Q0 -6.2 -12 0 Z" fill="rgba(255,255,255,0.2)" />
+      <path d="M-8 -2.6 L-7.4 -0.2 M-4 -4 L-3.6 -1.6 M0 -4.6 L0 -2.2 M4 -4 L3.6 -1.6 M8 -2.6 L7.4 -0.2" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
+      <circle cx="-9.5" cy="-2" r="1.8" fill="currentColor" />
+      <path d="M-11 -0.6 L-12.4 1.8 M-8.4 -0.5 L-7.6 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </g>
   ),
   bow: (
     <g transform="translate(0, -14)">
-      <path d="M0 0 L-7 -3.6 L-7 3.6 Z" fill="currentColor" opacity="0.92" />
-      <path d="M0 0 L7 -3.6 L7 3.6 Z" fill="currentColor" opacity="0.92" />
-      <circle cx="0" cy="0" r="1.9" fill="currentColor" />
+      <path d="M-0.8 0 Q-4.5 -4.6 -7.4 -3.4 Q-9 -2.6 -8.2 0.2 Q-7.4 3 -5.4 3.4 Q-3 3.8 -0.8 0 Z" fill="currentColor" opacity="0.95" />
+      <path d="M0.8 0 Q4.5 -4.6 7.4 -3.4 Q9 -2.6 8.2 0.2 Q7.4 3 5.4 3.4 Q3 3.8 0.8 0 Z" fill="currentColor" opacity="0.95" />
+      <path d="M-0.8 0 Q-4 -3.6 -6.6 -2.8" fill="none" stroke="rgba(0,0,0,0.22)" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M0.8 0 Q4 -3.6 6.6 -2.8" fill="none" stroke="rgba(0,0,0,0.22)" strokeWidth="0.8" strokeLinecap="round" />
+      <rect x="-1.9" y="-1.9" width="3.8" height="3.8" rx="1.2" fill="currentColor" />
+      <path d="M-1.2 -1.2 L0.6 -0.4" stroke="rgba(255,255,255,0.4)" strokeWidth="0.7" strokeLinecap="round" />
     </g>
   ),
   cowboy: (
     <g transform="translate(0, -12)">
-      <path d="M-8 0 Q-8 -8 0 -8 Q8 -8 8 0 Z" fill="currentColor" opacity="0.92" />
-      <path d="M-14 1 Q-10 4 0 4 Q10 4 14 1 Q10 -1 8 0 L-8 0 Q-10 -1 -14 1 Z" fill="currentColor" opacity="0.85" />
-      <path d="M-8 -1 Q0 1 8 -1" fill="none" stroke="#92400e" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M-8 0 Q-8.6 -8.6 -4 -8.2 Q-2 -5.8 0 -5.8 Q2 -5.8 4 -8.2 Q8.6 -8.6 8 0 Z" fill="currentColor" opacity="0.95" />
+      <path d="M-8 0 Q-8.6 -8.6 -4 -8.2 Q-2.4 -6.2 -1.4 -6 L-1.4 0 Z" fill="rgba(0,0,0,0.14)" />
+      <path d="M0 -5.8 L0 -1" stroke="rgba(0,0,0,0.2)" strokeWidth="1" strokeLinecap="round" />
+      <path d="M-14 0.6 Q-13 3.4 -9 4 Q0 5.2 9 4 Q13 3.4 14 0.6 Q10.4 -1 8 0 L-8 0 Q-10.4 -1 -14 0.6 Z" fill="currentColor" opacity="0.88" />
+      <path d="M-13 1.6 Q-6 3.6 0 3.6 Q6 3.6 13 1.6" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M-8 -0.8 Q0 1 8 -0.8" fill="none" stroke="#92400e" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="-1.2" y="-0.9" width="2.4" height="1.9" rx="0.5" fill="#fbbf24" />
     </g>
   ),
   graduation: (
     <g transform="translate(0, -13)">
-      <polygon points="0,-7 14,-1.5 0,4 -14,-1.5" fill="currentColor" opacity="0.94" />
-      <rect x="-5" y="0.5" width="10" height="4" rx="1" fill="currentColor" opacity="0.75" />
-      <line x1="10" y1="0" x2="10" y2="7" stroke="#fbbf24" strokeWidth="1.4" strokeLinecap="round" />
-      <circle cx="10" cy="8.4" r="1.6" fill="#fbbf24" />
+      <path d="M-6 0.5 Q-6 -1.5 0 -1.5 Q6 -1.5 6 0.5 L6 2.8 Q6 4.8 0 4.8 Q-6 4.8 -6 2.8 Z" fill="currentColor" opacity="0.8" />
+      <polygon points="0,-7 14,-1.5 0,4 -14,-1.5" fill="currentColor" opacity="0.96" />
+      <polygon points="0,-7 -14,-1.5 0,4" fill="rgba(0,0,0,0.14)" />
+      <polygon points="0,-7 14,-1.5 0,4" fill="rgba(255,255,255,0.08)" />
+      <circle cx="0" cy="-1.5" r="1.1" fill="#fbbf24" />
+      <path d="M0 -1.5 Q6 -1.4 10 0" fill="none" stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="10" y1="0" x2="10" y2="6.6" stroke="#fbbf24" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M8.8 6.6 H11.2 L10.9 9.4 Q10 10 9.1 9.4 Z" fill="#fbbf24" />
     </g>
   ),
   // MeshPro exclusive hats
   headphones: (
     <g transform="translate(0, -10)">
-      <path d="M-12,4 Q-12,-9 0,-9 Q12,-9 12,4" fill="none" stroke="#6b7280" strokeWidth="3" strokeLinecap="round" />
-      <rect x="-15" y="0" width="6" height="9" rx="2.5" fill="#374151" />
-      <rect x="9" y="0" width="6" height="9" rx="2.5" fill="#374151" />
+      <path d="M-12,4 Q-12,-9 0,-9 Q12,-9 12,4" fill="none" stroke="#4b5563" strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M-8,-6.4 Q0,-10.4 8,-6.4" fill="none" stroke="#6b7280" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="-15.4" y="-0.6" width="6.6" height="10" rx="3" fill="#374151" stroke="#1f2937" strokeWidth="0.7" />
+      <rect x="8.8" y="-0.6" width="6.6" height="10" rx="3" fill="#374151" stroke="#1f2937" strokeWidth="0.7" />
+      <rect x="-14.2" y="0.6" width="2" height="7.6" rx="1" fill="rgba(255,255,255,0.14)" />
+      <rect x="10" y="0.6" width="2" height="7.6" rx="1" fill="rgba(255,255,255,0.14)" />
+      <circle cx="-12.1" cy="4.4" r="1.4" fill="#111827" />
+      <circle cx="12.1" cy="4.4" r="1.4" fill="#111827" />
     </g>
   ),
   halo: (
     <g transform="translate(0, -18.5)">
       <ellipse cx="0" cy="0" rx="11" ry="3.4" fill="none" stroke="#fde68a" strokeWidth="2.6" opacity="0.95" />
       <ellipse cx="0" cy="0" rx="11" ry="3.4" fill="none" stroke="#fbbf24" strokeWidth="1" opacity="0.6" />
+      <path d="M-8 -2.2 Q-4 -3.6 0 -3.4" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="0.9" strokeLinecap="round" />
+      <circle cx="11.6" cy="0.6" r="0.7" fill="#fef3c7" opacity="0.9" />
+      <circle cx="-11.6" cy="0.6" r="0.7" fill="#fef3c7" opacity="0.9" />
     </g>
   ),
   wizard: (
     <g transform="translate(0, -11)">
-      <polygon points="0,-12 -9,3 9,3" fill="#6366f1" stroke="#4f46e5" strokeWidth="0.5" />
-      <path d="M-10,3 Q0,1 10,3 L10,5 Q0,3.4 -10,5 Z" fill="#4f46e5" opacity="0.9" />
-      <circle cx="0" cy="-8.5" r="1.5" fill="#fbbf24" />
-      <circle cx="-3" cy="-2" r="1" fill="#fbbf24" opacity="0.6" />
-      <circle cx="2.6" cy="-5" r="0.9" fill="#fbbf24" opacity="0.5" />
+      <path d="M0 -12 Q-1.6 -8 -4.6 -4.4 L-9 3 L9 3 L3.4 -6.4 Q1.4 -9.6 0 -12 Z" fill="#6366f1" stroke="#4f46e5" strokeWidth="0.6" strokeLinejoin="round" />
+      <path d="M0 -12 Q-1.6 -8 -4.6 -4.4 L-9 3 L-2.6 3 Z" fill="rgba(0,0,0,0.16)" />
+      <path d="M-10,3 Q0,0.8 10,3 L10,5.2 Q0,3.2 -10,5.2 Z" fill="#4f46e5" />
+      <path d="M-9 3.6 Q0 1.8 9 3.6" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.7" />
+      <circle cx="0" cy="-12" r="1.5" fill="#fbbf24" />
+      <path d="M-3.4 -2.4 L-2.9 -1.2 L-1.7 -1 L-2.6 -0.2 L-2.4 1 L-3.4 0.4 L-4.4 1 L-4.2 -0.2 L-5.1 -1 L-3.9 -1.2 Z" fill="#fbbf24" opacity="0.9" />
+      <path d="M3.6 -5.2 Q2.6 -4 3.2 -2.6 Q1.8 -3.4 1.9 -4.9 Q2.6 -5.6 3.6 -5.2 Z" fill="#fbbf24" opacity="0.75" />
     </g>
   ),
   astronaut: (
     <g transform="translate(0, -6)">
       <path d="M-15,4 Q-15,-12 0,-12 Q15,-12 15,4 Z" fill="rgba(148,163,184,0.16)" stroke="#e2e8f0" strokeWidth="2" />
-      <ellipse cx="-5" cy="-5" rx="3" ry="2" fill="rgba(255,255,255,0.25)" />
+      <path d="M-13,3 Q-13,-10 0,-10" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.1" strokeLinecap="round" />
+      <ellipse cx="-6" cy="-6" rx="3.2" ry="1.8" fill="rgba(255,255,255,0.3)" transform="rotate(-20 -6 -6)" />
+      <rect x="-16.6" y="1" width="3.2" height="4.6" rx="1.4" fill="#cbd5e1" />
+      <rect x="13.4" y="1" width="3.2" height="4.6" rx="1.4" fill="#cbd5e1" />
+      <line x1="0" y1="-12" x2="0" y2="-14.6" stroke="#cbd5e1" strokeWidth="1.1" strokeLinecap="round" />
+      <circle cx="0" cy="-15.4" r="1" fill="#ef4444" />
     </g>
   ),
   pirate: (
     <g transform="translate(0, -12)">
       <path d="M-13,2 Q-13,-6 0,-7 Q13,-6 13,2 Z" fill="#1f2937" />
-      <rect x="-14" y="0.8" width="28" height="3" rx="1" fill="#111827" />
-      <path d="M-3.6,-3.4 L0,-5.4 L3.6,-3.4 L1.8,-1.4 L-1.8,-1.4 Z" fill="#e5e7eb" />
-      <circle cx="0" cy="-2.6" r="0.85" fill="#1f2937" />
+      <path d="M-13,2 Q-13,-6 0,-7 L0,2 Z" fill="rgba(255,255,255,0.05)" />
+      <path d="M-14,0.8 Q-15,3.2 -12,3.8 Q0,5.4 12,3.8 Q15,3.2 14,0.8 Q10,-0.6 8,0.6 Q0,2 -8,0.6 Q-10,-0.6 -14,0.8 Z" fill="#111827" stroke="#fbbf24" strokeWidth="0.7" />
+      <circle cx="0" cy="-2.9" r="2.4" fill="#e5e7eb" />
+      <ellipse cx="-0.85" cy="-3.3" rx="0.6" ry="0.75" fill="#1f2937" />
+      <ellipse cx="0.85" cy="-3.3" rx="0.6" ry="0.75" fill="#1f2937" />
+      <path d="M-2.5 0 L2.5 -1.4 M-2.5 -1.4 L2.5 0" stroke="#e5e7eb" strokeWidth="1" strokeLinecap="round" />
     </g>
   ),
   chef: (
     <g transform="translate(0, -12)">
-      <rect x="-9" y="-2" width="18" height="5" rx="1.2" fill="#f8fafc" />
-      <circle cx="-6" cy="-4" r="4.4" fill="#f8fafc" />
-      <circle cx="6" cy="-4" r="4.4" fill="#f8fafc" />
-      <circle cx="0" cy="-6" r="4.8" fill="#f8fafc" />
-      <rect x="-9" y="1.6" width="18" height="2.6" rx="1" fill="#e2e8f0" />
+      <circle cx="-6.2" cy="-4.2" r="4.6" fill="#f8fafc" />
+      <circle cx="6.2" cy="-4.2" r="4.6" fill="#f8fafc" />
+      <circle cx="0" cy="-6.4" r="5.2" fill="#f8fafc" />
+      <rect x="-9.2" y="-3.4" width="18.4" height="6.2" rx="1.4" fill="#f8fafc" />
+      <path d="M-4.6 -8.4 Q-4.2 -5 -4.6 -2 M0 -11 Q0.4 -6 0 -2 M4.6 -8.4 Q4.2 -5 4.6 -2" stroke="rgba(15,23,42,0.12)" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+      <rect x="-9.2" y="1.6" width="18.4" height="2.8" rx="1.2" fill="#e2e8f0" />
+      <path d="M-8 3 H8" stroke="rgba(15,23,42,0.1)" strokeWidth="0.7" strokeLinecap="round" />
     </g>
   ),
 };
@@ -453,25 +512,34 @@ const HAIRS: Record<string, React.ReactNode> = {
   none: null,
   fluffy: (
     <g transform="translate(0, -13)">
-      <path d="M-12,3 Q-10,-8 -4,-7 Q-1,-12 3,-8 Q8,-10 12,2" fill="currentColor" opacity="0.8" />
+      <path d="M-12,3 Q-12.6,-4 -7.6,-6 Q-6,-9.4 -2.4,-8.6 Q0,-11.6 3.4,-9.2 Q7.6,-10 9.2,-6.2 Q12.6,-4.4 12,2 Q8,-2 5.4,-5 Q3,-2.6 0.4,-6 Q-2.6,-2.8 -5.6,-5.4 Q-8.6,-2 -12,3 Z" fill="currentColor" opacity="0.9" />
+      <path d="M-7 -5.8 Q-4 -8.2 -1 -7.4" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" strokeLinecap="round" />
+      <path d="M1.6 -8 Q4.4 -8.8 6.6 -6.8" fill="none" stroke="rgba(255,255,255,0.24)" strokeWidth="0.9" strokeLinecap="round" />
     </g>
   ),
   bangs: (
     <g transform="translate(0, -12)">
-      <path d="M-13,3 Q-9,-8 0,-8 Q9,-8 13,3 L9,3 Q7,-2 4,1 Q1,-2 -2,1 Q-5,-2 -8,3 Z" fill="currentColor" opacity="0.85" />
+      <path d="M-13,3 Q-13,-9 0,-9 Q13,-9 13,3 L9.4,3 Q8.4,-2.6 5.4,0.6 Q3.4,-3.2 0.4,0.2 Q-2.4,-3.4 -5,0.4 Q-7.6,-2.8 -9.2,3 Z" fill="currentColor" opacity="0.92" />
+      <path d="M-9 -6.4 Q-4 -8.8 0 -8.6" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" strokeLinecap="round" />
+      <path d="M-5 0.4 Q-4.4 -1.8 -3.6 -2.8 M0.4 0.2 Q1 -2 1.8 -3 M5.4 0.6 Q6 -1.4 6.8 -2.4" stroke="rgba(0,0,0,0.16)" strokeWidth="0.8" fill="none" strokeLinecap="round" />
     </g>
   ),
   spikes: (
     <g transform="translate(0, -13)">
-      <polygon points="-12,3 -10,-7 -6,2 -2,-8 2,2 6,-7 10,2 12,3" fill="currentColor" opacity="0.85" />
+      <path d="M-12,3 L-10.4,-6.6 Q-9.6,-7.6 -9,-6.4 L-6.4,1.4 L-3,-8.4 Q-2.2,-9.6 -1.6,-8.2 L1.6,1.6 L5.4,-7 Q6.2,-8.2 6.8,-6.8 L9.6,1.4 L12,3 Z" fill="currentColor" opacity="0.92" />
+      <path d="M-10.4,-6.6 L-9.4,-2 M-3,-8.4 L-1.9,-4 M5.4,-7 L6.4,-2.6" stroke="rgba(255,255,255,0.26)" strokeWidth="0.8" strokeLinecap="round" />
     </g>
   ),
   curls: (
     <g transform="translate(0, -12)">
-      <circle cx="-8" cy="0" r="4" fill="currentColor" opacity="0.8" />
-      <circle cx="-2" cy="-2" r="4.5" fill="currentColor" opacity="0.82" />
-      <circle cx="5" cy="-1" r="4.2" fill="currentColor" opacity="0.8" />
-      <circle cx="10" cy="1" r="3.5" fill="currentColor" opacity="0.78" />
+      <circle cx="-8.4" cy="0.4" r="4" fill="currentColor" opacity="0.86" />
+      <circle cx="-2.4" cy="-2" r="4.6" fill="currentColor" opacity="0.9" />
+      <circle cx="4.4" cy="-1.4" r="4.3" fill="currentColor" opacity="0.88" />
+      <circle cx="9.8" cy="0.8" r="3.5" fill="currentColor" opacity="0.84" />
+      <path d="M-9.6 -0.4 Q-8.2 -2.4 -6.4 -1 Q-6.8 0.8 -8.6 0.6" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M-3.6 -3.4 Q-1.6 -4.8 -0.2 -2.9 Q-1 -1 -3 -1.6" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M3.2 -3 Q5.2 -4 6.2 -2.2 Q5.2 -0.6 3.6 -1.4" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M-4 -4.6 Q-2 -6 0 -5" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" strokeLinecap="round" />
     </g>
   ),
 };
@@ -512,62 +580,78 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
   ),
   monocle: (
     <g transform="translate(0, 0)">
-      <circle cx="5.5" cy="-1.2" r="3.3" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <line x1="8.6" y1="2" x2="10" y2="5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="5.5" cy="-1.2" r="3.4" fill="rgba(255,255,255,0.1)" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="5.5" cy="-1.2" r="2.2" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.6" />
+      <path d="M4.4 -2.6 L5.8 -1.2" stroke="rgba(255,255,255,0.45)" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M8.4 1.4 Q9.6 3.4 9.4 5.6 Q9.2 7 10.4 7.6" fill="none" stroke="#fbbf24" strokeWidth="1" strokeLinecap="round" />
     </g>
   ),
   earrings: (
     <g>
-      <circle cx="-15" cy="5.4" r="1.5" fill="currentColor" />
-      <circle cx="15" cy="5.4" r="1.5" fill="currentColor" />
-      <circle cx="-15" cy="8.2" r="1.1" fill="#fbbf24" />
-      <circle cx="15" cy="8.2" r="1.1" fill="#fbbf24" />
+      <path d="M-15 3.6 Q-15.8 4.6 -15 5.4 M15 3.6 Q15.8 4.6 15 5.4" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" />
+      <circle cx="-15" cy="6" r="1.4" fill="currentColor" />
+      <circle cx="15" cy="6" r="1.4" fill="currentColor" />
+      <path d="M-15 7.4 L-15 8 M15 7.4 L15 8" stroke="#fbbf24" strokeWidth="0.8" strokeLinecap="round" />
+      <circle cx="-15" cy="9.2" r="1.2" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" />
+      <circle cx="15" cy="9.2" r="1.2" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" />
+      <circle cx="-15.4" cy="8.8" r="0.35" fill="rgba(255,255,255,0.8)" />
+      <circle cx="14.6" cy="8.8" r="0.35" fill="rgba(255,255,255,0.8)" />
     </g>
   ),
   bowtie: (
     <g transform="translate(0, 14.5)">
-      <path d="M0 0 L-6 -3.2 L-6 3.2 Z" fill="currentColor" opacity="0.92" />
-      <path d="M0 0 L6 -3.2 L6 3.2 Z" fill="currentColor" opacity="0.92" />
-      <rect x="-1.6" y="-1.9" width="3.2" height="3.8" rx="0.9" fill="currentColor" />
+      <path d="M-1 0 Q-4 -3.4 -6.4 -3 Q-7.4 -2.6 -7.2 -0.6 L-7.2 0.6 Q-7.4 2.6 -6.4 3 Q-4 3.4 -1 0 Z" fill="currentColor" opacity="0.95" />
+      <path d="M1 0 Q4 -3.4 6.4 -3 Q7.4 -2.6 7.2 -0.6 L7.2 0.6 Q7.4 2.6 6.4 3 Q4 3.4 1 0 Z" fill="currentColor" opacity="0.95" />
+      <path d="M-1 0 Q-3.6 -2.4 -5.6 -2.4 M1 0 Q3.6 -2.4 5.6 -2.4" stroke="rgba(0,0,0,0.22)" strokeWidth="0.7" fill="none" strokeLinecap="round" />
+      <rect x="-1.7" y="-2" width="3.4" height="4" rx="1" fill="currentColor" />
+      <path d="M-0.9 -1.1 L0.7 -0.3" stroke="rgba(255,255,255,0.4)" strokeWidth="0.7" strokeLinecap="round" />
     </g>
   ),
   freckles: (
     <g fill="currentColor" opacity="0.55">
-      <circle cx="-10" cy="3" r="0.7" />
-      <circle cx="-8" cy="4.3" r="0.7" />
-      <circle cx="-11.6" cy="4.7" r="0.7" />
-      <circle cx="10" cy="3" r="0.7" />
-      <circle cx="8" cy="4.3" r="0.7" />
-      <circle cx="11.6" cy="4.7" r="0.7" />
+      <circle cx="-10" cy="3" r="0.75" />
+      <circle cx="-8" cy="4.3" r="0.6" />
+      <circle cx="-11.6" cy="4.7" r="0.65" />
+      <circle cx="-9.4" cy="5.8" r="0.5" />
+      <circle cx="10" cy="3" r="0.75" />
+      <circle cx="8" cy="4.3" r="0.6" />
+      <circle cx="11.6" cy="4.7" r="0.65" />
+      <circle cx="9.4" cy="5.8" r="0.5" />
     </g>
   ),
   blush: (
     <g>
-      <ellipse cx="-9" cy="3.6" rx="2.5" ry="1.5" fill="#f9a8d4" opacity="0.5" />
-      <ellipse cx="9" cy="3.6" rx="2.5" ry="1.5" fill="#f9a8d4" opacity="0.5" />
+      <ellipse cx="-9" cy="3.6" rx="2.9" ry="1.7" fill="#f9a8d4" opacity="0.35" />
+      <ellipse cx="-9" cy="3.6" rx="1.9" ry="1.1" fill="#f9a8d4" opacity="0.45" />
+      <ellipse cx="9" cy="3.6" rx="2.9" ry="1.7" fill="#f9a8d4" opacity="0.35" />
+      <ellipse cx="9" cy="3.6" rx="1.9" ry="1.1" fill="#f9a8d4" opacity="0.45" />
     </g>
   ),
   eyepatch: (
     <g>
-      <path d="M -13 -6.5 L 13 -3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
-      <ellipse cx="5" cy="0" rx="4" ry="4.5" fill="#1f2937" stroke="currentColor" strokeWidth="0.8" />
+      <path d="M-13.5 -5.5 Q-4 -4.2 1.6 -3.6 M8.4 -3.2 Q11.4 -3 13.5 -2.6" stroke="#1f2937" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      <ellipse cx="5" cy="0" rx="4.2" ry="4.7" fill="#1f2937" stroke="#111827" strokeWidth="0.8" />
+      <path d="M2.4 -2.4 Q5 -4 7.6 -2.4" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="0.8" strokeLinecap="round" />
     </g>
   ),
   star: (
-    <g transform="translate(9, 4.5) scale(0.85)">
-      <path d="M0 -3 L0.9 -0.9 L3 -0.9 L1.3 0.6 L1.9 2.8 L0 1.5 L-1.9 2.8 L-1.3 0.6 L-3 -0.9 L-0.9 -0.9 Z" fill="#fbbf24" />
+    <g transform="translate(9, 4.5) scale(0.9)">
+      <path d="M0 -3 L0.9 -0.9 L3 -0.9 L1.3 0.6 L1.9 2.8 L0 1.5 L-1.9 2.8 L-1.3 0.6 L-3 -0.9 L-0.9 -0.9 Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" strokeLinejoin="round" />
+      <circle cx="-0.6" cy="-1.2" r="0.35" fill="rgba(255,255,255,0.85)" />
     </g>
   ),
   mustache: (
-    <g transform="translate(0, 7)">
-      <path d="M0 0 Q-2 -2.4 -4.6 -1.6 Q-7.4 -0.7 -8.2 1.4 Q-5.6 1.8 -3.4 0.9 Q-1.4 0.2 0 1 Q1.4 0.2 3.4 0.9 Q5.6 1.8 8.2 1.4 Q7.4 -0.7 4.6 -1.6 Q2 -2.4 0 0 Z" fill="currentColor" opacity="0.92" />
+    <g transform="translate(0, 6)">
+      <path d="M0 0 Q-2 -2.4 -4.6 -1.6 Q-7.4 -0.7 -8.2 1.4 Q-5.6 1.8 -3.4 0.9 Q-1.4 0.2 0 1 Q1.4 0.2 3.4 0.9 Q5.6 1.8 8.2 1.4 Q7.4 -0.7 4.6 -1.6 Q2 -2.4 0 0 Z" fill="currentColor" opacity="0.95" />
+      <path d="M-5.6 -0.9 Q-4 -1.4 -2.6 -0.7 M2.6 -0.7 Q4 -1.4 5.6 -0.9" stroke="rgba(255,255,255,0.22)" strokeWidth="0.6" fill="none" strokeLinecap="round" />
     </g>
   ),
   necklace: (
     <g transform="translate(0, 12)">
-      <path d="M-9 -2 Q0 4.5 9 -2" fill="none" stroke="#fbbf24" strokeWidth="1.3" />
-      <circle cx="0" cy="2.6" r="1.8" fill="#fbbf24" />
-      <circle cx="0" cy="2.6" r="0.7" fill="#fff7e0" />
+      <path d="M-9 -2 Q0 4.5 9 -2" fill="none" stroke="#fbbf24" strokeWidth="1.3" strokeDasharray="1.6 1" />
+      <path d="M-9 -2 Q0 4.5 9 -2" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" />
+      <path d="M0 1.3 L1.5 3 L0 5.2 L-1.5 3 Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" strokeLinejoin="round" />
+      <path d="M-0.5 2.4 L0.4 3" stroke="rgba(255,255,255,0.8)" strokeWidth="0.5" strokeLinecap="round" />
     </g>
   ),
 };
@@ -575,37 +659,37 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
 const BADGES: Record<string, React.ReactNode> = {
   none: null,
   spark: (
-    <g transform="translate(9, 8)">
+    <g transform="translate(11, 11)">
       <circle cx="0" cy="0" r="4.2" fill="rgba(255,255,255,0.78)" stroke="currentColor" strokeWidth="1.3" />
       <path d="M0 -2.4 L0.8 -0.7 L2.5 0 L0.8 0.7 L0 2.4 L-0.8 0.7 L-2.5 0 L-0.8 -0.7 Z" fill="currentColor" />
     </g>
   ),
   heart: (
-    <g transform="translate(9, 8)">
+    <g transform="translate(11, 11)">
       <circle cx="0" cy="0" r="4.3" fill="rgba(255,255,255,0.78)" stroke="currentColor" strokeWidth="1.3" />
       <path d="M0 2.2 C-4 -0.5 -3.4 -3.1 -1.5 -3.1 C-0.5 -3.1 0 -2.2 0 -2.2 C0 -2.2 0.5 -3.1 1.5 -3.1 C3.4 -3.1 4 -0.5 0 2.2 Z" fill="currentColor" />
     </g>
   ),
   shield: (
-    <g transform="translate(9, 8)">
+    <g transform="translate(11, 11)">
       <circle cx="0" cy="0" r="4.3" fill="rgba(255,255,255,0.78)" stroke="currentColor" strokeWidth="1.3" />
       <path d="M0 -3.1 L2.5 -1.8 L2 1.4 L0 3 L-2 1.4 L-2.5 -1.8 Z" fill="currentColor" opacity="0.9" />
     </g>
   ),
   verified: (
-    <g transform="translate(9, 8)">
+    <g transform="translate(11, 11)">
       <circle cx="0" cy="0" r="4.4" fill="#2563eb" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
       <path d="M-2 -0.1 L-0.5 1.5 L2.4 -1.8" fill="none" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
     </g>
   ),
   creator: (
-    <g transform="translate(9, 8)">
+    <g transform="translate(11, 11)">
       <circle cx="0" cy="0" r="4.4" fill="#f59e0b" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
       <path d="M0 -2.7 L0.8 -0.8 L2.8 -0.8 L1.2 0.5 L1.8 2.5 L0 1.4 L-1.8 2.5 L-1.2 0.5 L-2.8 -0.8 L-0.8 -0.8 Z" fill="white" />
     </g>
   ),
   founder: (
-    <g transform="translate(9, 8)">
+    <g transform="translate(11, 11)">
       <circle cx="0" cy="0" r="4.4" fill="#7c3aed" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
       <path d="M-2.6 1.9 L-1.8 -1.8 L0 -0.4 L1.8 -1.8 L2.6 1.9 Z" fill="white" />
     </g>
@@ -635,53 +719,79 @@ const OUTFITS: Record<string, React.ReactNode> = {
   ),
   jacket: (
     <g transform="translate(0, 8)">
-      <path d="M-14 0 Q-8 -5 0 -5 Q8 -5 14 0 L12 12 H-12 Z" fill="currentColor" opacity="0.24" />
-      <path d="M0 -5 L0 12" stroke="currentColor" strokeWidth="1.5" opacity="0.7" />
-      <circle cx="-4" cy="1" r="1" fill="currentColor" opacity="0.75" />
-      <circle cx="4" cy="1" r="1" fill="currentColor" opacity="0.75" />
+      <path d="M-14 0 Q-8 -5 0 -5 Q8 -5 14 0 L12 12 H-12 Z" fill="currentColor" opacity="0.3" />
+      <path d="M-14 0 Q-8 -5 0 -5 L0 12 H-12 Z" fill="rgba(0,0,0,0.1)" />
+      <path d="M0 -5 L-4.6 0.4 L-1.4 1.6 L0 -3 Z M0 -5 L4.6 0.4 L1.4 1.6 L0 -3 Z" fill="currentColor" opacity="0.55" />
+      <path d="M0 -3 L0 12" stroke="currentColor" strokeWidth="1.4" opacity="0.8" />
+      <path d="M-0.7 0 H0.7 M-0.7 3 H0.7 M-0.7 6 H0.7 M-0.7 9 H0.7" stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" />
+      <path d="M-8.6 6 L-5.6 6.6 M8.6 6 L5.6 6.6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.7" />
     </g>
   ),
   overalls: (
     <g transform="translate(0, 8)">
-      <path d="M-10 -3 H10 L12 12 H-12 Z" fill="currentColor" opacity="0.3" />
-      <path d="M-6 -5 V4 M6 -5 V4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
-      <rect x="-4" y="1" width="8" height="5" rx="1" fill="rgba(255,255,255,0.28)" stroke="currentColor" strokeWidth="0.8" />
+      <path d="M-10 -3 H10 L12 12 H-12 Z" fill="currentColor" opacity="0.34" />
+      <path d="M-6.4 -5.5 L-6 4 M6.4 -5.5 L6 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.85" />
+      <rect x="-6.9" y="-2.6" width="1.9" height="1.9" rx="0.4" fill="#fbbf24" />
+      <rect x="5" y="-2.6" width="1.9" height="1.9" rx="0.4" fill="#fbbf24" />
+      <rect x="-4.4" y="0.6" width="8.8" height="5.6" rx="1.1" fill="rgba(255,255,255,0.24)" stroke="currentColor" strokeWidth="0.9" />
+      <path d="M-3.4 1.7 H3.4" stroke="currentColor" strokeWidth="0.7" opacity="0.6" strokeDasharray="1 0.8" />
+      <path d="M-9.4 10.4 Q0 12 9.4 10.4" fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="0.9" strokeLinecap="round" />
     </g>
   ),
   turtleneck: (
     <g transform="translate(0, 9)">
-      <path d="M-11 -2 Q0 2 11 -2 L11 12 H-11 Z" fill="currentColor" opacity="0.32" />
-      <path d="M-6 -3 Q0 1 6 -3 L6 0.4 Q0 4.4 -6 0.4 Z" fill="currentColor" opacity="0.5" />
+      <path d="M-11 -2 Q0 2 11 -2 L11 12 H-11 Z" fill="currentColor" opacity="0.36" />
+      <path d="M-6.4 -3.4 Q0 0.6 6.4 -3.4 L6.4 0.6 Q0 4.6 -6.4 0.6 Z" fill="currentColor" opacity="0.6" />
+      <path d="M-5 -1.6 L-5 1.4 M-2.5 -0.7 L-2.5 2.3 M0 -0.4 L0 2.6 M2.5 -0.7 L2.5 2.3 M5 -1.6 L5 1.4" stroke="rgba(0,0,0,0.22)" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M-7 5 Q0 7 7 5 M-7.6 8.4 Q0 10.4 7.6 8.4" stroke="rgba(0,0,0,0.14)" strokeWidth="0.8" fill="none" strokeLinecap="round" />
     </g>
   ),
   varsity: (
     <g transform="translate(0, 8)">
-      <path d="M-13 0 Q-7 -5 0 -5 Q7 -5 13 0 L12 12 H-12 Z" fill="currentColor" opacity="0.26" />
-      <path d="M0 -5 L0 12" stroke="#f8fafc" strokeWidth="1.4" opacity="0.55" />
-      <path d="M-9 4 h4 M9 4 h-4" stroke="#f8fafc" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" />
+      <path d="M-13 0 Q-7 -5 0 -5 Q7 -5 13 0 L12 12 H-12 Z" fill="currentColor" opacity="0.3" />
+      <path d="M-13 0 Q-10 -2.6 -6.6 -3.9 L-6 12 H-12 Z M13 0 Q10 -2.6 6.6 -3.9 L6 12 H12 Z" fill="#f8fafc" opacity="0.18" />
+      <path d="M0 -5 L0 12" stroke="#f8fafc" strokeWidth="1.4" opacity="0.6" />
+      <circle cx="-1.6" cy="0" r="0.55" fill="#f8fafc" opacity="0.75" />
+      <circle cx="-1.6" cy="3.4" r="0.55" fill="#f8fafc" opacity="0.75" />
+      <circle cx="-1.6" cy="6.8" r="0.55" fill="#f8fafc" opacity="0.75" />
+      <path d="M-11.8 10 Q0 12.4 11.8 10 M-11.9 11.4 Q0 13.8 11.9 11.4" stroke="#f8fafc" strokeWidth="0.8" fill="none" opacity="0.5" />
+      <path d="M2.6 2.2 L3.2 3.6 L4.7 3.7 L3.6 4.7 L3.9 6.2 L2.6 5.4 L1.3 6.2 L1.6 4.7 L0.5 3.7 L2 3.6 Z" fill="#f8fafc" opacity="0.55" />
     </g>
   ),
   tux: (
     <g transform="translate(0, 9)">
-      <path d="M-12 -1 Q-6 -6 0 -6 Q6 -6 12 -1 L11 11 H-11 Z" fill="#111827" opacity="0.85" />
-      <path d="M0 -6 L-4 -1 L0 8 L4 -1 Z" fill="#f8fafc" opacity="0.9" />
-      <path d="M0 -3.4 L-2.6 -5 L2.6 -5 Z" fill="#111827" />
-      <circle cx="0" cy="0.5" r="0.7" fill="#111827" />
-      <circle cx="0" cy="3.5" r="0.7" fill="#111827" />
+      <path d="M-12 -1 Q-6 -6 0 -6 Q6 -6 12 -1 L11 11 H-11 Z" fill="#111827" opacity="0.88" />
+      <path d="M0 -6 L-4 -1 L0 8 L4 -1 Z" fill="#f8fafc" opacity="0.92" />
+      <path d="M0 -6 L-4 -1 L-2.2 -0.4 L0 -3.6 Z M0 -6 L4 -1 L2.2 -0.4 L0 -3.6 Z" fill="#1f2937" />
+      <path d="M-4 -1 L-6.8 5.4 L-4.4 4 Z M4 -1 L6.8 5.4 L4.4 4 Z" fill="#0b1120" opacity="0.9" />
+      <path d="M0 -3.4 L-2.4 -4.8 L2.4 -4.8 Z" fill="#111827" />
+      <circle cx="0" cy="0.5" r="0.65" fill="#111827" />
+      <circle cx="0" cy="3.2" r="0.65" fill="#111827" />
+      <circle cx="0" cy="5.9" r="0.65" fill="#111827" />
+      <path d="M-8.4 2.6 L-5.8 2.2 L-6.2 3.8 Z" fill="#f8fafc" opacity="0.85" />
     </g>
   ),
   cape: (
     <g transform="translate(0, 7)">
-      <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.34" />
-      <circle cx="-5" cy="-2.5" r="1.2" fill="currentColor" />
-      <circle cx="5" cy="-2.5" r="1.2" fill="currentColor" />
+      <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.4" />
+      <path d="M-13 -4 Q-6.5 -1 0 -1 L-1 12.4 Q-6 11 -11 15 Z" fill="rgba(0,0,0,0.14)" />
+      <path d="M-8.6 -1.4 L-7.4 12 M8.6 -1.4 L7.4 12 M0 -1 L0 11.2" stroke="rgba(255,255,255,0.14)" strokeWidth="0.9" strokeLinecap="round" />
+      <path d="M11 15 Q0 10 -11 15" fill="none" stroke="#a78bfa" strokeWidth="1" opacity="0.55" />
+      <circle cx="-5" cy="-2.5" r="1.3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" />
+      <circle cx="5" cy="-2.5" r="1.3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" />
+      <path d="M-3.8 -2.5 H3.8" stroke="#fbbf24" strokeWidth="0.8" />
     </g>
   ),
   spacesuit: (
     <g transform="translate(0, 8)">
-      <path d="M-13 0 Q-7 -6 0 -6 Q7 -6 13 0 L12 12 H-12 Z" fill="rgba(226,232,240,0.48)" stroke="currentColor" strokeWidth="1" />
-      <rect x="-4.5" y="-1.5" width="9" height="5" rx="1.5" fill="rgba(15,23,42,0.22)" stroke="currentColor" strokeWidth="0.8" />
-      <circle cx="0" cy="1" r="1" fill="currentColor" />
+      <path d="M-13 0 Q-7 -6 0 -6 Q7 -6 13 0 L12 12 H-12 Z" fill="rgba(226,232,240,0.5)" stroke="currentColor" strokeWidth="1" />
+      <path d="M-9.6 -2.6 Q-9 4 -9.6 10.4 M9.6 -2.6 Q9 4 9.6 10.4" stroke="rgba(15,23,42,0.2)" strokeWidth="0.8" fill="none" />
+      <rect x="-4.8" y="-1.8" width="9.6" height="6" rx="1.6" fill="rgba(15,23,42,0.26)" stroke="currentColor" strokeWidth="0.9" />
+      <circle cx="-2.4" cy="0.4" r="0.8" fill="#22c55e" />
+      <circle cx="0" cy="0.4" r="0.8" fill="#fbbf24" />
+      <circle cx="2.4" cy="0.4" r="0.8" fill="#ef4444" />
+      <rect x="-3.6" y="2.2" width="7.2" height="1.1" rx="0.55" fill="rgba(255,255,255,0.45)" />
+      <path d="M-4.8 1 Q-8 1.6 -8.6 4.6 M4.8 1 Q8 1.6 8.6 4.6" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
     </g>
   ),
 };
@@ -842,19 +952,26 @@ export function MeshiMascot({
   // carried anywhere), hats and hair lag with inertia and dangling pieces
   // (earrings, necklace) swing like pendulums. Velocity is sensed from the
   // element's actual on-screen motion, so no caller wiring is needed.
-  const hatSway = useSpring(0, { stiffness: 170, damping: 15, mass: 0.6 });
-  const hairSway = useTransform(hatSway, (v) => v * 0.65);
-  const dangleSway = useSpring(0, { stiffness: 110, damping: 7, mass: 0.9 });
-  const outfitSway = useTransform(dangleSway, (v) => v * -0.35);
+  const hatSway = useSpring(0, { stiffness: 170, damping: 14, mass: 0.6 });
+  const hatLift = useSpring(0, { stiffness: 210, damping: 16, mass: 0.5 });
+  const hairSway = useSpring(0, { stiffness: 120, damping: 11, mass: 0.85 });
+  const hairLift = useTransform(hatLift, (v) => v * 0.6);
+  const dangleSway = useSpring(0, { stiffness: 100, damping: 6.5, mass: 1 });
+  const outfitSway = useSpring(0, { stiffness: 150, damping: 13, mass: 0.7 });
+  const travelSquash = useSpring(0, { stiffness: 240, damping: 18, mass: 0.5 });
+  const travelScaleX = useTransform(travelSquash, (v) => 1 + v);
+  const travelScaleY = useTransform(travelSquash, (v) => 1 - v * 0.8);
 
   useEffect(() => {
     if (!animate) return;
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const clamp = (v: number, limit: number) => Math.max(-limit, Math.min(limit, v));
     let raf = 0;
     let lastX = 0;
     let lastY = 0;
     let lastT = 0;
     let vx = 0;
+    let vy = 0;
     const step = (t: number) => {
       raf = requestAnimationFrame(step);
       const el = containerRef.current;
@@ -866,9 +983,15 @@ export function MeshiMascot({
         const dt = Math.min((t - lastT) / 1000, 0.05);
         if (dt > 0) {
           const nvx = (x - lastX) / dt;
+          const nvy = (y - lastY) / dt;
           vx += (nvx - vx) * 0.35;
-          hatSway.set(Math.max(-13, Math.min(13, -vx * 0.022)));
-          dangleSway.set(Math.max(-32, Math.min(32, -vx * 0.06)));
+          vy += (nvy - vy) * 0.35;
+          hatSway.set(clamp(-vx * 0.022, 13));
+          hatLift.set(clamp(-vy * 0.012, 2.6));
+          hairSway.set(clamp(-vx * 0.016, 9));
+          dangleSway.set(clamp(-vx * 0.06, 32));
+          outfitSway.set(clamp(vx * 0.02, 9));
+          travelSquash.set(Math.min(Math.sqrt(vx * vx + vy * vy) * 0.00009, 0.05));
         }
       }
       lastX = x;
@@ -877,7 +1000,7 @@ export function MeshiMascot({
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [animate, hatSway, dangleSway]);
+  }, [animate, hatSway, hatLift, hairSway, dangleSway, outfitSway, travelSquash]);
 
   // Smooth eye tracking via spring-based motion values
   const eyeOffsetX = useMotionValue(0);
@@ -1112,6 +1235,9 @@ export function MeshiMascot({
           </>
         )}
 
+        {/* Travel squash — the whole body stretches slightly along the
+            direction of motion and settles when Meshi comes to rest. */}
+        <motion.g style={{ scaleX: travelScaleX, scaleY: travelScaleY, transformBox: "fill-box", transformOrigin: "50% 50%" }}>
         {/* Clipped content — everything inside the circle */}
         <g clipPath={`url(#${uniqueId}-clip)`}>
           {/* Body — glossy circle with smooth breathing animation */}
@@ -1139,9 +1265,10 @@ export function MeshiMascot({
         </g>
 
         {/* Headwear, face and accessories render OUTSIDE the body clip so tall
-            hats are never chopped off by the bubble's circular mask. */}
-        <motion.g style={{ color: wearable, rotate: hairSway, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
-          {hairElement}
+            hats are never chopped off by the bubble's circular mask. Hair tucks
+            under closed hats so strands never poke through the shell. */}
+        <motion.g style={{ color: wearable, rotate: hairSway, y: hairLift, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
+          {hairElement && hat && !OPEN_HATS.has(hat) ? <g transform={HAIR_TUCK_TRANSFORM}>{hairElement}</g> : hairElement}
         </motion.g>
 
         {/* Face — eyes with smooth tracking and blinking */}
@@ -1165,9 +1292,9 @@ export function MeshiMascot({
           ))}
         {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
 
-        {/* Hat sits on top of everything so it always reads clearly, and
-            tips with inertia as Meshi travels. */}
-        <motion.g style={{ color: wearable, rotate: hatSway, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
+        {/* Hat sits on top of everything so it always reads clearly, tips with
+            inertia as Meshi travels, and lags vertically on hops and drops. */}
+        <motion.g style={{ color: wearable, rotate: hatSway, y: hatLift, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
           {hatElement}
         </motion.g>
 
@@ -1229,6 +1356,7 @@ export function MeshiMascot({
             {propSvg}
           </motion.g>
         )}
+        </motion.g>
       </svg>
     </motion.div>
   );
@@ -1284,7 +1412,9 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
     <svg width={size} height={size} viewBox="-24 -24 48 48">
       <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
       <g style={{ color: wearable }}>{outfitElement}</g>
-      <g style={{ color: wearable }}>{hairElement}</g>
+      <g style={{ color: wearable }}>
+        {hairElement && hat && !OPEN_HATS.has(hat) ? <g transform={HAIR_TUCK_TRANSFORM}>{hairElement}</g> : hairElement}
+      </g>
       <g transform="scale(0.8)">
         {(SVG_FACES[mood] || SVG_FACES.happy)(theme.primary)}
       </g>
