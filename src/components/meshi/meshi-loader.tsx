@@ -47,6 +47,21 @@ function getClientPrefs(): MeshiPreferences {
   return cachedClientPrefs;
 }
 
+function subscribeToReducedMotion(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+function getReducedMotionSnapshot() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function getReducedMotionServerSnapshot() {
+  return false;
+}
+
 // ── Contextual flavour per loading mode ───────────────────────
 
 export type MeshiLoaderMode =
@@ -111,6 +126,11 @@ export function MeshiLoader({
 }: MeshiLoaderProps) {
   const prefs = useSyncExternalStore(subscribeToPrefs, getClientPrefs, () => DEFAULT_PREFS);
   const cfg = MODE[mode] ?? MODE.default;
+  const reduceMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionSnapshot,
+    getReducedMotionServerSnapshot,
+  );
 
   // Simulated weave progress (0→~1). Eases toward completion and slows as it
   // approaches, the way indeterminate work feels — always advancing, never a
@@ -121,12 +141,8 @@ export function MeshiLoader({
 
   useEffect(() => {
     const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setP(0.7);
-      return;
-    }
+      reduceMotion;
+    if (reduce) return;
     start.current = performance.now();
     const tick = (now: number) => {
       const t = (now - start.current) / 1000;
@@ -138,7 +154,7 @@ export function MeshiLoader({
     return () => {
       if (raf.current) cancelAnimationFrame(raf.current);
     };
-  }, []);
+  }, [reduceMotion]);
 
   const motes = useMemo(
     () =>
@@ -189,7 +205,7 @@ export function MeshiLoader({
 
           {motes.map((m) => {
             // How settled this mote is (0 = still incoming, 1 = fully woven in).
-            const local = Math.max(0, Math.min(1, (p - m.threshold) / 0.16));
+            const local = Math.max(0, Math.min(1, ((reduceMotion ? 0.7 : p) - m.threshold) / 0.16));
             const x = m.fx + (m.lx - m.fx) * local;
             const y = m.fy + (m.ly - m.fy) * local;
             const connected = local > 0.02;

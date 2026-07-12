@@ -96,6 +96,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           placeholder="Search people, posts, and platforms across the mesh"
           className="w-full bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
           aria-label="Search the mesh"
+          suppressHydrationWarning
         />
       </motion.form>
 

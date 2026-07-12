@@ -251,6 +251,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                   onChange={(event) => setQuery(event.target.value)}
                   className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--text-muted)]"
                   placeholder="Search notifications"
+                  suppressHydrationWarning
                 />
                 {query && (
                   <button type="button" onClick={() => setQuery("")} className="mesh-choice rounded-full p-1" aria-label="Clear search">
