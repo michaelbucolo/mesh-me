@@ -86,20 +86,17 @@ export const BRANCH_META: Record<BranchKey, { label: string; color: string }> = 
 };
 
 // Branches render clockwise from the top in this order.
+// The mesh stays focused on the three things that matter: your people,
+// your posts, and your platforms.
 const BRANCH_DISPLAY_ORDER: BranchKey[] = [
-  "identities",
   "platforms",
   "people",
-  "communities",
   "posts",
-  "activity",
 ];
 
 const MAX_PEOPLE = 24;
 const MAX_POSTS = 18;
 const MAX_PLATFORM_POSTS = 6;
-const MAX_PERSONA_ACCOUNTS = 6;
-const MAX_COMMUNITIES = 12;
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -167,44 +164,6 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
       weight: 0.62,
     });
   };
-
-  // --- Identities (personas / alter egos) ---
-  const personas: any[] = data.alterEgos || [];
-  if (personas.length) {
-    ensureBranch("identities", personas.length);
-    personas.forEach((ego: any) => {
-      const accounts: any[] = (ego.connectedAccounts || []).slice(0, MAX_PERSONA_ACCOUNTS);
-      const personaId = `persona:${ego.id}`;
-      add({
-        id: personaId,
-        kind: "persona",
-        label: ego.displayName || ego.username,
-        sublabel: "@" + ego.username,
-        avatarUrl: ego.avatarUrl,
-        color: BRANCH_META.identities.color,
-        parentId: branchId("identities"),
-        childIds: [],
-        branch: "identities",
-        href: ego.username ? "/profile/" + ego.username : undefined,
-        count: accounts.length || undefined,
-        weight: 0.52,
-      });
-      accounts.forEach((acct: any) => {
-        add({
-          id: `persona-acct:${ego.id}:${acct.id}`,
-          kind: "platform",
-          label: acct.platform,
-          sublabel: acct.platformUsername ? "@" + acct.platformUsername : undefined,
-          color: platformColor(acct.platform),
-          parentId: personaId,
-          childIds: [],
-          branch: "identities",
-          href: "/connected-accounts",
-          weight: 0.34,
-        });
-      });
-    });
-  }
 
   // --- Platforms (connected accounts) with their top posts ---
   const platforms: any[] = data.connectedAccounts || [];
@@ -324,30 +283,6 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     });
   }
 
-  // --- Communities ---
-  const communities: any[] = (data.communities || []).slice(0, MAX_COMMUNITIES);
-  if (communities.length) {
-    ensureBranch("communities", (data.communities || []).length);
-    communities.forEach((c: any) => {
-      add({
-        id: `community:${c.id}`,
-        kind: "community",
-        label: c.name,
-        sublabel: c.category || undefined,
-        color: BRANCH_META.communities.color,
-        parentId: branchId("communities"),
-        childIds: [],
-        branch: "communities",
-        href: "/communities/" + c.slug,
-        weight: clamp01(0.32 + Math.min(c.memberCount || 0, 1000) / 2000),
-        meta: [
-          { label: "Members", value: String(c.memberCount ?? c._count?.members ?? 0) },
-          { label: "Posts", value: String(c.postCount ?? c._count?.posts ?? 0) },
-        ],
-      });
-    });
-  }
-
   // --- Posts (your own native posts) ---
   const posts: any[] = (data.posts || []).slice(0, MAX_POSTS);
   if (posts.length) {
@@ -370,28 +305,6 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           { label: "Likes", value: String(p.likeCount ?? 0) },
           { label: "Comments", value: String(p.commentCount ?? 0) },
         ],
-      });
-    });
-  }
-
-  // --- Activity ---
-  const activities: any[] = (data.activities || []).slice(0, 14);
-  if (activities.length) {
-    ensureBranch("activity", (data.activities || []).length);
-    activities.forEach((a: any) => {
-      add({
-        id: `activity:${a.id}`,
-        kind: "activity",
-        label: truncate(a.label || "Activity", 40),
-        sublabel: a.actor?.username ? "@" + a.actor.username : a.type?.replace(/-/g, " "),
-        avatarUrl: a.actor?.avatarUrl || null,
-        content: a.summary || undefined,
-        color: a.isUnread ? "#7dd3fc" : BRANCH_META.activity.color,
-        parentId: branchId("activity"),
-        childIds: [],
-        branch: "activity",
-        href: a.href || "/notifications",
-        weight: a.isUnread ? 0.38 : 0.26,
       });
     });
   }
