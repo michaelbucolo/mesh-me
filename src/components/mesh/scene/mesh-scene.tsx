@@ -483,6 +483,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // A tap is a position signal too — broadcast it so touch users move on
+    // other people's screens even without dragging.
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect && rect.width > 0 && rect.height > 0) {
+      cursorVpRef.current = {
+        vx: (e.clientX - rect.left) / rect.width,
+        vy: (e.clientY - rect.top) / rect.height,
+      };
+    }
     const d = dragRef.current;
     d.active = true;
     d.moved = false;
@@ -500,10 +509,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    const rect = containerRef.current!.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    // Broadcast where you are for every pointer type — on touch this is
+    // where you touch/drag, so remote viewers see your Meshi move instead of
+    // it sitting frozen at their screen centre.
+    if (rect.width > 0 && rect.height > 0) {
+      cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
+    }
     if (e.pointerType === "mouse") {
-      const rect = containerRef.current!.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
       const cursor = meshiCursorRef.current;
       if (cursor) {
         const t = cursorTargetRef.current;
@@ -516,9 +531,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         t.x = sx;
         t.y = sy;
         cursor.style.opacity = "1";
-      }
-      if (rect.width > 0 && rect.height > 0) {
-        cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
       }
       if (!dragRef.current.active) {
         const node = hitTest(sx, sy);
@@ -914,40 +926,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         }}
       />
 
-      {/* Meshi — you, the cursor exploring the mesh. Center-pinned on touch, follows the pointer on desktop. */}
-      {showCursorMeshi && isCoarsePointer && (
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-          <MeshiMascot
-            size={56}
-            color={prefs.color}
-            hat={prefs.hat}
-            mood={focusId ? "excited" : prefs.face}
-            hair={prefs.hair}
-            accessory={prefs.accessory}
-            eyeStyle={prefs.eye}
-            badge={prefs.badge}
-            outfit={prefs.outfit}
-            prop="compass"
-          />
-          {focusId && (() => {
-            const node = modelRef.current?.nodes.get(focusId);
-            if (!node) return null;
-            return (
-              <div className="absolute left-1/2 top-full mt-1 w-max max-w-[13rem] -translate-x-1/2 rounded-lg border border-white/12 bg-black/75 px-2.5 py-1.5 text-center backdrop-blur">
-                <p className="truncate text-[11px] font-semibold text-white">{node.label}</p>
-                {node.sublabel && <p className="truncate text-[10px] text-white/60">{node.sublabel}</p>}
-              </div>
-            );
-          })()}
-        </div>
-      )}
+      {/* Meshi — you, the cursor exploring the mesh (desktop only). On touch
+          there is no cursor to embody: pinning your Meshi at the screen centre
+          just stacked it on top of the owner's Meshi, so touch devices rely on
+          the owner Meshi + presence instead. Your taps still broadcast where
+          you are to everyone else watching. */}
       {showCursorMeshi && !isCoarsePointer && (
         <div
           ref={meshiCursorRef}
           className="pointer-events-none absolute left-0 top-0 z-20 opacity-0 transition-opacity duration-150"
         >
           <MeshiMascot
-            size={56}
+            size={44}
             color={prefs.color}
             hat={prefs.hat}
             mood={hoverNode ? "excited" : prefs.face}
@@ -1005,7 +995,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
               {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
               <MeshiMascot
-                size={56}
+                size={44}
                 color={(m.colorTheme || "blue") as MeshiColor}
                 hat={(m.hatStyle || "none") as MeshiHat}
                 hair={(m.hairStyle || "none") as MeshiHair}
@@ -1053,7 +1043,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           })()}
         >
           <MeshiMini
-            size={56}
+            size={44}
             color={p.meshiColor as MeshiColor}
             hat={p.meshiHat as MeshiHat}
             hair={(p.meshiHair || "none") as MeshiHair}
