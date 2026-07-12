@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/auth";
-import { isCrossSiteRequest } from "@/lib/request-guard";
+import { isCrossSiteRequest, isSameOriginRequest } from "@/lib/request-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (isCrossSiteRequest(request)) {
+  if (!isSameOriginRequest(request)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
