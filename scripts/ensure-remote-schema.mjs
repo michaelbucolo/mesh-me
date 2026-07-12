@@ -44,8 +44,15 @@ const client = createClient({ url, authToken });
 let created = 0;
 let skipped = 0;
 
-try {
-  for (const stmt of statements) {
+// Indexes must run AFTER the column-level sync: an index over a column that
+// was added to the schema later than the (pre-existing) table would otherwise
+// fail with "no such column" before the ALTER TABLE pass gets a chance to add
+// it — which is exactly how the MessageThread unique index broke the build.
+const tableStatements = statements.filter((s) => /^CREATE TABLE/i.test(s));
+const otherStatements = statements.filter((s) => !/^CREATE TABLE/i.test(s));
+
+const runStatements = async (list) => {
+  for (const stmt of list) {
     try {
       await client.execute(stmt);
       created += 1;
@@ -61,7 +68,11 @@ try {
       throw error;
     }
   }
-  console.log(`[ensure-schema] Remote schema in sync (${created} applied, ${skipped} pre-existing).`);
+};
+
+try {
+  // Phase 1: tables only, so every table exists before we diff columns.
+  await runStatements(tableStatements);
 
   // ── Column-level additive sync ──────────────────────────────────────────
   // CREATE TABLE IF NOT EXISTS only helps for *new* tables. A table that was
@@ -130,6 +141,10 @@ try {
   if (addedColumns) {
     console.log(`[ensure-schema] Column sync complete (${addedColumns} column(s) added).`);
   }
+
+  // Phase 3: indexes and everything else — safe now that all columns exist.
+  await runStatements(otherStatements);
+  console.log(`[ensure-schema] Remote schema in sync (${created} applied, ${skipped} pre-existing).`);
 
   // ── One-time data normalizations ────────────────────────────────────────
   // Guarded by a marker table so each runs exactly once — they must never
