@@ -169,13 +169,13 @@ const colorHex: Record<string, string> = {
   cyan: "#06b6d4",
   gold: "#f59e0b",
 };
-const hats = ["none", "cap", "beanie", "beret", "headband", "bow", "flower", "party", "headphones", "crown", "tophat", "wizard", "astronaut", "pirate", "chef", "halo"];
+const hats = ["none", "cap", "beanie", "beret", "headband", "bow", "flower", "party", "cowboy", "graduation", "headphones", "crown", "tophat", "wizard", "astronaut", "pirate", "chef", "halo"];
 const faces = ["happy", "wink", "excited", "thinking", "cool", "celebrating", "love", "shy", "giggle", "surprised"];
 const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
 const eyes = ["regular", "lashes"];
-const accessories = ["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star"];
+const accessories = ["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"];
 const badges = ["none", "spark", "heart", "shield", "verified", "creator", "founder"];
-const outfits = ["none", "scarf", "hoodie", "jacket", "overalls", "turtleneck", "varsity", "cape", "spacesuit"];
+const outfits = ["none", "scarf", "hoodie", "jacket", "overalls", "turtleneck", "varsity", "tux", "cape", "spacesuit"];
 const themePresets = [
   { id: "default", label: "Clean" },
   { id: "instagram", label: "Social" },
@@ -1908,7 +1908,7 @@ function MeshiOptionGroup({
         return (
           <GraphicOptionButton key={value} active={current === value} label={value} note={disabled ? "Pro" : undefined} disabled={disabled} onClick={() => onPick(value)}>
             <MeshiMascot
-              size={34}
+              size={44}
               color={preview.color}
               hat={preview.hat}
               mood={preview.mood}
