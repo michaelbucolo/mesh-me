@@ -24,6 +24,7 @@ interface PostComposerProps {
     avatarUrl: string | null;
   };
   communityId?: string;
+  startExpanded?: boolean;
   onPostPending?: (draft: PostDraft) => string | void;
   onPostCreated?: (post: CreatedFeedPost, optimisticId?: string) => void;
   onPostFailed?: (optimisticId?: string) => void;
@@ -83,14 +84,14 @@ function inferComposerMediaType(url: string) {
   return "link";
 }
 
-export function PostComposer({ user, communityId, onPostPending, onPostCreated, onPostFailed }: PostComposerProps) {
+export function PostComposer({ user, communityId, startExpanded = false, onPostPending, onPostCreated, onPostFailed }: PostComposerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaFilesRef = useRef<LocalMediaPreview[]>([]);
-  const shouldFocusComposer = searchParams.get("compose") === "true";
+  const shouldFocusComposer = searchParams.get("compose") === "true" || startExpanded;
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [visibility, setVisibility] = useState<(typeof visibilityOptions)[number]["id"]>("public");

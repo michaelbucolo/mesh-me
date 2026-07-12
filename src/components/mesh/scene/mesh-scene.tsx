@@ -1556,6 +1556,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             </div>
             <PostComposer
               user={meshUser}
+              startExpanded
               onPostCreated={() => {
                 setShowCompose(false);
                 setActiveBranch("posts");
