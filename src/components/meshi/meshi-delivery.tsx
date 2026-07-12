@@ -63,7 +63,7 @@ export function MeshiDelivery({
 
   useEffect(() => {
     const initTimer = setTimeout(() => checkDeliveries(), 0);
-    const interval = setInterval(checkDeliveries, 10000);
+    const interval = setInterval(checkDeliveries, 20000);
     return () => {
       clearTimeout(initTimer);
       clearInterval(interval);

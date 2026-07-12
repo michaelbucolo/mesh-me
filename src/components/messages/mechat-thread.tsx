@@ -260,7 +260,7 @@ export function MeChatThread({
       // Don't poll a tab nobody is looking at.
       if (document.visibilityState !== "visible") return;
       void loadThread(activeThreadId).catch(() => {});
-    }, 3000);
+    }, 5000);
     const onVisible = () => {
       if (document.visibilityState === "visible") void loadThread(activeThreadId).catch(() => {});
     };
