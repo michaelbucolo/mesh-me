@@ -54,7 +54,7 @@ Validates the UI in a real browser:
 - authenticated app routes render with a temporary local session
 - no page errors, console errors, or horizontal overflow on checked routes
 
-The browser smoke script requires Playwright. In Codex, run it with the bundled runtime by setting `NODE_PATH` to the bundled Node modules path. Outside Codex, install Playwright in your normal developer environment.
+The browser smoke script requires Playwright. If your environment ships a bundled runtime, run it by setting `NODE_PATH` to the bundled Node modules path. Otherwise, install Playwright in your normal developer environment.
 
 ## Local production server
 

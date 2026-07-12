@@ -42,7 +42,7 @@ npx next dev -p 3333
 - User: `demouser` / `password123`
 - User: `mayamusic` / `password123`
 
-## Devin Secrets Needed
+## Secrets Needed
 No secrets required for local development. OAuth platform connections require platform-specific credentials stored as:
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`

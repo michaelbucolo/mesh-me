@@ -94,7 +94,7 @@ Meshi is the AI companion mascot for mesh.me. It appears across the entire app a
 - Database: SQLite at project root `dev.db` (seeded with 10 users, 15 posts)
 - Auth: NextAuth.js with username/password — test accounts: alexcreates/password123, demouser/password123, mayamusic/password123
 
-## Devin Secrets Needed
+## Secrets Needed
 - None required for local testing — SQLite database is file-based and pre-seeded
 - `GITHUB_USERNAME` and `GITHUB_PASSWORD` for pushing to repo (if needed)
 

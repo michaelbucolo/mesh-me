@@ -45,5 +45,5 @@ The Content Hub is a unified dashboard for managing cross-platform content. It h
 - Vercel preview may fail if DB hasn't been migrated for new Prisma models
 - Local testing is more reliable for features that add new DB models
 
-## Devin Secrets Needed
+## Secrets Needed
 No secrets needed for basic Content Hub testing. OAuth platform connections require platform credentials.
