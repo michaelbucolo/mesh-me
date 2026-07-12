@@ -268,6 +268,11 @@ export function buildPresencePayload(
     // room shouldn't require a mutual follow (ghost mode still hides you).
     const isViewingSameMesh = entry.viewingMesh === allowedMeshOwner;
     const isConnectedAndOnline = connectedSet.has(entry.userId);
+    // Connections who are online anywhere on mesh.me stay visible too, so
+    // your mesh can show your people as alive even when they're not in the
+    // same room (their Meshi perches on their node in your web).
+    const isConnectedOnlineAnywhere =
+      isConnectedAndOnline && now - entry.lastSeen < ONLINE_WINDOW_MS;
     const isSameActivePost = Boolean(
       activePostId &&
         entry.activePostId === activePostId &&
@@ -277,7 +282,13 @@ export function buildPresencePayload(
     const isSameMeshContent = surface === "mesh" && isSameActivePost;
 
     if (entry.ghostMode) continue;
-    if (!isViewingOurMesh && !isViewingSameMesh && !isSameFeedPost && !isSameMeshContent)
+    if (
+      !isViewingOurMesh &&
+      !isViewingSameMesh &&
+      !isSameFeedPost &&
+      !isSameMeshContent &&
+      !isConnectedOnlineAnywhere
+    )
       continue;
     if (surface === "feed" && activePostId && !isSameFeedPost) continue;
     if (

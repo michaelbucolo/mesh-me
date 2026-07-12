@@ -65,7 +65,7 @@ model User {
   signupNumber               Int?
   // Privacy toggles
   showInDiscovery            Boolean                    @default(false)
-  hideActivityStatus         Boolean                    @default(true)
+  hideActivityStatus         Boolean                    @default(false)
   readReceipts               Boolean                    @default(false)
   // Sensitive-content controls. NSFW is always off unless an adult-verification
   // provider confirms the user is eligible; Mesh.me never stores ID images.

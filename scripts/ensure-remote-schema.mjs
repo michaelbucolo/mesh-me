@@ -152,6 +152,16 @@ try {
   await runOnce("discovery-default-2026", async () => {
     await client.execute("UPDATE User SET showInDiscovery = 1 WHERE showInDiscovery = 0 AND isSuspended = 0");
   });
+
+  // Presence was dead for the whole network: every account was created with
+  // hideActivityStatus=1 (the old default), and the presence endpoint drops
+  // heartbeats for hidden users — so no one could ever see anyone live. Since
+  // the feature never worked, nobody meaningfully chose that value; reset it
+  // once so live Meshis work, and users who want to hide can do so in privacy
+  // settings.
+  await runOnce("presence-visible-2026", async () => {
+    await client.execute("UPDATE User SET hideActivityStatus = 0 WHERE hideActivityStatus = 1 AND isSuspended = 0");
+  });
 } finally {
   await client.close?.();
 }
