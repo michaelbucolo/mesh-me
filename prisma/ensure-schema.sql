@@ -165,6 +165,8 @@ CREATE TABLE IF NOT EXISTS "MessageThread" (
     "threadType" TEXT NOT NULL DEFAULT 'direct',
     "sourcePlatform" TEXT NOT NULL DEFAULT 'mesh',
     "isEncrypted" BOOLEAN NOT NULL DEFAULT true,
+    "connectedAccountId" TEXT,
+    "externalConversationId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -193,6 +195,7 @@ CREATE TABLE IF NOT EXISTS "Message" (
     "sourcePostId" TEXT,
     "platformPostId" TEXT,
     "platformCommentId" TEXT,
+    "externalMessageId" TEXT,
     "metadata" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -985,6 +988,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS "CommunityMember_userId_communityId_key" ON "C
 CREATE INDEX IF NOT EXISTS "MessageThread_threadType_idx" ON "MessageThread"("threadType");
 
 -- CreateIndex
+CREATE INDEX IF NOT EXISTS "MessageThread_sourcePlatform_idx" ON "MessageThread"("sourcePlatform");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MessageThread_connectedAccountId_externalConversationId_key" ON "MessageThread"("connectedAccountId", "externalConversationId");
+
+-- CreateIndex
 CREATE INDEX IF NOT EXISTS "ThreadMember_role_idx" ON "ThreadMember"("role");
 
 -- CreateIndex
@@ -1001,6 +1010,9 @@ CREATE INDEX IF NOT EXISTS "Message_platformPostId_idx" ON "Message"("platformPo
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Message_platformCommentId_idx" ON "Message"("platformCommentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Message_externalMessageId_idx" ON "Message"("externalMessageId");
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Notification_recipientId_idx" ON "Notification"("recipientId");

@@ -69,6 +69,7 @@ const FILTERS = [
   { key: "direct", label: "Direct" },
   { key: "groups", label: "Groups" },
   { key: "channels", label: "Channels" },
+  { key: "synced", label: "Synced" },
 ] as const;
 
 type FilterKey = (typeof FILTERS)[number]["key"];
@@ -98,6 +99,10 @@ function threadTypeKey(thread: MeChatThread): FilterKey {
   if (thread.threadType === "group") return "groups";
   if (thread.threadType === "community") return "channels";
   return "direct";
+}
+
+function isSyncedThread(thread: MeChatThread) {
+  return Boolean(thread.platform) && thread.platform.toLowerCase() !== "mesh" && thread.platform.toLowerCase() !== "meshme";
 }
 
 function buildShareQuery(searchParams: ReturnType<typeof useSearchParams>) {
@@ -160,15 +165,17 @@ export function MeChatConversationList({
       const matchesSearch = !q || [threadDisplay(thread), thread.otherUser?.username, thread.lastMessage?.content].some((value) =>
         value?.toLowerCase().includes(q),
       );
-      const matchesFilter = activeFilter === "all" || threadTypeKey(thread) === activeFilter;
+      const matchesFilter = activeFilter === "all"
+        || (activeFilter === "synced" ? isSyncedThread(thread) : threadTypeKey(thread) === activeFilter);
       return matchesSearch && matchesFilter;
     });
   }, [activeFilter, threadQuery, threads]);
 
   const filterCounts = useMemo(() => {
-    const counts = { all: threads.length, direct: 0, groups: 0, channels: 0 };
+    const counts = { all: threads.length, direct: 0, groups: 0, channels: 0, synced: 0 };
     for (const thread of threads) {
       counts[threadTypeKey(thread)] += 1;
+      if (isSyncedThread(thread)) counts.synced += 1;
     }
     return counts;
   }, [threads]);
@@ -279,7 +286,7 @@ export function MeChatConversationList({
   const rootClassName =
     variant === "rail"
       ? "flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[var(--mesh-border)] bg-[var(--mesh-panel)]"
-      : "flex h-[calc(100dvh-3.5rem)] min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-bg)]";
+      : "flex h-[calc(100dvh-3.5rem)] min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-bg)] pb-[env(safe-area-inset-bottom)]";
 
   return (
     <div className={`${rootClassName} ${className || ""} animate-page-enter`}>
@@ -287,13 +294,13 @@ export function MeChatConversationList({
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold text-[var(--mesh-text)]">MeChat</h1>
           <p className="mt-1 text-xs leading-5 text-[var(--mesh-text-secondary)]">
-            Your universal messaging hub. All your conversations, in one place.
+            Your universal messaging hub. Conversations from every connected account, in one place.
           </p>
         </div>
         <button
           type="button"
           onClick={openCompose}
-          className="mesh-pressable inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text)] transition hover:border-[var(--mesh-border-active)] hover:text-white"
+          className="mesh-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text)] transition hover:border-[var(--mesh-border-active)] hover:text-white"
           aria-label="Compose new message"
           title="Compose new message"
         >
@@ -311,7 +318,7 @@ export function MeChatConversationList({
                 key={filter.key}
                 type="button"
                 onClick={() => setActiveFilter(filter.key)}
-                className={`mesh-pressable inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                className={`mesh-pressable inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                   selected
                     ? "border-[var(--mesh-border-active)] bg-[var(--mesh-blue)]/15 text-[var(--mesh-text)]"
                     : "border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] hover:border-[var(--mesh-border-active)] hover:text-[var(--mesh-text)]"
@@ -425,7 +432,7 @@ export function MeChatConversationList({
                     key={thread.id}
                     href={`/messages/${thread.id}`}
                     aria-current={active ? "page" : undefined}
-                    className={`group flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+                    className={`group flex min-h-[4.5rem] items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.99] ${
                       active
                         ? "border-[var(--mesh-border-active)] bg-[var(--mesh-blue)]/10 shadow-[0_0_0_1px_rgba(47,124,255,0.12)]"
                         : "border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] hover:border-[var(--mesh-border-active)] hover:bg-[var(--mesh-panel-hover)]"

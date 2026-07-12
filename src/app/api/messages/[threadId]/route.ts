@@ -9,6 +9,8 @@ import {
   type MeChatMessageMetadata,
 } from "@/lib/mechat-metadata";
 import { clearMeChatTyping, getMeChatTypingUsers } from "@/lib/mechat-presence";
+import { getPlatformMessagingCapability } from "@/lib/platform-capabilities";
+import { deliverMeChatMessageToPlatform } from "@/lib/platform-sync";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
@@ -23,6 +25,8 @@ type ThreadWithMembers = {
   threadType: string;
   sourcePlatform: string;
   isEncrypted: boolean;
+  connectedAccountId: string | null;
+  externalConversationId: string | null;
   members: Array<{
     userId: string;
     role: string;
@@ -209,6 +213,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       threadType: thread.threadType,
       isEncrypted: thread.isEncrypted,
       sourcePlatform: thread.sourcePlatform,
+      isExternal: Boolean(thread.connectedAccountId && thread.externalConversationId),
       members: thread.members.map((member) => ({
         userId: member.userId,
         role: member.role,
@@ -263,7 +268,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (!replyExists) replyToMessageId = undefined;
   }
 
-  const sourcePlatform = optionalCleanText(body.sourcePlatform, 40) || "mesh";
+  const isExternalThread = Boolean(thread.connectedAccountId && thread.externalConversationId);
+  const sourcePlatform = isExternalThread
+    ? thread.sourcePlatform
+    : optionalCleanText(body.sourcePlatform, 40) || "mesh";
   const messageType = optionalCleanText(body.messageType, 40) || (attachments.length > 0 ? "media" : sourceUrl ? "platform_share" : "text");
   const metadata: MeChatMessageMetadata = {
     attachments,
@@ -271,17 +279,36 @@ export async function POST(request: NextRequest, context: RouteContext) {
     linkPreview: buildLinkPreview(content, sourceUrl, sourcePlatform),
   };
 
+  let externalMessageId: string | undefined;
+  if (isExternalThread && thread.connectedAccountId && thread.externalConversationId) {
+    if (!content) {
+      return NextResponse.json({ error: "Only text replies can be delivered to this platform." }, { status: 400 });
+    }
+    const delivery = await deliverMeChatMessageToPlatform({
+      connectedAccountId: thread.connectedAccountId,
+      externalConversationId: thread.externalConversationId,
+      content,
+    });
+    metadata.delivery = {
+      platform: delivery.platform,
+      status: delivery.status,
+      error: delivery.error,
+    };
+    externalMessageId = delivery.externalMessageId || undefined;
+  }
+
   const created = await prisma.message.create({
     data: {
       content: content || (attachments.length > 0 ? "Shared media" : "Shared link"),
       senderId: user.id,
       threadId,
       sourcePlatform,
-      messageType,
+      messageType: isExternalThread ? "external_dm" : messageType,
       sourceUrl,
       sourcePostId: optionalCleanText(body.sourcePostId, 120),
       platformPostId: optionalCleanText(body.platformPostId, 120),
       platformCommentId: optionalCleanText(body.platformCommentId, 120),
+      externalMessageId,
       metadata: serializeMeChatMetadata(metadata),
     },
     include: {
@@ -414,6 +441,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   if (action === "edit" || action === "unsend") {
+    if (thread.connectedAccountId && thread.externalConversationId) {
+      const capability = getPlatformMessagingCapability(thread.sourcePlatform);
+      return NextResponse.json({
+        error: `Messages delivered to ${capability.supported ? thread.sourcePlatform : "this platform"} can't be edited or unsent after they leave Mesh.me.`,
+      }, { status: 400 });
+    }
     const messageId = cleanText(body.messageId, 120);
     if (!messageId) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });

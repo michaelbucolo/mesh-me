@@ -256,17 +256,23 @@ model CommunityMember {
 }
 
 model MessageThread {
-  id             String         @id @default(cuid())
-  title          String?
-  threadType     String         @default("direct")
-  sourcePlatform String         @default("mesh")
-  isEncrypted    Boolean        @default(true)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  members        ThreadMember[]
-  messages       Message[]
+  id                     String         @id @default(cuid())
+  title                  String?
+  threadType             String         @default("direct")
+  sourcePlatform         String         @default("mesh")
+  isEncrypted            Boolean        @default(true)
+  // For threads mirrored from a connected platform: the owning connection
+  // and the platform-side conversation identifier.
+  connectedAccountId     String?
+  externalConversationId String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  members                ThreadMember[]
+  messages               Message[]
 
+  @@unique([connectedAccountId, externalConversationId])
   @@index([threadType])
+  @@index([sourcePlatform])
 }
 
 model ThreadMember {
@@ -294,6 +300,8 @@ model Message {
   sourcePostId      String?
   platformPostId    String?
   platformCommentId String?
+  // Platform-side message id for messages mirrored from a connected account.
+  externalMessageId String?
   metadata          String?
   createdAt         DateTime      @default(now())
   sender            User          @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
@@ -303,6 +311,7 @@ model Message {
   @@index([sourcePlatform])
   @@index([platformPostId])
   @@index([platformCommentId])
+  @@index([externalMessageId])
 }
 
 model Notification {

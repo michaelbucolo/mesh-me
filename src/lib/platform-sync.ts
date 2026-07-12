@@ -5,7 +5,8 @@ import { getCurrentUser } from "./auth";
 import { decryptSecret } from "./secret-store";
 import { resolveEnvValue } from "./oauth";
 import { refreshConnectedAccountToken } from "./oauth-token-refresh";
-import { getPlatformActionCapability, getPlatformImportCapability } from "./platform-capabilities";
+import { getPlatformActionCapability, getPlatformImportCapability, getPlatformMessagingCapability } from "./platform-capabilities";
+import { serializeMeChatMetadata } from "./mechat-metadata";
 import { classifyContentSafety, nsfwHiddenWhere } from "./content-safety";
 
 // ─── Platform Adapter Interface ─────────────────────────────
@@ -90,6 +91,25 @@ interface PlatformMediaData {
   mimeType?: string;
 }
 
+interface PlatformDirectMessageData {
+  externalMessageId: string;
+  content: string;
+  isOwnMessage: boolean;
+  senderName?: string;
+  senderUsername?: string;
+  senderAvatarUrl?: string;
+  sentAt?: Date;
+}
+
+interface PlatformConversationData {
+  externalConversationId: string;
+  participantName?: string;
+  participantUsername?: string;
+  participantAvatarUrl?: string;
+  url?: string;
+  messages: PlatformDirectMessageData[];
+}
+
 interface PlatformAnalyticsData {
   date: Date;
   followerCount: number;
@@ -119,6 +139,10 @@ interface PlatformAdapter {
   // Optional: only platforms whose official API exposes a personalized
   // or trending listing implement this.
   fetchForYouFeed?(accessToken: string): Promise<{ items: PlatformFeedItemData[] }>;
+  // Direct-message sync. Optional: only platforms whose official API
+  // exposes DM read/write endpoints implement these.
+  fetchConversations?(accessToken: string): Promise<{ conversations: PlatformConversationData[] }>;
+  sendConversationMessage?(accessToken: string, conversationId: string, content: string): Promise<{ externalMessageId?: string } | null>;
   createPost(accessToken: string, content: string, media?: string[]): Promise<PlatformPostData | null>;
   deletePost(accessToken: string, postId: string): Promise<boolean>;
   createComment(accessToken: string, postId: string, content: string): Promise<PlatformCommentData | null>;
@@ -914,6 +938,80 @@ const twitterAdapter: PlatformAdapter = {
       return res.ok;
     } catch { return false; }
   },
+  async fetchConversations(accessToken) {
+    try {
+      const meId = await fetchTwitterCurrentUserId(accessToken);
+      if (!meId) return { conversations: [] };
+      const params = new URLSearchParams({
+        max_results: "100",
+        event_types: "MessageCreate",
+        "dm_event.fields": "id,text,created_at,sender_id,dm_conversation_id",
+        expansions: "sender_id",
+        "user.fields": "name,username,profile_image_url",
+      });
+      const res = await fetch(`https://api.twitter.com/2/dm_events?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) return { conversations: [] };
+      const data = await res.json().catch(() => null) as {
+        data?: Array<Record<string, unknown>>;
+        includes?: { users?: Array<Record<string, unknown>> };
+      } | null;
+      const usersById = new Map((data?.includes?.users || []).map((u) => [String(u.id), u]));
+      const conversations = new Map<string, PlatformConversationData>();
+      for (const event of data?.data || []) {
+        const conversationId = typeof event.dm_conversation_id === "string" ? event.dm_conversation_id : "";
+        const eventId = typeof event.id === "string" ? event.id : "";
+        const text = typeof event.text === "string" ? event.text : "";
+        if (!conversationId || !eventId || !text) continue;
+        const senderId = typeof event.sender_id === "string" ? event.sender_id : "";
+        const sender = usersById.get(senderId);
+        const senderName = sender && typeof sender.name === "string" ? sender.name : undefined;
+        const senderUsername = sender && typeof sender.username === "string" ? sender.username : undefined;
+        const senderAvatarUrl = sender && typeof sender.profile_image_url === "string" ? sender.profile_image_url : undefined;
+        const isOwnMessage = senderId === meId;
+        let conversation = conversations.get(conversationId);
+        if (!conversation) {
+          conversation = {
+            externalConversationId: conversationId,
+            url: "https://twitter.com/messages",
+            messages: [],
+          };
+          conversations.set(conversationId, conversation);
+        }
+        if (!isOwnMessage && (senderName || senderUsername)) {
+          conversation.participantName = senderName || senderUsername;
+          conversation.participantUsername = senderUsername;
+          conversation.participantAvatarUrl = senderAvatarUrl;
+        }
+        conversation.messages.push({
+          externalMessageId: eventId,
+          content: text,
+          isOwnMessage,
+          senderName,
+          senderUsername,
+          senderAvatarUrl,
+          sentAt: dateFromString(event.created_at),
+        });
+      }
+      for (const conversation of conversations.values()) {
+        conversation.messages.sort((a, b) => (a.sentAt?.getTime() || 0) - (b.sentAt?.getTime() || 0));
+      }
+      return { conversations: [...conversations.values()] };
+    } catch { return { conversations: [] }; }
+  },
+  async sendConversationMessage(accessToken, conversationId, content) {
+    try {
+      const res = await fetch(`https://api.twitter.com/2/dm_conversations/${encodeURIComponent(conversationId)}/messages`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: content }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => null) as { data?: { dm_event_id?: string } } | null;
+      return { externalMessageId: data?.data?.dm_event_id };
+    } catch { return null; }
+  },
   async sharePost(accessToken, postId) {
     const userId = await fetchTwitterCurrentUserId(accessToken);
     if (!userId) return false;
@@ -1513,6 +1611,67 @@ const redditAdapter: PlatformAdapter = {
     });
     return Boolean(res?.ok);
   },
+  async fetchConversations(accessToken) {
+    try {
+      const [inbox, sent] = await Promise.all([
+        fetchRedditJson<RedditListing>(accessToken, "/message/inbox?limit=100"),
+        fetchRedditJson<RedditListing>(accessToken, "/message/sent?limit=100"),
+      ]);
+      const conversations = new Map<string, PlatformConversationData>();
+      const ingest = (listing: RedditListing | null, isOwnMessage: boolean) => {
+        for (const child of listing?.data?.children || []) {
+          if (child.kind !== "t4") continue;
+          const data = child.data || {};
+          const author = typeof data.author === "string" ? data.author : "";
+          const dest = typeof data.dest === "string" ? data.dest : "";
+          const other = isOwnMessage ? dest : author;
+          const body = typeof data.body === "string" ? data.body : "";
+          const messageId = typeof data.name === "string" ? data.name : "";
+          if (!other || other.startsWith("#") || !body || !messageId) continue;
+          const key = `u/${other.toLowerCase()}`;
+          let conversation = conversations.get(key);
+          if (!conversation) {
+            conversation = {
+              externalConversationId: key,
+              participantName: other,
+              participantUsername: other,
+              url: "https://www.reddit.com/message/messages/",
+              messages: [],
+            };
+            conversations.set(key, conversation);
+          }
+          conversation.messages.push({
+            externalMessageId: messageId,
+            content: body,
+            isOwnMessage,
+            senderName: author || undefined,
+            senderUsername: author || undefined,
+            sentAt: dateFromUnixSeconds(data.created_utc),
+          });
+        }
+      };
+      ingest(inbox, false);
+      ingest(sent, true);
+      for (const conversation of conversations.values()) {
+        conversation.messages.sort((a, b) => (a.sentAt?.getTime() || 0) - (b.sentAt?.getTime() || 0));
+      }
+      return { conversations: [...conversations.values()] };
+    } catch { return { conversations: [] }; }
+  },
+  async sendConversationMessage(accessToken, conversationId, content) {
+    const to = conversationId.replace(/^u\//i, "");
+    if (!to) return null;
+    const res = await postRedditForm(accessToken, "/api/compose", {
+      api_type: "json",
+      to,
+      subject: "Mesh.me",
+      text: content,
+    });
+    if (!res?.ok) return null;
+    const payload = await res.json().catch(() => null) as { json?: { errors?: unknown[] } } | null;
+    if (!payload?.json || (payload.json.errors || []).length > 0) return null;
+    return {};
+  },
   async sharePost() { return false; },
   async pinPost() { return false; },
   async unpinPost() { return false; },
@@ -1745,18 +1904,193 @@ async function migratePlatformCommentsIntoMeChat(account: {
   return imported;
 }
 
+async function syncDirectMessagesIntoMeChat(account: {
+  id: string;
+  userId: string;
+  platform: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  expiresAt: Date | null;
+}) {
+  const adapter = getAdapter(account.platform);
+  if (!adapter.fetchConversations) return 0;
+  if (!getPlatformMessagingCapability(account.platform).supported) return 0;
+
+  const accessToken = await getValidAccessToken(account);
+  if (!accessToken) return 0;
+
+  const { conversations } = await adapter.fetchConversations(accessToken);
+  let imported = 0;
+
+  for (const conversation of conversations.slice(0, 40)) {
+    if (!conversation.externalConversationId || conversation.messages.length === 0) continue;
+
+    const title = conversation.participantName
+      || conversation.participantUsername
+      || `${account.platform} conversation`;
+
+    let thread = await prisma.messageThread.findFirst({
+      where: {
+        connectedAccountId: account.id,
+        externalConversationId: conversation.externalConversationId,
+      },
+      select: { id: true },
+    });
+
+    if (!thread) {
+      thread = await prisma.messageThread.create({
+        data: {
+          title,
+          threadType: "direct",
+          sourcePlatform: account.platform,
+          isEncrypted: false,
+          connectedAccountId: account.id,
+          externalConversationId: conversation.externalConversationId,
+          members: { create: [{ userId: account.userId, role: "owner" }] },
+        },
+        select: { id: true },
+      });
+    }
+
+    const externalIds = conversation.messages
+      .map((message) => message.externalMessageId)
+      .filter(Boolean);
+    const existing = await prisma.message.findMany({
+      where: { threadId: thread.id, externalMessageId: { in: externalIds } },
+      select: { externalMessageId: true },
+    });
+    const seen = new Set(existing.map((row) => row.externalMessageId));
+
+    const recentOwnReplies = await prisma.message.findMany({
+      where: {
+        threadId: thread.id,
+        senderId: account.userId,
+        externalMessageId: null,
+        messageType: "external_dm",
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      select: { content: true, createdAt: true },
+    });
+
+    let latest: Date | null = null;
+    for (const message of conversation.messages) {
+      if (!message.externalMessageId || seen.has(message.externalMessageId)) continue;
+      const content = message.content.trim().slice(0, 4000);
+      if (!content) continue;
+      if (message.isOwnMessage && recentOwnReplies.some((reply) =>
+        reply.content === content
+        && (!message.sentAt || Math.abs(message.sentAt.getTime() - reply.createdAt.getTime()) < 60 * 60 * 1000),
+      )) {
+        continue;
+      }
+
+      const sentAt = message.sentAt || new Date();
+      await prisma.message.create({
+        data: {
+          content,
+          senderId: account.userId,
+          threadId: thread.id,
+          sourcePlatform: account.platform,
+          messageType: "external_dm",
+          sourceUrl: conversation.url || null,
+          externalMessageId: message.externalMessageId,
+          createdAt: sentAt,
+          metadata: message.isOwnMessage
+            ? null
+            : serializeMeChatMetadata({
+              externalSender: {
+                name: message.senderName || title,
+                username: message.senderUsername || conversation.participantUsername,
+                avatarUrl: message.senderAvatarUrl || conversation.participantAvatarUrl,
+              },
+            }),
+        },
+      });
+      if (!latest || sentAt > latest) latest = sentAt;
+      imported++;
+    }
+
+    if (latest) {
+      await prisma.messageThread.update({
+        where: { id: thread.id },
+        data: { title, updatedAt: latest },
+      });
+    }
+  }
+
+  return imported;
+}
+
+export async function deliverMeChatMessageToPlatform(input: {
+  connectedAccountId: string;
+  externalConversationId: string;
+  content: string;
+}): Promise<{ status: "delivered" | "failed"; platform: string; externalMessageId?: string; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { status: "failed", platform: "unknown", error: "Not authenticated" };
+  }
+
+  const account = await prisma.connectedAccount.findUnique({
+    where: { id: input.connectedAccountId },
+    select: {
+      id: true,
+      userId: true,
+      platform: true,
+      isActive: true,
+      accessToken: true,
+      refreshToken: true,
+      expiresAt: true,
+    },
+  });
+
+  if (!account || account.userId !== user.id) {
+    return { status: "failed", platform: "unknown", error: "This connected account is no longer active. Reconnect it to keep replying from Mesh.me." };
+  }
+
+  if (!account.isActive) {
+    return { status: "failed", platform: account.platform, error: "This connected account is no longer active. Reconnect it to keep replying from Mesh.me." };
+  }
+
+  const capability = getPlatformMessagingCapability(account.platform);
+  const adapter = getAdapter(account.platform);
+  if (!capability.supported || !adapter.sendConversationMessage) {
+    return { status: "failed", platform: account.platform, error: capability.reason };
+  }
+
+  const accessToken = await getValidAccessToken(account);
+  if (!accessToken) {
+    return { status: "failed", platform: account.platform, error: "The connection expired. Reconnect the account to keep replying from Mesh.me." };
+  }
+
+  const result = await adapter.sendConversationMessage(accessToken, input.externalConversationId, input.content);
+  if (!result) {
+    return { status: "failed", platform: account.platform, error: "The platform did not accept the message. It is saved here — try again in a moment." };
+  }
+
+  return { status: "delivered", platform: account.platform, externalMessageId: result.externalMessageId };
+}
+
 export async function syncMeChatConversationsForCurrentUser() {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
   const accounts = await prisma.connectedAccount.findMany({
     where: { userId: user.id, isActive: true },
-    select: { id: true, userId: true, platform: true },
+    select: {
+      id: true,
+      userId: true,
+      platform: true,
+      accessToken: true,
+      refreshToken: true,
+      expiresAt: true,
+    },
   });
 
   let imported = 0;
   for (const account of accounts) {
     imported += await migratePlatformCommentsIntoMeChat(account);
+    imported += await syncDirectMessagesIntoMeChat(account);
   }
 
   return {

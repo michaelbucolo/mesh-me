@@ -20,6 +20,20 @@ export type MeChatLinkPreview = {
   description?: string;
 };
 
+export type MeChatExternalSender = {
+  name: string;
+  username?: string;
+  avatarUrl?: string;
+};
+
+export type MeChatDeliveryStatus = "delivered" | "failed";
+
+export type MeChatDelivery = {
+  platform: string;
+  status: MeChatDeliveryStatus;
+  error?: string;
+};
+
 export type MeChatMessageMetadata = {
   attachments?: MeChatAttachment[];
   reactions?: MeChatReaction[];
@@ -29,6 +43,10 @@ export type MeChatMessageMetadata = {
   edited?: boolean;
   /** Set when the sender unsends (retracts) a message. */
   unsent?: boolean;
+  /** Platform-side author of a message imported from a connected account. */
+  externalSender?: MeChatExternalSender;
+  /** Outbound cross-platform delivery outcome for the message. */
+  delivery?: MeChatDelivery;
 };
 
 const URL_PATTERN = /(https?:\/\/[^\s<>"']+)/i;
@@ -46,6 +64,8 @@ export function parseMeChatMetadata(raw: string | null | undefined): MeChatMessa
       linkPreview: normalizeLinkPreview(parsed.linkPreview),
       edited: parsed.edited === true ? true : undefined,
       unsent: parsed.unsent === true ? true : undefined,
+      externalSender: normalizeExternalSender(parsed.externalSender),
+      delivery: normalizeDelivery(parsed.delivery),
     };
   } catch {
     return {};
@@ -62,6 +82,8 @@ export function serializeMeChatMetadata(metadata: MeChatMessageMetadata): string
     linkPreview: normalizeLinkPreview(metadata.linkPreview),
     edited: metadata.edited === true ? true : undefined,
     unsent: metadata.unsent === true ? true : undefined,
+    externalSender: normalizeExternalSender(metadata.externalSender),
+    delivery: normalizeDelivery(metadata.delivery),
   };
 
   const cleaned = Object.fromEntries(
@@ -167,6 +189,38 @@ function normalizeReactions(value: unknown): MeChatReaction[] {
     })
     .filter((item): item is MeChatReaction => Boolean(item))
     .slice(0, 80);
+}
+
+function normalizeExternalSender(value: unknown): MeChatExternalSender | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const name = typeof record.name === "string" ? record.name.trim().slice(0, 120) : "";
+  if (!name) return undefined;
+  const username = typeof record.username === "string" && record.username.trim()
+    ? record.username.trim().slice(0, 80)
+    : undefined;
+  let avatarUrl: string | undefined;
+  if (typeof record.avatarUrl === "string" && record.avatarUrl.trim()) {
+    try {
+      const parsed = new URL(record.avatarUrl.trim());
+      if (["http:", "https:"].includes(parsed.protocol)) avatarUrl = parsed.toString();
+    } catch {
+      avatarUrl = undefined;
+    }
+  }
+  return { name, username, avatarUrl };
+}
+
+function normalizeDelivery(value: unknown): MeChatDelivery | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const platform = typeof record.platform === "string" ? record.platform.trim().slice(0, 40) : "";
+  const status = record.status === "delivered" || record.status === "failed" ? record.status : undefined;
+  if (!platform || !status) return undefined;
+  const error = typeof record.error === "string" && record.error.trim()
+    ? record.error.trim().slice(0, 200)
+    : undefined;
+  return { platform, status, error };
 }
 
 function normalizeLinkPreview(value: unknown): MeChatLinkPreview | undefined {

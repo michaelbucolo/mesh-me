@@ -215,7 +215,6 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
   const [{ threadId }, query] = await Promise.all([params, searchParams]);
   const isNewConversation = query.new === "true";
   const sharedContent = await getOptionalSharedContent(query, user);
-  const sourcePlatform = sharedContent?.sourcePlatform || "mesh";
 
   let activeThreadId = isNewConversation ? "" : threadId;
   let recipient: ConversationUser | null = null;
@@ -223,6 +222,8 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
   let conversationSubtitle = "Private conversation";
   let conversationAvatar: string | null | undefined = null;
   let isGroupThread = false;
+  let isExternalThread = false;
+  let threadPlatform = "mesh";
   let memberCount = 0;
   let threadCreatedAt = new Date().toISOString();
   let threadIsEncrypted = true;
@@ -328,17 +329,21 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     const otherMembers = thread.members.filter((member) => member.userId !== user.id);
     recipient = otherMembers[0]?.user ?? null;
     isGroupThread = thread.threadType === "group" || otherMembers.length > 1;
+    isExternalThread = Boolean(thread.connectedAccountId && thread.externalConversationId);
+    threadPlatform = thread.sourcePlatform || "mesh";
     memberCount = thread.members.length;
     threadCreatedAt = thread.createdAt.toISOString();
     threadIsEncrypted = thread.isEncrypted;
     conversationTitle = thread.title || (isGroupThread
       ? otherMembers.map((member) => member.user.displayName).join(", ")
       : recipient?.displayName || "Secure MeChat thread");
-    conversationSubtitle = isGroupThread
-      ? `${memberCount} members - Mesh.me group chat`
-      : recipient
-        ? `@${recipient.username}`
-        : "Private conversation";
+    conversationSubtitle = isExternalThread
+      ? `Synced from ${sourceLabel(threadPlatform)}`
+      : isGroupThread
+        ? `${memberCount} members - Mesh.me group chat`
+        : recipient
+          ? `@${recipient.username}`
+          : "Private conversation";
     conversationAvatar = isGroupThread ? null : recipient?.avatarUrl;
     conversationMembers = thread.members.map((member) => ({
       userId: member.userId,
@@ -405,34 +410,37 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     ? conversationMembers.find((member) => member.role === "owner")?.user.displayName || null
     : null;
 
-  const threadSummary = isGroupThread
-    ? `${memberCount} member${memberCount === 1 ? "" : "s"} · ${threadIsEncrypted ? "encrypted" : "private"} group chat`
-    : recipient
-      ? `Direct conversation with @${recipient.username}`
-      : "Private conversation";
+  const threadSummary = isExternalThread
+    ? `Synced from ${sourceLabel(threadPlatform)} · replies deliver there`
+    : isGroupThread
+      ? `${memberCount} member${memberCount === 1 ? "" : "s"} · ${threadIsEncrypted ? "encrypted" : "private"} group chat`
+      : recipient
+        ? `Direct conversation with @${recipient.username}`
+        : "Private conversation";
 
   return (
-    <div className="min-h-full overflow-hidden text-[var(--mesh-text)] animate-page-enter">
-      <div className="grid h-full min-h-0 gap-4 px-3 py-4 lg:grid-cols-[minmax(0,1fr)_380px] md:px-5 md:py-6">
-        <section className="mesh-surface mesh-pop-in flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-[var(--mesh-border)] shadow-[var(--shadow-lg)]">
-          <header className="border-b border-[var(--mesh-border)] px-4 py-4 md:px-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Link href="/messages" className="mesh-action mesh-action-secondary mesh-pressable px-3 text-sm">
+    <div className="h-full min-h-0 overflow-hidden text-[var(--mesh-text)] animate-page-enter">
+      <div className="grid h-full min-h-0 gap-0 px-0 py-0 md:gap-4 md:px-5 md:py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="mesh-surface mesh-pop-in flex min-h-0 flex-col overflow-hidden rounded-none border-0 md:rounded-[32px] md:border md:border-[var(--mesh-border)] md:shadow-[var(--shadow-lg)]">
+          <header className="border-b border-[var(--mesh-border)] px-2 py-2 md:px-5 md:py-4">
+            <div className="flex items-center gap-2 md:gap-4">
+              <Link
+                href="/messages"
+                aria-label="Back to MeChat"
+                className="mesh-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--mesh-text-secondary)] transition hover:text-[var(--mesh-text)] active:bg-[var(--mesh-bg-elevated)] md:hidden"
+              >
+                <ArrowLeft size={20} aria-hidden="true" />
+              </Link>
+              <Link href="/messages" className="mesh-action mesh-action-secondary mesh-pressable hidden px-3 text-sm md:inline-flex">
                 <ArrowLeft size={15} aria-hidden="true" />
                 MeChat
               </Link>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-2 text-xs font-bold text-[var(--mesh-text-secondary)]">
-                <ShieldCheck size={14} aria-hidden="true" className="text-[var(--mesh-green)]" />
-                {threadIsEncrypted ? "Account-only encrypted surface" : "Private conversation"}
-              </div>
-            </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-4">
-              <div className="relative">
+              <div className="relative shrink-0">
                 {isGroupThread ? (
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)]">
+                  <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] md:h-14 md:w-14">
                     {conversationMembers.length > 1 ? (
-                      <div className="relative h-10 w-10">
+                      <div className="relative h-9 w-9 md:h-10 md:w-10">
                         {conversationMembers.filter((member) => member.userId !== user.id).slice(0, 3).map((member, index) => (
                           <Avatar
                             key={member.userId}
@@ -444,41 +452,49 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                         ))}
                       </div>
                     ) : (
-                      <Users size={22} aria-hidden="true" />
+                      <Users size={20} aria-hidden="true" />
                     )}
                   </div>
                 ) : (
-                  <Avatar src={conversationAvatar} alt={conversationTitle || "Conversation"} size="lg" className="h-14 w-14 ring-2 ring-[var(--mesh-blue)]/20" />
+                  <Avatar src={conversationAvatar} alt={conversationTitle || "Conversation"} size="lg" className="h-11 w-11 ring-2 ring-[var(--mesh-blue)]/20 md:h-14 md:w-14" />
                 )}
               </div>
+
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--mesh-text-secondary)]">
-                  {isGroupThread ? "MeChat group" : sourcePlatform === "mesh" ? "Mesh.me conversation" : `${sourcePlatform} source-aware conversation`}
-                </p>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-3xl font-bold text-[var(--mesh-text)]">{conversationTitle}</h1>
-                  {!isGroupThread && recipient?.isVerified && <BadgeCheck size={18} className="shrink-0 text-[var(--mesh-blue)]" />}
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <h1 className="truncate text-base font-bold text-[var(--mesh-text)] md:text-2xl">{conversationTitle}</h1>
+                  {!isGroupThread && recipient?.isVerified && <BadgeCheck size={16} className="shrink-0 text-[var(--mesh-blue)]" />}
+                  {(isExternalThread || threadPlatform !== "mesh") && (
+                    <span className="shrink-0 rounded-full bg-[var(--mesh-blue)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--mesh-blue)]">
+                      {sourceLabel(threadPlatform)}
+                    </span>
+                  )}
                 </div>
-                <p className="mt-1 text-sm text-[var(--mesh-text-secondary)]">{threadSummary}</p>
+                <p className="truncate text-xs text-[var(--mesh-text-secondary)] md:text-sm">{threadSummary}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button type="button" className="mesh-pressable inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] transition hover:border-[var(--mesh-border-active)] hover:text-[var(--mesh-text)]" aria-label="Call">
-                  <Phone size={16} />
+
+              <div className="flex shrink-0 items-center gap-1 md:gap-2">
+                <button type="button" className="mesh-pressable inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--mesh-text-secondary)] transition hover:text-[var(--mesh-text)] active:bg-[var(--mesh-bg-elevated)] md:border md:border-[var(--mesh-border)] md:bg-[var(--mesh-bg-elevated)] md:hover:border-[var(--mesh-border-active)]" aria-label="Call">
+                  <Phone size={18} />
                 </button>
-                <button type="button" className="mesh-pressable inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] transition hover:border-[var(--mesh-border-active)] hover:text-[var(--mesh-text)]" aria-label="Video call">
-                  <Video size={16} />
+                <button type="button" className="mesh-pressable inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--mesh-text-secondary)] transition hover:text-[var(--mesh-text)] active:bg-[var(--mesh-bg-elevated)] md:border md:border-[var(--mesh-border)] md:bg-[var(--mesh-bg-elevated)] md:hover:border-[var(--mesh-border-active)]" aria-label="Video call">
+                  <Video size={18} />
                 </button>
-                <button type="button" className="mesh-pressable inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] transition hover:border-[var(--mesh-border-active)] hover:text-[var(--mesh-text)]" aria-label="Conversation info">
+                <button type="button" className="mesh-pressable hidden h-11 w-11 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] transition hover:border-[var(--mesh-border-active)] hover:text-[var(--mesh-text)] md:inline-flex" aria-label="Conversation info">
                   <ShieldCheck size={16} />
                 </button>
               </div>
             </div>
           </header>
 
-          <div className="border-b border-[var(--mesh-border)] px-4 py-3 text-sm text-[var(--mesh-text-secondary)]">
+          <div className="hidden border-b border-[var(--mesh-border)] px-4 py-3 text-sm text-[var(--mesh-text-secondary)] md:block">
             <div className="flex items-center gap-2">
               <LockKeyhole size={15} aria-hidden="true" className="text-[var(--mesh-blue)]" />
-              <span>Messages stay tied to your private account session. Block and membership checks run on every send.</span>
+              <span>
+                {isExternalThread
+                  ? `This conversation lives on ${sourceLabel(threadPlatform)}. Replies you send here deliver there through your connected account.`
+                  : "Messages stay tied to your private account session. Block and membership checks run on every send."}
+              </span>
             </div>
           </div>
 
@@ -494,6 +510,8 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
               recipientId={formRecipientId}
               initialMessages={serializedMessages}
               initialSource={sharedContent ?? undefined}
+              isExternalThread={isExternalThread}
+              threadPlatform={threadPlatform}
             />
           </div>
         </section>

@@ -42,7 +42,7 @@ export async function GET() {
     lastMessage: t.lastMessage
       ? { content: t.lastMessage.content, senderId: t.lastMessage.senderId, createdAt: String(t.lastMessage.createdAt) }
       : null,
-    platform: "mesh",
+    platform: t.sourcePlatform || "mesh",
     unread: t.unreadCount,
   }));
 
