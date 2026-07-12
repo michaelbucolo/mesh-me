@@ -6554,8 +6554,67 @@ body,
 }
 
 .settings-toggle-on {
-  border-color: color-mix(in srgb, #10b981 32%, var(--border-primary));
-  background: color-mix(in srgb, #10b981 10%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border-primary));
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-primary));
+}
+
+.settings-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 1.5rem;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary, var(--bg-hover));
+  padding: 0 0.16rem;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.settings-switch-knob {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: var(--text-muted);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.settings-switch-on {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.settings-switch-on .settings-switch-knob {
+  background: #fff;
+  transform: translateX(1.06rem);
+}
+
+.settings-status-toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  border-radius: 0.85rem;
+  border: 1px solid var(--border-primary);
+  padding: 0.7rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  backdrop-filter: blur(12px);
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.25));
+  animation: settings-toast-in 0.2s ease;
+}
+
+@keyframes settings-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .settings-toggle-grid {

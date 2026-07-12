@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AtSign,
@@ -12,8 +12,6 @@ import {
   Crown,
   Database,
   Download,
-  Eye,
-  EyeOff,
   IdCard,
   KeyRound,
   Link as LinkIcon,
@@ -26,6 +24,7 @@ import {
   Phone,
   PlugZap,
   RefreshCw,
+  Search,
   Settings2,
   ShieldAlert,
   ShieldCheck,
@@ -202,17 +201,18 @@ const sectionOrder: Array<{
   label: string;
   description: string;
   icon: LucideIcon;
+  keywords: string[];
 }> = [
-  { id: "account", label: "Account", description: "Email, sign out, delete", icon: Settings2 },
-  { id: "profile", label: "Profile", description: "Name, bio, links", icon: UserRound },
-  { id: "privacy", label: "Privacy", description: "Visibility and content", icon: LockKeyhole },
-  { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing },
-  { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck },
-  { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints },
-  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles },
-  { id: "appearance", label: "Appearance", description: "Theme and mode", icon: Palette },
-  { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard },
-  { id: "data", label: "Data", description: "Export and delete data", icon: Database },
+  { id: "account", label: "Account", description: "Email, sign out, delete", icon: Settings2, keywords: ["email", "username", "sign out", "logout", "delete account", "verification"] },
+  { id: "profile", label: "Profile", description: "Name, bio, links", icon: UserRound, keywords: ["display name", "bio", "location", "website", "interests", "tags", "accent color"] },
+  { id: "privacy", label: "Privacy", description: "Visibility and content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "nsfw", "sensitive", "adult"] },
+  { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing, keywords: ["push", "email digest", "messages", "mentions", "comments", "follows", "alerts"] },
+  { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
+  { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints, keywords: ["graph", "nodes", "connections", "branches", "visibility", "motion"] },
+  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
+  { id: "appearance", label: "Appearance", description: "Theme and mode", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom"] },
+  { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
+  { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
 ];
 
 function parseBranchOverrides(raw: string) {
@@ -311,6 +311,8 @@ export function SettingsControlCenter({
     borderPrimary: customTheme?.borderPrimary ?? "#2d3848",
   });
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const [searchQuery, setSearchQuery] = useState("");
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -324,6 +326,12 @@ export function SettingsControlCenter({
       window.history.replaceState(null, "", `${window.location.pathname}${nextHash}`);
     }
   }, []);
+
+  useEffect(() => {
+    if (!status) return;
+    const timer = setTimeout(() => setStatus(null), status.type === "success" ? 3200 : 7000);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   useEffect(() => {
     const syncSectionFromHash = () => {
@@ -345,6 +353,13 @@ export function SettingsControlCenter({
     () => sectionOrder.find((section) => section.id === activeSection) ?? sectionOrder[0],
     [activeSection],
   );
+  const visibleSections = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return sectionOrder;
+    return sectionOrder.filter((section) =>
+      [section.label, section.description, ...section.keywords].some((text) => text.toLowerCase().includes(query)),
+    );
+  }, [searchQuery]);
   const storedTotal = Object.values(privacySummary.dataStored).reduce((sum, value) => sum + value, 0);
   const adultVerified = isAdultVerificationActive({
     nsfwEnabled: sensitive.nsfwEnabled,
@@ -361,10 +376,12 @@ export function SettingsControlCenter({
   }, []);
 
   function runSave(label: string, task: () => Promise<unknown>) {
+    const queued = saveQueueRef.current.then(task, task);
+    saveQueueRef.current = queued.then(() => undefined, () => undefined);
     startTransition(async () => {
       setStatus(null);
       try {
-        const result = await task();
+        const result = await queued;
         if (result && typeof result === "object" && "error" in result) {
           setStatus({ type: "error", message: String((result as { error: unknown }).error) });
           return;
@@ -389,54 +406,54 @@ export function SettingsControlCenter({
     runSave("Profile", () => updateProfile(formData));
   }
 
-  function savePrivacy(event: FormEvent) {
-    event.preventDefault();
+  function applyPrivacy(next: typeof privacy) {
+    setPrivacy(next);
     const formData = new FormData();
-    formData.set("isPublic", String(privacy.isPublic));
-    formData.set("showInDiscovery", String(privacy.showInDiscovery));
-    formData.set("hideActivityStatus", String(privacy.hideActivityStatus));
-    formData.set("readReceipts", String(privacy.readReceipts));
+    formData.set("isPublic", String(next.isPublic));
+    formData.set("showInDiscovery", String(next.showInDiscovery));
+    formData.set("hideActivityStatus", String(next.hideActivityStatus));
+    formData.set("readReceipts", String(next.readReceipts));
     runSave("Privacy", () => updatePrivacy(formData));
   }
 
-  function saveNotifications(event: FormEvent) {
-    event.preventDefault();
+  function applyNotifications(next: typeof notifications) {
+    setNotifications(next);
     const formData = new FormData();
-    formData.set("pushEnabled", String(notifications.pushEnabled));
-    formData.set("emailDigest", notifications.emailDigest);
-    formData.set("messages", String(notifications.messages));
-    formData.set("mentions", String(notifications.mentions));
-    formData.set("comments", String(notifications.comments));
-    formData.set("follows", String(notifications.follows));
-    formData.set("platformAlerts", String(notifications.platformAlerts));
-    formData.set("productUpdates", String(notifications.productUpdates));
+    formData.set("pushEnabled", String(next.pushEnabled));
+    formData.set("emailDigest", next.emailDigest);
+    formData.set("messages", String(next.messages));
+    formData.set("mentions", String(next.mentions));
+    formData.set("comments", String(next.comments));
+    formData.set("follows", String(next.follows));
+    formData.set("platformAlerts", String(next.platformAlerts));
+    formData.set("productUpdates", String(next.productUpdates));
     runSave("Notifications", () => updateNotificationPreferences(formData));
   }
 
-  function saveSensitive(event: FormEvent) {
-    event.preventDefault();
+  function applySensitive(next: typeof sensitive) {
+    setSensitive(next);
     const formData = new FormData();
-    formData.set("nsfwEnabled", String(sensitive.nsfwEnabled && adultVerified));
-    formData.set("adultVerificationRegion", normalizeUsState(sensitive.adultVerificationRegion));
+    formData.set("nsfwEnabled", String(next.nsfwEnabled && adultVerified));
+    formData.set("adultVerificationRegion", normalizeUsState(next.adultVerificationRegion));
     runSave("Sensitive content", () => updateNsfwPreference(formData));
   }
 
-  function saveMeshPrivacy(event: FormEvent) {
-    event.preventDefault();
+  function applyMeshPrivacy(next: typeof mesh) {
+    setMesh(next);
     runSave("Mesh visibility", () => updateMeshPrivacy({
-      meshVisibility: mesh.meshVisibility,
-      branchOverrides: mesh.branches,
-      showConnections: mesh.showConnections,
-      showStats: mesh.showStats,
+      meshVisibility: next.meshVisibility,
+      branchOverrides: next.branches,
+      showConnections: next.showConnections,
+      showStats: next.showStats,
     }));
   }
 
-  function saveMeshVisuals(event: FormEvent) {
-    event.preventDefault();
+  function applyMeshVisuals(next: typeof meshVisuals) {
+    setMeshVisuals(next);
     runSave("Mesh visuals", () => updateMeshCosmetics([
-      { type: "connectionColor", value: meshVisuals.connectionColor, isActive: true },
-      { type: "nodeStyle", value: meshVisuals.nodeStyle, isActive: true },
-      { type: "motionStyle", value: meshVisuals.motionStyle, isActive: true },
+      { type: "connectionColor", value: next.connectionColor, isActive: true },
+      { type: "nodeStyle", value: next.nodeStyle, isActive: true },
+      { type: "motionStyle", value: next.motionStyle, isActive: true },
     ]));
   }
 
@@ -566,7 +583,7 @@ export function SettingsControlCenter({
 
       {status && (
         <div
-          className={`mt-3 shrink-0 rounded-lg border px-4 py-3 text-sm font-bold ${
+          className={`settings-status-toast ${
             status.type === "success"
               ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-700 dark:text-emerald-100"
               : "border-red-400/25 bg-red-500/10 text-red-700 dark:text-red-100"
@@ -574,7 +591,7 @@ export function SettingsControlCenter({
           role="status"
         >
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={15} aria-hidden="true" />
+            {status.type === "success" ? <CheckCircle2 size={15} aria-hidden="true" /> : <ShieldAlert size={15} aria-hidden="true" />}
             {status.message}
           </div>
         </div>
@@ -582,8 +599,24 @@ export function SettingsControlCenter({
 
       <section className="settings-traditional-grid mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className={`settings-traditional-nav overflow-hidden rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:min-h-0 ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+          <div className="settings-search px-2 pt-2">
+            <div className="relative">
+              <Search size={15} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search settings"
+                aria-label="Search settings"
+                className="simple-input h-10 w-full pl-9 pr-3 text-sm"
+              />
+            </div>
+          </div>
           <nav className="settings-nav-scroll flex flex-col gap-1 overflow-x-hidden p-2 lg:grid lg:overflow-y-auto lg:overflow-x-hidden" aria-label="Settings sections">
-            {sectionOrder.map((section) => {
+            {visibleSections.length === 0 && (
+              <p className="px-3 py-4 text-sm text-[var(--text-muted)]">No settings match &ldquo;{searchQuery.trim()}&rdquo;.</p>
+            )}
+            {visibleSections.map((section) => {
               const Icon = section.icon;
               const active = activeSection === section.id;
               return (
@@ -644,13 +677,11 @@ export function SettingsControlCenter({
             {activeSection === "privacy" && (
               <PrivacySection
                 privacy={privacy}
-                setPrivacy={setPrivacy}
-                savePrivacy={savePrivacy}
+                applyPrivacy={applyPrivacy}
                 sensitive={sensitive}
-                setSensitive={setSensitive}
+                applySensitive={applySensitive}
                 adultVerified={adultVerified}
                 nsfwPolicy={nsfwPolicy}
-                saveSensitive={saveSensitive}
                 startAdultVerification={startAdultVerification}
                 isPending={isPending}
               />
@@ -658,9 +689,7 @@ export function SettingsControlCenter({
             {activeSection === "notifications" && (
               <NotificationsSection
                 notifications={notifications}
-                setNotifications={setNotifications}
-                saveNotifications={saveNotifications}
-                isPending={isPending}
+                applyNotifications={applyNotifications}
               />
             )}
             {activeSection === "security" && (
@@ -675,13 +704,10 @@ export function SettingsControlCenter({
             {activeSection === "mesh" && (
               <MeshSection
                 mesh={mesh}
-                setMesh={setMesh}
+                applyMeshPrivacy={applyMeshPrivacy}
                 meshVisuals={meshVisuals}
-                setMeshVisuals={setMeshVisuals}
-                saveMeshPrivacy={saveMeshPrivacy}
-                saveMeshVisuals={saveMeshVisuals}
+                applyMeshVisuals={applyMeshVisuals}
                 isMeshPro={settings.isMeshPro}
-                isPending={isPending}
               />
             )}
             {activeSection === "meshi" && (
@@ -929,135 +955,117 @@ function ProfileSection({
 
 function PrivacySection({
   privacy,
-  setPrivacy,
-  savePrivacy,
+  applyPrivacy,
   sensitive,
-  setSensitive,
+  applySensitive,
   adultVerified,
   nsfwPolicy,
-  saveSensitive,
   startAdultVerification,
   isPending,
 }: {
   privacy: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean };
-  setPrivacy: Dispatch<SetStateAction<{ isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean }>>;
-  savePrivacy: (event: FormEvent) => void;
+  applyPrivacy: (next: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean }) => void;
   sensitive: { nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null };
-  setSensitive: Dispatch<SetStateAction<{ nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null }>>;
+  applySensitive: (next: { nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null }) => void;
   adultVerified: boolean;
   nsfwPolicy: { reason: string; minAge: number };
-  saveSensitive: (event: FormEvent) => void;
   startAdultVerification: () => void;
   isPending: boolean;
 }) {
   return (
     <div className="settings-section-stack">
-      <form onSubmit={savePrivacy}>
-        <SettingsCard title="Profile privacy" icon={LockKeyhole}>
-          <div className="settings-toggle-grid">
-            <Toggle label="Public profile" value={privacy.isPublic} onChange={(value) => setPrivacy((current) => ({ ...current, isPublic: value }))} />
-            <Toggle label="Show in discovery" value={privacy.showInDiscovery} onChange={(value) => setPrivacy((current) => ({ ...current, showInDiscovery: value }))} />
-            <Toggle label="Hide activity status" value={privacy.hideActivityStatus} onChange={(value) => setPrivacy((current) => ({ ...current, hideActivityStatus: value }))} />
-            <Toggle label="Read receipts" value={privacy.readReceipts} onChange={(value) => setPrivacy((current) => ({ ...current, readReceipts: value }))} />
-          </div>
-          <SaveButton label="Save privacy" pending={isPending} />
-        </SettingsCard>
-      </form>
+      <SettingsCard title="Profile privacy" icon={LockKeyhole}>
+        <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
+        <div className="settings-toggle-grid">
+          <Toggle label="Public profile" description="Anyone can view your profile" value={privacy.isPublic} onChange={(value) => applyPrivacy({ ...privacy, isPublic: value })} />
+          <Toggle label="Show in discovery" description="Appear in search and suggestions" value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
+          <Toggle label="Hide activity status" description="Others can't see when you're online" value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
+          <Toggle label="Read receipts" description="Let people know you've seen messages" value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
+        </div>
+      </SettingsCard>
 
-      <form onSubmit={saveSensitive}>
-        <SettingsCard title="Sensitive content" icon={ShieldAlert}>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-            <Field label="U.S. state for policy">
-              <select
-                value={sensitive.adultVerificationRegion}
-                onChange={(event) => {
-                  const adultVerificationRegion = normalizeUsState(event.target.value);
-                  setSensitive((current) => ({
-                    ...current,
-                    adultVerificationRegion,
-                    nsfwEnabled: adultVerified ? current.nsfwEnabled : false,
-                  }));
-                }}
-                className="simple-input h-11 px-3 text-sm"
-              >
-                <option value="">Choose state</option>
-                {usStates.map((state) => <option key={state} value={state}>{state}</option>)}
-              </select>
-            </Field>
-            <div className="settings-muted-box">
-              <p className="settings-mini-label">Verification</p>
-              <p className="mt-1 text-sm font-bold capitalize">{adultVerified ? "Verified" : sensitive.adultVerificationStatus || "Unverified"}</p>
-            </div>
+      <SettingsCard title="Sensitive content" icon={ShieldAlert}>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+          <Field label="U.S. state for policy">
+            <select
+              value={sensitive.adultVerificationRegion}
+              onChange={(event) => {
+                const adultVerificationRegion = normalizeUsState(event.target.value);
+                applySensitive({
+                  ...sensitive,
+                  adultVerificationRegion,
+                  nsfwEnabled: adultVerified ? sensitive.nsfwEnabled : false,
+                });
+              }}
+              className="simple-input h-11 px-3 text-sm"
+            >
+              <option value="">Choose state</option>
+              {usStates.map((state) => <option key={state} value={state}>{state}</option>)}
+            </select>
+          </Field>
+          <div className="settings-muted-box">
+            <p className="settings-mini-label">Verification</p>
+            <p className="mt-1 text-sm font-bold capitalize">{adultVerified ? "Verified" : sensitive.adultVerificationStatus || "Unverified"}</p>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <Toggle
-              label="Show NSFW content"
-              value={sensitive.nsfwEnabled && adultVerified}
-              disabled={!adultVerified}
-              onChange={(value) => setSensitive((current) => ({ ...current, nsfwEnabled: adultVerified ? value : false }))}
-            />
-            <button type="button" onClick={startAdultVerification} disabled={isPending} className="settings-action-row text-left">
-              <span>
-                <span className="block text-sm font-bold">Verify adult access</span>
-                <span className="mt-1 block text-xs text-[var(--text-muted)]">Third-party ID check. Mesh.me stores status only.</span>
-              </span>
-              {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <IdCard size={16} aria-hidden="true" />}
-            </button>
-          </div>
-          <div className="settings-muted-box mt-3 text-xs leading-5 text-[var(--text-secondary)]">
-            {nsfwPolicy.reason} Minimum age: {nsfwPolicy.minAge}. NSFW stays hidden until this account is verified and the setting is explicitly turned on.
-          </div>
-          <SaveButton label="Save content settings" pending={isPending} />
-        </SettingsCard>
-      </form>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <Toggle
+            label="Show NSFW content"
+            description={adultVerified ? "Show sensitive content in feeds" : "Requires adult verification first"}
+            value={sensitive.nsfwEnabled && adultVerified}
+            disabled={!adultVerified}
+            onChange={(value) => applySensitive({ ...sensitive, nsfwEnabled: adultVerified ? value : false })}
+          />
+          <button type="button" onClick={startAdultVerification} disabled={isPending} className="settings-action-row text-left">
+            <span>
+              <span className="block text-sm font-bold">Verify adult access</span>
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">Third-party ID check. Mesh.me stores status only.</span>
+            </span>
+            {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <IdCard size={16} aria-hidden="true" />}
+          </button>
+        </div>
+        <div className="settings-muted-box mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+          {nsfwPolicy.reason} Minimum age: {nsfwPolicy.minAge}. NSFW stays hidden until this account is verified and the setting is explicitly turned on.
+        </div>
+      </SettingsCard>
     </div>
   );
 }
 
+type NotificationsState = {
+  pushEnabled: boolean;
+  emailDigest: string;
+  messages: boolean;
+  mentions: boolean;
+  comments: boolean;
+  follows: boolean;
+  platformAlerts: boolean;
+  securityAlerts: boolean;
+  productUpdates: boolean;
+};
+
 function NotificationsSection({
   notifications,
-  setNotifications,
-  saveNotifications,
-  isPending,
+  applyNotifications,
 }: {
-  notifications: {
-    pushEnabled: boolean;
-    emailDigest: string;
-    messages: boolean;
-    mentions: boolean;
-    comments: boolean;
-    follows: boolean;
-    platformAlerts: boolean;
-    securityAlerts: boolean;
-    productUpdates: boolean;
-  };
-  setNotifications: Dispatch<SetStateAction<{
-    pushEnabled: boolean;
-    emailDigest: string;
-    messages: boolean;
-    mentions: boolean;
-    comments: boolean;
-    follows: boolean;
-    platformAlerts: boolean;
-    securityAlerts: boolean;
-    productUpdates: boolean;
-  }>>;
-  saveNotifications: (event: FormEvent) => void;
-  isPending: boolean;
+  notifications: NotificationsState;
+  applyNotifications: (next: NotificationsState) => void;
 }) {
   return (
-    <form onSubmit={saveNotifications} className="settings-section-stack">
+    <div className="settings-section-stack">
       <SettingsCard title="Notification delivery" icon={BellRing}>
+        <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
           <Toggle
             label="Push notifications"
+            description="Get alerts on this device"
             value={notifications.pushEnabled}
-            onChange={(value) => setNotifications((current) => ({ ...current, pushEnabled: value }))}
+            onChange={(value) => applyNotifications({ ...notifications, pushEnabled: value })}
           />
           <Field label="Email digest">
             <select
               value={notifications.emailDigest}
-              onChange={(event) => setNotifications((current) => ({ ...current, emailDigest: event.target.value }))}
+              onChange={(event) => applyNotifications({ ...notifications, emailDigest: event.target.value })}
               className="simple-input h-11 px-3 text-sm capitalize"
             >
               <option value="off">Off</option>
@@ -1070,20 +1078,16 @@ function NotificationsSection({
 
       <SettingsCard title="What reaches you" icon={BellRing}>
         <div className="settings-toggle-grid">
-          <Toggle label="Messages" value={notifications.messages} onChange={(value) => setNotifications((current) => ({ ...current, messages: value }))} />
-          <Toggle label="Mentions" value={notifications.mentions} onChange={(value) => setNotifications((current) => ({ ...current, mentions: value }))} />
-          <Toggle label="Comments" value={notifications.comments} onChange={(value) => setNotifications((current) => ({ ...current, comments: value }))} />
-          <Toggle label="Follows" value={notifications.follows} onChange={(value) => setNotifications((current) => ({ ...current, follows: value }))} />
-          <Toggle label="Platform alerts" value={notifications.platformAlerts} onChange={(value) => setNotifications((current) => ({ ...current, platformAlerts: value }))} />
-          <Toggle label="Product updates" value={notifications.productUpdates} onChange={(value) => setNotifications((current) => ({ ...current, productUpdates: value }))} />
-          <Toggle label="Security alerts" value={notifications.securityAlerts} disabled onChange={() => undefined} />
+          <Toggle label="Messages" description="New direct messages" value={notifications.messages} onChange={(value) => applyNotifications({ ...notifications, messages: value })} />
+          <Toggle label="Mentions" description="When someone mentions you" value={notifications.mentions} onChange={(value) => applyNotifications({ ...notifications, mentions: value })} />
+          <Toggle label="Comments" description="Replies to your posts" value={notifications.comments} onChange={(value) => applyNotifications({ ...notifications, comments: value })} />
+          <Toggle label="Follows" description="New followers and friend requests" value={notifications.follows} onChange={(value) => applyNotifications({ ...notifications, follows: value })} />
+          <Toggle label="Platform alerts" description="Connected platform activity" value={notifications.platformAlerts} onChange={(value) => applyNotifications({ ...notifications, platformAlerts: value })} />
+          <Toggle label="Product updates" description="News and feature announcements" value={notifications.productUpdates} onChange={(value) => applyNotifications({ ...notifications, productUpdates: value })} />
+          <Toggle label="Security alerts" description="Always on to keep your account safe" value={notifications.securityAlerts} disabled onChange={() => undefined} />
         </div>
-        <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">
-          Security alerts stay on so sign-ins, verification changes, and privacy-sensitive events never get hidden.
-        </p>
-        <SaveButton label="Save notifications" pending={isPending} />
       </SettingsCard>
-    </form>
+    </div>
   );
 }
 
@@ -1524,106 +1528,95 @@ function TwoFactorMethods() {
 
 function MeshSection({
   mesh,
-  setMesh,
+  applyMeshPrivacy,
   meshVisuals,
-  setMeshVisuals,
-  saveMeshPrivacy,
-  saveMeshVisuals,
+  applyMeshVisuals,
   isMeshPro,
-  isPending,
 }: {
   mesh: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> };
-  setMesh: Dispatch<SetStateAction<{ meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> }>>;
+  applyMeshPrivacy: (next: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> }) => void;
   meshVisuals: { connectionColor: string; nodeStyle: string; motionStyle: string };
-  setMeshVisuals: Dispatch<SetStateAction<{ connectionColor: string; nodeStyle: string; motionStyle: string }>>;
-  saveMeshPrivacy: (event: FormEvent) => void;
-  saveMeshVisuals: (event: FormEvent) => void;
+  applyMeshVisuals: (next: { connectionColor: string; nodeStyle: string; motionStyle: string }) => void;
   isMeshPro: boolean;
-  isPending: boolean;
 }) {
   return (
     <div className="settings-section-stack">
-      <form onSubmit={saveMeshPrivacy}>
-        <SettingsCard title="Mesh visibility" icon={Waypoints}>
-          <div className="grid gap-3 md:grid-cols-3">
-            <Field label="Overall visibility">
+      <SettingsCard title="Mesh visibility" icon={Waypoints}>
+        <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Field label="Overall visibility">
+            <select
+              value={mesh.meshVisibility}
+              onChange={(event) => applyMeshPrivacy({ ...mesh, meshVisibility: event.target.value })}
+              className="simple-input h-11 px-3 text-sm capitalize"
+            >
+              {visibilityOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </Field>
+          <Toggle label="Show connections" description="Display who you're connected to" value={mesh.showConnections} onChange={(value) => applyMeshPrivacy({ ...mesh, showConnections: value })} />
+          <Toggle label="Show stats" description="Display counts on your mesh" value={mesh.showStats} onChange={(value) => applyMeshPrivacy({ ...mesh, showStats: value })} />
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {branchKeys.map((key) => (
+            <label key={key} className="settings-muted-box grid gap-2 text-xs font-bold capitalize">
+              {key}
               <select
-                value={mesh.meshVisibility}
-                onChange={(event) => setMesh((current) => ({ ...current, meshVisibility: event.target.value }))}
-                className="simple-input h-11 px-3 text-sm capitalize"
+                value={mesh.branches[key] ?? "friends"}
+                onChange={(event) => applyMeshPrivacy({
+                  ...mesh,
+                  branches: { ...mesh.branches, [key]: event.target.value },
+                })}
+                className="simple-input h-10 px-2 text-sm capitalize"
               >
-                {visibilityOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                {visibilityOptions.slice(0, 3).map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
-            </Field>
-            <Toggle label="Show connections" value={mesh.showConnections} onChange={(value) => setMesh((current) => ({ ...current, showConnections: value }))} />
-            <Toggle label="Show stats" value={mesh.showStats} onChange={(value) => setMesh((current) => ({ ...current, showStats: value }))} />
-          </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            {branchKeys.map((key) => (
-              <label key={key} className="settings-muted-box grid gap-2 text-xs font-bold capitalize">
-                {key}
-                <select
-                  value={mesh.branches[key] ?? "friends"}
-                  onChange={(event) => setMesh((current) => ({
-                    ...current,
-                    branches: { ...current.branches, [key]: event.target.value },
-                  }))}
-                  className="simple-input h-10 px-2 text-sm capitalize"
-                >
-                  {visibilityOptions.slice(0, 3).map((option) => <option key={option} value={option}>{option}</option>)}
-                </select>
-              </label>
-            ))}
-          </div>
-          <SaveButton label="Save Mesh visibility" pending={isPending} />
-        </SettingsCard>
-      </form>
+            </label>
+          ))}
+        </div>
+      </SettingsCard>
 
-      <form onSubmit={saveMeshVisuals}>
-        <SettingsCard title="Mesh visuals" icon={WandSparkles}>
-          {!isMeshPro && (
-            <div className="settings-muted-box mb-4 flex flex-wrap items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 text-sm font-bold">
-                <Crown size={15} aria-hidden="true" />
-                Mesh Pro customization
-              </span>
-              <Link href="/meshpro" className="text-xs font-bold text-[var(--accent)]">Upgrade</Link>
-            </div>
-          )}
-          <PickerGroup label="Connection color">
-            {meshConnectionColors.map((color) => (
-              <button
-                key={color}
-                type="button"
-                disabled={!isMeshPro}
-                onClick={() => setMeshVisuals((current) => ({ ...current, connectionColor: color }))}
-                className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold ${meshVisuals.connectionColor === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
-                aria-pressed={meshVisuals.connectionColor === color}
-              >
-                <span className="h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
-                {color}
-              </button>
+      <SettingsCard title="Mesh visuals" icon={WandSparkles}>
+        {!isMeshPro && (
+          <div className="settings-muted-box mb-4 flex flex-wrap items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-2 text-sm font-bold">
+              <Crown size={15} aria-hidden="true" />
+              Mesh Pro customization
+            </span>
+            <Link href="/meshpro" className="text-xs font-bold text-[var(--accent)]">Upgrade</Link>
+          </div>
+        )}
+        <PickerGroup label="Connection color">
+          {meshConnectionColors.map((color) => (
+            <button
+              key={color}
+              type="button"
+              disabled={!isMeshPro}
+              onClick={() => applyMeshVisuals({ ...meshVisuals, connectionColor: color })}
+              className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold ${meshVisuals.connectionColor === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
+              aria-pressed={meshVisuals.connectionColor === color}
+            >
+              <span className="h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
+              {color}
+            </button>
+          ))}
+        </PickerGroup>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <PickerGroup label="Node style">
+            {meshNodeStyles.map((style) => (
+              <ChoiceButton key={style} active={meshVisuals.nodeStyle === style} disabled={!isMeshPro} onClick={() => applyMeshVisuals({ ...meshVisuals, nodeStyle: style })}>
+                {style}
+              </ChoiceButton>
             ))}
           </PickerGroup>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <PickerGroup label="Node style">
-              {meshNodeStyles.map((style) => (
-                <ChoiceButton key={style} active={meshVisuals.nodeStyle === style} disabled={!isMeshPro} onClick={() => setMeshVisuals((current) => ({ ...current, nodeStyle: style }))}>
-                  {style}
-                </ChoiceButton>
-              ))}
-            </PickerGroup>
-            <PickerGroup label="Motion">
-              {meshMotionStyles.map((style) => (
-                <ChoiceButton key={style} active={meshVisuals.motionStyle === style} disabled={!isMeshPro} onClick={() => setMeshVisuals((current) => ({ ...current, motionStyle: style }))}>
-                  {style}
-                </ChoiceButton>
-              ))}
-            </PickerGroup>
-          </div>
-          <SaveButton label="Save Mesh visuals" pending={isPending} disabled={!isMeshPro} />
-        </SettingsCard>
-      </form>
+          <PickerGroup label="Motion">
+            {meshMotionStyles.map((style) => (
+              <ChoiceButton key={style} active={meshVisuals.motionStyle === style} disabled={!isMeshPro} onClick={() => applyMeshVisuals({ ...meshVisuals, motionStyle: style })}>
+                {style}
+              </ChoiceButton>
+            ))}
+          </PickerGroup>
+        </div>
+      </SettingsCard>
     </div>
   );
 }
@@ -1982,11 +1975,13 @@ function SaveButton({ label, pending, disabled = false }: { label: string; pendi
 
 function Toggle({
   label,
+  description,
   value,
   onChange,
   disabled = false,
 }: {
   label: string;
+  description?: string;
   value: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
@@ -1994,16 +1989,19 @@ function Toggle({
   return (
     <button
       type="button"
+      role="switch"
       disabled={disabled}
       onClick={() => onChange(!value)}
       className={`settings-toggle ${value ? "settings-toggle-on" : ""} ${disabled ? "cursor-not-allowed opacity-65" : ""}`}
-      aria-pressed={value}
+      aria-checked={value}
     >
-      <span>
-        <span className="block text-sm font-bold">{label}</span>
-        <span className="block text-xs text-[var(--text-muted)]">{value ? "On" : "Off"}</span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-bold">{label}</span>
+        <span className="block text-xs text-[var(--text-muted)]">{description ?? (value ? "On" : "Off")}</span>
       </span>
-      {value ? <Eye size={16} aria-hidden="true" /> : <EyeOff size={16} aria-hidden="true" />}
+      <span className={`settings-switch ${value ? "settings-switch-on" : ""}`} aria-hidden="true">
+        <span className="settings-switch-knob" />
+      </span>
     </button>
   );
 }
