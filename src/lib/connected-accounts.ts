@@ -32,6 +32,7 @@ export type ConnectedAccountView = {
   createdAt: string;
   expiresAt: string | null;
   hasCredential: boolean;
+  hasRefreshToken: boolean;
   health: "ready" | "paused" | "needs_reconnect" | "sync_error" | "manual";
   healthLabel: string;
   counts: {
@@ -183,6 +184,7 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
         platformId: true,
         accountLabel: true,
         accessToken: true,
+        refreshToken: true,
         expiresAt: true,
         isActive: true,
         syncStatus: true,
@@ -240,6 +242,7 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
       createdAt: account.createdAt.toISOString(),
       expiresAt: toIso(account.expiresAt),
       hasCredential: Boolean(account.accessToken),
+      hasRefreshToken: Boolean(account.refreshToken),
       health,
       healthLabel: getHealthLabel(health),
       counts: {

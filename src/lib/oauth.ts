@@ -316,6 +316,41 @@ export function getOAuthMissingEnv(config: OAuthConfig): string[] {
   return missing;
 }
 
+export type OAuthTokenRequest = {
+  headers: Record<string, string>;
+  body: URLSearchParams;
+};
+
+export function buildTokenRequest(
+  config: OAuthConfig,
+  params: Record<string, string>,
+): OAuthTokenRequest {
+  const clientId = getOAuthClientId(config);
+  const clientSecret = getOAuthClientSecret(config);
+  if (!clientId || !clientSecret) {
+    throw new Error(`OAuth credentials are not configured for ${config.name}`);
+  }
+
+  const clientIdParamName = config.clientIdParam || "client_id";
+  const body = new URLSearchParams(params);
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    Accept: "application/json",
+  };
+
+  if (config.tokenAuthMethod === "client_secret_basic" || config.platform === "reddit") {
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+    headers.Authorization = `Basic ${credentials}`;
+    body.delete(clientIdParamName);
+    body.delete("client_secret");
+  } else {
+    body.set(clientIdParamName, clientId);
+    body.set("client_secret", clientSecret);
+  }
+
+  return { headers, body };
+}
+
 // Resolve a nested path in an object, returning the value at the path (may be object, string, etc.)
 export function resolveNestedPath(obj: unknown, path: string): unknown {
   const parts = path.split(".");

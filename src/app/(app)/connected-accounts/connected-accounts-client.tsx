@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -349,6 +349,35 @@ export function ConnectedAccountsClient({
   const [manualPlatform, setManualPlatform] = useState(manualPlatforms[0]?.id ?? "bluesky");
   const [manualUsername, setManualUsername] = useState("");
   const [manualLabel, setManualLabel] = useState("");
+  const refreshAttemptedRef = useRef(false);
+  const hasRefreshableAccounts = useMemo(
+    () => dashboard.accounts.some((account) => (
+      account.health === "needs_reconnect" && account.hasRefreshToken
+    )),
+    [dashboard.accounts],
+  );
+
+  useEffect(() => {
+    if (!hasRefreshableAccounts || refreshAttemptedRef.current) return;
+    refreshAttemptedRef.current = true;
+
+    void (async () => {
+      const response = await fetch("/api/connected-accounts/refresh", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+      }).catch(() => null);
+      if (!response?.ok) return;
+
+      const data = await response.json().catch(() => null) as { refreshed?: unknown } | null;
+      if (typeof data?.refreshed !== "number" || data.refreshed <= 0) return;
+
+      const refreshed = await requestDashboard("/api/connected-accounts").catch(() => null);
+      if (refreshed && "accounts" in refreshed) {
+        setDashboard(refreshed as ConnectedAccountsDashboard);
+      }
+    })();
+  }, [hasRefreshableAccounts]);
 
   const filteredPlatforms = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
