@@ -18,5 +18,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (isCrossSiteRequest(request)) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   return logout(request);
 }
