@@ -3031,8 +3031,8 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
   return { success: true };
 }
 
-export async function getMeshiPreference(currentUser?: Awaited<ReturnType<typeof getCurrentUser>> | null) {
-  const user = currentUser === undefined ? await getCurrentUser() : currentUser;
+export async function getMeshiPreference() {
+  const user = await getCurrentUser();
   if (!user) return null;
 
   const pref = await prisma.meshiPreference.findUnique({
