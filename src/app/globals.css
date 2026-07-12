@@ -661,6 +661,10 @@ select:focus-visible {
 }
 
 .animate-page-enter {
+  animation: pageEnter 140ms var(--mesh-ease-out) both;
+}
+
+.mesh-shell-mesh:not(.mesh-shell-flow) .mesh-route-slot.animate-page-enter {
   animation: meshPageEnter 280ms var(--mesh-ease-out) both;
 }
 
@@ -818,23 +822,14 @@ select:focus-visible {
 
 /* ─── Page Enter ─── */
 @keyframes pageEnter {
-  from { opacity: 0; filter: blur(2px); transform: translateY(10px) scale(0.992); }
-  to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.animate-page-enter { animation: pageEnter 0.42s var(--mesh-ease-out); }
 
 @keyframes meshChildEnter {
   from { opacity: 0; transform: translateY(12px) scale(0.988); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface) {
-  animation: meshChildEnter 0.46s var(--mesh-ease-out) both;
-}
-
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(2) { animation-delay: 45ms; }
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(3) { animation-delay: 90ms; }
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(4) { animation-delay: 135ms; }
 
 @keyframes appRouteProgress {
   0% { transform: translateX(-112%) scaleX(0.45); opacity: 0; }
@@ -6156,43 +6151,9 @@ body,
   z-index: 1;
 }
 
-.animate-page-enter {
-  animation: familiarPageEnter 380ms cubic-bezier(0.22, 1.2, 0.36, 1) both !important;
-}
-
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface) {
-  animation: familiarChildEnter 420ms cubic-bezier(0.22, 1.2, 0.36, 1) both !important;
-}
-
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(2) { animation-delay: 40ms !important; }
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(3) { animation-delay: 80ms !important; }
-.animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface):nth-child(4) { animation-delay: 120ms !important; }
-
-@keyframes familiarPageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.995);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes familiarChildEnter {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.99);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-page-enter,
-  .animate-page-enter > :where(header, section, article, .mesh-surface, .glass-card, .simple-card, .premium-surface) {
+  .mesh-shell-mesh:not(.mesh-shell-flow) .mesh-route-slot.animate-page-enter {
     animation: none !important;
   }
 }
@@ -8646,20 +8607,9 @@ body > * { position: relative; z-index: 1; }
   }
 }
 
-/* Content settles in with a gentle fade+rise on each navigation, so pages
-   arrive rather than blink. Scoped to the main content shell. */
-.app-content-enter {
-  animation: appContentEnter 0.34s var(--mesh-ease-out) both;
-}
-@keyframes appContentEnter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .nav-progress-bar { transition: opacity 120ms ease; }
   .like-burst-active,
-  .app-content-enter,
   button:not(:disabled):active,
   a[role="button"]:active,
   [role="tab"]:active {

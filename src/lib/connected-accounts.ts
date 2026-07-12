@@ -202,18 +202,42 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
             revokedAt: true,
           },
         },
-        _count: {
-          select: {
-            platformPosts: true,
-            platformComments: true,
-            platformFollowers: true,
-            platformMedia: true,
-          },
-        },
       },
     }),
     Promise.resolve(getSupportedPlatformAdapters()),
   ]);
+
+  const accountIds = accounts.map((account) => account.id);
+  const [postCounts, commentCounts, followerCounts, mediaCounts] = await Promise.all([
+    prisma.platformPost.groupBy({
+      by: ["connectedAccountId"],
+      where: { connectedAccountId: { in: accountIds } },
+      _count: { _all: true },
+    }),
+    prisma.platformComment.groupBy({
+      by: ["connectedAccountId"],
+      where: { connectedAccountId: { in: accountIds } },
+      _count: { _all: true },
+    }),
+    prisma.platformFollower.groupBy({
+      by: ["connectedAccountId"],
+      where: { connectedAccountId: { in: accountIds } },
+      _count: { _all: true },
+    }),
+    prisma.platformMedia.groupBy({
+      by: ["connectedAccountId"],
+      where: { connectedAccountId: { in: accountIds } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const countsByAccount = new Map(
+    accountIds.map((id) => [id, { platformPosts: 0, platformComments: 0, platformFollowers: 0, platformMedia: 0 }]),
+  );
+  for (const row of postCounts) countsByAccount.get(row.connectedAccountId)!.platformPosts = row._count._all;
+  for (const row of commentCounts) countsByAccount.get(row.connectedAccountId)!.platformComments = row._count._all;
+  for (const row of followerCounts) countsByAccount.get(row.connectedAccountId)!.platformFollowers = row._count._all;
+  for (const row of mediaCounts) countsByAccount.get(row.connectedAccountId)!.platformMedia = row._count._all;
 
   const connectedCounts = new Map<string, { connected: number; active: number }>();
   for (const account of accounts) {
@@ -226,6 +250,12 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
   const accountViews = accounts.map((account) => {
     const adapter = getSupportedPlatformAdapter(account.platform);
     const health = getAccountHealth(account, adapter);
+    const counts = countsByAccount.get(account.id) ?? {
+      platformPosts: 0,
+      platformComments: 0,
+      platformFollowers: 0,
+      platformMedia: 0,
+    };
 
     return {
       id: account.id,
@@ -246,12 +276,12 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
       health,
       healthLabel: getHealthLabel(health),
       counts: {
-        posts: account._count.platformPosts,
-        comments: account._count.platformComments,
-        followers: account._count.platformFollowers,
-        media: account._count.platformMedia,
+        posts: counts.platformPosts,
+        comments: counts.platformComments,
+        followers: counts.platformFollowers,
+        media: counts.platformMedia,
       },
-      _count: account._count,
+      _count: counts,
       capability: getPlatformCapability(account.platform),
       adapter,
       permissions: buildPermissionViews(account),

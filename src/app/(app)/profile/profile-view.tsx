@@ -82,10 +82,12 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
   const isOwnProfile = profile.isOwnProfile;
   const canViewProfile = profile.sectionVisibility.profile;
-  const memberships = canViewProfile ? await getUserCommunities(username) : [];
-  const [savedPosts, savedPostCount] = isOwnProfile
-    ? await Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
-    : [[], 0];
+  const [memberships, [savedPosts, savedPostCount]] = await Promise.all([
+    canViewProfile ? getUserCommunities(username) : Promise.resolve([]),
+    isOwnProfile
+      ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
+      : Promise.resolve([[], 0] as const),
+  ]);
   const meshi = profile.meshiPreference ?? DEFAULT_MESHI;
   const connectedAccounts = profile.connectedAccounts ?? [];
   const links = profile.links ?? [];
@@ -592,5 +594,4 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
     </Link>
   );
 }
-
 
