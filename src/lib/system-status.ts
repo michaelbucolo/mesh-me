@@ -71,7 +71,7 @@ export async function getPublicSystemStatus(): Promise<PublicSystemStatus> {
     })),
 
     runStatusCheck("database", "Database", async () => {
-      await prisma.$queryRawUnsafe("SELECT 1");
+      await prisma.$queryRaw`SELECT 1`;
       return {
         status: "operational",
         summary: "Operational",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,16 @@ function normalizeUsername(value: string | null) {
 }
 
 export async function GET(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const clientIp = forwardedFor || request.headers.get("x-real-ip") || "unknown";
+  const rl = rateLimit(`meshi-preview:${clientIp}`, 30, 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: NO_STORE_HEADERS },
+    );
+  }
+
   const url = new URL(request.url);
   const username = normalizeUsername(url.searchParams.get("username"));
 
