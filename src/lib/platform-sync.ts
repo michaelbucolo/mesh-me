@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { decryptSecret } from "./secret-store";
 import { resolveEnvValue } from "./oauth";
+import { refreshConnectedAccountToken } from "./oauth-token-refresh";
 import { getPlatformActionCapability, getPlatformImportCapability } from "./platform-capabilities";
 import { classifyContentSafety, nsfwHiddenWhere } from "./content-safety";
 
@@ -1610,6 +1611,34 @@ function getStoredRefreshToken(value: string | null): string | null {
   return getStoredToken(value);
 }
 
+async function getValidAccessToken(account: {
+  id: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  expiresAt: Date | null;
+}): Promise<string | null> {
+  let tokens = getStoredConnectedAccountTokens(account);
+  const refreshBefore = Date.now() + 120_000;
+  const shouldRefresh = !tokens.accessToken
+    || (account.expiresAt !== null && account.expiresAt.getTime() <= refreshBefore);
+
+  if (shouldRefresh) {
+    if (!tokens.refreshToken) return null;
+
+    const result = await refreshConnectedAccountToken(account.id);
+    if (result !== "refreshed") return null;
+
+    const refreshedAccount = await prisma.connectedAccount.findUnique({
+      where: { id: account.id },
+      select: { accessToken: true, refreshToken: true },
+    });
+    if (!refreshedAccount) return null;
+    tokens = getStoredConnectedAccountTokens(refreshedAccount);
+  }
+
+  return tokens.accessToken;
+}
+
 async function migratePlatformCommentsIntoMeChat(account: {
   id: string;
   userId: string;
@@ -1751,8 +1780,7 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
   const importCapability = getPlatformImportCapability(account.platform);
   if (!importCapability.supported) return { error: importCapability.reason };
 
-  const { accessToken } = getStoredConnectedAccountTokens(account);
-  if (account.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
+  const accessToken = await getValidAccessToken(account);
   if (!accessToken) return { error: "No access token - reconnect this platform" };
 
   // Create sync job
@@ -1992,8 +2020,7 @@ export async function syncComments(connectedAccountId: string, platformPostId: s
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
-  const { accessToken } = getStoredConnectedAccountTokens(account);
-  if (account.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
+  const accessToken = await getValidAccessToken(account);
   if (!accessToken) return { error: "No access token" };
 
   const post = await prisma.platformPost.findFirst({

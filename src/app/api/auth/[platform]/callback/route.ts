@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   OAUTH_CONFIGS,
+  buildTokenRequest,
   getCallbackUrl,
   getBaseUrl,
   getNestedField,
@@ -96,13 +97,10 @@ export async function GET(
 
   try {
     // Exchange authorization code for access token
-    const clientIdParamName = config.clientIdParam || "client_id";
     const tokenParams: Record<string, string> = {
       grant_type: "authorization_code",
       code,
       redirect_uri: getCallbackUrl(platform),
-      [clientIdParamName]: clientId,
-      client_secret: clientSecret,
     };
 
     // Add PKCE verifier if needed
@@ -118,23 +116,12 @@ export async function GET(
       Object.assign(tokenParams, config.extraTokenParams);
     }
 
-    const tokenHeaders: Record<string, string> = {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json",
-    };
-
-    // Some providers require HTTP Basic Auth for token exchange.
-    if (config.tokenAuthMethod === "client_secret_basic" || platform === "reddit") {
-      const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-      tokenHeaders.Authorization = `Basic ${credentials}`;
-      delete tokenParams[clientIdParamName];
-      delete tokenParams.client_secret;
-    }
+    const { headers: tokenHeaders, body: tokenBody } = buildTokenRequest(config, tokenParams);
 
     const tokenResponse = await fetch(config.tokenUrl, {
       method: "POST",
       headers: tokenHeaders,
-      body: new URLSearchParams(tokenParams),
+      body: tokenBody,
     });
 
     if (!tokenResponse.ok) {
