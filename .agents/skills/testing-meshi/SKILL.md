@@ -1,3 +1,8 @@
+---
+name: testing-meshi
+description: Test Meshi companion features end-to-end — chat engine Q&A, auth-flow personality, customization (hats, hair, accessories, badges, outfits), wearable physics, and persistence. Use when verifying Meshi UI or renderer changes.
+---
+
 # Testing Meshi AI Companion Features
 
 ## Overview
@@ -97,6 +102,16 @@ Meshi is the AI companion mascot for mesh.me. It appears across the entire app a
 ## Secrets Needed
 - None required for local testing — SQLite database is file-based and pre-seeded
 - `GITHUB_USERNAME` and `GITHUB_PASSWORD` for pushing to repo (if needed)
+
+## Testing Meshi Customization (Settings → Meshi)
+1. Navigate to `/settings#meshi` (or click the "Meshi" section in the settings nav). The live preview `MeshiMascot` sits above the "Customize Meshi" grid with groups: Color, Hat, Hair, Eyes, Expression, Accessories, Badges, Outfits, and a "Save Meshi" submit button.
+2. **Premium gating**: seeded accounts are Free, so most cosmetics are disabled. To unlock everything for testing, flip the flag in the local DB (temp script with the generated Prisma client): `prisma.user.update({ where: { username: "alexcreates" }, data: { isMeshPro: true, meshProSince: new Date() } })`, then refresh. Run the script from inside the repo (imports resolve relative to cwd) and delete it afterward.
+3. **Database location gotcha**: `DATABASE_URL` may point at `prisma/dev.db` while a stale `dev.db` sits at the repo root. If login fails with seeded credentials, verify which file the server actually uses and restart the dev server after any DB change.
+4. **Scrolling may be broken**: mouse-wheel scrolling on the settings page might not work in the test browser (wheel events may be swallowed). Workarounds: use browser zoom (Ctrl+- / Ctrl+0) to fit more of the grid on screen, or click a grid button and press Tab — focus changes auto-scroll the container.
+5. The preview mascot is small; use screenshot zoom on the preview region to judge artwork/conflict details.
+6. **Conflict checks worth repeating**: hair should tuck under closed hats (cap/beanie/tophat/etc.) but render full-size under open ones (halo/headband/bow/flower/none); badges sit at the lower-right rim clear of tall hats; the `lashes` accessory maps to the eye style so it never doubles with another accessory.
+7. **Physics**: wearable springs react to on-screen movement of the mascot (bounding-rect velocity). Ways to induce motion: click the interactive settings preview (bounce), or watch the user's Meshi travel between nodes on `/mesh` (panning the canvas also moves it). Physics is continuous — capture it in a recording; single screenshots rarely catch the tilt.
+8. **Persistence**: after "Save Meshi", reload and confirm selections persist and the same custom Meshi appears app-wide (settings header avatar, `/mesh` loading screen, mesh node). Meshi is a singleton — flag any screen showing two copies of the user's Meshi at once.
 
 ## Common Issues
 - **Meshi chat not opening**: You must click the mascot first to open the actions menu, THEN click "Full Chat with Meshi". Clicking the mascot does NOT directly open the chat.
