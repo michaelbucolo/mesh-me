@@ -19,11 +19,25 @@ export default async function SettingsPage() {
     getUserSettings(),
     getMeshPrivacy().catch((error) => {
       console.error("[settings] Mesh privacy unavailable", error);
-      return null;
+      return {
+        meshVisibility: "private",
+        branchOverrides: "{}",
+        showConnections: false,
+        showStats: false,
+      };
     }),
     getMeshiPreference().catch((error) => {
       console.error("[settings] Meshi preference unavailable", error);
-      return null;
+      return {
+        hatStyle: "none",
+        faceStyle: "happy",
+        colorTheme: "blue",
+        hairStyle: "none",
+        accessoryStyle: "none",
+        eyeStyle: "regular",
+        badgeStyle: "none",
+        outfitStyle: "none",
+      };
     }),
     getMeshCosmetics().catch((error) => {
       console.error("[settings] Mesh cosmetics unavailable", error);
