@@ -135,7 +135,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [remotePresences, setRemotePresences] = useState<RemotePresence[]>([]);
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
-  const [focusId, setFocusId] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [discoverUsers, setDiscoverUsers] = useState<
@@ -387,7 +386,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         });
         if (nearest !== focusIdRef.current) {
           focusIdRef.current = nearest;
-          setFocusId(nearest);
         }
       }
       raf = requestAnimationFrame(render);
@@ -437,7 +435,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       setSelectedNode(node);
       flyToNode(node);
     },
-    [fitToContent, flyToNode, enterFriendMesh, router],
+    [fitToContent, flyToNode, enterFriendMesh],
   );
 
   // Every readable piece of content on the mesh, in reading order — so the
@@ -494,23 +492,25 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    // A tap is a position signal too — broadcast it so touch users move on
-    // other people's screens even without dragging.
     const rect = containerRef.current?.getBoundingClientRect();
     if (rect && rect.width > 0 && rect.height > 0) {
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
-      cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
-      const cam = cameraRef.current;
-      const t = cursorWorldTargetRef.current;
-      t.x = (sx - rect.width / 2 - cam.panX) / cam.zoom;
-      t.y = (sy - rect.height / 2 - cam.panY) / cam.zoom;
-      if (!t.seen) {
-        cursorWorldPosRef.current.x = t.x;
-        cursorWorldPosRef.current.y = t.y;
-        t.seen = true;
+      if (coarseRef.current) {
+        cursorVpRef.current = { vx: 0.5, vy: 0.5 };
+      } else {
+        cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
+        const cam = cameraRef.current;
+        const t = cursorWorldTargetRef.current;
+        t.x = (sx - rect.width / 2 - cam.panX) / cam.zoom;
+        t.y = (sy - rect.height / 2 - cam.panY) / cam.zoom;
+        if (!t.seen) {
+          cursorWorldPosRef.current.x = t.x;
+          cursorWorldPosRef.current.y = t.y;
+          t.seen = true;
+        }
+        lastInputAtRef.current = performance.now();
       }
-      lastInputAtRef.current = performance.now();
       if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "1";
     }
     const d = dragRef.current;
@@ -533,26 +533,27 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const rect = containerRef.current!.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
-    // Broadcast where you are for every pointer type — on touch this is
-    // where you touch/drag, so remote viewers see your Meshi move instead of
-    // it sitting frozen at their screen centre.
     if (rect.width > 0 && rect.height > 0) {
-      cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
-      // Pointer position in WORLD coordinates — where Meshi wanders toward,
-      // and what we broadcast so everyone anchors you to the same spot on
-      // the actual mesh.
-      const cam = cameraRef.current;
-      const t = cursorWorldTargetRef.current;
-      const wx = (sx - rect.width / 2 - cam.panX) / cam.zoom;
-      const wy = (sy - rect.height / 2 - cam.panY) / cam.zoom;
-      if (!t.seen) {
-        cursorWorldPosRef.current.x = wx;
-        cursorWorldPosRef.current.y = wy;
-        t.seen = true;
+      if (coarseRef.current) {
+        cursorVpRef.current = { vx: 0.5, vy: 0.5 };
+      } else {
+        cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
+        // Pointer position in WORLD coordinates — where Meshi wanders toward,
+        // and what we broadcast so everyone anchors you to the same spot on
+        // the actual mesh.
+        const cam = cameraRef.current;
+        const t = cursorWorldTargetRef.current;
+        const wx = (sx - rect.width / 2 - cam.panX) / cam.zoom;
+        const wy = (sy - rect.height / 2 - cam.panY) / cam.zoom;
+        if (!t.seen) {
+          cursorWorldPosRef.current.x = wx;
+          cursorWorldPosRef.current.y = wy;
+          t.seen = true;
+        }
+        t.x = wx;
+        t.y = wy;
+        lastInputAtRef.current = performance.now();
       }
-      t.x = wx;
-      t.y = wy;
-      lastInputAtRef.current = performance.now();
     }
     const cursor = meshiCursorRef.current;
     if (cursor) cursor.style.opacity = "1";
@@ -693,10 +694,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             meshiBadge: prefs.badge,
             meshiOutfit: prefs.outfit,
             meshiMood: prefs.face,
-            viewportPosition: vp,
+            viewportPosition: coarseRef.current ? { vx: 0.5, vy: 0.5 } : vp,
             position: {
-              x: cursorWorldTargetRef.current.x,
-              y: cursorWorldTargetRef.current.y,
+              x: coarseRef.current ? -cameraRef.current.panX / cameraRef.current.zoom : cursorWorldTargetRef.current.x,
+              y: coarseRef.current ? -cameraRef.current.panY / cameraRef.current.zoom : cursorWorldTargetRef.current.y,
             },
             viewingMesh: meshOwner,
             surface: "mesh",
@@ -876,6 +877,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       // Your own Meshi ambles across the mesh toward the pointer, swerving
       // around nodes, and leans in (locally only) when you hover something.
       const cursorEl = meshiCursorRef.current;
+      if (coarseRef.current) {
+        const cam = cameraRef.current;
+        const center = cursorWorldTargetRef.current;
+        center.x = -cam.panX / cam.zoom;
+        center.y = -cam.panY / cam.zoom;
+        center.seen = true;
+        cursorVpRef.current = { vx: 0.5, vy: 0.5 };
+      }
       if (cursorEl && cursorWorldTargetRef.current.seen) {
         const ck = 1 - Math.exp(-dt / 420);
         const p = cursorWorldPosRef.current;
@@ -883,33 +892,34 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         p.x += (t.x - p.x) * ck;
         p.y += (t.y - p.y) * ck;
         const s = project(p.x, p.y);
-        const clear = avoidNodes(s.x, s.y);
+        const clear = coarseRef.current ? s : avoidNodes(s.x, s.y);
         const targetScale = hoverIdRef.current ? 1.22 : 1;
         cursorScaleRef.current += (targetScale - cursorScaleRef.current) * (1 - Math.exp(-dt / 140));
         cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) scale(${cursorScaleRef.current.toFixed(3)})`;
       }
 
       // The mesh owner's Meshi. On someone else's mesh it rests at the heart
-      // (world origin). On YOUR OWN mesh it IS you: it wanders toward where
-      // you point or touch, and ambles back home to the heart once you've
-      // been idle a few seconds — one Meshi, alive, no overlays.
+      // (world origin). On YOUR OWN mesh it follows the cursor, while coarse
+      // pointers keep it centered as the world moves underneath.
       const ownerEl = ownerMeshiElRef.current;
       const container = containerRef.current;
       if (ownerEl && container) {
         const isMe = !viewUserId;
         const active = isMe && cursorWorldTargetRef.current.seen && time - lastInputAtRef.current < 4000;
-        const tx = active ? cursorWorldTargetRef.current.x : 0;
-        const ty = active ? cursorWorldTargetRef.current.y : 0;
+        const centered = coarseRef.current && isMe;
+        const tx = centered ? cursorWorldTargetRef.current.x : active ? cursorWorldTargetRef.current.x : 0;
+        const ty = centered ? cursorWorldTargetRef.current.y : active ? cursorWorldTargetRef.current.y : 0;
         const pos = ownerWorldPosRef.current;
         pos.x += (tx - pos.x) * k;
         pos.y += (ty - pos.y) * k;
         const s = project(pos.x, pos.y);
         // Avoid nodes while wandering — but its own heart node is home, so
-        // it's allowed to settle there.
+        // it's allowed to settle there. Touch users keep the owner Meshi
+        // centered, so it must not be pushed aside by the focused node.
         const selfId = modelRef.current?.selfId;
         let cx = s.x;
-        let cy = s.y - 6;
-        if (Math.hypot(pos.x, pos.y) > 30) {
+        let cy = coarseRef.current ? s.y : s.y - 6;
+        if (!coarseRef.current && Math.hypot(pos.x, pos.y) > 30) {
           let px = s.x;
           let py = s.y;
           hitboxesRef.current.forEach((hb, id) => {
@@ -924,7 +934,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             py += dy * f;
           });
           cx = px;
-          cy = py - 6;
+          cy = coarseRef.current ? py : py - 6;
         }
         ownerEl.style.left = `${cx}px`;
         ownerEl.style.top = `${cy}px`;
@@ -1051,7 +1061,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       />
 
       {/* Meshi — you, wandering the mesh. On desktop it ambles after your
-          pointer; on touch it ambles to wherever you last tapped or dragged.
+          pointer; on touch it stays centered while the world moves beneath it.
           Shown when visiting another mesh (on your own mesh the owner Meshi
           at the heart is you, and it does the wandering instead). */}
       {showCursorMeshi && (
@@ -1363,6 +1373,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {/* Content lens — consume posts & activity right on the mesh */}
       {selectedNode && (selectedNode.kind === "post" || selectedNode.kind === "activity") && (
         <ContentLens
+          key={selectedNode.id}
           node={selectedNode}
           list={contentList()}
           onClose={() => setSelectedNode(null)}
@@ -1555,12 +1566,6 @@ function ContentLens({
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(metaCount(node, "Likes"));
   const [likePending, startLike] = useTransition();
-
-  // Reset engagement each time a different piece of content is shown.
-  useEffect(() => {
-    setLiked(false);
-    setLikeCount(metaCount(node, "Likes"));
-  }, [node.id]);
 
   // Keyboard: arrows browse, Escape closes.
   useEffect(() => {

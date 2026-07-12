@@ -19,6 +19,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             className={cn(inputClassName, leftAddon && "pl-10", rightAddon && "pr-10", className)}
             ref={ref}
+            suppressHydrationWarning
             {...props}
           />
           {rightAddon && <div className="absolute right-3 text-[var(--text-muted)]">{rightAddon}</div>}
@@ -26,7 +27,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       );
     }
 
-    return <input type={type} className={cn(inputClassName, className)} ref={ref} {...props} />;
+    return <input type={type} className={cn(inputClassName, className)} ref={ref} suppressHydrationWarning {...props} />;
   }
 );
 Input.displayName = "Input";

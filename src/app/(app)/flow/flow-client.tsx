@@ -43,7 +43,6 @@ function ReelMedia({ post, active, muted, onToggleMute }: { post: FlowPost; acti
         onClick={() => setPaused((p) => !p)}
         aria-label={paused ? "Play" : "Pause"}
       >
-        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           ref={videoRef}
           src={video.url}
@@ -315,7 +314,7 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
       <button
         type="button"
         aria-label="Back"
-        onClick={() => router.back()}
+        onClick={() => router.push("/mesh")}
         className="absolute left-3 top-3 z-20 rounded-full bg-black/55 p-2.5 text-white backdrop-blur transition-colors hover:bg-black/75"
       >
         <ArrowLeft size={18} />

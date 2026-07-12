@@ -59,10 +59,6 @@ export function MessagesDataProvider({
   const [threads, setThreads] = useState(value.initialThreads);
 
   useEffect(() => {
-    setThreads(value.initialThreads);
-  }, [value.initialThreads]);
-
-  useEffect(() => {
     let stopped = false;
     const refresh = async () => {
       if (document.visibilityState !== "visible") return;

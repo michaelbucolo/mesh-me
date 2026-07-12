@@ -37,10 +37,15 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       contentFilter,
       limit: INITIAL_FEED_LIMIT + 1,
     }),
-    prisma.connectedAccount.findMany({
-      where: { userId: user.id, isActive: true },
-      select: { platform: true },
-    }),
+    prisma.connectedAccount
+      .findMany({
+        where: { userId: user.id, isActive: true },
+        select: { platform: true },
+      })
+      .catch((error) => {
+        console.error("[feed] Connected account metadata unavailable", error);
+        return [];
+      }),
   ]);
 
   let posts = feedWindow.slice(0, INITIAL_FEED_LIMIT);
