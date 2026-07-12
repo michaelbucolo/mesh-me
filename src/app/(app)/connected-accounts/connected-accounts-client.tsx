@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -89,7 +89,7 @@ function PlatformAvatar({ platform, name, size = "md" }: { platform: string; nam
         color: brand ? brand.fg ?? "#ffffff" : "var(--accent)",
       }}
     >
-      {brand?.glyph ?? name.trim().charAt(0).toUpperCase() ?? "M"}
+      {brand?.glyph ?? (name.trim().charAt(0).toUpperCase() || "M")}
     </div>
   );
 }
@@ -422,6 +422,7 @@ export function ConnectedAccountsClient({
 }) {
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [actionState, setActionState] = useState<ActionState>(null);
+  const dismissToast = useCallback(() => setActionState(null), []);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<PlatformAdapterCategory | "all">("all");
@@ -715,7 +716,7 @@ export function ConnectedAccountsClient({
         )}
       </section>
 
-      <Toast state={actionState} onDismiss={() => setActionState(null)} />
+      <Toast state={actionState} onDismiss={dismissToast} />
     </main>
   );
 }
