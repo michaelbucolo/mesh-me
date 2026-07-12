@@ -71,7 +71,7 @@ export function MessagesDataProvider({
         // Best-effort — the next tick retries.
       }
     };
-    const interval = window.setInterval(refresh, 5000);
+    const interval = window.setInterval(refresh, 10000);
     // Pull connected-account conversations into the unified inbox while the
     // tab is open, then refresh the thread list with anything new.
     const syncExternal = async () => {

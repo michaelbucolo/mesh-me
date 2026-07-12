@@ -291,11 +291,16 @@ export function AppShell({ children, user }: AppShellProps) {
     }
 
     void loadUnreadCounts();
-    const intervalId = window.setInterval(loadUnreadCounts, 45_000);
+    const intervalId = window.setInterval(loadUnreadCounts, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadUnreadCounts();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
