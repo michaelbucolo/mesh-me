@@ -286,6 +286,22 @@ export function getPlatformImportCapability(platform: string | null | undefined)
   };
 }
 
+const PLATFORM_MESSAGING_CAPABILITIES: Record<string, PlatformActionCapability> = {
+  twitter: supportedAction("Sends the reply to the X conversation through the official DM API.", ["dm.read", "dm.write"]),
+  reddit: supportedAction("Sends the reply as a Reddit private message through the official API.", ["privatemessages"]),
+};
+
+export function getPlatformMessagingCapability(platform: string | null | undefined): PlatformActionCapability {
+  const platformId = normalizePlatformId(platform);
+  return (
+    PLATFORM_MESSAGING_CAPABILITIES[platformId] ?? {
+      supported: false,
+      reason: "This source does not expose an official direct-message API to connected apps, so replies stay in Mesh.me only.",
+      reviewRequired: true,
+    }
+  );
+}
+
 export function getPlatformCapabilitiesSnapshot() {
   return {
     defaultReason: DEFAULT_UNSUPPORTED_REASON,

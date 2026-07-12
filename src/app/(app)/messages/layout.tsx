@@ -103,7 +103,7 @@ export default async function MessagesLayout({ children }: MessagesLayoutProps) 
             createdAt: thread.lastMessage.createdAt.toISOString(),
           }
         : null,
-      platform: "mesh",
+      platform: thread.sourcePlatform || "mesh",
       unread: thread.unreadCount,
     })),
     initialNotes,

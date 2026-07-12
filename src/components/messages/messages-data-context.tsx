@@ -72,6 +72,19 @@ export function MessagesDataProvider({
       }
     };
     const interval = window.setInterval(refresh, 5000);
+    // Pull connected-account conversations into the unified inbox while the
+    // tab is open, then refresh the thread list with anything new.
+    const syncExternal = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        await fetch("/api/mechat/sync", { method: "POST", credentials: "same-origin" });
+        await refresh();
+      } catch {
+        // Best-effort — the next cycle retries.
+      }
+    };
+    void syncExternal();
+    const syncInterval = window.setInterval(syncExternal, 120_000);
     const onVisible = () => {
       if (document.visibilityState === "visible") void refresh();
     };
@@ -79,6 +92,7 @@ export function MessagesDataProvider({
     return () => {
       stopped = true;
       window.clearInterval(interval);
+      window.clearInterval(syncInterval);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);

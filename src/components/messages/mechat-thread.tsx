@@ -96,9 +96,18 @@ type MeChatThreadProps = {
   recipientId?: string;
   initialMessages: MeChatSerializedMessage[];
   initialSource?: SharedMessageSource;
+  isExternalThread?: boolean;
+  threadPlatform?: string;
 };
 
 const QUICK_REACTIONS = ["\u2764\uFE0F", "\uD83D\uDE02", "\uD83D\uDD25", "\uD83D\uDC4D"];
+
+function platformDisplayName(platform: string) {
+  const p = platform.toLowerCase();
+  if (p === "twitter" || p === "x") return "X";
+  if (p === "mesh" || p === "meshme") return "Mesh.me";
+  return platform.charAt(0).toUpperCase() + platform.slice(1);
+}
 
 function safeFetchJson<T>(response: Response): Promise<T> {
   return response.json().catch(() => ({} as T));
@@ -200,6 +209,8 @@ export function MeChatThread({
   recipientId,
   initialMessages,
   initialSource,
+  isExternalThread = false,
+  threadPlatform = "mesh",
 }: MeChatThreadProps) {
   const router = useRouter();
   const [activeThreadId, setActiveThreadId] = useState(initialThreadId);
@@ -482,9 +493,11 @@ export function MeChatThread({
         {visibleMessages.length > 0 ? (
           <div className="grid gap-3">
             {visibleMessages.map((message) => {
-              const isMine = message.senderId === currentUser.id;
-              const readers = readState(message, currentUser.id);
+              const externalSender = message.metadata.externalSender;
+              const isMine = message.senderId === currentUser.id && !externalSender;
+              const readers = isExternalThread ? "" : readState(message, currentUser.id);
               const groupedReactions = localReactionGroups(message, currentUser.id);
+              const delivery = message.metadata.delivery;
 
               return (
                 <article
@@ -492,14 +505,20 @@ export function MeChatThread({
                   data-testid="mechat-message-bubble"
                   className={`group flex gap-2 ${isMine ? "justify-end" : "justify-start"}`}
                 >
-                  {!isMine && <Avatar src={message.sender.avatarUrl} alt={message.sender.displayName} size="sm" />}
+                  {!isMine && (
+                    <Avatar
+                      src={externalSender?.avatarUrl || (externalSender ? null : message.sender.avatarUrl)}
+                      alt={externalSender?.name || message.sender.displayName}
+                      size="sm"
+                    />
+                  )}
                   <div className={`max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1.5`}>
                     <div className={`px-4 py-3 text-sm ${
                       isMine
                         ? "mechat-bubble-mine rounded-[1.35rem] rounded-br-md text-white"
                         : "rounded-[1.35rem] rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-primary)] shadow-sm"
                     }`}>
-                      {message.sourcePlatform !== "mesh" || message.messageType !== "text" ? (
+                      {!isExternalThread && (message.sourcePlatform !== "mesh" || message.messageType !== "text") ? (
                         <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.12em] ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
                           {message.messageType.replace("_", " ")} from {message.sourcePlatform}
                         </p>
@@ -605,9 +624,19 @@ export function MeChatThread({
                     )}
 
                     <div className={`flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-muted)] ${isMine ? "justify-end" : "justify-start"}`}>
-                      <span>{isMine ? "You" : message.sender.displayName}</span>
+                      <span>{isMine ? "You" : externalSender?.name || message.sender.displayName}</span>
                       <span>-</span>
                       <span>{formatRelativeTime(message.createdAt)}</span>
+                      {delivery && (
+                        <>
+                          <span>-</span>
+                          <span className={delivery.status === "delivered" ? "text-[var(--mesh-green,#34d399)]" : "text-red-300"}>
+                            {delivery.status === "delivered"
+                              ? `Delivered to ${platformDisplayName(delivery.platform)}`
+                              : `Saved here — not delivered to ${platformDisplayName(delivery.platform)}`}
+                          </span>
+                        </>
+                      )}
                       {message.metadata.edited && !message.metadata.unsent && (
                         <>
                           <span>-</span>
@@ -623,13 +652,13 @@ export function MeChatThread({
                     </div>
 
                     {!message.metadata.unsent && (
-                      <div className={`flex flex-wrap gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 ${isMine ? "justify-end" : "justify-start"}`}>
+                      <div className={`flex flex-wrap gap-1.5 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 ${isMine ? "justify-end" : "justify-start"}`}>
                         <button
                           type="button"
                           onClick={() => setReplyTo(message)}
-                          className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
+                          className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
                         >
-                          <MessageCircleReply size={12} aria-hidden="true" />
+                          <MessageCircleReply size={13} aria-hidden="true" />
                           Reply
                         </button>
                         {QUICK_REACTIONS.map((emoji) => (
@@ -637,29 +666,29 @@ export function MeChatThread({
                             key={emoji}
                             type="button"
                             onClick={() => toggleReaction(message.id, emoji)}
-                            className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
+                            className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
                             aria-label={`React ${emoji}`}
                           >
                             {emoji}
                           </button>
                         ))}
-                        {isMine && message.messageType === "text" && editingId !== message.id && (
+                        {isMine && !isExternalThread && message.messageType === "text" && editingId !== message.id && (
                           <button
                             type="button"
                             onClick={() => beginEdit(message)}
-                            className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
+                            className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
                           >
-                            <Pencil size={12} aria-hidden="true" />
+                            <Pencil size={13} aria-hidden="true" />
                             Edit
                           </button>
                         )}
-                        {isMine && (
+                        {isMine && !isExternalThread && (
                           <button
                             type="button"
                             onClick={() => unsendMessage(message.id)}
-                            className="mesh-choice rounded-full px-2.5 py-1 text-[10px] font-bold"
+                            className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
                           >
-                            <Undo2 size={12} aria-hidden="true" />
+                            <Undo2 size={13} aria-hidden="true" />
                             Unsend
                           </button>
                         )}
@@ -725,8 +754,14 @@ export function MeChatThread({
           event.preventDefault();
           sendCurrentMessage();
         }}
-        className="border-t border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3"
+        className="border-t border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:pb-3"
       >
+        {isExternalThread && (
+          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-[var(--text-muted)]">
+            <Link2 size={12} aria-hidden="true" />
+            Replies deliver to {platformDisplayName(threadPlatform)} through your connected account.
+          </p>
+        )}
         {error && (
           <p className="mb-2 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-100">
             {error}
@@ -825,8 +860,14 @@ export function MeChatThread({
               }
             }}
             rows={1}
-            className="simple-input min-h-11 flex-1 resize-none px-3 py-3 text-sm leading-5"
-            placeholder={pendingSource ? "Add a note or send the shared source" : "Message MeChat"}
+            className="simple-input min-h-11 flex-1 resize-none px-3 py-3 text-base leading-5 md:text-sm"
+            placeholder={
+              isExternalThread
+                ? `Reply on ${platformDisplayName(threadPlatform)}`
+                : pendingSource
+                  ? "Add a note or send the shared source"
+                  : "Message MeChat"
+            }
           />
           <button
             type="button"
