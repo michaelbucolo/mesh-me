@@ -109,7 +109,7 @@ console.log(page.url()); // http://localhost:3333/mesh
 - The landing page (/) uses `min-h-screen` layout; the authenticated app uses `h-[100dvh]`. If your viewport test finds `min-h-screen`, login failed.
 - After successful login, app redirects to `/mesh` (page.tsx line 8: `if (user?.onboarded) redirect("/mesh")`)
 
-## Devin Secrets Needed
+## Secrets Needed
 
 - `GITHUB_USERNAME` / `GITHUB_PASSWORD` - For GitHub repo access and PR creation
 - Turso credentials (DATABASE_URL, AUTH_TOKEN) - For production database access
