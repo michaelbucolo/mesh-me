@@ -2009,10 +2009,16 @@ export async function deliverMeChatMessageToPlatform(input: {
   externalConversationId: string;
   content: string;
 }): Promise<{ status: "delivered" | "failed"; platform: string; externalMessageId?: string; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { status: "failed", platform: "unknown", error: "Not authenticated" };
+  }
+
   const account = await prisma.connectedAccount.findUnique({
     where: { id: input.connectedAccountId },
     select: {
       id: true,
+      userId: true,
       platform: true,
       isActive: true,
       accessToken: true,
@@ -2021,8 +2027,12 @@ export async function deliverMeChatMessageToPlatform(input: {
     },
   });
 
-  if (!account || !account.isActive) {
-    return { status: "failed", platform: account?.platform || "unknown", error: "This connected account is no longer active. Reconnect it to keep replying from Mesh.me." };
+  if (!account || account.userId !== user.id) {
+    return { status: "failed", platform: "unknown", error: "This connected account is no longer active. Reconnect it to keep replying from Mesh.me." };
+  }
+
+  if (!account.isActive) {
+    return { status: "failed", platform: account.platform, error: "This connected account is no longer active. Reconnect it to keep replying from Mesh.me." };
   }
 
   const capability = getPlatformMessagingCapability(account.platform);
