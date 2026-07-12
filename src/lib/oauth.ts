@@ -368,11 +368,19 @@ export function buildTokenRequest(
   return { headers, body };
 }
 
+export function usesLongLivedTokenExchange(platform: string): boolean {
+  return isPlatformOAuth(platform) && Boolean(OAUTH_CONFIGS[platform].longLivedTokenExchange);
+}
+
 // Meta access tokens are short-lived by default; exchange them for long-lived
 // tokens (~60 days) so connections survive beyond the initial session.
+// Mode "exchange" converts a short-lived token right after the code exchange;
+// mode "refresh" extends an existing long-lived token before it expires
+// (Instagram uses a dedicated refresh endpoint for that case).
 export async function exchangeLongLivedToken(
   config: OAuthConfig,
   accessToken: string,
+  mode: "exchange" | "refresh" = "exchange",
 ): Promise<{ accessToken: string; expiresAt: Date | null } | null> {
   if (!config.longLivedTokenExchange) return null;
   const clientId = getOAuthClientId(config);
@@ -386,11 +394,16 @@ export async function exchangeLongLivedToken(
         client_secret: clientSecret,
         fb_exchange_token: accessToken,
       })}`
-    : `https://graph.instagram.com/access_token?${new URLSearchParams({
-        grant_type: "ig_exchange_token",
-        client_secret: clientSecret,
-        access_token: accessToken,
-      })}`;
+    : mode === "refresh"
+      ? `https://graph.instagram.com/refresh_access_token?${new URLSearchParams({
+          grant_type: "ig_refresh_token",
+          access_token: accessToken,
+        })}`
+      : `https://graph.instagram.com/access_token?${new URLSearchParams({
+          grant_type: "ig_exchange_token",
+          client_secret: clientSecret,
+          access_token: accessToken,
+        })}`;
 
   try {
     const response = await fetch(url, { headers: { Accept: "application/json" } });

@@ -54,7 +54,7 @@ export async function refreshConnectedAccountToken(accountId: string): Promise<R
         await markNeedsReconnect(account.id);
         return "needs_reconnect";
       }
-      const longLived = await exchangeLongLivedToken(config, accessToken);
+      const longLived = await exchangeLongLivedToken(config, accessToken, "refresh");
       if (!longLived) {
         await markNeedsReconnect(account.id);
         return "needs_reconnect";

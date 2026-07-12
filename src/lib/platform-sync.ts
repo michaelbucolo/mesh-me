@@ -3,7 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { decryptSecret } from "./secret-store";
-import { resolveEnvValue } from "./oauth";
+import { resolveEnvValue, usesLongLivedTokenExchange } from "./oauth";
 import { refreshConnectedAccountToken } from "./oauth-token-refresh";
 import { getPlatformActionCapability, getPlatformImportCapability } from "./platform-capabilities";
 import { classifyContentSafety, nsfwHiddenWhere } from "./content-safety";
@@ -1613,6 +1613,7 @@ function getStoredRefreshToken(value: string | null): string | null {
 
 async function getValidAccessToken(account: {
   id: string;
+  platform: string;
   accessToken: string | null;
   refreshToken: string | null;
   expiresAt: Date | null;
@@ -1623,7 +1624,7 @@ async function getValidAccessToken(account: {
     || (account.expiresAt !== null && account.expiresAt.getTime() <= refreshBefore);
 
   if (shouldRefresh) {
-    if (!tokens.refreshToken) return null;
+    if (!tokens.refreshToken && !usesLongLivedTokenExchange(account.platform)) return null;
 
     const result = await refreshConnectedAccountToken(account.id);
     if (result !== "refreshed") return null;
