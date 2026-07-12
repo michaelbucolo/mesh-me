@@ -23,7 +23,7 @@ interface QuickLink {
 
 const baseLinks: QuickLink[] = [
   { label: "The Mesh", description: "Spatial identity view", href: "/mesh", icon: MeshIcon },
-  { label: "Flow", description: "Your creator timeline", href: "/feed", icon: FlowIcon },
+  { label: "Flow", description: "Full-screen reel of your feeds", href: "/flow", icon: FlowIcon },
   { label: "Explore", description: "Discover people and communities", href: "/explore", icon: ExploreIcon },
   { label: "MeChat", description: "Open your messages instantly", href: "/messages", icon: MeChatIcon },
   { label: "Communities", description: "Collaborative spaces", href: "/communities", icon: Layers3 },
