@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/auth";
+import { isCrossSiteRequest } from "@/lib/request-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,10 @@ async function logout(request: Request) {
 }
 
 export async function GET(request: Request) {
+  if (isCrossSiteRequest(request)) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   return logout(request);
 }
 

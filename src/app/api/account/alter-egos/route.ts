@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
+import { validateUrl } from "@/lib/security";
 
 export async function GET() {
   const session = await getSession();
@@ -34,6 +35,24 @@ export async function POST(req: NextRequest) {
   }
   if (!displayName || typeof displayName !== "string") {
     return NextResponse.json({ error: "Display name required" }, { status: 400 });
+  }
+  if (displayName.length > 80) {
+    return NextResponse.json({ error: "Display name must be 80 characters or fewer" }, { status: 400 });
+  }
+  if (bio !== undefined && bio !== null && typeof bio !== "string") {
+    return NextResponse.json({ error: "Invalid bio" }, { status: 400 });
+  }
+  if (typeof bio === "string" && bio.length > 500) {
+    return NextResponse.json({ error: "Bio must be 500 characters or fewer" }, { status: 400 });
+  }
+  if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== "string") {
+    return NextResponse.json({ error: "Invalid avatar URL" }, { status: 400 });
+  }
+  if (typeof avatarUrl === "string" && avatarUrl.length > 2048) {
+    return NextResponse.json({ error: "Avatar URL must be 2048 characters or fewer" }, { status: 400 });
+  }
+  if (typeof avatarUrl === "string" && avatarUrl && !validateUrl(avatarUrl)) {
+    return NextResponse.json({ error: "Avatar URL must use http or https" }, { status: 400 });
   }
 
   // Check username availability (both User and AlterEgo tables)
