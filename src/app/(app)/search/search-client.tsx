@@ -431,8 +431,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     <span className="block truncate text-xs text-[var(--text-muted)]">
                       {platformLabel(person.connectedAccount.platform)} · @{person.username || person.connectedAccount.platformUsername || "connected"} · {formatCount(person.followerCount || 0)}
                     </span>
+                    <span className="mt-1 block text-xs font-bold text-[var(--accent)]">{person.relationshipType}</span>
                   </span>
-                  <span className="mt-1 block text-xs font-bold text-[var(--accent)]">{person.relationshipType}</span>
                 </>
               );
               return person.profileUrl ? (
