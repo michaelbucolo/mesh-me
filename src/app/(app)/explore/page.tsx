@@ -35,8 +35,8 @@ export default async function ExplorePage() {
     <ExploreDiscovery
       currentUserId={user.id}
       posts={posts}
-      trendingTags={trendingTags.slice(0, 12)}
-      suggestedUsers={suggestedUsers.slice(0, 12).map((suggested) => ({
+      trendingTags={trendingTags.slice(0, 16)}
+      suggestedUsers={suggestedUsers.slice(0, 20).map((suggested) => ({
         id: suggested.id,
         username: suggested.username,
         displayName: suggested.displayName,
@@ -45,7 +45,7 @@ export default async function ExplorePage() {
         interests: suggested.interests.map((interest) => ({ id: interest.id, tag: interest.tag })),
         followerCount: suggested._count.followers,
       }))}
-      communities={communities.slice(0, 8).map((community) => ({
+      communities={communities.slice(0, 12).map((community) => ({
         id: community.id,
         name: community.name,
         slug: community.slug,
