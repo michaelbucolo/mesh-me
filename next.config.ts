@@ -21,7 +21,7 @@ function isPublicHttpsAppUrl() {
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: {
-    optimizePackageImports: ["lucide-react", "date-fns"],
+    optimizePackageImports: ["lucide-react", "date-fns", "framer-motion"],
   },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],

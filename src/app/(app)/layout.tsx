@@ -33,9 +33,8 @@ function getSafeNextPath(value: string | null) {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const headerStore = await headers();
+  const [headerStore, user] = await Promise.all([headers(), getCurrentUser()]);
   const nextPath = getSafeNextPath(headerStore.get("x-mesh-current-path"));
-  const user = await getCurrentUser();
 
   if (!user) {
     redirect(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login");
@@ -45,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return <OnboardingRedirect />;
   }
 
-  const meshiPref = await getMeshiPreference();
+  const meshiPref = await getMeshiPreference(user);
   const meshiSeed = meshiPref
     ? {
         colorTheme: meshiPref.colorTheme,

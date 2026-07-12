@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,11 +21,18 @@ import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
-import { CommandPalette } from "@/components/layout/command-palette";
-import { KeyboardShortcutsOverlay } from "@/components/layout/keyboard-shortcuts-overlay";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ReactiveSurfaces } from "@/components/layout/reactive-surfaces";
 import { sidebarNavItems, resolveNavHref, isNavItemActive } from "@/components/layout/navigation-config";
+
+const CommandPalette = dynamic(
+  () => import("@/components/layout/command-palette").then((module) => module.CommandPalette),
+  { ssr: false },
+);
+const KeyboardShortcutsOverlay = dynamic(
+  () => import("@/components/layout/keyboard-shortcuts-overlay").then((module) => module.KeyboardShortcutsOverlay),
+  { ssr: false },
+);
 
 interface AppShellProps {
   children: React.ReactNode;
