@@ -48,6 +48,7 @@ type RouteInfo = {
 const routeInfoMap: Record<string, RouteInfo> = {
   "/mesh": { title: "The Mesh", description: "Your digital world. Connected by you." },
   "/feed": { title: "Feed", description: "Your timeline across all connected platforms." },
+  "/flow": { title: "Flow", description: "A full-screen stream across your Mesh.me feeds." },
   "/messages": { title: "MeChat", description: "Your universal messaging hub. All your conversations, in one place." },
   "/notifications": { title: "Notifications", description: "Stay updated on what matters." },
   "/search": { title: "Search", description: "Find people, posts, and communities." },

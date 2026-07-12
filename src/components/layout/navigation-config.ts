@@ -17,7 +17,7 @@ export interface NavGroup {
 
 export const sidebarNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },
-  { href: "/feed", icon: FlowIcon, label: "Flow" },
+  { href: "/flow", icon: FlowIcon, label: "Flow" },
   { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
   { href: "/profile", icon: ProfileIcon, label: "Profile" },
   { href: "/explore", icon: ExploreIcon, label: "Explore" },
@@ -28,7 +28,7 @@ export const desktopNavGroups: NavGroup[] = [
     label: "Core",
     items: [
       { href: "/mesh", icon: MeshIcon, label: "Mesh" },
-      { href: "/feed", icon: FlowIcon, label: "Flow" },
+      { href: "/flow", icon: FlowIcon, label: "Flow" },
       { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
       { href: "/explore", icon: ExploreIcon, label: "Explore" },
     ],
@@ -41,7 +41,7 @@ export const desktopBottomItems: NavItem[] = [
 
 export const mobileNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },
-  { href: "/feed", icon: FlowIcon, label: "Flow" },
+  { href: "/flow", icon: FlowIcon, label: "Flow" },
   { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
   { href: "/profile", icon: ProfileIcon, label: "Profile" },
   { href: "/explore", icon: ExploreIcon, label: "Explore" },
