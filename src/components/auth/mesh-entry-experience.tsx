@@ -87,6 +87,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
   const anchorRef = useRef<HTMLDivElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
+  // This flag intentionally gates browser-only identity interactions after hydration.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setHydrated(true), []);
   useEffect(() => {
     fx.current.stage = stage;
@@ -277,6 +279,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 className="mesh-gate-input"
                 aria-label="Username, email, or phone number"
                 data-testid="entry-identity-input"
+                suppressHydrationWarning
               />
               <button
                 type="submit"
@@ -361,6 +364,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 aria-label="Password"
                 data-testid="entry-password-input"
                 disabled={success}
+                suppressHydrationWarning
               />
               <button
                 type="button"
@@ -418,6 +422,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 required
                 className="mesh-gate-input mesh-gate-input-line"
                 data-testid="entry-signup-email"
+                suppressHydrationWarning
               />
             </label>
             <label className="mesh-gate-field">
@@ -435,6 +440,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 maxLength={24}
                 className="mesh-gate-input mesh-gate-input-line"
                 data-testid="entry-signup-username"
+                suppressHydrationWarning
               />
             </label>
             <label className="mesh-gate-field">
@@ -447,6 +453,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 maxLength={48}
                 className="mesh-gate-input mesh-gate-input-line"
                 data-testid="entry-signup-display-name"
+                suppressHydrationWarning
               />
             </label>
             <label className="mesh-gate-field">
@@ -461,6 +468,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 minLength={8}
                 className="mesh-gate-input mesh-gate-input-line"
                 data-testid="entry-signup-password"
+                suppressHydrationWarning
               />
             </label>
             {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
@@ -496,6 +504,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                     autoComplete="email"
                     className="mesh-gate-input mesh-gate-input-line"
                     aria-label="Email"
+                    suppressHydrationWarning
                   />
                 </label>
                 {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
