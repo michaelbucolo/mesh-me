@@ -71,7 +71,7 @@ export function MessagesDataProvider({
         // Best-effort — the next tick retries.
       }
     };
-    const interval = window.setInterval(refresh, 5000);
+    const interval = window.setInterval(refresh, 10000);
     const onVisible = () => {
       if (document.visibilityState === "visible") void refresh();
     };

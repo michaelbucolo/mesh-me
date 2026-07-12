@@ -158,7 +158,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
         // Best-effort — the next tick retries.
       }
     };
-    const interval = window.setInterval(silentRefresh, 30000);
+    const interval = window.setInterval(silentRefresh, 60000);
     const onVisible = () => {
       if (document.visibilityState === "visible") void silentRefresh();
     };

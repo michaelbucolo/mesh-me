@@ -765,8 +765,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       }
     };
 
-    const hb = setInterval(heartbeat, 4000);
-    const pl = setInterval(poll, 3000);
+    const hb = setInterval(heartbeat, 5000);
+    const pl = setInterval(poll, 5000);
     const kick = setTimeout(() => {
       void heartbeat();
       void poll();

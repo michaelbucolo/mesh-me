@@ -246,15 +246,15 @@ export function LiveMeshiPresence({
     }
   }, [viewingMesh, onRemoteMeshisChange, onSummaryChange]);
 
-  // Start heartbeat (3s) and polling (2s) — faster for more real-time feel
+  // Start heartbeat and polling while the tab is visible.
   useEffect(() => {
     if (!enabled || !isPageVisible || !isOnline) {
       return;
     }
     const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
     const isSlowNetwork = connection?.effectiveType === "2g" || connection?.effectiveType === "slow-2g";
-    const heartbeatMs = isSlowNetwork ? 5500 : 3000;
-    const pollMs = isSlowNetwork ? 3800 : 2000;
+    const heartbeatMs = isSlowNetwork ? 7000 : 5000;
+    const pollMs = isSlowNetwork ? 6000 : 5000;
     const heartbeat = setInterval(sendHeartbeat, heartbeatMs);
     const poll = setInterval(pollPresences, pollMs);
     heartbeatRef.current = heartbeat;
