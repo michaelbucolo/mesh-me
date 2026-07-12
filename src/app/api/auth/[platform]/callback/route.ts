@@ -9,6 +9,7 @@ import {
   getNestedField,
   getOAuthClientId,
   getOAuthClientSecret,
+  exchangeLongLivedToken,
   resolveNestedPath,
   isPlatformOAuth,
 } from "@/lib/oauth";
@@ -131,16 +132,24 @@ export async function GET(
     }
 
     const tokenData = await tokenResponse.json().catch(() => ({}));
-    const accessToken = tokenData.access_token;
+    let accessToken = tokenData.access_token;
     const refreshToken = tokenData.refresh_token || null;
     const expiresIn = tokenData.expires_in;
-    const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
+    let expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
     const grantedScopes = serializeScopes(tokenData.scope || tokenData.scopes || config.scopes);
 
     if (!accessToken) {
       return NextResponse.redirect(
         `${connectedAccountsUrl}?error=${encodeURIComponent("No access token received")}&platform=${encodedPlatform}`
       );
+    }
+
+    if (config.longLivedTokenExchange) {
+      const longLived = await exchangeLongLivedToken(config, accessToken);
+      if (longLived) {
+        accessToken = longLived.accessToken;
+        expiresAt = longLived.expiresAt ?? expiresAt;
+      }
     }
 
     if (!hasSecretEncryptionKey()) {

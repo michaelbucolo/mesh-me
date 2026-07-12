@@ -5,6 +5,8 @@ import { isSameOriginRequest } from "@/lib/request-guard";
 import { normalizeScopes, syncConnectedAccountPermissions } from "@/lib/platform-permissions";
 import { getDefaultPermissionKeysForPlatform } from "@/lib/platform-adapters";
 import { clearMeshCache } from "@/lib/mesh-cache";
+import { OAUTH_CONFIGS, isPlatformOAuth, revokeOAuthToken } from "@/lib/oauth";
+import { decryptSecret } from "@/lib/secret-store";
 
 // PATCH — update alter ego association or label
 export async function PATCH(
@@ -145,6 +147,16 @@ export async function DELETE(
 
   if (!account) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
+  }
+
+  if (isPlatformOAuth(account.platform) && account.accessToken) {
+    const config = OAUTH_CONFIGS[account.platform];
+    if (config.revokeUrl) {
+      const accessToken = decryptSecret(account.accessToken);
+      if (accessToken) {
+        await revokeOAuthToken(config, accessToken).catch(() => false);
+      }
+    }
   }
 
   await prisma.$transaction(async (tx) => {
