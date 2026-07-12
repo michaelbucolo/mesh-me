@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AtSign,
@@ -311,6 +311,7 @@ export function SettingsControlCenter({
     borderPrimary: customTheme?.borderPrimary ?? "#2d3848",
   });
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -375,10 +376,12 @@ export function SettingsControlCenter({
   }, []);
 
   function runSave(label: string, task: () => Promise<unknown>) {
+    const queued = saveQueueRef.current.then(task, task);
+    saveQueueRef.current = queued.then(() => undefined, () => undefined);
     startTransition(async () => {
       setStatus(null);
       try {
-        const result = await task();
+        const result = await queued;
         if (result && typeof result === "object" && "error" in result) {
           setStatus({ type: "error", message: String((result as { error: unknown }).error) });
           return;
