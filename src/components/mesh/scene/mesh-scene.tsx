@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, HelpCircle, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -33,6 +33,7 @@ interface MeshSceneProps {
 
 const MIN_ZOOM = 0.22;
 const MAX_ZOOM = 2.4;
+const TIPS_SEEN_KEY = "mesh-tips-seen";
 
 type RemotePresence = {
   userId: string;
@@ -136,6 +137,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [discoverUsers, setDiscoverUsers] = useState<
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
@@ -147,6 +149,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // else's mesh, or as a fallback when there's no owner Meshi to stand in.
   const showCursorMeshi = prefs.enabled && (Boolean(viewUserId) || !meshData?.meshiPreference);
 
+  const lastTapRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   const focusIdRef = useRef<string | null>(null);
@@ -167,6 +170,24 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
+  }, []);
+
+  // First visit: walk newcomers through how to explore the mesh.
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(TIPS_SEEN_KEY)) setShowTips(true);
+    } catch {
+      // Storage may be unavailable; skip the intro.
+    }
+  }, []);
+
+  const dismissTips = useCallback(() => {
+    setShowTips(false);
+    try {
+      localStorage.setItem(TIPS_SEEN_KEY, "1");
+    } catch {
+      // Storage may be unavailable.
+    }
   }, []);
 
   // --- Fetch + build model ---
@@ -621,6 +642,25 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       if (!d.moved) {
         const rect = containerRef.current!.getBoundingClientRect();
+        // Double-tap / double-click on empty space zooms in on that spot.
+        const now = performance.now();
+        const prevTap = lastTapRef.current;
+        lastTapRef.current = { x: e.clientX, y: e.clientY, t: now };
+        if (
+          prevTap &&
+          now - prevTap.t < 320 &&
+          Math.hypot(e.clientX - prevTap.x, e.clientY - prevTap.y) < 32 &&
+          !hitTest(e.clientX - rect.left, e.clientY - rect.top)
+        ) {
+          lastTapRef.current = null;
+          const base = zoomTargetRef.current?.zoom ?? cameraRef.current.zoom;
+          zoomTargetRef.current = {
+            zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base * 1.55)),
+            ax: e.clientX - rect.left - rect.width / 2,
+            ay: e.clientY - rect.top - rect.height / 2,
+          };
+          return;
+        }
         const profileRect = profileHitboxesRef.current.get(modelRef.current?.selfId || "");
         if (profileRect) {
           const sx = e.clientX - rect.left;
@@ -957,6 +997,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         setShowSearch(false);
         setShowCompose(false);
         setSelectedNode(null);
+        setShowTips(false);
         return;
       }
       if (typing) return;
@@ -1236,6 +1277,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         <RailButton label="Zoom out" onClick={() => zoomBy(0.8)}>
           <Minus size={16} />
         </RailButton>
+        <RailButton label="Recenter" onClick={fitToContent}>
+          <LocateFixed size={16} />
+        </RailButton>
+        <RailButton label="How to explore" onClick={() => setShowTips(true)}>
+          <HelpCircle size={16} />
+        </RailButton>
       </div>
 
       {showDesktopChrome && meshData ? (
@@ -1277,6 +1324,73 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           >
             Connect your accounts
           </Link>
+        </div>
+      )}
+
+      {/* How to explore — shown on first visit, reopenable from the rail */}
+      {showTips && status === "ready" && (
+        <div
+          className="absolute inset-0 z-50 flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            if (e.target === e.currentTarget) dismissTips();
+          }}
+        >
+          <div
+            className="w-full max-w-sm animate-[slideUp_.24s_ease-out] rounded-2xl border border-white/12 bg-[#0b1020] p-5 shadow-2xl"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Welcome to your mesh</p>
+                <p className="text-[11px] text-white/50">Your whole world, woven into one web.</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={dismissTips}
+                className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <ul className="space-y-2.5 text-xs leading-relaxed text-white/75">
+              <li className="flex gap-2.5">
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
+                <span>{isCoarsePointer ? "Drag to pan and pinch to zoom around your web." : "Drag to pan and scroll to zoom around your web."}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
+                <span>{isCoarsePointer ? "Tap any node to open it — posts, people, platforms." : "Click any node to open it — posts, people, platforms."}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
+                <span>{isCoarsePointer ? "Double-tap empty space to zoom in on that spot." : "Double-click empty space to zoom in on that spot."}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
+                <span>Friends glow on the web — open one to step into their mesh.</span>
+              </li>
+              {!isCoarsePointer && (
+                <li className="flex gap-2.5">
+                  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
+                  <span>
+                    Press <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">/</kbd> to search,{" "}
+                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">0</kbd> to recenter, and{" "}
+                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">+</kbd>/
+                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">-</kbd> to zoom.
+                  </span>
+                </li>
+              )}
+            </ul>
+            <button
+              type="button"
+              onClick={dismissTips}
+              className="mt-4 w-full rounded-full bg-[var(--mesh-blue)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Start exploring
+            </button>
+          </div>
         </div>
       )}
 
@@ -1441,9 +1555,12 @@ function RailButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white/85 backdrop-blur transition-colors hover:bg-black/65 hover:text-white"
+      className="group relative flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white/85 backdrop-blur transition-colors hover:bg-black/65 hover:text-white"
     >
       {children}
+      <span className="pointer-events-none absolute right-full mr-2 hidden w-max rounded-lg border border-white/12 bg-black/80 px-2 py-1 text-[11px] font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 sm:block">
+        {label}
+      </span>
     </button>
   );
 }
