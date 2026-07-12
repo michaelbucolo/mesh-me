@@ -239,17 +239,36 @@ export function MeChatThread({
       error?: string;
     }>(response);
     if (!response.ok) throw new Error(data.error || "Could not load messages");
-    setMessages(data.messages || []);
-    setTypingUsers(data.typingUsers || []);
+    // Polling identical data every few seconds shouldn't re-render the
+    // thread — only apply state when something actually changed.
+    const nextMessages = data.messages || [];
+    setMessages((prev) =>
+      JSON.stringify(prev) === JSON.stringify(nextMessages) ? prev : nextMessages,
+    );
+    const nextTyping = data.typingUsers || [];
+    setTypingUsers((prev) =>
+      prev.length === nextTyping.length && JSON.stringify(prev) === JSON.stringify(nextTyping)
+        ? prev
+        : nextTyping,
+    );
   }, []);
 
   useEffect(() => {
     if (!activeThreadId) return;
     void loadThread(activeThreadId).catch(() => {});
     const interval = window.setInterval(() => {
+      // Don't poll a tab nobody is looking at.
+      if (document.visibilityState !== "visible") return;
       void loadThread(activeThreadId).catch(() => {});
     }, 3000);
-    return () => window.clearInterval(interval);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadThread(activeThreadId).catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [activeThreadId, loadThread]);
 
   useEffect(() => {

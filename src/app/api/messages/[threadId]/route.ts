@@ -129,21 +129,24 @@ function serializeMessage(
 }
 
 async function serializeThreadMessages(thread: ThreadWithMembers, currentUserId: string) {
-  const messages = await prisma.message.findMany({
-    where: { threadId: thread.id },
-    include: {
-      sender: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
+  // Latest window only — long histories shouldn't make every poll heavier.
+  const messages = (
+    await prisma.message.findMany({
+      where: { threadId: thread.id },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "asc" },
-    take: 500,
-  });
+      orderBy: { createdAt: "desc" },
+      take: 150,
+    })
+  ).reverse();
   const messagesById = new Map(messages.map((message) => [message.id, {
     id: message.id,
     content: message.content,
@@ -195,27 +198,26 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     where: { userId_threadId: { userId: user.id, threadId } },
     data: { lastRead: now },
   }).catch(() => {});
-  const refreshedThread = await getAuthorizedThread(threadId, user.id);
-  if (!refreshedThread) {
-    return NextResponse.json({ error: "Thread not found" }, { status: 404 });
-  }
 
+  // This endpoint is polled every few seconds by every open thread — patch
+  // the caller's lastRead into the already-loaded thread instead of paying
+  // for a second full members+users query per poll.
   return NextResponse.json({
     thread: {
-      id: refreshedThread.id,
-      title: refreshedThread.title,
-      threadType: refreshedThread.threadType,
-      isEncrypted: refreshedThread.isEncrypted,
-      sourcePlatform: refreshedThread.sourcePlatform,
-      members: refreshedThread.members.map((member) => ({
+      id: thread.id,
+      title: thread.title,
+      threadType: thread.threadType,
+      isEncrypted: thread.isEncrypted,
+      sourcePlatform: thread.sourcePlatform,
+      members: thread.members.map((member) => ({
         userId: member.userId,
         role: member.role,
         notificationsMuted: member.notificationsMuted,
-        lastRead: member.lastRead.toISOString(),
+        lastRead: (member.userId === user.id ? now : member.lastRead).toISOString(),
         user: member.user,
       })),
     },
-    ...(await serializeThreadMessages(refreshedThread, user.id)),
+    ...(await serializeThreadMessages(thread, user.id)),
   });
 }
 
