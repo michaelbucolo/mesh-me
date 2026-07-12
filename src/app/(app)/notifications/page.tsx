@@ -15,20 +15,25 @@ export default async function NotificationsPage() {
 
   const [result, preferences] = await Promise.all([
     getNotifications(1, 100),
-    prisma.userNotificationPreference.findUnique({
-      where: { userId: user.id },
-      select: {
-        pushEnabled: true,
-        emailDigest: true,
-        messages: true,
-        mentions: true,
-        comments: true,
-        follows: true,
-        platformAlerts: true,
-        securityAlerts: true,
-        productUpdates: true,
-      },
-    }),
+    prisma.userNotificationPreference
+      .findUnique({
+        where: { userId: user.id },
+        select: {
+          pushEnabled: true,
+          emailDigest: true,
+          messages: true,
+          mentions: true,
+          comments: true,
+          follows: true,
+          platformAlerts: true,
+          securityAlerts: true,
+          productUpdates: true,
+        },
+      })
+      .catch((error) => {
+        console.error("[notifications] Preferences unavailable", error);
+        return null;
+      }),
   ]);
 
   const payload = buildNotificationCenterPayload(

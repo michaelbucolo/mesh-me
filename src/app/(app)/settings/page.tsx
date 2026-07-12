@@ -17,10 +17,22 @@ export default async function SettingsPage() {
 
   const [settings, meshPrivacy, meshiPreference, meshCosmetics, privacyData] = await Promise.all([
     getUserSettings(),
-    getMeshPrivacy(),
-    getMeshiPreference(),
-    getMeshCosmetics(),
-    getPrivacyTransparencyData(),
+    getMeshPrivacy().catch((error) => {
+      console.error("[settings] Mesh privacy unavailable", error);
+      return null;
+    }),
+    getMeshiPreference().catch((error) => {
+      console.error("[settings] Meshi preference unavailable", error);
+      return null;
+    }),
+    getMeshCosmetics().catch((error) => {
+      console.error("[settings] Mesh cosmetics unavailable", error);
+      return [];
+    }),
+    getPrivacyTransparencyData().catch((error) => {
+      console.error("[settings] Privacy transparency data unavailable", error);
+      return null;
+    }),
   ]);
 
   if (!settings) redirect("/login?next=/settings");
