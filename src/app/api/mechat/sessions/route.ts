@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 const SESSION_INCLUDE = {
   participants: {
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({}));
+  const body = await readJsonObject(req);
   const title = cleanText(body.title, "Shared browsing room", 80);
   const sessionType = cleanText(body.sessionType, "co_browse", 32);
   const callMode = cleanCallMode(body.callMode);

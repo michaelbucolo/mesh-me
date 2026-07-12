@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { buildLinkPreview, normalizeAttachments, serializeMeChatMetadata } from "@/lib/mechat-metadata";
 import { prisma } from "@/lib/prisma";
 import { getMessageThreads } from "@/lib/queries";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
 function cleanText(value: unknown, maxLength: number) {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Creating chats too quickly. Please slow down." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => ({}));
+  const body = await readJsonObject(req);
   const memberIds = cleanMemberIds((body as Record<string, unknown>).memberIds, user.id);
   const title = cleanText((body as Record<string, unknown>).title, 80);
   const openingMessage = cleanText((body as Record<string, unknown>).openingMessage, 2000);

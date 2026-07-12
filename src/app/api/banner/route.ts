@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readFormData } from "@/lib/request-guard";
 
 /** Detect actual image type from file magic bytes (ignores client-provided MIME) */
 function detectImageType(buf: Uint8Array): string | null {
@@ -23,7 +23,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await req.formData();
+    const formData = await readFormData(req);
+    if (!formData) {
+      return NextResponse.json({ error: "Invalid form submission" }, { status: 400 });
+    }
     const file = formData.get("banner") as File | null;
 
     if (!file) {

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { canViewNsfw, nsfwHiddenWhere } from "@/lib/content-safety";
 import { compactImageUrl, compactUserAvatar } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit, sanitizeForDisplay, validateUrl } from "@/lib/security";
 
 function cleanText(value: unknown, maxLength: number) {
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Saving too quickly. Please slow down." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(req);
   const postId = cleanText(body.postId, 120);
   const platformPostId = cleanText(body.platformPostId, 120);
 
@@ -299,7 +299,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(req);
   const postId = cleanText(body.postId, 120);
   const savedPostId = cleanText(body.savedPostId, 120);
 

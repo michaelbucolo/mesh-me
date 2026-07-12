@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createFeatureRequest, listFeatureRequests } from "@/lib/feature-requests";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
 function cleanText(value: unknown, maxLength: number) {
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Too many ideas submitted. Please slow down." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(req);
   const title = cleanText(body.title, 120);
   const description = cleanText(body.description, 1200);
 

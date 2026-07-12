@@ -26,6 +26,26 @@ export function isSameOriginRequest(req: Request): boolean {
   }
 }
 
+export async function readJsonObject(req: Request): Promise<Record<string, unknown>> {
+  try {
+    const parsed = await req.json();
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // fall through to empty object
+  }
+  return {};
+}
+
+export async function readFormData(req: Request): Promise<FormData | null> {
+  try {
+    return await req.formData();
+  } catch {
+    return null;
+  }
+}
+
 export function isCrossSiteRequest(req: Request): boolean {
   const host = req.headers.get("host");
   if (!host) return true;

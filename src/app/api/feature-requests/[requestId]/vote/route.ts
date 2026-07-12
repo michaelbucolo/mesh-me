@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getFeatureRequestById, setFeatureRequestVote } from "@/lib/feature-requests";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 
 type RouteContext = {
@@ -29,7 +29,7 @@ export async function POST(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Feature request not found." }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(req);
   const action = body.action === "remove" ? "remove" : "upvote";
   const request = await setFeatureRequestVote(requestId, user.id, action === "upvote");
 

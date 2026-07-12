@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getFeatureRequestById, updateFeatureRequestStatus } from "@/lib/feature-requests";
 import { isFeatureRequestStatus } from "@/lib/feature-request-options";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 type RouteContext = {
   params: Promise<{ requestId: string }>;
@@ -33,7 +33,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Feature request not found." }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(req);
   const status = cleanText(body.status, 40);
   if (!isFeatureRequestStatus(status)) {
     return NextResponse.json({ error: "Choose a valid status." }, { status: 400 });

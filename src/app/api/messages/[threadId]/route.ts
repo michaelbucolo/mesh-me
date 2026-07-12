@@ -10,7 +10,7 @@ import {
 } from "@/lib/mechat-metadata";
 import { clearMeChatTyping, getMeChatTypingUsers } from "@/lib/mechat-presence";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
 type RouteContext = {
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Cannot send message to this chat." }, { status: 403 });
   }
 
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(request);
   const content = cleanText(body.content, 4000);
   const attachments = normalizeAttachments(body.attachments);
   const sourceUrl = optionalCleanText(body.sourceUrl, 500);
@@ -351,7 +351,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(request);
   const action = cleanText(body.action, 40);
 
   if (action === "read") {

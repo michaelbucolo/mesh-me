@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readFormData } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 import { createSupportTicketRecord, saveSupportTicket } from "@/lib/support-tickets";
 import { isSupportCategory, isSupportPriority } from "@/lib/support-ticket-options";
@@ -43,7 +43,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
     }
 
-    const formData = await req.formData();
+    const formData = await readFormData(req);
+    if (!formData) {
+      return NextResponse.json({ error: "Invalid form submission" }, { status: 400 });
+    }
     const accountEmail = cleanText(formData.get("accountEmail"), 254).toLowerCase();
     const category = cleanText(formData.get("category"), 64);
     const priority = cleanText(formData.get("priority"), 64);

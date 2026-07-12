@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readFormData } from "@/lib/request-guard";
 import { NextResponse } from "next/server";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -25,7 +25,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
+    const formData = await readFormData(request);
+    if (!formData) {
+      return NextResponse.json({ error: "Invalid form submission" }, { status: 400 });
+    }
     const file = formData.get("avatar") as File | null;
 
     if (!file) {
