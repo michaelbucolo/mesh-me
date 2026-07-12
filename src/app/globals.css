@@ -7772,26 +7772,21 @@ body {
   }
 
   .mesh-topbar-owner {
-    padding: 0.25rem 0.4rem;
+    padding: 0;
     gap: 0.25rem;
     font-size: 0.8rem;
   }
 
-  .mesh-topbar-owner span:first-child {
-    display: none;
-  }
-
-  .mesh-topbar-btn {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .mesh-topbar-btn span {
-    display: none;
-  }
-
   .mesh-topbar-icon {
     padding: 0.35rem;
+  }
+
+  /* Mobile top bar = clean and minimal: just the page title, one bell, and
+     the account avatar. Share, Verify, and the desktop search live in the
+     account menu / other surfaces so the bar never feels cluttered. */
+  .mesh-topbar [aria-label="Share this page"],
+  .mesh-topbar [aria-label="Trust and verification"] {
+    display: none !important;
   }
 
   .mesh-shell-feed .mesh-topbar,
@@ -8574,4 +8569,556 @@ body > * { position: relative; z-index: 1; }
   [data-variant="default"] {
     transform: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AURORA INTERACTIONS — seamless navigation + satisfying feedback.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Slim top progress bar for route navigation — makes moving around feel
+   instant and continuous rather than a hard page swap. */
+/* Navigation feedback: a luminous light sweeps across the top edge while a
+   route is loading — energetic and on-brand, not a filling progress bar. */
+.nav-sweep {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 200;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  animation: navSweepFade 240ms ease;
+}
+.nav-sweep-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 42%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #5b8def 30%, #8b5cf6 55%, #ec4899 78%, transparent);
+  box-shadow: 0 0 14px rgba(125, 155, 255, 0.7);
+  animation: navSweep 0.9s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+}
+@keyframes navSweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+@keyframes navSweepFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-sweep-line { animation: none; width: 100%; opacity: 0.6; }
+}
+
+/* Satisfying like: a ring bursts outward from the heart on tap. */
+.like-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%) scale(0.2);
+  border-radius: 999px;
+  border: 2px solid rgba(251, 113, 133, 0.9);
+  opacity: 0;
+  pointer-events: none;
+}
+.like-burst-active {
+  animation: likeBurst 0.45s var(--mesh-ease-out);
+}
+@keyframes likeBurst {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.2); border-width: 3px; }
+  70% { opacity: 0.35; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); border-width: 0.5px; }
+}
+
+/* Universal tactile press: every interactive control gives a subtle,
+   consistent "give" when pressed. Keeps the whole app feeling responsive. */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):active,
+  a[role="button"]:active,
+  [role="tab"]:active,
+  .mesh-choice:active,
+  label[role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 80ms var(--mesh-ease-out);
+  }
+}
+
+/* Content settles in with a gentle fade+rise on each navigation, so pages
+   arrive rather than blink. Scoped to the main content shell. */
+.app-content-enter {
+  animation: appContentEnter 0.34s var(--mesh-ease-out) both;
+}
+@keyframes appContentEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-bar { transition: opacity 120ms ease; }
+  .like-burst-active,
+  .app-content-enter,
+  button:not(:disabled):active,
+  a[role="button"]:active,
+  [role="tab"]:active {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MESH ENTRY — a blank black page. The mesh lives loose on the perimeter
+   and reels inward as you type; on submit the field becomes your Meshi,
+   who asks for the password and then pulls the whole mesh together into
+   the app. Fully fluid: sizes off clamp()/vw so it reflows to any aspect
+   ratio — phone, foldable, tablet, desktop, headset.
+   ═══════════════════════════════════════════════════════════════════ */
+.mesh-gate {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000005;
+  color: #f4f6ff;
+  display: flex;
+  flex-direction: column;
+  -webkit-tap-highlight-color: transparent;
+}
+.mesh-gate-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+/* A whisper of light behind the question so the black never feels dead. */
+.mesh-gate-halo {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(42% 34% at 50% 46%, rgba(110, 139, 255, 0.10), transparent 72%);
+}
+
+.mesh-gate-core {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(1.5rem, 5vh, 4rem) clamp(1rem, 5vw, 2.5rem);
+  gap: clamp(1rem, 3.2vh, 1.9rem);
+}
+
+.mesh-gate-focus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.9rem, 2.6vh, 1.5rem);
+  width: min(94vw, 30rem);
+  animation: meshEntryIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes meshEntryIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* The question. */
+.mesh-gate-q {
+  font-size: clamp(2.2rem, 8vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+.mesh-gate-q-sm { font-size: clamp(1.6rem, 6vw, 2.2rem); }
+
+/* Bare field — no box. A hairline baseline that lights up as strands latch on. */
+.mesh-gate-inputwrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mesh-gate-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(148, 163, 210, 0.22);
+  outline: none;
+  text-align: center;
+  color: #ffffff;
+  caret-color: #7d9bff;
+  font-size: clamp(1.05rem, 4vw, 1.5rem);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.6rem 2.4rem;
+  transition: border-color 220ms ease, box-shadow 220ms ease;
+}
+.mesh-gate-input::placeholder { color: rgba(148, 163, 210, 0.4); font-weight: 400; }
+.mesh-gate-input,
+.mesh-gate-input:focus,
+.mesh-gate-input:focus-visible {
+  outline: none;
+  border-radius: 0;
+}
+.mesh-gate-input:focus {
+  border-bottom-color: rgba(125, 155, 255, 0.85);
+  box-shadow: 0 14px 40px -30px rgba(125, 155, 255, 0.9);
+}
+.mesh-gate-input:disabled { opacity: 0.55; }
+.mesh-gate-input-line { text-align: left; padding: 0.55rem 0.2rem; font-size: 1.02rem; font-weight: 500; }
+
+/* Subtle enter affordance — appears once there's something to submit. */
+.mesh-gate-go {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%) scale(0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.2rem;
+  width: 2.2rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--brand-gradient);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 22px -10px rgba(110, 139, 255, 0.8);
+  transition: opacity 200ms ease, transform 200ms ease, filter 150ms ease;
+}
+.mesh-gate-go.is-ready { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
+.mesh-gate-go:hover { filter: brightness(1.08); }
+.mesh-gate-go:active { transform: translateY(-50%) scale(0.92); }
+.mesh-gate-go:disabled { opacity: 0.5; }
+.mesh-gate-peek {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(154, 163, 188, 0.65);
+  padding: 0.3rem;
+}
+.mesh-gate-peek:hover { color: #f3f5fb; }
+
+.mesh-gate-hint {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(154, 163, 188, 0.55);
+}
+.mesh-gate-msg {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fecaca;
+  max-width: 26rem;
+}
+
+.mesh-gate-textlink {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(179, 190, 220, 0.82);
+  transition: color 150ms ease;
+}
+.mesh-gate-textlink:hover { color: #ffffff; }
+.mesh-gate-inline { display: flex; gap: 1.4rem; }
+.mesh-gate-providers { width: 100%; margin-top: 0.2rem; }
+
+/* Identity → password morph: the field collapses to a point. */
+.mesh-gate-leaving {
+  animation: meshEntryCollapse 0.42s cubic-bezier(0.6, 0, 0.35, 1) forwards;
+}
+@keyframes meshEntryCollapse {
+  to { opacity: 0; transform: scale(0.2); filter: blur(2px); }
+}
+
+/* Meshi, re-formed from the field. */
+.mesh-gate-meshi {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: meshEntryPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes meshEntryPop {
+  from { opacity: 0; transform: scale(0.35); }
+  to { opacity: 1; transform: scale(1); }
+}
+/* A ring that closes around Meshi the instant he forms. */
+.mesh-gate-ring {
+  position: absolute;
+  inset: -14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(125, 155, 255, 0.55);
+  animation: meshEntryRing 0.7s ease-out both;
+  pointer-events: none;
+}
+@keyframes meshEntryRing {
+  from { opacity: 0.9; transform: scale(1.7); }
+  to { opacity: 0; transform: scale(1); }
+}
+.mesh-gate-meshi.is-success { animation: meshEntryGather 0.9s ease-in forwards; }
+@keyframes meshEntryGather {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(0.9); filter: brightness(1.4); }
+}
+
+.mesh-gate-bubble {
+  position: relative;
+  max-width: 22rem;
+  padding: 0.6rem 1rem;
+  border-radius: 1rem;
+  font-size: clamp(0.86rem, 2.6vw, 0.98rem);
+  font-weight: 600;
+  color: rgba(233, 239, 247, 0.95);
+  background: rgba(14, 19, 34, 0.72);
+  border: 1px solid rgba(125, 155, 255, 0.24);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px -20px rgba(110, 139, 255, 0.55);
+  animation: meshEntryIn 0.45s ease 0.12s both;
+}
+.mesh-gate-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(14, 19, 34, 0.72);
+  border-left: 1px solid rgba(125, 155, 255, 0.24);
+  border-top: 1px solid rgba(125, 155, 255, 0.24);
+}
+
+/* Signup / reset keep the same bare, boxless language. */
+.mesh-gate-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(0.7rem, 2vh, 1.05rem);
+  width: min(94vw, 24rem);
+  text-align: center;
+  animation: meshEntryIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.mesh-gate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(154, 163, 188, 0.72);
+}
+.mesh-gate-primary {
+  height: 3.3rem;
+  border-radius: 999px;
+  background: var(--brand-gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16px 36px -14px rgba(110, 139, 255, 0.6);
+  transition: filter 150ms ease, transform 120ms ease;
+  margin-top: 0.3rem;
+}
+.mesh-gate-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.mesh-gate-primary:active { transform: translateY(0) scale(0.98); }
+.mesh-gate-primary:disabled { opacity: 0.7; }
+
+/* Foot — truthful privacy line + the four essentials. */
+.mesh-gate-foot {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.9rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+  text-align: center;
+}
+.mesh-gate-shield {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: clamp(0.66rem, 2.4vw, 0.74rem);
+  font-weight: 500;
+  color: rgba(154, 163, 188, 0.62);
+}
+.mesh-gate-shield svg { color: #7d9bff; }
+.mesh-gate-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.9rem, 4vw, 1.6rem);
+  font-size: clamp(0.76rem, 2.6vw, 0.84rem);
+  font-weight: 600;
+  color: rgba(179, 190, 220, 0.72);
+}
+.mesh-gate-links > * { transition: color 150ms ease; }
+.mesh-gate-links > *:hover { color: #ffffff; }
+
+/* Success: fade the focal element as Meshi becomes the mesh and we hand off. */
+.mesh-gate-done .mesh-gate-core { transition: opacity 0.5s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-gate-focus,
+  .mesh-gate-form,
+  .mesh-gate-meshi,
+  .mesh-gate-bubble,
+  .mesh-gate-ring,
+  .mesh-gate-leaving { animation: none; }
+  .mesh-gate-leaving { opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REACTIVE INTERACTION LAYER — carry the login's alive, springy feel to
+   every surface. A cursor-tracked spotlight on cards, a universal tactile
+   press on anything clickable, and a gentle lift on hover. All motion is
+   guarded behind prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Cursor-reactive spotlight. ReactiveSurfaces writes --mx/--my as the
+     pointer moves; a soft brand-tinted glow follows it and the surface
+     lifts, so cards feel responsive the way the sign-in mesh does. */
+  .ds-interactive,
+  .glass-card,
+  .simple-card,
+  .mesh-surface,
+  .premium-surface,
+  .ds-glass-panel,
+  [data-reactive] {
+    position: relative;
+    transition:
+      transform 320ms var(--mesh-ease-out),
+      box-shadow 320ms var(--mesh-ease-out),
+      border-color 320ms ease;
+  }
+  .ds-interactive::after,
+  .glass-card::after,
+  .simple-card::after,
+  .mesh-surface::after,
+  .premium-surface::after,
+  .ds-glass-panel::after,
+  [data-reactive]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+    background: radial-gradient(
+      22rem 22rem at var(--mx, 50%) var(--my, 50%),
+      rgba(125, 155, 255, 0.14),
+      transparent 60%
+    );
+    z-index: 0;
+  }
+  .ds-interactive[data-hot]::after,
+  .glass-card[data-hot]::after,
+  .simple-card[data-hot]::after,
+  .mesh-surface[data-hot]::after,
+  .premium-surface[data-hot]::after,
+  .ds-glass-panel[data-hot]::after,
+  [data-reactive][data-hot]::after {
+    opacity: 1;
+  }
+  .ds-interactive[data-hot],
+  .glass-card[data-hot],
+  .simple-card[data-hot],
+  .mesh-surface[data-hot],
+  .premium-surface[data-hot],
+  .ds-glass-panel[data-hot],
+  [data-reactive][data-hot] {
+    transform: translateY(-2px);
+    border-color: rgba(125, 155, 255, 0.28);
+  }
+  /* Keep real content above the glow overlay. */
+  .ds-interactive > *,
+  .glass-card > *,
+  .simple-card > *,
+  .mesh-surface > *,
+  .premium-surface > *,
+  .ds-glass-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Universal tactile press — every clickable thing springs on tap, the
+     way the login's controls do. Transient scale only, so layout is safe. */
+  button:not(:disabled):not([data-no-press]),
+  [role="button"]:not([aria-disabled="true"]),
+  label[role="button"],
+  summary,
+  .mesh-pressable,
+  .mesh-choice,
+  a[data-pressable] {
+    transition: transform 150ms var(--mesh-ease-press), filter 150ms ease, box-shadow 150ms ease;
+  }
+  button:not(:disabled):not([data-no-press]):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  label[role="button"]:active,
+  summary:active,
+  .mesh-pressable:active,
+  .mesh-choice:active,
+  a[data-pressable]:active {
+    transform: scale(0.95);
+  }
+}
+
+/* ── Mesh owner Meshi (centre-of-mesh presence) ─────────────────────
+   Awake and softly adrift when the owner is online; curled asleep with a
+   drifting Zzz when they're offline. */
+.mesh-owner-meshi {
+  position: relative;
+  display: inline-flex;
+  filter: drop-shadow(0 10px 26px rgba(110, 139, 255, 0.35));
+}
+.mesh-owner-meshi.is-online {
+  animation: meshOwnerFloat 5s ease-in-out infinite;
+}
+@keyframes meshOwnerFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.mesh-owner-meshi.is-asleep {
+  transform: rotate(8deg);
+  opacity: 0.85;
+  filter: grayscale(0.25) drop-shadow(0 8px 20px rgba(90, 104, 150, 0.3));
+  animation: meshOwnerSnooze 4.5s ease-in-out infinite;
+}
+@keyframes meshOwnerSnooze {
+  0%, 100% { transform: rotate(8deg) translateY(0); }
+  50% { transform: rotate(8deg) translateY(-3px); }
+}
+.mesh-owner-zzz {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: rgba(190, 205, 255, 0.9);
+  animation: meshOwnerZzz 3s ease-in-out infinite;
+}
+@keyframes meshOwnerZzz {
+  0% { opacity: 0; transform: translateY(4px) scale(0.7); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-16px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-owner-meshi.is-online,
+  .mesh-owner-meshi.is-asleep,
+  .mesh-owner-zzz { animation: none; }
 }

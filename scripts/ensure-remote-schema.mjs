@@ -62,6 +62,106 @@ try {
     }
   }
   console.log(`[ensure-schema] Remote schema in sync (${created} applied, ${skipped} pre-existing).`);
+
+  // ── Column-level additive sync ──────────────────────────────────────────
+  // CREATE TABLE IF NOT EXISTS only helps for *new* tables. A table that was
+  // provisioned remotely with an older shape silently misses columns added to
+  // the schema later, and every Prisma write against it fails (e.g. the
+  // MeshPresence heartbeats behind live Meshis). Diff each table's real
+  // columns against the schema and ALTER TABLE ADD COLUMN what's missing.
+  let addedColumns = 0;
+  for (const stmt of statements) {
+    const m = /^CREATE TABLE IF NOT EXISTS\s+"([^"]+)"\s*\(([\s\S]*)\)\s*$/i.exec(stmt);
+    if (!m) continue;
+    const table = m[1];
+    // Top-level comma split (no nested parens in our column defs except
+    // constraint clauses, which we skip anyway).
+    const parts = [];
+    let depth = 0;
+    let cur = "";
+    for (const ch of m[2]) {
+      if (ch === "(") depth += 1;
+      if (ch === ")") depth -= 1;
+      if (ch === "," && depth === 0) {
+        parts.push(cur.trim());
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur.trim()) parts.push(cur.trim());
+
+    const info = await client.execute(`PRAGMA table_info("${table}")`);
+    if (!info.rows.length) continue; // table missing entirely — created above
+    const existing = new Set(info.rows.map((r) => String(r.name)));
+
+    for (const def of parts) {
+      const col = /^"([^"]+)"\s+(.*)$/s.exec(def);
+      if (!col) continue; // table-level constraint (FOREIGN KEY, UNIQUE, ...)
+      const [, name, rest] = col;
+      if (existing.has(name)) continue;
+      // SQLite ADD COLUMN restrictions: no PRIMARY KEY/UNIQUE, and NOT NULL
+      // requires a constant default. Sanitize the definition accordingly.
+      let colDef = rest
+        .replace(/\s+PRIMARY KEY(\s+AUTOINCREMENT)?/i, "")
+        .replace(/\s+UNIQUE/i, "")
+        .trim();
+      if (/NOT NULL/i.test(colDef) && !/DEFAULT/i.test(colDef)) {
+        const type = colDef.split(/\s+/)[0].toUpperCase();
+        const fallback = /INT|REAL|NUMERIC|BOOLEAN|BIGINT/.test(type)
+          ? "0"
+          : /DATETIME|TIMESTAMP/.test(type)
+            ? "'1970-01-01 00:00:00'"
+            : "''";
+        colDef += ` DEFAULT ${fallback}`;
+      }
+      try {
+        await client.execute(`ALTER TABLE "${table}" ADD COLUMN "${name}" ${colDef}`);
+        addedColumns += 1;
+        console.log(`[ensure-schema] Added missing column ${table}.${name}`);
+      } catch (error) {
+        const message = String(error?.message || error);
+        if (/duplicate column/i.test(message)) continue;
+        console.error(`[ensure-schema] Failed to add column ${table}.${name}:`, message);
+        throw error;
+      }
+    }
+  }
+  if (addedColumns) {
+    console.log(`[ensure-schema] Column sync complete (${addedColumns} column(s) added).`);
+  }
+
+  // ── One-time data normalizations ────────────────────────────────────────
+  // Guarded by a marker table so each runs exactly once — they must never
+  // re-run, or they'd clobber choices users have since made.
+  await client.execute(
+    "CREATE TABLE IF NOT EXISTS _MeshDataMigration (id TEXT PRIMARY KEY, appliedAt TEXT NOT NULL)",
+  );
+  const runOnce = async (id, apply) => {
+    const done = await client.execute({ sql: "SELECT id FROM _MeshDataMigration WHERE id = ?", args: [id] });
+    if (done.rows.length) return;
+    await apply();
+    await client.execute({ sql: "INSERT INTO _MeshDataMigration (id, appliedAt) VALUES (?, ?)", args: [id, new Date().toISOString()] });
+    console.log(`[ensure-schema] Applied one-time data migration: ${id}`);
+  };
+
+  // Early accounts were created under an over-conservative default that left the
+  // whole network undiscoverable (nobody could be found or followed). Bring
+  // existing non-suspended accounts in line with the corrected "findable by
+  // default" behaviour, once. Content visibility (isPublic) is untouched.
+  await runOnce("discovery-default-2026", async () => {
+    await client.execute("UPDATE User SET showInDiscovery = 1 WHERE showInDiscovery = 0 AND isSuspended = 0");
+  });
+
+  // Presence was dead for the whole network: every account was created with
+  // hideActivityStatus=1 (the old default), and the presence endpoint drops
+  // heartbeats for hidden users — so no one could ever see anyone live. Since
+  // the feature never worked, nobody meaningfully chose that value; reset it
+  // once so live Meshis work, and users who want to hide can do so in privacy
+  // settings.
+  await runOnce("presence-visible-2026", async () => {
+    await client.execute("UPDATE User SET hideActivityStatus = 0 WHERE hideActivityStatus = 1 AND isSuspended = 0");
+  });
 } finally {
   await client.close?.();
 }

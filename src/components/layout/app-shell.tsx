@@ -8,6 +8,7 @@ import {
   Bell,
   ChevronDown,
   ChevronRight,
+  Moon,
   Search,
   Settings,
   Share2,
@@ -15,12 +16,14 @@ import {
   Sun,
 } from "lucide-react";
 import { signOut } from "@/lib/actions";
+import { useTheme } from "@/components/theme-provider";
+import { useToast } from "@/components/ui/toast";
 import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
-import { getRouteLoadingPersonality } from "@/lib/loading-personality";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { KeyboardShortcutsOverlay } from "@/components/layout/keyboard-shortcuts-overlay";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ReactiveSurfaces } from "@/components/layout/reactive-surfaces";
 import { sidebarNavItems, resolveNavHref, isNavItemActive } from "@/components/layout/navigation-config";
 
 interface AppShellProps {
@@ -48,7 +51,6 @@ type RouteInfo = {
 const routeInfoMap: Record<string, RouteInfo> = {
   "/mesh": { title: "The Mesh", description: "Your digital world. Connected by you." },
   "/feed": { title: "Feed", description: "Your timeline across all connected platforms." },
-  "/flow": { title: "Flow", description: "A full-screen stream across your Mesh.me feeds." },
   "/messages": { title: "MeChat", description: "Your universal messaging hub. All your conversations, in one place." },
   "/notifications": { title: "Notifications", description: "Stay updated on what matters." },
   "/search": { title: "Search", description: "Find people, posts, and communities." },
@@ -90,17 +92,6 @@ function getRouteInfo(pathname: string, username: string): RouteInfo {
   return routeInfoMap[pathname] ?? routeInfoMap[firstSegment] ?? { title: "Mesh.me", description: "" };
 }
 
-function AppRouteProgress({ pathname }: { pathname: string }) {
-  return (
-    <div
-      key={pathname}
-      className="app-route-progress"
-      data-loading-personality={getRouteLoadingPersonality(pathname)}
-      aria-hidden="true"
-    />
-  );
-}
-
 function ShellTopBar({
   user,
   routeInfo,
@@ -111,6 +102,7 @@ function ShellTopBar({
   unreadCounts: UnreadCounts;
 }) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [query, setQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,17 +123,42 @@ function ShellTopBar({
     router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search");
   }
 
+  async function shareCurrent() {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const shareData = { title: `${routeInfo.title} · mesh.me`, text: routeInfo.description || "mesh.me", url };
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        addToast("Link copied to clipboard", "success");
+        return;
+      }
+      addToast("Sharing isn’t supported here", "info");
+    } catch {
+      // User dismissed the share sheet — no error to surface.
+    }
+  }
+
+  const ownerInitials = (
+    user.displayName
+      .split(/\s+/)
+      .map((part) => part.charAt(0))
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("") || user.username.charAt(0) || "M"
+  ).toUpperCase();
+
   return (
-    <header className="mesh-topbar sticky top-0 z-30 flex min-h-[72px] items-center gap-4 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-6 backdrop-blur-xl">
+    <header className="mesh-topbar sticky top-0 z-30 flex min-h-[54px] items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:min-h-[72px] lg:gap-4 lg:px-6">
       <div className="min-w-0 flex-1 lg:flex-none">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-xl font-bold text-[var(--mesh-text)]">{routeInfo.title}</h1>
-          <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Page info">
-            <span className="text-xs">ⓘ</span>
-          </button>
+          <h1 className="truncate text-[19px] font-bold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
         </div>
         {routeInfo.description && (
-          <p className="mt-0.5 text-sm text-[var(--mesh-text-muted)]">{routeInfo.description}</p>
+          <p className="mt-0.5 hidden text-sm text-[var(--mesh-text-muted)] lg:block">{routeInfo.description}</p>
         )}
       </div>
 
@@ -161,15 +178,12 @@ function ShellTopBar({
         <kbd className="hidden rounded-md border border-[var(--mesh-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--mesh-text-muted)] sm:inline-flex">⌘ K</kbd>
       </form>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        <Link href="/search" className="mesh-topbar-icon lg:hidden" aria-label="Search" title="Search">
-          <Search className="h-4 w-4" aria-hidden="true" />
-        </Link>
-        <button type="button" className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
+        <button type="button" onClick={shareCurrent} className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
         </button>
-        <Link href="/trust" className="mesh-topbar-icon" aria-label="Trust and verification" title="Verify">
+        <Link href="/trust" className="mesh-topbar-icon hidden lg:inline-flex" aria-label="Trust and verification" title="Verify">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
         </Link>
         <Link href="/notifications" className="mesh-topbar-icon relative" aria-label="Notifications" title="Notifications">
@@ -182,9 +196,10 @@ function ShellTopBar({
         </Link>
 
         <details className="relative">
-          <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-xl border border-[var(--mesh-border)] px-3 py-1.5 text-sm font-semibold text-[var(--mesh-text)] hover:bg-[var(--mesh-panel-hover)] transition-colors [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-            <span>Owner</span>
-            <ChevronDown className="h-3.5 w-3.5 text-[var(--mesh-text-muted)]" aria-hidden="true" />
+          <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-full border-0 p-0 text-sm font-semibold text-[var(--mesh-text)] transition-colors lg:rounded-xl lg:border lg:border-[var(--mesh-border)] lg:px-3 lg:py-1.5 lg:hover:bg-[var(--mesh-panel-hover)] [&::-webkit-details-marker]:hidden" aria-label="Account menu">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--mesh-blue)]/15 text-xs font-bold text-[var(--mesh-blue)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
+            <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
+            <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
           </summary>
           <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg z-50">
             <div className="flex items-center gap-3 rounded-lg bg-[var(--mesh-bg-elevated)] p-3">
@@ -197,6 +212,8 @@ function ShellTopBar({
             <div className="mt-2 grid gap-0.5">
               <Link href={`/profile/${user.username}`} className="mesh-dropdown-item">Profile</Link>
               <Link href="/settings" className="mesh-dropdown-item">Settings</Link>
+              <Link href="/search" className="mesh-dropdown-item lg:hidden">Search</Link>
+              <Link href="/trust" className="mesh-dropdown-item lg:hidden">Verify</Link>
               <Link href="/privacy-controls" className="mesh-dropdown-item">Privacy Controls</Link>
               <Link href="/meshpro" className="mesh-dropdown-item">Mesh Pro</Link>
               <button
@@ -225,9 +242,12 @@ function ShellTopBar({
 
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
+  const { theme, setMode } = useTheme();
   const routeInfo = useMemo(() => getRouteInfo(pathname, user.username), [pathname, user.username]);
   const isFeedSurface = pathname === "/feed" || pathname.startsWith("/feed/");
   const isMeshSurface = pathname === "/mesh" || pathname.startsWith("/mesh/");
+  // The Flow is a full-bleed reel stage: no top bar, no ambient background.
+  const isFlowSurface = pathname === "/flow" || pathname.startsWith("/flow/");
   const userInitials = useMemo(() => {
     const fromName = user.displayName
       .split(/\s+/)
@@ -272,10 +292,9 @@ export function AppShell({ children, user }: AppShellProps) {
   }, []);
 
   return (
-    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface ? "mesh-shell-mesh" : ""}`}>
-      <AppRouteProgress pathname={pathname} />
+    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""}`}>
 
-      {!isMeshSurface && (
+      {!isMeshSurface && !isFlowSurface && (
         <DeferredMeshBackground
           fixed
           interactive
@@ -376,8 +395,14 @@ export function AppShell({ children, user }: AppShellProps) {
             <p>All rights reserved</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className="rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Toggle theme">
-              <Sun className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={() => setMode(theme === "dark" ? "light" : "dark")}
+              className="mesh-pressable rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <Link href="/settings" className="rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Settings">
               <Settings className="h-4 w-4" />
@@ -388,7 +413,7 @@ export function AppShell({ children, user }: AppShellProps) {
 
       {/* Main Content */}
       <main className={`mesh-main flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 ${isMeshSurface ? "mesh-main-mesh" : ""}`}>
-        <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />
+        {!isFlowSurface && <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />}
 
         <div className="mesh-content flex-1 overflow-y-auto">
           <div key={pathname} className="mesh-route-slot animate-page-enter">
@@ -397,6 +422,7 @@ export function AppShell({ children, user }: AppShellProps) {
         </div>
       </main>
 
+      <ReactiveSurfaces />
       <MobileNav username={user.username} unreadMessages={unreadCounts.unreadMessages} unreadNotifications={unreadCounts.unreadNotifications} />
       <CommandPalette username={user.username} />
       <KeyboardShortcutsOverlay username={user.username} />

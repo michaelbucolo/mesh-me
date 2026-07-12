@@ -50,7 +50,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
     <g>
       <ellipse cx="-5" cy="-1" rx="2.2" ry="3.4" fill={color} />
       <ellipse cx="5" cy="-1" rx="2.2" ry="3.4" fill={color} />
-      <path d="M 2.4 -5.4 Q 5 -6.8 7.6 -5.4" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
     </g>
   ),
   sleepy: (color: string) => (
@@ -115,8 +114,6 @@ const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
     <g>
       <ellipse cx="-5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
       <ellipse cx="5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
-      <path d="M -7.6 -2.6 Q -5 -3.7 -2.4 -2.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M 2.4 -2.6 Q 5 -3.7 7.6 -2.6" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
     </g>
   ),
   learning: (color: string) => (
@@ -357,6 +354,40 @@ const HATS: Record<string, React.ReactNode> = {
       ))}
     </g>
   ),
+  beret: (
+    <g transform="translate(0, -12)">
+      <path d="M-11 1 Q-11 -7 0 -7 Q11 -7 11 0 Q6 3 -4 3 Q-9 3 -11 1 Z" fill="currentColor" opacity="0.9" />
+      <circle cx="3" cy="-6.6" r="1.4" fill="currentColor" />
+    </g>
+  ),
+  headband: (
+    <g transform="translate(0, -9)">
+      <path d="M-12 -1 Q0 -7 12 -1 L12 1.6 Q0 -4.4 -12 1.6 Z" fill="currentColor" opacity="0.9" />
+      <circle cx="-9" cy="-1.2" r="1.7" fill="currentColor" />
+    </g>
+  ),
+  bow: (
+    <g transform="translate(0, -14)">
+      <path d="M0 0 L-7 -3.6 L-7 3.6 Z" fill="currentColor" opacity="0.92" />
+      <path d="M0 0 L7 -3.6 L7 3.6 Z" fill="currentColor" opacity="0.92" />
+      <circle cx="0" cy="0" r="1.9" fill="currentColor" />
+    </g>
+  ),
+  cowboy: (
+    <g transform="translate(0, -12)">
+      <path d="M-8 0 Q-8 -8 0 -8 Q8 -8 8 0 Z" fill="currentColor" opacity="0.92" />
+      <path d="M-14 1 Q-10 4 0 4 Q10 4 14 1 Q10 -1 8 0 L-8 0 Q-10 -1 -14 1 Z" fill="currentColor" opacity="0.85" />
+      <path d="M-8 -1 Q0 1 8 -1" fill="none" stroke="#92400e" strokeWidth="1.6" strokeLinecap="round" />
+    </g>
+  ),
+  graduation: (
+    <g transform="translate(0, -13)">
+      <polygon points="0,-7 14,-1.5 0,4 -14,-1.5" fill="currentColor" opacity="0.94" />
+      <rect x="-5" y="0.5" width="10" height="4" rx="1" fill="currentColor" opacity="0.75" />
+      <line x1="10" y1="0" x2="10" y2="7" stroke="#fbbf24" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="10" cy="8.4" r="1.6" fill="#fbbf24" />
+    </g>
+  ),
   // MeshPro exclusive hats
   headphones: (
     <g transform="translate(0, -10)">
@@ -464,6 +495,60 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
       <line x1="8.6" y1="2" x2="10" y2="5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </g>
   ),
+  earrings: (
+    <g>
+      <circle cx="-15" cy="5.4" r="1.5" fill="currentColor" />
+      <circle cx="15" cy="5.4" r="1.5" fill="currentColor" />
+      <circle cx="-15" cy="8.2" r="1.1" fill="#fbbf24" />
+      <circle cx="15" cy="8.2" r="1.1" fill="#fbbf24" />
+    </g>
+  ),
+  bowtie: (
+    <g transform="translate(0, 14.5)">
+      <path d="M0 0 L-6 -3.2 L-6 3.2 Z" fill="currentColor" opacity="0.92" />
+      <path d="M0 0 L6 -3.2 L6 3.2 Z" fill="currentColor" opacity="0.92" />
+      <rect x="-1.6" y="-1.9" width="3.2" height="3.8" rx="0.9" fill="currentColor" />
+    </g>
+  ),
+  freckles: (
+    <g fill="currentColor" opacity="0.55">
+      <circle cx="-10" cy="3" r="0.7" />
+      <circle cx="-8" cy="4.3" r="0.7" />
+      <circle cx="-11.6" cy="4.7" r="0.7" />
+      <circle cx="10" cy="3" r="0.7" />
+      <circle cx="8" cy="4.3" r="0.7" />
+      <circle cx="11.6" cy="4.7" r="0.7" />
+    </g>
+  ),
+  blush: (
+    <g>
+      <ellipse cx="-9" cy="3.6" rx="2.5" ry="1.5" fill="#f9a8d4" opacity="0.5" />
+      <ellipse cx="9" cy="3.6" rx="2.5" ry="1.5" fill="#f9a8d4" opacity="0.5" />
+    </g>
+  ),
+  eyepatch: (
+    <g>
+      <path d="M -13 -6.5 L 13 -3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
+      <ellipse cx="5" cy="0" rx="4" ry="4.5" fill="#1f2937" stroke="currentColor" strokeWidth="0.8" />
+    </g>
+  ),
+  star: (
+    <g transform="translate(9, 4.5) scale(0.85)">
+      <path d="M0 -3 L0.9 -0.9 L3 -0.9 L1.3 0.6 L1.9 2.8 L0 1.5 L-1.9 2.8 L-1.3 0.6 L-3 -0.9 L-0.9 -0.9 Z" fill="#fbbf24" />
+    </g>
+  ),
+  mustache: (
+    <g transform="translate(0, 7)">
+      <path d="M0 0 Q-2 -2.4 -4.6 -1.6 Q-7.4 -0.7 -8.2 1.4 Q-5.6 1.8 -3.4 0.9 Q-1.4 0.2 0 1 Q1.4 0.2 3.4 0.9 Q5.6 1.8 8.2 1.4 Q7.4 -0.7 4.6 -1.6 Q2 -2.4 0 0 Z" fill="currentColor" opacity="0.92" />
+    </g>
+  ),
+  necklace: (
+    <g transform="translate(0, 12)">
+      <path d="M-9 -2 Q0 4.5 9 -2" fill="none" stroke="#fbbf24" strokeWidth="1.3" />
+      <circle cx="0" cy="2.6" r="1.8" fill="#fbbf24" />
+      <circle cx="0" cy="2.6" r="0.7" fill="#fff7e0" />
+    </g>
+  ),
 };
 
 const BADGES: Record<string, React.ReactNode> = {
@@ -537,6 +622,28 @@ const OUTFITS: Record<string, React.ReactNode> = {
       <rect x="-4" y="1" width="8" height="5" rx="1" fill="rgba(255,255,255,0.28)" stroke="currentColor" strokeWidth="0.8" />
     </g>
   ),
+  turtleneck: (
+    <g transform="translate(0, 9)">
+      <path d="M-11 -2 Q0 2 11 -2 L11 12 H-11 Z" fill="currentColor" opacity="0.32" />
+      <path d="M-6 -3 Q0 1 6 -3 L6 0.4 Q0 4.4 -6 0.4 Z" fill="currentColor" opacity="0.5" />
+    </g>
+  ),
+  varsity: (
+    <g transform="translate(0, 8)">
+      <path d="M-13 0 Q-7 -5 0 -5 Q7 -5 13 0 L12 12 H-12 Z" fill="currentColor" opacity="0.26" />
+      <path d="M0 -5 L0 12" stroke="#f8fafc" strokeWidth="1.4" opacity="0.55" />
+      <path d="M-9 4 h4 M9 4 h-4" stroke="#f8fafc" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" />
+    </g>
+  ),
+  tux: (
+    <g transform="translate(0, 9)">
+      <path d="M-12 -1 Q-6 -6 0 -6 Q6 -6 12 -1 L11 11 H-11 Z" fill="#111827" opacity="0.85" />
+      <path d="M0 -6 L-4 -1 L0 8 L4 -1 Z" fill="#f8fafc" opacity="0.9" />
+      <path d="M0 -3.4 L-2.6 -5 L2.6 -5 Z" fill="#111827" />
+      <circle cx="0" cy="0.5" r="0.7" fill="#111827" />
+      <circle cx="0" cy="3.5" r="0.7" fill="#111827" />
+    </g>
+  ),
   cape: (
     <g transform="translate(0, 7)">
       <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.34" />
@@ -586,13 +693,27 @@ const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }
   obsidian: { primary: "#475569", glow: "rgba(71, 85, 105, 0.4)", bg: "rgba(71, 85, 105, 0.15)" },
 };
 
+// Wearables (hats, hair, outfits, accessories) render in a LIGHTER tint of
+// the Meshi's color. In the theme color itself they blended into the body and
+// the dark backdrop — picking a hat looked like nothing happened.
+function lightenHex(hex: string, amount: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  const r = mix((n >> 16) & 255);
+  const g = mix((n >> 8) & 255);
+  const b = mix(n & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
 // Which hats are MeshPro exclusive
-export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef"]);
+export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]);
 export const MESHPRO_COLORS: Set<string> = new Set(["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]);
 export const MESHPRO_HAIRS: Set<string> = new Set(["spikes", "curls"]);
-export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle"]);
+export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"]);
 export const MESHPRO_BADGES: Set<string> = new Set(["verified", "creator", "founder"]);
-export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit"]);
+export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit", "turtleneck", "varsity", "tux"]);
 
 // Achievement titles — earned through milestones
 export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: string; requirement: string }> = {
@@ -672,6 +793,7 @@ export function MeshiMascot({
   bouncy = false,
 }: MeshiMascotProps) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
+  const wearable = lightenHex(theme.primary, 0.42);
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
   const hairElement = HAIRS[hair] || null;
@@ -940,12 +1062,12 @@ export function MeshiMascot({
             }
           />
           {/* Simple outfits stay inside the bubble so Meshi remains minimal. */}
-          <g style={{ color: theme.primary }}>{outfitElement}</g>
+          <g style={{ color: wearable }}>{outfitElement}</g>
         </g>
 
         {/* Headwear, face and accessories render OUTSIDE the body clip so tall
             hats are never chopped off by the bubble's circular mask. */}
-        <g style={{ color: theme.primary }}>{hairElement}</g>
+        <g style={{ color: wearable }}>{hairElement}</g>
 
         {/* Face — eyes with smooth tracking and blinking */}
         <motion.g
@@ -956,11 +1078,11 @@ export function MeshiMascot({
         </motion.g>
 
         {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
-        {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
+        {accessoryElement && <g style={{ color: wearable }}>{accessoryElement}</g>}
         {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
 
         {/* Hat sits on top of everything so it always reads clearly. */}
-        <g style={{ color: theme.primary }}>{hatElement}</g>
+        <g style={{ color: wearable }}>{hatElement}</g>
 
         {/* Bubble hands — only shown when Meshi is actively holding a prop.
             Drawn before the prop so the held object reads clearly on top,
@@ -1062,6 +1184,7 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
   size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood; hair?: MeshiHair; accessory?: MeshiAccessory; eyeStyle?: MeshiEyeStyle; badge?: MeshiBadge; outfit?: MeshiOutfit;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
+  const wearable = lightenHex(theme.primary, 0.42);
   const hatElement = HATS[hat] || null;
   const hairElement = HAIRS[hair] || null;
   const effectiveEyeStyle = accessory === "lashes" ? "lashes" : eyeStyle;
@@ -1073,15 +1196,15 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
   return (
     <svg width={size} height={size} viewBox="-24 -24 48 48">
       <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
-      <g style={{ color: theme.primary }}>{outfitElement}</g>
-      <g style={{ color: theme.primary }}>{hairElement}</g>
+      <g style={{ color: wearable }}>{outfitElement}</g>
+      <g style={{ color: wearable }}>{hairElement}</g>
       <g transform="scale(0.8)">
         {(SVG_FACES[mood] || SVG_FACES.happy)(theme.primary)}
       </g>
       {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
-      {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
+      {accessoryElement && <g style={{ color: wearable }}>{accessoryElement}</g>}
       {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
-      <g style={{ color: theme.primary }}>{hatElement}</g>
+      <g style={{ color: wearable }}>{hatElement}</g>
     </svg>
   );
 }

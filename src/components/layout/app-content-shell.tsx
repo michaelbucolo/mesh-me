@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 const routeDescriptions: Record<string, { label: string }> = {
   "/feed": { label: "Feed" },
-  "/flow": { label: "Flow" },
   "/explore": { label: "Explore" },
   "/messages": { label: "MeChat" },
   "/notifications": { label: "Notifications" },
@@ -17,7 +16,7 @@ const routeDescriptions: Record<string, { label: string }> = {
 
 export function AppContentShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isImmersive = pathname === "/mesh" || pathname === "/flow";
+  const isImmersive = pathname === "/mesh";
 
   const routeInfo = useMemo(() => {
     const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
@@ -43,7 +42,7 @@ export function AppContentShell({ children }: { children: React.ReactNode }) {
         </section>
       )}
 
-      <div className="app-content-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+      <div key={pathname} className="app-content-scroll app-content-enter min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
         {children}
       </div>
     </div>

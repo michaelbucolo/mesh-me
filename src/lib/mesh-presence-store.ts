@@ -157,6 +157,8 @@ function entryToRow(entry: PresenceEntry) {
 // Write/refresh a user's presence. Updates the in-memory cache and notifies
 // local subscribers instantly, then persists to the DB so other serverless
 // instances can observe it.
+let lastPresenceWriteError = 0;
+
 export async function setPresence(entry: PresenceEntry): Promise<void> {
   presence.store.set(entry.userId, entry);
   emitChange();
@@ -167,9 +169,15 @@ export async function setPresence(entry: PresenceEntry): Promise<void> {
       create: { userId: entry.userId, ...row },
       update: row,
     });
-  } catch {
-    // DB unavailable (e.g. model not yet migrated) — memory cache still serves
-    // same-instance viewers.
+  } catch (error) {
+    // Memory cache still serves same-instance viewers, but a failing DB write
+    // means presence is invisible across serverless instances — surface it
+    // (throttled) so it shows in production logs instead of hiding.
+    const now = Date.now();
+    if (now - lastPresenceWriteError > 60000) {
+      lastPresenceWriteError = now;
+      console.error("[presence] DB write failed — cross-instance presence degraded:", error);
+    }
   }
 }
 
@@ -242,10 +250,9 @@ export function buildPresencePayload(
   ctx: ViewerContext,
 ): PresencePayload {
   const { viewerId, connectedSet, meshOwner, surface, activePostId } = ctx;
-  const allowedMeshOwner =
-    meshOwner && (meshOwner === viewerId || connectedSet.has(meshOwner))
-      ? meshOwner
-      : viewerId;
+  // Access to view a mesh is enforced by the mesh page itself; presence just
+  // reports who's in the same room. Trust the requested mesh owner.
+  const allowedMeshOwner = meshOwner || viewerId;
 
   const now = Date.now();
   let totalOnline = 0;
@@ -257,9 +264,15 @@ export function buildPresencePayload(
     if (entry.userId === viewerId) continue;
 
     const isViewingOurMesh = entry.viewingMesh === viewerId;
-    const isViewingSameMesh =
-      entry.viewingMesh === allowedMeshOwner && connectedSet.has(entry.userId);
+    // Everyone looking at the same mesh sees each other — being in the same
+    // room shouldn't require a mutual follow (ghost mode still hides you).
+    const isViewingSameMesh = entry.viewingMesh === allowedMeshOwner;
     const isConnectedAndOnline = connectedSet.has(entry.userId);
+    // Connections who are online anywhere on mesh.me stay visible too, so
+    // your mesh can show your people as alive even when they're not in the
+    // same room (their Meshi perches on their node in your web).
+    const isConnectedOnlineAnywhere =
+      isConnectedAndOnline && now - entry.lastSeen < ONLINE_WINDOW_MS;
     const isSameActivePost = Boolean(
       activePostId &&
         entry.activePostId === activePostId &&
@@ -269,7 +282,13 @@ export function buildPresencePayload(
     const isSameMeshContent = surface === "mesh" && isSameActivePost;
 
     if (entry.ghostMode) continue;
-    if (!isViewingOurMesh && !isViewingSameMesh && !isSameFeedPost && !isSameMeshContent)
+    if (
+      !isViewingOurMesh &&
+      !isViewingSameMesh &&
+      !isSameFeedPost &&
+      !isSameMeshContent &&
+      !isConnectedOnlineAnywhere
+    )
       continue;
     if (surface === "feed" && activePostId && !isSameFeedPost) continue;
     if (
