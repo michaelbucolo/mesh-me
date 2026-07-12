@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 const routeDescriptions: Record<string, { label: string }> = {
   "/feed": { label: "Feed" },
+  "/flow": { label: "Flow" },
   "/explore": { label: "Explore" },
   "/messages": { label: "MeChat" },
   "/notifications": { label: "Notifications" },
@@ -16,7 +17,7 @@ const routeDescriptions: Record<string, { label: string }> = {
 
 export function AppContentShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isImmersive = pathname === "/mesh";
+  const isImmersive = pathname === "/mesh" || pathname === "/flow";
 
   const routeInfo = useMemo(() => {
     const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
