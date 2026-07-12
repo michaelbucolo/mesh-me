@@ -195,6 +195,18 @@ async function buildSharedContent(
   return null;
 }
 
+async function getOptionalSharedContent(
+  query: Awaited<ThreadPageProps["searchParams"]>,
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
+) {
+  try {
+    return await buildSharedContent(query, user);
+  } catch (error) {
+    console.error("[messages] Shared content unavailable", error);
+    return null;
+  }
+}
+
 export default async function ThreadDetailPage({ params, searchParams }: ThreadPageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/messages");
@@ -202,7 +214,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
 
   const [{ threadId }, query] = await Promise.all([params, searchParams]);
   const isNewConversation = query.new === "true";
-  const sharedContent = await buildSharedContent(query, user);
+  const sharedContent = await getOptionalSharedContent(query, user);
   const sourcePlatform = sharedContent?.sourcePlatform || "mesh";
 
   let activeThreadId = isNewConversation ? "" : threadId;
