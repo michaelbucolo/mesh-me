@@ -105,6 +105,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const cursorWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // Local-only hover growth — only YOU see your Meshi lean in toward a node.
   const cursorScaleRef = useRef(1);
+  // Last pointer/touch input time — the owner Meshi wanders toward recent
+  // input and ambles home to the heart once you've been idle a few seconds.
+  const lastInputAtRef = useRef(0);
+  const ownerWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const presenceTargetsRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
   const presenceElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const presencePosRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
@@ -506,6 +510,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         cursorWorldPosRef.current.y = t.y;
         t.seen = true;
       }
+      lastInputAtRef.current = performance.now();
+      if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "1";
     }
     const d = dragRef.current;
     d.active = true;
@@ -546,10 +552,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       }
       t.x = wx;
       t.y = wy;
+      lastInputAtRef.current = performance.now();
     }
+    const cursor = meshiCursorRef.current;
+    if (cursor) cursor.style.opacity = "1";
     if (e.pointerType === "mouse") {
-      const cursor = meshiCursorRef.current;
-      if (cursor) cursor.style.opacity = "1";
       if (!dragRef.current.active) {
         const node = hitTest(sx, sy);
         const id = node?.id ?? null;
@@ -882,24 +889,52 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) scale(${cursorScaleRef.current.toFixed(3)})`;
       }
 
-      // The mesh owner's own Meshi lives at the heart of their mesh. The self
-      // node sits at world origin, so its screen point is simply the container
-      // centre plus the current camera pan; float the Meshi just above it.
+      // The mesh owner's Meshi. On someone else's mesh it rests at the heart
+      // (world origin). On YOUR OWN mesh it IS you: it wanders toward where
+      // you point or touch, and ambles back home to the heart once you've
+      // been idle a few seconds — one Meshi, alive, no overlays.
       const ownerEl = ownerMeshiElRef.current;
       const container = containerRef.current;
       if (ownerEl && container) {
-        const cam = cameraRef.current;
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        ownerEl.style.left = `${w / 2 + cam.panX}px`;
-        ownerEl.style.top = `${h / 2 + cam.panY - 6}px`;
+        const isMe = !viewUserId;
+        const active = isMe && cursorWorldTargetRef.current.seen && time - lastInputAtRef.current < 4000;
+        const tx = active ? cursorWorldTargetRef.current.x : 0;
+        const ty = active ? cursorWorldTargetRef.current.y : 0;
+        const pos = ownerWorldPosRef.current;
+        pos.x += (tx - pos.x) * k;
+        pos.y += (ty - pos.y) * k;
+        const s = project(pos.x, pos.y);
+        // Avoid nodes while wandering — but its own heart node is home, so
+        // it's allowed to settle there.
+        const selfId = modelRef.current?.selfId;
+        let cx = s.x;
+        let cy = s.y - 6;
+        if (Math.hypot(pos.x, pos.y) > 30) {
+          let px = s.x;
+          let py = s.y;
+          hitboxesRef.current.forEach((hb, id) => {
+            if (id === selfId) return;
+            const minD = hb.r + 24;
+            const dx = px - hb.x;
+            const dy = py - hb.y;
+            const d = Math.hypot(dx, dy);
+            if (d >= minD || d < 0.001) return;
+            const f = (minD - d) / (d || 1);
+            px += dx * f;
+            py += dy * f;
+          });
+          cx = px;
+          cy = py - 6;
+        }
+        ownerEl.style.left = `${cx}px`;
+        ownerEl.style.top = `${cy}px`;
       }
 
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [viewUserId]);
 
   // Keyboard shortcuts: / search, +/- zoom, 0 fit, Escape closes overlays.
   useEffect(() => {
@@ -1005,19 +1040,21 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onPointerLeave={() => {
+        onPointerLeave={(e) => {
+          // A lifted finger fires pointerleave too — only a mouse leaving the
+          // canvas should hide Meshi; on touch it stays where you left it.
+          if (e.pointerType !== "mouse") return;
           hoverIdRef.current = null;
           setHoverNode(null);
           if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "0";
         }}
       />
 
-      {/* Meshi — you, the cursor exploring the mesh (desktop only). On touch
-          there is no cursor to embody: pinning your Meshi at the screen centre
-          just stacked it on top of the owner's Meshi, so touch devices rely on
-          the owner Meshi + presence instead. Your taps still broadcast where
-          you are to everyone else watching. */}
-      {showCursorMeshi && !isCoarsePointer && (
+      {/* Meshi — you, wandering the mesh. On desktop it ambles after your
+          pointer; on touch it ambles to wherever you last tapped or dragged.
+          Shown when visiting another mesh (on your own mesh the owner Meshi
+          at the heart is you, and it does the wandering instead). */}
+      {showCursorMeshi && (
         <div
           ref={meshiCursorRef}
           className="pointer-events-none absolute left-0 top-0 z-20 opacity-0 transition-opacity duration-150"

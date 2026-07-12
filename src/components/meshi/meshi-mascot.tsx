@@ -373,6 +373,21 @@ const HATS: Record<string, React.ReactNode> = {
       <circle cx="0" cy="0" r="1.9" fill="currentColor" />
     </g>
   ),
+  cowboy: (
+    <g transform="translate(0, -12)">
+      <path d="M-8 0 Q-8 -8 0 -8 Q8 -8 8 0 Z" fill="currentColor" opacity="0.92" />
+      <path d="M-14 1 Q-10 4 0 4 Q10 4 14 1 Q10 -1 8 0 L-8 0 Q-10 -1 -14 1 Z" fill="currentColor" opacity="0.85" />
+      <path d="M-8 -1 Q0 1 8 -1" fill="none" stroke="#92400e" strokeWidth="1.6" strokeLinecap="round" />
+    </g>
+  ),
+  graduation: (
+    <g transform="translate(0, -13)">
+      <polygon points="0,-7 14,-1.5 0,4 -14,-1.5" fill="currentColor" opacity="0.94" />
+      <rect x="-5" y="0.5" width="10" height="4" rx="1" fill="currentColor" opacity="0.75" />
+      <line x1="10" y1="0" x2="10" y2="7" stroke="#fbbf24" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="10" cy="8.4" r="1.6" fill="#fbbf24" />
+    </g>
+  ),
   // MeshPro exclusive hats
   headphones: (
     <g transform="translate(0, -10)">
@@ -522,6 +537,18 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
       <path d="M0 -3 L0.9 -0.9 L3 -0.9 L1.3 0.6 L1.9 2.8 L0 1.5 L-1.9 2.8 L-1.3 0.6 L-3 -0.9 L-0.9 -0.9 Z" fill="#fbbf24" />
     </g>
   ),
+  mustache: (
+    <g transform="translate(0, 7)">
+      <path d="M0 0 Q-2 -2.4 -4.6 -1.6 Q-7.4 -0.7 -8.2 1.4 Q-5.6 1.8 -3.4 0.9 Q-1.4 0.2 0 1 Q1.4 0.2 3.4 0.9 Q5.6 1.8 8.2 1.4 Q7.4 -0.7 4.6 -1.6 Q2 -2.4 0 0 Z" fill="currentColor" opacity="0.92" />
+    </g>
+  ),
+  necklace: (
+    <g transform="translate(0, 12)">
+      <path d="M-9 -2 Q0 4.5 9 -2" fill="none" stroke="#fbbf24" strokeWidth="1.3" />
+      <circle cx="0" cy="2.6" r="1.8" fill="#fbbf24" />
+      <circle cx="0" cy="2.6" r="0.7" fill="#fff7e0" />
+    </g>
+  ),
 };
 
 const BADGES: Record<string, React.ReactNode> = {
@@ -608,6 +635,15 @@ const OUTFITS: Record<string, React.ReactNode> = {
       <path d="M-9 4 h4 M9 4 h-4" stroke="#f8fafc" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" />
     </g>
   ),
+  tux: (
+    <g transform="translate(0, 9)">
+      <path d="M-12 -1 Q-6 -6 0 -6 Q6 -6 12 -1 L11 11 H-11 Z" fill="#111827" opacity="0.85" />
+      <path d="M0 -6 L-4 -1 L0 8 L4 -1 Z" fill="#f8fafc" opacity="0.9" />
+      <path d="M0 -3.4 L-2.6 -5 L2.6 -5 Z" fill="#111827" />
+      <circle cx="0" cy="0.5" r="0.7" fill="#111827" />
+      <circle cx="0" cy="3.5" r="0.7" fill="#111827" />
+    </g>
+  ),
   cape: (
     <g transform="translate(0, 7)">
       <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.34" />
@@ -657,13 +693,27 @@ const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }
   obsidian: { primary: "#475569", glow: "rgba(71, 85, 105, 0.4)", bg: "rgba(71, 85, 105, 0.15)" },
 };
 
+// Wearables (hats, hair, outfits, accessories) render in a LIGHTER tint of
+// the Meshi's color. In the theme color itself they blended into the body and
+// the dark backdrop — picking a hat looked like nothing happened.
+function lightenHex(hex: string, amount: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  const r = mix((n >> 16) & 255);
+  const g = mix((n >> 8) & 255);
+  const b = mix(n & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
 // Which hats are MeshPro exclusive
-export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow"]);
+export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]);
 export const MESHPRO_COLORS: Set<string> = new Set(["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]);
 export const MESHPRO_HAIRS: Set<string> = new Set(["spikes", "curls"]);
-export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star"]);
+export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"]);
 export const MESHPRO_BADGES: Set<string> = new Set(["verified", "creator", "founder"]);
-export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit", "turtleneck", "varsity"]);
+export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit", "turtleneck", "varsity", "tux"]);
 
 // Achievement titles — earned through milestones
 export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: string; requirement: string }> = {
@@ -743,6 +793,7 @@ export function MeshiMascot({
   bouncy = false,
 }: MeshiMascotProps) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
+  const wearable = lightenHex(theme.primary, 0.42);
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
   const hairElement = HAIRS[hair] || null;
@@ -1011,12 +1062,12 @@ export function MeshiMascot({
             }
           />
           {/* Simple outfits stay inside the bubble so Meshi remains minimal. */}
-          <g style={{ color: theme.primary }}>{outfitElement}</g>
+          <g style={{ color: wearable }}>{outfitElement}</g>
         </g>
 
         {/* Headwear, face and accessories render OUTSIDE the body clip so tall
             hats are never chopped off by the bubble's circular mask. */}
-        <g style={{ color: theme.primary }}>{hairElement}</g>
+        <g style={{ color: wearable }}>{hairElement}</g>
 
         {/* Face — eyes with smooth tracking and blinking */}
         <motion.g
@@ -1027,11 +1078,11 @@ export function MeshiMascot({
         </motion.g>
 
         {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
-        {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
+        {accessoryElement && <g style={{ color: wearable }}>{accessoryElement}</g>}
         {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
 
         {/* Hat sits on top of everything so it always reads clearly. */}
-        <g style={{ color: theme.primary }}>{hatElement}</g>
+        <g style={{ color: wearable }}>{hatElement}</g>
 
         {/* Bubble hands — only shown when Meshi is actively holding a prop.
             Drawn before the prop so the held object reads clearly on top,
@@ -1133,6 +1184,7 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
   size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood; hair?: MeshiHair; accessory?: MeshiAccessory; eyeStyle?: MeshiEyeStyle; badge?: MeshiBadge; outfit?: MeshiOutfit;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
+  const wearable = lightenHex(theme.primary, 0.42);
   const hatElement = HATS[hat] || null;
   const hairElement = HAIRS[hair] || null;
   const effectiveEyeStyle = accessory === "lashes" ? "lashes" : eyeStyle;
@@ -1144,15 +1196,15 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
   return (
     <svg width={size} height={size} viewBox="-24 -24 48 48">
       <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
-      <g style={{ color: theme.primary }}>{outfitElement}</g>
-      <g style={{ color: theme.primary }}>{hairElement}</g>
+      <g style={{ color: wearable }}>{outfitElement}</g>
+      <g style={{ color: wearable }}>{hairElement}</g>
       <g transform="scale(0.8)">
         {(SVG_FACES[mood] || SVG_FACES.happy)(theme.primary)}
       </g>
       {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
-      {accessoryElement && <g style={{ color: theme.primary }}>{accessoryElement}</g>}
+      {accessoryElement && <g style={{ color: wearable }}>{accessoryElement}</g>}
       {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
-      <g style={{ color: theme.primary }}>{hatElement}</g>
+      <g style={{ color: wearable }}>{hatElement}</g>
     </svg>
   );
 }
