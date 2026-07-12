@@ -58,6 +58,12 @@ export async function PATCH(
 
   // Update account label
   if ("accountLabel" in body) {
+    if (body.accountLabel !== null && typeof body.accountLabel !== "string") {
+      return NextResponse.json({ error: "Invalid accountLabel payload" }, { status: 400 });
+    }
+    if (typeof body.accountLabel === "string" && body.accountLabel.length > 100) {
+      return NextResponse.json({ error: "Account label must be 100 characters or fewer" }, { status: 400 });
+    }
     updateData.accountLabel = body.accountLabel || null;
   }
 
@@ -65,6 +71,9 @@ export async function PATCH(
     if (body.scopes === null) {
       updateData.scopes = null;
     } else if (typeof body.scopes === "string") {
+      if (body.scopes.length > 2000) {
+        return NextResponse.json({ error: "Scopes must be 2000 characters or fewer" }, { status: 400 });
+      }
       updateData.scopes = body.scopes;
     } else {
       return NextResponse.json({ error: "Invalid scopes payload" }, { status: 400 });

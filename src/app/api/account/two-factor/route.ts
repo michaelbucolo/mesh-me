@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
   if (!method || !validMethods.includes(method)) {
     return NextResponse.json({ error: "Invalid 2FA method. Must be: " + validMethods.join(", ") }, { status: 400 });
   }
+  if (label !== undefined && label !== null && typeof label !== "string") {
+    return NextResponse.json({ error: "Invalid 2FA label" }, { status: 400 });
+  }
+  if (typeof label === "string" && label.length > 80) {
+    return NextResponse.json({ error: "2FA label must be 80 characters or fewer" }, { status: 400 });
+  }
 
   // Do not create enabled 2FA records until challenge verification and login
   // enforcement exist. A stored preference without enforcement is false security.

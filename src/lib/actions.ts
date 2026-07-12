@@ -2893,6 +2893,14 @@ export async function getUserAchievements(userId: string) {
   const user = await getCurrentUser();
   if (!user) return [];
 
+  if (userId !== user.id) {
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isPublic: true, isSuspended: true },
+    });
+    if (!target || target.isSuspended || !target.isPublic) return [];
+  }
+
   const achievements = await prisma.userAchievement.findMany({
     where: { userId },
     include: { achievement: true },
