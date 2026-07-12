@@ -28,7 +28,7 @@ export function AppContentShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="app-content-shell mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col overflow-hidden animate-page-enter">
+    <div className="app-content-shell mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col overflow-hidden">
       {routeInfo && (
         <section className="mb-3 shrink-0 border-b border-[var(--border-primary)] pb-2 lg:hidden">
           <h2 className="text-base font-semibold text-[var(--text-primary)]">{routeInfo.label}</h2>
@@ -42,7 +42,7 @@ export function AppContentShell({ children }: { children: React.ReactNode }) {
         </section>
       )}
 
-      <div key={pathname} className="app-content-scroll app-content-enter min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+      <div key={pathname} className="app-content-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
         {children}
       </div>
     </div>
