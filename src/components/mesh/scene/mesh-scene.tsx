@@ -126,7 +126,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const meshOwnerIdRef = useRef<string | null>(null);
   const ownerMeshiElRef = useRef<HTMLDivElement>(null);
 
-  const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [meshIsEmpty, setMeshIsEmpty] = useState(false);
   const [isCoarsePointer, setIsCoarsePointer] = useState(true);
   const [meshUser, setMeshUser] = useState<{ displayName: string; avatarUrl: string | null } | null>(null);
   const [meshData, setMeshData] = useState<MeshApiResponse | null>(null);
@@ -270,7 +271,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           setSelectedNode(null);
           fitToContent();
         }
-        setStatus(model.branchOrder.length === 0 ? "empty" : "ready");
+        // An empty mesh is still the mesh: render the canvas (you + your
+        // Meshi) and let compose/search work — just surface a gentle hint.
+        setMeshIsEmpty(model.branchOrder.length === 0);
+        setStatus("ready");
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (!opts?.quiet) setStatus("error");
@@ -1315,15 +1319,32 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           </button>
         </div>
       )}
-      {status === "empty" && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-[#04050c] px-8 text-center">
-          <p className="text-sm text-white/70">Your mesh is just you for now.</p>
-          <Link
-            href="/connected-accounts"
-            className="rounded-full bg-[var(--mesh-blue)] px-4 py-1.5 text-xs font-medium text-white"
-          >
-            Connect your accounts
-          </Link>
+      {status === "ready" && meshIsEmpty && !showCompose && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex justify-center px-6">
+          <div className="pointer-events-auto flex max-w-sm flex-col items-center gap-2.5 rounded-2xl border border-white/12 bg-black/55 px-5 py-4 text-center backdrop-blur">
+            <p className="text-sm text-white/80">
+              {viewedUser
+                ? `This mesh is just ${viewedUser.displayName || "@" + viewedUser.username} for now.`
+                : "Your mesh is just you for now."}
+            </p>
+            {!viewedUser && (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCompose(true)}
+                  className="rounded-full bg-[var(--mesh-blue)] px-4 py-1.5 text-xs font-medium text-white"
+                >
+                  Create your first post
+                </button>
+                <Link
+                  href="/connected-accounts"
+                  className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium text-white/85"
+                >
+                  Connect accounts
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
