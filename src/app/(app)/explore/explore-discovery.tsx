@@ -271,7 +271,10 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                onClick={() => setTab(item.id)}
+                onClick={() => {
+                  setTab(item.id);
+                  if (item.id === "media" && mediaFilter === "text") setMediaFilter("all");
+                }}
                 className={`relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
                   selected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
@@ -321,7 +324,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Content</span>
-                {MEDIA_FILTERS.map((filter) => (
+                {MEDIA_FILTERS.filter((filter) => tab !== "media" || filter.id !== "text").map((filter) => (
                   <FilterChip
                     key={filter.id}
                     label={filter.label}
