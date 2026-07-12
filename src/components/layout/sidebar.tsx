@@ -8,7 +8,7 @@ import { LogOut, Shield, Crown, ChevronDown } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/lib/actions";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
-import { MeshMark } from "@/components/brand/mesh-mark";
+import { MeshiBrandMark } from "@/components/brand/meshi-brand-mark";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { desktopBottomItems, desktopNavGroups, getBadgeCount, isNavItemActive, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
 
@@ -89,7 +89,7 @@ export function Sidebar({ user, unreadNotifications = 0, unreadMessages = 0 }: S
             bouncy
           />
         ) : (
-          <MeshMark size={32} className="shrink-0 transition-transform duration-200 group-hover:scale-105" />
+          <MeshiBrandMark size={32} className="shrink-0 transition-transform duration-200 group-hover:scale-105" />
         )}
         <p className="brand-wordmark text-lg text-[var(--text-primary)]">
           mesh<span className="brand-wordmark-accent">.me</span>

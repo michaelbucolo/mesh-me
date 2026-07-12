@@ -169,13 +169,13 @@ const colorHex: Record<string, string> = {
   cyan: "#06b6d4",
   gold: "#f59e0b",
 };
-const hats = ["none", "cap", "beanie", "flower", "party", "headphones", "crown"];
-const faces = ["happy", "wink", "excited", "thinking", "cool", "celebrating"];
+const hats = ["none", "cap", "beanie", "beret", "headband", "bow", "flower", "party", "cowboy", "graduation", "headphones", "crown", "tophat", "wizard", "astronaut", "pirate", "chef", "halo"];
+const faces = ["happy", "wink", "excited", "thinking", "cool", "celebrating", "love", "shy", "giggle", "surprised"];
 const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
 const eyes = ["regular", "lashes"];
-const accessories = ["none", "glasses", "sunglasses", "monocle"];
+const accessories = ["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"];
 const badges = ["none", "spark", "heart", "shield", "verified", "creator", "founder"];
-const outfits = ["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit"];
+const outfits = ["none", "scarf", "hoodie", "jacket", "overalls", "turtleneck", "varsity", "tux", "cape", "spacesuit"];
 const themePresets = [
   { id: "default", label: "Clean" },
   { id: "instagram", label: "Social" },
@@ -539,18 +539,14 @@ export function SettingsControlCenter({
               interactive
             />
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold text-[var(--text-primary)] md:text-2xl">Settings</h1>
+              <h1 className="truncate text-xl font-bold text-[var(--text-primary)] md:text-2xl">{settings.displayName || settings.username}</h1>
               <p className="truncate text-sm text-[var(--text-muted)]">@{settings.username}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <div className="flex items-center gap-2">
             <Link href="/connected-accounts" className="settings-quick-link">
               <PlugZap size={15} aria-hidden="true" />
               Connections
-            </Link>
-            <Link href="/account/delete" className="settings-quick-link settings-quick-link-danger">
-              <Trash2 size={15} aria-hidden="true" />
-              Delete account
             </Link>
             <form action={signOut}>
               <button type="submit" className="settings-quick-link settings-quick-link-primary w-full">
@@ -1912,7 +1908,7 @@ function MeshiOptionGroup({
         return (
           <GraphicOptionButton key={value} active={current === value} label={value} note={disabled ? "Pro" : undefined} disabled={disabled} onClick={() => onPick(value)}>
             <MeshiMascot
-              size={34}
+              size={44}
               color={preview.color}
               hat={preview.hat}
               mood={preview.mood}

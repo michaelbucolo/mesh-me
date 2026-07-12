@@ -616,8 +616,9 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               onClick={handleLike}
               disabled={isPending || isOptimistic}
               aria-label={liked ? "Unlike post" : "Like post"}
-              className={cn("insta-post-action", liked ? "text-rose-400" : "text-[var(--text-primary)] hover:text-rose-400")}
+              className={cn("insta-post-action relative", liked ? "text-rose-400" : "text-[var(--text-primary)] hover:text-rose-400")}
             >
+              <span className={cn("like-burst", likeAnimating && "like-burst-active")} aria-hidden="true" />
               <Heart className={cn("h-5 w-5 transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
             </button>
             <Link

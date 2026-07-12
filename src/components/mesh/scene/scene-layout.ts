@@ -6,7 +6,7 @@
 // it like a small constellation. A little deterministic jitter keeps it
 // organic rather than mechanical, while staying inside the sector bounds.
 
-import type { SceneModel, SceneNode } from "./scene-model";
+import type { SceneModel, SceneNode, SceneNodeKind } from "./scene-model";
 
 const BRANCH_RADIUS = 310;
 const ITEM_RING_START = 540;
@@ -107,6 +107,88 @@ export function layoutScene(model: SceneModel): void {
         sub.y = Math.sin(subAngle) * subRadius;
       });
     });
+  });
+
+  // Final pass: guarantee nothing overlaps. The radial placement above spaces
+  // nodes by *angle*, which ignores how much room each node actually occupies —
+  // a post card is ~172px across, a star ~30px. Relax any pair whose footprints
+  // collide by pushing them apart along the line between their centres. Self
+  // stays pinned at the origin; everything else settles into a clean, legible
+  // constellation while keeping its radial branch structure.
+  resolveOverlaps(model);
+}
+
+// Half-footprint (world units) each kind claims for collision purposes.
+const FOOTPRINT: Record<SceneNodeKind, number> = {
+  self: 74,
+  branch: 48,
+  post: 132,
+  persona: 42,
+  platform: 38,
+  person: 40,
+  community: 40,
+  interest: 34,
+  activity: 34,
+};
+const FOOTPRINT_MARGIN = 18;
+
+function resolveOverlaps(model: SceneModel): void {
+  const list = Array.from(model.nodes.values());
+  const radiusOf = (n: SceneNode) => FOOTPRINT[n.kind] ?? 34;
+
+  for (let iter = 0; iter < 120; iter += 1) {
+    let moved = false;
+    for (let i = 0; i < list.length; i += 1) {
+      for (let j = i + 1; j < list.length; j += 1) {
+        const a = list[i];
+        const b = list[j];
+        const minDist = radiusOf(a) + radiusOf(b) + FOOTPRINT_MARGIN;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let dist = Math.hypot(dx, dy);
+        if (dist >= minDist) continue;
+        if (dist < 0.001) {
+          // Perfectly coincident — nudge along a deterministic direction.
+          const theta = i * 2.399963;
+          dx = Math.cos(theta);
+          dy = Math.sin(theta);
+          dist = 1;
+        }
+        const ux = dx / dist;
+        const uy = dy / dist;
+        const overlap = minDist - dist;
+        const aFixed = a.id === model.selfId;
+        const bFixed = b.id === model.selfId;
+        if (aFixed && bFixed) continue;
+        if (aFixed) {
+          b.x += ux * overlap;
+          b.y += uy * overlap;
+        } else if (bFixed) {
+          a.x -= ux * overlap;
+          a.y -= uy * overlap;
+        } else {
+          const half = overlap / 2;
+          a.x -= ux * half;
+          a.y -= uy * half;
+          b.x += ux * half;
+          b.y += uy * half;
+        }
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+
+  // Keep self exactly centred and refresh each node's angle from its final
+  // position so labels and strands still radiate correctly.
+  list.forEach((n) => {
+    if (n.id === model.selfId) {
+      n.x = 0;
+      n.y = 0;
+      n.angle = 0;
+      return;
+    }
+    n.angle = Math.atan2(n.y, n.x);
   });
 }
 

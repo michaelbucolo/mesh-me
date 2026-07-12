@@ -333,8 +333,13 @@ export async function signUp(formData: FormData) {
         displayName,
         passwordHash,
         isPublic: false,
-        showInDiscovery: false,
-        hideActivityStatus: true,
+        // Findable by default (you can appear as a suggestion and approve
+        // followers) while your content stays private via isPublic. Users can
+        // opt out of discovery in settings. Presence is likewise visible by
+        // default — hiding it silently kills every live-Meshi feature — and
+        // can be turned off in privacy settings.
+        showInDiscovery: true,
+        hideActivityStatus: false,
         readReceipts: false,
         nsfwEnabled: false,
         adultVerificationStatus: "unverified",
@@ -780,8 +785,8 @@ export async function completeOnboarding(formData: FormData) {
       bio: bio || null,
       location: location || null,
       isPublic: meshVisibility === "public",
-      showInDiscovery: bool("showInDiscovery", false) && meshVisibility !== "private",
-      hideActivityStatus: bool("hideActivityStatus", true),
+      showInDiscovery: bool("showInDiscovery", true) && meshVisibility !== "private",
+      hideActivityStatus: bool("hideActivityStatus", false),
       readReceipts: bool("readReceipts", false),
       onboarded: true,
     },
@@ -2917,14 +2922,14 @@ export async function setActiveTitle(title: string | null) {
 // ─── Meshi Customization Actions ────────────────────────────
 
 const MESHI_OPTION_VALUES = {
-  hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef"]),
+  hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]),
   faces: new Set(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", "searching", "learning", "celebrating", "shy", "giggle", "synergy1017"]),
   colors: new Set(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]),
   hairs: new Set(["none", "fluffy", "bangs", "spikes", "curls"]),
-  accessories: new Set(["none", "glasses", "sunglasses", "monocle"]),
+  accessories: new Set(["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"]),
   eyes: new Set(["regular", "lashes"]),
   badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder"]),
-  outfits: new Set(["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit"]),
+  outfits: new Set(["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit", "turtleneck", "varsity", "tux"]),
 };
 
 function cleanMeshiOption(value: string | undefined, allowed: Set<string>, fallback?: string) {

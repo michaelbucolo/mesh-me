@@ -129,21 +129,24 @@ function serializeMessage(
 }
 
 async function serializeThreadMessages(thread: ThreadWithMembers, currentUserId: string) {
-  const messages = await prisma.message.findMany({
-    where: { threadId: thread.id },
-    include: {
-      sender: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
+  // Latest window only — long histories shouldn't make every poll heavier.
+  const messages = (
+    await prisma.message.findMany({
+      where: { threadId: thread.id },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "asc" },
-    take: 500,
-  });
+      orderBy: { createdAt: "desc" },
+      take: 150,
+    })
+  ).reverse();
   const messagesById = new Map(messages.map((message) => [message.id, {
     id: message.id,
     content: message.content,
@@ -195,27 +198,26 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     where: { userId_threadId: { userId: user.id, threadId } },
     data: { lastRead: now },
   }).catch(() => {});
-  const refreshedThread = await getAuthorizedThread(threadId, user.id);
-  if (!refreshedThread) {
-    return NextResponse.json({ error: "Thread not found" }, { status: 404 });
-  }
 
+  // This endpoint is polled every few seconds by every open thread — patch
+  // the caller's lastRead into the already-loaded thread instead of paying
+  // for a second full members+users query per poll.
   return NextResponse.json({
     thread: {
-      id: refreshedThread.id,
-      title: refreshedThread.title,
-      threadType: refreshedThread.threadType,
-      isEncrypted: refreshedThread.isEncrypted,
-      sourcePlatform: refreshedThread.sourcePlatform,
-      members: refreshedThread.members.map((member) => ({
+      id: thread.id,
+      title: thread.title,
+      threadType: thread.threadType,
+      isEncrypted: thread.isEncrypted,
+      sourcePlatform: thread.sourcePlatform,
+      members: thread.members.map((member) => ({
         userId: member.userId,
         role: member.role,
         notificationsMuted: member.notificationsMuted,
-        lastRead: member.lastRead.toISOString(),
+        lastRead: (member.userId === user.id ? now : member.lastRead).toISOString(),
         user: member.user,
       })),
     },
-    ...(await serializeThreadMessages(refreshedThread, user.id)),
+    ...(await serializeThreadMessages(thread, user.id)),
   });
 }
 
@@ -396,6 +398,68 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             displayName: true,
             avatarUrl: true,
           },
+        },
+      },
+    });
+
+    const messageMap = new Map([[updated.id, {
+      id: updated.id,
+      content: updated.content,
+      sender: { displayName: updated.sender.displayName, username: updated.sender.username },
+    }]]);
+
+    return NextResponse.json({
+      message: serializeMessage(updated, thread, messageMap),
+    });
+  }
+
+  if (action === "edit" || action === "unsend") {
+    const messageId = cleanText(body.messageId, 120);
+    if (!messageId) {
+      return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    }
+
+    const message = await prisma.message.findFirst({
+      where: { id: messageId, threadId },
+      select: { id: true, senderId: true, metadata: true, content: true },
+    });
+    if (!message) {
+      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    }
+    // Only the author can edit or unsend their own message.
+    if (message.senderId !== user.id) {
+      return NextResponse.json({ error: "You can only change your own messages." }, { status: 403 });
+    }
+
+    const current = parseMeChatMetadata(message.metadata);
+    if (current.unsent) {
+      return NextResponse.json({ error: "This message was already unsent." }, { status: 400 });
+    }
+
+    let data: { content?: string; metadata: string | null };
+    if (action === "unsend") {
+      // Retract: drop the content and any media/link, keep a tombstone flag.
+      data = {
+        content: "",
+        metadata: serializeMeChatMetadata({ unsent: true, replyToMessageId: current.replyToMessageId }),
+      };
+    } else {
+      const nextContent = cleanText(body.content, 4000);
+      if (!nextContent) {
+        return NextResponse.json({ error: "Edited message can't be empty." }, { status: 400 });
+      }
+      data = {
+        content: nextContent,
+        metadata: serializeMeChatMetadata({ ...current, edited: true, linkPreview: buildLinkPreview(nextContent) }),
+      };
+    }
+
+    const updated = await prisma.message.update({
+      where: { id: message.id },
+      data,
+      include: {
+        sender: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
         },
       },
     });

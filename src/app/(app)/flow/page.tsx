@@ -1,38 +1,32 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { getCombinedFeedPosts } from "@/lib/feed-data";
-import { FlowPageClient } from "./flow-page-client";
+import { FlowClient, type FlowPost } from "./flow-client";
 
 export const metadata: Metadata = {
   title: "Flow",
-  description: "A full-screen stream across your Mesh.me feeds.",
+  description: "Full-screen stream of everything on your mesh — any content, one flow.",
 };
+
+const INITIAL_LIMIT = 12;
 
 export default async function FlowPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/flow");
   if (!user.onboarded) redirect("/onboarding");
 
-  const [posts, connectedAccounts] = await Promise.all([
-    getCombinedFeedPosts({
-      user,
-      source: "all",
-      contentFilter: "all",
-      limit: 80,
-    }),
-    prisma.connectedAccount.findMany({
-      where: { userId: user.id, isActive: true },
-      select: { platform: true },
-    }),
-  ]);
+  const window = await getCombinedFeedPosts({
+    user,
+    source: "all",
+    contentFilter: "all",
+    limit: INITIAL_LIMIT + 1,
+  });
 
-  return (
-    <FlowPageClient
-      posts={posts}
-      currentUserId={user.id}
-      connectedPlatforms={[...new Set(connectedAccounts.map((account) => account.platform.toLowerCase()))]}
-    />
-  );
+  const posts = window.slice(0, INITIAL_LIMIT).map((post) => ({
+    ...post,
+    createdAt: String(post.createdAt),
+  })) as unknown as FlowPost[];
+
+  return <FlowClient initialPosts={posts} initialHasMore={window.length > INITIAL_LIMIT} />;
 }

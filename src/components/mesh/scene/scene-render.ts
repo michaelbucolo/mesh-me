@@ -33,6 +33,8 @@ export interface RenderOptions {
   /** Keep labels clear of the screen center (where the pinned Meshi sits). */
   avoidCenter?: boolean;
   isOwnMesh?: boolean;
+  /** Live strand control points from physics, keyed "parent>child". */
+  strands?: Map<string, { mx: number; my: number }>;
 }
 
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
@@ -42,21 +44,86 @@ function project(node: { dx: number; dy: number }, o: RenderOptions) {
   };
 }
 
+const BIRTH_MS = 1150;
+
+/** 0→1 arrival progress (easeOutCubic) for a freshly joined node; 1 if settled. */
+function birthProgress(node: SceneNode, time: number): number {
+  if (node.bornAt == null) return 1;
+  const age = time - node.bornAt;
+  if (age < 0 || age >= BIRTH_MS) return 1;
+  return 1 - Math.pow(1 - age / BIRTH_MS, 3);
+}
+
+/**
+ * Draw a node as a clean luminous orb: a soft ambient halo, a flat solid body
+ * in the node's colour with a barely-there top sheen for form, and a crisp
+ * lit hairline on the rim. Restrained and modern — a point of light on the
+ * web, not a glossy gemstone.
+ */
+function drawOrb(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  color: string,
+  emph: number,
+  light: string,
+): void {
+  // Soft ambient halo — single, gentle, so the node glows without smearing.
+  const halo = ctx.createRadialGradient(x, y, r * 0.7, x, y, r * 2.4);
+  halo.addColorStop(0, withAlpha(color, 0.22 * emph));
+  halo.addColorStop(1, withAlpha(color, 0));
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Flat body with a subtle top-down sheen — reads as a solid, lit surface.
+  const body = ctx.createLinearGradient(x, y - r, x, y + r);
+  body.addColorStop(0, withAlpha(tint(color, 0.18), 0.92 * emph + 0.08));
+  body.addColorStop(1, withAlpha(color, 0.92 * emph + 0.08));
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crisp lit hairline defines the edge cleanly.
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.strokeStyle = withAlpha(light, 0.55 * emph + 0.12);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// Lighten a #rrggbb hex toward white by amount (0..1 → white).
+function tint(hex: string, amount: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  const r = mix((n >> 16) & 255);
+  const g = mix((n >> 8) & 255);
+  const b = mix(n & 255);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
 function baseRadius(node: SceneNode): number {
   switch (node.kind) {
     case "self":
-      return 26;
+      return 30;
     case "branch":
-      return 15;
+      return 18;
     case "person":
     case "persona":
-      return 11 + node.weight * 12;
+      return 16 + node.weight * 14;
     case "platform":
-      return 9 + node.weight * 10;
+      return 13 + node.weight * 11;
     case "community":
-      return 9 + node.weight * 9;
+      return 14 + node.weight * 11;
+    case "interest":
+      return 10 + node.weight * 10;
     default:
-      return 5 + node.weight * 9;
+      return 8 + node.weight * 10;
   }
 }
 
@@ -221,6 +288,15 @@ function drawSelfProfile(
     ctx.beginPath();
     ctx.arc(x, y, avatarR, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // The profile panel (name, bio, View Profile, chips) appears only when the
+  // center is hovered or selected — at rest the heart of the mesh is just the
+  // living Meshi, not a floating ID card.
+  if (!isHover && !isSelected) {
+    o.profileHitboxes?.delete(node.id);
+    ctx.restore();
+    return { w: avatarR * 2, h: avatarR * 2, profileRect: null, avatarRadius: avatarR };
   }
 
   const contentTop = y + avatarR + 18 * zoomScale;
@@ -508,26 +584,41 @@ function roundedImage(
   ctx.restore();
 }
 
+const NEBULAE = [
+  { hue: "#3b62c9", ax: 0.24, ay: 0.28, rad: 0.55, sp: 0.00007, a: 0.1 },
+  { hue: "#7c3aed", ax: 0.78, ay: 0.34, rad: 0.5, sp: -0.00005, a: 0.09 },
+  { hue: "#d6438f", ax: 0.6, ay: 0.82, rad: 0.6, sp: 0.00006, a: 0.07 },
+];
+
 export function drawScene(o: RenderOptions): void {
   const { ctx, model, width, height, time } = o;
   ctx.clearRect(0, 0, width, height);
 
-  // Deep-space background.
-  const bg = ctx.createRadialGradient(
-    width / 2 + o.camera.panX * 0.3,
-    height / 2 + o.camera.panY * 0.3,
-    0,
-    width / 2,
-    height / 2,
-    Math.max(width, height) * 0.8,
-  );
-  bg.addColorStop(0, "#0b1020");
-  bg.addColorStop(0.6, "#070a16");
-  bg.addColorStop(1, "#04050c");
+  // Deep-space background with your core's glow anchored at centre.
+  const gcx = width / 2 + o.camera.panX;
+  const gcy = height / 2 + o.camera.panY;
+  const bg = ctx.createRadialGradient(gcx, gcy, 0, width / 2, height / 2, Math.max(width, height) * 0.85);
+  bg.addColorStop(0, "#0c1226");
+  bg.addColorStop(0.55, "#070a16");
+  bg.addColorStop(1, "#030409");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  // Faint static sky stars (parallax with pan).
+  // Drifting aurora nebulae in the brand hues — slow, additive, alive.
+  ctx.globalCompositeOperation = "lighter";
+  for (const n of NEBULAE) {
+    const px = width * n.ax + Math.sin(time * n.sp) * width * 0.05 + o.camera.panX * 0.04;
+    const py = height * n.ay + Math.cos(time * n.sp * 1.3) * height * 0.05 + o.camera.panY * 0.04;
+    const rr = Math.max(width, height) * n.rad;
+    const g = ctx.createRadialGradient(px, py, 0, px, py, rr);
+    g.addColorStop(0, withAlpha(n.hue, n.a));
+    g.addColorStop(1, withAlpha(n.hue, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  // Faint parallax sky stars.
   for (const s of o.backgroundStars) {
     const sx = (s.x + o.camera.panX * 0.05) % width;
     const sy = (s.y + o.camera.panY * 0.05) % height;
@@ -537,6 +628,22 @@ export function drawScene(o: RenderOptions): void {
     ctx.fillStyle = withAlpha("#aab4e8", 0.18 * tw);
     ctx.fill();
   }
+
+  // Focal vignette — the outer field falls into shadow so the eye is drawn to
+  // the living center. Drawn over the sky but under the nodes, so stars fade at
+  // the rim while every node stays crisp and lit.
+  const vig = ctx.createRadialGradient(
+    width / 2,
+    height / 2,
+    Math.min(width, height) * 0.32,
+    width / 2,
+    height / 2,
+    Math.max(width, height) * 0.72,
+  );
+  vig.addColorStop(0, "rgba(3,4,9,0)");
+  vig.addColorStop(1, "rgba(2,3,7,0.45)");
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, width, height);
 
   const nodes = model.nodes;
   o.pillHitboxes?.clear();
@@ -568,6 +675,10 @@ export function drawScene(o: RenderOptions): void {
     if (!parent) return;
     const a = project(parent, o);
     const b = project(node, o);
+    // Physical strand: bend the line through its live control point so it
+    // droops and sways like an elastic filament instead of a rigid spoke.
+    const sp = o.strands?.get(`${parent.id}>${node.id}`);
+    const c = sp ? project({ dx: sp.mx, dy: sp.my }, o) : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const emph = Math.min(emphasisFor(node), emphasisFor(parent));
     const onHoverPath = hoverChain.has(node.id) && hoverChain.has(parent.id);
     const baseAlpha = node.depth === 1 ? 0.34 : node.depth === 2 ? 0.22 : 0.14;
@@ -577,15 +688,41 @@ export function drawScene(o: RenderOptions): void {
     grad.addColorStop(1, withAlpha(node.color, alpha));
     ctx.strokeStyle = grad;
     ctx.lineWidth = (onHoverPath ? 2.4 : node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);
+
+    // When the child just joined the mesh, the strand draws itself out from the
+    // parent to the new node, with a bright tip leading the way.
+    const strandGrow = birthProgress(node, time);
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
+    if (strandGrow < 1) {
+      const steps = 18;
+      const end = Math.max(0.02, strandGrow);
+      let tipX = a.x;
+      let tipY = a.y;
+      for (let si = 1; si <= steps; si += 1) {
+        const tt = (si / steps) * end;
+        const mt = 1 - tt;
+        tipX = mt * mt * a.x + 2 * mt * tt * c.x + tt * tt * b.x;
+        tipY = mt * mt * a.y + 2 * mt * tt * c.y + tt * tt * b.y;
+        ctx.lineTo(tipX, tipY);
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, 2.4 * Math.max(0.8, o.camera.zoom), 0, Math.PI * 2);
+      ctx.fillStyle = withAlpha(node.color, 0.9 * (1 - strandGrow) + 0.2);
+      ctx.fill();
+    } else {
+      ctx.quadraticCurveTo(c.x, c.y, b.x, b.y);
+      ctx.stroke();
+    }
 
-    const label = parent.kind === "self" ? strandLabelFor(node) : null;
+    // Relationship pills only appear when you're tracing that strand — the
+    // resting mesh stays clean.
+    const label = parent.kind === "self" && hoverChain.has(node.id) ? strandLabelFor(node) : null;
     if (label && o.camera.zoom >= 0.42) {
-      const mx = (a.x + b.x) / 2;
-      const my = (a.y + b.y) / 2;
+      // Sit the label on the strand's own hanging midpoint (curve at t=0.5).
+      const mx = 0.25 * a.x + 0.5 * c.x + 0.25 * b.x;
+      const my = 0.25 * a.y + 0.5 * c.y + 0.25 * b.y;
       drawPill(
         ctx,
         mx,
@@ -599,11 +736,12 @@ export function drawScene(o: RenderOptions): void {
       );
     }
 
-    // A travelling spark on active strands.
+    // A travelling spark that rides along the curved strand.
     if (emph > 0.7 && node.depth <= 2) {
       const t = (Math.sin(time * 0.0009 + node.x * 0.01 + node.y * 0.01) + 1) / 2;
-      const sx = a.x + (b.x - a.x) * t;
-      const sy = a.y + (b.y - a.y) * t;
+      const mt = 1 - t;
+      const sx = mt * mt * a.x + 2 * mt * t * c.x + t * t * b.x;
+      const sy = mt * mt * a.y + 2 * mt * t * c.y + t * t * b.y;
       ctx.beginPath();
       ctx.arc(sx, sy, 1.6 * Math.max(0.8, o.camera.zoom), 0, Math.PI * 2);
       ctx.fillStyle = withAlpha(node.color, 0.6 * emph);
@@ -611,18 +749,69 @@ export function drawScene(o: RenderOptions): void {
     }
   });
 
+  // --- Web cross-links ---
+  // Beyond the parent→child spokes, weave faint threads between spatially near
+  // nodes so the whole thing reads as one interconnected mesh — a living web,
+  // not a spoke diagram. Post cards are excluded so the weave stays airy.
+  const webNodes: { node: SceneNode; x: number; y: number }[] = [];
+  nodes.forEach((node) => {
+    if (node.kind === "self" || node.kind === "post") return;
+    const p = project(node, o);
+    if (p.x < -60 || p.x > width + 60 || p.y < -60 || p.y > height + 60) return;
+    webNodes.push({ node, x: p.x, y: p.y });
+  });
+  const linkDist = 168 * Math.max(0.6, o.camera.zoom);
+  for (let i = 0; i < webNodes.length; i += 1) {
+    const A = webNodes[i];
+    for (let j = i + 1; j < webNodes.length; j += 1) {
+      const B = webNodes[j];
+      // Skip pairs already joined by a spoke.
+      if (A.node.parentId === B.node.id || B.node.parentId === A.node.id) continue;
+      const dx = A.x - B.x;
+      const dy = A.y - B.y;
+      const d = Math.hypot(dx, dy);
+      if (d > linkDist) continue;
+      const emph = Math.min(emphasisFor(A.node), emphasisFor(B.node));
+      const alpha = (1 - d / linkDist) * 0.14 * (0.35 + 0.65 * emph);
+      if (alpha < 0.012) continue;
+      const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+      grad.addColorStop(0, withAlpha(A.node.color, alpha));
+      grad.addColorStop(1, withAlpha(B.node.color, alpha));
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 0.9 * Math.max(0.7, o.camera.zoom);
+      ctx.beginPath();
+      ctx.moveTo(A.x, A.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.stroke();
+    }
+  }
+
   // --- Nodes ---
   const labelQueue: { node: SceneNode; x: number; y: number; r: number; emph: number }[] = [];
   const selfQueue: { node: SceneNode; x: number; y: number; emph: number; isHover: boolean; isSelected: boolean }[] = [];
 
   nodes.forEach((node) => {
     const p = project(node, o);
-    const r = Math.max(2.5, baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)));
+    let r = Math.max(2.5, baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)));
     o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(r, 14) });
 
     // Cull offscreen (cards are wide, so give them a larger margin).
     const cull = node.kind === "post" ? 170 : 80;
     if (p.x < -cull || p.x > width + cull || p.y < -cull || p.y > height + cull) return;
+
+    // Arrival: new content pops into its place with a grow + expanding burst
+    // ring before its strands draw out to everything it connects to.
+    const born = birthProgress(node, time);
+    if (born < 1 && node.kind !== "self") {
+      const burstR = r * (1.2 + born * 3.2);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, burstR, 0, Math.PI * 2);
+      ctx.strokeStyle = withAlpha(node.color, 0.5 * (1 - born));
+      ctx.lineWidth = 2 * (1 - born) + 0.5;
+      ctx.stroke();
+      // Overshoot grow-in.
+      r *= 0.35 + 0.75 * born - 0.1 * Math.sin(born * Math.PI);
+    }
 
     const emph = emphasisFor(node);
     const pulse = 0.5 + 0.5 * Math.sin(time * 0.002 + node.x * 0.02);
@@ -645,46 +834,37 @@ export function drawScene(o: RenderOptions): void {
       return;
     }
 
-    // Glow halo.
-    const glowR = r * 2.6;
-    const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
-    glow.addColorStop(0, withAlpha(node.color, 0.42 * emph));
-    glow.addColorStop(1, withAlpha(node.color, 0));
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
-    ctx.fill();
-
+    const light = tint(node.color, 0.72);
     const img = node.avatarUrl ? o.images.get(node.id) : node.imageUrl ? o.images.get(node.id) : undefined;
 
-    if (img && (node.kind === "person" || node.kind === "persona" || node.kind === "activity")) {
-      ctx.globalAlpha = 0.3 + 0.7 * emph;
+    if (img && (node.kind === "person" || node.kind === "persona" || node.kind === "activity" || node.kind === "post")) {
+      // Bloom behind the avatar, then the image inside a lit rim.
+      const bloom = ctx.createRadialGradient(p.x, p.y, r * 0.4, p.x, p.y, r * 3);
+      bloom.addColorStop(0, withAlpha(node.color, 0.3 * emph + 0.04));
+      bloom.addColorStop(1, withAlpha(node.color, 0));
+      ctx.fillStyle = bloom;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.35 + 0.65 * emph;
       roundedImage(ctx, img, p.x, p.y, r);
       ctx.globalAlpha = 1;
       ctx.beginPath();
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(node.color, 0.7 * emph + 0.2);
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else if (img && node.kind === "post") {
-      ctx.globalAlpha = 0.3 + 0.7 * emph;
-      roundedImage(ctx, img, p.x, p.y, r);
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(node.color, 0.5 * emph);
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = withAlpha(light, 0.6 * emph + 0.18);
+      ctx.lineWidth = 1.5;
       ctx.stroke();
     } else {
-      // Star core.
-      const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-      core.addColorStop(0, withAlpha("#ffffff", 0.85 * emph + 0.1));
-      core.addColorStop(0.4, withAlpha(node.color, emph));
-      core.addColorStop(1, withAlpha(node.color, 0.15 * emph));
-      ctx.fillStyle = core;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r * (0.9 + 0.1 * pulse), 0, Math.PI * 2);
-      ctx.fill();
+      // Everything else is a clean luminous orb.
+      drawOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, light);
+      if ((node.kind === "person" || node.kind === "persona" || node.kind === "community") && r >= 11) {
+        const initial = (node.label || "?").trim().charAt(0).toUpperCase();
+        ctx.fillStyle = withAlpha("#ffffff", 0.96 * emph + 0.08);
+        ctx.font = `600 ${Math.round(r)}px ui-sans-serif, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(initial, p.x, p.y + r * 0.04);
+      }
     }
 
     // Online status dot for people.

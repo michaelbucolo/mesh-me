@@ -18,14 +18,85 @@ function phase(id: string): number {
   return ((h >>> 0) % 6283) / 1000;
 }
 
+export interface StrandPoint {
+  mx: number;
+  my: number;
+  vx: number;
+  vy: number;
+}
+
 export interface PhysicsState {
   /** Per-branch expansion progress, 0 (collapsed) → 1 (open). */
   expansion: Map<BranchKey, number>;
   seeded: boolean;
+  /** Live control-point of each parent→child strand, keyed "parent>child". */
+  strands: Map<string, StrandPoint>;
 }
 
 export function createPhysicsState(): PhysicsState {
-  return { expansion: new Map(), seeded: false };
+  return { expansion: new Map(), seeded: false, strands: new Map() };
+}
+
+// Strand physics — each connection is an elastic filament. Its control point
+// hangs below the straight line between the two nodes (gravity sag) and springs
+// toward that rest with inertia, so a strand droops, and sways/whips when the
+// nodes it links drift or get flung. Loose spring + light damping = natural.
+const STRAND_K = 52;
+const STRAND_DAMP = 6.5;
+// Radius (world units) each node clears around itself for strand routing.
+const NODE_CLEARANCE = 56;
+const STRAND_PUSH = 90;
+
+function stepStrands(model: SceneModel, state: PhysicsState, dt: number): void {
+  const seen = new Set<string>();
+  const list = Array.from(model.nodes.values());
+  model.nodes.forEach((node) => {
+    if (!node.parentId) return;
+    const parent = model.nodes.get(node.parentId);
+    if (!parent) return;
+    const key = `${parent.id}>${node.id}`;
+    seen.add(key);
+
+    const midX = (parent.dx + node.dx) / 2;
+    const midY = (parent.dy + node.dy) / 2;
+    const len = Math.hypot(node.dx - parent.dx, node.dy - parent.dy);
+    const sag = Math.min(len * 0.16, 72);
+    const restX = midX;
+    const restY = midY + sag; // world +y is down → cable hangs down
+
+    let s = state.strands.get(key);
+    if (!s) {
+      s = { mx: restX, my: restY, vx: 0, vy: 0 };
+      state.strands.set(key, s);
+    }
+    s.vx += (restX - s.mx) * STRAND_K * dt - s.vx * STRAND_DAMP * dt;
+    s.vy += (restY - s.my) * STRAND_K * dt - s.vy * STRAND_DAMP * dt;
+
+    // Route around obstacles: any node other than this strand's own endpoints
+    // pushes the control point away, so the strand bows around it instead of
+    // cutting through — strands never overlap a node, and long strands split
+    // their path around whatever's in the way.
+    for (let k = 0; k < list.length; k += 1) {
+      const other = list[k];
+      if (other.id === node.id || other.id === parent.id) continue;
+      const dx = s.mx - other.dx;
+      const dy = s.my - other.dy;
+      const d = Math.hypot(dx, dy);
+      if (d >= NODE_CLEARANCE || d < 0.001) continue;
+      const push = ((NODE_CLEARANCE - d) / NODE_CLEARANCE) * STRAND_PUSH;
+      s.vx += (dx / d) * push * dt;
+      s.vy += (dy / d) * push * dt;
+    }
+
+    s.mx += s.vx * dt;
+    s.my += s.vy * dt;
+  });
+  // Drop control points whose edge no longer exists.
+  if (state.strands.size > seen.size) {
+    for (const key of state.strands.keys()) {
+      if (!seen.has(key)) state.strands.delete(key);
+    }
+  }
 }
 
 function targetFor(node: SceneNode, model: SceneModel, state: PhysicsState, time: number): { x: number; y: number } {
@@ -78,6 +149,9 @@ export function stepScenePhysics(model: SceneModel, state: PhysicsState, time: n
     node.dx += node.vx * dt;
     node.dy += node.vy * dt;
   });
+
+  // Now that nodes have moved, settle the strands hanging between them.
+  stepStrands(model, state, dt);
 }
 
 /** Ease each branch's expansion toward 1 for the active branch, 0 otherwise. */

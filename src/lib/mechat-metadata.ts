@@ -25,6 +25,10 @@ export type MeChatMessageMetadata = {
   reactions?: MeChatReaction[];
   replyToMessageId?: string;
   linkPreview?: MeChatLinkPreview;
+  /** Set once a message has been edited by its sender. */
+  edited?: boolean;
+  /** Set when the sender unsends (retracts) a message. */
+  unsent?: boolean;
 };
 
 const URL_PATTERN = /(https?:\/\/[^\s<>"']+)/i;
@@ -40,6 +44,8 @@ export function parseMeChatMetadata(raw: string | null | undefined): MeChatMessa
       reactions: normalizeReactions(parsed.reactions),
       replyToMessageId: typeof parsed.replyToMessageId === "string" ? parsed.replyToMessageId : undefined,
       linkPreview: normalizeLinkPreview(parsed.linkPreview),
+      edited: parsed.edited === true ? true : undefined,
+      unsent: parsed.unsent === true ? true : undefined,
     };
   } catch {
     return {};
@@ -54,6 +60,8 @@ export function serializeMeChatMetadata(metadata: MeChatMessageMetadata): string
       ? metadata.replyToMessageId.trim()
       : undefined,
     linkPreview: normalizeLinkPreview(metadata.linkPreview),
+    edited: metadata.edited === true ? true : undefined,
+    unsent: metadata.unsent === true ? true : undefined,
   };
 
   const cleaned = Object.fromEntries(
