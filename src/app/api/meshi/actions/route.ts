@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 // Meshi Vessel Actions — Meshi can act on behalf of the user
 // These are explicit user-triggered actions through the Meshi interface
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body: MeshiActionRequest = await req.json().catch(() => ({}) as MeshiActionRequest);
+    const body = (await readJsonObject(req)) as Partial<MeshiActionRequest>;
     const { action } = body;
 
     if (!action) {

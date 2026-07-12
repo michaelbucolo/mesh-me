@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 const SESSION_INCLUDE = {
   participants: {
@@ -84,7 +84,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   }
 
   const { sessionId } = await context.params;
-  const body = await req.json().catch(() => ({}));
+  const body = await readJsonObject(req);
   const action = typeof body.action === "string" ? body.action : "";
 
   const session = await getSessionForUser(sessionId, user.id);

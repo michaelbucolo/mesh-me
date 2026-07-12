@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { buildNotificationCenterPayload, type NotificationPreferenceSummary } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getNotifications } from "@/lib/queries";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 function noStore(body: unknown, init?: ResponseInit) {
   return NextResponse.json(body, {
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return noStore({ error: "Not authenticated" }, { status: 401 });
 
-  const payload = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const payload = await readJsonObject(req);
   const action = typeof payload.action === "string" ? payload.action : "";
   const notificationIds = cleanNotificationIds(payload.notificationIds);
   const scopedWhere = notificationIds.length > 0

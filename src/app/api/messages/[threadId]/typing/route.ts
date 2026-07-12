@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { clearMeChatTyping, getMeChatTypingUsers, setMeChatTyping, type TypingMeshi } from "@/lib/mechat-presence";
 import { getUserMeshiPreference } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 type RouteContext = {
   params: Promise<{ threadId: string }>;
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await readJsonObject(request);
   if (body.typing === false) {
     clearMeChatTyping(threadId, user.id);
   } else {

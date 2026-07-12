@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { meshiQuery } from "@/lib/meshi-engine";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { createMeshiResponse, normalizeMeshiMood, type MeshiAction, type MeshiContext, type MeshiHistoryMessage } from "@/lib/meshi-shared";
 
 interface ChatRequest {
@@ -513,7 +513,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body: ChatRequest = await req.json().catch(() => ({ message: "" }) as ChatRequest);
+    const body = (await readJsonObject(req)) as Partial<ChatRequest>;
     const { message, context, history } = body;
 
     if (!message || typeof message !== "string") {
