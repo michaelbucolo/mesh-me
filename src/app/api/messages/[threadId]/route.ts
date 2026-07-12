@@ -279,6 +279,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     linkPreview: buildLinkPreview(content, sourceUrl, sourcePlatform),
   };
 
+  let externalMessageId: string | undefined;
   if (isExternalThread && thread.connectedAccountId && thread.externalConversationId) {
     if (!content) {
       return NextResponse.json({ error: "Only text replies can be delivered to this platform." }, { status: 400 });
@@ -293,6 +294,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       status: delivery.status,
       error: delivery.error,
     };
+    externalMessageId = delivery.externalMessageId || undefined;
   }
 
   const created = await prisma.message.create({
@@ -306,6 +308,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       sourcePostId: optionalCleanText(body.sourcePostId, 120),
       platformPostId: optionalCleanText(body.platformPostId, 120),
       platformCommentId: optionalCleanText(body.platformCommentId, 120),
+      externalMessageId,
       metadata: serializeMeChatMetadata(metadata),
     },
     include: {

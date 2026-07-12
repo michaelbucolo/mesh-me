@@ -1961,11 +1961,28 @@ async function syncDirectMessagesIntoMeChat(account: {
     });
     const seen = new Set(existing.map((row) => row.externalMessageId));
 
+    const recentOwnReplies = await prisma.message.findMany({
+      where: {
+        threadId: thread.id,
+        senderId: account.userId,
+        externalMessageId: null,
+        messageType: "external_dm",
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      select: { content: true, createdAt: true },
+    });
+
     let latest: Date | null = null;
     for (const message of conversation.messages) {
       if (!message.externalMessageId || seen.has(message.externalMessageId)) continue;
       const content = message.content.trim().slice(0, 4000);
       if (!content) continue;
+      if (message.isOwnMessage && recentOwnReplies.some((reply) =>
+        reply.content === content
+        && (!message.sentAt || Math.abs(message.sentAt.getTime() - reply.createdAt.getTime()) < 60 * 60 * 1000),
+      )) {
+        continue;
+      }
 
       const sentAt = message.sentAt || new Date();
       await prisma.message.create({
