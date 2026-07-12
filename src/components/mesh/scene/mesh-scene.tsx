@@ -496,21 +496,23 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     if (rect && rect.width > 0 && rect.height > 0) {
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
+      // On touch the stable viewport anchor is the screen centre — but a TAP
+      // is a deliberate point, so it still steers your Meshi on the mesh.
       if (coarseRef.current) {
         cursorVpRef.current = { vx: 0.5, vy: 0.5 };
       } else {
         cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
-        const cam = cameraRef.current;
-        const t = cursorWorldTargetRef.current;
-        t.x = (sx - rect.width / 2 - cam.panX) / cam.zoom;
-        t.y = (sy - rect.height / 2 - cam.panY) / cam.zoom;
-        if (!t.seen) {
-          cursorWorldPosRef.current.x = t.x;
-          cursorWorldPosRef.current.y = t.y;
-          t.seen = true;
-        }
-        lastInputAtRef.current = performance.now();
       }
+      const cam = cameraRef.current;
+      const t = cursorWorldTargetRef.current;
+      t.x = (sx - rect.width / 2 - cam.panX) / cam.zoom;
+      t.y = (sy - rect.height / 2 - cam.panY) / cam.zoom;
+      if (!t.seen) {
+        cursorWorldPosRef.current.x = t.x;
+        cursorWorldPosRef.current.y = t.y;
+        t.seen = true;
+      }
+      lastInputAtRef.current = performance.now();
       if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "1";
     }
     const d = dragRef.current;
