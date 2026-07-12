@@ -6,21 +6,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
+  ChevronDown,
+  Info,
   KeyRound,
-  Link2,
   PauseCircle,
+  PlayCircle,
   PlugZap,
   RefreshCw,
   Search,
   Sparkles,
   ShieldCheck,
   Trash2,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { cn, formatCount } from "@/lib/utils";
 import type {
   ConnectedAccountView,
@@ -55,6 +56,44 @@ const capabilityLabels: Record<PlatformAdapterCapabilityKey, string> = {
   actions: "Actions",
 };
 
+const platformBrands: Record<string, { glyph: string; bg: string; fg?: string }> = {
+  github: { glyph: "GH", bg: "#24292e" },
+  linkedin: { glyph: "in", bg: "#0077b5" },
+  medium: { glyph: "M", bg: "#292929" },
+  spotify: { glyph: "♫", bg: "#1db954" },
+  twitter: { glyph: "𝕏", bg: "#0f1419" },
+  x: { glyph: "𝕏", bg: "#0f1419" },
+  youtube: { glyph: "▶", bg: "#ff0000" },
+  tiktok: { glyph: "♪", bg: "#010101" },
+  instagram: { glyph: "IG", bg: "#e4405f" },
+  discord: { glyph: "DC", bg: "#5865f2" },
+  twitch: { glyph: "Tw", bg: "#9146ff" },
+  facebook: { glyph: "fb", bg: "#1877f2" },
+  snapchat: { glyph: "👻", bg: "#fffc00", fg: "#0f1419" },
+  reddit: { glyph: "r/", bg: "#ff4500" },
+  pinterest: { glyph: "P", bg: "#e60023" },
+  soundcloud: { glyph: "☁", bg: "#ff5500" },
+  bluesky: { glyph: "🦋", bg: "#0085ff" },
+  threads: { glyph: "@", bg: "#101010" },
+};
+
+function PlatformAvatar({ platform, name, size = "md" }: { platform: string; name: string; size?: "md" | "lg" }) {
+  const brand = platformBrands[platform.toLowerCase()];
+  const dimensions = size === "lg" ? "h-12 w-12 text-base" : "h-10 w-10 text-sm";
+  return (
+    <div
+      aria-hidden="true"
+      className={cn("flex shrink-0 items-center justify-center rounded-full font-bold", dimensions)}
+      style={{
+        backgroundColor: brand?.bg ?? "var(--accent-subtle)",
+        color: brand ? brand.fg ?? "#ffffff" : "var(--accent)",
+      }}
+    >
+      {brand?.glyph ?? name.trim().charAt(0).toUpperCase() ?? "M"}
+    </div>
+  );
+}
+
 function formatDate(value: string | null) {
   if (!value) return "Never";
   return new Intl.DateTimeFormat("en", {
@@ -70,10 +109,6 @@ function statusVariant(account: ConnectedAccountView): "success" | "warning" | "
   if (account.health === "manual") return "secondary";
   if (account.health === "paused") return "warning";
   return "danger";
-}
-
-function platformInitial(platform: string) {
-  return platform.trim().charAt(0).toUpperCase() || "M";
 }
 
 async function requestDashboard(path: string, init?: RequestInit) {
@@ -93,31 +128,42 @@ async function requestDashboard(path: string, init?: RequestInit) {
   return data as ConnectedAccountsDashboard | { dashboard?: ConnectedAccountsDashboard };
 }
 
-function PermissionList({ account }: { account: ConnectedAccountView }) {
-  const grantedCount = account.permissions.filter((permission) => permission.state === "granted").length;
+function Toast({ state, onDismiss }: { state: ActionState; onDismiss: () => void }) {
+  useEffect(() => {
+    if (!state) return;
+    const timer = setTimeout(onDismiss, 5000);
+    return () => clearTimeout(timer);
+  }, [state, onDismiss]);
 
   return (
-    <details className="group rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/55">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-[var(--text-primary)]">
-        <span className="inline-flex items-center gap-2">
-          <KeyRound className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />
-          Permissions
-        </span>
-        <span className="text-xs text-[var(--text-muted)]">{grantedCount} granted</span>
-      </summary>
-      <div className="grid gap-2 border-t border-[var(--ds-border)] px-3 py-3">
-        {account.permissions.map((permission) => (
-          <div key={`${account.id}-${permission.key}`} className="grid gap-1 rounded-[var(--ds-radius-sm)] bg-[var(--bg-secondary)] px-3 py-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-[var(--text-primary)]">{permission.label}</span>
-              <Badge variant={permission.state === "granted" ? "success" : "outline"}>{permission.state}</Badge>
-              <Badge variant="outline">{permission.mode.replace("_", " ")}</Badge>
-            </div>
-            <p className="text-xs leading-5 text-[var(--text-secondary)]">{permission.description}</p>
-          </div>
-        ))}
-      </div>
-    </details>
+    <AnimatePresence>
+      {state && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          className={cn(
+            "fixed bottom-6 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-3 text-sm shadow-lg backdrop-blur",
+            state.type === "error" && "border-[var(--ds-danger-border)] bg-[var(--ds-danger-bg)] text-[var(--ds-danger)]",
+            state.type === "success" && "border-[var(--ds-success-border)] bg-[var(--ds-success-bg)] text-[var(--ds-success)]",
+            state.type === "info" && "border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--text-secondary)]",
+          )}
+          role="status"
+        >
+          {state.type === "error" ? (
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          ) : state.type === "info" ? (
+            <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+          )}
+          <span className="min-w-0 flex-1">{state.message}</span>
+          <button type="button" onClick={onDismiss} className="shrink-0 opacity-70 transition-opacity hover:opacity-100" aria-label="Dismiss">
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -137,7 +183,8 @@ function AccountCard({
   const isBusy = busyKey?.endsWith(account.id) ?? false;
   const canSync = Boolean(account.adapter?.canSync && account.hasCredential && account.isActive);
   const needsReconnect = account.authType === "oauth" && account.health === "needs_reconnect";
-  const countItems = [
+  const grantedCount = account.permissions.filter((permission) => permission.state === "granted").length;
+  const countItems: [string, number][] = [
     ["Posts", account.counts.posts],
     ["Comments", account.counts.comments],
     ["Followers", account.counts.followers],
@@ -145,62 +192,34 @@ function AccountCard({
   ];
 
   return (
-    <Card className="connected-account-card h-full overflow-hidden" hover>
-      <CardHeader className="gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--ds-border)] bg-[var(--accent-subtle)] text-base font-bold text-[var(--accent)]">
-              {platformInitial(account.platformName)}
-            </div>
-            <div className="min-w-0">
-              <CardTitle className="truncate">{account.platformName}</CardTitle>
-              <CardDescription className="truncate">
-                {account.platformUsername ? `@${account.platformUsername}` : account.accountLabel || "Connected account"}
-              </CardDescription>
-            </div>
+    <div className="connected-account-card overflow-hidden rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] transition-colors hover:border-[var(--accent)]/40">
+      <div className="flex items-center gap-3 p-4">
+        <PlatformAvatar platform={account.platform} name={account.platformName} size="lg" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-base font-bold text-[var(--text-primary)]">{account.platformName}</p>
+            <Badge variant={statusVariant(account)}>{account.healthLabel}</Badge>
           </div>
-          <Badge variant={statusVariant(account)}>{account.healthLabel}</Badge>
-        </div>
-      </CardHeader>
-
-      <CardContent className="grid gap-4">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {countItems.map(([label, value]) => (
-            <div key={label} className="rounded-[var(--ds-radius-sm)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/55 px-3 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
-              <p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{formatCount(Number(value))}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid gap-1 text-sm text-[var(--text-secondary)]">
-          <p>
-            <span className="font-semibold text-[var(--text-primary)]">Last sync:</span> {formatDate(account.lastSyncAt)}
+          <p className="truncate text-sm text-[var(--text-secondary)]">
+            {account.platformUsername ? `@${account.platformUsername}` : account.accountLabel || "Connected"}
+            <span className="text-[var(--text-muted)]"> · synced {formatDate(account.lastSyncAt)}</span>
           </p>
-          <p>
-            <span className="font-semibold text-[var(--text-primary)]">Auth:</span> {account.authType === "oauth" ? "OAuth" : "Manual reference"}
-          </p>
-          {account.syncError && <p className="text-[var(--ds-danger)]">{account.syncError}</p>}
-          {needsReconnect && <p className="text-[var(--ds-warning)]">Reconnect this account to restore token access.</p>}
         </div>
-
-        <PermissionList account={account} />
-
-        <div className="flex flex-wrap gap-2">
-          {account.authType === "oauth" && account.adapter?.connectHref && (
-            <Link
-              href={account.adapter.connectHref}
-              prefetch={false}
-              className={cn(buttonVariants({ variant: needsReconnect ? "default" : "secondary", size: "sm" }))}
-            >
-              <Link2 className="h-4 w-4" aria-hidden="true" />
-              {needsReconnect ? "Reconnect" : "Refresh OAuth"}
-            </Link>
-          )}
+        {needsReconnect && account.adapter?.connectHref ? (
+          <Link
+            href={account.adapter.connectHref}
+            prefetch={false}
+            className={cn(buttonVariants({ size: "sm" }), "shrink-0")}
+          >
+            <PlugZap className="h-4 w-4" aria-hidden="true" />
+            Reconnect
+          </Link>
+        ) : (
           <Button
             type="button"
             variant="secondary"
             size="sm"
+            className="shrink-0"
             loading={busyKey === `sync-${account.id}`}
             disabled={!canSync || isBusy}
             onClick={() => onSync(account)}
@@ -208,126 +227,187 @@ function AccountCard({
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Sync
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            loading={busyKey === `toggle-${account.id}`}
-            disabled={isBusy}
-            onClick={() => onToggleActive(account)}
-          >
-            <PauseCircle className="h-4 w-4" aria-hidden="true" />
-            {account.isActive ? "Pause" : "Resume"}
-          </Button>
-          <Button
-            type="button"
-            variant="danger"
-            size="sm"
-            loading={busyKey === `delete-${account.id}`}
-            disabled={isBusy}
-            onClick={() => onDisconnect(account)}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            Disconnect
-          </Button>
+        )}
+      </div>
+
+      {(account.syncError || needsReconnect) && (
+        <div className="mx-4 mb-3 flex items-start gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-warning-border,var(--ds-border))] bg-[var(--bg-primary)]/55 px-3 py-2 text-xs leading-5">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--ds-warning)]" aria-hidden="true" />
+          <span className={account.syncError ? "text-[var(--ds-danger)]" : "text-[var(--ds-warning)]"}>
+            {account.syncError ?? "Reconnect this account to keep it syncing."}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      <details className="group border-t border-[var(--ds-border)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">
+          <span className="inline-flex items-center gap-1.5">
+            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+            {grantedCount} permission{grantedCount === 1 ? "" : "s"} · activity details
+          </span>
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="grid gap-3 border-t border-[var(--ds-border)] px-4 py-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {countItems.map(([label, value]) => (
+              <div key={label} className="rounded-[var(--ds-radius-sm)] bg-[var(--bg-primary)]/55 px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
+                <p className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">{formatCount(Number(value))}</p>
+              </div>
+            ))}
+          </div>
+
+          {account.permissions.length > 0 && (
+            <div className="grid gap-1.5">
+              {account.permissions.map((permission) => (
+                <div key={`${account.id}-${permission.key}`} className="flex items-start justify-between gap-3 rounded-[var(--ds-radius-sm)] bg-[var(--bg-primary)]/55 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{permission.label}</p>
+                    <p className="text-xs leading-5 text-[var(--text-secondary)]">{permission.description}</p>
+                  </div>
+                  <Badge variant={permission.state === "granted" ? "success" : "outline"}>{permission.state}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+            <span>{account.authType === "oauth" ? "Secured with OAuth — Mesh.me never sees your password." : "Public reference only — no login shared."}</span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {account.authType === "oauth" && account.adapter?.connectHref && !needsReconnect && (
+              <Link
+                href={account.adapter.connectHref}
+                prefetch={false}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                Refresh access
+              </Link>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              loading={busyKey === `toggle-${account.id}`}
+              disabled={isBusy}
+              onClick={() => onToggleActive(account)}
+            >
+              {account.isActive ? <PauseCircle className="h-4 w-4" aria-hidden="true" /> : <PlayCircle className="h-4 w-4" aria-hidden="true" />}
+              {account.isActive ? "Pause syncing" : "Resume syncing"}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              loading={busyKey === `delete-${account.id}`}
+              disabled={isBusy}
+              onClick={() => onDisconnect(account)}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Disconnect
+            </Button>
+          </div>
+        </div>
+      </details>
+    </div>
   );
 }
 
 function PlatformCard({
   platform,
-  onChooseManual,
+  busyKey,
+  onConnectManual,
 }: {
   platform: SupportedPlatformView;
-  onChooseManual: (platform: SupportedPlatformView) => void;
+  busyKey: string | null;
+  onConnectManual: (platform: SupportedPlatformView, username: string) => Promise<boolean>;
 }) {
+  const [handleOpen, setHandleOpen] = useState(false);
+  const [handle, setHandle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const enabledCapabilities = Object.entries(platform.capabilities)
     .filter(([, enabled]) => enabled)
     .map(([key]) => key as PlatformAdapterCapabilityKey);
-  const authLabel = platform.authType === "oauth" ? "OAuth" : "Manual";
+  const isOauth = platform.authType === "oauth";
+  const canConnect = isOauth ? platform.configured && Boolean(platform.connectHref) : true;
+
+  useEffect(() => {
+    if (handleOpen) inputRef.current?.focus();
+  }, [handleOpen]);
+
+  async function submitHandle(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const added = await onConnectManual(platform, handle);
+    if (added) {
+      setHandle("");
+      setHandleOpen(false);
+    }
+  }
 
   return (
-    <Card className="h-full" hover>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="truncate">{platform.name}</CardTitle>
-            <CardDescription>{categoryLabels[platform.category]} · {authLabel}</CardDescription>
+    <div
+      className={cn(
+        "flex h-full flex-col gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 transition-colors",
+        canConnect ? "hover:border-[var(--accent)]/40" : "opacity-70",
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <PlatformAvatar platform={platform.id} name={platform.name} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-bold text-[var(--text-primary)]">{platform.name}</p>
+            {platform.activeCount > 0 && <Badge variant="success">Connected</Badge>}
+            {!canConnect && <Badge variant="outline">Coming soon</Badge>}
           </div>
-          {platform.activeCount > 0 ? (
-            <Badge variant="success">{platform.activeCount} active</Badge>
-          ) : platform.configured ? (
-            <Badge variant="secondary">Ready</Badge>
-          ) : (
-            <Badge variant="warning">Setup needed</Badge>
-          )}
+          <p className="text-xs text-[var(--text-muted)]">
+            {categoryLabels[platform.category]} · {isOauth ? "One-tap connect" : "Public handle"}
+          </p>
         </div>
-      </CardHeader>
-
-      <CardContent className="grid gap-4">
-        <p className="text-sm leading-6 text-[var(--text-secondary)]">{platform.notes}</p>
-
-        <div className="flex flex-wrap gap-2">
-          {enabledCapabilities.length > 0 ? enabledCapabilities.map((key) => (
-            <Badge key={key} variant="accent">{capabilityLabels[key]}</Badge>
-          )) : <Badge variant="outline">Profile only</Badge>}
-          <Badge variant="outline">Official API only</Badge>
-          <Badge variant="outline">No scraping</Badge>
-        </div>
-
-        <details className="rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/55">
-          <summary className="cursor-pointer list-none px-3 py-2 text-sm font-semibold text-[var(--text-primary)]">
-            OAuth and permission details
-          </summary>
-          <div className="grid gap-2 border-t border-[var(--ds-border)] px-3 py-3 text-xs leading-5 text-[var(--text-secondary)]">
-            {platform.callbackUrl && <p className="break-all"><span className="font-semibold text-[var(--text-primary)]">Callback:</span> {platform.callbackUrl}</p>}
-            <p><span className="font-semibold text-[var(--text-primary)]">Sync:</span> {platform.syncCadence}</p>
-            {platform.missingEnv.length > 0 && (
-              <p><span className="font-semibold text-[var(--text-primary)]">Server setup:</span> {platform.missingEnv.join(", ")}</p>
-            )}
-            <div className="flex flex-wrap gap-1.5">
-              {platform.permissions.map((permission) => (
-                <Badge key={`${platform.id}-${permission.key}`} variant="outline">{permission.label}</Badge>
-              ))}
-            </div>
-          </div>
-        </details>
-
-        <div className="flex flex-wrap gap-2">
-          {platform.authType === "oauth" ? (
-            platform.configured && platform.connectHref ? (
-              <Link href={platform.connectHref} prefetch={false} className={cn(buttonVariants({ size: "sm" }))}>
-                <PlugZap className="h-4 w-4" aria-hidden="true" />
-                Connect
-              </Link>
-            ) : (
-              <Button type="button" disabled size="sm">
-                <AlertCircle className="h-4 w-4" aria-hidden="true" />
-                Needs setup
-              </Button>
-            )
-          ) : (
-            <Button type="button" size="sm" onClick={() => onChooseManual(platform)}>
+        {canConnect && !handleOpen && (
+          isOauth && platform.connectHref ? (
+            <Link href={platform.connectHref} prefetch={false} className={cn(buttonVariants({ size: "sm" }), "shrink-0")}>
               <PlugZap className="h-4 w-4" aria-hidden="true" />
-              Add handle
+              {platform.activeCount > 0 ? "Add another" : "Connect"}
+            </Link>
+          ) : (
+            <Button type="button" size="sm" className="shrink-0" onClick={() => setHandleOpen(true)}>
+              <PlugZap className="h-4 w-4" aria-hidden="true" />
+              {platform.activeCount > 0 ? "Add another" : "Connect"}
             </Button>
-          )}
-          {platform.docsUrl && (
-            <a
-              href={platform.docsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-            >
-              Docs
-              <ExternalLink className="h-4 w-4" aria-hidden="true" />
-            </a>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          )
+        )}
+      </div>
+
+      {handleOpen && (
+        <form onSubmit={submitHandle} className="flex items-center gap-2">
+          <Input
+            ref={inputRef}
+            value={handle}
+            onChange={(event) => setHandle(event.target.value)}
+            placeholder="@username"
+            autoComplete="off"
+            aria-label={`${platform.name} username`}
+            className="flex-1"
+          />
+          <Button type="submit" size="sm" loading={busyKey === `manual-${platform.id}`} disabled={!handle.trim()}>
+            Link
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setHandleOpen(false)} aria-label="Cancel">
+            <X className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </form>
+      )}
+
+      <p className="text-xs leading-5 text-[var(--text-secondary)]">{platform.notes}</p>
+
+      <div className="mt-auto flex flex-wrap gap-1.5">
+        {enabledCapabilities.length > 0 ? enabledCapabilities.map((key) => (
+          <Badge key={key} variant="accent">{capabilityLabels[key]}</Badge>
+        )) : <Badge variant="outline">Profile only</Badge>}
+      </div>
+    </div>
   );
 }
 
@@ -345,10 +425,6 @@ export function ConnectedAccountsClient({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<PlatformAdapterCategory | "all">("all");
-  const manualPlatforms = dashboard.supportedPlatforms.filter((platform) => platform.authType === "manual");
-  const [manualPlatform, setManualPlatform] = useState(manualPlatforms[0]?.id ?? "bluesky");
-  const [manualUsername, setManualUsername] = useState("");
-  const [manualLabel, setManualLabel] = useState("");
   const refreshAttemptedRef = useRef(false);
   const hasRefreshableAccounts = useMemo(
     () => dashboard.accounts.some((account) => (
@@ -418,25 +494,27 @@ export function ConnectedAccountsClient({
     }
   }
 
-  async function connectManualAccount(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusyKey("manual-connect");
+  async function connectManualAccount(platform: SupportedPlatformView, username: string) {
+    setBusyKey(`manual-${platform.id}`);
     try {
       const result = await requestDashboard("/api/connected-accounts", {
         method: "POST",
         body: JSON.stringify({
-          platform: manualPlatform,
-          username: manualUsername,
-          accountLabel: manualLabel,
+          platform: platform.id,
+          username,
+          accountLabel: "",
         }),
       });
       if ("dashboard" in result && result.dashboard) setDashboard(result.dashboard);
-      else await refreshDashboard();
-      setManualUsername("");
-      setManualLabel("");
-      setActionState({ type: "success", message: "Manual account reference added." });
+      else {
+        const refreshed = await requestDashboard("/api/connected-accounts");
+        setDashboard(refreshed as ConnectedAccountsDashboard);
+      }
+      setActionState({ type: "success", message: `${platform.name} linked.` });
+      return true;
     } catch (error) {
       setActionState({ type: "error", message: error instanceof Error ? error.message : "Could not connect account" });
+      return false;
     } finally {
       setBusyKey(null);
     }
@@ -496,61 +574,24 @@ export function ConnectedAccountsClient({
     }
   }
 
-  function chooseManualPlatform(platform: SupportedPlatformView) {
-    setManualPlatform(platform.id);
-    setActionState({ type: "info", message: `Add your ${platform.name} username below.` });
-  }
-
   return (
-    <main data-testid="connected-accounts-center" className="ds-page-shell animate-page-enter grid gap-5">
-      <header className="grid gap-4">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--ds-border)] bg-[var(--ds-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-              <ShieldCheck className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
-              Official APIs, consent, and clear permissions
-            </div>
-            <h1 className="mt-3 text-3xl font-bold tracking-[0] sm:text-4xl">Connected accounts</h1>
-            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">
-              Link the services you actually use. Mesh.me stores only the connection you authorize, shows every permission clearly, and never asks for outside passwords.
-            </p>
-          </div>
-          <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Refresh
-          </Button>
+    <main data-testid="connected-accounts-center" className="ds-page-shell animate-page-enter grid gap-6">
+      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div className="max-w-2xl">
+          <h1 className="text-3xl font-bold tracking-[0] sm:text-4xl">Connected accounts</h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">
+            Bring your platforms into one mesh. One tap to connect — you approve every permission, and Mesh.me never sees your passwords.
+          </p>
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
+            <ShieldCheck className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
+            Official APIs only · disconnect anytime
+          </p>
         </div>
-
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          {[
-            ["Connected", dashboard.summary.connected],
-            ["Active", dashboard.summary.active],
-            ["OAuth ready", dashboard.summary.oauthReady],
-            ["Manual sources", dashboard.summary.manualAvailable],
-            ["Sync issues", dashboard.summary.syncErrors],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">{label}</p>
-              <p className="mt-1 text-xl font-bold text-[var(--text-primary)]">{value}</p>
-            </div>
-          ))}
-        </div>
+        <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Refresh
+        </Button>
       </header>
-
-      {actionState && (
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-[var(--ds-radius-md)] border px-4 py-3 text-sm",
-            actionState.type === "error" && "border-[var(--ds-danger-border)] bg-[var(--ds-danger-bg)] text-[var(--ds-danger)]",
-            actionState.type === "success" && "border-[var(--ds-success-border)] bg-[var(--ds-success-bg)] text-[var(--ds-success)]",
-            actionState.type === "info" && "border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--text-secondary)]",
-          )}
-          role="status"
-        >
-          {actionState.type === "error" ? <AlertCircle className="h-4 w-4" aria-hidden="true" /> : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
-          {actionState.message}
-        </div>
-      )}
 
       {fromOnboarding && quickMergePlatforms.length > 0 && (
         <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/40 bg-[var(--accent-subtle)] p-5">
@@ -559,51 +600,34 @@ export function ConnectedAccountsClient({
               <Sparkles className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h2 className="text-lg font-bold">Merge the apps you picked</h2>
+              <h2 className="text-lg font-bold">Finish setting up the apps you picked</h2>
               <p className="text-sm leading-6 text-[var(--text-secondary)]">
-                Connect each one to pull your presence into a single mesh. One-tap for OAuth platforms, a quick handle for the rest.
+                Connect each one below to pull your presence into a single mesh.
               </p>
             </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-wrap gap-2">
             {quickMergePlatforms.map((platform) => (
-              <div
-                key={`quick-${platform.id}`}
-                className="flex items-center justify-between gap-3 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] px-3 py-2.5"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">{platform.name}</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {platform.authType === "oauth" ? "One-tap connect" : "Add handle"}
-                  </p>
-                </div>
-                {platform.authType === "oauth" && platform.configured && platform.connectHref ? (
-                  <Link href={platform.connectHref} prefetch={false} className={cn(buttonVariants({ size: "sm" }))}>
-                    <PlugZap className="h-4 w-4" aria-hidden="true" />
-                    Connect
-                  </Link>
-                ) : platform.authType === "manual" ? (
-                  <Button type="button" size="sm" variant="secondary" onClick={() => chooseManualPlatform(platform)}>
-                    Add
-                  </Button>
-                ) : (
-                  <Badge variant="warning">Setup needed</Badge>
-                )}
-              </div>
+              <span key={`quick-${platform.id}`} className="inline-flex items-center gap-2 rounded-full border border-[var(--ds-border)] bg-[var(--ds-surface)] py-1 pl-1 pr-3 text-sm font-semibold text-[var(--text-primary)]">
+                <span className="[&>div]:h-7 [&>div]:w-7 [&>div]:text-[10px]">
+                  <PlatformAvatar platform={platform.id} name={platform.name} />
+                </span>
+                {platform.name}
+              </span>
             ))}
           </div>
         </section>
       )}
 
-      <section className="grid gap-3">
-        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+      {dashboard.accounts.length > 0 && (
+        <section className="grid gap-3">
           <div>
             <h2 className="text-xl font-bold">Your connections</h2>
-            <p className="text-sm text-[var(--text-secondary)]">Sync status, permissions, and disconnect controls in one place.</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              {dashboard.summary.active} of {dashboard.summary.connected} syncing
+              {dashboard.summary.syncErrors > 0 && ` · ${dashboard.summary.syncErrors} need${dashboard.summary.syncErrors === 1 ? "s" : ""} attention`}
+            </p>
           </div>
-        </div>
-
-        {dashboard.accounts.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
             {dashboard.accounts.map((account, idx) => (
               <motion.div
@@ -612,111 +636,86 @@ export function ConnectedAccountsClient({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.32, delay: Math.min(idx * 0.06, 0.4), ease: [0.16, 1, 0.3, 1] }}
               >
-              <AccountCard
-                account={account}
-                busyKey={busyKey}
-                onSync={syncAccount}
-                onToggleActive={toggleActive}
-                onDisconnect={disconnectAccount}
-              />
+                <AccountCard
+                  account={account}
+                  busyKey={busyKey}
+                  onSync={syncAccount}
+                  onToggleActive={toggleActive}
+                  onDisconnect={disconnectAccount}
+                />
               </motion.div>
             ))}
           </div>
+        </section>
+      )}
+
+      <section className="grid gap-3">
+        <div>
+          <h2 className="text-xl font-bold">{dashboard.accounts.length > 0 ? "Add more platforms" : "Connect your first platform"}</h2>
+          <p className="text-sm text-[var(--text-secondary)]">
+            One-tap connect where platforms support it, or link a public handle for the rest.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search platforms"
+            leftAddon={<Search className="h-4 w-4" aria-hidden="true" />}
+            className="sm:max-w-xs"
+          />
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Platform categories">
+            {(["all", ...categories] as (PlatformAdapterCategory | "all")[]).map((value) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={category === value}
+                onClick={() => setCategory(value)}
+                className={cn(
+                  "ds-focus-ring rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                  category === value
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast,#fff)]"
+                    : "border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                )}
+              >
+                {categoryLabels[value]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filteredPlatforms.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <AnimatePresence mode="popLayout">
+              {filteredPlatforms.map((platform, idx) => (
+                <motion.div
+                  key={platform.id}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.28, delay: Math.min(idx * 0.035, 0.4), ease: [0.16, 1, 0.3, 1] }}
+                  layout
+                >
+                  <PlatformCard
+                    platform={platform}
+                    busyKey={busyKey}
+                    onConnectManual={connectManualAccount}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         ) : (
           <div className="rounded-[var(--ds-radius-md)] border border-dashed border-[var(--ds-border)] bg-[var(--ds-surface)] px-5 py-8 text-center">
-            <PlugZap className="mx-auto h-9 w-9 text-[var(--text-muted)]" aria-hidden="true" />
-            <h3 className="mt-3 text-lg font-bold">No accounts connected yet</h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--text-secondary)]">
-              Start with one OAuth platform or add a manual public handle. Mesh.me will keep the source visible and permission-based.
-            </p>
+            <Search className="mx-auto h-8 w-8 text-[var(--text-muted)]" aria-hidden="true" />
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">No platforms match your search. Try a different name or category.</p>
           </div>
         )}
       </section>
 
-      <section className="grid gap-3">
-        <div>
-          <h2 className="text-xl font-bold">Add a manual account</h2>
-          <p className="text-sm text-[var(--text-secondary)]">Use this for platforms where Mesh.me can safely reference a public handle but cannot use OAuth yet.</p>
-        </div>
-        <form onSubmit={connectManualAccount} className="grid gap-3 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 md:grid-cols-[12rem_1fr_1fr_auto]">
-          <Field label="Platform" htmlFor="manual-platform">
-            <select
-              id="manual-platform"
-              value={manualPlatform}
-              onChange={(event) => setManualPlatform(event.target.value)}
-              className="ds-focus-ring h-[var(--ds-control-height-lg)] rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-input)] px-3 text-sm text-[var(--text-primary)]"
-            >
-              {manualPlatforms.map((platform) => <option key={platform.id} value={platform.id}>{platform.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Username or handle" htmlFor="manual-username">
-            <Input
-              id="manual-username"
-              value={manualUsername}
-              onChange={(event) => setManualUsername(event.target.value)}
-              placeholder="@username"
-              autoComplete="off"
-            />
-          </Field>
-          <Field label="Label" htmlFor="manual-label" description="Optional. Helpful when you have multiple accounts.">
-            <Input
-              id="manual-label"
-              value={manualLabel}
-              onChange={(event) => setManualLabel(event.target.value)}
-              placeholder="Creator account"
-              autoComplete="off"
-            />
-          </Field>
-          <div className="flex items-end">
-            <Button type="submit" className="w-full" loading={busyKey === "manual-connect"} disabled={!manualUsername.trim()}>
-              Connect
-            </Button>
-          </div>
-        </form>
-      </section>
-
-      <section className="grid gap-3">
-        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
-          <div>
-            <h2 className="text-xl font-bold">Supported platforms</h2>
-            <p className="text-sm text-[var(--text-secondary)]">OAuth where official APIs allow it. Manual references where they do not.</p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search platforms"
-              leftAddon={<Search className="h-4 w-4" aria-hidden="true" />}
-              className="sm:w-64"
-            />
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value as PlatformAdapterCategory | "all")}
-              className="ds-focus-ring h-[var(--ds-control-height-lg)] rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-input)] px-3 text-sm text-[var(--text-primary)]"
-            >
-              <option value="all">All categories</option>
-              {categories.map((value) => <option key={value} value={value}>{categoryLabels[value]}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <AnimatePresence mode="popLayout">
-          {filteredPlatforms.map((platform, idx) => (
-            <motion.div
-              key={platform.id}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.28, delay: Math.min(idx * 0.035, 0.4), ease: [0.16, 1, 0.3, 1] }}
-              layout
-            >
-            <PlatformCard platform={platform} onChooseManual={chooseManualPlatform} />
-            </motion.div>
-          ))}
-          </AnimatePresence>
-        </div>
-      </section>
+      <Toast state={actionState} onDismiss={() => setActionState(null)} />
     </main>
   );
 }
