@@ -44,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return <OnboardingRedirect />;
   }
 
-  const meshiPref = await getMeshiPreference(user);
+  const meshiPref = await getMeshiPreference();
   const meshiSeed = meshiPref
     ? {
         colorTheme: meshiPref.colorTheme,
