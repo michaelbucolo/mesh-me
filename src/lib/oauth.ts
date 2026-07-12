@@ -26,6 +26,10 @@ export interface OAuthConfig {
   extraTokenParams?: Record<string, string>;
   // Whether profile response nests data (e.g. { data: { ... } })
   profileDataPath?: string;
+  // Exchange the short-lived token for a long-lived one after the code exchange
+  longLivedTokenExchange?: "facebook" | "instagram";
+  // Endpoint used to revoke tokens when the user disconnects the account
+  revokeUrl?: string;
 }
 
 function normalizeBaseUrl(url: string): string {
@@ -92,6 +96,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     clientIdEnv: "TWITTER_CLIENT_ID",
     clientSecretEnv: "TWITTER_CLIENT_SECRET",
     tokenAuthMethod: "client_secret_basic",
+    revokeUrl: "https://api.twitter.com/2/oauth2/revoke",
     usernameField: "username",
     profileDataPath: "data",
     extraAuthParams: { code_challenge_method: "S256" },
@@ -120,17 +125,22 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     usernameField: "snippet.title",
     profileDataPath: "items.0",
     extraAuthParams: { access_type: "offline", prompt: "consent" },
+    revokeUrl: "https://oauth2.googleapis.com/revoke",
   },
   instagram: {
     platform: "instagram",
     name: "Instagram",
-    authUrl: "https://www.facebook.com/v19.0/dialog/oauth",
-    tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
-    profileUrl: "https://graph.instagram.com/me?fields=id,username",
-    scopes: ["instagram_basic", "pages_show_list"],
-    clientIdEnv: "FACEBOOK_APP_ID",
-    clientSecretEnv: "FACEBOOK_APP_SECRET",
+    authUrl: "https://www.instagram.com/oauth/authorize",
+    tokenUrl: "https://api.instagram.com/oauth/access_token",
+    profileUrl: "https://graph.instagram.com/v21.0/me?fields=id,user_id,username",
+    scopes: ["instagram_business_basic"],
+    clientIdEnv: "INSTAGRAM_APP_ID",
+    clientSecretEnv: "INSTAGRAM_APP_SECRET",
+    clientIdEnvAliases: ["INSTAGRAM_CLIENT_ID"],
+    clientSecretEnvAliases: ["INSTAGRAM_CLIENT_SECRET"],
     usernameField: "username",
+    scopeDelimiter: ",",
+    longLivedTokenExchange: "instagram",
   },
   facebook: {
     platform: "facebook",
@@ -141,7 +151,10 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     scopes: ["public_profile", "email"],
     clientIdEnv: "FACEBOOK_APP_ID",
     clientSecretEnv: "FACEBOOK_APP_SECRET",
+    clientIdEnvAliases: ["FACEBOOK_CLIENT_ID"],
+    clientSecretEnvAliases: ["FACEBOOK_CLIENT_SECRET"],
     usernameField: "name",
+    longLivedTokenExchange: "facebook",
   },
   linkedin: {
     platform: "linkedin",
@@ -198,11 +211,15 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     name: "Snapchat",
     authUrl: "https://accounts.snapchat.com/accounts/oauth2/auth",
     tokenUrl: "https://accounts.snapchat.com/accounts/oauth2/token",
-    profileUrl: "https://kit.snapchat.com/v1/me",
+    profileUrl: "https://kit.snapchat.com/v1/me?query=" + encodeURIComponent("{me{displayName externalId bitmoji{avatar}}}"),
     scopes: ["https://auth.snapchat.com/oauth2/api/user.display_name", "https://auth.snapchat.com/oauth2/api/user.bitmoji.avatar"],
     clientIdEnv: "SNAPCHAT_CLIENT_ID",
     clientSecretEnv: "SNAPCHAT_CLIENT_SECRET",
-    usernameField: "me.displayName",
+    tokenAuthMethod: "client_secret_basic",
+    usernameField: "displayName",
+    idField: "externalId",
+    profileDataPath: "data.me",
+    extraAuthParams: { code_challenge_method: "S256" },
   },
   threads: {
     platform: "threads",
@@ -349,6 +366,91 @@ export function buildTokenRequest(
   }
 
   return { headers, body };
+}
+
+export function usesLongLivedTokenExchange(platform: string): boolean {
+  return isPlatformOAuth(platform) && Boolean(OAUTH_CONFIGS[platform].longLivedTokenExchange);
+}
+
+// Meta access tokens are short-lived by default; exchange them for long-lived
+// tokens (~60 days) so connections survive beyond the initial session.
+// Mode "exchange" converts a short-lived token right after the code exchange;
+// mode "refresh" extends an existing long-lived token before it expires
+// (Instagram uses a dedicated refresh endpoint for that case).
+export async function exchangeLongLivedToken(
+  config: OAuthConfig,
+  accessToken: string,
+  mode: "exchange" | "refresh" = "exchange",
+): Promise<{ accessToken: string; expiresAt: Date | null } | null> {
+  if (!config.longLivedTokenExchange) return null;
+  const clientId = getOAuthClientId(config);
+  const clientSecret = getOAuthClientSecret(config);
+  if (!clientId || !clientSecret) return null;
+
+  const url = config.longLivedTokenExchange === "facebook"
+    ? `https://graph.facebook.com/v21.0/oauth/access_token?${new URLSearchParams({
+        grant_type: "fb_exchange_token",
+        client_id: clientId,
+        client_secret: clientSecret,
+        fb_exchange_token: accessToken,
+      })}`
+    : mode === "refresh"
+      ? `https://graph.instagram.com/refresh_access_token?${new URLSearchParams({
+          grant_type: "ig_refresh_token",
+          access_token: accessToken,
+        })}`
+      : `https://graph.instagram.com/access_token?${new URLSearchParams({
+          grant_type: "ig_exchange_token",
+          client_secret: clientSecret,
+          access_token: accessToken,
+        })}`;
+
+  try {
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => null) as {
+      access_token?: unknown;
+      expires_in?: unknown;
+    } | null;
+    if (typeof data?.access_token !== "string" || !data.access_token) return null;
+    const expiresIn = typeof data.expires_in === "number"
+      ? data.expires_in
+      : typeof data.expires_in === "string" ? Number(data.expires_in) : NaN;
+    return {
+      accessToken: data.access_token,
+      expiresAt: Number.isFinite(expiresIn) && expiresIn > 0
+        ? new Date(Date.now() + expiresIn * 1000)
+        : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Revoke a platform token when the user disconnects the account, honoring
+// provider policies that require revocation on disconnect.
+export async function revokeOAuthToken(
+  config: OAuthConfig,
+  accessToken: string,
+): Promise<boolean> {
+  if (!config.revokeUrl) return false;
+  const clientId = getOAuthClientId(config);
+  const clientSecret = getOAuthClientSecret(config);
+
+  try {
+    const body = new URLSearchParams({ token: accessToken });
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    if (config.tokenAuthMethod === "client_secret_basic" && clientId && clientSecret) {
+      headers.Authorization = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`;
+      body.set("token_type_hint", "access_token");
+    }
+    const response = await fetch(config.revokeUrl, { method: "POST", headers, body });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 // Resolve a nested path in an object, returning the value at the path (may be object, string, etc.)

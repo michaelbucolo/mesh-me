@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
-import { isPlatformOAuth } from "@/lib/oauth";
+import { isPlatformOAuth, usesLongLivedTokenExchange } from "@/lib/oauth";
 import { refreshConnectedAccountToken } from "@/lib/oauth-token-refresh";
 
 const REFRESH_WINDOW_MS = 120_000;
@@ -22,18 +22,19 @@ export async function POST(request: Request) {
     where: {
       userId: user.id,
       isActive: true,
-      refreshToken: { not: null },
     },
     select: {
       id: true,
       platform: true,
       accessToken: true,
+      refreshToken: true,
       expiresAt: true,
     },
   });
 
   const refreshable = accounts.filter((account) => (
     isPlatformOAuth(account.platform)
+    && (account.refreshToken !== null || usesLongLivedTokenExchange(account.platform))
     && (!account.accessToken || (account.expiresAt !== null && account.expiresAt <= threshold))
   ));
   const results = await Promise.all(refreshable.map((account) => refreshConnectedAccountToken(account.id)));
