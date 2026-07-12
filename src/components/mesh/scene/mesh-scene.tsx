@@ -135,7 +135,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [remotePresences, setRemotePresences] = useState<RemotePresence[]>([]);
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
-  const [focusId, setFocusId] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [discoverUsers, setDiscoverUsers] = useState<
@@ -387,7 +386,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         });
         if (nearest !== focusIdRef.current) {
           focusIdRef.current = nearest;
-          setFocusId(nearest);
         }
       }
       raf = requestAnimationFrame(render);
@@ -437,7 +435,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       setSelectedNode(node);
       flyToNode(node);
     },
-    [fitToContent, flyToNode, enterFriendMesh, router],
+    [fitToContent, flyToNode, enterFriendMesh],
   );
 
   // Every readable piece of content on the mesh, in reading order — so the
@@ -1363,6 +1361,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {/* Content lens — consume posts & activity right on the mesh */}
       {selectedNode && (selectedNode.kind === "post" || selectedNode.kind === "activity") && (
         <ContentLens
+          key={selectedNode.id}
           node={selectedNode}
           list={contentList()}
           onClose={() => setSelectedNode(null)}
@@ -1555,12 +1554,6 @@ function ContentLens({
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(metaCount(node, "Likes"));
   const [likePending, startLike] = useTransition();
-
-  // Reset engagement each time a different piece of content is shown.
-  useEffect(() => {
-    setLiked(false);
-    setLikeCount(metaCount(node, "Likes"));
-  }, [node.id]);
 
   // Keyboard: arrows browse, Escape closes.
   useEffect(() => {
