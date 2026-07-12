@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useSpring, useMotionValue } from "framer-motion";
+import { motion, useSpring, useMotionValue, useTransform } from "framer-motion";
 import { useRef, useState, useCallback, useEffect, useId } from "react";
 
 // Pre-compute trig values to avoid SSR/client hydration mismatches
@@ -279,6 +279,9 @@ const PROP_SVGS: Record<string, (color: string) => React.ReactNode> = {
 
 const TWO_HAND_PROPS: Set<MeshiProp> = new Set(["keyboard", "notebook", "paper", "envelope", "heart"]);
 
+// Accessories that hang and should swing like pendulums when Meshi moves.
+const DANGLING_ACCESSORIES = new Set(["earrings", "necklace"]);
+
 const HOLDING_POSES = {
   single: {
     right: { side: "right", shoulderX: 11.8, shoulderY: 5, elbowX: 15.4, elbowY: 7.8, handX: 17, handY: 10 },
@@ -295,10 +298,14 @@ const HOLDING_POSES = {
 const HATS: Record<string, React.ReactNode> = {
   none: null,
   tophat: (
-    <g transform="translate(0, -14)">
-      <rect x="-9" y="-9" width="18" height="11" rx="1.6" fill="currentColor" opacity="0.92" />
-      <rect x="-9" y="-1.6" width="18" height="2.6" fill="#fbbf24" opacity="0.9" />
-      <rect x="-13" y="1.2" width="26" height="3.4" rx="1.7" fill="currentColor" opacity="0.92" />
+    <g transform="translate(0, -13)">
+      <ellipse cx="0" cy="2.4" rx="13" ry="2.5" fill="currentColor" opacity="0.92" />
+      <rect x="-8.5" y="-10" width="17" height="12.4" rx="1.4" fill="currentColor" />
+      <path d="M-8.5 -10 L-8.5 2.4 L-3 2.4 L-3 -10 Z" fill="rgba(0,0,0,0.16)" />
+      <ellipse cx="0" cy="-10" rx="8.5" ry="1.7" fill="currentColor" />
+      <ellipse cx="0" cy="-10" rx="8.5" ry="1.7" fill="rgba(255,255,255,0.12)" />
+      <rect x="-8.5" y="-2.4" width="17" height="3" fill="#fbbf24" opacity="0.95" />
+      <path d="M6 -8.6 L6 -3" stroke="rgba(255,255,255,0.3)" strokeWidth="1.3" strokeLinecap="round" />
     </g>
   ),
   crown: (
@@ -311,16 +318,22 @@ const HATS: Record<string, React.ReactNode> = {
   ),
   beanie: (
     <g transform="translate(0, -12)">
-      <path d="M-12,2 Q-12,-9 0,-9 Q12,-9 12,2 Z" fill="currentColor" opacity="0.92" />
-      <rect x="-12" y="0.6" width="24" height="3.4" rx="1.7" fill="currentColor" opacity="0.72" />
-      <circle cx="0" cy="-9" r="2.2" fill="currentColor" opacity="0.85" />
+      <path d="M-11 1 Q-11 -10 0 -10 Q11 -10 11 1 Z" fill="currentColor" opacity="0.96" />
+      <path d="M-8 -8 Q-9.5 -3 -9.5 1 M-4 -9.4 Q-5 -3.5 -5 1 M0 -10 L0 1 M4 -9.4 Q5 -3.5 5 1 M8 -8 Q9.5 -3 9.5 1" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" />
+      <rect x="-11.5" y="0.2" width="23" height="3.8" rx="1.9" fill="currentColor" />
+      <path d="M-9 0.8 L-9 3.4 M-5.5 0.8 L-5.5 3.4 M-2 0.8 L-2 3.4 M1.5 0.8 L1.5 3.4 M5 0.8 L5 3.4 M8.5 0.8 L8.5 3.4" stroke="rgba(0,0,0,0.28)" strokeWidth="0.9" strokeLinecap="round" />
+      <circle cx="0" cy="-10.6" r="2.3" fill="currentColor" />
+      <circle cx="-0.7" cy="-11.2" r="0.8" fill="rgba(255,255,255,0.5)" />
     </g>
   ),
   cap: (
     <g transform="translate(0, -12)">
-      <path d="M-12,1 Q-12,-9 0,-9 Q12,-9 12,1 Z" fill="currentColor" opacity="0.92" />
-      <path d="M8,-0.2 Q17,0.4 19,3.6 L9,3.2 Q8,1.4 8,-0.2 Z" fill="currentColor" opacity="0.72" />
-      <circle cx="0" cy="-9" r="1.4" fill="currentColor" opacity="0.6" />
+      <path d="M-11 1 Q-11 -9.5 0 -9.5 Q11 -9.5 11 1 Z" fill="currentColor" opacity="0.96" />
+      <path d="M-11 1 Q-11 -9.5 0 -9.5 L0 1 Z" fill="rgba(0,0,0,0.18)" />
+      <path d="M0 -9.5 L0 1 M-6.5 -8 Q-7.5 -3 -7.5 1 M6.5 -8 Q7.5 -3 7.5 1" fill="none" stroke="rgba(0,0,0,0.22)" strokeWidth="0.8" />
+      <path d="M7 0 Q16 0.4 18.2 3.4 Q12.4 4.8 8 2.9 Q7.2 1.4 7 0 Z" fill="currentColor" opacity="0.85" />
+      <circle cx="0" cy="-9.6" r="1.3" fill="currentColor" />
+      <path d="M-8 -5.5 Q0 -9 8 -5.5" stroke="rgba(255,255,255,0.32)" strokeWidth="0.9" fill="none" strokeLinecap="round" />
     </g>
   ),
   hardhat: (
@@ -467,16 +480,24 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
   none: null,
   glasses: (
     <g transform="translate(0, 0)">
-      <rect x="-10" y="-4" width="7" height="5.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="3" y="-4" width="7" height="5.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <line x1="-3" y1="-1.25" x2="3" y2="-1.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="-10.5" y="-4.2" width="8" height="6.6" rx="3" fill="rgba(255,255,255,0.09)" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="2.5" y="-4.2" width="8" height="6.6" rx="3" fill="rgba(255,255,255,0.09)" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M-2.5 -1.2 Q0 -2.8 2.5 -1.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="-10.5" y1="-1.6" x2="-13.6" y2="-2.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="10.5" y1="-1.6" x2="13.6" y2="-2.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M-9 -3 L-7.4 -1.4" stroke="rgba(255,255,255,0.4)" strokeWidth="0.9" strokeLinecap="round" />
+      <path d="M4 -3 L5.6 -1.4" stroke="rgba(255,255,255,0.4)" strokeWidth="0.9" strokeLinecap="round" />
     </g>
   ),
   sunglasses: (
     <g transform="translate(0, 0)">
-      <rect x="-10" y="-4" width="7.5" height="5.5" rx="1.8" fill="currentColor" opacity="0.85" />
-      <rect x="2.5" y="-4" width="7.5" height="5.5" rx="1.8" fill="currentColor" opacity="0.85" />
-      <line x1="-2.5" y1="-1.2" x2="2.5" y2="-1.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M-10.8 -4.2 H-2.6 V-1.6 Q-2.6 2.4 -6.7 2.4 Q-10.8 2.4 -10.8 -1.6 Z" fill="#0f172a" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M2.6 -4.2 H10.8 V-1.6 Q10.8 2.4 6.7 2.4 Q2.6 2.4 2.6 -1.6 Z" fill="#0f172a" stroke="currentColor" strokeWidth="1.3" />
+      <line x1="-2.6" y1="-3.2" x2="2.6" y2="-3.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="-10.8" y1="-2.6" x2="-13.6" y2="-3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="10.8" y1="-2.6" x2="13.6" y2="-3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M-9.2 -3 L-6.8 -0.4" stroke="rgba(255,255,255,0.35)" strokeWidth="1" strokeLinecap="round" />
+      <path d="M4.2 -3 L6.6 -0.4" stroke="rgba(255,255,255,0.35)" strokeWidth="1" strokeLinecap="round" />
     </g>
   ),
   lashes: (
@@ -595,16 +616,21 @@ const OUTFITS: Record<string, React.ReactNode> = {
   none: null,
   scarf: (
     <g transform="translate(0, 7)">
-      <path d="M-12 -1 Q0 3 12 -1 L12 3 Q0 7 -12 3 Z" fill="currentColor" opacity="0.85" />
-      <rect x="5" y="1" width="4" height="9" rx="1.4" fill="currentColor" opacity="0.72" />
+      <path d="M-12 -1.5 Q0 3 12 -1.5 L12 2.5 Q0 7 -12 2.5 Z" fill="currentColor" opacity="0.96" />
+      <path d="M-12 0.5 Q0 5 12 0.5 L12 2.5 Q0 7 -12 2.5 Z" fill="rgba(0,0,0,0.2)" />
+      <rect x="4.6" y="1.4" width="4.4" height="9.2" rx="1.4" fill="currentColor" opacity="0.92" />
+      <path d="M5.5 10.8 L5.5 12.8 M7 10.8 L7 12.8 M8.5 10.8 L8.5 12.8" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.85" />
     </g>
   ),
   hoodie: (
     <g transform="translate(0, 8)">
-      <path d="M-13 -1 Q-9 -7 0 -7 Q9 -7 13 -1 L12 12 H-12 Z" fill="currentColor" opacity="0.28" />
-      <path d="M-6 -5 Q0 -1 6 -5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.75" />
-      <line x1="-3" y1="-2" x2="-3" y2="4" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-      <line x1="3" y1="-2" x2="3" y2="4" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+      <path d="M-13 -1 Q-9 -7.5 0 -7.5 Q9 -7.5 13 -1 L12 12 H-12 Z" fill="currentColor" opacity="0.34" />
+      <path d="M-6.5 -5.5 Q0 -1.5 6.5 -5.5 Q4 -2.4 0 -2.4 Q-4 -2.4 -6.5 -5.5 Z" fill="currentColor" opacity="0.6" />
+      <line x1="-2.8" y1="-2.2" x2="-3.3" y2="4.6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.9" />
+      <line x1="2.8" y1="-2.2" x2="3.3" y2="4.6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.9" />
+      <circle cx="-3.3" cy="5.4" r="0.9" fill="currentColor" />
+      <circle cx="3.3" cy="5.4" r="0.9" fill="currentColor" />
+      <path d="M-7.5 7.5 Q0 9.5 7.5 7.5" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1" strokeLinecap="round" />
     </g>
   ),
   jacket: (
@@ -810,6 +836,48 @@ export function MeshiMascot({
   const squishX = useSpring(1, { stiffness: 600, damping: 12, mass: 0.3 });
   const squishY = useSpring(1, { stiffness: 600, damping: 12, mass: 0.3 });
   const wobbleRotate = useSpring(0, { stiffness: 300, damping: 8, mass: 0.5 });
+
+  // ── Wearable physics ──────────────────────────────────────
+  // Wearables react to real movement: as Meshi travels the mesh (or gets
+  // carried anywhere), hats and hair lag with inertia and dangling pieces
+  // (earrings, necklace) swing like pendulums. Velocity is sensed from the
+  // element's actual on-screen motion, so no caller wiring is needed.
+  const hatSway = useSpring(0, { stiffness: 170, damping: 15, mass: 0.6 });
+  const hairSway = useTransform(hatSway, (v) => v * 0.65);
+  const dangleSway = useSpring(0, { stiffness: 110, damping: 7, mass: 0.9 });
+  const outfitSway = useTransform(dangleSway, (v) => v * -0.35);
+
+  useEffect(() => {
+    if (!animate) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let lastT = 0;
+    let vx = 0;
+    const step = (t: number) => {
+      raf = requestAnimationFrame(step);
+      const el = containerRef.current;
+      if (!el || document.hidden) return;
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      if (lastT) {
+        const dt = Math.min((t - lastT) / 1000, 0.05);
+        if (dt > 0) {
+          const nvx = (x - lastX) / dt;
+          vx += (nvx - vx) * 0.35;
+          hatSway.set(Math.max(-13, Math.min(13, -vx * 0.022)));
+          dangleSway.set(Math.max(-32, Math.min(32, -vx * 0.06)));
+        }
+      }
+      lastX = x;
+      lastY = y;
+      lastT = t;
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [animate, hatSway, dangleSway]);
 
   // Smooth eye tracking via spring-based motion values
   const eyeOffsetX = useMotionValue(0);
@@ -1061,13 +1129,20 @@ export function MeshiMascot({
               : { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
             }
           />
-          {/* Simple outfits stay inside the bubble so Meshi remains minimal. */}
-          <g style={{ color: wearable }}>{outfitElement}</g>
+          {/* Simple outfits stay inside the bubble so Meshi remains minimal.
+              Draped ones trail slightly against the direction of travel. */}
+          <motion.g
+            style={{ color: wearable, rotate: outfitSway, transformBox: "fill-box", transformOrigin: "50% 0%" }}
+          >
+            {outfitElement}
+          </motion.g>
         </g>
 
         {/* Headwear, face and accessories render OUTSIDE the body clip so tall
             hats are never chopped off by the bubble's circular mask. */}
-        <g style={{ color: wearable }}>{hairElement}</g>
+        <motion.g style={{ color: wearable, rotate: hairSway, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
+          {hairElement}
+        </motion.g>
 
         {/* Face — eyes with smooth tracking and blinking */}
         <motion.g
@@ -1078,11 +1153,23 @@ export function MeshiMascot({
         </motion.g>
 
         {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
-        {accessoryElement && <g style={{ color: wearable }}>{accessoryElement}</g>}
+        {accessoryElement &&
+          (DANGLING_ACCESSORIES.has(effectiveAccessory) ? (
+            <motion.g
+              style={{ color: wearable, rotate: dangleSway, transformBox: "fill-box", transformOrigin: "50% 0%" }}
+            >
+              {accessoryElement}
+            </motion.g>
+          ) : (
+            <g style={{ color: wearable }}>{accessoryElement}</g>
+          ))}
         {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
 
-        {/* Hat sits on top of everything so it always reads clearly. */}
-        <g style={{ color: wearable }}>{hatElement}</g>
+        {/* Hat sits on top of everything so it always reads clearly, and
+            tips with inertia as Meshi travels. */}
+        <motion.g style={{ color: wearable, rotate: hatSway, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
+          {hatElement}
+        </motion.g>
 
         {/* Bubble hands — only shown when Meshi is actively holding a prop.
             Drawn before the prop so the held object reads clearly on top,
