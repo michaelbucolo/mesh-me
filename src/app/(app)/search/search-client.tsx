@@ -243,6 +243,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             placeholder="Search Mesh.me"
             type="search"
             autoComplete="off"
+            suppressHydrationWarning
           />
           <button type="submit" className="mesh-action mesh-action-primary h-9 px-4 text-sm">
             Search
@@ -383,8 +384,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           <ResultSection title="Connected platform posts" icon={Link2}>
             {results.platformPosts.map((post) => {
               const thumbnail = post.thumbnailUrl || post.media[0]?.thumbnailUrl || post.media[0]?.url || null;
-              return (
-                <a key={post.id} href={post.url || "#"} target={post.url ? "_blank" : undefined} rel="noreferrer" className="search-result-row">
+              const content = (
+                <>
                   <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
                     {thumbnail ? <Image src={thumbnail} alt="" fill sizes="64px" className="object-cover" /> : <Globe2 className="m-auto mt-5 h-6 w-6 text-[var(--accent)]" aria-hidden="true" />}
                   </span>
@@ -404,7 +405,16 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     </span>
                   </span>
                   <ExternalLink className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />
+                </>
+              );
+              return post.url ? (
+                <a key={post.id} href={post.url} target="_blank" rel="noreferrer" className="search-result-row">
+                  {content}
                 </a>
+              ) : (
+                <div key={post.id} className="search-result-row" aria-disabled="true">
+                  {content}
+                </div>
               );
             })}
           </ResultSection>
@@ -412,18 +422,29 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showConnected && results.platformPeople.length > 0 && (
           <ResultSection title="Connected platform people" icon={UsersRound}>
-            {results.platformPeople.map((person) => (
-              <a key={person.id} href={person.profileUrl || "#"} target={person.profileUrl ? "_blank" : undefined} rel="noreferrer" className="search-result-row">
-                <Avatar src={person.avatarUrl} alt={person.displayName || person.username || "Platform user"} size="md" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{person.displayName || person.username || "Platform user"}</span>
-                  <span className="block truncate text-xs text-[var(--text-muted)]">
-                    {platformLabel(person.connectedAccount.platform)} · @{person.username || person.connectedAccount.platformUsername || "connected"} · {formatCount(person.followerCount || 0)}
+            {results.platformPeople.map((person) => {
+              const content = (
+                <>
+                  <Avatar src={person.avatarUrl} alt={person.displayName || person.username || "Platform user"} size="md" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{person.displayName || person.username || "Platform user"}</span>
+                    <span className="block truncate text-xs text-[var(--text-muted)]">
+                      {platformLabel(person.connectedAccount.platform)} · @{person.username || person.connectedAccount.platformUsername || "connected"} · {formatCount(person.followerCount || 0)}
+                    </span>
+                    <span className="mt-1 block text-xs font-bold text-[var(--accent)]">{person.relationshipType}</span>
                   </span>
-                  <span className="mt-1 block text-xs font-bold text-[var(--accent)]">{person.relationshipType}</span>
-                </span>
-              </a>
-            ))}
+                </>
+              );
+              return person.profileUrl ? (
+                <a key={person.id} href={person.profileUrl} target="_blank" rel="noreferrer" className="search-result-row">
+                  {content}
+                </a>
+              ) : (
+                <div key={person.id} className="search-result-row" aria-disabled="true">
+                  {content}
+                </div>
+              );
+            })}
           </ResultSection>
         )}
 

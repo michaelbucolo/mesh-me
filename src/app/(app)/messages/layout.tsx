@@ -110,7 +110,12 @@ export default async function MessagesLayout({ children }: MessagesLayoutProps) 
   };
 
   return (
-    <MessagesDataProvider value={sidebarData}>
+    <MessagesDataProvider
+      key={sidebarData.initialThreads
+        .map((thread) => `${thread.id}:${thread.lastMessage?.createdAt ?? ""}:${thread.unread}`)
+        .join("|")}
+      value={sidebarData}
+    >
       <div className="grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 lg:block">
           <MeChatConversationList
