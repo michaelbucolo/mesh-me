@@ -125,7 +125,7 @@ console.log('Status:', response.status()); // Should be 200
 - `src/app/api/auth/[platform]/callback/route.ts` — OAuth callback handler
 - `src/app/api/connected-accounts/route.ts` — GET (list) and POST (manual linking) endpoints
 
-## Devin Secrets Needed
+## Secrets Needed
 - No secrets needed for manual linking tests
 - For full OAuth testing, platform-specific client ID/secret env vars are needed (configured per-platform in `src/lib/oauth.ts`)
 - `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` — for production database migrations

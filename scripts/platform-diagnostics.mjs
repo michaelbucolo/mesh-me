@@ -163,7 +163,7 @@ const checks = [
     id: "node-runtime",
     severity: "P1",
     description: "Node runtime is modern enough for Next.js diagnostics",
-    fix: "Use the bundled Codex Node runtime or Node 20+.",
+    fix: "Use the bundled Node runtime or Node 20+.",
     run: async () => {
       const major = Number(process.versions.node.split(".")[0]);
       assert(major >= 20, `Node ${process.versions.node} detected; expected Node 20+`);
