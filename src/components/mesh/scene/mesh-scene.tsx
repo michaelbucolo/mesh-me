@@ -47,6 +47,7 @@ type RemotePresence = {
   meshiOutfit?: string;
   meshiMood: string;
   viewportPosition: { vx: number; vy: number };
+  position?: { x: number; y: number };
   viewingMesh: string;
   isOnline: boolean;
 };
@@ -97,11 +98,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const lastFrameRef = useRef(0);
 
   const meshiCursorRef = useRef<HTMLDivElement>(null);
-  // Where the pointer actually is (target) vs where Meshi currently is. Meshi
-  // ambles casually toward the pointer instead of being glued to it, so the
-  // mesh feels calm rather than a cursor skin.
-  const cursorTargetRef = useRef<{ x: number; y: number; seen: boolean }>({ x: 0, y: 0, seen: false });
-  const cursorPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Meshi lives ON the mesh: its target and eased position are WORLD
+  // coordinates, so it pans and travels with the web rather than floating on
+  // a screen layer. It ambles casually toward wherever the pointer points.
+  const cursorWorldTargetRef = useRef<{ x: number; y: number; seen: boolean }>({ x: 0, y: 0, seen: false });
+  const cursorWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Local-only hover growth — only YOU see your Meshi lean in toward a node.
+  const cursorScaleRef = useRef(1);
   const presenceTargetsRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
   const presenceElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const presencePosRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
@@ -109,6 +112,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // "perch" = a connection online elsewhere, perched on their own node.
   const presenceModeRef = useRef<Map<string, "room" | "perch">>(new Map());
   const perchPosRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // Latest broadcast WORLD position per same-mesh visitor, and their eased
+  // world position — anchored to the mesh itself, not the screen.
+  const presenceWorldRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const presenceWorldPosRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const hoverIdRef = useRef<string | null>(null);
   const cursorVpRef = useRef({ vx: 0.5, vy: 0.5 });
   const meshOwnerIdRef = useRef<string | null>(null);
@@ -487,10 +494,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     // other people's screens even without dragging.
     const rect = containerRef.current?.getBoundingClientRect();
     if (rect && rect.width > 0 && rect.height > 0) {
-      cursorVpRef.current = {
-        vx: (e.clientX - rect.left) / rect.width,
-        vy: (e.clientY - rect.top) / rect.height,
-      };
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
+      const cam = cameraRef.current;
+      const t = cursorWorldTargetRef.current;
+      t.x = (sx - rect.width / 2 - cam.panX) / cam.zoom;
+      t.y = (sy - rect.height / 2 - cam.panY) / cam.zoom;
+      if (!t.seen) {
+        cursorWorldPosRef.current.x = t.x;
+        cursorWorldPosRef.current.y = t.y;
+        t.seen = true;
+      }
     }
     const d = dragRef.current;
     d.active = true;
@@ -517,21 +532,24 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     // it sitting frozen at their screen centre.
     if (rect.width > 0 && rect.height > 0) {
       cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
+      // Pointer position in WORLD coordinates — where Meshi wanders toward,
+      // and what we broadcast so everyone anchors you to the same spot on
+      // the actual mesh.
+      const cam = cameraRef.current;
+      const t = cursorWorldTargetRef.current;
+      const wx = (sx - rect.width / 2 - cam.panX) / cam.zoom;
+      const wy = (sy - rect.height / 2 - cam.panY) / cam.zoom;
+      if (!t.seen) {
+        cursorWorldPosRef.current.x = wx;
+        cursorWorldPosRef.current.y = wy;
+        t.seen = true;
+      }
+      t.x = wx;
+      t.y = wy;
     }
     if (e.pointerType === "mouse") {
       const cursor = meshiCursorRef.current;
-      if (cursor) {
-        const t = cursorTargetRef.current;
-        if (!t.seen) {
-          // First sighting: start Meshi at the pointer so it doesn't fly in from a corner.
-          cursorPosRef.current.x = sx;
-          cursorPosRef.current.y = sy;
-          t.seen = true;
-        }
-        t.x = sx;
-        t.y = sy;
-        cursor.style.opacity = "1";
-      }
+      if (cursor) cursor.style.opacity = "1";
       if (!dragRef.current.active) {
         const node = hitTest(sx, sy);
         const id = node?.id ?? null;
@@ -669,6 +687,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             meshiOutfit: prefs.outfit,
             meshiMood: prefs.face,
             viewportPosition: vp,
+            position: {
+              x: cursorWorldTargetRef.current.x,
+              y: cursorWorldTargetRef.current.y,
+            },
             viewingMesh: meshOwner,
             surface: "mesh",
           }),
@@ -694,13 +716,23 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         for (const p of visible) {
           if (p.viewingMesh === meshOwner) {
             presenceModeRef.current.set(p.userId, "room");
-            presenceTargetsRef.current.set(p.userId, {
-              vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
-              vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
-            });
+            // World coordinates anchor their Meshi to the actual mesh, so it
+            // stays put on the web while you pan. Viewport fractions remain a
+            // fallback for stale clients that haven't sent a position yet.
+            if (p.position && (p.position.x !== 0 || p.position.y !== 0)) {
+              presenceWorldRef.current.set(p.userId, { x: p.position.x, y: p.position.y });
+              presenceTargetsRef.current.delete(p.userId);
+            } else {
+              presenceWorldRef.current.delete(p.userId);
+              presenceTargetsRef.current.set(p.userId, {
+                vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
+                vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
+              });
+            }
           } else {
             presenceModeRef.current.set(p.userId, "perch");
             presenceTargetsRef.current.delete(p.userId);
+            presenceWorldRef.current.delete(p.userId);
           }
         }
         presenceTargetsRef.current.forEach((_, id) => {
@@ -713,6 +745,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           if (!visibleIds.has(id)) {
             presenceModeRef.current.delete(id);
             perchPosRef.current.delete(id);
+            presenceWorldRef.current.delete(id);
+            presenceWorldPosRef.current.delete(id);
           }
         });
         setRemotePresences(visible);
@@ -742,16 +776,49 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     };
   }, []);
 
-  // Glide remote Meshis toward their latest reported position every frame so
-  // they move like live cursors instead of jumping between poll updates.
+  // Glide every Meshi ON the mesh each frame: positions live in world
+  // coordinates so they pan/zoom with the web, and a screen-space pass keeps
+  // them from ever sitting on top of a node.
   useEffect(() => {
+    const MESHI_R = 24;
+    // Deterministic per-frame push away from any node the Meshi would cover.
+    // Recomputed from the world position each frame (never written back), so
+    // it can't feedback-oscillate.
+    const avoidNodes = (sx: number, sy: number): { x: number; y: number } => {
+      let x = sx;
+      let y = sy;
+      for (let pass = 0; pass < 2; pass += 1) {
+        let pushed = false;
+        hitboxesRef.current.forEach((hb) => {
+          const minD = hb.r + MESHI_R;
+          const dx = x - hb.x;
+          const dy = y - hb.y;
+          const d = Math.hypot(dx, dy);
+          if (d >= minD || d < 0.001) return;
+          const f = (minD - d) / (d || 1);
+          x += dx * f;
+          y += dy * f;
+          pushed = true;
+        });
+        if (!pushed) break;
+      }
+      return { x, y };
+    };
+    const project = (wx: number, wy: number) => {
+      const container = containerRef.current;
+      const cam = cameraRef.current;
+      const w = container?.clientWidth ?? 0;
+      const h = container?.clientHeight ?? 0;
+      return { x: w / 2 + cam.panX + wx * cam.zoom, y: h / 2 + cam.panY + wy * cam.zoom };
+    };
+
     let raf = 0;
     let last = 0;
     const step = (time: number) => {
       const dt = last ? Math.min(time - last, 50) : 16;
       last = time;
-      // Casual, unhurried easing — remote Meshis drift toward where their
-      // user is looking rather than mirroring a mouse at full speed.
+      // Casual, unhurried easing — Meshis drift toward where their user is
+      // looking rather than mirroring a mouse at full speed.
       const k = 1 - Math.exp(-dt / 650);
       presenceElsRef.current.forEach((el, userId) => {
         // Connections online elsewhere perch above their own node in the web,
@@ -773,6 +840,21 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           el.style.top = `${pos.y}px`;
           return;
         }
+        // Same-mesh visitors, anchored to the mesh itself when they've
+        // broadcast a world position.
+        const world = presenceWorldRef.current.get(userId);
+        if (world) {
+          const pos = presenceWorldPosRef.current.get(userId) ?? { ...world };
+          pos.x += (world.x - pos.x) * k;
+          pos.y += (world.y - pos.y) * k;
+          presenceWorldPosRef.current.set(userId, pos);
+          const s = project(pos.x, pos.y);
+          const clear = avoidNodes(s.x, s.y);
+          el.style.opacity = "1";
+          el.style.left = `${clear.x}px`;
+          el.style.top = `${clear.y}px`;
+          return;
+        }
         const target = presenceTargetsRef.current.get(userId);
         if (!target) return;
         el.style.opacity = "1";
@@ -784,16 +866,20 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         el.style.top = `${pos.vy * 100}%`;
       });
 
-      // Your own Meshi ambles after the pointer with the same lazy ease, so
-      // it reads as a companion wandering the mesh, not a cursor skin.
+      // Your own Meshi ambles across the mesh toward the pointer, swerving
+      // around nodes, and leans in (locally only) when you hover something.
       const cursorEl = meshiCursorRef.current;
-      if (cursorEl && cursorTargetRef.current.seen) {
+      if (cursorEl && cursorWorldTargetRef.current.seen) {
         const ck = 1 - Math.exp(-dt / 420);
-        const p = cursorPosRef.current;
-        const t = cursorTargetRef.current;
+        const p = cursorWorldPosRef.current;
+        const t = cursorWorldTargetRef.current;
         p.x += (t.x - p.x) * ck;
         p.y += (t.y - p.y) * ck;
-        cursorEl.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
+        const s = project(p.x, p.y);
+        const clear = avoidNodes(s.x, s.y);
+        const targetScale = hoverIdRef.current ? 1.22 : 1;
+        cursorScaleRef.current += (targetScale - cursorScaleRef.current) * (1 - Math.exp(-dt / 140));
+        cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) scale(${cursorScaleRef.current.toFixed(3)})`;
       }
 
       // The mesh owner's own Meshi lives at the heart of their mesh. The self
