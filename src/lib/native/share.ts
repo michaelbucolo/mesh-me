@@ -12,25 +12,26 @@ export interface ShareOptions {
   dialogTitle?: string;
 }
 
+export type ShareResult = "shared" | "copied" | "cancelled" | "unsupported";
+
 /**
  * Open the native share sheet. Falls back to Web Share API on web,
  * or copies to clipboard as a last resort.
  */
-export async function shareContent(options: ShareOptions): Promise<boolean> {
+export async function shareContent(options: ShareOptions): Promise<ShareResult> {
   // Native share via Capacitor
   if (isPluginAvailable("Share")) {
-    const { Share } = await import("@capacitor/share");
     try {
+      const { Share } = await import("@capacitor/share");
       await Share.share({
         title: options.title,
         text: options.text,
         url: options.url,
         dialogTitle: options.dialogTitle,
       });
-      return true;
+      return "shared";
     } catch {
-      // User cancelled or error
-      return false;
+      return "cancelled";
     }
   }
 
@@ -42,9 +43,9 @@ export async function shareContent(options: ShareOptions): Promise<boolean> {
         text: options.text,
         url: options.url,
       });
-      return true;
+      return "shared";
     } catch {
-      return false;
+      return "cancelled";
     }
   }
 
@@ -52,11 +53,11 @@ export async function shareContent(options: ShareOptions): Promise<boolean> {
   if (options.url && typeof navigator !== "undefined" && navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(options.url);
-      return true;
+      return "copied";
     } catch {
-      return false;
+      return "unsupported";
     }
   }
 
-  return false;
+  return "unsupported";
 }

@@ -64,7 +64,7 @@ function getReducedMotionServerSnapshot() {
 
 // ── Contextual flavour per loading mode ───────────────────────
 
-export type MeshiLoaderMode =
+type MeshiLoaderMode =
   | "default"
   | "mesh-building"
   | "message-writing"

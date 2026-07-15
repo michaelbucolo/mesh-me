@@ -132,9 +132,8 @@ async function runPublicEntryChecks(knownUser) {
     const page = await newObservedPage(context, label);
     try {
       await page.goto(`${baseUrl}/login`, { waitUntil: "domcontentloaded" });
-      // First paint + hydration of the entry scene can take a while on
-      // software-rendered CI machines; let the page settle before interacting.
-      await page.waitForLoadState("networkidle", { timeout: 45000 }).catch(() => {});
+      // Hydration markers are a more reliable readiness signal than
+      // `networkidle` in a live app with long-lived/prefetched requests.
       await page.waitForSelector("[data-testid=\"entry-identity-input\"]", { timeout: 45000 });
       await page.waitForSelector("[data-entry-ready=\"true\"]", { timeout: 45000 });
       await assertNoOverflow(page, `${label} login initial`);
@@ -214,7 +213,6 @@ async function runAuthenticatedAppChecks(user) {
   try {
     for (const route of routes) {
       await page.goto(`${baseUrl}${route}`, { waitUntil: "domcontentloaded" });
-      await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
       const state = await page.evaluate(() => ({
         path: location.pathname,
         title: document.title,

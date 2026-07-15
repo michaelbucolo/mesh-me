@@ -58,7 +58,7 @@ const publicRoutes = [
 const appRoutes = [
   "/mesh",
   "/flow",
-  "/create",
+  "/innovation",
   "/messages",
   "/search",
   "/profile",

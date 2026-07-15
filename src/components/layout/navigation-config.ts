@@ -9,11 +9,6 @@ export interface NavItem {
   badgeKey?: BadgeKey;
 }
 
-export interface NavGroup {
-  label: string;
-  items: NavItem[];
-  collapsible?: boolean;
-}
 
 export const sidebarNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },
@@ -23,21 +18,7 @@ export const sidebarNavItems: NavItem[] = [
   { href: "/explore", icon: ExploreIcon, label: "Explore" },
 ];
 
-export const desktopNavGroups: NavGroup[] = [
-  {
-    label: "Core",
-    items: [
-      { href: "/mesh", icon: MeshIcon, label: "Mesh" },
-      { href: "/flow", icon: FlowIcon, label: "Flow" },
-      { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
-      { href: "/explore", icon: ExploreIcon, label: "Explore" },
-    ],
-  },
-];
 
-export const desktopBottomItems: NavItem[] = [
-  { href: "/profile", icon: ProfileIcon, label: "Profile" },
-];
 
 export const mobileNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },

@@ -21,7 +21,7 @@ export type MeshPrivacyRecord = {
   showStats: boolean;
 } | null;
 
-export function isSelf(viewer: Viewer, subjectId: string): boolean {
+function isSelf(viewer: Viewer, subjectId: string): boolean {
   return !!viewer && viewer.id === subjectId;
 }
 
@@ -42,12 +42,16 @@ export async function areMutualFollowers(viewerId: string, targetUserId: string)
   return !!viewerFollowsTarget && !!targetFollowsViewer;
 }
 
-export async function canViewProfile(viewer: Viewer, subject: ProfileSubject): Promise<boolean> {
+export function canViewProfile(
+  viewer: Viewer,
+  subject: ProfileSubject,
+  visibility: MeshVisibility,
+  isFriend: boolean,
+): boolean {
   if (subject.isSuspended && !isSelf(viewer, subject.id) && !viewer?.isAdmin) return false;
   if (isSelf(viewer, subject.id) || viewer?.isAdmin) return true;
-  if (subject.isPublic !== false) return true;
-  if (!viewer) return false;
-  return areMutualFollowers(viewer.id, subject.id);
+  if (subject.isPublic !== false || visibility === "public") return true;
+  return visibility === "friends" && isFriend;
 }
 
 export function parseBranchOverrides(raw: string | null | undefined): Record<string, BranchVisibility> {
@@ -68,11 +72,14 @@ export function parseBranchOverrides(raw: string | null | undefined): Record<str
   }
 }
 
-export function normalizeMeshVisibility(value: string | null | undefined): MeshVisibility {
+export function normalizeMeshVisibility(
+  value: string | null | undefined,
+  fallback: MeshVisibility = "friends",
+): MeshVisibility {
   if (value === "private" || value === "friends" || value === "public" || value === "partial") {
     return value;
   }
-  return "friends";
+  return fallback;
 }
 
 export function canViewMesh(
@@ -94,6 +101,7 @@ export function canSeeMeshBranch(options: {
   branchOverrides: Record<string, BranchVisibility>;
   isFriend: boolean;
   showConnections?: boolean;
+  defaultVisibility?: BranchVisibility;
 }): boolean {
   if (isSelf(options.viewer, options.targetUserId) || options.viewer?.isAdmin) return true;
 
@@ -102,7 +110,7 @@ export function canSeeMeshBranch(options: {
     return false;
   }
 
-  const visibility = options.branchOverrides[options.branchKey] ?? "public";
+  const visibility = options.branchOverrides[options.branchKey] ?? options.defaultVisibility ?? "private";
   if (visibility === "private") return false;
   if (visibility === "friends") return options.isFriend;
   return true;

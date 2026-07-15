@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PLATFORM_CAPABILITIES } from "@/lib/platform-capabilities";
 
-export type ReadinessDomain = {
+type ReadinessDomain = {
   key: string;
   label: string;
   score: number;
@@ -10,14 +10,14 @@ export type ReadinessDomain = {
   target: string;
 };
 
-export type MigrationTask = {
+type MigrationTask = {
   id: string;
   label: string;
   completed: boolean;
   href: string;
 };
 
-export type ReplacementJob = {
+type ReplacementJob = {
   id: string;
   label: string;
   category: string;
@@ -57,7 +57,7 @@ export async function getCachedSuperAppReadinessReport(userId: string): Promise<
 
   return load();
 }
-export async function getSuperAppReadinessReport(userId: string): Promise<SuperAppReadinessReport> {
+async function getSuperAppReadinessReport(userId: string): Promise<SuperAppReadinessReport> {
   const [
     connectedAccounts,
     activeConnections,

@@ -41,7 +41,7 @@ function serializeFeatureRequest(row: FeatureRequestRow): FeatureRequestItem {
   };
 }
 
-export async function ensureFeatureRequestTables() {
+async function ensureFeatureRequestTables() {
   await prisma.$executeRaw`
     CREATE TABLE IF NOT EXISTS feature_requests (
       id TEXT PRIMARY KEY,

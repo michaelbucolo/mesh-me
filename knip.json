@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": [
+    "ios/App/App/public/cordova.js",
+    "ios/App/App/public/cordova_plugins.js"
+  ],
+  "ignoreDependencies": [
+    "@capacitor/browser",
+    "@capacitor/camera",
+    "@capacitor/local-notifications",
+    "@capacitor/preferences",
+    "@capacitor/push-notifications",
+    "@capacitor/splash-screen",
+    "@prisma/client"
+  ]
+}

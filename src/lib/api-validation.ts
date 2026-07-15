@@ -1,4 +1,4 @@
-export const VALID_SYNC_TYPES = ["full", "posts", "comments", "followers", "analytics"] as const;
+const VALID_SYNC_TYPES = ["full", "posts", "comments", "followers", "analytics"] as const;
 export type PlatformSyncType = (typeof VALID_SYNC_TYPES)[number];
 
 export const VALID_PLATFORM_CONTENT_ACTIONS = [

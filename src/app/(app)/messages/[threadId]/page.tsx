@@ -226,7 +226,6 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
   let threadPlatform = "mesh";
   let memberCount = 0;
   let threadCreatedAt = new Date().toISOString();
-  let threadIsEncrypted = true;
   let formRecipientId: string | undefined;
   let conversationMembers: Array<{
     userId: string;
@@ -277,11 +276,9 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     if (existingThread) {
       activeThreadId = existingThread.id;
       threadCreatedAt = existingThread.createdAt.toISOString();
-      threadIsEncrypted = existingThread.isEncrypted;
     } else {
       formRecipientId = recipient.id;
       threadCreatedAt = new Date().toISOString();
-      threadIsEncrypted = true;
     }
     conversationTitle = recipient.displayName;
     conversationSubtitle = `@${recipient.username}`;
@@ -333,10 +330,9 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     threadPlatform = thread.sourcePlatform || "mesh";
     memberCount = thread.members.length;
     threadCreatedAt = thread.createdAt.toISOString();
-    threadIsEncrypted = thread.isEncrypted;
     conversationTitle = thread.title || (isGroupThread
       ? otherMembers.map((member) => member.user.displayName).join(", ")
-      : recipient?.displayName || "Secure MeChat thread");
+      : recipient?.displayName || "MeChat thread");
     conversationSubtitle = isExternalThread
       ? `Synced from ${sourceLabel(threadPlatform)}`
       : isGroupThread
@@ -413,7 +409,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
   const threadSummary = isExternalThread
     ? `Synced from ${sourceLabel(threadPlatform)} · replies deliver there`
     : isGroupThread
-      ? `${memberCount} member${memberCount === 1 ? "" : "s"} · ${threadIsEncrypted ? "encrypted" : "private"} group chat`
+      ? `${memberCount} member${memberCount === 1 ? "" : "s"} · member-only group chat`
       : recipient
         ? `Direct conversation with @${recipient.username}`
         : "Private conversation";
@@ -527,7 +523,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
             createdBy={threadCreatedBy}
             description={
               isGroupThread
-                ? `${threadIsEncrypted ? "Encrypted" : "Private"} group conversation with ${memberCount} members.`
+                ? `Private group conversation with ${memberCount} members.`
                 : recipient
                   ? `Private direct message with @${recipient.username}.`
                   : "Private conversation."
@@ -536,7 +532,6 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
             sourceSummaries={threadInsights.sourceSummaries}
             mediaCount={threadInsights.mediaCount}
             fileCount={threadInsights.fileCount}
-            isEncrypted={threadIsEncrypted}
           />
         </div>
       </div>

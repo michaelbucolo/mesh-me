@@ -73,7 +73,7 @@ export function canShareFriendMeshBranch(
   return meshVisibility !== "partial";
 }
 
-export async function getMutualFriendIds(userId: string, limit = 80) {
+async function getMutualFriendIds(userId: string, limit = 80) {
   const [following, followers] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: userId },

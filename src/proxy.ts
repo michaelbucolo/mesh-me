@@ -182,7 +182,7 @@ function hardenResponse(response: NextResponse, options: { sensitive?: boolean }
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-XSS-Protection", "0");
   response.headers.set("Referrer-Policy", "no-referrer");
-  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(), bluetooth=(), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
+  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
   response.headers.set("X-DNS-Prefetch-Control", "off");
   response.headers.set("X-Download-Options", "noopen");
   response.headers.set("X-Permitted-Cross-Domain-Policies", "none");

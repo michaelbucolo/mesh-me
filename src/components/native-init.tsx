@@ -41,6 +41,7 @@ export function NativeInit() {
 
     // Listen for app state changes
     let cleanup: (() => void) | undefined;
+    let disposed = false;
 
     (async () => {
       const { isPluginAvailable } = await import("@capacitor/core").then(
@@ -61,14 +62,17 @@ export function NativeInit() {
           window.history.back();
         });
 
-        cleanup = () => {
+        const removeListeners = () => {
           urlHandle.remove();
           backHandle.remove();
         };
+        if (disposed) removeListeners();
+        else cleanup = removeListeners;
       }
     })();
 
     return () => {
+      disposed = true;
       cleanup?.();
       body.classList.remove("platform-web", "platform-native", "platform-ios", "platform-android");
     };

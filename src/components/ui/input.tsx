@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   leftAddon?: React.ReactNode;
   rightAddon?: React.ReactNode;
 }
@@ -32,34 +32,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 Input.displayName = "Input";
 
-export interface FieldProps extends React.HTMLAttributes<HTMLDivElement> {
-  label?: React.ReactNode;
-  description?: React.ReactNode;
-  error?: React.ReactNode;
-  htmlFor?: string;
-}
 
-export function Field({
-  label,
-  description,
-  error,
-  htmlFor,
-  className,
-  children,
-  ...props
-}: FieldProps) {
-  return (
-    <div className={cn("grid gap-2", className)} {...props}>
-      {label && (
-        <label htmlFor={htmlFor} className="text-sm font-semibold text-[var(--text-primary)]">
-          {label}
-        </label>
-      )}
-      {children}
-      {description && !error && <p className="text-xs leading-5 text-[var(--text-muted)]">{description}</p>}
-      {error && <p className="text-xs leading-5 text-[var(--ds-danger)]">{error}</p>}
-    </div>
-  );
-}
 
-export { Input, inputClassName };
+export { Input };

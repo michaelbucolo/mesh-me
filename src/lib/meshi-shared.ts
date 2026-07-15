@@ -1,4 +1,4 @@
-export const MESHI_MOODS = [
+const MESHI_MOODS = [
   "happy",
   "excited",
   "thinking",

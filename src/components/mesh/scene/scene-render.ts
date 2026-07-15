@@ -957,10 +957,3 @@ export function drawScene(o: RenderOptions): void {
     o.hitboxes.set(item.node.id, { x: item.x, y: item.y, r: Math.max(card.avatarRadius * 1.12, 26) });
   }
 }
-
-export function projectNode(node: { dx: number; dy: number }, width: number, height: number, camera: Camera) {
-  return {
-    x: width / 2 + camera.panX + node.dx * camera.zoom,
-    y: height / 2 + camera.panY + node.dy * camera.zoom,
-  };
-}

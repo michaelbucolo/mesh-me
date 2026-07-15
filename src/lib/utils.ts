@@ -27,14 +27,6 @@ export function formatCount(count: number): string {
   return count.toString();
 }
 
-export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 export function slugify(text: string): string {
   return text
@@ -49,10 +41,4 @@ export const INTEREST_TAGS = [
   "Fitness", "Cooking", "Travel", "Nature", "Science", "Philosophy",
   "Anime", "Sports", "Business", "Education", "Health", "Spirituality",
   "DIY", "Podcasts", "Streaming", "3D Art", "Machine Learning", "Web Development",
-];
-
-export const CREATOR_TYPES = [
-  "Artist", "Musician", "Filmmaker", "Photographer", "Writer",
-  "Streamer", "Developer", "Designer", "Educator", "Podcaster",
-  "Content Creator", "Entrepreneur", "Gamer", "Other",
 ];

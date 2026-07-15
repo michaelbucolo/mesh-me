@@ -19,6 +19,7 @@ import {
 import { signOut } from "@/lib/actions";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
+import { shareContent } from "@/lib/native/share";
 import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -134,19 +135,11 @@ function ShellTopBar({
   async function shareCurrent() {
     const url = typeof window !== "undefined" ? window.location.href : "";
     const shareData = { title: `${routeInfo.title} · mesh.me`, text: routeInfo.description || "mesh.me", url };
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share(shareData);
-        return;
-      }
-      if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(url);
-        addToast("Link copied to clipboard", "success");
-        return;
-      }
+    const result = await shareContent(shareData);
+    if (result === "copied") {
+      addToast("Link copied to clipboard", "success");
+    } else if (result === "unsupported") {
       addToast("Sharing isn’t supported here", "info");
-    } catch {
-      // User dismissed the share sheet — no error to surface.
     }
   }
 
@@ -404,7 +397,7 @@ export function AppShell({ children, user }: AppShellProps) {
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-[var(--mesh-border)] px-5 py-3">
           <div className="text-[10px] text-[var(--mesh-text-muted)]">
-            <p>© 2025 Mesh.me</p>
+            <p suppressHydrationWarning>© {new Date().getFullYear()} Mesh.me</p>
             <p>All rights reserved</p>
           </div>
           <div className="flex items-center gap-2">

@@ -87,15 +87,6 @@ export function clearFailedLogins(email: string): void {
 }
 
 // ─── Input Sanitization ─────────────────────────────────────
-export function sanitizeInput(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
-    .trim();
-}
 
 export function sanitizeForDisplay(input: string): string {
   // React auto-escapes JSX output, so aggressive regex sanitization is unnecessary
@@ -143,14 +134,3 @@ export function validateUrl(url: string): boolean {
 }
 
 // ─── Security Headers ───────────────────────────────────────
-export const securityHeaders = {
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "X-XSS-Protection": "0",
-  "Referrer-Policy": "no-referrer",
-  "Permissions-Policy": "accelerometer=(), autoplay=(), bluetooth=(), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()",
-  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-  "X-DNS-Prefetch-Control": "off",
-  "X-Download-Options": "noopen",
-  "X-Permitted-Cross-Domain-Policies": "none",
-};

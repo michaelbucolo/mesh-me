@@ -10,7 +10,7 @@ import {
 } from "@/lib/platform-adapters";
 import { getPlatformCapability, type PlatformCapability } from "@/lib/platform-capabilities";
 
-export type ConnectedPermissionView = PlatformPermissionDefinition & {
+type ConnectedPermissionView = PlatformPermissionDefinition & {
   state: "granted" | "revoked" | "pending";
   source: string;
   grantedAt: string | null;

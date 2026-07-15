@@ -76,7 +76,7 @@ export interface SceneModel {
   branchOrder: string[];
 }
 
-export const BRANCH_META: Record<BranchKey, { label: string; color: string }> = {
+const BRANCH_META: Record<BranchKey, { label: string; color: string }> = {
   identities: { label: "Identities", color: "#c084fc" },
   platforms: { label: "Platforms", color: "#f59e0b" },
   people: { label: "People", color: "#818cf8" },

@@ -66,7 +66,7 @@ export default function VisionPage() {
         <article className="mesh-section p-6">
           <KeyRound className="mb-4 h-6 w-6 text-[var(--accent)]" />
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">Security baseline</h2>
-          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">End-to-end encrypted messaging, encrypted tokens, least-privilege platform permissions, device-bound session controls, account verification, bot resistance, and audit-ready data flows are launch requirements, not future polish.</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">The baseline we are working toward includes end-to-end encrypted messaging, encrypted tokens, least-privilege platform permissions, device-bound session controls, account verification, bot resistance, and audit-ready data flows. Current protections are documented on the Privacy page.</p>
         </article>
       </section>
 

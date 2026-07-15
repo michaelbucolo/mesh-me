@@ -41,6 +41,7 @@ function MeshiMark() {
             top: 48,
             width: 16,
             height: 16,
+            display: "flex",
             borderRadius: 999,
             background: colors.ink,
           }}
@@ -52,6 +53,7 @@ function MeshiMark() {
             top: 48,
             width: 16,
             height: 16,
+            display: "flex",
             borderRadius: 999,
             background: colors.ink,
           }}
@@ -83,6 +85,7 @@ export default function OpenGraphImage() {
           style={{
             position: "absolute",
             inset: 0,
+            display: "flex",
             background:
               "radial-gradient(circle at 18% 20%, rgba(88,166,255,0.26), transparent 28%), radial-gradient(circle at 82% 72%, rgba(34,197,94,0.12), transparent 26%)",
           }}
@@ -91,19 +94,20 @@ export default function OpenGraphImage() {
           style={{
             position: "absolute",
             inset: 34,
+            display: "flex",
             border: "1px solid rgba(154,167,184,0.18)",
             borderRadius: 40,
           }}
         />
         <div style={{ display: "flex", flexDirection: "column", gap: 28, width: 720, position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 999, background: colors.meshBlue }} />
-            <div style={{ fontSize: 30, fontWeight: 800 }}>{meshBrand.name}</div>
+            <div style={{ width: 18, height: 18, display: "flex", borderRadius: 999, background: colors.meshBlue }} />
+            <div style={{ display: "flex", fontSize: 30, fontWeight: 800 }}>{meshBrand.name}</div>
           </div>
-          <div style={{ fontSize: 74, lineHeight: 0.96, fontWeight: 900, letterSpacing: 0 }}>
+          <div style={{ display: "flex", fontSize: 74, lineHeight: 0.96, fontWeight: 900, letterSpacing: 0 }}>
             {meshBrand.motto}
           </div>
-          <div style={{ fontSize: 28, lineHeight: 1.32, color: "#c4ccd8", maxWidth: 680 }}>
+          <div style={{ display: "flex", fontSize: 28, lineHeight: 1.32, color: "#c4ccd8", maxWidth: 680 }}>
             {meshBrand.openGraphDescription}
           </div>
           <div style={{ display: "flex", gap: 12, color: "#dbeafe", fontSize: 22, fontWeight: 700 }}>
@@ -114,7 +118,7 @@ export default function OpenGraphImage() {
             <span>No ads</span>
           </div>
         </div>
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", display: "flex" }}>
           <MeshiMark />
         </div>
       </div>

@@ -3,6 +3,16 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
+import {
+  areMutualFollowers,
+  canSeeMeshBranch,
+  canSeeMeshStats,
+  canViewMesh,
+  canViewProfile,
+  normalizeMeshVisibility,
+  parseBranchOverrides,
+  type BranchVisibility,
+} from "./privacy-policy";
 
 type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 
@@ -53,61 +63,13 @@ function sourceSearchUrl(platform: string, query: string) {
   }
 }
 
-function parseStoredRecord(value: string | null | undefined): Record<string, string> {
-  if (!value) return {};
-
-  try {
-    const parsed = JSON.parse(value);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-
-    return Object.fromEntries(
-      Object.entries(parsed).filter(
-        (entry): entry is [string, string] => typeof entry[0] === "string" && typeof entry[1] === "string"
-      )
-    );
-  } catch {
-    return {};
-  }
-}
-
-const VALID_PROFILE_VISIBILITIES = new Set(["private", "friends", "public", "partial"]);
-
-function normalizeProfileVisibility(value: string | null | undefined, fallback: string) {
-  return value && VALID_PROFILE_VISIBILITIES.has(value) ? value : fallback;
-}
-
-function canSeeVisibility(visibility: string, isOwnProfile: boolean, isFriend: boolean) {
-  if (isOwnProfile) return true;
-  if (visibility === "public") return true;
-  if (visibility === "friends") return isFriend;
-  return false;
-}
-
-async function getMutualFriendIds(userId: string) {
-  const [following, followers] = await Promise.all([
-    prisma.follow.findMany({ where: { followerId: userId }, select: { followingId: true } }),
-    prisma.follow.findMany({ where: { followingId: userId }, select: { followerId: true } }),
-  ]);
-  const followerIds = new Set(followers.map((item) => item.followerId));
-  return following.map((item) => item.followingId).filter((id) => followerIds.has(id));
-}
 
 async function canCurrentUserViewNativePost(post: { authorId: string; visibility: string }, currentUser: CurrentUser | null) {
   if (post.visibility === "public") return true;
   if (!currentUser) return false;
   if (post.authorId === currentUser.id) return true;
   if (post.visibility !== "friends") return false;
-  const [followToAuthor, followFromAuthor] = await Promise.all([
-    prisma.follow.findUnique({
-      where: { followerId_followingId: { followerId: currentUser.id, followingId: post.authorId } },
-      select: { id: true },
-    }),
-    prisma.follow.findUnique({
-      where: { followerId_followingId: { followerId: post.authorId, followingId: currentUser.id } },
-      select: { id: true },
-    }),
-  ]);
-  return Boolean(followToAuthor && followFromAuthor);
+  return areMutualFollowers(currentUser.id, post.authorId);
 }
 
 async function searchWikipedia(query: string) {
@@ -160,79 +122,6 @@ async function searchWikipedia(query: string) {
   }
 }
 
-export async function getFeedPosts(page = 1, limit = 20, currentUser?: CurrentUser | null) {
-  const user = currentUser ?? await getCurrentUser();
-  if (!user) return [];
-
-  const [following, communityMemberships, friendIds] = await Promise.all([
-    prisma.follow.findMany({
-      where: { followerId: user.id },
-      select: { followingId: true },
-    }),
-    prisma.communityMember.findMany({
-      where: { userId: user.id },
-      select: { communityId: true },
-    }),
-    getMutualFriendIds(user.id),
-  ]);
-
-  const followingIds = following.map((f) => f.followingId);
-  const communityIds = communityMemberships.map((m) => m.communityId);
-
-  const posts = await prisma.post.findMany({
-    where: {
-      ...nsfwHiddenWhere(user),
-      AND: [
-        {
-          OR: [
-            { authorId: { in: [...followingIds, user.id] } },
-            { communityId: { in: communityIds } },
-          ],
-        },
-        {
-          OR: [
-            { authorId: user.id },
-            { communityId: { in: communityIds } },
-            { visibility: "public" },
-            { visibility: "friends", authorId: { in: friendIds } },
-          ],
-        },
-      ],
-    },
-    include: {
-      author: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
-          isVerified: true,
-        },
-      },
-      community: {
-        select: { id: true, name: true, slug: true },
-      },
-      media: true,
-      tags: true,
-      _count: {
-        select: { comments: true, reactions: true, reposts: true },
-      },
-      reactions: {
-        where: { userId: user.id },
-        select: { id: true },
-      },
-      savedBy: {
-        where: { userId: user.id },
-        select: { id: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    skip: (page - 1) * limit,
-    take: limit,
-  });
-
-  return posts;
-}
 
 export async function getExplorePosts(page = 1, limit = 20, currentUser?: CurrentUser | null) {
   const user = currentUser ?? await getCurrentUser();
@@ -476,23 +365,34 @@ export async function getUserProfile(username: string) {
   }
 
   const userIsPublic = user.isPublic;
-  const meshShowStats = user.meshPrivacy?.showStats ?? false;
-  const meshVisibility = normalizeProfileVisibility(
+  const meshVisibility = normalizeMeshVisibility(
     user.meshPrivacy?.meshVisibility,
     userIsPublic ? "public" : "private"
   );
-  const branchOverrides = parseStoredRecord(user.meshPrivacy?.branchOverrides);
-  const canViewProfile = isOwnProfile || userIsPublic || canSeeVisibility(meshVisibility, isOwnProfile, isFriend);
+  const branchOverrides = parseBranchOverrides(user.meshPrivacy?.branchOverrides);
+  const profileVisible = canViewProfile(currentUser, user, meshVisibility, isFriend);
+  const profileUserId = user.id;
+  const showConnections = user.meshPrivacy?.showConnections;
 
   function canSeeBranch(branchKey: string) {
-    if (!canViewProfile) return false;
-    const fallback = meshVisibility === "partial" ? (userIsPublic ? "public" : "private") : meshVisibility;
-    return canSeeVisibility(normalizeProfileVisibility(branchOverrides[branchKey], fallback), isOwnProfile, isFriend);
+    if (!profileVisible) return false;
+    const fallback: BranchVisibility = meshVisibility === "partial"
+      ? (userIsPublic ? "public" : "private")
+      : meshVisibility;
+    return canSeeMeshBranch({
+      viewer: currentUser,
+      targetUserId: profileUserId,
+      branchKey,
+      branchOverrides,
+      isFriend,
+      showConnections,
+      defaultVisibility: fallback,
+    });
   }
 
   const sectionVisibility = {
-    profile: canViewProfile,
-    stats: isOwnProfile || (canViewProfile && (meshShowStats || userIsPublic)),
+    profile: profileVisible,
+    stats: profileVisible && canSeeMeshStats(currentUser, user.id, user.meshPrivacy),
     people: canSeeBranch("people"),
     interests: canSeeBranch("interests"),
     platforms: canSeeBranch("platforms"),
@@ -503,10 +403,10 @@ export async function getUserProfile(username: string) {
 
   return {
     ...user,
-    bio: canViewProfile ? user.bio : null,
-    location: canViewProfile ? user.location : null,
-    website: canViewProfile ? user.website : null,
-    links: canViewProfile ? user.links : [],
+    bio: profileVisible ? user.bio : null,
+    location: profileVisible ? user.location : null,
+    website: profileVisible ? user.website : null,
+    links: profileVisible ? user.links : [],
     interests: sectionVisibility.interests ? user.interests : [],
     connectedAccounts: sectionVisibility.platforms ? user.connectedAccounts : [],
     _count: sectionVisibility.stats ? user._count : hiddenCounts,
@@ -514,7 +414,7 @@ export async function getUserProfile(username: string) {
     isFollowing,
     isOwnProfile,
     isFriend,
-    privacyLevel: canViewProfile ? meshVisibility : "private",
+    privacyLevel: profileVisible ? meshVisibility : "private",
     sectionVisibility,
     mutualFollowers: sectionVisibility.people ? mutualFollowers.map((f) => f.follower) : [],
   };
@@ -562,14 +462,22 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
     isFriend = Boolean(followToUser && followFromUser);
   }
 
-  const meshVisibility = normalizeProfileVisibility(
+  const meshVisibility = normalizeMeshVisibility(
     user.meshPrivacy?.meshVisibility,
     user.isPublic ? "public" : "private"
   );
-  const branchOverrides = parseStoredRecord(user.meshPrivacy?.branchOverrides);
-  const fallback = meshVisibility === "partial" ? (user.isPublic ? "public" : "private") : meshVisibility;
-  const contentVisibility = normalizeProfileVisibility(branchOverrides.content, fallback);
-  if (!canSeeVisibility(contentVisibility, isOwnProfile, isFriend)) return [];
+  const branchOverrides = parseBranchOverrides(user.meshPrivacy?.branchOverrides);
+  const fallback: BranchVisibility = meshVisibility === "partial"
+    ? (user.isPublic ? "public" : "private")
+    : meshVisibility;
+  if (!canSeeMeshBranch({
+    viewer: currentUser,
+    targetUserId: user.id,
+    branchKey: "content",
+    branchOverrides,
+    isFriend,
+    defaultVisibility: fallback,
+  })) return [];
 
   const postVisibilityWhere = isOwnProfile
     ? {}
@@ -616,123 +524,8 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
   return posts;
 }
 
-export async function getCommunities() {
-  const user = await getCurrentUser();
 
-  const communities = await prisma.community.findMany({
-    where: user
-      ? {
-          OR: [
-            { isPublic: true },
-            { members: { some: { userId: user.id } } },
-          ],
-        }
-      : { isPublic: true },
-    include: {
-      _count: {
-        select: { members: true, posts: true },
-      },
-      members: user ? {
-        where: { userId: user.id },
-        select: { id: true, role: true },
-      } : false,
-    },
-    orderBy: { members: { _count: "desc" } },
-  });
 
-  return communities;
-}
-
-export async function getCommunityBySlug(slug: string) {
-  const user = await getCurrentUser();
-
-  const community = await prisma.community.findUnique({
-    where: { slug },
-    include: {
-      _count: {
-        select: { members: true, posts: true },
-      },
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatarUrl: true,
-            },
-          },
-        },
-        take: 20,
-      },
-    },
-  });
-
-  if (!community) return null;
-
-  const membership = user
-    ? await prisma.communityMember.findUnique({
-        where: { userId_communityId: { userId: user.id, communityId: community.id } },
-      })
-    : null;
-
-  if (!community.isPublic && !membership) return null;
-
-  return {
-    ...community,
-    isMember: !!membership,
-    userRole: membership?.role || null,
-  };
-}
-
-export async function getCommunityPosts(communityId: string, page = 1, limit = 20) {
-  const user = await getCurrentUser();
-  const community = await prisma.community.findUnique({
-    where: { id: communityId },
-    select: { isPublic: true },
-  });
-
-  if (!community) return [];
-  if (!community.isPublic) {
-    if (!user) return [];
-    const membership = await prisma.communityMember.findUnique({
-      where: { userId_communityId: { userId: user.id, communityId } },
-      select: { id: true },
-    });
-    if (!membership) return [];
-  }
-
-  return prisma.post.findMany({
-    where: { ...nsfwHiddenWhere(user), communityId },
-    include: {
-      author: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
-          isVerified: true,
-        },
-      },
-      media: true,
-      tags: true,
-      _count: {
-        select: { comments: true, reactions: true, reposts: true },
-      },
-      reactions: user ? {
-        where: { userId: user.id },
-        select: { id: true },
-      } : false,
-      savedBy: user ? {
-        where: { userId: user.id },
-        select: { id: true },
-      } : false,
-    },
-    orderBy: { createdAt: "desc" },
-    skip: (page - 1) * limit,
-    take: limit,
-  });
-}
 
 export async function getMessageThreads() {
   const user = await getCurrentUser();
@@ -1152,62 +945,6 @@ export async function getTrendingCommunities() {
 
 // ─── Admin Queries ───────────────────────────────────────────
 
-export async function getAdminStats() {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) return { userCount: 0, postCount: 0, communityCount: 0, reportCount: 0, recentUsers: [], recentReports: [], adminLogs: [], recentSignups: 0, recentPostCount: 0 };
-
-  const [userCount, postCount, communityCount, reportCount, recentUsers, recentReports, adminLogs] = await Promise.all([
-    prisma.user.count(),
-    prisma.post.count(),
-    prisma.community.count(),
-    prisma.report.count({ where: { status: "pending" } }),
-    prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        email: true,
-        avatarUrl: true,
-        isAdmin: true,
-        isSuspended: true,
-        isVerified: true,
-        createdAt: true,
-        _count: { select: { posts: true, followers: true } },
-      },
-    }),
-    prisma.report.findMany({
-      where: { status: "pending" },
-      include: {
-        reporter: { select: { username: true, displayName: true } },
-        reportedUser: { select: { username: true, displayName: true } },
-        reportedPost: { select: { id: true, content: true } },
-        reportedComment: { select: { id: true, content: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-    prisma.adminLog.findMany({
-      where: { action: { not: "feedback" } },
-      include: { admin: { select: { username: true, displayName: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-  ]);
-
-  // Get signup stats for last 7 days
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const recentSignups = await prisma.user.count({
-    where: { createdAt: { gte: sevenDaysAgo } },
-  });
-
-  const recentPostCount = await prisma.post.count({
-    where: { createdAt: { gte: sevenDaysAgo } },
-  });
-
-  return { userCount, postCount, communityCount, reportCount, recentUsers, recentReports, adminLogs, recentSignups, recentPostCount };
-}
 
 // ─── Additional Queries ─────────────────────────────────────
 
@@ -1537,25 +1274,6 @@ export async function getBlockedUsers() {
   });
 }
 
-export async function getMutedUsers() {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  return prisma.mute.findMany({
-    where: { muterId: user.id },
-    include: {
-      muted: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-}
 
 export async function getTrendingTags() {
   const tags = await prisma.postTag.groupBy({
@@ -1569,42 +1287,6 @@ export async function getTrendingTags() {
   return tags.map((t) => ({ tag: t.tag, count: t._count.tag }));
 }
 
-export async function getPopularPosts(limit = 10) {
-  const user = await getCurrentUser();
-  const safetyWhere = nsfwHiddenWhere(user);
-  const visibilityFilter = user
-    ? {
-        ...safetyWhere,
-        OR: [
-          { authorId: user.id },
-          { author: { isSuspended: false, isPublic: true, showInDiscovery: true } },
-        ],
-      }
-    : { ...safetyWhere, author: { isSuspended: false, isPublic: true, showInDiscovery: true } };
-
-  return prisma.post.findMany({
-    where: visibilityFilter,
-    include: {
-      author: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
-          isVerified: true,
-        },
-      },
-      community: { select: { id: true, name: true, slug: true } },
-      media: true,
-      tags: true,
-      _count: { select: { comments: true, reactions: true, reposts: true } },
-      reactions: user ? { where: { userId: user.id }, select: { id: true } } : false,
-      savedBy: user ? { where: { userId: user.id }, select: { id: true } } : false,
-    },
-    orderBy: [{ reactions: { _count: "desc" } }, { comments: { _count: "desc" } }, { createdAt: "desc" }],
-    take: limit,
-  });
-}
 
 export async function getUserSettings() {
   const user = await getCurrentUser();
@@ -1694,33 +1376,7 @@ export async function getUserSettings() {
   };
 }
 
-export async function getCommunityMembers(communityId: string) {
-  return prisma.communityMember.findMany({
-    where: { communityId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
-          isVerified: true,
-          bio: true,
-        },
-      },
-    },
-    orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
-  });
-}
 
-export async function getUnreadNotificationCount() {
-  const user = await getCurrentUser();
-  if (!user) return 0;
-
-  return prisma.notification.count({
-    where: { recipientId: user.id, read: false },
-  });
-}
 
 // ─── Mesh Graph Data (for Meshi awareness) ─────────────────
 
@@ -1845,16 +1501,6 @@ export async function getMeshPrivacy() {
   };
 }
 
-export async function getGlobalMeshStatus() {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const member = await prisma.globalMeshMember.findUnique({
-    where: { userId: user.id },
-  });
-
-  return member || { isActive: false, sharedBranches: "[]" };
-}
 
 type FriendMeshPublicPost = {
   id: string;
@@ -1914,7 +1560,11 @@ export async function getFriendMeshData(username: string): Promise<{
     where: { userId: targetUser.id },
   });
 
-  const visibility = privacy?.meshVisibility || "private";
+  const visibility = normalizeMeshVisibility(privacy?.meshVisibility, "private");
+
+  if (targetUser.isSuspended && targetUser.id !== currentUser.id && !currentUser.isAdmin) {
+    return null;
+  }
 
   // Check if we're friends (mutual follow)
   const [followToTarget, followFromTarget] = await Promise.all([
@@ -1938,14 +1588,12 @@ export async function getFriendMeshData(username: string): Promise<{
   };
 
   // Check access
-  if (visibility === "private" && targetUser.id !== currentUser.id) {
-    return { ...emptyResult, privacyLevel: "private" };
-  }
-  if (visibility === "friends" && !isFriend && targetUser.id !== currentUser.id) {
-    return { ...emptyResult, privacyLevel: "friends-only" };
+  if (!canViewMesh(currentUser, targetUser.id, visibility, isFriend)) {
+    return { ...emptyResult, privacyLevel: visibility === "friends" ? "friends-only" : "private" };
   }
 
-  const branchOverrides = parseStoredRecord(privacy?.branchOverrides);
+  const branchOverrides = parseBranchOverrides(privacy?.branchOverrides);
+  const friendMeshUserId = targetUser.id;
 
   const [following, followers, communities, interests, connectedAccounts, postCount, meshiPref] = await Promise.all([
     prisma.follow.findMany({
@@ -1991,11 +1639,16 @@ export async function getFriendMeshData(username: string): Promise<{
 
   // Filter by branch visibility
   function canSeeBranch(branchKey: string): boolean {
-    const vis = branchOverrides[branchKey];
-    if (!vis || vis === "public") return true;
-    if (vis === "friends") return isFriend;
-    if (vis === "private") return false;
-    return true;
+    const defaultVisibility: BranchVisibility = visibility === "partial" ? "private" : visibility;
+    return canSeeMeshBranch({
+      viewer: currentUser,
+      targetUserId: friendMeshUserId,
+      branchKey,
+      branchOverrides,
+      isFriend,
+      showConnections: privacy?.showConnections,
+      defaultVisibility,
+    });
   }
 
   // Check which user IDs follow the target user (to determine mutuals)
@@ -2078,13 +1731,15 @@ export async function getFriendMeshData(username: string): Promise<{
           outfitStyle: meshiPref.outfitStyle,
         }
       : null,
-    stats: {
-      followers,
-      following: following.length,
-      posts: postCount,
-      communities: communities.length,
-      platforms: connectedAccounts.length,
-    },
+    stats: canSeeMeshStats(currentUser, targetUser.id, privacy)
+      ? {
+          followers,
+          following: following.length,
+          posts: postCount,
+          communities: communities.length,
+          platforms: connectedAccounts.length,
+        }
+      : emptyResult.stats,
     privacyLevel: visibility,
   };
 }

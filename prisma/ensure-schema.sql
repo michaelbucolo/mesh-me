@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "stripeSubscriptionId" TEXT,
     "signupNumber" INTEGER,
     "showInDiscovery" BOOLEAN NOT NULL DEFAULT false,
-    "hideActivityStatus" BOOLEAN NOT NULL DEFAULT true,
+    "hideActivityStatus" BOOLEAN NOT NULL DEFAULT false,
     "readReceipts" BOOLEAN NOT NULL DEFAULT false,
     "nsfwEnabled" BOOLEAN NOT NULL DEFAULT false,
     "adultVerificationStatus" TEXT NOT NULL DEFAULT 'unverified',
@@ -1262,4 +1262,3 @@ CREATE INDEX IF NOT EXISTS "MeshPresence_lastSeen_idx" ON "MeshPresence"("lastSe
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "MeshPresence_viewingMesh_idx" ON "MeshPresence"("viewingMesh");
-

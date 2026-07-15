@@ -24,8 +24,11 @@ const checks = [
   {
     phase: "Phase 1: Trust Foundation",
     id: "token-encryption",
-    description: "Token encryption helpers exist",
-    run: () => exists("src/lib/encryption.ts") && exists("src/lib/secret-store.ts"),
+    description: "Connected-account token encryption is implemented",
+    run: () => {
+      const secretStore = read("src/lib/secret-store.ts");
+      return secretStore.includes("encryptSecret") && secretStore.includes("decryptSecret");
+    },
   },
   {
     phase: "Phase 1: Trust Foundation",
@@ -108,8 +111,8 @@ const checks = [
   {
     phase: "Phase 7: Mobile and Notification Hub",
     id: "native-modules",
-    description: "Native integration modules exist",
-    run: () => exists("src/lib/native/index.ts") && exists("capacitor.config.ts"),
+    description: "Native app bootstrap and platform bridges exist",
+    run: () => exists("src/components/native-init.tsx") && exists("src/lib/native/platform.ts") && exists("capacitor.config.ts"),
   },
   {
     phase: "Phase 7: Mobile and Notification Hub",

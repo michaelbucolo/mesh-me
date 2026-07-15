@@ -11,26 +11,6 @@ const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
 }));
 
 
-// Meshi face styles — every mood renders as clean, scalable SVG eyes (below).
-const FACES: Record<string, { eyes: string; svg?: boolean }> = {
-  happy: { eyes: "", svg: true },
-  excited: { eyes: "", svg: true },
-  thinking: { eyes: "", svg: true },
-  sleepy: { eyes: "", svg: true },
-  surprised: { eyes: "", svg: true },
-  love: { eyes: "", svg: true },
-  cool: { eyes: "", svg: true },
-  wink: { eyes: "", svg: true },
-  petted: { eyes: "", svg: true },
-  giggle: { eyes: "", svg: true },
-  shy: { eyes: "", svg: true },
-  synergy1017: { eyes: "", svg: true },
-  searching: { eyes: "", svg: true },
-  learning: { eyes: "", svg: true },
-  celebrating: { eyes: "", svg: true },
-  blinking: { eyes: "", svg: true },
-};
-
 // Crisp vector eyes for each mood. Tall, slightly elliptical solid eyes stay
 // consistent at any size (no unicode-glyph eyes).
 const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
@@ -844,26 +824,26 @@ function lightenHex(hex: string, amount: number): string {
 }
 
 // Which hats are MeshPro exclusive
-export const MESHPRO_HATS: Set<string> = new Set(["headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]);
-export const MESHPRO_COLORS: Set<string> = new Set(["crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]);
-export const MESHPRO_HAIRS: Set<string> = new Set(["spikes", "curls"]);
-export const MESHPRO_ACCESSORIES: Set<string> = new Set(["sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"]);
-export const MESHPRO_BADGES: Set<string> = new Set(["verified", "creator", "founder"]);
-export const MESHPRO_OUTFITS: Set<string> = new Set(["cape", "spacesuit", "turtleneck", "varsity", "tux"]);
 
 // Achievement titles — earned through milestones
-export const ACHIEVEMENT_TITLES: Record<string, { title: string; description: string; requirement: string }> = {
-  explorer: { title: "Explorer", description: "Connected 3+ platforms", requirement: "3_platforms" },
-  socialite: { title: "Socialite", description: "100+ followers across platforms", requirement: "100_followers" },
-  creator: { title: "Creator", description: "50+ posts on the mesh", requirement: "50_posts" },
-  connector: { title: "Connector", description: "Joined 5+ communities", requirement: "5_communities" },
-  pioneer: { title: "Pioneer", description: "Early mesh.me adopter", requirement: "early_adopter" },
-  influencer: { title: "Influencer", description: "1000+ total engagement", requirement: "1000_engagement" },
-  meshmaster: { title: "Mesh Master", description: "Fully customized Meshi", requirement: "full_customization" },
-  guardian: { title: "Guardian", description: "Verified email and phone", requirement: "verified" },
-};
 
-export type MeshiMood = keyof typeof FACES;
+export type MeshiMood =
+  | "happy"
+  | "excited"
+  | "thinking"
+  | "sleepy"
+  | "surprised"
+  | "love"
+  | "cool"
+  | "wink"
+  | "petted"
+  | "giggle"
+  | "shy"
+  | "synergy1017"
+  | "searching"
+  | "learning"
+  | "celebrating"
+  | "blinking";
 export type MeshiHat = keyof typeof HATS;
 export type MeshiHair = keyof typeof HAIRS;
 export type MeshiAccessory = keyof typeof ACCESSORIES;
@@ -1378,21 +1358,6 @@ export function MeshiLogo({ size = 32, color = "blue", mood = "happy", className
 }
 
 // Determine Meshi's mood based on user activity
-export function getMeshiMoodFromActivity(stats: {
-  daysActive?: number;
-  postsThisWeek?: number;
-  lastLogin?: Date;
-}): MeshiMood {
-  const now = new Date();
-  const daysSinceLogin = stats.lastLogin
-    ? Math.floor((now.getTime() - new Date(stats.lastLogin).getTime()) / (1000 * 60 * 60 * 24))
-    : 999;
-  if (daysSinceLogin > 7) return "sleepy";
-  if (daysSinceLogin > 3) return "thinking";
-  if ((stats.postsThisWeek || 0) > 5) return "excited";
-  if ((stats.postsThisWeek || 0) > 2) return "love";
-  return "happy";
-}
 
 // Small social Meshi for displaying on other users' mesh nodes
 export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy", hair = "none", accessory = "none", eyeStyle = "regular", badge = "none", outfit = "none" }: {
@@ -1425,5 +1390,3 @@ export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "hap
     </svg>
   );
 }
-
-export { ACCESSORIES, BADGES, COLOR_THEMES, EYE_STYLES, FACES, HAIRS, HATS, OUTFITS, PROP_SVGS };

@@ -274,7 +274,7 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
 
 // Platforms that use manual username entry instead of OAuth
 // (no standard OAuth API available or API is deprecated)
-export const MANUAL_PLATFORMS = [
+const MANUAL_PLATFORMS = [
   "bluesky",
   "applemusic",
   "mastodon",
@@ -293,7 +293,7 @@ export const MANUAL_PLATFORMS = [
   "tumblr",
 ];
 
-export const OAUTH_PLATFORM_IDS = Object.keys(OAUTH_CONFIGS);
+const OAUTH_PLATFORM_IDS = Object.keys(OAUTH_CONFIGS);
 export const MANUAL_PLATFORM_IDS = [...MANUAL_PLATFORMS];
 export const ALL_PLATFORM_IDS = Array.from(new Set([...OAUTH_PLATFORM_IDS, ...MANUAL_PLATFORM_IDS]));
 
@@ -301,9 +301,6 @@ export function isPlatformOAuth(platform: string): boolean {
   return Object.hasOwn(OAUTH_CONFIGS, platform);
 }
 
-export function isPlatformManual(platform: string): boolean {
-  return MANUAL_PLATFORMS.includes(platform);
-}
 
 export function isSupportedPlatform(platform: string): boolean {
   return ALL_PLATFORM_IDS.includes(platform);

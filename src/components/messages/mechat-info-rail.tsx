@@ -37,7 +37,6 @@ type MeChatInfoRailProps = {
   sourceSummaries: SourceSummary[];
   mediaCount: number;
   fileCount: number;
-  isEncrypted: boolean;
 };
 
 function platformColor(platform: string) {
@@ -63,7 +62,6 @@ export function MeChatInfoRail({
   sourceSummaries,
   mediaCount,
   fileCount,
-  isEncrypted,
 }: MeChatInfoRailProps) {
   const memberPreview = members.slice(0, 5);
 
@@ -194,7 +192,7 @@ export function MeChatInfoRail({
         <div className="space-y-3 text-sm text-[var(--mesh-text-secondary)]">
           <div className="flex items-center gap-2 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-2">
             <ShieldCheck size={14} className="shrink-0 text-[var(--mesh-green)]" />
-            <span>{isEncrypted ? "End-to-end encrypted" : "Private session"}</span>
+            <span>Member-only access</span>
           </div>
           <div className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-3 leading-6">
             <p>Only members of this conversation can read and send messages here.</p>
