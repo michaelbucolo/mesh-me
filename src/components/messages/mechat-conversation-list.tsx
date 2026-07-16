@@ -290,52 +290,10 @@ export function MeChatConversationList({
 
   return (
     <div className={`${rootClassName} ${className || ""} animate-page-enter`}>
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--mesh-border)] px-4 py-4">
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold text-[var(--mesh-text)]">MeChat</h1>
-          <p className="mt-1 text-xs leading-5 text-[var(--mesh-text-secondary)]">
-            Your universal messaging hub. Conversations from every connected account, in one place.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={openCompose}
-          className="mesh-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text)] transition hover:border-[var(--mesh-border-active)] hover:text-white"
-          aria-label="Compose new message"
-          title="Compose new message"
-        >
-          <PenSquare size={17} />
-        </button>
-      </div>
-
-      <div className="border-b border-[var(--mesh-border)] px-3 py-3">
-        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {FILTERS.map((filter) => {
-            const selected = activeFilter === filter.key;
-            const count = filter.key === "all" ? filterCounts.all : filterCounts[filter.key];
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => setActiveFilter(filter.key)}
-                className={`mesh-pressable inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
-                  selected
-                    ? "border-[var(--mesh-border-active)] bg-[var(--mesh-blue)]/15 text-[var(--mesh-text)]"
-                    : "border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] hover:border-[var(--mesh-border-active)] hover:text-[var(--mesh-text)]"
-                }`}
-              >
-                <span>{filter.label}</span>
-                <span className={`min-w-5 rounded-full px-1.5 py-0.5 text-[10px] ${selected ? "bg-[var(--mesh-blue)] text-white" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-secondary)]"}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="border-b border-[var(--mesh-border)] px-3 py-3">
-        <label className="flex items-center gap-2 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-2.5 text-sm shadow-[var(--shadow-sm)]">
+      {/* One calm row: find a conversation or start one. The top bar already
+          names the surface — no need to say "MeChat" twice. */}
+      <div className="flex items-center gap-2 px-3 pb-2 pt-3">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3.5 py-2.5 text-sm transition focus-within:border-[var(--mesh-blue)]/50">
           <Search size={15} className="shrink-0 text-[var(--mesh-text-muted)]" />
           <input
             value={threadQuery}
@@ -345,6 +303,41 @@ export function MeChatConversationList({
             suppressHydrationWarning
           />
         </label>
+        <button
+          type="button"
+          onClick={openCompose}
+          className="mesh-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--mesh-blue)] text-white shadow-[0_4px_18px_rgba(47,124,255,0.35)] transition hover:brightness-110 active:scale-95"
+          aria-label="Compose new message"
+          title="Compose new message"
+        >
+          <PenSquare size={17} />
+        </button>
+      </div>
+
+      <div className="px-3 pb-2">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FILTERS.map((filter) => {
+            const selected = activeFilter === filter.key;
+            const count = filter.key === "all" ? filterCounts.all : filterCounts[filter.key];
+            return (
+              <button
+                key={filter.key}
+                type="button"
+                onClick={() => setActiveFilter(filter.key)}
+                className={`mesh-pressable inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                  selected
+                    ? "bg-[var(--mesh-blue)] text-white shadow-[0_2px_12px_rgba(47,124,255,0.3)]"
+                    : "bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text)]"
+                }`}
+              >
+                <span>{filter.label}</span>
+                {count > 0 && (
+                  <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--mesh-text-muted)]"}`}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {status && (
@@ -414,33 +407,32 @@ export function MeChatConversationList({
         </div>
 
         <div className="px-1 pb-2">
-          <div className="mb-2 flex items-center justify-between px-3">
-            <p className="text-sm font-semibold text-[var(--mesh-text)]">Messages</p>
-            <span className="text-[11px] text-[var(--mesh-text-secondary)]">{filteredThreads.length} visible</span>
-          </div>
-
           {filteredThreads.length > 0 ? (
-            <div className="grid gap-2">
+            <div className="grid gap-0.5">
               {filteredThreads.map((thread) => {
                 const active = pathname === `/messages/${thread.id}` || pathname.startsWith(`/messages/${thread.id}/`);
                 const isGroup = thread.threadType === "group" || thread.threadType === "community";
                 const isVerified = !isGroup && thread.otherUser?.isVerified;
                 const unread = thread.unread > 0;
+                const mineLast = thread.lastMessage?.senderId === currentUser.id;
 
                 return (
                   <Link
                     key={thread.id}
                     href={`/messages/${thread.id}`}
                     aria-current={active ? "page" : undefined}
-                    className={`group flex min-h-[4.5rem] items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition active:scale-[0.99] ${
+                    className={`group relative flex min-h-[4.25rem] items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
                       active
-                        ? "border-[var(--mesh-border-active)] bg-[var(--mesh-blue)]/10 shadow-[0_0_0_1px_rgba(47,124,255,0.12)]"
-                        : "border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] hover:border-[var(--mesh-border-active)] hover:bg-[var(--mesh-panel-hover)]"
+                        ? "bg-[var(--mesh-blue)]/12"
+                        : "hover:bg-[var(--mesh-panel-hover)]"
                     }`}
                   >
+                    {active && (
+                      <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full bg-[var(--mesh-blue)]" aria-hidden="true" />
+                    )}
                     <div className="relative shrink-0">
                       {isGroup ? (
-                        <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] text-[var(--mesh-text-secondary)]">
+                        <div className="flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)]">
                           {thread.otherUsers.length > 0 ? (
                             <div className="relative h-9 w-9">
                               {thread.otherUsers.slice(0, 3).map((member, index) => (
@@ -462,38 +454,39 @@ export function MeChatConversationList({
                           src={thread.otherUser?.avatarUrl ?? null}
                           alt={thread.otherUser?.displayName ?? thread.title}
                           size="md"
-                          className="h-14 w-14 ring-2 ring-[var(--mesh-blue)]/10"
+                          className="h-[52px] w-[52px]"
                         />
                       )}
-                      {unread ? (
-                        thread.unread === 1 ? (
-                          <span className="absolute -right-0.5 bottom-0 h-3 w-3 rounded-full border-2 border-[var(--mesh-bg-elevated)] bg-[var(--mesh-blue)]" />
-                        ) : (
-                          <span className="absolute -right-1 bottom-0 rounded-full border border-[var(--mesh-border-active)] bg-[var(--mesh-blue)] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
-                            {thread.unread > 99 ? "99+" : thread.unread}
-                          </span>
-                        )
-                      ) : null}
+                      {unread && thread.unread > 1 && (
+                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--mesh-blue)] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
+                          {thread.unread > 99 ? "99+" : thread.unread}
+                        </span>
+                      )}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className="truncate text-sm font-semibold text-[var(--mesh-text)]">{threadDisplay(thread)}</span>
-                        {isVerified && <BadgeCheck size={14} className="shrink-0 text-[var(--mesh-blue)]" />}
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`truncate text-sm ${unread ? "font-bold text-[var(--mesh-text)]" : "font-semibold text-[var(--mesh-text)]"}`}>
+                          {threadDisplay(thread)}
+                        </span>
+                        {isVerified && <BadgeCheck size={14} className="shrink-0 self-center text-[var(--mesh-blue)]" />}
                         {thread.platform && thread.platform !== "mesh" && (
-                          <span className={`rounded px-1 py-0.5 text-[9px] font-bold ${platformBadgeClass(thread.platform)}`}>
+                          <span className={`shrink-0 self-center rounded px-1 py-0.5 text-[9px] font-bold ${platformBadgeClass(thread.platform)}`}>
                             {platformLabel(thread.platform)}
                           </span>
                         )}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1.5">
-                        <p className={`truncate text-xs ${unread ? "font-medium text-[var(--mesh-text)]" : "text-[var(--mesh-text-secondary)]"}`}>
-                          {thread.lastMessage?.content ?? "No messages yet"}
-                        </p>
                         {thread.lastMessage && (
-                          <span className="shrink-0 text-[11px] text-[var(--mesh-text-muted)]">
-                            · {formatRelativeTime(thread.lastMessage.createdAt)}
+                          <span className="ml-auto shrink-0 text-[11px] text-[var(--mesh-text-muted)]">
+                            {formatRelativeTime(thread.lastMessage.createdAt)}
                           </span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <p className={`truncate text-xs ${unread ? "font-semibold text-[var(--mesh-text)]" : "text-[var(--mesh-text-secondary)]"}`}>
+                          {thread.lastMessage ? `${mineLast ? "You: " : ""}${thread.lastMessage.content}` : "No messages yet"}
+                        </p>
+                        {unread && (
+                          <span className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" aria-label="Unread" />
                         )}
                       </div>
                     </div>

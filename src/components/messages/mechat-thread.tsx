@@ -146,6 +146,39 @@ function messageMatchesSearch(message: MeChatSerializedMessage, query: string) {
   ].some((value) => value?.toLowerCase().includes(q));
 }
 
+// Messages from the same sender within this window read as one breath of
+// conversation: avatars collapse, corners tighten, timestamps deduplicate.
+const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+function senderKey(message: MeChatSerializedMessage) {
+  return message.metadata.externalSender?.name || message.senderId;
+}
+
+function sameDay(a: string, b: string) {
+  const da = new Date(a);
+  const db = new Date(b);
+  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+}
+
+function dayLabel(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(d)) / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return d.toLocaleDateString(undefined, { weekday: "long" });
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  });
+}
+
+function timeLabel(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
 function attachmentLabel(type: MeChatAttachmentType) {
   if (type === "image") return "Image";
   if (type === "video") return "Video";
@@ -228,14 +261,25 @@ export function MeChatThread({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  // Which bubble's action bar is pinned open (tap on touch, since there's no hover).
+  const [actionsFor, setActionsFor] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const draftRef = useRef<HTMLTextAreaElement>(null);
   const typingTimerRef = useRef<number | null>(null);
 
   const visibleMessages = useMemo(
     () => messages.filter((message) => messageMatchesSearch(message, searchQuery)),
     [messages, searchQuery],
   );
+
+  // Read receipts belong on the latest thing you said, not under every bubble.
+  const lastOwnMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i].senderId === currentUser.id && !messages[i].metadata.externalSender) return messages[i].id;
+    }
+    return null;
+  }, [messages, currentUser.id]);
 
   const searchCount = searchQuery.trim() ? visibleMessages.length : 0;
 
@@ -472,9 +516,9 @@ export function MeChatThread({
 
   return (
     <div data-testid="mechat-thread" className="grid h-full min-h-0 grid-rows-[auto_1fr_auto]">
-      <div className="border-b border-[var(--border-primary)] p-3">
-        <label className="flex items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-sm">
-          <Search size={15} className="text-[var(--text-muted)]" aria-hidden="true" />
+      <div className="border-b border-[var(--border-primary)] px-3 py-2">
+        <label className="flex items-center gap-2 rounded-full bg-[var(--bg-secondary)]/60 px-3.5 py-2 text-sm transition focus-within:bg-[var(--bg-secondary)]">
+          <Search size={14} className="text-[var(--text-muted)]" aria-hidden="true" />
           <input
             data-testid="mechat-search-input"
             value={searchQuery}
@@ -491,32 +535,135 @@ export function MeChatThread({
 
       <div className="min-h-0 overflow-y-auto px-3 py-4 md:px-4">
         {visibleMessages.length > 0 ? (
-          <div className="grid gap-3">
-            {visibleMessages.map((message) => {
+          <div className="grid">
+            {visibleMessages.map((message, index) => {
+              const prevMessage = visibleMessages[index - 1];
+              const nextMessage = visibleMessages[index + 1];
               const externalSender = message.metadata.externalSender;
               const isMine = message.senderId === currentUser.id && !externalSender;
-              const readers = isExternalThread ? "" : readState(message, currentUser.id);
+              const newDay = !prevMessage || !sameDay(prevMessage.createdAt, message.createdAt);
+              const groupedWithPrev = Boolean(
+                !newDay &&
+                  prevMessage &&
+                  senderKey(prevMessage) === senderKey(message) &&
+                  +new Date(message.createdAt) - +new Date(prevMessage.createdAt) < GROUP_WINDOW_MS,
+              );
+              const groupedWithNext = Boolean(
+                nextMessage &&
+                  sameDay(message.createdAt, nextMessage.createdAt) &&
+                  senderKey(nextMessage) === senderKey(message) &&
+                  +new Date(nextMessage.createdAt) - +new Date(message.createdAt) < GROUP_WINDOW_MS,
+              );
+              const readers = !isExternalThread && message.id === lastOwnMessageId ? readState(message, currentUser.id) : "";
               const groupedReactions = localReactionGroups(message, currentUser.id);
               const delivery = message.metadata.delivery;
+              const showMeta = !groupedWithNext;
+              const pinnedActions = actionsFor === message.id;
+              const corners = isMine
+                ? `rounded-[1.3rem] ${groupedWithPrev ? "rounded-tr-[0.5rem]" : ""} ${groupedWithNext ? "rounded-br-[0.5rem]" : ""}`
+                : `rounded-[1.3rem] ${groupedWithPrev ? "rounded-tl-[0.5rem]" : ""} ${groupedWithNext ? "rounded-bl-[0.5rem]" : ""}`;
 
               return (
+                <div key={message.id}>
+                {newDay && (
+                  <div className={`flex items-center justify-center ${index === 0 ? "mb-4" : "my-4"}`}>
+                    <span className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)]/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      {dayLabel(message.createdAt)}
+                    </span>
+                  </div>
+                )}
                 <article
-                  key={message.id}
                   data-testid="mechat-message-bubble"
-                  className={`group flex gap-2 ${isMine ? "justify-end" : "justify-start"}`}
+                  className={`group flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"} ${groupedWithPrev ? "mt-0.5" : newDay ? "" : "mt-3"}`}
                 >
-                  {!isMine && (
-                    <Avatar
-                      src={externalSender?.avatarUrl || (externalSender ? null : message.sender.avatarUrl)}
-                      alt={externalSender?.name || message.sender.displayName}
-                      size="sm"
-                    />
-                  )}
-                  <div className={`max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1.5`}>
-                    <div className={`px-4 py-3 text-sm ${
+                  {!isMine &&
+                    (groupedWithNext ? (
+                      <span className="w-8 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <Avatar
+                        src={externalSender?.avatarUrl || (externalSender ? null : message.sender.avatarUrl)}
+                        alt={externalSender?.name || message.sender.displayName}
+                        size="sm"
+                        className="mb-4 shrink-0"
+                      />
+                    ))}
+                  <div className={`relative max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}>
+                    {!isMine && !groupedWithPrev && (
+                      <p className="px-2 text-[11px] font-semibold text-[var(--text-muted)]">
+                        {externalSender?.name || message.sender.displayName}
+                      </p>
+                    )}
+                    {/* Floating action bar: hover on desktop, tap-to-pin on touch */}
+                    {!message.metadata.unsent && (
+                      <div
+                        onClick={(event) => event.stopPropagation()}
+                        className={`absolute top-1/2 z-10 -translate-y-1/2 items-center gap-0.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/95 px-1.5 py-1 shadow-lg backdrop-blur ${
+                          isMine ? "right-full mr-2" : "left-full ml-2"
+                        } ${pinnedActions ? "flex" : "hidden md:group-hover:flex"}`}
+                      >
+                        {QUICK_REACTIONS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => {
+                              toggleReaction(message.id, emoji);
+                              setActionsFor(null);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-sm transition-transform hover:scale-125"
+                            aria-label={`React ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyTo(message);
+                            setActionsFor(null);
+                            draftRef.current?.focus();
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-white/10 hover:text-[var(--text-primary)]"
+                          aria-label="Reply"
+                          title="Reply"
+                        >
+                          <MessageCircleReply size={14} aria-hidden="true" />
+                        </button>
+                        {isMine && !isExternalThread && message.messageType === "text" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              beginEdit(message);
+                              setActionsFor(null);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-white/10 hover:text-[var(--text-primary)]"
+                            aria-label="Edit"
+                            title="Edit"
+                          >
+                            <Pencil size={13} aria-hidden="true" />
+                          </button>
+                        )}
+                        {isMine && !isExternalThread && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              unsendMessage(message.id);
+                              setActionsFor(null);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-white/10 hover:text-red-300"
+                            aria-label="Unsend"
+                            title="Unsend"
+                          >
+                            <Undo2 size={13} aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div
+                      onClick={() => setActionsFor((current) => (current === message.id ? null : message.id))}
+                      className={`px-4 py-2.5 text-sm ${corners} ${
                       isMine
-                        ? "mechat-bubble-mine rounded-[1.35rem] rounded-br-md text-white"
-                        : "rounded-[1.35rem] rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-primary)] shadow-sm"
+                        ? "mechat-bubble-mine text-white"
+                        : "border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-primary)] shadow-sm"
                     }`}>
                       {!isExternalThread && (message.sourcePlatform !== "mesh" || message.messageType !== "text") ? (
                         <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.12em] ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
@@ -623,103 +770,52 @@ export function MeChatThread({
                       </div>
                     )}
 
-                    <div className={`flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-muted)] ${isMine ? "justify-end" : "justify-start"}`}>
-                      <span>{isMine ? "You" : externalSender?.name || message.sender.displayName}</span>
-                      <span>-</span>
-                      <span>{formatRelativeTime(message.createdAt)}</span>
-                      {delivery && (
-                        <>
-                          <span>-</span>
+                    {showMeta && (
+                      <div className={`flex flex-wrap items-center gap-1.5 px-2 text-[10px] text-[var(--text-muted)] ${isMine ? "justify-end" : "justify-start"}`}>
+                        <span>{timeLabel(message.createdAt)}</span>
+                        {delivery && (
                           <span className={delivery.status === "delivered" ? "text-[var(--mesh-green,#34d399)]" : "text-red-300"}>
-                            {delivery.status === "delivered"
+                            · {delivery.status === "delivered"
                               ? `Delivered to ${platformDisplayName(delivery.platform)}`
                               : `Saved here — not delivered to ${platformDisplayName(delivery.platform)}`}
                           </span>
-                        </>
-                      )}
-                      {message.metadata.edited && !message.metadata.unsent && (
-                        <>
-                          <span>-</span>
-                          <span>Edited</span>
-                        </>
-                      )}
-                      {readers && (
-                        <>
-                          <span>-</span>
-                          <span className="inline-flex items-center gap-1"><CheckCheck size={12} aria-hidden="true" />{readers}</span>
-                        </>
-                      )}
-                    </div>
-
-                    {!message.metadata.unsent && (
-                      <div className={`flex flex-wrap gap-1.5 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 ${isMine ? "justify-end" : "justify-start"}`}>
-                        <button
-                          type="button"
-                          onClick={() => setReplyTo(message)}
-                          className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
-                        >
-                          <MessageCircleReply size={13} aria-hidden="true" />
-                          Reply
-                        </button>
-                        {QUICK_REACTIONS.map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            onClick={() => toggleReaction(message.id, emoji)}
-                            className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
-                            aria-label={`React ${emoji}`}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                        {isMine && !isExternalThread && message.messageType === "text" && editingId !== message.id && (
-                          <button
-                            type="button"
-                            onClick={() => beginEdit(message)}
-                            className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
-                          >
-                            <Pencil size={13} aria-hidden="true" />
-                            Edit
-                          </button>
                         )}
-                        {isMine && !isExternalThread && (
-                          <button
-                            type="button"
-                            onClick={() => unsendMessage(message.id)}
-                            className="mesh-choice inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-[11px] font-bold"
-                          >
-                            <Undo2 size={13} aria-hidden="true" />
-                            Unsend
-                          </button>
+                        {message.metadata.edited && !message.metadata.unsent && <span>· Edited</span>}
+                        {readers && (
+                          <span className="inline-flex items-center gap-1">
+                            · <CheckCheck size={12} aria-hidden="true" />
+                            {readers}
+                          </span>
                         )}
                       </div>
                     )}
                   </div>
                 </article>
+                </div>
               );
             })}
             <div ref={bottomRef} />
           </div>
         ) : (
           <div className="flex min-h-72 flex-col items-center justify-center text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/70">
-              <MessageCircleReply size={24} aria-hidden="true" />
-            </div>
-            <h2 className="text-xl font-bold">{searchQuery ? "No matching messages" : "Start the conversation"}</h2>
-            <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
-              {searchQuery ? "Try another search term." : "Send the first message, media link, or source-aware share."}
+            <MeshiMascot size={88} mood="excited" prop="envelope" animate />
+            <h2 className="mt-4 text-lg font-bold">{searchQuery ? "No matching messages" : "Say hello"}</h2>
+            <p className="mt-1.5 max-w-xs text-sm leading-6 text-[var(--text-secondary)]">
+              {searchQuery
+                ? "Try another search term."
+                : "This is the very beginning of your conversation. Meshi is holding the first message — send it."}
             </p>
           </div>
         )}
 
         {typingUsers.length > 0 && (
-          <div className="mt-3 flex items-center gap-2 text-xs font-bold text-[var(--text-muted)]">
+          <div className="mt-3 flex items-end gap-2">
             <div className="flex -space-x-1.5">
               {typingUsers.slice(0, 3).map((user) =>
                 user.meshi ? (
-                  <span key={user.userId} className="mechat-typing-meshi inline-flex h-6 w-6 items-center justify-center">
+                  <span key={user.userId} className="mechat-typing-meshi inline-flex h-8 w-8 items-center justify-center">
                     <MeshiMascot
-                      size={24}
+                      size={30}
                       prop="keyboard"
                       mood="happy"
                       color={user.meshi.color as MeshiColor}
@@ -736,14 +832,16 @@ export function MeChatThread({
                 ),
               )}
             </div>
-            {typingUsers.map((user) => user.displayName).join(", ")} {typingUsers.length === 1 ? "is" : "are"} writing
-            {typingUsers.some((user) => !user.meshi) && (
-              <span className="inline-flex gap-0.5">
-                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)]" />
-                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:120ms]" />
-                <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--text-muted)] [animation-delay:240ms]" />
+            <div
+              className="rounded-[1.3rem] rounded-bl-[0.5rem] border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 px-4 py-3 shadow-sm"
+              aria-label={`${typingUsers.map((user) => user.displayName).join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing`}
+            >
+              <span className="inline-flex gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--text-muted)]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--text-muted)] [animation-delay:140ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--text-muted)] [animation-delay:280ms]" />
               </span>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -844,47 +942,69 @@ export function MeChatThread({
           <button
             type="button"
             onClick={() => setShowMediaTools((current) => !current)}
-            className="mesh-action mesh-action-secondary h-11 px-3"
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition ${
+              showMediaTools
+                ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)]"
+                : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
             aria-pressed={showMediaTools}
             aria-label="Add media or link"
+            title="Add media or link"
           >
-            <ImageIcon size={16} aria-hidden="true" />
+            <ImageIcon size={17} aria-hidden="true" />
           </button>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                sendCurrentMessage();
+          <div className="flex min-w-0 flex-1 items-end rounded-[1.4rem] border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2 transition focus-within:border-[var(--accent)]/60">
+            <textarea
+              ref={draftRef}
+              value={draft}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                // Grow with the draft, up to ~5 lines, then scroll inside.
+                const el = event.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 132)}px`;
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  sendCurrentMessage();
+                }
+              }}
+              rows={1}
+              className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-base leading-5 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] md:text-sm"
+              placeholder={
+                isExternalThread
+                  ? `Reply on ${platformDisplayName(threadPlatform)}`
+                  : pendingSource
+                    ? "Add a note or send the shared source"
+                    : "Message\u2026"
               }
-            }}
-            rows={1}
-            className="simple-input min-h-11 flex-1 resize-none px-3 py-3 text-base leading-5 md:text-sm"
-            placeholder={
-              isExternalThread
-                ? `Reply on ${platformDisplayName(threadPlatform)}`
-                : pendingSource
-                  ? "Add a note or send the shared source"
-                  : "Message MeChat"
-            }
-          />
-          <button
-            type="button"
-            onClick={() => setDraft((current) => `${current}${current ? " " : ""}\uD83D\uDC4D`)}
-            className="mesh-action mesh-action-secondary hidden h-11 px-3 sm:inline-flex"
-            aria-label="Add thumbs up to message"
-            title="Add thumbs up"
-          >
-            <SmilePlus size={16} aria-hidden="true" />
-          </button>
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setDraft((current) => `${current}${current ? " " : ""}\uD83D\uDC4D`);
+                draftRef.current?.focus();
+              }}
+              className="mb-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+              aria-label="Add thumbs up to message"
+              title="Add thumbs up"
+            >
+              <SmilePlus size={17} aria-hidden="true" />
+            </button>
+          </div>
           <button
             type="submit"
             disabled={isPending || (!draft.trim() && attachments.length === 0 && !pendingSource?.sourceUrl)}
-            className="mesh-action mesh-action-primary h-11 px-4"
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-lg transition-all duration-150 ${
+              draft.trim() || attachments.length > 0 || pendingSource?.sourceUrl
+                ? "scale-100 bg-[var(--accent)] hover:brightness-110 active:scale-90"
+                : "scale-95 bg-[var(--bg-secondary)] text-[var(--text-muted)]"
+            } disabled:cursor-not-allowed`}
+            aria-label="Send message"
+            title="Send"
           >
-            {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
-            <span className="hidden sm:inline">Send</span>
+            {isPending ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : <Send size={17} aria-hidden="true" />}
           </button>
         </div>
       </form>
