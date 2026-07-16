@@ -78,12 +78,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Choose at least one person." }, { status: 400 });
   }
 
+  // A private profile is not an unreachable one — requiring isPublic +
+  // showInDiscovery here meant nobody could DM a private account at all
+  // (and with early accounts private by default, nobody could DM anyone).
+  // Blocks — checked right below — are the opt-out for unwanted messages.
   const members = await prisma.user.findMany({
     where: {
       id: { in: memberIds },
       isSuspended: false,
-      isPublic: true,
-      showInDiscovery: true,
     },
     select: {
       id: true,
