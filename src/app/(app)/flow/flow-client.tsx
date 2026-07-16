@@ -12,7 +12,7 @@ export type FlowPost = {
   createdAt: string;
   author: { id: string; username: string; displayName: string; avatarUrl: string | null; isVerified: boolean };
   community?: { id: string; name: string; slug: string } | null;
-  media: { id: string; url: string; type: string }[];
+  media: { id: string; url: string; type: string; posterUrl?: string }[];
   tags: { id: string; tag: string }[];
   _count: { comments: number; reactions: number; reposts: number };
   reactions?: { id: string }[];
@@ -25,8 +25,11 @@ export type FlowPost = {
 function ReelMedia({ post, active, muted, onToggleMute }: { post: FlowPost; active: boolean; muted: boolean; onToggleMute: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [paused, setPaused] = useState(false);
-  const video = post.media.find((m) => m.type === "video");
-  const image = post.media.find((m) => m.type !== "video");
+  const [videoFailed, setVideoFailed] = useState(false);
+  const video = videoFailed ? undefined : post.media.find((m) => m.type === "video");
+  const image = post.media.find((m) => m.type !== "video") ?? (videoFailed
+    ? post.media.map((m) => (m.posterUrl ? { ...m, url: m.posterUrl, type: "image" } : null)).find(Boolean) ?? undefined
+    : undefined);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -46,11 +49,12 @@ function ReelMedia({ post, active, muted, onToggleMute }: { post: FlowPost; acti
         <video
           ref={videoRef}
           src={video.url}
-          poster={image?.url}
+          poster={video.posterUrl ?? image?.url}
           loop
           muted={muted}
           playsInline
           preload="metadata"
+          onError={() => setVideoFailed(true)}
           className="h-full w-full object-cover"
         />
         {paused && (

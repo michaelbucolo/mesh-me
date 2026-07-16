@@ -38,7 +38,7 @@ interface PostCardProps {
       isVerified: boolean;
     };
     community?: { id: string; name: string; slug: string } | null;
-    media: { id: string; url: string; type: string }[];
+    media: { id: string; url: string; type: string; posterUrl?: string }[];
     tags: { id: string; tag: string }[];
     _count: { comments: number; reactions: number; reposts: number };
     reactions?: { id: string }[];
@@ -546,7 +546,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 )}
               >
                 {media.type.toLowerCase() === "video" ? (
-                  <video src={media.url} className="h-full w-full object-cover" controls preload="metadata" playsInline />
+                  <video src={media.url} poster={media.posterUrl} className="h-full w-full object-cover" controls preload="metadata" playsInline />
                 ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={media.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.015]" />

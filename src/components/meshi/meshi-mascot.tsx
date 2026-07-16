@@ -976,6 +976,10 @@ export function MeshiMascot({
       raf = requestAnimationFrame(step);
       const el = containerRef.current;
       if (!el || document.hidden) return;
+      // getBoundingClientRect forces a layout read; doing that every frame in
+      // every mounted mascot janks the whole page. ~22Hz is plenty for
+      // sensing travel velocity — the springs smooth in between.
+      if (t - lastT < 45) return;
       const r = el.getBoundingClientRect();
       const x = r.left + r.width / 2;
       const y = r.top + r.height / 2;

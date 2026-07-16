@@ -247,6 +247,13 @@ export async function getExplorePosts(page = 1, limit = 20, currentUser?: Curren
       }
     : { isNsfw: false, visibility: "public", author: { isSuspended: false, isPublic: true, showInDiscovery: true } };
 
+  // Ordering the whole table by reaction count forces SQLite to run a
+  // correlated count for every public post before it can return a single row
+  // (measured at 1–2.5s in production). Explore is "what's hot lately", so
+  // rank a recent window in memory instead: one indexed createdAt scan, then
+  // sort those posts by engagement.
+  const offset = (page - 1) * limit;
+  const windowSize = Math.min(Math.max((offset + limit) * 3, 60), 240);
   const posts = await prisma.post.findMany({
     where: visibilityFilter,
     include: {
@@ -276,15 +283,18 @@ export async function getExplorePosts(page = 1, limit = 20, currentUser?: Curren
         select: { id: true },
       } : false,
     },
-    orderBy: [
-      { reactions: { _count: "desc" } },
-      { createdAt: "desc" },
-    ],
-    skip: (page - 1) * limit,
-    take: limit,
+    orderBy: { createdAt: "desc" },
+    take: windowSize,
   });
 
-  return posts;
+  posts.sort(
+    (a, b) =>
+      b._count.reactions * 3 + b._count.comments * 2 + b._count.reposts -
+        (a._count.reactions * 3 + a._count.comments * 2 + a._count.reposts) ||
+      +new Date(b.createdAt) - +new Date(a.createdAt),
+  );
+
+  return posts.slice(offset, offset + limit);
 }
 
 export async function getPostById(postId: string) {
@@ -1079,16 +1089,17 @@ export async function getDiscoverUsers() {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  const following = await prisma.follow.findMany({
-    where: { followerId: user.id },
-    select: { followingId: true },
-  });
+  const [following, userInterests] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: user.id },
+      select: { followingId: true },
+    }),
+    prisma.userInterest.findMany({
+      where: { userId: user.id },
+      select: { tag: true },
+    }),
+  ]);
   const followingIds = following.map((f) => f.followingId);
-
-  const userInterests = await prisma.userInterest.findMany({
-    where: { userId: user.id },
-    select: { tag: true },
-  });
   const tags = userInterests.map((i) => i.tag);
 
   const exclude = [...followingIds, user.id];

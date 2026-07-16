@@ -106,6 +106,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const cursorWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // Local-only hover growth — only YOU see your Meshi lean in toward a node.
   const cursorScaleRef = useRef(1);
+  // Reactive body language: Meshi leans into its direction of travel, and a
+  // click/tap gives a happy little pop. Screen-space, per-frame, local-only.
+  const cursorRotRef = useRef(0);
+  const cursorPrevRef = useRef<{ x: number; y: number } | null>(null);
+  const ownerScaleRef = useRef(1);
+  const ownerRotRef = useRef(0);
+  const ownerPrevRef = useRef<{ x: number; y: number } | null>(null);
+  // Whether the mouse is currently over the canvas — while it is, your Meshi
+  // mirrors it tightly (it IS your cursor); when it leaves, Meshi ambles home.
+  const pointerOnCanvasRef = useRef(false);
   // Last pointer/touch input time — the owner Meshi wanders toward recent
   // input and ambles home to the heart once you've been idle a few seconds.
   const lastInputAtRef = useRef(0);
@@ -122,6 +132,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const presenceWorldRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const presenceWorldPosRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const hoverIdRef = useRef<string | null>(null);
+  // Mirrors showCompose for the heartbeat, which runs outside React renders.
+  const composingRef = useRef(false);
   const cursorVpRef = useRef({ vx: 0.5, vy: 0.5 });
   const meshOwnerIdRef = useRef<string | null>(null);
   const ownerMeshiElRef = useRef<HTMLDivElement>(null);
@@ -132,6 +144,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [meshUser, setMeshUser] = useState<{ displayName: string; avatarUrl: string | null } | null>(null);
   const [meshData, setMeshData] = useState<MeshApiResponse | null>(null);
   const [showCompose, setShowCompose] = useState(false);
+  useEffect(() => {
+    composingRef.current = showCompose;
+  }, [showCompose]);
   const [hoverNode, setHoverNode] = useState<SceneNode | null>(null);
   const [viewedUser, setViewedUser] = useState<{ username: string; displayName: string | null } | null>(null);
   const [remotePresences, setRemotePresences] = useState<RemotePresence[]>([]);
@@ -538,6 +553,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         t.seen = true;
       }
       lastInputAtRef.current = performance.now();
+      if (e.pointerType === "mouse") pointerOnCanvasRef.current = true;
+      // A press is a moment of intent — Meshi pops with you, everywhere.
+      cursorScaleRef.current = Math.min(cursorScaleRef.current + 0.3, 1.6);
+      ownerScaleRef.current = Math.min(ownerScaleRef.current + 0.3, 1.6);
       if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "1";
     }
     const d = dragRef.current;
@@ -580,6 +599,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         t.x = wx;
         t.y = wy;
         lastInputAtRef.current = performance.now();
+        pointerOnCanvasRef.current = true;
       }
     }
     const cursor = meshiCursorRef.current;
@@ -739,7 +759,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             meshiEyeStyle: prefs.eye,
             meshiBadge: prefs.badge,
             meshiOutfit: prefs.outfit,
-            meshiMood: prefs.face,
+            // Broadcast what you're DOING, not just your default face — this
+            // is how others see you being alive on the internet.
+            meshiMood: composingRef.current ? "thinking" : hoverIdRef.current ? "excited" : prefs.face,
             viewportPosition: coarseRef.current ? { vx: 0.5, vy: 0.5 } : vp,
             position: {
               x: coarseRef.current ? -cameraRef.current.panX / cameraRef.current.zoom : cursorWorldTargetRef.current.x,
@@ -932,16 +954,25 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         cursorVpRef.current = { vx: 0.5, vy: 0.5 };
       }
       if (cursorEl && cursorWorldTargetRef.current.seen) {
-        const ck = 1 - Math.exp(-dt / 420);
+        // Meshi IS your cursor: while the mouse is on the canvas it mirrors it
+        // tightly (a whisper of trailing keeps it alive, never vague). Only
+        // remote viewers see the casual drift, via heartbeat interpolation.
+        const ck = 1 - Math.exp(-dt / 90);
         const p = cursorWorldPosRef.current;
         const t = cursorWorldTargetRef.current;
         p.x += (t.x - p.x) * ck;
         p.y += (t.y - p.y) * ck;
         const s = project(p.x, p.y);
         const clear = coarseRef.current ? s : avoidNodes(s.x, s.y);
-        const targetScale = hoverIdRef.current ? 1.22 : 1;
+        const targetScale = hoverIdRef.current ? 1.28 : 1;
         cursorScaleRef.current += (targetScale - cursorScaleRef.current) * (1 - Math.exp(-dt / 140));
-        cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) scale(${cursorScaleRef.current.toFixed(3)})`;
+        // Lean into the direction of travel — pure body language, local-only.
+        const prev = cursorPrevRef.current;
+        const vpf = prev ? (clear.x - prev.x) / Math.max(dt, 1) : 0;
+        cursorPrevRef.current = { x: clear.x, y: clear.y };
+        const leanTarget = Math.max(-16, Math.min(16, vpf * 24));
+        cursorRotRef.current += (leanTarget - cursorRotRef.current) * (1 - Math.exp(-dt / 110));
+        cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) rotate(${cursorRotRef.current.toFixed(2)}deg) scale(${cursorScaleRef.current.toFixed(3)})`;
       }
 
       // The mesh owner's Meshi. On someone else's mesh it rests at the heart
@@ -951,13 +982,19 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const container = containerRef.current;
       if (ownerEl && container) {
         const isMe = !viewUserId;
-        const active = isMe && cursorWorldTargetRef.current.seen && time - lastInputAtRef.current < 4000;
+        // On your own mesh your Meshi IS your cursor: it mirrors the mouse
+        // while it's over the canvas, and only ambles home (casually) once
+        // the mouse leaves or you go quiet.
+        const pointerLive =
+          pointerOnCanvasRef.current || time - lastInputAtRef.current < 4000;
+        const active = isMe && cursorWorldTargetRef.current.seen && pointerLive;
         const centered = coarseRef.current && isMe;
         const tx = centered ? cursorWorldTargetRef.current.x : active ? cursorWorldTargetRef.current.x : 0;
         const ty = centered ? cursorWorldTargetRef.current.y : active ? cursorWorldTargetRef.current.y : 0;
+        const ok = active && !coarseRef.current ? 1 - Math.exp(-dt / 90) : k;
         const pos = ownerWorldPosRef.current;
-        pos.x += (tx - pos.x) * k;
-        pos.y += (ty - pos.y) * k;
+        pos.x += (tx - pos.x) * ok;
+        pos.y += (ty - pos.y) * ok;
         const s = project(pos.x, pos.y);
         // Avoid nodes while wandering — but its own heart node is home, so
         // it's allowed to settle there. Touch users keep the owner Meshi
@@ -984,6 +1021,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         }
         ownerEl.style.left = `${cx}px`;
         ownerEl.style.top = `${cy}px`;
+        // Local body language for YOUR OWN Meshi: grow toward hovered nodes,
+        // pop on click, lean into travel. Visitors' views are untouched.
+        if (isMe) {
+          const growTarget = hoverIdRef.current ? 1.28 : 1;
+          ownerScaleRef.current += (growTarget - ownerScaleRef.current) * (1 - Math.exp(-dt / 140));
+          const prevO = ownerPrevRef.current;
+          const vpfO = prevO ? (cx - prevO.x) / Math.max(dt, 1) : 0;
+          ownerPrevRef.current = { x: cx, y: cy };
+          const leanTargetO = Math.max(-16, Math.min(16, vpfO * 24));
+          ownerRotRef.current += (leanTargetO - ownerRotRef.current) * (1 - Math.exp(-dt / 110));
+          ownerEl.style.transform = `translate(-50%, -50%) rotate(${ownerRotRef.current.toFixed(2)}deg) scale(${ownerScaleRef.current.toFixed(3)})`;
+        }
       }
 
       raf = requestAnimationFrame(step);
@@ -1101,6 +1150,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           // A lifted finger fires pointerleave too — only a mouse leaving the
           // canvas should hide Meshi; on touch it stays where you left it.
           if (e.pointerType !== "mouse") return;
+          pointerOnCanvasRef.current = false;
           hoverIdRef.current = null;
           setHoverNode(null);
           if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "0";
@@ -1183,7 +1233,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 eyeStyle={(m.eyeStyle || "regular") as MeshiEyeStyle}
                 badge={(m.badgeStyle || "none") as MeshiBadge}
                 outfit={(m.outfitStyle || "none") as MeshiOutfit}
-                mood={ownerOnline ? ((m.faceStyle || "happy") as MeshiMood) : "sleepy"}
+                mood={
+                  !ownerOnline
+                    ? "sleepy"
+                    : !viewUserId && showCompose
+                      ? "thinking"
+                      : !viewUserId && hoverNode
+                        ? "excited"
+                        : ((m.faceStyle || "happy") as MeshiMood)
+                }
                 animate={ownerOnline}
                 showGlow={ownerOnline}
               />

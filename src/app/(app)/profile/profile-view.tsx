@@ -73,21 +73,25 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
 
-  const [profile, posts] = await Promise.all([
+  // One parallel batch instead of two dependent rounds — saved posts only
+  // apply to your own profile (knowable from the session), and community
+  // memberships are fetched alongside but rendered only when the profile's
+  // visibility settings allow it.
+  const isSelf = currentUser.username.toLowerCase() === username.toLowerCase();
+  const [profile, posts, allMemberships, [savedPosts, savedPostCount]] = await Promise.all([
     getUserProfile(username),
     getUserPosts(username, 1, 24),
+    getUserCommunities(username),
+    isSelf
+      ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
+      : Promise.resolve([[], 0] as const),
   ]);
 
   if (!profile) notFound();
 
   const isOwnProfile = profile.isOwnProfile;
   const canViewProfile = profile.sectionVisibility.profile;
-  const [memberships, [savedPosts, savedPostCount]] = await Promise.all([
-    canViewProfile ? getUserCommunities(username) : Promise.resolve([]),
-    isOwnProfile
-      ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
-      : Promise.resolve([[], 0] as const),
-  ]);
+  const memberships = canViewProfile ? allMemberships : [];
   const meshi = profile.meshiPreference ?? DEFAULT_MESHI;
   const connectedAccounts = profile.connectedAccounts ?? [];
   const links = profile.links ?? [];

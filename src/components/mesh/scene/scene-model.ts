@@ -6,6 +6,7 @@
 // posts, a persona's accounts, a friend's shared world) carry children so they
 // can be opened in place. Layout is computed separately by scene-layout.ts.
 
+import { bestStillUrl } from "@/lib/external-media";
 import type { MeshApiResponse } from "../mesh-data";
 import { PLATFORM_COLORS } from "../mesh-types";
 
@@ -194,7 +195,12 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
       });
       topPosts.forEach((pp: any) => {
         const media = pp.media?.[0];
-        const image = pp.thumbnailUrl || media?.thumbnailUrl || media?.url || null;
+        // Node thumbnails render through <img>/canvas Image — only ever hand
+        // them a still, never a video file or platform page URL.
+        const image =
+          bestStillUrl({ thumbnailUrl: pp.thumbnailUrl }) ||
+          bestStillUrl({ mediaUrl: media?.url, thumbnailUrl: media?.thumbnailUrl }) ||
+          null;
         add({
           id: `platform-post:${acct.id}:${pp.id}`,
           kind: "post",
@@ -267,7 +273,9 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           label: truncate(fp.content || "Post", 40),
           sublabel: "@" + p.username,
           content: fp.content,
-          imageUrl: media?.url || null,
+          imageUrl:
+            bestStillUrl({ mediaUrl: media?.url, thumbnailUrl: media?.thumbnailUrl }) ||
+            (media && media.type !== "video" ? media.url : null),
           color: BRANCH_META.posts.color,
           parentId: personId,
           childIds: [],
@@ -294,7 +302,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         kind: "post",
         label: truncate(p.content || "Post", 40),
         content: p.content,
-        imageUrl: media?.url || null,
+        imageUrl: media && media.type !== "video" ? media.url : null,
         color: BRANCH_META.posts.color,
         parentId: branchId("posts"),
         childIds: [],

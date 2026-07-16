@@ -1,4 +1,5 @@
 import { nsfwHiddenWhere } from "./content-safety";
+import { buildExternalMedia } from "./external-media";
 import { getFriendPlatformFeedPosts, type FriendPlatformFeedPost } from "./friend-mesh";
 import { prisma } from "./prisma";
 
@@ -28,7 +29,7 @@ export type FeedCardPost = {
     isVerified: boolean;
   };
   community?: { id: string; name: string; slug: string } | null;
-  media: { id: string; url: string; type: string }[];
+  media: { id: string; url: string; type: string; posterUrl?: string }[];
   tags: { id: string; tag: string }[];
   _count: { comments: number; reactions: number; reposts: number };
   reactions?: { id: string }[];
@@ -228,18 +229,20 @@ export async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit
 
     return platformPosts.map((post) => {
     const media = post.media.length > 0
-      ? post.media.map((item) => ({
-          id: item.id,
-          url: item.thumbnailUrl || item.url,
-          type: item.mediaType,
-        }))
-      : post.thumbnailUrl
-        ? [{
-            id: `${post.id}-thumbnail`,
-            url: post.thumbnailUrl,
-            type: ["video", "reel", "short", "story"].includes(post.postType) ? "video" : "image",
-          }]
-        : [];
+      ? post.media.flatMap((item) =>
+          buildExternalMedia({
+            id: item.id,
+            mediaUrl: item.url,
+            thumbnailUrl: item.thumbnailUrl,
+            mediaType: item.mediaType,
+            postType: post.postType,
+          }),
+        )
+      : buildExternalMedia({
+          id: `${post.id}-thumbnail`,
+          thumbnailUrl: post.thumbnailUrl,
+          postType: post.postType,
+        });
 
     const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
 
@@ -297,13 +300,12 @@ export async function getMergedForYouFeedPosts(user: FeedCurrentUser, limit = 40
     return items.map((item) => {
     const content = [item.title, item.content].filter(Boolean).join(item.title && item.content ? "\n\n" : "");
     const authorName = item.authorName || item.authorUsername || item.connectedAccount.platform;
-    const media = item.mediaUrl || item.thumbnailUrl
-      ? [{
-          id: `${item.id}-media`,
-          url: item.mediaUrl || item.thumbnailUrl || "",
-          type: ["video", "reel", "short", "stream"].includes(item.postType) ? "video" : "image",
-        }]
-      : [];
+    const media = buildExternalMedia({
+      id: item.id,
+      mediaUrl: item.mediaUrl,
+      thumbnailUrl: item.thumbnailUrl,
+      postType: item.postType,
+    });
 
     return {
       id: `feeditem-${item.id}`,
@@ -358,13 +360,12 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
       if (!item) return null;
       const content = [item.title, item.content].filter(Boolean).join(item.title && item.content ? "\n\n" : "");
       const authorName = item.authorName || item.authorUsername || item.connectedAccount.platform;
-      const media = item.mediaUrl || item.thumbnailUrl
-        ? [{
-            id: `${item.id}-media`,
-            url: item.mediaUrl || item.thumbnailUrl || "",
-            type: ["video", "reel", "short", "stream"].includes(item.postType) ? "video" : "image",
-          }]
-        : [];
+      const media = buildExternalMedia({
+        id: item.id,
+        mediaUrl: item.mediaUrl,
+        thumbnailUrl: item.thumbnailUrl,
+        postType: item.postType,
+      });
       return {
         id: `feeditem-${item.id}`,
         content: content || `${item.connectedAccount.platform} post`,
@@ -417,14 +418,20 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
       });
       if (!post) return null;
       const media = post.media.length > 0
-        ? post.media.map((item) => ({ id: item.id, url: item.thumbnailUrl || item.url, type: item.mediaType }))
-        : post.thumbnailUrl
-          ? [{
-              id: `${post.id}-thumbnail`,
-              url: post.thumbnailUrl,
-              type: ["video", "reel", "short", "story"].includes(post.postType) ? "video" : "image",
-            }]
-          : [];
+        ? post.media.flatMap((item) =>
+            buildExternalMedia({
+              id: item.id,
+              mediaUrl: item.url,
+              thumbnailUrl: item.thumbnailUrl,
+              mediaType: item.mediaType,
+              postType: post.postType,
+            }),
+          )
+        : buildExternalMedia({
+            id: `${post.id}-thumbnail`,
+            thumbnailUrl: post.thumbnailUrl,
+            postType: post.postType,
+          });
       const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
       return {
         id: `platform-${post.id}`,
