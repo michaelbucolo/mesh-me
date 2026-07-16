@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
       getTrendingCommunities(),
     ]);
 
-    return NextResponse.json({
+    return NextResponse.json(
+      {
       posts: posts.map((post) => ({
         id: post.id,
         content: post.content,
@@ -45,7 +46,11 @@ export async function GET(req: NextRequest) {
         memberCount: community._count.members,
         postCount: community._count.posts,
       })),
-    });
+      },
+      // Discovery tolerates a little staleness — let the browser reuse it
+      // briefly so hopping back to Explore is instant.
+      { headers: { "Cache-Control": "private, max-age=45, stale-while-revalidate=120" } },
+    );
   } catch {
     return NextResponse.json({ posts: [], users: [], communities: [] });
   }

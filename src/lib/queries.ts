@@ -443,7 +443,9 @@ export async function getUserProfile(username: string) {
   let mutualFollowers: Array<{ follower: { id: string; username: string; displayName: string; avatarUrl: string | null } }> = [];
 
   if (currentUser) {
-    const [followToUser, followFromUser, currentFollowing] = await Promise.all([
+    // One parallel round: mutuals are "people I follow who follow them",
+    // expressed relationally so it doesn't need my following list first.
+    const [followToUser, followFromUser, mutuals] = await Promise.all([
       prisma.follow.findUnique({
         where: {
           followerId_followingId: {
@@ -461,20 +463,9 @@ export async function getUserProfile(username: string) {
         },
       }),
       prisma.follow.findMany({
-        where: { followerId: currentUser.id },
-        select: { followingId: true },
-      }),
-    ]);
-
-    isFollowing = Boolean(followToUser);
-    isFriend = Boolean(followToUser && followFromUser);
-
-    mutualFollowers = await prisma.follow.findMany({
         where: {
           followingId: user.id,
-          followerId: {
-          in: currentFollowing.map((f) => f.followingId),
-          },
+          follower: { followers: { some: { followerId: currentUser.id } } },
         },
         include: {
           follower: {
@@ -482,7 +473,12 @@ export async function getUserProfile(username: string) {
           },
         },
         take: 5,
-    });
+      }),
+    ]);
+
+    isFollowing = Boolean(followToUser);
+    isFriend = Boolean(followToUser && followFromUser);
+    mutualFollowers = mutuals;
   }
 
   const userIsPublic = user.isPublic;
@@ -1115,36 +1111,38 @@ export async function getDiscoverUsers() {
     showInDiscovery: true,
   };
 
-  // Interest-matched suggestions first, so discovery feels personal.
-  const interestMatched = tags.length > 0
-    ? await prisma.user.findMany({
-        where: {
-          ...baseWhere,
-          id: { notIn: exclude },
-          interests: { some: { tag: { in: tags } } },
-        },
-        include,
-        orderBy: { followers: { _count: "desc" } },
-        take: 20,
-      })
-    : [];
+  // Ordering the whole user table by follower count makes SQLite run a
+  // correlated COUNT per user before returning anything — the main cost of
+  // /api/explore. Pull one bounded candidate window instead and rank it in
+  // memory: exact for small networks, a fresh-leaning approximation at scale.
+  const candidates = await prisma.user.findMany({
+    where: {
+      ...baseWhere,
+      id: { notIn: exclude },
+    },
+    include,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
 
-  // Always backfill with popular people to follow, so the discovery rail is
-  // never empty just because interests don't overlap. Deduped against the
-  // people already shown and anyone you follow.
+  const byFollowers = (a: (typeof candidates)[number], b: (typeof candidates)[number]) =>
+    b._count.followers - a._count.followers;
+
+  // Interest-matched suggestions first, so discovery feels personal; backfill
+  // with the most-followed of the rest so the rail is never empty.
+  const tagSet = new Set(tags);
+  const interestMatched = tags.length
+    ? candidates.filter((u) => u.interests.some((i) => tagSet.has(i.tag))).sort(byFollowers).slice(0, 20)
+    : [];
   const suggested = [...interestMatched];
   if (suggested.length < 12) {
-    const already = new Set([...exclude, ...suggested.map((u) => u.id)]);
-    const popular = await prisma.user.findMany({
-      where: {
-        ...baseWhere,
-        id: { notIn: Array.from(already) },
-      },
-      include,
-      orderBy: { followers: { _count: "desc" } },
-      take: 20 - suggested.length,
-    });
-    suggested.push(...popular);
+    const already = new Set(suggested.map((u) => u.id));
+    suggested.push(
+      ...candidates
+        .filter((u) => !already.has(u.id))
+        .sort(byFollowers)
+        .slice(0, 20 - suggested.length),
+    );
   }
 
   return suggested;
