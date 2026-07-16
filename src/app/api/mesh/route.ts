@@ -762,8 +762,10 @@ export async function GET(req: Request) {
 }
 
 async function getPublicMesh(targetUserId: string, viewerId: string) {
-  const targetUser = await prisma.user.findUnique({
-    where: { id: targetUserId },
+  // Meshes are reached by id (presence, node clicks) AND by username (profile
+  // "View Public Mesh" links, shared URLs) — resolve either.
+  const targetUser = await prisma.user.findFirst({
+    where: { OR: [{ id: targetUserId }, { username: targetUserId.toLowerCase() }] },
     select: {
       id: true,
       username: true,
@@ -778,6 +780,8 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
   if (!targetUser) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
+  // Every query below keys on the real id, whichever form the URL used.
+  targetUserId = targetUser.id;
 
   const isFollowing = await prisma.follow.findFirst({
     where: { followerId: viewerId, followingId: targetUserId },
