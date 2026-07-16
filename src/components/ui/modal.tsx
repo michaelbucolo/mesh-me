@@ -48,37 +48,3 @@ export function Modal({ open, onClose, children, className, title, description }
     </Dialog.Root>
   );
 }
-
-export const DialogRoot = Dialog.Root;
-export const DialogTrigger = Dialog.Trigger;
-export const DialogClose = Dialog.Close;
-export const DialogPortal = Dialog.Portal;
-
-export function DialogOverlay({ className, ...props }: Dialog.DialogOverlayProps) {
-  return (
-    <Dialog.Overlay
-      className={cn("fixed inset-0 z-50 bg-black/55 backdrop-blur-sm data-[state=open]:animate-fade-in", className)}
-      {...props}
-    />
-  );
-}
-
-export function DialogContent({ className, children, ...props }: Dialog.DialogContentProps) {
-  return (
-    <Dialog.Portal>
-      <DialogOverlay />
-      <Dialog.Content
-        className={cn(
-          "ds-glass-panel fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 p-5 data-[state=open]:animate-smooth-reveal",
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </Dialog.Content>
-    </Dialog.Portal>
-  );
-}
-
-export const DialogTitle = Dialog.Title;
-export const DialogDescription = Dialog.Description;

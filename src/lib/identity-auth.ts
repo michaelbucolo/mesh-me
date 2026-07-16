@@ -49,7 +49,7 @@ export const IDENTITY_PROVIDERS: Record<IdentityProvider, IdentityProviderConfig
   },
 };
 
-export const IDENTITY_PROVIDER_IDS = Object.keys(IDENTITY_PROVIDERS) as IdentityProvider[];
+const IDENTITY_PROVIDER_IDS = Object.keys(IDENTITY_PROVIDERS) as IdentityProvider[];
 
 export function isIdentityProvider(value: string): value is IdentityProvider {
   return Object.hasOwn(IDENTITY_PROVIDERS, value);
@@ -71,7 +71,7 @@ export function getIdentityCallbackUrl(provider: IdentityProvider): string {
 
 // Google uses a static client secret; Apple requires a short-lived ES256 JWT
 // signed with the team's private key.
-export function getIdentityClientSecret(provider: IdentityProvider): string | null {
+function getIdentityClientSecret(provider: IdentityProvider): string | null {
   if (provider === "google") {
     return envValue("GOOGLE_AUTH_CLIENT_SECRET") ?? envValue("GOOGLE_CLIENT_SECRET");
   }

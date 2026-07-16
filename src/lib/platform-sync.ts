@@ -2347,69 +2347,6 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
   }
 }
 
-export async function syncComments(connectedAccountId: string, platformPostId: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const account = await prisma.connectedAccount.findUnique({
-    where: { id: connectedAccountId },
-  });
-  if (!account || account.userId !== user.id) return { error: "Account not found" };
-  const accessToken = await getValidAccessToken(account);
-  if (!accessToken) return { error: "No access token" };
-
-  const post = await prisma.platformPost.findFirst({
-    where: { connectedAccountId: account.id, platformPostId },
-  });
-  if (!post) return { error: "Post not found" };
-
-  try {
-    const adapter = getAdapter(account.platform);
-    const result = await adapter.fetchComments(accessToken, platformPostId);
-
-    for (const comment of result.comments) {
-      await prisma.platformComment.upsert({
-        where: {
-          connectedAccountId_platformCommentId: {
-            connectedAccountId: account.id,
-            platformCommentId: comment.platformCommentId,
-          },
-        },
-        create: { connectedAccountId: account.id, postId: post.id, ...comment },
-        update: {
-          platformPostId: comment.platformPostId,
-          content: comment.content,
-          authorName: comment.authorName,
-          authorUsername: comment.authorUsername,
-          authorAvatarUrl: comment.authorAvatarUrl,
-          isOwnComment: comment.isOwnComment,
-          likeCount: comment.likeCount,
-          replyCount: comment.replyCount,
-          parentCommentId: comment.parentCommentId,
-          url: comment.url,
-          sentiment: comment.sentiment,
-          publishedAt: comment.publishedAt,
-          postId: post.id,
-        },
-      });
-    }
-
-    await prisma.platformPost.update({
-      where: { id: post.id },
-      data: { commentsImported: true },
-    });
-
-    await migratePlatformCommentsIntoMeChat({
-      id: account.id,
-      userId: account.userId,
-      platform: account.platform,
-    });
-
-    return { success: true, count: result.comments.length };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to sync comments" };
-  }
-}
 
 // ─── Content Management Actions ─────────────────────────────
 
@@ -2515,26 +2452,6 @@ async function getActingAccountForSourcePost(
   });
 }
 
-export async function getSyncJobs(connectedAccountId?: string) {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  const accounts = await prisma.connectedAccount.findMany({
-    where: { userId: user.id, ...(connectedAccountId ? { id: connectedAccountId } : {}) },
-    select: { id: true },
-  });
-
-  const jobs = await prisma.syncJob.findMany({
-    where: { connectedAccountId: { in: accounts.map((a) => a.id) } },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-    include: {
-      connectedAccount: { select: { platform: true } },
-    },
-  });
-
-  return jobs;
-}
 
 export async function deletePlatformPost(postId: string) {
   const user = await getCurrentUser();

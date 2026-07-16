@@ -15,13 +15,10 @@ async function getKeyboardPlugin() {
   return Keyboard;
 }
 
-/**
- * Listen for keyboard show/hide events. Returns a cleanup function.
- * On web this is a no-op and returns null.
- */
+/** Listen for native keyboard show/hide events. */
 export async function onKeyboardChange(
   onShow: (info: KeyboardInfo) => void,
-  onHide: () => void
+  onHide: () => void,
 ): Promise<(() => void) | null> {
   const keyboard = await getKeyboardPlugin();
   if (!keyboard) return null;
@@ -29,22 +26,12 @@ export async function onKeyboardChange(
   const showHandle = await keyboard.addListener("keyboardWillShow", (info) => {
     onShow({ keyboardHeight: info.keyboardHeight });
   });
-
-  const hideHandle = await keyboard.addListener("keyboardWillHide", () => {
-    onHide();
-  });
+  const hideHandle = await keyboard.addListener("keyboardWillHide", onHide);
 
   return () => {
-    showHandle.remove();
-    hideHandle.remove();
+    void showHandle.remove();
+    void hideHandle.remove();
   };
-}
-
-/** Programmatically hide the keyboard. */
-export async function hideKeyboard(): Promise<void> {
-  const keyboard = await getKeyboardPlugin();
-  if (!keyboard) return;
-  await keyboard.hide();
 }
 
 /** Set keyboard accessory bar visibility. */

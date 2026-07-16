@@ -29,7 +29,7 @@ export type PresenceEntry = {
 };
 
 // A Meshi is "online" if a heartbeat arrived within this window.
-export const ONLINE_WINDOW_MS = 15000;
+const ONLINE_WINDOW_MS = 15000;
 // Entries older than this are considered gone and removed.
 const STALE_MS = 30000;
 

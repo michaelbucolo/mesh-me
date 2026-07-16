@@ -1,53 +1,21 @@
 /**
- * Haptic feedback bridge — wraps @capacitor/haptics so callers can
- * fire-and-forget without worrying about platform checks.
- *
- * On web the calls are silent no-ops.
+ * Haptic feedback bridge for native navigation and Meshi interactions.
+ * Calls are silent no-ops in a regular browser.
  */
 
 import { isPluginAvailable } from "./platform";
 
 type ImpactStyle = "HEAVY" | "MEDIUM" | "LIGHT";
 
-async function getHapticsPlugin() {
-  if (!isPluginAvailable("Haptics")) return null;
-  const { Haptics } = await import("@capacitor/haptics");
-  return Haptics;
-}
-
-/** Trigger an impact haptic (button taps, toggles). */
 export async function impactFeedback(style: ImpactStyle = "MEDIUM") {
-  const haptics = await getHapticsPlugin();
-  if (!haptics) return;
-  const { ImpactStyle } = await import("@capacitor/haptics");
-  const map: Record<string, typeof ImpactStyle[keyof typeof ImpactStyle]> = {
+  if (!isPluginAvailable("Haptics")) return;
+
+  const { Haptics, ImpactStyle } = await import("@capacitor/haptics");
+  const styles = {
     HEAVY: ImpactStyle.Heavy,
     MEDIUM: ImpactStyle.Medium,
     LIGHT: ImpactStyle.Light,
-  };
-  await haptics.impact({ style: map[style] ?? ImpactStyle.Medium });
-}
+  } as const;
 
-/** Trigger a notification haptic (success, warning, error). */
-export async function notificationFeedback(
-  type: "SUCCESS" | "WARNING" | "ERROR" = "SUCCESS"
-) {
-  const haptics = await getHapticsPlugin();
-  if (!haptics) return;
-  const { NotificationType } = await import("@capacitor/haptics");
-  const map: Record<string, typeof NotificationType[keyof typeof NotificationType]> = {
-    SUCCESS: NotificationType.Success,
-    WARNING: NotificationType.Warning,
-    ERROR: NotificationType.Error,
-  };
-  await haptics.notification({ type: map[type] ?? NotificationType.Success });
-}
-
-/** Light selection-changed haptic (scrolling through items). */
-export async function selectionFeedback() {
-  const haptics = await getHapticsPlugin();
-  if (!haptics) return;
-  await haptics.selectionStart();
-  await haptics.selectionChanged();
-  await haptics.selectionEnd();
+  await Haptics.impact({ style: styles[style] });
 }

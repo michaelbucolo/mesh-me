@@ -14,14 +14,14 @@ export const notificationCategories = [
 
 export type NotificationCategory = typeof notificationCategories[number];
 
-export type NotificationActor = {
+type NotificationActor = {
   id: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
 } | null;
 
-export type NotificationPost = {
+type NotificationPost = {
   id: string;
   content: string;
   community: {
@@ -42,7 +42,7 @@ export type NotificationRecord = {
   post?: NotificationPost;
 };
 
-export type SerializedNotification = {
+type SerializedNotification = {
   id: string;
   type: string;
   category: NotificationCategory;
@@ -71,7 +71,7 @@ export type NotificationGroup = {
   notifications: SerializedNotification[];
 };
 
-export type NotificationCategoryCount = {
+type NotificationCategoryCount = {
   total: number;
   unread: number;
 };
@@ -99,7 +99,7 @@ export type NotificationCenterPayload = {
   preferences: NotificationPreferenceSummary;
 };
 
-export const defaultNotificationPreferenceSummary: NotificationPreferenceSummary = {
+const defaultNotificationPreferenceSummary: NotificationPreferenceSummary = {
   pushEnabled: true,
   emailDigest: "weekly",
   messages: true,
@@ -129,7 +129,7 @@ export function getNotificationCategoryLabel(category: NotificationCategory) {
   return categoryLabels[category];
 }
 
-export function classifyNotificationType(type: string, message = ""): NotificationCategory {
+function classifyNotificationType(type: string, message = ""): NotificationCategory {
   const normalized = `${type} ${message}`.toLowerCase();
   if (/(security|login|password|passkey|two.?factor|2fa|session|device|recovery)/.test(normalized)) return "security";
   if (/(privacy|permission|data|export|delete|connected account|sync|oauth|token)/.test(normalized)) return "privacy";
@@ -143,7 +143,7 @@ export function classifyNotificationType(type: string, message = ""): Notificati
   return "privacy";
 }
 
-export function getNotificationHref(notification: Pick<SerializedNotification, "category" | "postId" | "actor" | "post">) {
+function getNotificationHref(notification: Pick<SerializedNotification, "category" | "postId" | "actor" | "post">) {
   if (notification.postId) return `/feed/${notification.postId}`;
   if (notification.category === "messages") return "/messages";
   if (notification.category === "security") return "/settings?tab=security";
@@ -156,7 +156,7 @@ export function getNotificationHref(notification: Pick<SerializedNotification, "
   return "/notifications";
 }
 
-export function serializeNotification(notification: NotificationRecord): SerializedNotification {
+function serializeNotification(notification: NotificationRecord): SerializedNotification {
   const createdAt = notification.createdAt instanceof Date ? notification.createdAt.toISOString() : notification.createdAt;
   const message = notification.message?.trim() || fallbackMessage(notification);
   const category = classifyNotificationType(notification.type, message);

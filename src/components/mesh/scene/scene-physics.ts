@@ -18,7 +18,7 @@ function phase(id: string): number {
   return ((h >>> 0) % 6283) / 1000;
 }
 
-export interface StrandPoint {
+interface StrandPoint {
   mx: number;
   my: number;
   vx: number;

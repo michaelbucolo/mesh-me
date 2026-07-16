@@ -17,7 +17,7 @@ export type PlatformAdapterCategory =
   | "community"
   | "portfolio";
 
-export type PlatformPermissionMode = "oauth_scope" | "manual_reference" | "derived";
+type PlatformPermissionMode = "oauth_scope" | "manual_reference" | "derived";
 
 export type PlatformPermissionDefinition = {
   key: string;

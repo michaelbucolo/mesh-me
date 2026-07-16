@@ -67,7 +67,7 @@ export function sortFeedPosts(posts: FeedCardPost[]) {
   return [...posts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-export function filterFeedPostsByContent(posts: FeedCardPost[], filter: FeedContentFilter) {
+function filterFeedPostsByContent(posts: FeedCardPost[], filter: FeedContentFilter) {
   if (filter === "all") return posts;
 
   return posts.filter((post) => {
@@ -109,7 +109,7 @@ export function toFeedCardPost(post: NativeFeedPost): FeedCardPost {
   };
 }
 
-export async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSource, take: number) {
+async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSource, take: number) {
   const [following, communityMemberships, followers] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: user.id },
@@ -200,7 +200,7 @@ export async function getNativeFeedPostsForSource(user: FeedCurrentUser, source:
   });
 }
 
-export async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20): Promise<FeedCardPost[]> {
+async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20): Promise<FeedCardPost[]> {
   try {
     const platformPosts = await prisma.platformPost.findMany({
       where: {

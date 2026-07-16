@@ -7,7 +7,7 @@ export type MeChatAttachment = {
   name?: string;
 };
 
-export type MeChatReaction = {
+type MeChatReaction = {
   emoji: string;
   userId: string;
   createdAt: string;
@@ -20,15 +20,15 @@ export type MeChatLinkPreview = {
   description?: string;
 };
 
-export type MeChatExternalSender = {
+type MeChatExternalSender = {
   name: string;
   username?: string;
   avatarUrl?: string;
 };
 
-export type MeChatDeliveryStatus = "delivered" | "failed";
+type MeChatDeliveryStatus = "delivered" | "failed";
 
-export type MeChatDelivery = {
+type MeChatDelivery = {
   platform: string;
   status: MeChatDeliveryStatus;
   error?: string;
@@ -96,7 +96,7 @@ export function serializeMeChatMetadata(metadata: MeChatMessageMetadata): string
   return Object.keys(cleaned).length > 0 ? JSON.stringify(cleaned) : null;
 }
 
-export function extractFirstUrl(value: string) {
+function extractFirstUrl(value: string) {
   const match = value.match(URL_PATTERN);
   return match?.[1]?.replace(/[),.;!?]+$/, "") || null;
 }

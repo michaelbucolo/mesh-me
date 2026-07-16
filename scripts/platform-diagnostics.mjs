@@ -478,6 +478,7 @@ const checks = [
         if (!value || !value.includes(expected)) missing.push(header);
       }
       assert(missing.length === 0, `Missing or weak headers: ${missing.join(", ")}`);
+      assert(!response.headers.get("permissions-policy")?.includes("bluetooth="), "Permissions-Policy contains the unsupported bluetooth directive");
       return { evidence: Object.keys(required).join(", ") };
     },
   },
@@ -546,6 +547,28 @@ const checks = [
       });
       assert(response.status === 403, `/api/feedback returned ${response.status}, expected 403`);
       return { evidence: "POST /api/feedback returned 403 without same-origin headers" };
+    },
+  },
+  {
+    group: "HTTP",
+    id: "social-images",
+    severity: "P1",
+    description: "Open Graph and X/Twitter social images render",
+    fix: "Check src/app/opengraph-image.tsx and src/app/twitter-image.tsx for ImageResponse-compatible layout styles.",
+    run: async () => {
+      if (!httpReachable) return { skip: true, evidence: "Server not reachable" };
+      const routes = ["/opengraph-image", "/twitter-image"];
+      const failures = [];
+      for (const route of routes) {
+        const response = await get(route);
+        const contentType = response.headers.get("content-type") || "";
+        const body = await response.arrayBuffer();
+        if (response.status !== 200 || !contentType.startsWith("image/png") || body.byteLength < 1_000) {
+          failures.push(`${route}: ${response.status} ${contentType || "no content type"} ${body.byteLength} bytes`);
+        }
+      }
+      assert(failures.length === 0, failures.join("; "));
+      return { evidence: `${routes.length} social images returned valid PNG responses` };
     },
   },
   {

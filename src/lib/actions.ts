@@ -9,7 +9,7 @@ import { getBaseUrl, isSupportedPlatform } from "./oauth";
 import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
-import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState, nsfwHiddenWhere } from "./content-safety";
+import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
 import { communityThreadTitle } from "./community-constants";
 
 async function hashAuthTokenValue(token: string) {
@@ -511,11 +511,6 @@ export async function signInForEntry(formData: FormData) {
   return completeSignIn(formData, { createSessionCookie: true });
 }
 
-export async function signIn(formData: FormData) {
-  const result = await completeSignIn(formData);
-  if ("error" in result) return result;
-  redirect(result.redirectTo);
-}
 
 export async function signOut() {
   await destroySession();
@@ -1580,7 +1575,7 @@ function cleanFormText(formData: FormData, key: string, maxLength: number) {
   return trimmed ? sanitizeForDisplay(trimmed).slice(0, maxLength) : undefined;
 }
 
-export async function sendMessage(formData: FormData) {
+async function sendMessage(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -1759,91 +1754,6 @@ async function sharePostViaMeChatLegacy(formData: FormData) {
 
 void sharePostViaMeChatLegacy;
 
-export async function sharePostViaMeChat(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const postId = (formData.get("postId") as string | null)?.trim();
-  const platformPostId = (formData.get("platformPostId") as string | null)?.trim();
-  const sourceUrl = (formData.get("sourceUrl") as string | null)?.trim();
-  if (!postId && !platformPostId && !sourceUrl) return { error: "A post or source URL is required" };
-
-  const nextData = new FormData();
-  let sharedMessage = "";
-
-  if (postId) {
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      include: {
-        author: {
-          select: { username: true, displayName: true },
-        },
-      },
-    });
-    if (!post) return { error: "Post not found" };
-
-    const note = ((formData.get("note") as string | null) || "").trim();
-    sharedMessage = `${note ? `${note}\n\n` : ""}Shared a Mesh.me post by ${post.author.displayName} (@${post.author.username})\n${post.content.slice(0, 260)}${post.content.length > 260 ? "..." : ""}\n/feed/${post.id}`;
-    nextData.set("messageType", "shared_post");
-    nextData.set("sourcePlatform", "mesh");
-    nextData.set("sourcePostId", post.id);
-  } else if (platformPostId) {
-    const platformPost = await prisma.platformPost.findFirst({
-      where: {
-        id: platformPostId,
-        ...nsfwHiddenWhere(user),
-        OR: [
-          { connectedAccount: { userId: user.id } },
-          {
-            visibility: { not: "private" },
-            connectedAccount: {
-              user: {
-                isSuspended: false,
-                isPublic: true,
-                showInDiscovery: true,
-              },
-            },
-          },
-        ],
-      },
-      include: {
-        connectedAccount: {
-          select: {
-            platform: true,
-            platformUsername: true,
-          },
-        },
-      },
-    });
-    if (!platformPost) return { error: "Platform post not found or not shareable" };
-
-    const note = ((formData.get("note") as string | null) || "").trim();
-    const preview = [platformPost.title, platformPost.content].filter(Boolean).join("\n").slice(0, 260);
-    const platformName = platformPost.connectedAccount.platform;
-    const author = platformPost.connectedAccount.platformUsername ? ` from @${platformPost.connectedAccount.platformUsername}` : "";
-    sharedMessage = `${note ? `${note}\n\n` : ""}Shared a ${platformName} post${author}\n${preview}${preview.length >= 260 ? "..." : ""}${platformPost.url ? `\n${platformPost.url}` : ""}`;
-    nextData.set("messageType", "platform_share");
-    nextData.set("sourcePlatform", platformName);
-    nextData.set("platformPostId", platformPost.id);
-    if (platformPost.url) nextData.set("sourceUrl", platformPost.url);
-  } else if (sourceUrl) {
-    const note = ((formData.get("note") as string | null) || "").trim();
-    const sourcePlatform = (formData.get("sourcePlatform") as string | null)?.trim() || "web";
-    sharedMessage = `${note ? `${note}\n\n` : ""}Shared a ${sourcePlatform} link\n${sourceUrl}`;
-    nextData.set("messageType", "platform_share");
-    nextData.set("sourcePlatform", sourcePlatform);
-    nextData.set("sourceUrl", sourceUrl);
-  }
-
-  nextData.set("content", sharedMessage);
-
-  const threadId = (formData.get("threadId") as string | null)?.trim();
-  const recipientId = (formData.get("recipientId") as string | null)?.trim();
-  if (threadId) nextData.set("threadId", threadId);
-  if (recipientId) nextData.set("recipientId", recipientId);
-
-  return sendMessage(nextData);
-}
 
 export async function markNotificationsRead() {
   const user = await getCurrentUser();
@@ -1860,61 +1770,9 @@ export async function markNotificationsRead() {
 
 // ─── Report Actions ──────────────────────────────────────────
 
-export async function createReport(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const reason = formData.get("reason") as string;
-  const reportedUserId = formData.get("reportedUserId") as string | null;
-  const reportedPostId = formData.get("reportedPostId") as string | null;
-
-  if (!reason?.trim()) return { error: "Reason is required" };
-
-  await prisma.report.create({
-    data: {
-      reason: reason.trim(),
-      reporterId: user.id,
-      reportedUserId: reportedUserId || undefined,
-      reportedPostId: reportedPostId || undefined,
-    },
-  });
-
-  return { success: true };
-}
 
 // ─── Block/Mute Actions ─────────────────────────────────────
 
-export async function toggleBlock(targetUserId: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-  if (user.id === targetUserId) return { error: "Cannot block yourself" };
-
-  const existing = await prisma.block.findUnique({
-    where: { blockerId_blockedId: { blockerId: user.id, blockedId: targetUserId } },
-  });
-
-  if (existing) {
-    await prisma.block.delete({ where: { id: existing.id } });
-  } else {
-    await prisma.block.create({
-      data: { blockerId: user.id, blockedId: targetUserId },
-    });
-    // Also unfollow
-    await prisma.follow.deleteMany({
-      where: {
-        OR: [
-          { followerId: user.id, followingId: targetUserId },
-          { followerId: targetUserId, followingId: user.id },
-        ],
-      },
-    });
-  }
-
-  revalidatePath("/settings");
-  clearMeshCache(user.id);
-  clearMeshCache(targetUserId);
-  return { success: true, blocked: !existing };
-}
 
 // ─── Save Post Actions ───────────────────────────────────────
 
@@ -2088,26 +1946,6 @@ export async function adminDeletePost(postId: string) {
 
 // ─── Mute Actions ───────────────────────────────────────────
 
-export async function toggleMute(targetUserId: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-  if (user.id === targetUserId) return { error: "Cannot mute yourself" };
-
-  const existing = await prisma.mute.findUnique({
-    where: { muterId_mutedId: { muterId: user.id, mutedId: targetUserId } },
-  });
-
-  if (existing) {
-    await prisma.mute.delete({ where: { id: existing.id } });
-  } else {
-    await prisma.mute.create({
-      data: { muterId: user.id, mutedId: targetUserId },
-    });
-  }
-
-  revalidatePath("/settings");
-  return { success: true, muted: !existing };
-}
 
 // ─── Repost Actions ─────────────────────────────────────────
 
@@ -2158,31 +1996,6 @@ export async function repost(postId: string) {
 
 // ─── Pin Post Actions ───────────────────────────────────────
 
-export async function togglePinPost(postId: string, communityId: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const membership = await prisma.communityMember.findUnique({
-    where: { userId_communityId: { userId: user.id, communityId } },
-  });
-
-  if (!membership || (membership.role !== "admin" && membership.role !== "moderator")) {
-    return { error: "Only moderators can pin posts" };
-  }
-
-  const post = await prisma.post.findUnique({ where: { id: postId } });
-  if (!post) return { error: "Post not found" };
-  if (post.communityId !== communityId) return { error: "Post does not belong to this community" };
-
-  await prisma.post.update({
-    where: { id: postId },
-    data: { isPinned: !post.isPinned },
-  });
-
-  const pinCommunity = await prisma.community.findUnique({ where: { id: communityId }, select: { slug: true } });
-  if (pinCommunity) revalidatePath(`/communities/${pinCommunity.slug}`);
-  return { success: true, pinned: !post.isPinned };
-}
 
 // ─── Password Actions ───────────────────────────────────────
 
@@ -2438,7 +2251,7 @@ export async function requestAdultVerification(formData: FormData) {
   return { success: true, redirectUrl };
 }
 
-export async function updateCommunity(formData: FormData) {
+async function updateCommunity(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -2480,7 +2293,7 @@ export async function updateCommunityFromForm(formData: FormData): Promise<void>
   await updateCommunity(formData);
 }
 
-export async function promoteMember(userId: string, communityId: string, role: string) {
+async function promoteMember(userId: string, communityId: string, role: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -2514,7 +2327,7 @@ export async function promoteMember(userId: string, communityId: string, role: s
   return { success: true };
 }
 
-export async function removeMember(userId: string, communityId: string) {
+async function removeMember(userId: string, communityId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -2551,7 +2364,7 @@ export async function removeMember(userId: string, communityId: string) {
 
 // ─── Delete Comment ─────────────────────────────────────────
 
-export async function updateCommunityMemberRole(formData: FormData) {
+async function updateCommunityMemberRole(formData: FormData) {
   const targetUserId = formData.get("targetUserId") as string;
   const communityId = formData.get("communityId") as string;
   const role = formData.get("role") as string;
@@ -2570,7 +2383,7 @@ export async function removeCommunityMemberFromForm(formData: FormData): Promise
   await removeMember(targetUserId, communityId);
 }
 
-export async function moderateCommunityPost(formData: FormData) {
+async function moderateCommunityPost(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -2613,7 +2426,7 @@ export async function moderateCommunityPostFromForm(formData: FormData): Promise
   await moderateCommunityPost(formData);
 }
 
-export async function sendCommunityMessage(formData: FormData) {
+async function sendCommunityMessage(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
@@ -2687,245 +2500,17 @@ export async function sendCommunityMessageFromForm(formData: FormData): Promise<
   await sendCommunityMessage(formData);
 }
 
-export async function deleteComment(commentId: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const comment = await prisma.comment.findUnique({
-    where: { id: commentId },
-    select: { authorId: true, post: { select: { authorId: true } } },
-  });
-  if (!comment) return { error: "Comment not found" };
-  if (comment.authorId !== user.id && !user.isAdmin) return { error: "Unauthorized" };
-
-  await prisma.comment.delete({ where: { id: commentId } });
-  revalidatePath("/feed");
-  clearMeshCache(user.id);
-  if (comment.authorId !== user.id) {
-    clearMeshCache(comment.authorId);
-  }
-  if (comment.post.authorId !== user.id) {
-    clearMeshCache(comment.post.authorId);
-  }
-  return { success: true };
-}
 
 // ─── User Links Actions ─────────────────────────────────────
 
-export async function updateUserLinks(links: { label: string; url: string }[]) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  // Remove existing links and create new ones atomically
-  const { validateUrl } = await import("./security");
-  const validLinks = links.filter((link) => link.label.trim() && link.url.trim() && validateUrl(link.url));
-
-  await prisma.$transaction(async (tx) => {
-    await tx.userLink.deleteMany({ where: { userId: user.id } });
-    if (validLinks.length > 0) {
-      await tx.userLink.createMany({
-        data: validLinks.map((link) => ({
-          userId: user.id,
-          label: link.label.trim(),
-          url: link.url.trim(),
-        })),
-      });
-    }
-  });
-
-  revalidatePath(`/profile/${user.username}`);
-  revalidatePath("/settings");
-  clearMeshCache(user.id);
-  return { success: true };
-}
 
 // ─── User Interests Actions ─────────────────────────────────
 
-export async function updateUserInterests(interests: string[]) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const uniqueInterests = [...new Set(interests)];
-
-  await prisma.$transaction(async (tx) => {
-    await tx.userInterest.deleteMany({ where: { userId: user.id } });
-    if (uniqueInterests.length > 0) {
-      await tx.userInterest.createMany({
-        data: uniqueInterests.map((tag) => ({ userId: user.id, tag })),
-      });
-    }
-  });
-
-  revalidatePath(`/profile/${user.username}`);
-  revalidatePath("/settings");
-  clearMeshCache(user.id);
-  return { success: true };
-}
 
 // ─── Achievement Actions ────────────────────────────────────
 
-export async function checkAndAwardAchievements() {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
 
-  const awarded: string[] = [];
 
-  // Get user stats
-  const [postCount, followerCount, communityCount, connectedCount, reactionCount, commentCount] = await Promise.all([
-    prisma.post.count({ where: { authorId: user.id } }),
-    prisma.follow.count({ where: { followingId: user.id } }),
-    prisma.communityMember.count({ where: { userId: user.id } }),
-    prisma.connectedAccount.count({ where: { userId: user.id, isActive: true } }),
-    prisma.reaction.count({ where: { userId: user.id } }),
-    prisma.comment.count({ where: { authorId: user.id } }),
-  ]);
-
-  // Check if user has created any communities
-  const createdCommunity = await prisma.communityMember.findFirst({
-    where: { userId: user.id, role: "admin" },
-  });
-
-  // Achievement checks
-  const checks: { slug: string; condition: boolean }[] = [
-    { slug: "first-post", condition: postCount >= 1 },
-    { slug: "ten-posts", condition: postCount >= 10 },
-    { slug: "hundred-posts", condition: postCount >= 100 },
-    { slug: "first-follower", condition: followerCount >= 1 },
-    { slug: "ten-followers", condition: followerCount >= 10 },
-    { slug: "hundred-followers", condition: followerCount >= 100 },
-    { slug: "thousand-followers", condition: followerCount >= 1000 },
-    { slug: "first-community", condition: communityCount >= 1 },
-    { slug: "community-creator", condition: !!createdCommunity },
-    { slug: "platform-linker", condition: connectedCount >= 1 },
-    { slug: "mesh-master", condition: connectedCount >= 5 },
-    { slug: "verified", condition: user.isVerified },
-    { slug: "customizer", condition: !!(user.bio || user.avatarUrl) },
-    { slug: "helper", condition: reactionCount >= 50 },
-    { slug: "conversationalist", condition: commentCount >= 25 },
-  ];
-
-  // Get existing achievements
-  const existing = await prisma.userAchievement.findMany({
-    where: { userId: user.id },
-    include: { achievement: true },
-  });
-  const existingSlugs = new Set(existing.map((e) => e.achievement.slug));
-
-  for (const check of checks) {
-    if (check.condition && !existingSlugs.has(check.slug)) {
-      // Find or create the achievement
-      let achievement = await prisma.achievement.findUnique({ where: { slug: check.slug } });
-      if (!achievement) {
-        // Seed the achievement on first encounter
-        const defs: Record<string, { name: string; description: string; icon: string; category: string; title: string; isLimited: boolean; maxHolders: number | null }> = {
-          "first-post": { name: "First Words", description: "Created your first post", icon: "zap", category: "posts", title: "Creator", isLimited: false, maxHolders: null },
-          "ten-posts": { name: "Getting Started", description: "Created 10 posts", icon: "star", category: "posts", title: "Active Creator", isLimited: false, maxHolders: null },
-          "hundred-posts": { name: "Prolific", description: "Created 100 posts", icon: "trophy", category: "posts", title: "Prolific Creator", isLimited: false, maxHolders: null },
-          "first-follower": { name: "Connected", description: "Got your first follower", icon: "users", category: "social", title: "Connected", isLimited: false, maxHolders: null },
-          "ten-followers": { name: "Growing Network", description: "Reached 10 followers", icon: "users", category: "social", title: "Networker", isLimited: false, maxHolders: null },
-          "hundred-followers": { name: "Community Builder", description: "Reached 100 followers", icon: "globe", category: "social", title: "Community Builder", isLimited: false, maxHolders: null },
-          "thousand-followers": { name: "Influencer", description: "Reached 1,000 followers", icon: "star", category: "social", title: "Influencer", isLimited: false, maxHolders: null },
-          "first-community": { name: "Community Member", description: "Joined your first community", icon: "message-circle", category: "communities", title: "Member", isLimited: false, maxHolders: null },
-          "community-creator": { name: "Community Creator", description: "Created a community", icon: "globe", category: "communities", title: "Founder", isLimited: false, maxHolders: null },
-          "platform-linker": { name: "Platform Linker", description: "Connected your first external platform", icon: "globe", category: "platforms", title: "Multi-Platform", isLimited: false, maxHolders: null },
-          "mesh-master": { name: "Mesh Master", description: "Connected 5+ platforms", icon: "target", category: "platforms", title: "Mesh Master", isLimited: false, maxHolders: null },
-          "verified": { name: "Verified", description: "Verified your mesh.me account", icon: "shield", category: "account", title: "Verified", isLimited: false, maxHolders: null },
-          "customizer": { name: "Customizer", description: "Personalized your profile", icon: "sparkles", category: "account", title: "Customizer", isLimited: false, maxHolders: null },
-          "helper": { name: "Helping Hand", description: "Liked 50 posts", icon: "heart", category: "engagement", title: "Helper", isLimited: false, maxHolders: null },
-          "conversationalist": { name: "Conversationalist", description: "Left 25 comments", icon: "message-circle", category: "engagement", title: "Conversationalist", isLimited: false, maxHolders: null },
-        };
-        const def = defs[check.slug];
-        if (def) {
-          achievement = await prisma.achievement.create({
-            data: { slug: check.slug, ...def },
-          });
-        }
-      }
-      if (achievement) {
-        await prisma.userAchievement.create({
-          data: { userId: user.id, achievementId: achievement.id },
-        });
-        awarded.push(check.slug);
-      }
-    }
-  }
-
-  // Check Pioneer achievement (first 1M verified users)
-  // Uses a transaction to atomically check count + insert, preventing TOCTOU race
-  if (user.isVerified && !existingSlugs.has("pioneer")) {
-    let pioneer = await prisma.achievement.findUnique({ where: { slug: "pioneer" } });
-    if (!pioneer) {
-      pioneer = await prisma.achievement.create({
-        data: {
-          slug: "pioneer",
-          name: "Pioneer",
-          description: "Among the first 1 million verified mesh.me users",
-          icon: "crown",
-          category: "limited",
-          title: "Pioneer",
-          isLimited: true,
-          maxHolders: 1000000,
-        },
-      });
-    }
-    const pioneerId = pioneer.id;
-    const didAward = await prisma.$transaction(async (tx) => {
-      const holderCount = await tx.userAchievement.count({
-        where: { achievementId: pioneerId },
-      });
-      if (holderCount < 1000000) {
-        await tx.userAchievement.create({
-          data: { userId: user.id, achievementId: pioneerId },
-        });
-        return true;
-      }
-      return false;
-    });
-    if (didAward) {
-      awarded.push("pioneer");
-    }
-  }
-
-  return { success: true, awarded };
-}
-
-export async function getUserAchievements(userId: string) {
-  const user = await getCurrentUser();
-  if (!user) return [];
-
-  if (userId !== user.id) {
-    const target = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { isPublic: true, isSuspended: true },
-    });
-    if (!target || target.isSuspended || !target.isPublic) return [];
-  }
-
-  const achievements = await prisma.userAchievement.findMany({
-    where: { userId },
-    include: { achievement: true },
-  });
-  return achievements.map((ua) => ({
-    slug: ua.achievement.slug,
-    name: ua.achievement.name,
-    title: ua.achievement.title,
-    isLimited: ua.achievement.isLimited,
-    unlockedAt: ua.unlockedAt,
-  }));
-}
-
-export async function setActiveTitle(title: string | null) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { activeTitle: title },
-  });
-
-  revalidatePath(`/profile/${user.username}`);
-  return { success: true };
-}
 
 // ─── Meshi Customization Actions ────────────────────────────
 
@@ -3145,173 +2730,10 @@ export async function updateMeshPrivacy(data: {
 
 // ─── Global Mesh Actions ────────────────────────────────────
 
-export async function optIntoGlobalMesh(sharedBranches: string[]) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
 
-  const validBranches = ["people", "communities", "interests", "platforms"];
-  const filtered = sharedBranches.filter((b) => validBranches.includes(b));
 
-  await prisma.globalMeshMember.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      isActive: true,
-      sharedBranches: JSON.stringify(filtered),
-    },
-    update: {
-      isActive: true,
-      sharedBranches: JSON.stringify(filtered),
-    },
-  });
-
-  revalidatePath("/settings");
-  revalidatePath("/mesh");
-  clearMeshCache(user.id);
-  return { success: true };
-}
-
-export async function optOutOfGlobalMesh() {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  await prisma.globalMeshMember.upsert({
-    where: { userId: user.id },
-    create: { userId: user.id, isActive: false, sharedBranches: "[]" },
-    update: { isActive: false },
-  });
-
-  revalidatePath("/settings");
-  revalidatePath("/mesh");
-  clearMeshCache(user.id);
-  return { success: true };
-}
-
-export async function updateGlobalMeshBranches(sharedBranches: string[]) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const validBranches = ["people", "communities", "interests", "platforms"];
-  const filtered = sharedBranches.filter((b) => validBranches.includes(b));
-
-  await prisma.globalMeshMember.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      isActive: true,
-      sharedBranches: JSON.stringify(filtered),
-    },
-    update: { sharedBranches: JSON.stringify(filtered) },
-  });
-
-  revalidatePath("/settings");
-  return { success: true };
-}
 
 // ─── Redeem Code Actions ─────────────────────────────────────
 
-export async function redeemCode(code: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  if (!code?.trim()) return { error: "Please enter a code" };
-
-  const trimmed = code.trim();
-
-  // Rate limit redemption attempts
-  const rl = rateLimit(`redeem:${user.id}`, 10, 60 * 1000);
-  if (!rl.allowed) {
-    return { error: "Too many attempts. Please try again later." };
-  }
-
-  // Auto-seed known codes if they don't exist yet
-  const knownCodes = [
-    {
-      code: "Synergy1017Me",
-      rewardType: "meshi-face",
-      rewardValue: "synergy1017",
-      rewardLabel: "Synergy1017 Wink",
-    },
-    {
-      code: "wetrab-hIzviz-3xonju",
-      rewardType: "meshpro",
-      rewardValue: "free",
-      rewardLabel: "MeshPro Access",
-    },
-  ];
-  for (const known of knownCodes) {
-    const exists = await prisma.redeemCode.findUnique({ where: { code: known.code } });
-    if (!exists) {
-      await prisma.redeemCode.create({ data: known }).catch((e) => {
-        if (!(e && typeof e === "object" && "code" in e && e.code === "P2002")) throw e;
-      });
-    }
-  }
-
-  // Look up the code
-  const redeemRecord = await prisma.redeemCode.findUnique({ where: { code: trimmed } });
-  if (!redeemRecord) {
-    return { error: "Invalid code" };
-  }
-
-  // Atomically claim the code so concurrent redemption attempts cannot both win.
-  const claimed = await prisma.redeemCode.updateMany({
-    where: { id: redeemRecord.id, redeemedBy: null },
-    data: {
-      redeemedBy: user.id,
-      redeemedAt: new Date(),
-    },
-  });
-  if (claimed.count !== 1) {
-    return { error: "This code has already been used" };
-  }
-
-  // Grant the cosmetic reward to the user
-  if (redeemRecord.rewardType === "meshi-face") {
-    await prisma.meshCosmetic.create({
-      data: {
-        userId: user.id,
-        type: "face",
-        value: redeemRecord.rewardValue,
-        isActive: true,
-      },
-    });
-
-    // Also set it as the user's active Meshi face
-    await prisma.meshiPreference.upsert({
-      where: { userId: user.id },
-      create: { userId: user.id, faceStyle: redeemRecord.rewardValue },
-      update: { faceStyle: redeemRecord.rewardValue },
-    });
-  }
-  if (redeemRecord.rewardType === "meshpro") {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { isMeshPro: true },
-    });
-  }
-
-  revalidatePath("/settings");
-  clearMeshCache(user.id);
-  return {
-    success: true,
-    reward: {
-      type: redeemRecord.rewardType,
-      value: redeemRecord.rewardValue,
-      label: redeemRecord.rewardLabel,
-    },
-  };
-}
 
 // Check if user has unlocked a specific cosmetic
-export async function getUserUnlockedCosmetics() {
-  const user = await getCurrentUser();
-  if (!user) return { cosmetics: [] };
-
-  const cosmetics = await prisma.meshCosmetic.findMany({
-    where: { userId: user.id },
-    select: { type: true, value: true, isActive: true },
-  });
-
-  return { cosmetics };
-}

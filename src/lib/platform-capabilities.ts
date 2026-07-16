@@ -262,9 +262,6 @@ export function getPlatformActionCapability(
   return PLATFORM_ACTION_CAPABILITIES[platformId]?.[action] ?? UNSUPPORTED_ACTIONS[action];
 }
 
-export function isPlatformActionSupported(platform: string | null | undefined, action: PlatformContentAction) {
-  return getPlatformActionCapability(platform, action).supported;
-}
 
 export function canImportFromPlatform(platform: string | null | undefined) {
   return Boolean(getPlatformCapability(platform)?.importContent);

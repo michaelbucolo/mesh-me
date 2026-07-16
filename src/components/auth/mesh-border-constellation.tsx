@@ -3,7 +3,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 export type EntryStage = "identity" | "password" | "signup" | "reset";
-export type EntryPhase = "idle" | "forming" | "success" | "failed";
+type EntryPhase = "idle" | "forming" | "success" | "failed";
 
 /**
  * Shared, mutable state the constellation reads every animation frame. The

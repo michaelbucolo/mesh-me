@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
-import { getConnectedAccountsDashboard, type ConnectedAccountsDashboard } from "@/lib/connected-accounts";
+import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
 import { prisma } from "@/lib/prisma";
 
 function toIso(value: Date | null | undefined) {
@@ -11,7 +11,6 @@ function countTotal(values: Record<string, number>) {
 }
 
 export type PrivacyControlCenterData = Awaited<ReturnType<typeof getPrivacyControlCenter>>;
-export type PrivacyConnectedAccount = ConnectedAccountsDashboard["accounts"][number];
 
 export async function getPrivacyControlCenter() {
   const user = await getCurrentUser();

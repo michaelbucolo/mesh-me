@@ -1,4 +1,4 @@
-export type LoadingPersonalityMode =
+type LoadingPersonalityMode =
   | "default"
   | "mesh-building"
   | "message-writing"
@@ -16,7 +16,7 @@ export interface LoadingPersonality {
   ariaLabel?: string;
 }
 
-export const loadingPersonalities = {
+const loadingPersonalities = {
   public: {
     title: "Opening Mesh.me",
     subtitle: "Meshi is preparing a calm way into your world.",
@@ -130,27 +130,4 @@ export type LoadingPersonalityKey = keyof typeof loadingPersonalities;
 
 export function getLoadingPersonality(key: LoadingPersonalityKey = "app"): LoadingPersonality {
   return loadingPersonalities[key] ?? loadingPersonalities.app;
-}
-
-const routeSegmentPersonalities: Partial<Record<string, LoadingPersonalityKey>> = {
-  communities: "communities",
-  "connected-accounts": "connected-accounts",
-  "content-hub": "content-hub",
-  explore: "explore",
-  feed: "feed",
-  innovation: "innovation",
-  mesh: "mesh",
-  meshpro: "meshpro",
-  messages: "messages",
-  notifications: "notifications",
-  profile: "profile",
-  search: "search",
-  settings: "settings",
-};
-
-export function getRouteLoadingPersonality(pathname: string): LoadingPersonalityKey {
-  const segment = pathname.split("/").filter(Boolean)[0];
-  if (!segment) return "public";
-
-  return routeSegmentPersonalities[segment] ?? "app";
 }
