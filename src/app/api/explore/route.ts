@@ -4,7 +4,8 @@ import { getDiscoverUsers, getExplorePosts, getTrendingCommunities } from "@/lib
 
 export async function GET(req: NextRequest) {
   try {
-    if (!(await getCurrentUser())) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -16,8 +17,8 @@ export async function GET(req: NextRequest) {
     };
     const t0 = Date.now();
     const [[, postsMs, posts], [, usersMs, users], [, communitiesMs, communities]] = await Promise.all([
-      timed("posts", () => getExplorePosts(1, limit)),
-      timed("users", () => getDiscoverUsers()),
+      timed("posts", () => getExplorePosts(1, limit, currentUser)),
+      timed("users", () => getDiscoverUsers(currentUser)),
       timed("communities", () => getTrendingCommunities()),
     ]);
     const totalMs = Date.now() - t0;

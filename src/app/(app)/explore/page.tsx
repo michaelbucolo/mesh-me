@@ -19,7 +19,7 @@ export default async function ExplorePage() {
     getExplorePosts(1, 30, user),
     getMergedForYouFeedPosts(user, 30),
     getTrendingTags(),
-    getDiscoverUsers(),
+    getDiscoverUsers(user),
     getTrendingCommunities(),
   ]);
 

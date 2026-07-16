@@ -1081,24 +1081,14 @@ export async function searchAll(query: string) {
   return { users, posts, communities, platformPosts, platformPeople, messages, wikipedia, sourceIndex };
 }
 
-export async function getDiscoverUsers() {
-  const user = await getCurrentUser();
+export async function getDiscoverUsers(currentUser?: CurrentUser | null) {
+  const user = currentUser ?? await getCurrentUser();
   if (!user) return [];
 
-  const [following, userInterests] = await Promise.all([
-    prisma.follow.findMany({
-      where: { followerId: user.id },
-      select: { followingId: true },
-    }),
-    prisma.userInterest.findMany({
-      where: { userId: user.id },
-      select: { tag: true },
-    }),
-  ]);
-  const followingIds = following.map((f) => f.followingId);
-  const tags = userInterests.map((i) => i.tag);
-
-  const exclude = [...followingIds, user.id];
+  // The production database is remote, so latency is round trips, not query
+  // cost. Everything here runs as ONE parallel round: candidates exclude
+  // already-followed people relationally (no follow-list prefetch), and the
+  // caller's interest tags load alongside.
   const include = {
     interests: true,
     _count: { select: { followers: true, posts: true } },
@@ -1106,24 +1096,27 @@ export async function getDiscoverUsers() {
   // Discoverable != public. A private account can still opt in to being
   // *found* (and then approve followers), so discovery only requires
   // showInDiscovery — content visibility stays governed by isPublic elsewhere.
-  const baseWhere = {
-    isSuspended: false,
-    showInDiscovery: true,
-  };
-
-  // Ordering the whole user table by follower count makes SQLite run a
-  // correlated COUNT per user before returning anything — the main cost of
-  // /api/explore. Pull one bounded candidate window instead and rank it in
-  // memory: exact for small networks, a fresh-leaning approximation at scale.
-  const candidates = await prisma.user.findMany({
-    where: {
-      ...baseWhere,
-      id: { notIn: exclude },
-    },
-    include,
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  // Ordering the whole user table by follower count would make SQLite run a
+  // correlated COUNT per user, so pull one bounded fresh window instead and
+  // rank it in memory: exact for small networks, an approximation at scale.
+  const [candidates, userInterests] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        isSuspended: false,
+        showInDiscovery: true,
+        id: { not: user.id },
+        followers: { none: { followerId: user.id } },
+      },
+      include,
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
+    prisma.userInterest.findMany({
+      where: { userId: user.id },
+      select: { tag: true },
+    }),
+  ]);
+  const tags = userInterests.map((i) => i.tag);
 
   const byFollowers = (a: (typeof candidates)[number], b: (typeof candidates)[number]) =>
     b._count.followers - a._count.followers;
