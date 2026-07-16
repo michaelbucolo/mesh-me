@@ -8528,8 +8528,71 @@ body > * { position: relative; z-index: 1; }
 /* MeChat: sent bubbles carry the brand gradient with a soft glow — a
    premium, familiar direct-message feel. */
 .mechat-bubble-mine {
-  background: var(--brand-gradient);
-  box-shadow: 0 8px 22px -10px rgba(110, 139, 255, 0.6);
+  /* iMessage blue: a quiet vertical sheen, no rainbow gradients. */
+  background: linear-gradient(180deg, #2f8bff 0%, #0a72f5 100%);
+  box-shadow: 0 4px 14px -8px rgba(10, 114, 245, 0.55);
+}
+.mechat-bubble-theirs {
+  background: #26262e;
+  color: var(--text-primary, #f4f4f6);
+}
+:root[data-mesh-mode="light"] .mechat-bubble-theirs,
+.light .mechat-bubble-theirs { background: #e9e9eb; color: #111; }
+
+/* iMessage-style tails on the last bubble of each group */
+.mechat-tail { position: relative; }
+.mechat-tail-mine::after,
+.mechat-tail-theirs::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 12px;
+  height: 14px;
+}
+.mechat-tail-mine::after {
+  right: -5px;
+  background: radial-gradient(circle at 0 0, transparent 12px, #0a72f5 13px);
+  border-bottom-right-radius: 12px;
+}
+.mechat-tail-theirs::after {
+  left: -5px;
+  background: radial-gradient(circle at 100% 0, transparent 12px, #26262e 13px);
+  border-bottom-left-radius: 12px;
+}
+
+/* Tapback: reactions ride the bubble's shoulder like iMessage */
+.mechat-tapbacks {
+  position: absolute;
+  top: -14px;
+  display: flex;
+  gap: 2px;
+  z-index: 5;
+}
+.mechat-tapbacks-mine { left: -8px; }
+.mechat-tapbacks-theirs { right: -8px; }
+.mechat-tapback {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 999px;
+  border: 2px solid var(--bg-primary, #06070f);
+  background: #33333c;
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease;
+}
+.mechat-tapback:active { transform: scale(0.9); }
+.mechat-tapback.is-mine { background: linear-gradient(180deg, #2f8bff, #0a72f5); }
+@keyframes mechatSendIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mechat-send-in { animation: mechatSendIn 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .mechat-send-in { animation: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════

@@ -33,7 +33,10 @@ function getSafeNextPath(value: string | null) {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [headerStore, user] = await Promise.all([headers(), getCurrentUser()]);
+  // One parallel round: getMeshiPreference resolves the (request-cached) user
+  // internally, so starting it alongside saves a serial DB stage on EVERY
+  // authenticated page.
+  const [headerStore, user, meshiPref] = await Promise.all([headers(), getCurrentUser(), getMeshiPreference()]);
   const nextPath = getSafeNextPath(headerStore.get("x-mesh-current-path"));
 
   if (!user) {
@@ -44,7 +47,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return <OnboardingRedirect />;
   }
 
-  const meshiPref = await getMeshiPreference();
   const meshiSeed = meshiPref
     ? {
         colorTheme: meshiPref.colorTheme,

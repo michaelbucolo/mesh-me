@@ -413,6 +413,9 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
 
       {tab === "foryou" && (
         <>
+          {!trimmedQuery && !hasActiveFilters && (
+            <TrendingHero posts={posts} onSeeAll={() => setTab("trending")} />
+          )}
           {!trimmedQuery && suggestedUsers.length > 0 && (
             <section className="mt-6" aria-label="People to follow">
               <SectionHeader title="Meshes to explore" action={{ label: "See all", onClick: () => setTab("people") }} />
@@ -748,5 +751,61 @@ function TileMeta({ post, authorName, chip, overlay }: { post: FeedCardPost; aut
         </span>
       </span>
     </div>
+  );
+}
+
+// The front door of discovery: the hottest posts right now as big swipeable
+// cards with rank badges — a reason to open Explore every day.
+function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: () => void }) {
+  const top = [...posts]
+    .filter((post) => post.media.length > 0 || post.content.trim().length > 0)
+    .sort((a, b) => postScore(b) - postScore(a))
+    .slice(0, 5);
+  if (top.length === 0) return null;
+
+  return (
+    <section className="mt-5" aria-label="Trending now">
+      <SectionHeader title="🔥 Trending now" action={{ label: "See all", onClick: onSeeAll }} />
+      <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
+        {top.map((post, index) => {
+          const media = post.media.find((item) => item.type.toLowerCase() !== "video") || post.media[0];
+          const still = media?.type.toLowerCase() === "video" ? media.posterUrl : media?.url;
+          const authorName = post.externalAuthor?.name || post.author.displayName;
+          return (
+            <Link
+              key={post.id}
+              href={post.externalUrl || `/feed/${post.id}`}
+              className="group relative h-44 w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
+            >
+              {still ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={still} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              ) : (
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(47,124,255,0.35),transparent_60%),radial-gradient(circle_at_75%_80%,rgba(168,85,247,0.28),transparent_55%)]" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+              <span
+                className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-black text-white shadow-lg ${
+                  index === 0 ? "bg-gradient-to-br from-amber-400 to-rose-500" : "bg-black/60 backdrop-blur"
+                }`}
+              >
+                #{index + 1}
+              </span>
+              <div className="absolute inset-x-0 bottom-0 p-3">
+                {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
+                <p className="truncate text-[11px] font-semibold text-white/85">{authorName}</p>
+                <p className="mt-0.5 flex items-center gap-2 text-[10px] text-white/60">
+                  <span>❤️ {formatCount(post._count.reactions)}</span>
+                  <span>💬 {formatCount(post._count.comments)}</span>
+                  {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
+                    <span className="uppercase tracking-wide">{post.platform}</span>
+                  )}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }

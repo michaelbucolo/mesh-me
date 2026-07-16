@@ -21,6 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
+import { CrossPlatformCommand } from "@/components/analytics/cross-platform-command";
 import { PrivacyPermissionsManager } from "@/components/analytics/privacy-permissions-manager";
 import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import type { AnalyticsDashboardData } from "@/lib/analytics-dashboard";
@@ -111,6 +112,8 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
         <StatCard label="Engagement" value={formatPercent(data.overview.engagementRate)} detail={`${formatNumber(data.overview.totalEngagement)} total actions`} icon={Heart} />
         <StatCard label="Watch time" value={formatDuration(data.overview.watchTimeSeconds)} detail="Across synced video content" icon={PlayCircle} />
       </section>
+
+      <CrossPlatformCommand data={data} />
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-5">

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
+  ArrowUp,
   CheckCheck,
   Image as ImageIcon,
   Link2,
@@ -128,9 +129,8 @@ function localReactionGroups(message: MeChatSerializedMessage, currentUserId: st
 function readState(message: MeChatSerializedMessage, currentUserId: string) {
   if (message.senderId !== currentUserId) return "";
   const readers = message.readBy.filter((reader) => reader.userId !== currentUserId);
-  if (readers.length === 0) return "Sent";
-  if (readers.length === 1) return `Read by ${readers[0].displayName}`;
-  return `Read by ${readers.slice(0, 2).map((reader) => reader.displayName).join(", ")}${readers.length > 2 ? ` +${readers.length - 2}` : ""}`;
+  if (readers.length === 0) return "Delivered";
+  return "Read";
 }
 
 function messageMatchesSearch(message: MeChatSerializedMessage, query: string) {
@@ -574,7 +574,7 @@ export function MeChatThread({
                 )}
                 <article
                   data-testid="mechat-message-bubble"
-                  className={`group flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"} ${groupedWithPrev ? "mt-0.5" : newDay ? "" : "mt-3"}`}
+                  className={`group flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"} ${groupedReactions.length > 0 ? "mt-4" : groupedWithPrev ? "mt-0.5" : newDay ? "" : "mt-3"}`}
                 >
                   {!isMine &&
                     (groupedWithNext ? (
@@ -660,11 +660,32 @@ export function MeChatThread({
                     )}
                     <div
                       onClick={() => setActionsFor((current) => (current === message.id ? null : message.id))}
-                      className={`px-4 py-2.5 text-sm ${corners} ${
+                      className={`relative px-4 py-2.5 text-sm ${corners} ${
                       isMine
                         ? "mechat-bubble-mine text-white"
-                        : "border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-primary)] shadow-sm"
+                        : "mechat-bubble-theirs"
+                    } ${!groupedWithNext ? `mechat-tail ${isMine ? "mechat-tail-mine" : "mechat-tail-theirs"}` : ""} ${
+                      message.id.startsWith("optimistic-") ? "mechat-send-in" : ""
                     }`}>
+                      {groupedReactions.length > 0 && (
+                        <span className={`mechat-tapbacks ${isMine ? "mechat-tapbacks-mine" : "mechat-tapbacks-theirs"}`}>
+                          {groupedReactions.map((reaction) => (
+                            <button
+                              key={reaction.emoji}
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                toggleReaction(message.id, reaction.emoji);
+                              }}
+                              className={`mechat-tapback ${reaction.mine ? "is-mine" : ""}`}
+                              aria-pressed={reaction.mine}
+                            >
+                              {reaction.emoji}
+                              {reaction.count > 1 ? <span className="text-[10px] font-bold">{reaction.count}</span> : null}
+                            </button>
+                          ))}
+                        </span>
+                      )}
                       {!isExternalThread && (message.sourcePlatform !== "mesh" || message.messageType !== "text") ? (
                         <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.12em] ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
                           {message.messageType.replace("_", " ")} from {message.sourcePlatform}
@@ -753,22 +774,6 @@ export function MeChatThread({
                         </a>
                       )}
                     </div>
-
-                    {groupedReactions.length > 0 && (
-                      <div className={`flex flex-wrap gap-1 ${isMine ? "justify-end" : "justify-start"}`}>
-                        {groupedReactions.map((reaction) => (
-                          <button
-                            key={reaction.emoji}
-                            type="button"
-                            onClick={() => toggleReaction(message.id, reaction.emoji)}
-                            className={`rounded-full border px-2 py-1 text-xs font-bold transition active:scale-95 ${reaction.mine ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)]" : "border-[var(--border-primary)] bg-[var(--bg-primary)]/80 text-[var(--text-secondary)]"}`}
-                            aria-pressed={reaction.mine}
-                          >
-                            {reaction.emoji} {reaction.count}
-                          </button>
-                        ))}
-                      </div>
-                    )}
 
                     {showMeta && (
                       <div className={`flex flex-wrap items-center gap-1.5 px-2 text-[10px] text-[var(--text-muted)] ${isMine ? "justify-end" : "justify-start"}`}>

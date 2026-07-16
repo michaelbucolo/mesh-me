@@ -6,6 +6,7 @@ import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
@@ -546,7 +547,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 )}
               >
                 {media.type.toLowerCase() === "video" ? (
-                  <video src={media.url} poster={media.posterUrl} className="h-full w-full object-cover" controls preload="metadata" playsInline />
+                  <AutoplayVideo src={media.url} poster={media.posterUrl} className="h-full w-full object-cover" />
                 ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={media.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.015]" />

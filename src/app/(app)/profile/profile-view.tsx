@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
+  BarChart3,
   Bookmark,
   ExternalLink,
   EyeOff,
@@ -257,6 +258,13 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
               {isOwnProfile ? (
                 <>
+                  <Link
+                    href="/analytics"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--mesh-blue)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(47,124,255,0.3)] transition hover:brightness-110"
+                  >
+                    <BarChart3 size={16} aria-hidden="true" />
+                    Analytics
+                  </Link>
                   <Link
                     href="/settings"
                     className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5 text-sm font-medium text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel-hover)]"

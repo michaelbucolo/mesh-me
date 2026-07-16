@@ -663,7 +663,9 @@ export function drawScene(o: RenderOptions): void {
     if (hoverChain.has(node.id)) return 1;
     if (o.selectedId === node.id) return 1;
     if (node.kind === "self" || node.kind === "branch") return 1;
-    if (!o.activeBranch) return 0.62;
+    // At rest the mesh should read as CONTENT, not dim geometry — posts and
+    // people stay bright enough to recognize without focusing a branch.
+    if (!o.activeBranch) return 0.8;
     return node.branch === o.activeBranch ? 1 : 0.18;
   };
 
@@ -828,7 +830,7 @@ export function drawScene(o: RenderOptions): void {
     // Posts float as rich cards once the camera is close enough to read them.
     if (node.kind === "post" && o.camera.zoom >= 0.32 && emph > 0.2) {
       const cardScale =
-        Math.max(0.6, Math.min(o.camera.zoom, 1.35)) * (0.82 + node.weight * 0.36);
+        Math.max(0.78, Math.min(o.camera.zoom, 1.35)) * (0.82 + node.weight * 0.36);
       const size = drawPostCard(o, node, p.x, p.y, cardScale, emph, isHover, isSelected);
       o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(size.w, size.h) / 2 });
       return;
