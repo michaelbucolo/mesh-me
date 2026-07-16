@@ -1220,7 +1220,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           offline, so a visited mesh always shows whether its owner is around. */}
       {meshData?.meshiPreference && (() => {
         const m = meshData.meshiPreference;
-        const ownerOnline = !viewUserId || remotePresences.some((p) => p.userId === viewUserId);
+        // The URL may address this mesh by username; presence always speaks in
+        // ids, so compare against the resolved owner id from the payload.
+        const ownerId = meshData?.user.id ?? viewUserId;
+        const ownerOnline = !viewUserId || remotePresences.some((p) => p.userId === ownerId);
         return (
           <div
             ref={ownerMeshiElRef}
