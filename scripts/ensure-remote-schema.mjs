@@ -177,6 +177,17 @@ try {
   await runOnce("presence-visible-2026", async () => {
     await client.execute("UPDATE User SET hideActivityStatus = 0 WHERE hideActivityStatus = 1 AND isSuspended = 0");
   });
+
+  // Round two: the ONBOARDING flow's local defaults (hideActivityStatus=true,
+  // showInDiscovery=false) silently re-flipped both flags for every account
+  // that completed onboarding after the migration above — which is every real
+  // account. Verified live with two fresh signups whose heartbeats came back
+  // {hidden: true}. The defaults are fixed in the flow; repair the accounts
+  // that walked through the broken version once.
+  await runOnce("presence-visible-2026b", async () => {
+    await client.execute("UPDATE User SET hideActivityStatus = 0 WHERE hideActivityStatus = 1 AND isSuspended = 0");
+    await client.execute("UPDATE User SET showInDiscovery = 1 WHERE showInDiscovery = 0 AND isSuspended = 0");
+  });
 } finally {
   await client.close?.();
 }

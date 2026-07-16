@@ -114,8 +114,13 @@ export function OnboardingFlow({
     meshVisibility: meshPrivacy.meshVisibility,
     showConnections: meshPrivacy.showConnections,
     showStats: meshPrivacy.showStats,
-    showInDiscovery: false,
-    hideActivityStatus: true,
+    // Findable and alive by default — these two silently defaulting the other
+    // way meant every account that finished onboarding vanished from
+    // discovery AND from live presence (nobody could ever see anyone's Meshi).
+    // Content stays private via meshVisibility; both toggles remain right
+    // here for anyone who wants to opt out.
+    showInDiscovery: true,
+    hideActivityStatus: false,
     readReceipts: false,
   });
   const [notifications, setNotifications] = useState({
