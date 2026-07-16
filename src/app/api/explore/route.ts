@@ -9,11 +9,23 @@ export async function GET(req: NextRequest) {
     }
 
     const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get("limit") ?? "12"), 1), 30);
-    const [posts, users, communities] = await Promise.all([
-      getExplorePosts(1, limit),
-      getDiscoverUsers(),
-      getTrendingCommunities(),
+    const timed = async <T>(label: string, fn: () => Promise<T>): Promise<[string, number, T]> => {
+      const t0 = Date.now();
+      const value = await fn();
+      return [label, Date.now() - t0, value];
+    };
+    const t0 = Date.now();
+    const [[, postsMs, posts], [, usersMs, users], [, communitiesMs, communities]] = await Promise.all([
+      timed("posts", () => getExplorePosts(1, limit)),
+      timed("users", () => getDiscoverUsers()),
+      timed("communities", () => getTrendingCommunities()),
     ]);
+    const totalMs = Date.now() - t0;
+    if (totalMs > 400) {
+      console.log(
+        `[explore-timing] total=${totalMs}ms posts=${postsMs}ms users=${usersMs}ms communities=${communitiesMs}ms`,
+      );
+    }
 
     return NextResponse.json(
       {
