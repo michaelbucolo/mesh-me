@@ -53,11 +53,12 @@ export function buildExternalMedia(opts: {
   const thumbKind = classifyMediaUrl(thumbnailUrl);
 
   const playable = mediaKind === "video" ? mediaUrl : thumbKind === "video" ? thumbnailUrl : null;
+  // Full-resolution image beats its thumbnail; a video's still IS the thumbnail.
   const still =
-    thumbKind !== "video" && thumbnailUrl
-      ? thumbnailUrl
-      : mediaKind === "image"
-        ? mediaUrl
+    mediaKind === "image"
+      ? mediaUrl
+      : thumbKind !== "video" && thumbnailUrl
+        ? thumbnailUrl
         : null;
 
   if (playable) {
