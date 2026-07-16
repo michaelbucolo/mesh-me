@@ -113,12 +113,20 @@ export async function InstagramProfileView({ username, tab }: { username: string
             {profile.bannerUrl ? (
               <Image src={profile.bannerUrl} alt="" fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
             ) : (
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-[var(--mesh-blue)] opacity-[0.04] blur-2xl" />
-                <div className="absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-[var(--mesh-cyan)] opacity-[0.03] blur-3xl" />
-                <div className="absolute top-1/3 left-1/4 h-1 w-1 rounded-full bg-[var(--mesh-blue)] opacity-30" />
-                <div className="absolute top-1/2 right-1/3 h-0.5 w-0.5 rounded-full bg-[var(--mesh-cyan)] opacity-40" />
-                <div className="absolute bottom-1/4 left-2/3 h-1.5 w-1.5 rounded-full bg-[var(--mesh-blue)] opacity-20" />
+              <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+                {/* A quiet slice of their mesh: woven strands + constellation nodes */}
+                <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-[var(--mesh-blue)] opacity-[0.07] blur-2xl" />
+                <div className="absolute -bottom-12 -left-12 h-56 w-56 rounded-full bg-[var(--mesh-cyan)] opacity-[0.05] blur-3xl" />
+                <svg className="absolute inset-0 h-full w-full opacity-[0.35]" preserveAspectRatio="none" viewBox="0 0 100 40">
+                  <path d="M8 30 Q 30 12 52 22 T 96 14" fill="none" stroke="var(--mesh-blue)" strokeWidth="0.18" opacity="0.6" />
+                  <path d="M2 12 Q 26 26 54 12 T 98 26" fill="none" stroke="var(--mesh-cyan)" strokeWidth="0.14" opacity="0.5" />
+                  <path d="M12 36 Q 40 30 62 33 T 94 30" fill="none" stroke="var(--mesh-blue)" strokeWidth="0.12" opacity="0.4" />
+                  <circle cx="30" cy="17" r="0.7" fill="var(--mesh-blue)" opacity="0.9" />
+                  <circle cx="52" cy="22" r="0.9" fill="var(--mesh-cyan)" opacity="0.8" />
+                  <circle cx="78" cy="17" r="0.6" fill="var(--mesh-blue)" opacity="0.7" />
+                  <circle cx="16" cy="28" r="0.5" fill="var(--mesh-cyan)" opacity="0.6" />
+                  <circle cx="88" cy="28" r="0.75" fill="var(--mesh-blue)" opacity="0.8" />
+                </svg>
               </div>
             )}
             {/* View Public Mesh button */}
@@ -134,9 +142,9 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
           {/* Profile info */}
           <div className="profile-info relative px-6 pb-6">
-            {/* Avatar */}
+            {/* Avatar — ringed like a node on the mesh */}
             <div className="-mt-16 mb-4 flex items-end gap-6">
-              <div className="shrink-0">
+              <div className="shrink-0 rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] via-[#58bfff] to-[var(--mesh-cyan)] p-[3px] shadow-[0_0_40px_rgba(47,124,255,0.25)]">
                 <Avatar
                   src={profile.avatarUrl}
                   alt={profile.displayName}
@@ -154,16 +162,6 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   {profile.isVerified && (
                     <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--mesh-blue)]" aria-label="Verified" />
                   )}
-                  {isOwnProfile && (
-                    <span className="inline-flex items-center rounded-lg bg-[var(--mesh-blue)] px-2.5 py-0.5 text-xs font-bold text-white">
-                      Owner
-                    </span>
-                  )}
-                  {profile.isVerified && (
-                    <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
-                      Verified
-                    </span>
-                  )}
                   {!isOwnProfile && !profile.isPublic && (
                     <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-400">
                       Private by default
@@ -173,6 +171,21 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
                 {/* Username */}
                 <p className="mt-1 text-sm text-[var(--mesh-text-muted)]">@{profile.username}</p>
+
+                {/* Stats — the numbers people actually look for, front and center */}
+                {profile.sectionVisibility.stats && (
+                  <div className="mt-3 flex items-center gap-6">
+                    <span className="text-sm text-[var(--mesh-text-secondary)]">
+                      <span className="font-bold text-[var(--mesh-text)]">{profile._count.posts}</span> posts
+                    </span>
+                    <span className="text-sm text-[var(--mesh-text-secondary)]">
+                      <span className="font-bold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
+                    </span>
+                    <span className="text-sm text-[var(--mesh-text-secondary)]">
+                      <span className="font-bold text-[var(--mesh-text)]">{profile._count.following}</span> following
+                    </span>
+                  </div>
+                )}
 
                 {/* Bio */}
                 {profile.bio && (
@@ -229,8 +242,12 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   showGlow={false}
                 />
                 <div>
-                  <p className="text-sm font-bold text-[var(--mesh-text)]">Meshi</p>
-                  <p className="text-xs text-[var(--mesh-text-muted)]">Your digital companion</p>
+                  <p className="text-sm font-bold text-[var(--mesh-text)]">
+                    {isOwnProfile ? "Your Meshi" : `${profile.displayName.split(" ")[0]}'s Meshi`}
+                  </p>
+                  <p className="text-xs text-[var(--mesh-text-muted)]">
+                    {isOwnProfile ? "How the mesh sees you" : "How they roam the mesh"}
+                  </p>
                   <div className="mt-0.5 flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--mesh-green)]" />
                     <span className="text-[10px] text-[var(--mesh-green)]">Online</span>

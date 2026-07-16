@@ -9131,3 +9131,46 @@ body > * { position: relative; z-index: 1; }
   .mesh-owner-meshi.is-asleep,
   .mesh-owner-zzz { animation: none; }
 }
+
+/* ── The Flow: reel gestures ─────────────────────────────────────────── */
+@keyframes flowHeartBurst {
+  0% { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  18% { opacity: 1; transform: scale(1.18) rotate(3deg); }
+  35% { transform: scale(0.96) rotate(0deg); }
+  55% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.35) translateY(-28px); }
+}
+.flow-heart-burst {
+  animation: flowHeartBurst 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  filter: drop-shadow(0 6px 24px rgba(244, 63, 94, 0.55));
+}
+@keyframes flowLikePop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.45); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.flow-like-pop { animation: flowLikePop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .flow-heart-burst, .flow-like-pop { animation: none; }
+}
+
+/* ── Entry: error shake + signup meshi ───────────────────────────────── */
+@keyframes meshGateShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+.mesh-gate-shake { animation: meshGateShake 0.4s ease; }
+.mesh-gate-signup-meshi {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.35rem;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-gate-shake { animation: none; }
+  .mesh-gate-signup-meshi { transition: none; }
+}

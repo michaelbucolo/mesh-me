@@ -76,7 +76,21 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
   const [leaving, setLeaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  // How much of the signup form is filled — Meshi warms up as it comes alive.
+  const [signupFilled, setSignupFilled] = useState<Record<string, boolean>>({});
+  const [shaking, setShaking] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const markFilled = useCallback((field: string, value: string) => {
+    setSignupFilled((current) =>
+      current[field] === Boolean(value.trim()) ? current : { ...current, [field]: Boolean(value.trim()) },
+    );
+  }, []);
+
+  const shake = useCallback(() => {
+    setShaking(true);
+    window.setTimeout(() => setShaking(false), 450);
+  }, []);
 
   const reduceMotion = useMemo(
     () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
@@ -183,6 +197,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       const result = await signInForEntry(form);
       if (result && "error" in result && result.error) {
         setMessage(result.error === "Invalid email or password" ? "That password didn't work. Try again." : result.error);
+        shake();
         window.setTimeout(() => passwordRef.current?.focus(), 80);
         return;
       }
@@ -329,7 +344,19 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               <MeshiMascot
                 size={96}
                 color={preview?.meshi.color}
-                mood={success ? "celebrating" : "excited"}
+                // Meshi keeps its eyes shut while you type your password —
+                // and visibly peeks the moment you hit "show password".
+                mood={
+                  success
+                    ? "celebrating"
+                    : message
+                      ? "surprised"
+                      : password && showPassword
+                        ? "wink"
+                        : password
+                          ? "sleepy"
+                          : "excited"
+                }
                 hat={preview?.meshi.hat}
                 hair={preview?.meshi.hair}
                 accessory={preview?.meshi.accessory}
@@ -344,11 +371,17 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             <p className="mesh-gate-bubble">
               {success
                 ? "Pulling your world together…"
-                : preview
-                  ? `You're ${displayName}. What's your password?`
-                  : "Welcome back. What's your password?"}
+                : message
+                  ? "Hmm, that's not it — try again."
+                  : password && !showPassword
+                    ? "Eyes closed. Promise."
+                    : password && showPassword
+                      ? "Peeking, since you asked."
+                      : preview
+                        ? `You're ${displayName}. What's your password?`
+                        : "Welcome back. What's your password?"}
             </p>
-            <div className="mesh-gate-inputwrap">
+            <div className={`mesh-gate-inputwrap${shaking ? " mesh-gate-shake" : ""}`}>
               <input
                 ref={passwordRef}
                 type={showPassword ? "text" : "password"}
@@ -405,10 +438,23 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
         )}
 
         {/* SIGN UP */}
-        {stage === "signup" && (
+        {stage === "signup" && (() => {
+          const filledCount = Object.values(signupFilled).filter(Boolean).length;
+          const signupMood: MeshiMood =
+            filledCount >= 4 ? "celebrating" : filledCount === 3 ? "love" : filledCount === 2 ? "excited" : "happy";
+          return (
           <form key="signup" action={submitSignup} className="mesh-gate-form" data-testid="entry-signup-form" noValidate>
+            {/* A brand-new Meshi warms up as the form comes alive — it's THEIR
+                Meshi being born, one field at a time. */}
+            <div className="mesh-gate-signup-meshi" style={{ transform: `scale(${1 + filledCount * 0.05})` }} aria-hidden="true">
+              <MeshiMascot size={72} mood={signupMood} animate bouncy={filledCount >= 4} showGlow={filledCount >= 3} />
+            </div>
             <h1 className="mesh-gate-q mesh-gate-q-sm">Create your Mesh</h1>
-            <p className="mesh-gate-hint">Your world, your way — private by default.</p>
+            <p className="mesh-gate-hint">
+              {filledCount >= 4
+                ? "Your Meshi is ready to meet you."
+                : "Your world, your way — private by default."}
+            </p>
             <input type="hidden" name="phone" value={signupDraft.phone} />
             <label className="mesh-gate-field">
               <span>Email</span>
@@ -416,7 +462,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 name="email"
                 type="email"
                 defaultValue={signupDraft.email}
-                onChange={spark}
+                onChange={(e) => { spark(); markFilled("email", e.target.value); }}
                 placeholder="you@example.com"
                 autoComplete="email"
                 required
@@ -430,7 +476,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               <input
                 name="username"
                 defaultValue={signupDraft.username}
-                onChange={spark}
+                onChange={(e) => { spark(); markFilled("username", e.target.value); }}
                 placeholder="yourname"
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -447,7 +493,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               <span>Display name</span>
               <input
                 name="displayName"
-                onChange={spark}
+                onChange={(e) => { spark(); markFilled("displayName", e.target.value); }}
                 placeholder="Your name"
                 required
                 maxLength={48}
@@ -461,7 +507,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               <input
                 name="password"
                 type="password"
-                onChange={spark}
+                onChange={(e) => { spark(); markFilled("password", e.target.value); }}
                 placeholder="at least 8 characters"
                 autoComplete="new-password"
                 required
@@ -479,7 +525,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               I already have an account
             </button>
           </form>
-        )}
+          );
+        })()}
 
         {/* RESET */}
         {stage === "reset" && (

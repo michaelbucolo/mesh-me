@@ -20,11 +20,39 @@ export type FlowPost = {
   url?: string | null;
 };
 
+// Text reels rotate through a small set of night-sky moods so a run of
+// thoughts doesn't read as copies of one card.
+const TEXT_STAGES = [
+  "radial-gradient(circle at 30% 20%, #1d2a5e 0%, #0a0f24 55%, #04060f 100%)",
+  "radial-gradient(circle at 70% 25%, #33184d 0%, #140b28 55%, #05040f 100%)",
+  "radial-gradient(circle at 50% 80%, #0d3b3b 0%, #081d26 55%, #03070d 100%)",
+  "radial-gradient(circle at 25% 70%, #46215a 0%, #1c0f2e 50%, #070410 100%)",
+];
+
+function textStageFor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return TEXT_STAGES[Math.abs(hash) % TEXT_STAGES.length];
+}
+
 // One full-screen reel: video autoplays in view, images fill the frame, and
 // text-only posts become a typographic card — any content type, same stage.
-function ReelMedia({ post, active, muted, onToggleMute }: { post: FlowPost; active: boolean; muted: boolean; onToggleMute: () => void }) {
+// Playback state lives in the parent so taps and double-taps can share it.
+function ReelMedia({
+  post,
+  active,
+  paused,
+  muted,
+  onToggleMute,
+}: {
+  post: FlowPost;
+  active: boolean;
+  paused: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [paused, setPaused] = useState(false);
+  const progressRef = useRef<HTMLDivElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
   const video = videoFailed ? undefined : post.media.find((m) => m.type === "video");
   const image = post.media.find((m) => m.type !== "video") ?? (videoFailed
@@ -40,12 +68,7 @@ function ReelMedia({ post, active, muted, onToggleMute }: { post: FlowPost; acti
 
   if (video) {
     return (
-      <button
-        type="button"
-        className="relative h-full w-full"
-        onClick={() => setPaused((p) => !p)}
-        aria-label={paused ? "Play" : "Pause"}
-      >
+      <div className="relative h-full w-full">
         <video
           ref={videoRef}
           src={video.url}
@@ -55,25 +78,35 @@ function ReelMedia({ post, active, muted, onToggleMute }: { post: FlowPost; acti
           playsInline
           preload="metadata"
           onError={() => setVideoFailed(true)}
+          onTimeUpdate={(event) => {
+            const el = event.currentTarget;
+            if (progressRef.current && el.duration > 0) {
+              progressRef.current.style.width = `${(el.currentTime / el.duration) * 100}%`;
+            }
+          }}
           className="h-full w-full object-cover"
         />
         {paused && (
           <span className="absolute inset-0 flex items-center justify-center">
-            <Play size={64} className="text-white/85 drop-shadow-lg" fill="currentColor" />
+            <Play size={64} className="animate-[fadeIn_.15s_ease] text-white/85 drop-shadow-lg" fill="currentColor" />
           </span>
         )}
-        <span
-          role="button"
-          tabIndex={-1}
+        <button
+          type="button"
+          aria-label={muted ? "Unmute" : "Mute"}
           onClick={(e) => {
             e.stopPropagation();
             onToggleMute();
           }}
-          className="absolute right-3 top-3 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur"
+          className="absolute right-3 top-3 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
         >
           {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-        </span>
-      </button>
+        </button>
+        {/* Playback progress — a quiet hairline, not a control */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/15">
+          <div ref={progressRef} className="h-full w-0 bg-white/85" />
+        </div>
+      </div>
     );
   }
 
@@ -90,13 +123,35 @@ function ReelMedia({ post, active, muted, onToggleMute }: { post: FlowPost; acti
 
   // Text-only content gets the full reel stage.
   return (
-    <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#1d2a5e_0%,#0a0f24_55%,#04060f_100%)] px-8">
-      <p className="max-w-md whitespace-pre-wrap text-center text-2xl font-semibold leading-snug text-white">
+    <div className="flex h-full w-full items-center justify-center px-8" style={{ background: textStageFor(post.id) }}>
+      <p
+        className={`max-w-md whitespace-pre-wrap text-center font-semibold leading-snug text-white ${
+          post.content.length > 220 ? "text-lg" : post.content.length > 90 ? "text-xl" : "text-2xl"
+        }`}
+      >
         {post.content}
       </p>
     </div>
   );
 }
+
+function formatCount(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value % 1_000_000 < 100_000 ? 0 : 1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(value % 1_000 < 100 ? 0 : 1)}K`;
+  return String(value);
+}
+
+const PLATFORM_CHIP: Record<string, string> = {
+  youtube: "bg-red-500/85",
+  instagram: "bg-gradient-to-r from-pink-500/85 to-amber-500/85",
+  tiktok: "bg-zinc-800/85",
+  twitter: "bg-sky-500/85",
+  x: "bg-zinc-800/85",
+  reddit: "bg-orange-600/85",
+  facebook: "bg-blue-600/85",
+  snapchat: "bg-yellow-400/90 text-black",
+  twitch: "bg-purple-600/85",
+};
 
 function RailButton({
   label,
@@ -142,14 +197,20 @@ function RailButton({
 
 function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: boolean; muted: boolean; onToggleMute: () => void }) {
   const native = !post.platform || post.platform === "mesh" || post.platform === "meshme";
+  const hasVideo = post.media.some((m) => m.type === "video");
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [expanded, setExpanded] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [bursts, setBursts] = useState<number[]>([]);
   const [, startLike] = useTransition();
+  const lastTapRef = useRef(0);
+  const singleTapTimerRef = useRef<number | null>(null);
 
-  const handleLike = () => {
+  const handleLike = (viaDoubleTap = false) => {
     if (!native) return;
-    const next = !liked;
+    const next = viaDoubleTap ? true : !liked;
+    if (next === liked && viaDoubleTap) return;
     setLiked(next);
     setLikeCount((c) => c + (next ? 1 : -1));
     startLike(async () => {
@@ -159,6 +220,33 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
         setLikeCount((c) => c + (next ? -1 : 1));
       }
     });
+  };
+
+  // Tap = pause/play (videos). Double-tap = like, with a heart that blooms
+  // where everyone expects it. The single-tap waits a beat so a second tap
+  // can cancel it — no pause flicker while you're double-tapping.
+  const handleStageTap = () => {
+    const now = performance.now();
+    if (now - lastTapRef.current < 300) {
+      lastTapRef.current = 0;
+      if (singleTapTimerRef.current) {
+        window.clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
+      if (native) {
+        handleLike(true);
+        setBursts((current) => [...current.slice(-3), now]);
+        window.setTimeout(() => setBursts((current) => current.filter((t) => t !== now)), 800);
+      }
+      return;
+    }
+    lastTapRef.current = now;
+    if (hasVideo) {
+      singleTapTimerRef.current = window.setTimeout(() => {
+        setPaused((p) => !p);
+        singleTapTimerRef.current = null;
+      }, 280);
+    }
   };
 
   const handleShare = async () => {
@@ -171,16 +259,34 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
     }
   };
 
+  const platformChip = post.platform && !native ? PLATFORM_CHIP[post.platform.toLowerCase()] ?? "bg-white/20" : null;
+
   return (
     <section className="relative h-full w-full snap-start snap-always" data-flow-reel={post.id}>
       {/* Stage — centered 9:16 column on wide screens, full-bleed on phones */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative h-full w-full overflow-hidden bg-black sm:h-[calc(100%-1.5rem)] sm:w-auto sm:aspect-[9/16] sm:rounded-2xl">
-          <ReelMedia post={post} active={active} muted={muted} onToggleMute={onToggleMute} />
+        <div
+          className="relative h-full w-full cursor-pointer overflow-hidden bg-black sm:h-[calc(100%-1.5rem)] sm:w-auto sm:aspect-[9/16] sm:rounded-2xl"
+          onClick={handleStageTap}
+        >
+          <ReelMedia post={post} active={active} paused={paused} muted={muted} onToggleMute={onToggleMute} />
+
+          {/* Double-tap hearts bloom from the middle of the stage */}
+          {bursts.map((t) => (
+            <span key={t} className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <Heart size={104} fill="currentColor" className="flow-heart-burst text-rose-500" />
+            </span>
+          ))}
+
+          {platformChip && (
+            <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
+              {post.platform}
+            </span>
+          )}
 
           {/* Bottom scrim + author/caption */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pb-4 pt-16" />
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 pr-16">
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 pr-16" onClick={(e) => e.stopPropagation()}>
             <div className="pointer-events-auto min-w-0 flex-1 text-white">
               <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2">
                 {post.author.avatarUrl ? (
@@ -210,11 +316,13 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
           </div>
 
           {/* Right action rail */}
-          <div className="absolute bottom-16 right-2 flex flex-col items-center gap-4">
-            <RailButton label="Like" count={likeCount} onClick={handleLike} active={liked}>
-              <Heart size={28} fill={liked ? "currentColor" : "none"} />
+          <div className="absolute bottom-16 right-2 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+            <RailButton label="Like" count={formatCount(likeCount)} onClick={() => handleLike()} active={liked}>
+              <span key={liked ? "liked" : "unliked"} className={liked ? "flow-like-pop inline-flex" : "inline-flex"}>
+                <Heart size={28} fill={liked ? "currentColor" : "none"} className={liked ? "text-rose-500" : undefined} />
+              </span>
             </RailButton>
-            <RailButton label="Comments" count={post._count.comments} href={`/feed/${post.id}`}>
+            <RailButton label="Comments" count={formatCount(post._count.comments)} href={`/feed/${post.id}`}>
               <MessageCircle size={28} />
             </RailButton>
             <RailButton label="Share" onClick={handleShare}>
@@ -296,6 +404,7 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
       if (!root) return;
       if (e.key === "ArrowDown") root.scrollBy({ top: root.clientHeight, behavior: "smooth" });
       else if (e.key === "ArrowUp") root.scrollBy({ top: -root.clientHeight, behavior: "smooth" });
+      else if (e.key.toLowerCase() === "m") setMuted((m) => !m);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

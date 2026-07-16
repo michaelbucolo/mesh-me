@@ -551,6 +551,21 @@ export function SettingsControlCenter({
               eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
               badge={meshiState.badgeStyle as MeshiBadge}
               outfit={meshiState.outfitStyle as MeshiOutfit}
+              // Meshi picks up the tool for whatever you're adjusting —
+              // a small companion moment on every section change.
+              prop={
+                activeSection === "privacy" || activeSection === "security"
+                  ? "shield"
+                  : activeSection === "notifications"
+                    ? "bell"
+                    : activeSection === "meshi" || activeSection === "appearance"
+                      ? "paintbrush"
+                      : activeSection === "mesh"
+                        ? "compass"
+                        : activeSection === "data"
+                          ? "clipboard"
+                          : "none"
+              }
               showGlow={false}
               animate
               interactive
@@ -650,8 +665,7 @@ export function SettingsControlCenter({
                 <span aria-hidden="true" className="text-lg leading-none">‹</span>
                 Settings
               </button>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Mesh.me settings</p>
-              <h2 className="mt-1 text-2xl font-bold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">{activeSectionMeta.description}</p>
             </div>
           </div>

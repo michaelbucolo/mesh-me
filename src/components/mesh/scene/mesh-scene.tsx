@@ -1179,26 +1179,31 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             prop="compass"
           />
           {hoverNode && hoverNode.kind !== "self" && (
-            <div className="absolute left-1/2 top-full mt-1 w-max max-w-[16rem] -translate-x-1/2 rounded-lg border border-white/12 bg-black/75 px-2.5 py-1.5 text-center backdrop-blur">
-              <p className="truncate text-[11px] font-semibold text-white">{hoverNode.label}</p>
-              {hoverNode.sublabel && <p className="truncate text-[10px] text-white/60">{hoverNode.sublabel}</p>}
-              {hoverNode.content && hoverNode.content !== hoverNode.label && (
-                <p className="mt-1 line-clamp-2 text-left text-[10px] leading-snug text-white/75">{hoverNode.content}</p>
-              )}
-              {hoverNode.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={hoverNode.imageUrl} alt="" className="mt-1 h-16 w-full rounded object-cover" />
-              )}
-              {hoverNode.meta && hoverNode.meta.length > 0 && (
-                <div className="mt-1 flex flex-wrap justify-center gap-x-2.5 gap-y-0.5">
-                  {hoverNode.meta.map((m) => (
-                    <span key={m.label} className="text-[10px] text-white/60">
-                      <span className="font-semibold text-white/85">{m.value}</span> {m.label.toLowerCase()}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <p className="mt-1 text-[9px] uppercase tracking-wide text-white/40">
+            <div
+              className="absolute left-1/2 top-full mt-1.5 w-max max-w-[16.5rem] -translate-x-1/2 animate-[fadeIn_.14s_ease] overflow-hidden rounded-xl border border-white/12 bg-[#0a0f1f]/90 text-center shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+              style={{ boxShadow: `0 12px 40px rgba(0,0,0,0.55), inset 0 2px 0 ${hoverNode.color || "var(--mesh-blue)"}` }}
+            >
+              <div className="px-3 py-2">
+                <p className="truncate text-[11.5px] font-semibold text-white">{hoverNode.label}</p>
+                {hoverNode.sublabel && <p className="truncate text-[10px] text-white/55">{hoverNode.sublabel}</p>}
+                {hoverNode.content && hoverNode.content !== hoverNode.label && (
+                  <p className="mt-1 line-clamp-2 text-left text-[10px] leading-snug text-white/75">{hoverNode.content}</p>
+                )}
+                {hoverNode.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={hoverNode.imageUrl} alt="" className="mt-1.5 h-20 w-full rounded-lg object-cover" />
+                )}
+                {hoverNode.meta && hoverNode.meta.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap justify-center gap-x-2.5 gap-y-0.5">
+                    {hoverNode.meta.map((m) => (
+                      <span key={m.label} className="text-[10px] text-white/55">
+                        <span className="font-semibold text-white/90">{m.value}</span> {m.label.toLowerCase()}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="border-t border-white/8 bg-white/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/45">
                 {hoverNode.kind === "person"
                   ? "Click to visit their mesh"
                   : hoverNode.kind === "post" && hoverNode.href?.startsWith("/feed/")
@@ -1351,7 +1356,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         <MeshDesktopChrome
           platforms={meshData.platforms}
           recentComments={meshData.recentComments}
-          onRecenter={fitToContent}
         />
       ) : null}
 

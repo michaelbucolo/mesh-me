@@ -9,7 +9,6 @@ import type { MeshPlatform, MeshRecentComment } from "./mesh-data";
 type MeshDesktopChromeProps = {
   platforms?: MeshPlatform[];
   recentComments?: MeshRecentComment[];
-  onRecenter: () => void;
 };
 
 function platformLabel(platform: string) {
@@ -19,7 +18,7 @@ function platformLabel(platform: string) {
   return platform.charAt(0).toUpperCase() + platform.slice(1);
 }
 
-export function MeshDesktopChrome({ platforms = [], recentComments = [], onRecenter }: MeshDesktopChromeProps) {
+export function MeshDesktopChrome({ platforms = [], recentComments = [] }: MeshDesktopChromeProps) {
   const latestCommentLink = recentComments[0]?.post.id ? `/feed/${recentComments[0].post.id}` : "/feed";
   const manageHref = platforms[0]?.manageHref || "/connected-accounts";
   const sourcesHref = platforms[0]?.sourcesHref || "/content-hub";
@@ -137,16 +136,6 @@ export function MeshDesktopChrome({ platforms = [], recentComments = [], onRecen
         </section>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 hidden -translate-x-1/2 lg:flex">
-        <button
-          type="button"
-          onClick={onRecenter}
-          className="pointer-events-auto mesh-pressable inline-flex items-center gap-2 rounded-full border border-[var(--mesh-border)] bg-[rgba(7,10,22,0.82)] px-4 py-2 text-sm font-semibold text-[var(--mesh-text)] shadow-[var(--shadow-lg)] backdrop-blur"
-        >
-          <span className="h-2 w-2 rounded-full bg-[var(--mesh-blue)] shadow-[0_0_12px_rgba(47,124,255,0.8)]" />
-          Recenter
-        </button>
-      </div>
     </>
   );
 }
