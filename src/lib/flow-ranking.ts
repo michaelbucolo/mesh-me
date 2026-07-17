@@ -144,7 +144,7 @@ export async function getViewerTasteProfile(userId: string): Promise<TasteProfil
   return { authorAffinity, formatPreference, tagAffinity, followingIds };
 }
 
-export function scoreFlowPost(
+function scoreFlowPost(
   post: FeedCardPost,
   profile: TasteProfile,
   opts: { now?: number; seen?: Set<string> } = {},

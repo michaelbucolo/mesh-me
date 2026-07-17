@@ -23,7 +23,7 @@ export type ExternalMediaEntry = {
   posterUrl?: string;
 };
 
-export function classifyMediaUrl(url: string | null | undefined): "video" | "image" | null {
+function classifyMediaUrl(url: string | null | undefined): "video" | "image" | null {
   if (!url) return null;
   if (VIDEO_EXT.test(url)) return "video";
   if (IMAGE_EXT.test(url)) return "image";
