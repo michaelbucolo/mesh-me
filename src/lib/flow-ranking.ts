@@ -144,10 +144,45 @@ export async function getViewerTasteProfile(userId: string): Promise<TasteProfil
   return { authorAffinity, formatPreference, tagAffinity, followingIds };
 }
 
+/**
+ * Algorithm Studio ranking modes — user-steerable presets over the same
+ * signal set. Weights change; nothing here is ever pay-to-win.
+ */
+export type FlowRankMode = "following" | "balanced" | "discovery" | "chronological" | "calm";
+
+export function normalizeFlowRankMode(value: string | null | undefined): FlowRankMode {
+  return value === "following" || value === "discovery" || value === "chronological" || value === "calm"
+    ? value
+    : "balanced";
+}
+
+type RankWeights = {
+  velocity: number;
+  recency: number;
+  affinity: number;
+  formatMatch: number;
+  tagMatch: number;
+  // Every Nth slot reserved for a no-history creator (0 disables).
+  explorationEvery: number;
+  // Max consecutive posts from one author.
+  maxRun: number;
+};
+
+const MODE_WEIGHTS: Record<Exclude<FlowRankMode, "chronological">, RankWeights> = {
+  // Relationships, interests, discovery, and recency.
+  balanced: { velocity: 1.2, recency: 1.0, affinity: 2.6, formatMatch: 1.2, tagMatch: 0.9, explorationEvery: 6, maxRun: 2 },
+  // Primarily people the viewer explicitly follows (candidates pre-filtered).
+  following: { velocity: 0.8, recency: 1.6, affinity: 3.2, formatMatch: 0.8, tagMatch: 0.6, explorationEvery: 0, maxRun: 3 },
+  // Broader: new creators and topics get real room.
+  discovery: { velocity: 1.6, recency: 1.2, affinity: 0.9, formatMatch: 1.0, tagMatch: 1.1, explorationEvery: 3, maxRun: 2 },
+  // Lower novelty, gentler pace: viral spikes damped, variety enforced.
+  calm: { velocity: 0.4, recency: 1.1, affinity: 2.2, formatMatch: 1.0, tagMatch: 1.0, explorationEvery: 8, maxRun: 1 },
+};
+
 function scoreFlowPost(
   post: FeedCardPost,
   profile: TasteProfile,
-  opts: { now?: number; seen?: Set<string> } = {},
+  opts: { now?: number; seen?: Set<string>; weights?: RankWeights } = {},
 ): number {
   const now = opts.now ?? Date.now();
   const ageHours = Math.max((now - new Date(post.createdAt).getTime()) / HOUR_MS, 0.5);
@@ -183,12 +218,13 @@ function scoreFlowPost(
   // down rather than filtering it out.
   const richness = post.media.length > 0 ? (format === "video" ? 0.5 : 0.25) : 0;
 
+  const w = opts.weights ?? MODE_WEIGHTS.balanced;
   let score =
-    velocity * 1.2 +
-    recency * 1.0 +
-    affinity * 2.6 +
-    formatMatch * 1.2 +
-    tagMatch * 0.9 +
+    velocity * w.velocity +
+    recency * w.recency +
+    affinity * w.affinity +
+    formatMatch * w.formatMatch +
+    tagMatch * w.tagMatch +
     richness;
 
   // Seen fatigue: already-watched reels sink hard but stay retrievable once
@@ -207,22 +243,48 @@ function scoreFlowPost(
 export function rankFlowPosts(
   posts: FeedCardPost[],
   profile: TasteProfile,
-  opts: { seen?: Set<string>; limit?: number } = {},
+  opts: { seen?: Set<string>; limit?: number; mode?: FlowRankMode } = {},
 ): FeedCardPost[] {
+  const mode = opts.mode ?? "balanced";
+  const limit = opts.limit ?? posts.length;
+
+  // Following mode narrows the candidate pool to people the viewer explicitly
+  // follows (native posts and friends' platform content) before ranking.
+  let candidates = posts;
+  if (mode === "following") {
+    candidates = posts.filter(
+      (post) =>
+        (!post.externalAuthor && profile.followingIds.has(post.author.id)) ||
+        Boolean(post.meshFriend),
+    );
+  }
+
+  // Chronological is exactly what it says: newest eligible items first, no
+  // scoring, no exploration, no seen-fatigue reshuffling.
+  if (mode === "chronological") {
+    return [...candidates]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  }
+
+  const weights = MODE_WEIGHTS[mode];
   const now = Date.now();
-  const scored = posts
-    .map((post) => ({ post, score: scoreFlowPost(post, profile, { now, seen: opts.seen }) }))
+  const scored = candidates
+    .map((post) => ({ post, score: scoreFlowPost(post, profile, { now, seen: opts.seen, weights }) }))
     .sort((a, b) => b.score - a.score);
 
   const result: FeedCardPost[] = [];
   const pool = [...scored];
-  const limit = opts.limit ?? posts.length;
 
   while (result.length < limit && pool.length > 0) {
     const slot = result.length;
     const lastAuthor = result[slot - 1] ? authorKey(result[slot - 1]) : null;
-    const prevAuthor = result[slot - 2] ? authorKey(result[slot - 2]) : null;
-    const explorationSlot = slot > 0 && slot % 6 === 0;
+    const runStart = Math.max(0, slot - weights.maxRun);
+    const runAuthors = result.slice(runStart, slot).map((p) => authorKey(p));
+    const runIsFull = (key: string) =>
+      runAuthors.length >= weights.maxRun && runAuthors.every((a) => a === key);
+    const explorationSlot =
+      weights.explorationEvery > 0 && slot > 0 && slot % weights.explorationEvery === 0;
 
     let pickIndex = -1;
 
@@ -234,11 +296,7 @@ export function rankFlowPosts(
       );
     }
     if (pickIndex === -1) {
-      pickIndex = pool.findIndex(({ post }) => {
-        const key = authorKey(post);
-        // Allow max two in a row from one author.
-        return !(key === lastAuthor && key === prevAuthor);
-      });
+      pickIndex = pool.findIndex(({ post }) => !runIsFull(authorKey(post)));
     }
     if (pickIndex === -1) pickIndex = 0;
 
@@ -253,8 +311,14 @@ export function rankFlowPosts(
  * ranker surfaced it, never another user's private activity, never a paid
  * placement (those don't exist here).
  */
-export function explainFlowPost(post: FeedCardPost, profile: TasteProfile): string {
+export function explainFlowPost(
+  post: FeedCardPost,
+  profile: TasteProfile,
+  mode: FlowRankMode = "balanced",
+): string {
   const handle = `@${post.author.username}`;
+  if (mode === "chronological") return "Newest first — you're in Chronological mode";
+  if (mode === "following") return `You follow ${handle} — Following mode shows only your people`;
   if (!post.externalAuthor && profile.followingIds.has(post.author.id)) {
     return `You follow ${handle}`;
   }
@@ -273,6 +337,7 @@ export function explainFlowPost(post: FeedCardPost, profile: TasteProfile): stri
   if ((profile.formatPreference.get(format) ?? 0) > 0.5) {
     return format === "video" ? "You watch a lot of video" : "Matches what you usually enjoy";
   }
+  if (mode === "discovery") return "Discovery mode — a new corner of mesh.me";
   if (ageHours < 24) return "Fresh from a creator you haven't met yet";
   return "Discovery — a new corner of mesh.me";
 }

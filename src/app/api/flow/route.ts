@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
+import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, rankFlowPosts } from "@/lib/flow-ranking";
 
 /**
  * Ranked Flow feed. The client sends the ids it already has (`exclude`) plus
@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       .slice(0, 600);
   const exclude = new Set(parseIds("exclude"));
   const seen = new Set(parseIds("seen"));
+  const mode = normalizeFlowRankMode(searchParams.get("mode"));
 
   const [candidates, profile] = await Promise.all([
     getFlowCandidates(user),
@@ -31,9 +32,9 @@ export async function GET(request: Request) {
   ]);
 
   const fresh = candidates.filter((post) => !exclude.has(post.id));
-  const ranked = rankFlowPosts(fresh, profile, { seen, limit }).map((post) => ({
+  const ranked = rankFlowPosts(fresh, profile, { seen, limit, mode }).map((post) => ({
     ...post,
-    whyThis: explainFlowPost(post, profile),
+    whyThis: explainFlowPost(post, profile, mode),
   }));
 
   return NextResponse.json({

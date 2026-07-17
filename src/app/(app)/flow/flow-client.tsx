@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, Sparkles, VolumeX, Volume2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2 } from "lucide-react";
 import { toggleFollow, toggleReaction } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 
@@ -483,6 +483,28 @@ function Reel({
 
 type LaneState = { posts: FlowPost[]; index: number; loading: boolean };
 
+// Algorithm Studio: the viewer steers the ranking. Persisted locally, sent
+// with every ranked fetch, reflected in "Why this?".
+const FLOW_MODES = [
+  { id: "balanced", name: "Balanced", desc: "Relationships, interests, discovery, and recency." },
+  { id: "following", name: "Following", desc: "Only people you follow." },
+  { id: "discovery", name: "Discovery", desc: "Broader — new creators and topics." },
+  { id: "chronological", name: "Chronological", desc: "Newest first. No algorithm." },
+  { id: "calm", name: "Calm", desc: "Gentler pace, fewer viral spikes, more variety." },
+] as const;
+type FlowMode = (typeof FLOW_MODES)[number]["id"];
+const MODE_STORAGE_KEY = "meshFlowMode";
+
+function readStoredMode(): FlowMode {
+  if (typeof window === "undefined") return "balanced";
+  try {
+    const raw = localStorage.getItem(MODE_STORAGE_KEY);
+    return FLOW_MODES.some((m) => m.id === raw) ? (raw as FlowMode) : "balanced";
+  } catch {
+    return "balanced";
+  }
+}
+
 export type FlowSuggestedPerson = {
   id: string;
   username: string;
@@ -609,6 +631,10 @@ export function FlowClient({
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [mode, setMode] = useState<FlowMode>(readStoredMode);
+  const [showModes, setShowModes] = useState(false);
+  const modeRef = useRef<FlowMode>(mode);
+  modeRef.current = mode;
   // Sideways "more like this" lanes, keyed by the vertical slot's post id.
   const [lanes, setLanes] = useState<Record<string, LaneState>>({});
   const [slideDirs, setSlideDirs] = useState<Record<string, 1 | -1 | 0>>({});
@@ -655,10 +681,10 @@ export function FlowClient({
     loadingRef.current = true;
     setRefreshing(true);
     try {
-      const res = await fetch(`/api/flow?limit=12&seen=${encodeURIComponent(seenParam())}`, {
-        credentials: "same-origin",
-        cache: "no-store",
-      });
+      const res = await fetch(
+        `/api/flow?limit=12&seen=${encodeURIComponent(seenParam())}&mode=${modeRef.current}`,
+        { credentials: "same-origin", cache: "no-store" },
+      );
       if (!res.ok) return;
       const data = await res.json().catch(() => null);
       if (data && Array.isArray(data.posts) && data.posts.length > 0) {
@@ -712,7 +738,7 @@ export function FlowClient({
     try {
       const exclude = postsRef.current.map((p) => p.id).slice(-300).join(",");
       const res = await fetch(
-        `/api/flow?limit=12&exclude=${encodeURIComponent(exclude)}&seen=${encodeURIComponent(seenParam())}`,
+        `/api/flow?limit=12&exclude=${encodeURIComponent(exclude)}&seen=${encodeURIComponent(seenParam())}&mode=${modeRef.current}`,
         { credentials: "same-origin" },
       );
       if (!res.ok) return;
@@ -732,6 +758,30 @@ export function FlowClient({
   useEffect(() => {
     if (activeIndex >= posts.length - 3) void loadMore();
   }, [activeIndex, posts.length, loadMore]);
+
+  // The server rendered Balanced; if the viewer's saved mode differs, re-rank
+  // immediately on arrival.
+  useEffect(() => {
+    if (readStoredMode() !== "balanced") void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectMode = useCallback(
+    (next: FlowMode) => {
+      setShowModes(false);
+      if (next === modeRef.current) return;
+      modeRef.current = next;
+      setMode(next);
+      try {
+        localStorage.setItem(MODE_STORAGE_KEY, next);
+      } catch {
+        // session-only preference still works
+      }
+      hasMoreRef.current = true;
+      void refresh();
+    },
+    [refresh],
+  );
 
   // Step sideways through content similar to this reel. First step fetches
   // the lane; later steps just walk it. Index 0 is the original reel.
@@ -797,6 +847,55 @@ export function FlowClient({
       >
         <ArrowLeft size={18} />
       </button>
+      <button
+        type="button"
+        aria-label="Choose how your Flow is ranked"
+        onClick={() => setShowModes(true)}
+        className={`absolute left-14 top-3 z-20 flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold backdrop-blur transition-colors ${
+          mode === "balanced" ? "bg-black/55 text-white hover:bg-black/75" : "bg-white/90 text-black hover:bg-white"
+        }`}
+      >
+        <SlidersHorizontal size={14} aria-hidden="true" />
+        {FLOW_MODES.find((m) => m.id === mode)?.name}
+      </button>
+      {showModes && (
+        <div
+          className="absolute inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center"
+          onClick={() => setShowModes(false)}
+        >
+          <div
+            role="dialog"
+            aria-label="Flow ranking modes"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-t-3xl border border-white/12 bg-[#0b0c14] p-5 pb-8 sm:rounded-3xl sm:pb-5"
+          >
+            <p className="text-base font-bold text-white">How should your Flow rank?</p>
+            <p className="mt-0.5 text-xs text-white/50">
+              You steer the algorithm. No ads, no paid reach — ever.
+            </p>
+            <div className="mt-4 grid gap-1.5">
+              {FLOW_MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => selectMode(m.id)}
+                  className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                    mode === m.id
+                      ? "border-white/25 bg-white/10"
+                      : "border-transparent hover:bg-white/5"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white">{m.name}</p>
+                    <p className="text-xs text-white/55">{m.desc}</p>
+                  </div>
+                  {mode === m.id && <Check size={16} className="shrink-0 text-white" aria-hidden="true" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {refreshing && (
         <div className="absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur">
           Refreshing your Flow…
