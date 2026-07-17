@@ -131,10 +131,12 @@ export async function getExplorePosts(page = 1, limit = 20, currentUser?: Curren
         visibility: "public",
         OR: [
           { authorId: user.id },
-          { author: { isSuspended: false, isPublic: true, showInDiscovery: true } },
+          // A post published as "public" circulates when its author opted into
+          // discovery — isPublic only restricts the profile page itself.
+          { author: { isSuspended: false, showInDiscovery: true } },
         ],
       }
-    : { isNsfw: false, visibility: "public", author: { isSuspended: false, isPublic: true, showInDiscovery: true } };
+    : { isNsfw: false, visibility: "public", author: { isSuspended: false, showInDiscovery: true } };
 
   // Ordering the whole table by reaction count forces SQLite to run a
   // correlated count for every public post before it can return a single row
@@ -685,7 +687,6 @@ export async function searchAll(query: string) {
         ],
         id: { not: user.id },
         isSuspended: false,
-        isPublic: true,
         showInDiscovery: true,
       },
       select: {
@@ -705,7 +706,8 @@ export async function searchAll(query: string) {
         content: { contains: q },
         OR: [
           { authorId: user.id },
-          { author: { isSuspended: false, isPublic: true, showInDiscovery: true } },
+          // Strangers only ever match posts published as public.
+          { visibility: "public", author: { isSuspended: false, showInDiscovery: true } },
         ],
       },
       include: {
@@ -746,7 +748,7 @@ export async function searchAll(query: string) {
           platform: { in: SOCIAL_SEARCH_PLATFORM_IDS },
           OR: [
             { userId: user.id },
-            { user: { isSuspended: false, isPublic: true, showInDiscovery: true } },
+            { user: { isSuspended: false, showInDiscovery: true } },
           ],
         },
         OR: [
@@ -1104,7 +1106,6 @@ export async function getAdvancedSocialDashboard() {
             visibility: "public",
             author: {
               isSuspended: false,
-              isPublic: true,
               showInDiscovery: true,
             },
           },

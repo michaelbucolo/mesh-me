@@ -170,7 +170,9 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
         ...safetyWhere,
         visibility: "public",
         authorId: { notIn: [...followingIds, user.id] },
-        author: { isSuspended: false, isPublic: true, showInDiscovery: true },
+        // Public posts circulate when their author opted into discovery;
+        // isPublic only gates the profile page itself.
+        author: { isSuspended: false, showInDiscovery: true },
       },
       include: baseInclude,
       orderBy: [

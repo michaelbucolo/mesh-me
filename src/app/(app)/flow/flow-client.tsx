@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Link2, MessageCircle, Music2, Play, Send, Sparkles, VolumeX, Volume2 } from "lucide-react";
-import { toggleReaction } from "@/lib/actions";
+import { toggleFollow, toggleReaction } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 
 export type FlowPost = {
@@ -460,10 +460,126 @@ function Reel({
 
 type LaneState = { posts: FlowPost[]; index: number; loading: boolean };
 
+export type FlowSuggestedPerson = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+  followerCount: number;
+};
+
 const SEEN_STORAGE_KEY = "mesh-flow-seen";
 const SEEN_CAP = 500;
 
-export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: FlowPost[]; initialHasMore: boolean }) {
+// Cold start: instead of a dead end, an empty Flow offers real people to
+// follow — one tap each — and then pulls the feed those follows unlock.
+function FlowColdStart({
+  people,
+  refreshing,
+  onLoadFlow,
+}: {
+  people: FlowSuggestedPerson[];
+  refreshing: boolean;
+  onLoadFlow: () => void;
+}) {
+  const [followed, setFollowed] = useState<Set<string>>(new Set());
+  const [, startFollow] = useTransition();
+
+  const toggle = (id: string) => {
+    const next = new Set(followed);
+    const isFollowing = next.has(id);
+    if (isFollowing) next.delete(id);
+    else next.add(id);
+    setFollowed(next);
+    startFollow(async () => {
+      const res = await toggleFollow(id);
+      if (res && "error" in res) {
+        setFollowed((current) => {
+          const rollback = new Set(current);
+          if (isFollowing) rollback.add(id);
+          else rollback.delete(id);
+          return rollback;
+        });
+      }
+    });
+  };
+
+  return (
+    <div className="flex h-full min-h-[60dvh] w-full flex-col items-center justify-center gap-5 overflow-y-auto bg-black px-6 py-10 text-center">
+      <div>
+        <p className="text-xl font-bold text-white">Your Flow is waiting</p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-white/55">
+          Follow a few people and their posts, videos, and platform content stream here.
+        </p>
+      </div>
+
+      {people.length > 0 && (
+        <div className="grid w-full max-w-md gap-2.5">
+          {people.map((person) => {
+            const isFollowing = followed.has(person.id);
+            return (
+              <div key={person.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left">
+                <Link href={`/profile/${person.username}`} className="shrink-0">
+                  {person.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={person.avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">
+                      {(person.displayName || person.username).slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </Link>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-white">{person.displayName}</p>
+                  <p className="truncate text-xs text-white/50">
+                    @{person.username}
+                    {person.followerCount > 0 && ` · ${formatCount(person.followerCount)} followers`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggle(person.id)}
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                    isFollowing ? "bg-white/10 text-white/70" : "bg-white text-black hover:bg-white/90"
+                  }`}
+                >
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-col items-center gap-2">
+        {followed.size > 0 && (
+          <button
+            type="button"
+            onClick={onLoadFlow}
+            disabled={refreshing}
+            className="rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-60"
+          >
+            {refreshing ? "Loading your Flow…" : `Load my Flow (${followed.size} followed)`}
+          </button>
+        )}
+        <Link href="/explore" className="text-sm font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline">
+          Explore mesh.me instead
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export function FlowClient({
+  initialPosts,
+  initialHasMore,
+  suggestedPeople = [],
+}: {
+  initialPosts: FlowPost[];
+  initialHasMore: boolean;
+  suggestedPeople?: FlowSuggestedPerson[];
+}) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [posts, setPosts] = useState(initialPosts);
@@ -645,15 +761,7 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
   }, [swipeLane]);
 
   if (posts.length === 0) {
-    return (
-      <div className="flex h-full min-h-[60dvh] w-full flex-col items-center justify-center gap-3 bg-black text-center">
-        <p className="text-lg font-semibold text-white">The Flow is quiet</p>
-        <p className="max-w-xs text-sm text-white/55">Follow people and connect platforms, and their content streams here.</p>
-        <Link href="/explore" className="mt-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black">
-          Explore mesh.me
-        </Link>
-      </div>
-    );
+    return <FlowColdStart people={suggestedPeople} refreshing={refreshing} onLoadFlow={() => void refresh()} />;
   }
 
   return (
