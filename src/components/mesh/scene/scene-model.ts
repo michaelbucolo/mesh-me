@@ -6,7 +6,7 @@
 // posts, a persona's accounts, a friend's shared world) carry children so they
 // can be opened in place. Layout is computed separately by scene-layout.ts.
 
-import { bestStillUrl } from "@/lib/external-media";
+import { bestStillUrl, playableVideoUrl } from "@/lib/external-media";
 import type { MeshApiResponse } from "../mesh-data";
 import { PLATFORM_COLORS } from "../mesh-types";
 
@@ -39,6 +39,8 @@ export interface SceneNode {
   description?: string;
   avatarUrl?: string | null;
   imageUrl?: string | null;
+  /** Playable video FILE for the in-mesh viewer — never a page link. */
+  videoUrl?: string | null;
   content?: string;
   color: string;
   parentId: string | null;
@@ -208,6 +210,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           sublabel: acct.platform,
           content: pp.content || pp.title,
           imageUrl: image,
+          videoUrl: playableVideoUrl({ mediaUrl: media?.url, thumbnailUrl: media?.thumbnailUrl }),
           color: platformColor(acct.platform),
           parentId: platformId,
           childIds: [],
@@ -276,6 +279,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           imageUrl:
             bestStillUrl({ mediaUrl: media?.url, thumbnailUrl: media?.thumbnailUrl }) ||
             (media && media.type !== "video" ? media.url : null),
+          videoUrl: media && media.type === "video" ? media.url : null,
           color: BRANCH_META.posts.color,
           parentId: personId,
           childIds: [],
@@ -303,6 +307,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         label: truncate(p.content || "Post", 40),
         content: p.content,
         imageUrl: media && media.type !== "video" ? media.url : null,
+        videoUrl: media && media.type === "video" ? media.url : null,
         color: BRANCH_META.posts.color,
         parentId: branchId("posts"),
         childIds: [],

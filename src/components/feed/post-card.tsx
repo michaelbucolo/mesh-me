@@ -10,6 +10,8 @@ import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
+import { getVideoEmbedUrl } from "@/lib/video-embed";
+import { Play } from "lucide-react";
 
 // Platform colors for origin badges
 const PLATFORM_BADGE: Record<string, { label: string; color: string; abbr: string }> = {
@@ -157,6 +159,7 @@ function ExpandablePostText({
 export const PostCard = memo(function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager }: PostCardProps) {
   const [liked, setLiked] = useState(post.reactions && post.reactions.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
+  const [playingEmbed, setPlayingEmbed] = useState(false);
   const [saved, setSaved] = useState(post.savedBy && post.savedBy.length > 0);
   const [repostCount, setRepostCount] = useState(post._count.reposts);
   const [showMenu, setShowMenu] = useState(false);
@@ -183,6 +186,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const mediaSignals = detectMediaSignals(post);
   const visualMedia = post.media.filter((item) => isVisualMedia(item.type));
   const linkMedia = post.media.filter((item) => !isVisualMedia(item.type));
+  // Page-link videos (YouTube/Vimeo/Twitch) play right inside the card via
+  // their embed player — watching never requires leaving mesh.me.
+  const cardEmbedUrl = visualMedia.some((m) => m.type.toLowerCase() === "video")
+    ? null
+    : getVideoEmbedUrl(post.externalUrl, { autoplay: true, muted: false });
   const meChatShareHref = isExternalFeedItem
     ? `/messages?${new URLSearchParams({
         ...(post.externalUrl ? { shareUrl: post.externalUrl } : {}),
@@ -532,7 +540,38 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
         )}
 
-        {visualMedia.length > 0 && (
+        {cardEmbedUrl && (
+          <div className="feed-media-frame relative block aspect-video overflow-hidden bg-black">
+            {playingEmbed ? (
+              <iframe
+                src={cardEmbedUrl}
+                title="Video player"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full border-0"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPlayingEmbed(true)}
+                aria-label="Play video"
+                className="group/embed absolute inset-0 h-full w-full"
+              >
+                {visualMedia[0] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={visualMedia[0].url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                )}
+                <span className="absolute inset-0 flex items-center justify-center bg-black/25 transition group-hover/embed:bg-black/35">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur transition group-hover/embed:scale-105">
+                    <Play size={28} className="ml-1 text-white" fill="currentColor" />
+                  </span>
+                </span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {!cardEmbedUrl && visualMedia.length > 0 && (
           <Link
             href={postHref}
             className={cn(

@@ -1837,6 +1837,9 @@ function ContentLens({
   const total = list.length;
   const postId = nativePostId(node);
   const isExternal = Boolean(node.href && node.href.startsWith("http"));
+  // Page-link videos (YouTube/Vimeo/Twitch) play in the lens via their embed
+  // player whenever there's no playable file.
+  const lensEmbedUrl = !node.videoUrl ? getVideoEmbedUrl(node.href, { autoplay: true, muted: true }) : null;
 
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(metaCount(node, "Likes"));
@@ -1881,15 +1884,37 @@ function ContentLens({
         className="relative flex w-full max-w-lg animate-[slideUp_.3s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0b1020]/95 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* Media */}
-        {node.imageUrl && (
+        {/* Media stage — everything plays right here on the mesh: video files
+            natively, platform pages through their embed players, stills as
+            images. Leaving mesh.me is never required to watch. */}
+        {node.videoUrl ? (
+          <video
+            src={node.videoUrl}
+            poster={node.imageUrl ?? undefined}
+            controls
+            autoPlay
+            muted
+            playsInline
+            className="max-h-[46vh] w-full bg-black object-contain"
+          />
+        ) : lensEmbedUrl ? (
+          <div className="aspect-video w-full bg-black">
+            <iframe
+              src={lensEmbedUrl}
+              title="Player"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              className="h-full w-full border-0"
+            />
+          </div>
+        ) : node.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={node.imageUrl}
             alt=""
             className="max-h-[46vh] w-full object-cover"
           />
-        )}
+        ) : null}
 
         <div className="flex flex-col gap-3 p-5">
           {/* Source */}
@@ -1961,13 +1986,15 @@ function ContentLens({
             )}
 
             {isExternal && node.href && (
+              // Secondary by design: everything plays here; the source link is
+              // provenance, not a requirement.
               <Link
                 href={node.href}
                 target="_blank"
-                className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+                className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-white/40 transition-colors hover:text-white/70"
               >
-                <ExternalLink size={13} />
-                Open on {node.sublabel || "source"}
+                <ExternalLink size={11} />
+                {node.sublabel || "source"}
               </Link>
             )}
           </div>
