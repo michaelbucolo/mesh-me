@@ -22,6 +22,7 @@ import {
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import type { MeshApiResponse } from "../mesh-data";
 import { PostComposer } from "@/components/feed/post-composer";
+import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from "./scene-model";
 import { layoutScene, sceneBounds } from "./scene-layout";
 import { drawScene, type Camera } from "./scene-render";
@@ -1189,10 +1190,25 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 {hoverNode.content && hoverNode.content !== hoverNode.label && (
                   <p className="mt-1 line-clamp-2 text-left text-[10px] leading-snug text-white/75">{hoverNode.content}</p>
                 )}
-                {hoverNode.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={hoverNode.imageUrl} alt="" className="mt-1.5 h-20 w-full rounded-lg object-cover" />
-                )}
+                {(() => {
+                  // Video posts play right in the hover card — a peek at the
+                  // actual content, not just its thumbnail.
+                  const embed = getVideoEmbedUrl(hoverNode.href, { autoplay: true, muted: true });
+                  if (embed) {
+                    return (
+                      <iframe
+                        src={embed}
+                        title="Preview"
+                        allow="autoplay; encrypted-media"
+                        className="mt-1.5 aspect-video w-56 rounded-lg border-0"
+                      />
+                    );
+                  }
+                  return hoverNode.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={hoverNode.imageUrl} alt="" className="mt-1.5 h-20 w-full rounded-lg object-cover" />
+                  ) : null;
+                })()}
                 {hoverNode.meta && hoverNode.meta.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap justify-center gap-x-2.5 gap-y-0.5">
                     {hoverNode.meta.map((m) => (

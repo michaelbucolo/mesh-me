@@ -605,7 +605,9 @@ export async function getThreadMessages(threadId: string) {
   });
   if (!membership) return [];
 
-  return prisma.message.findMany({
+  // Latest window only — an unbounded fetch over a long thread multiplies
+  // into enormous payloads and render work. The API route uses the same cap.
+  const messages = await prisma.message.findMany({
     where: { threadId },
     include: {
       sender: {
@@ -617,8 +619,10 @@ export async function getThreadMessages(threadId: string) {
         },
       },
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
+    take: 150,
   });
+  return messages.reverse();
 }
 
 export async function getNotifications(page = 1, limit = 30) {

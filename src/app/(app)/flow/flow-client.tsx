@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Heart, Link2, MessageCircle, Music2, Play, Send, VolumeX, Volume2 } from "lucide-react";
 import { toggleReaction } from "@/lib/actions";
+import { getVideoEmbedUrl } from "@/lib/video-embed";
 
 export type FlowPost = {
   id: string;
@@ -110,6 +111,24 @@ function ReelMedia({
     );
   }
 
+  // No playable file, but the post links to a video page (YouTube, Vimeo,
+  // Twitch): play it natively via its embed player the moment this reel owns
+  // the screen. Off-screen reels keep the cheap thumbnail.
+  const embedUrl = getVideoEmbedUrl(post.url, { autoplay: true, muted, loop: true });
+  if (embedUrl && active) {
+    return (
+      <div className="relative h-full w-full bg-black" onClick={(e) => e.stopPropagation()}>
+        <iframe
+          src={embedUrl}
+          title="Video player"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full border-0"
+        />
+      </div>
+    );
+  }
+
   if (image) {
     return (
       <div className="relative h-full w-full">
@@ -117,6 +136,11 @@ function ReelMedia({
         <img src={image.url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" aria-hidden />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image.url} alt="" className="relative h-full w-full object-contain" />
+        {embedUrl && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Play size={64} className="text-white/85 drop-shadow-lg" fill="currentColor" />
+          </span>
+        )}
       </div>
     );
   }
@@ -303,7 +327,9 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
                 <button
                   type="button"
                   onClick={() => setExpanded((e) => !e)}
-                  className={`mt-2 block max-w-full text-left text-[13px] leading-snug text-white/90 ${expanded ? "" : "line-clamp-2"}`}
+                  className={`mt-2 block max-w-full text-left text-[13px] leading-snug text-white/90 ${
+                    expanded ? "max-h-[32vh] overflow-y-auto pr-1 [scrollbar-width:thin]" : "line-clamp-2"
+                  }`}
                 >
                   {post.content}
                 </button>
@@ -346,11 +372,36 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
   const [posts, setPosts] = useState(initialPosts);
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const hasMoreRef = useRef(initialHasMore);
   const pageRef = useRef(1);
   const loadingRef = useRef(false);
   const postsRef = useRef(initialPosts);
   postsRef.current = posts;
+  const pullStartRef = useRef<number | null>(null);
+  const pullDeltaRef = useRef(0);
+
+  // Swipe down at the very top (or just reload) to pull fresh content.
+  const refresh = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/feed/paginated?page=1&limit=12`, { credentials: "same-origin", cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      if (data && Array.isArray(data.posts) && data.posts.length > 0) {
+        pageRef.current = 1;
+        hasMoreRef.current = Boolean(data.hasMore);
+        setPosts(data.posts);
+        setActiveIndex(0);
+        containerRef.current?.scrollTo({ top: 0 });
+      }
+    } finally {
+      loadingRef.current = false;
+      setRefreshing(false);
+    }
+  }, []);
 
   // Track which reel owns the screen.
   useEffect(() => {
@@ -432,8 +483,27 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
       >
         <ArrowLeft size={18} />
       </button>
+      {refreshing && (
+        <div className="absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur">
+          Refreshing your Flow…
+        </div>
+      )}
       <div
         ref={containerRef}
+        onTouchStart={(e) => {
+          const root = containerRef.current;
+          pullStartRef.current = root && root.scrollTop <= 0 ? e.touches[0].clientY : null;
+          pullDeltaRef.current = 0;
+        }}
+        onTouchMove={(e) => {
+          if (pullStartRef.current === null) return;
+          pullDeltaRef.current = e.touches[0].clientY - pullStartRef.current;
+        }}
+        onTouchEnd={() => {
+          if (pullStartRef.current !== null && pullDeltaRef.current > 90) void refresh();
+          pullStartRef.current = null;
+          pullDeltaRef.current = 0;
+        }}
         className="h-full w-full snap-y snap-mandatory overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {posts.map((post, i) => (

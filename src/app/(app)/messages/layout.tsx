@@ -15,12 +15,15 @@ export default async function MessagesLayout({ children }: MessagesLayoutProps) 
   if (!user) redirect("/login?next=/messages");
   if (!user.onboarded) redirect("/onboarding");
 
+  const t0 = Date.now();
   const threadMemberRows = await prisma.threadMember.findMany({
     where: { thread: { members: { some: { userId: user.id } } } },
     select: { userId: true },
   });
+  const membersMs = Date.now() - t0;
   const noteAudienceIds = Array.from(new Set([user.id, ...threadMemberRows.map((row) => row.userId)]));
 
+  const t1 = Date.now();
   const [threads, activeNotes] = await Promise.all([
     getMessageThreads(),
     prisma.meChatNote
@@ -41,6 +44,11 @@ export default async function MessagesLayout({ children }: MessagesLayoutProps) 
         return [];
       }),
   ]);
+
+  const totalMs = Date.now() - t0;
+  if (totalMs > 1500) {
+    console.log(`[messages-timing] total=${totalMs}ms members=${membersMs}ms threads+notes=${Date.now() - t1}ms threadCount=${threads.length}`);
+  }
 
   const seenNoteUsers = new Set<string>();
   const initialNotes = activeNotes
