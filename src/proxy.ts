@@ -182,7 +182,9 @@ function hardenResponse(response: NextResponse, options: { sensitive?: boolean }
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-XSS-Protection", "0");
   response.headers.set("Referrer-Policy", "no-referrer");
-  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
+  // Autoplay + encrypted-media are granted to the video embed players the
+  // Flow and mesh hover previews rely on — everything else stays locked down.
+  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\" \"https://clips.twitch.tv\" \"https://player.twitch.tv\"), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\"), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
   response.headers.set("X-DNS-Prefetch-Control", "off");
   response.headers.set("X-Download-Options", "noopen");
   response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
