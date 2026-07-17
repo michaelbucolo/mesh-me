@@ -22,6 +22,7 @@ import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
 import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
+import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ReactiveSurfaces } from "@/components/layout/reactive-surfaces";
 import { sidebarNavItems, resolveNavHref, isNavItemActive } from "@/components/layout/navigation-config";
@@ -180,6 +181,7 @@ function ShellTopBar({
       </form>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
+        <GhostModeToggle compact />
         <button type="button" onClick={shareCurrent} className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
@@ -321,11 +323,17 @@ export function AppShell({ children, user }: AppShellProps) {
       } catch {
         // storage unavailable — defaults are fine
       }
+      let ghostMode = false;
+      try {
+        ghostMode = localStorage.getItem("meshGhostMode") === "true";
+      } catch {
+        // storage unavailable
+      }
       void fetch("/api/mesh/presence", {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: pathname }),
+        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: pathname, ghostMode }),
       }).catch(() => {});
     };
 

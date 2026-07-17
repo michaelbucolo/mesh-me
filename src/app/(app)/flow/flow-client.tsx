@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Link2, MessageCircle, Music2, Play, Send, Sparkles, VolumeX, Volume2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, Sparkles, VolumeX, Volume2 } from "lucide-react";
 import { toggleFollow, toggleReaction } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 
@@ -20,6 +20,8 @@ export type FlowPost = {
   platform?: string;
   url?: string | null;
   externalUrl?: string | null;
+  // Honest recommendation reason, computed by the ranker server-side.
+  whyThis?: string;
 };
 
 // The page URL a platform post lives at — feed data calls it externalUrl,
@@ -254,6 +256,7 @@ function Reel({
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [expanded, setExpanded] = useState(false);
+  const [showWhy, setShowWhy] = useState(false);
   const [paused, setPaused] = useState(false);
   const [bursts, setBursts] = useState<number[]>([]);
   const [, startLike] = useTransition();
@@ -400,6 +403,21 @@ function Reel({
             </>
           )}
 
+          {/* Why this? — the honest recommendation reason, on demand */}
+          {showWhy && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowWhy(false); }}
+              className="absolute bottom-28 left-4 right-16 z-10 rounded-2xl border border-white/15 bg-black/80 px-4 py-3 text-left backdrop-blur"
+            >
+              <p className="text-xs font-bold uppercase tracking-wide text-white/50">Why this?</p>
+              <p className="mt-1 text-sm font-medium text-white">
+                {laneIndex > 0 ? "Similar to what you just watched" : post.whyThis}
+              </p>
+              <p className="mt-1.5 text-[11px] text-white/45">Nothing on mesh.me is paid placement or an ad.</p>
+            </button>
+          )}
+
           {/* Bottom scrim + author/caption */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pb-4 pt-16" />
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 pr-16" onClick={(e) => e.stopPropagation()}>
@@ -446,6 +464,11 @@ function Reel({
             <RailButton label="Share" onClick={handleShare}>
               <Send size={26} />
             </RailButton>
+            {(post.whyThis || laneIndex > 0) && (
+              <RailButton label="Why this?" onClick={() => setShowWhy((w) => !w)} active={showWhy}>
+                <Info size={24} />
+              </RailButton>
+            )}
             {post.platform && post.platform !== "mesh" && post.platform !== "meshme" && postSourceUrl && (
               <RailButton label="Open source" href={postSourceUrl}>
                 <Link2 size={24} />

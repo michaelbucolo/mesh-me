@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
+import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
 
 /**
  * Ranked Flow feed. The client sends the ids it already has (`exclude`) plus
@@ -31,7 +31,10 @@ export async function GET(request: Request) {
   ]);
 
   const fresh = candidates.filter((post) => !exclude.has(post.id));
-  const ranked = rankFlowPosts(fresh, profile, { seen, limit });
+  const ranked = rankFlowPosts(fresh, profile, { seen, limit }).map((post) => ({
+    ...post,
+    whyThis: explainFlowPost(post, profile),
+  }));
 
   return NextResponse.json({
     posts: ranked,

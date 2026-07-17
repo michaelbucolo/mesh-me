@@ -778,6 +778,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             },
             viewingMesh: meshOwner,
             surface: "mesh",
+            ghostMode: typeof localStorage !== "undefined" && localStorage.getItem("meshGhostMode") === "true",
           }),
         });
       } catch {

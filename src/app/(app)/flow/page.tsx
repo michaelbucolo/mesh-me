@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
+import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
 import { getDiscoverUsers } from "@/lib/queries";
 import { FlowClient, type FlowPost, type FlowSuggestedPerson } from "./flow-client";
 
@@ -25,6 +25,7 @@ export default async function FlowPage() {
   const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT }).map((post) => ({
     ...post,
     createdAt: String(post.createdAt),
+    whyThis: explainFlowPost(post, profile),
   })) as unknown as FlowPost[];
 
   // Cold start: an empty Flow becomes a people-discovery moment instead of a

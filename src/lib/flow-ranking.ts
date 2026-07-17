@@ -249,6 +249,35 @@ export function rankFlowPosts(
 }
 
 /**
+ * Plain-language "Why this?" for a recommended item — the honest reason the
+ * ranker surfaced it, never another user's private activity, never a paid
+ * placement (those don't exist here).
+ */
+export function explainFlowPost(post: FeedCardPost, profile: TasteProfile): string {
+  const handle = `@${post.author.username}`;
+  if (!post.externalAuthor && profile.followingIds.has(post.author.id)) {
+    return `You follow ${handle}`;
+  }
+  if ((profile.authorAffinity.get(authorKey(post)) ?? 0) > 0) {
+    return `You interact with ${handle}`;
+  }
+  for (const { tag } of post.tags) {
+    if ((profile.tagAffinity.get(tag.toLowerCase()) ?? 0) > 0) {
+      return `Matches your interest in #${tag}`;
+    }
+  }
+  const ageHours = Math.max((Date.now() - new Date(post.createdAt).getTime()) / HOUR_MS, 0.5);
+  const engagement = post._count.reactions + 2 * post._count.comments + 1.5 * post._count.reposts;
+  if (engagement / ageHours > 1) return "Getting a lot of attention right now";
+  const format = dominantFormat(post);
+  if ((profile.formatPreference.get(format) ?? 0) > 0.5) {
+    return format === "video" ? "You watch a lot of video" : "Matches what you usually enjoy";
+  }
+  if (ageHours < 24) return "Fresh from a creator you haven't met yet";
+  return "Discovery — a new corner of mesh.me";
+}
+
+/**
  * Score candidates by similarity to an anchor post — the "swipe sideways for
  * more like this" lane. Same author dominates, then shared tags, same
  * platform, same format, with engagement as a tiebreaker.

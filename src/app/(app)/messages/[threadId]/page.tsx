@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, BadgeCheck, LockKeyhole, Phone, ShieldCheck, Video, Users } from "lucide-react";
+import { ArrowLeft, BadgeCheck, LockKeyhole, Users } from "lucide-react";
 import { ActiveNow } from "@/components/messages/active-now";
 import { Avatar } from "@/components/ui/avatar";
 import { MeChatInfoRail } from "@/components/messages/mechat-info-rail";
@@ -474,17 +474,8 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                 )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-1 md:gap-2">
-                <button type="button" className="mesh-pressable inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--mesh-text-secondary)] transition hover:text-[var(--mesh-text)] active:bg-[var(--mesh-bg-elevated)] md:border md:border-[var(--mesh-border)] md:bg-[var(--mesh-bg-elevated)] md:hover:border-[var(--mesh-border-active)]" aria-label="Call">
-                  <Phone size={18} />
-                </button>
-                <button type="button" className="mesh-pressable inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--mesh-text-secondary)] transition hover:text-[var(--mesh-text)] active:bg-[var(--mesh-bg-elevated)] md:border md:border-[var(--mesh-border)] md:bg-[var(--mesh-bg-elevated)] md:hover:border-[var(--mesh-border-active)]" aria-label="Video call">
-                  <Video size={18} />
-                </button>
-                <button type="button" className="mesh-pressable hidden h-11 w-11 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] transition hover:border-[var(--mesh-border-active)] hover:text-[var(--mesh-text)] md:inline-flex" aria-label="Conversation info">
-                  <ShieldCheck size={16} />
-                </button>
-              </div>
+              {/* Calls arrive when the real infrastructure exists — until then
+                  no dead buttons pretend the capability is live. */}
             </div>
           </header>
 
