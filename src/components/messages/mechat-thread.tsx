@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
-  ArrowUp,
   CheckCheck,
   Image as ImageIcon,
   Link2,
@@ -26,7 +25,6 @@ import {
   type MeChatAttachmentType,
   type MeChatMessageMetadata,
 } from "@/lib/mechat-metadata";
-import { formatRelativeTime } from "@/lib/utils";
 
 type Person = {
   id: string;

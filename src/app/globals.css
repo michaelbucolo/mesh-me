@@ -9214,8 +9214,19 @@ body > * { position: relative; z-index: 1; }
   100% { transform: scale(1); }
 }
 .flow-like-pop { animation: flowLikePop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* Sideways "similar content" lane — new reel slides in from the swipe side */
+@keyframes flowLaneInLeft {
+  from { opacity: 0.35; transform: translateX(48px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes flowLaneInRight {
+  from { opacity: 0.35; transform: translateX(-48px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.flow-lane-in-left { animation: flowLaneInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+.flow-lane-in-right { animation: flowLaneInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
 @media (prefers-reduced-motion: reduce) {
-  .flow-heart-burst, .flow-like-pop { animation: none; }
+  .flow-heart-burst, .flow-like-pop, .flow-lane-in-left, .flow-lane-in-right { animation: none; }
 }
 
 /* ── Entry: error shake + signup meshi ───────────────────────────────── */

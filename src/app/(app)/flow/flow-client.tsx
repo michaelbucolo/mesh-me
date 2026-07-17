@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Heart, Link2, MessageCircle, Music2, Play, Send, VolumeX, Volume2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Link2, MessageCircle, Music2, Play, Send, Sparkles, VolumeX, Volume2 } from "lucide-react";
 import { toggleReaction } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 
@@ -19,7 +19,14 @@ export type FlowPost = {
   reactions?: { id: string }[];
   platform?: string;
   url?: string | null;
+  externalUrl?: string | null;
 };
+
+// The page URL a platform post lives at — feed data calls it externalUrl,
+// older payloads call it url. Embeds and "open source" both need it.
+function sourceUrl(post: FlowPost) {
+  return post.url ?? post.externalUrl ?? null;
+}
 
 // Text reels rotate through a small set of night-sky moods so a run of
 // thoughts doesn't read as copies of one card.
@@ -114,7 +121,7 @@ function ReelMedia({
   // No playable file, but the post links to a video page (YouTube, Vimeo,
   // Twitch): play it natively via its embed player the moment this reel owns
   // the screen. Off-screen reels keep the cheap thumbnail.
-  const embedUrl = getVideoEmbedUrl(post.url, { autoplay: true, muted, loop: true });
+  const embedUrl = getVideoEmbedUrl(sourceUrl(post), { autoplay: true, muted, loop: true });
   if (embedUrl && active) {
     return (
       <div className="relative h-full w-full bg-black" onClick={(e) => e.stopPropagation()}>
@@ -219,7 +226,29 @@ function RailButton({
   );
 }
 
-function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: boolean; muted: boolean; onToggleMute: () => void }) {
+function Reel({
+  post,
+  slotId,
+  active,
+  muted,
+  onToggleMute,
+  laneIndex,
+  laneTotal,
+  laneLoading,
+  slideDir,
+  onLaneSwipe,
+}: {
+  post: FlowPost;
+  slotId: string;
+  active: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
+  laneIndex: number;
+  laneTotal: number;
+  laneLoading: boolean;
+  slideDir: 1 | -1 | 0;
+  onLaneSwipe: (dir: 1 | -1) => void;
+}) {
   const native = !post.platform || post.platform === "mesh" || post.platform === "meshme";
   const hasVideo = post.media.some((m) => m.type === "video");
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
@@ -230,6 +259,8 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
   const [, startLike] = useTransition();
   const lastTapRef = useRef(0);
   const singleTapTimerRef = useRef<number | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressTapRef = useRef(false);
 
   const handleLike = (viaDoubleTap = false) => {
     if (!native) return;
@@ -250,6 +281,7 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
   // where everyone expects it. The single-tap waits a beat so a second tap
   // can cancel it — no pause flicker while you're double-tapping.
   const handleStageTap = () => {
+    if (suppressTapRef.current) return;
     const now = performance.now();
     if (now - lastTapRef.current < 300) {
       lastTapRef.current = 0;
@@ -284,13 +316,35 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
   };
 
   const platformChip = post.platform && !native ? PLATFORM_CHIP[post.platform.toLowerCase()] ?? "bg-white/20" : null;
+  const postSourceUrl = sourceUrl(post);
 
   return (
-    <section className="relative h-full w-full snap-start snap-always" data-flow-reel={post.id}>
+    <section
+      className="relative h-full w-full snap-start snap-always"
+      data-flow-reel={slotId}
+      onTouchStart={(e) => {
+        swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }}
+      onTouchEnd={(e) => {
+        const start = swipeStartRef.current;
+        swipeStartRef.current = null;
+        if (!start) return;
+        const dx = e.changedTouches[0].clientX - start.x;
+        const dy = e.changedTouches[0].clientY - start.y;
+        // A clearly horizontal fling steps through the "more like this" lane.
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+          suppressTapRef.current = true;
+          window.setTimeout(() => { suppressTapRef.current = false; }, 350);
+          onLaneSwipe(dx < 0 ? 1 : -1);
+        }
+      }}
+    >
       {/* Stage — centered 9:16 column on wide screens, full-bleed on phones */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
-          className="relative h-full w-full cursor-pointer overflow-hidden bg-black sm:h-[calc(100%-1.5rem)] sm:w-auto sm:aspect-[9/16] sm:rounded-2xl"
+          className={`relative h-full w-full cursor-pointer overflow-hidden bg-black sm:h-[calc(100%-1.5rem)] sm:w-auto sm:aspect-[9/16] sm:rounded-2xl ${
+            slideDir === 1 ? "flow-lane-in-left" : slideDir === -1 ? "flow-lane-in-right" : ""
+          }`}
           onClick={handleStageTap}
         >
           <ReelMedia post={post} active={active} paused={paused} muted={muted} onToggleMute={onToggleMute} />
@@ -306,6 +360,44 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
             <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
               {post.platform}
             </span>
+          )}
+
+          {/* Related-lane state: finding, or how deep into "similar" you are */}
+          {laneLoading && (
+            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+              <Sparkles size={12} className="animate-pulse" /> Finding similar…
+            </span>
+          )}
+          {!laneLoading && laneIndex > 0 && (
+            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+              <Sparkles size={12} /> Similar {laneIndex}/{laneTotal}
+            </span>
+          )}
+
+          {/* Desktop affordances for the sideways lane */}
+          {active && (
+            <>
+              {laneIndex > 0 && (
+                <button
+                  type="button"
+                  aria-label="Back to previous"
+                  onClick={(e) => { e.stopPropagation(); onLaneSwipe(-1); }}
+                  className="absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/50 p-2 text-white/85 backdrop-blur transition hover:bg-black/70 md:flex"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              )}
+              {(laneTotal === 0 || laneIndex < laneTotal) && (
+                <button
+                  type="button"
+                  aria-label="More like this"
+                  onClick={(e) => { e.stopPropagation(); onLaneSwipe(1); }}
+                  className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/50 p-2 text-white/85 backdrop-blur transition hover:bg-black/70 md:flex"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              )}
+            </>
           )}
 
           {/* Bottom scrim + author/caption */}
@@ -354,8 +446,8 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
             <RailButton label="Share" onClick={handleShare}>
               <Send size={26} />
             </RailButton>
-            {post.platform && post.platform !== "mesh" && post.platform !== "meshme" && post.url && (
-              <RailButton label="Open source" href={post.url}>
+            {post.platform && post.platform !== "mesh" && post.platform !== "meshme" && postSourceUrl && (
+              <RailButton label="Open source" href={postSourceUrl}>
                 <Link2 size={24} />
               </RailButton>
             )}
@@ -366,6 +458,11 @@ function Reel({ post, active, muted, onToggleMute }: { post: FlowPost; active: b
   );
 }
 
+type LaneState = { posts: FlowPost[]; index: number; loading: boolean };
+
+const SEEN_STORAGE_KEY = "mesh-flow-seen";
+const SEEN_CAP = 500;
+
 export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: FlowPost[]; initialHasMore: boolean }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -373,13 +470,45 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Sideways "more like this" lanes, keyed by the vertical slot's post id.
+  const [lanes, setLanes] = useState<Record<string, LaneState>>({});
+  const [slideDirs, setSlideDirs] = useState<Record<string, 1 | -1 | 0>>({});
   const hasMoreRef = useRef(initialHasMore);
-  const pageRef = useRef(1);
   const loadingRef = useRef(false);
   const postsRef = useRef(initialPosts);
   postsRef.current = posts;
+  const lanesRef = useRef(lanes);
+  lanesRef.current = lanes;
+  const activeIndexRef = useRef(0);
+  activeIndexRef.current = activeIndex;
   const pullStartRef = useRef<number | null>(null);
   const pullDeltaRef = useRef(0);
+  const seenRef = useRef<Set<string>>(new Set());
+
+  // Recently-watched reels persist across visits so the ranker can keep the
+  // feed fresh instead of replaying yesterday.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SEEN_STORAGE_KEY);
+      if (raw) seenRef.current = new Set(JSON.parse(raw) as string[]);
+    } catch {
+      // storage unavailable — session-only memory still works
+    }
+  }, []);
+
+  const markSeen = useCallback((id: string) => {
+    if (seenRef.current.has(id)) return;
+    seenRef.current.add(id);
+    try {
+      const trimmed = [...seenRef.current].slice(-SEEN_CAP);
+      seenRef.current = new Set(trimmed);
+      localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(trimmed));
+    } catch {
+      // best-effort persistence
+    }
+  }, []);
+
+  const seenParam = useCallback(() => [...seenRef.current].slice(-200).join(","), []);
 
   // Swipe down at the very top (or just reload) to pull fresh content.
   const refresh = useCallback(async () => {
@@ -387,13 +516,17 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
     loadingRef.current = true;
     setRefreshing(true);
     try {
-      const res = await fetch(`/api/feed/paginated?page=1&limit=12`, { credentials: "same-origin", cache: "no-store" });
+      const res = await fetch(`/api/flow?limit=12&seen=${encodeURIComponent(seenParam())}`, {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const data = await res.json().catch(() => null);
       if (data && Array.isArray(data.posts) && data.posts.length > 0) {
-        pageRef.current = 1;
         hasMoreRef.current = Boolean(data.hasMore);
         setPosts(data.posts);
+        setLanes({});
+        setSlideDirs({});
         setActiveIndex(0);
         containerRef.current?.scrollTo({ top: 0 });
       }
@@ -401,9 +534,10 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
       loadingRef.current = false;
       setRefreshing(false);
     }
-  }, []);
+  }, [seenParam]);
 
-  // Track which reel owns the screen.
+  // Track which reel owns the screen. Lanes remount reels, so re-arm the
+  // observer whenever either the list or a lane changes.
   useEffect(() => {
     const root = containerRef.current;
     if (!root) return;
@@ -420,46 +554,95 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
     );
     root.querySelectorAll("[data-flow-reel]").forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [posts.length]);
+  }, [posts.length, lanes]);
 
-  // Pull the next page as the viewer nears the end.
+  // Whatever is on screen counts as watched — original or lane content.
+  useEffect(() => {
+    const slot = posts[activeIndex];
+    if (!slot) return;
+    const lane = lanes[slot.id];
+    const displayed = lane && lane.index > 0 ? lane.posts[lane.index - 1] : slot;
+    if (displayed) markSeen(displayed.id);
+  }, [activeIndex, posts, lanes, markSeen]);
+
+  // Pull the next ranked batch as the viewer nears the end. The server ranks;
+  // we just tell it what we already have and what's been watched.
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMoreRef.current) return;
     loadingRef.current = true;
     try {
-      const next = pageRef.current + 1;
-      const res = await fetch(`/api/feed/paginated?page=${next}&limit=12`, { credentials: "same-origin" });
+      const exclude = postsRef.current.map((p) => p.id).slice(-300).join(",");
+      const res = await fetch(
+        `/api/flow?limit=12&exclude=${encodeURIComponent(exclude)}&seen=${encodeURIComponent(seenParam())}`,
+        { credentials: "same-origin" },
+      );
       if (!res.ok) return;
       const data = await res.json().catch(() => null);
       if (data && Array.isArray(data.posts)) {
-        pageRef.current = next;
-        hasMoreRef.current = Boolean(data.hasMore);
+        hasMoreRef.current = Boolean(data.hasMore) && data.posts.length > 0;
         setPosts((prev) => {
-          const seen = new Set(prev.map((p) => p.id));
-          return [...prev, ...data.posts.filter((p: FlowPost) => !seen.has(p.id))];
+          const existing = new Set(prev.map((p) => p.id));
+          return [...prev, ...data.posts.filter((p: FlowPost) => !existing.has(p.id))];
         });
       }
     } finally {
       loadingRef.current = false;
     }
-  }, []);
+  }, [seenParam]);
 
   useEffect(() => {
     if (activeIndex >= posts.length - 3) void loadMore();
   }, [activeIndex, posts.length, loadMore]);
 
-  // Arrow keys page between reels.
+  // Step sideways through content similar to this reel. First step fetches
+  // the lane; later steps just walk it. Index 0 is the original reel.
+  const swipeLane = useCallback(async (slotId: string, dir: 1 | -1) => {
+    const lane = lanesRef.current[slotId];
+    if (!lane) {
+      if (dir !== 1) return;
+      setLanes((prev) => ({ ...prev, [slotId]: { posts: [], index: 0, loading: true } }));
+      try {
+        // Only avoid what's actually been watched — content queued further
+        // down the vertical list is fair game for the sideways lane.
+        const exclude = seenParam();
+        const res = await fetch(
+          `/api/flow/related?anchor=${encodeURIComponent(slotId)}&exclude=${encodeURIComponent(exclude)}`,
+          { credentials: "same-origin" },
+        );
+        const data = res.ok ? await res.json().catch(() => null) : null;
+        const related: FlowPost[] = data && Array.isArray(data.posts) ? data.posts : [];
+        setLanes((prev) => ({
+          ...prev,
+          [slotId]: { posts: related, index: related.length > 0 ? 1 : 0, loading: false },
+        }));
+        if (related.length > 0) setSlideDirs((prev) => ({ ...prev, [slotId]: 1 }));
+      } catch {
+        setLanes((prev) => ({ ...prev, [slotId]: { posts: [], index: 0, loading: false } }));
+      }
+      return;
+    }
+    if (lane.loading) return;
+    const next = Math.min(Math.max(lane.index + dir, 0), lane.posts.length);
+    if (next === lane.index) return;
+    setLanes((prev) => ({ ...prev, [slotId]: { ...lane, index: next } }));
+    setSlideDirs((prev) => ({ ...prev, [slotId]: dir }));
+  }, [seenParam]);
+
+  // Arrow keys: up/down page reels, left/right walk the similar lane, M mutes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const root = containerRef.current;
       if (!root) return;
       if (e.key === "ArrowDown") root.scrollBy({ top: root.clientHeight, behavior: "smooth" });
       else if (e.key === "ArrowUp") root.scrollBy({ top: -root.clientHeight, behavior: "smooth" });
-      else if (e.key.toLowerCase() === "m") setMuted((m) => !m);
+      else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const slot = postsRef.current[activeIndexRef.current];
+        if (slot) void swipeLane(slot.id, e.key === "ArrowRight" ? 1 : -1);
+      } else if (e.key.toLowerCase() === "m") setMuted((m) => !m);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [swipeLane]);
 
   if (posts.length === 0) {
     return (
@@ -506,15 +689,25 @@ export function FlowClient({ initialPosts, initialHasMore }: { initialPosts: Flo
         }}
         className="h-full w-full snap-y snap-mandatory overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {posts.map((post, i) => (
-          <Reel
-            key={post.id}
-            post={post}
-            active={i === activeIndex}
-            muted={muted}
-            onToggleMute={() => setMuted((m) => !m)}
-          />
-        ))}
+        {posts.map((post, i) => {
+          const lane = lanes[post.id];
+          const displayed = lane && lane.index > 0 ? lane.posts[lane.index - 1] ?? post : post;
+          return (
+            <Reel
+              key={`${post.id}:${displayed.id}`}
+              post={displayed}
+              slotId={post.id}
+              active={i === activeIndex}
+              muted={muted}
+              onToggleMute={() => setMuted((m) => !m)}
+              laneIndex={lane?.index ?? 0}
+              laneTotal={lane?.posts.length ?? 0}
+              laneLoading={lane?.loading ?? false}
+              slideDir={slideDirs[post.id] ?? 0}
+              onLaneSwipe={(dir) => void swipeLane(post.id, dir)}
+            />
+          );
+        })}
       </div>
     </div>
   );

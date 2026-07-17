@@ -79,27 +79,14 @@ export async function InstagramProfileView({ username, tab }: { username: string
   // memberships are fetched alongside but rendered only when the profile's
   // visibility settings allow it.
   const isSelf = currentUser.username.toLowerCase() === username.toLowerCase();
-  const t0 = Date.now();
-  const timed = async <T,>(label: string, p: Promise<T>): Promise<[string, number, T]> => {
-    const start = Date.now();
-    const value = await p;
-    return [label, Date.now() - start, value];
-  };
-  const [[, profileMs, profile], [, postsMs, posts], [, memberMs, allMemberships], [, savedMs, [savedPosts, savedPostCount]]] = await Promise.all([
-    timed("profile", getUserProfile(username)),
-    timed("posts", getUserPosts(username, 1, 24)),
-    timed("communities", getUserCommunities(username)),
-    timed(
-      "saved",
-      isSelf
-        ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
-        : Promise.resolve<[Awaited<ReturnType<typeof getSavedPosts>>, number]>([[], 0]),
-    ),
+  const [profile, posts, allMemberships, [savedPosts, savedPostCount]] = await Promise.all([
+    getUserProfile(username),
+    getUserPosts(username, 1, 24),
+    getUserCommunities(username),
+    isSelf
+      ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
+      : Promise.resolve<[Awaited<ReturnType<typeof getSavedPosts>>, number]>([[], 0]),
   ]);
-  const totalMs = Date.now() - t0;
-  if (totalMs > 1500) {
-    console.log(`[profile-timing] total=${totalMs}ms profile=${profileMs}ms posts=${postsMs}ms communities=${memberMs}ms saved=${savedMs}ms user=${username}`);
-  }
 
   if (!profile) notFound();
 
