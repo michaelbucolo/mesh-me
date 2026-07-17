@@ -51,6 +51,7 @@ type RemotePresence = {
   viewportPosition: { vx: number; vy: number };
   position?: { x: number; y: number };
   viewingMesh: string;
+  surface?: string;
   isOnline: boolean;
 };
 
@@ -139,7 +140,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const meshOwnerIdRef = useRef<string | null>(null);
   const ownerMeshiElRef = useRef<HTMLDivElement>(null);
 
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error" | "private">("loading");
   const [meshIsEmpty, setMeshIsEmpty] = useState(false);
   const [isCoarsePointer, setIsCoarsePointer] = useState(true);
   const [meshUser, setMeshUser] = useState<{ displayName: string; avatarUrl: string | null } | null>(null);
@@ -247,6 +248,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         if (opts?.signal?.aborted) return;
         if (!res.ok) throw new Error(String(res.status));
         const payload: MeshApiResponse = await res.json();
+        if (payload.privateMesh) {
+          // Locked mesh: keep the owner's identity for the locked state UI.
+          setMeshData(payload);
+          setViewedUser({ username: payload.user.username, displayName: payload.user.displayName });
+          setStatus("private");
+          return;
+        }
         setMeshData(payload);
         const model = buildSceneModel(payload);
         layoutScene(model);
@@ -791,7 +799,17 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         const visible = list.filter((p) => p.isOnline);
         const visibleIds = new Set(visible.map((p) => p.userId));
         for (const p of visible) {
-          if (p.viewingMesh === meshOwner) {
+          // Only presence FROM the mesh surface drives a live cursor — the
+          // app-wide heartbeat (MeChat, Flow, anywhere) keeps people online
+          // but shouldn't paint a phantom cursor in the room.
+          if (p.userId === meshOwner && p.surface !== "mesh") {
+            // Owner active elsewhere on mesh.me: their awake Meshi covers it.
+            presenceModeRef.current.delete(p.userId);
+            presenceTargetsRef.current.delete(p.userId);
+            presenceWorldRef.current.delete(p.userId);
+            continue;
+          }
+          if (p.viewingMesh === meshOwner && p.surface === "mesh") {
             presenceModeRef.current.set(p.userId, "room");
             // World coordinates anchor their Meshi to the actual mesh, so it
             // stays put on the web while you pan. Viewport fractions remain a
@@ -1398,6 +1416,40 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           >
             Try again
           </button>
+        </div>
+      )}
+      {status === "private" && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#04050c] px-6 text-center">
+          {meshData?.user.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={meshData.user.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/15" />
+          ) : (
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-xl font-bold text-white">
+              {(meshData?.user.displayName || meshData?.user.username || "?").slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div>
+            <p className="text-base font-semibold text-white">
+              {meshData?.user.displayName || `@${meshData?.user.username}`}&apos;s mesh is private
+            </p>
+            <p className="mx-auto mt-1 max-w-xs text-sm text-white/55">
+              Follow each other and their world opens up to you.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/profile/${meshData?.user.username}`}
+              className="rounded-full bg-white px-5 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+            >
+              View profile
+            </Link>
+            <Link
+              href="/mesh"
+              className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+            >
+              Back to my mesh
+            </Link>
+          </div>
         </div>
       )}
       {status === "ready" && meshIsEmpty && !showCompose && (

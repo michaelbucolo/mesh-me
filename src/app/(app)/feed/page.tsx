@@ -9,6 +9,7 @@ import {
   normalizeFeedContentFilter,
   normalizeFeedSource,
 } from "@/lib/feed-data";
+import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
 
 export const metadata: Metadata = {
   title: "Feed",
@@ -30,13 +31,20 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const source = normalizeFeedSource(rawSource);
   const contentFilter = normalizeFeedContentFilter(rawContent);
 
+  // The default view ranks with the same For You algorithm as the Flow; the
+  // paginated API mirrors this, so client loads continue the same ordering.
+  const rankedDefault = source === "all" && contentFilter === "all";
   const [feedWindow, connectedAccounts] = await Promise.all([
-    getCombinedFeedPosts({
-      user,
-      source,
-      contentFilter,
-      limit: INITIAL_FEED_LIMIT + 1,
-    }),
+    rankedDefault
+      ? Promise.all([getFlowCandidates(user), getViewerTasteProfile(user.id)]).then(
+          ([candidates, profile]) => rankFlowPosts(candidates, profile, { limit: INITIAL_FEED_LIMIT + 1 }),
+        )
+      : getCombinedFeedPosts({
+          user,
+          source,
+          contentFilter,
+          limit: INITIAL_FEED_LIMIT + 1,
+        }),
     prisma.connectedAccount
       .findMany({
         where: { userId: user.id, isActive: true },

@@ -4,6 +4,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface MeshApiResponse {
+  // Set when the viewer isn't allowed into this mesh: only `user` identity
+  // fields are present and the client renders a locked state.
+  privateMesh?: boolean;
   user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null; isVerified: boolean };
   following: any[];
   followers: any[];

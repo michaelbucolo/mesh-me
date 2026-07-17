@@ -338,6 +338,16 @@ export function buildPresencePayload(
   };
 }
 
+// Is this user visibly live on mesh.me right now? (Fresh heartbeat, not
+// ghosting.) Powers profile badges and any other "live" affordance.
+export async function isUserLiveNow(userId: string): Promise<boolean> {
+  const entries = await listPresences().catch(() => [] as PresenceEntry[]);
+  const now = Date.now();
+  return entries.some(
+    (entry) => entry.userId === userId && !entry.ghostMode && now - entry.lastSeen < ONLINE_WINDOW_MS,
+  );
+}
+
 export async function getMutualConnectionIds(userId: string): Promise<Set<string>> {
   const [following, followers] = await Promise.all([
     prisma.follow.findMany({

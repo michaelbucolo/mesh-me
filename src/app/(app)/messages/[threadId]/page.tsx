@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BadgeCheck, LockKeyhole, Phone, ShieldCheck, Video, Users } from "lucide-react";
+import { ActiveNow } from "@/components/messages/active-now";
 import { Avatar } from "@/components/ui/avatar";
 import { MeChatInfoRail } from "@/components/messages/mechat-info-rail";
 import { MeChatThread, type MeChatSerializedMessage } from "@/components/messages/mechat-thread";
@@ -466,7 +467,11 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                     </span>
                   )}
                 </div>
-                <p className="truncate text-xs text-[var(--mesh-text-secondary)] md:text-sm">{threadSummary}</p>
+                {!isGroupThread && recipient ? (
+                  <ActiveNow userId={recipient.id} fallback={threadSummary} />
+                ) : (
+                  <p className="truncate text-xs text-[var(--mesh-text-secondary)] md:text-sm">{threadSummary}</p>
+                )}
               </div>
 
               <div className="flex shrink-0 items-center gap-1 md:gap-2">

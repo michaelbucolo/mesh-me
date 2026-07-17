@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { useContactPresence } from "./use-contact-presence";
 import { formatRelativeTime } from "@/lib/utils";
 
 type Person = {
@@ -127,6 +128,9 @@ export function MeChatConversationList({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [threads] = useState(initialThreads);
+  // Same live presence that animates Meshi on the mesh — here it's the
+  // "active now" dot on conversations.
+  const onlineContacts = useContactPresence();
   const [threadQuery, setThreadQuery] = useState("");
   const [recipientQuery, setRecipientQuery] = useState("");
   const [recipients, setRecipients] = useState<UserSearchResult[]>([]);
@@ -455,6 +459,12 @@ export function MeChatConversationList({
                           alt={thread.otherUser?.displayName ?? thread.title}
                           size="md"
                           className="h-[52px] w-[52px]"
+                        />
+                      )}
+                      {!isGroup && thread.otherUser && onlineContacts.has(thread.otherUser.id) && (
+                        <span
+                          className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400"
+                          aria-label="Active now"
                         />
                       )}
                       {unread && thread.unread > 1 && (

@@ -297,6 +297,46 @@ export function AppShell({ children, user }: AppShellProps) {
     };
   }, []);
 
+  // Presence heartbeat from every surface: your Meshi represents you across
+  // mesh.me, so being active in MeChat, the Flow, or anywhere else keeps you
+  // "online" for your people. The mesh page runs its own richer heartbeat
+  // (cursor position, moods), so this one stands down there.
+  useEffect(() => {
+    if (isMeshSurface) return;
+    let cancelled = false;
+
+    const heartbeat = () => {
+      if (cancelled || document.visibilityState !== "visible") return;
+      let meshi: Record<string, string> = {};
+      try {
+        meshi = {
+          meshiColor: localStorage.getItem("meshiColor") || "blue",
+          meshiHat: localStorage.getItem("meshiHat") || "none",
+          meshiHair: localStorage.getItem("meshiHair") || "none",
+          meshiAccessory: localStorage.getItem("meshiAccessory") || "none",
+          meshiEyeStyle: localStorage.getItem("meshiEye") || "regular",
+          meshiBadge: localStorage.getItem("meshiBadge") || "none",
+          meshiOutfit: localStorage.getItem("meshiOutfit") || "none",
+        };
+      } catch {
+        // storage unavailable — defaults are fine
+      }
+      void fetch("/api/mesh/presence", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: pathname }),
+      }).catch(() => {});
+    };
+
+    heartbeat();
+    const intervalId = window.setInterval(heartbeat, 10_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [isMeshSurface, pathname]);
+
   return (
     <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""}`}>
 

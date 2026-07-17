@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
+import { areMutualFollowers, canViewProfile, normalizeMeshVisibility } from "@/lib/privacy-policy";
 
 function visibleCommentAuthorWhere(viewerId: string) {
   return {
@@ -774,6 +775,8 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       bio: true,
       isVerified: true,
       isPublic: true,
+      isSuspended: true,
+      meshPrivacy: { select: { meshVisibility: true } },
     },
   });
 
@@ -783,12 +786,26 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
   // Every query below keys on the real id, whichever form the URL used.
   targetUserId = targetUser.id;
 
-  const isFollowing = await prisma.follow.findFirst({
-    where: { followerId: viewerId, followingId: targetUserId },
-  });
-
-  if (!targetUser.isPublic && !isFollowing) {
-    return NextResponse.json({ error: "This mesh is private" }, { status: 403 });
+  // Same privacy model as everywhere else: the owner's meshVisibility setting
+  // decides, defaulting from account privacy; "friends" means mutual follows.
+  const isFriend = await areMutualFollowers(viewerId, targetUserId);
+  const meshVisibility = normalizeMeshVisibility(
+    targetUser.meshPrivacy?.meshVisibility,
+    targetUser.isPublic ? "public" : "private",
+  );
+  if (!canViewProfile({ id: viewerId }, targetUser, meshVisibility, isFriend)) {
+    // A graceful state, not an error: the client renders a locked mesh with
+    // the owner's identity and a path to their profile.
+    return NextResponse.json({
+      privateMesh: true,
+      user: {
+        id: targetUser.id,
+        username: targetUser.username,
+        displayName: targetUser.displayName,
+        avatarUrl: targetUser.avatarUrl,
+        isVerified: targetUser.isVerified,
+      },
+    });
   }
 
   const [followingData, followersData, postsData, interestsData, connectedAccountsData, recentCommentsData, meshiPrefData, followingCount, followerCount, postCount, visibilityPolicies] = await Promise.all([

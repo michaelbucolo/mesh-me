@@ -27,6 +27,7 @@ import {
 } from "@/components/meshi/meshi-mascot";
 import { Avatar } from "@/components/ui/avatar";
 import { getCurrentUser } from "@/lib/auth";
+import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
@@ -89,6 +90,10 @@ export async function InstagramProfileView({ username, tab }: { username: string
   ]);
 
   if (!profile) notFound();
+
+  // Real presence — the same live signal that animates Meshi on the mesh and
+  // "Active now" in MeChat, not a decorative badge.
+  const isLiveNow = await isUserLiveNow(profile.id);
 
   const isOwnProfile = profile.isOwnProfile;
   const canViewProfile = profile.sectionVisibility.profile;
@@ -250,8 +255,10 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     {isOwnProfile ? "How the mesh sees you" : "How they roam the mesh"}
                   </p>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--mesh-green)]" />
-                    <span className="text-[10px] text-[var(--mesh-green)]">Online</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isLiveNow ? "bg-[var(--mesh-green)]" : "bg-[var(--mesh-text-muted)]/50"}`} />
+                    <span className={`text-[10px] ${isLiveNow ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
+                      {isLiveNow ? "Live on mesh.me" : "Away"}
+                    </span>
                   </div>
                 </div>
               </div>
