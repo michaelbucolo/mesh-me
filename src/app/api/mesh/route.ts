@@ -380,7 +380,9 @@ export async function GET(req: Request) {
             },
           },
           posts: {
-            where: safetyWhere,
+            // Mutual friends see public + friends-visibility posts — never
+            // anything scoped tighter than that.
+            where: { ...safetyWhere, visibility: { in: ["public", "friends"] } },
             select: {
               id: true,
               content: true,
@@ -828,7 +830,9 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
       take: 50,
     }),
     prisma.post.findMany({
-      where: { authorId: targetUserId, visibility: "public" },
+      // Mutual friends also see friends-visibility posts; everyone else
+      // strictly public.
+      where: { authorId: targetUserId, visibility: { in: isFriend ? ["public", "friends"] : ["public"] } },
       select: {
         id: true,
         content: true,

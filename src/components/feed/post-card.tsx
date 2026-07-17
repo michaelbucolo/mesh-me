@@ -470,7 +470,15 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                     <span>&middot;</span>
                     <span className="inline-flex items-center gap-1">
                       <VisibilityIcon visibility={post.visibility} />
-                      {post.visibility === "private" ? "Only me" : post.visibility === "friends" ? "Friends" : "Public"}
+                      {post.visibility === "private"
+                        ? "Only me"
+                        : post.visibility === "friends"
+                          ? "Friends"
+                          : post.visibility === "unlisted"
+                            ? "Unlisted"
+                            : post.visibility === "draft"
+                              ? "Draft"
+                              : "Public"}
                     </span>
                   </>
                 )}

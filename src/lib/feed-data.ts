@@ -207,11 +207,13 @@ async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20):
     const platformPosts = await prisma.platformPost.findMany({
       where: {
         ...nsfwHiddenWhere(user),
+        // This is the owner's own feed: they see everything they imported —
+        // private, unlisted, drafts included — labeled with its real status.
+        // Non-owner surfaces apply their own whitelists.
         connectedAccount: {
           userId: user.id,
           isActive: true,
         },
-        visibility: { not: "private" },
       },
       include: {
         connectedAccount: {
@@ -277,6 +279,7 @@ async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20):
       crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
       isNsfw: post.isNsfw,
       contentRating: post.contentRating,
+      visibility: post.visibility,
     };
     });
   } catch (error) {
@@ -410,8 +413,9 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
         where: {
           id: id.slice("platform-".length),
           ...nsfwHiddenWhere(user),
+          // Owner-scoped lookup: the owner can open all of their own imported
+          // content regardless of its source visibility.
           connectedAccount: { userId: user.id, isActive: true },
-          visibility: { not: "private" },
         },
         include: {
           connectedAccount: { select: { platform: true, platformUsername: true } },
@@ -460,6 +464,7 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
         crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
         isNsfw: post.isNsfw,
         contentRating: post.contentRating,
+        visibility: post.visibility,
       };
     } catch (error) {
       console.error("[feed-data] Connected platform post unavailable", error);

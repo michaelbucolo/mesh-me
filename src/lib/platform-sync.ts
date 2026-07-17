@@ -499,17 +499,23 @@ const youtubeAdapter: PlatformAdapter = {
       if (!videosRes.ok) return { posts: [] };
       const videosData = await videosRes.json().catch(() => ({}));
 
-      // Get video stats
+      // Get video stats + the real privacy status, so public/unlisted/private
+      // survive into mesh.me exactly as YouTube reports them.
       const videoIds = videosData.items?.map((v: Record<string, unknown>) => (v.contentDetails as Record<string, unknown>)?.videoId).filter(Boolean).join(",");
       const statsMap: Record<string, Record<string, unknown>> = {};
+      const privacyMap: Record<string, string> = {};
       if (videoIds) {
-        const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}`, {
+        const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,status&id=${videoIds}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (statsRes.ok) {
           const statsData = await statsRes.json().catch(() => ({}));
           for (const item of statsData.items || []) {
             statsMap[item.id] = item.statistics || {};
+            const privacy = (item.status as Record<string, unknown> | undefined)?.privacyStatus;
+            if (privacy === "private" || privacy === "unlisted" || privacy === "public") {
+              privacyMap[item.id] = privacy;
+            }
           }
         }
       }
@@ -528,7 +534,7 @@ const youtubeAdapter: PlatformAdapter = {
           commentCount: parseInt(stats.commentCount as string || "0"),
           shareCount: 0,
           viewCount: parseInt(stats.viewCount as string || "0"),
-          visibility: "public",
+          visibility: privacyMap[videoId] ?? "public",
           publishedAt: snippet?.publishedAt ? new Date(snippet.publishedAt as string) : undefined,
           thumbnailUrl: ((snippet?.thumbnails as Record<string, unknown>)?.high as Record<string, unknown>)?.url as string,
           rawMetadata: JSON.stringify({ channelTitle: snippet?.channelTitle }),
@@ -2166,6 +2172,13 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
               thumbnailUrl: post.thumbnailUrl,
               rawMetadata: post.rawMetadata,
               isPinned: post.isPinned || false,
+              // Source visibility is authoritative: a post made private or
+              // unlisted at the source updates here on every sync, so mesh.me
+              // never keeps showing it more broadly than the source allows.
+              visibility: post.visibility,
+              postType: post.postType,
+              publishedAt: post.publishedAt,
+              watchTimeSeconds: post.watchTimeSeconds,
               ...safety,
             },
           });

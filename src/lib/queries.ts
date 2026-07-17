@@ -742,15 +742,24 @@ export async function searchAll(query: string) {
     prisma.platformPost.findMany({
       where: {
         ...nsfwHiddenWhere(user),
-        visibility: { not: "private" },
-        connectedAccount: {
-          isActive: true,
-          platform: { in: SOCIAL_SEARCH_PLATFORM_IDS },
-          OR: [
-            { userId: user.id },
-            { user: { isSuspended: false, showInDiscovery: true } },
-          ],
-        },
+        // Source visibility is a whitelist for anyone but the owner: only
+        // "public" is searchable. Unlisted, friends, private, and drafts stay
+        // exactly as private as the source made them.
+        AND: [
+          {
+            OR: [
+              { connectedAccount: { isActive: true, platform: { in: SOCIAL_SEARCH_PLATFORM_IDS }, userId: user.id } },
+              {
+                visibility: "public",
+                connectedAccount: {
+                  isActive: true,
+                  platform: { in: SOCIAL_SEARCH_PLATFORM_IDS },
+                  user: { isSuspended: false, showInDiscovery: true },
+                },
+              },
+            ],
+          },
+        ],
         OR: [
           { title: { contains: q } },
           { content: { contains: q } },

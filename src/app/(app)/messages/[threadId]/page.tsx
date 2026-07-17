@@ -139,11 +139,12 @@ async function buildSharedContent(
         OR: [
           { connectedAccount: { userId: user.id } },
           {
-            visibility: { not: "private" },
+            // Explicit link-shares may carry unlisted (link-only by design);
+            // friends/private/draft content is never shareable by strangers.
+            visibility: { in: ["public", "unlisted"] },
             connectedAccount: {
               user: {
                 isSuspended: false,
-                isPublic: true,
                 showInDiscovery: true,
               },
             },

@@ -22,6 +22,8 @@ export type FlowPost = {
   externalUrl?: string | null;
   // Honest recommendation reason, computed by the ranker server-side.
   whyThis?: string;
+  // Source visibility, preserved verbatim from the platform of origin.
+  visibility?: string;
 };
 
 // The page URL a platform post lives at — feed data calls it externalUrl,
@@ -359,11 +361,18 @@ function Reel({
             </span>
           ))}
 
-          {platformChip && (
-            <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
-              {post.platform}
-            </span>
-          )}
+          <span className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+            {platformChip && (
+              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
+                {post.platform}
+              </span>
+            )}
+            {post.visibility && post.visibility !== "public" && (
+              <span className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white/85 backdrop-blur">
+                {post.visibility === "private" ? "Private · only you" : post.visibility}
+              </span>
+            )}
+          </span>
 
           {/* Related-lane state: finding, or how deep into "similar" you are */}
           {laneLoading && (

@@ -199,11 +199,12 @@ export async function POST(req: NextRequest) {
         OR: [
           { connectedAccount: { userId: user.id } },
           {
-            visibility: { not: "private" },
+            // Saving requires visibility you actually have: public, or
+            // unlisted reached by explicit link.
+            visibility: { in: ["public", "unlisted"] },
             connectedAccount: {
               user: {
                 isSuspended: false,
-                isPublic: true,
                 showInDiscovery: true,
               },
             },
