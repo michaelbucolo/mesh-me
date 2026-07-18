@@ -1,6 +1,9 @@
 import { getCurrentUser } from "@/lib/auth";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { prisma } from "@/lib/prisma";
+import { memoizeWithTtl } from "@/lib/ttl-memo";
+
+type AnalyticsUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 
 const CHART_DAYS = 14;
 const METRIC_WINDOW_DAYS = 30;
@@ -104,7 +107,19 @@ function growthDelta(points: Array<{ followerCount: number }>) {
 export async function getAnalyticsDashboardData() {
   const user = await getCurrentUser();
   if (!user) return null;
+  return loadAnalyticsDashboard(user);
+}
 
+// This is the heaviest per-request computation in the app (25+ queries, two
+// wide post scans). A short per-user memo makes tab switches and quick
+// revisits instant; user.updatedAt in the key busts it the moment any account
+// or privacy setting changes.
+const loadAnalyticsDashboard = memoizeWithTtl(loadAnalyticsDashboardUncached, {
+  ttlMs: 30_000,
+  key: (user) => `${user.id}:${user.updatedAt.getTime()}`,
+});
+
+async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
   const chartStart = daysAgoStart(CHART_DAYS);
   const windowStart = daysAgoStart(METRIC_WINDOW_DAYS);
   const contentSafetyWhere = nsfwHiddenWhere(user);
