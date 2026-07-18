@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getFeedPostById } from "@/lib/feed-data";
 import { getPostById } from "@/lib/queries";
+import { ExternalPostDetail } from "./external-post-detail";
 import { PostDetailClient } from "./post-detail-client";
 
 export const metadata: Metadata = {
@@ -38,7 +40,17 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
   const { postId } = await params;
   const post = await getPostById(postId);
-  if (!post) notFound();
+  if (!post) {
+    // Connected-platform and external-feed posts get an in-app home too —
+    // the Flow, shares, and saves all link here, and nothing should 404.
+    if (postId.startsWith("platform-") || postId.startsWith("feeditem-")) {
+      const external = await getFeedPostById(currentUser, postId);
+      if (external) {
+        return <ExternalPostDetail post={{ ...external, createdAt: String(external.createdAt) }} />;
+      }
+    }
+    notFound();
+  }
 
   return <PostDetailClient post={serializePost(post)} currentUserId={currentUser.id} />;
 }
