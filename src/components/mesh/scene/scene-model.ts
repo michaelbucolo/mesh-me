@@ -98,9 +98,12 @@ const BRANCH_META: Record<BranchKey, { label: string; color: string }> = {
   activity: { label: "Activity", color: "#38bdf8" },
 };
 
+// Kept deliberately lean: the mesh reads as a constellation of the most
+// recent, most alive things — not an archive. Everything else lives in the
+// list view and search, one tap away.
 const MAX_PEOPLE = 24;
-const MAX_POSTS = 18;
-const MAX_PLATFORM_POSTS = 6;
+const MAX_POSTS = 12;
+const MAX_PLATFORM_POSTS = 4;
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -280,7 +283,7 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
       const friendMesh = friendMeshMap.get(p.id);
       const friendPosts: any[] = ((friendMesh?.posts as any[]) || [])
         .filter((fp: any) => existedBy(toMs(fp.createdAt)))
-        .slice(0, 4);
+        .slice(0, 3);
       // Closeness is the human truth of the tie: following each other, how
       // often you actually interact, and whether they're here right now.
       const interaction = Math.min(p.interactionCount || 0, 24);

@@ -44,8 +44,24 @@ const STRAND_DAMP = 6.5;
 // Radius (world units) each node clears around itself for strand routing.
 const NODE_CLEARANCE = 56;
 const STRAND_PUSH = 90;
+// Meshis moving through the web brush the strands aside: anything inside
+// this radius of a control point shoves it, so filaments visibly part and
+// sway around every person passing through the room.
+const DISTURB_RADIUS = 120;
+const DISTURB_PUSH = 340;
 
-function stepStrands(model: SceneModel, state: PhysicsState, dt: number): void {
+/** A Meshi (yours or a visitor's) currently at a world position. */
+export interface StrandDisturbance {
+  x: number;
+  y: number;
+}
+
+function stepStrands(
+  model: SceneModel,
+  state: PhysicsState,
+  dt: number,
+  disturbances: StrandDisturbance[],
+): void {
   const seen = new Set<string>();
   const list = Array.from(model.nodes.values());
   model.nodes.forEach((node) => {
@@ -86,6 +102,19 @@ function stepStrands(model: SceneModel, state: PhysicsState, dt: number): void {
       s.vy += (dy / d) * push * dt;
     }
 
+    // People passing by brush the filament aside — the closer they are, the
+    // harder the shove. Inertia + light damping turn it into a natural sway.
+    for (let k = 0; k < disturbances.length; k += 1) {
+      const d0 = disturbances[k];
+      const dx = s.mx - d0.x;
+      const dy = s.my - d0.y;
+      const d = Math.hypot(dx, dy);
+      if (d >= DISTURB_RADIUS || d < 0.001) continue;
+      const push = ((DISTURB_RADIUS - d) / DISTURB_RADIUS) * DISTURB_PUSH;
+      s.vx += (dx / d) * push * dt;
+      s.vy += (dy / d) * push * dt;
+    }
+
     s.mx += s.vx * dt;
     s.my += s.vy * dt;
   });
@@ -118,7 +147,14 @@ export function driftScaleFor(motionStyle?: string | null): number {
   return 1;
 }
 
-export function stepScenePhysics(model: SceneModel, state: PhysicsState, time: number, dtMs: number, driftScale = 1): void {
+export function stepScenePhysics(
+  model: SceneModel,
+  state: PhysicsState,
+  time: number,
+  dtMs: number,
+  driftScale = 1,
+  disturbances: StrandDisturbance[] = [],
+): void {
   const dt = Math.min(dtMs, 50) / 1000;
 
   // Seed display positions on first frame: every node starts AT ITS MAKER
@@ -144,5 +180,5 @@ export function stepScenePhysics(model: SceneModel, state: PhysicsState, time: n
   });
 
   // Now that nodes have moved, settle the strands hanging between them.
-  stepStrands(model, state, dt);
+  stepStrands(model, state, dt, disturbances);
 }

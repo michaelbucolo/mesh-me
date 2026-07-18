@@ -17,6 +17,21 @@ export type FeedCurrentUser = {
   adultVerificationExpiresAt?: Date | string | null;
 };
 
+/**
+ * The signed-out viewer. Its id matches no rows, so every personal query
+ * (follows, reactions, blocks) naturally resolves empty and the public
+ * "discover" supply is all that remains — guests browse the open internet's
+ * content, and interacting is what asks for an account.
+ */
+export const ANONYMOUS_VIEWER: FeedCurrentUser = {
+  id: "anonymous-guest",
+  username: "guest",
+  displayName: "Guest",
+  avatarUrl: null,
+  isVerified: false,
+  nsfwEnabled: false,
+};
+
 export type FeedCardPost = {
   id: string;
   content: string;

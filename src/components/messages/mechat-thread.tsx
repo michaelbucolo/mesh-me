@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { playSound } from "@/lib/sound";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
 import {
   buildLinkPreview,
@@ -406,6 +407,7 @@ export function MeChatThread({
         });
         optimisticId = optimistic.id;
         setMessages((current) => [...current, optimistic]);
+        playSound("send");
 
         const response = await fetch(`/api/messages/${threadId}`, {
           method: "POST",

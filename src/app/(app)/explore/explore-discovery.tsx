@@ -98,6 +98,8 @@ type ExploreDiscoveryProps = {
   trendingTags: TrendingTag[];
   suggestedUsers: SuggestedUser[];
   communities: SuggestedCommunity[];
+  /** Guest browsing: everything is viewable, interactions route to login. */
+  signedOut?: boolean;
 };
 
 function postScore(post: FeedCardPost) {
@@ -112,7 +114,7 @@ function isPhotoPost(post: FeedCardPost) {
   return post.media.some((item) => ["image", "photo"].includes(item.type.toLowerCase()));
 }
 
-export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggestedUsers, communities }: ExploreDiscoveryProps) {
+export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggestedUsers, communities, signedOut = false }: ExploreDiscoveryProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<ExploreTab>("foryou");
@@ -421,7 +423,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               <SectionHeader title="Meshes to explore" action={{ label: "See all", onClick: () => setTab("people") }} />
               <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
                 {suggestedUsers.slice(0, 8).map((user, index) => (
-                  <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} />
+                  <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} signedOut={signedOut} />
                 ))}
               </div>
             </section>
@@ -493,7 +495,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {filteredUsers.map((user, index) => (
-                <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} fullWidth />
+                <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} fullWidth signedOut={signedOut} />
               ))}
             </div>
           )}
@@ -616,16 +618,23 @@ function ExplorePersonCard({
   currentUserId,
   index,
   fullWidth,
+  signedOut = false,
 }: {
   user: SuggestedUser;
   currentUserId: string;
   index: number;
   fullWidth?: boolean;
+  signedOut?: boolean;
 }) {
+  const router = useRouter();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleFollow = () => {
+    if (signedOut) {
+      router.push("/login?next=/explore");
+      return;
+    }
     const previous = isFollowing;
     setIsFollowing(!previous);
     startTransition(async () => {

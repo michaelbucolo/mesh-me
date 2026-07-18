@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2 } from "lucide-react";
 import { toggleFollow, toggleReaction } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
+import { playSound } from "@/lib/sound";
+import { PlatformLogo } from "@/components/platform/platform-logo";
 
 export type FlowPost = {
   id: string;
@@ -241,6 +243,7 @@ function Reel({
   laneLoading,
   slideDir,
   onLaneSwipe,
+  signedOut = false,
 }: {
   post: FlowPost;
   slotId: string;
@@ -252,7 +255,9 @@ function Reel({
   laneLoading: boolean;
   slideDir: 1 | -1 | 0;
   onLaneSwipe: (dir: 1 | -1) => void;
+  signedOut?: boolean;
 }) {
+  const router = useRouter();
   const native = !post.platform || post.platform === "mesh" || post.platform === "meshme";
   const hasVideo = post.media.some((m) => m.type === "video");
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
@@ -268,10 +273,17 @@ function Reel({
   const suppressTapRef = useRef(false);
 
   const handleLike = (viaDoubleTap = false) => {
+    // Guests can watch everything; interacting is the moment that asks for
+    // an account.
+    if (signedOut) {
+      router.push("/login?next=/flow");
+      return;
+    }
     if (!native) return;
     const next = viaDoubleTap ? true : !liked;
     if (next === liked && viaDoubleTap) return;
     setLiked(next);
+    if (next) playSound("heart");
     setLikeCount((c) => c + (next ? 1 : -1));
     startLike(async () => {
       const res = await toggleReaction(post.id);
@@ -363,7 +375,8 @@ function Reel({
 
           <span className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
             {platformChip && (
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
+                <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
                 {post.platform}
               </span>
             )}
@@ -629,10 +642,12 @@ export function FlowClient({
   initialPosts,
   initialHasMore,
   suggestedPeople = [],
+  signedOut = false,
 }: {
   initialPosts: FlowPost[];
   initialHasMore: boolean;
   suggestedPeople?: FlowSuggestedPerson[];
+  signedOut?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -910,6 +925,19 @@ export function FlowClient({
           Refreshing your Flow…
         </div>
       )}
+      {signedOut && (
+        <div className="absolute inset-x-3 bottom-3 z-30 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-white/15 bg-black/75 px-4 py-3 backdrop-blur">
+          <p className="min-w-0 text-xs leading-5 text-white/85">
+            You&apos;re watching as a guest. Sign in to like, comment, and follow.
+          </p>
+          <Link
+            href="/login?next=/flow"
+            className="shrink-0 rounded-full bg-white px-3.5 py-2 text-xs font-bold text-black transition hover:bg-white/90"
+          >
+            Sign in
+          </Link>
+        </div>
+      )}
       <div
         ref={containerRef}
         onTouchStart={(e) => {
@@ -944,6 +972,7 @@ export function FlowClient({
               laneLoading={lane?.loading ?? false}
               slideDir={slideDirs[post.id] ?? 0}
               onLaneSwipe={(dir) => void swipeLane(post.id, dir)}
+              signedOut={signedOut}
             />
           );
         })}

@@ -3,8 +3,48 @@
 // strokes and labels stay crisp. The painter also records each node's screen
 // hitbox for pointer hit-testing.
 
+import { platformLogoDataUri } from "@/components/platform/platform-logo";
 import { GUIDE_RINGS } from "./scene-layout";
 import type { BranchKey, SceneModel, SceneNode } from "./scene-model";
+
+// Rasterized brand marks (YouTube, Instagram, TikTok, …) for canvas drawing.
+// Built lazily from the same SVGs the DOM uses; null = no mark for that
+// platform (fall back to the colored dot/orb).
+const logoImages = new Map<string, HTMLImageElement | null>();
+
+function logoImage(platform?: string | null): HTMLImageElement | null {
+  if (!platform || typeof Image === "undefined") return null;
+  const key = platform.toLowerCase();
+  const cached = logoImages.get(key);
+  if (cached !== undefined) {
+    return cached && cached.complete && cached.naturalWidth > 0 ? cached : null;
+  }
+  const uri = platformLogoDataUri(key, 48);
+  if (!uri) {
+    logoImages.set(key, null);
+    return null;
+  }
+  const img = new Image();
+  img.src = uri;
+  logoImages.set(key, img);
+  return null;
+}
+
+function drawLogoTile(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  size: number,
+  alpha: number,
+): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  roundRectPath(ctx, x - size / 2, y - size / 2, size, size, size * 0.28);
+  ctx.clip();
+  ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+  ctx.restore();
+}
 
 export interface Camera {
   panX: number;
@@ -45,6 +85,10 @@ export interface RenderOptions {
   /** Interaction pulses riding strands (edge key → start time): a liked post
    * sends a bright wave down its strand to its maker. */
   strandPulses?: Map<string, number>;
+  /** Connections online right now but NOT in this room, keyed by userId.
+   * `where` is the mesh owner's userId they're exploring (null = elsewhere
+   * on mesh.me). Drawn as discrete indicators at their node. */
+  livePresence?: Map<string, { where: string | null }>;
 }
 
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
@@ -485,12 +529,18 @@ function drawPostCard(
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
 
-  // Header row: platform dot + name (+ verified) left, time/handle right.
+  // Header row: the source's REAL logo (falls back to its color dot) + name
+  // (+ verified) left, time/handle right.
   const headCy = y + headH / 2;
-  ctx.beginPath();
-  ctx.arc(x + pad + 4 * scale, headCy, 4 * scale, 0, Math.PI * 2);
-  ctx.fillStyle = node.color;
-  ctx.fill();
+  const headLogo = logoImage(node.sublabel);
+  if (headLogo) {
+    drawLogoTile(ctx, headLogo, x + pad + 4.5 * scale, headCy, 10.5 * scale, 1);
+  } else {
+    ctx.beginPath();
+    ctx.arc(x + pad + 4 * scale, headCy, 4 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = node.color;
+    ctx.fill();
+  }
   const headFont = Math.max(8, 9.5 * scale);
   ctx.font = `700 ${headFont}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "left";
@@ -883,17 +933,6 @@ export function drawScene(o: RenderOptions): void {
       }
     }
 
-    // A travelling spark that rides along the curved strand.
-    if (emph > 0.7 && node.depth <= 2) {
-      const t = (Math.sin(time * 0.0009 + node.x * 0.01 + node.y * 0.01) + 1) / 2;
-      const mt = 1 - t;
-      const sx = mt * mt * a.x + 2 * mt * t * c.x + t * t * b.x;
-      const sy = mt * mt * a.y + 2 * mt * t * c.y + t * t * b.y;
-      ctx.beginPath();
-      ctx.arc(sx, sy, 1.6 * Math.max(0.8, o.camera.zoom), 0, Math.PI * 2);
-      ctx.fillStyle = withAlpha(node.color, 0.6 * emph);
-      ctx.fill();
-    }
   });
 
   // --- Nodes ---
@@ -970,8 +1009,10 @@ export function drawScene(o: RenderOptions): void {
       return;
     }
 
-    // Posts float as rich cards once the camera is close enough to read them.
-    if (node.kind === "post" && o.camera.zoom >= 0.32 && emph > 0.2) {
+    // Posts float as rich cards only once the camera is close enough to READ
+    // them — zoomed out they collapse to compact thumbnails/orbs, so a busy
+    // mesh reads as a constellation, not a wall of cards.
+    if (node.kind === "post" && o.camera.zoom >= 0.42 && emph > 0.2) {
       const cardScale =
         Math.max(0.78, Math.min(o.camera.zoom, 1.35)) * (0.82 + node.weight * 0.36);
       const size = drawPostCard(o, node, p.x, p.y, cardScale, emph, isHover, isSelected);
@@ -981,6 +1022,37 @@ export function drawScene(o: RenderOptions): void {
 
     const light = tint(node.color, 0.72);
     const img = node.avatarUrl ? o.images.get(node.id) : node.imageUrl ? o.images.get(node.id) : undefined;
+
+    // Platform nodes wear their REAL brand mark — a YouTube node looks like
+    // YouTube, not an abstract colored ball.
+    if (node.kind === "platform") {
+      const brand = logoImage(node.label);
+      if (brand) {
+        const halo = ctx.createRadialGradient(p.x, p.y, r * 0.6, p.x, p.y, r * 2.2);
+        halo.addColorStop(0, withAlpha(node.color, 0.2 * emph));
+        halo.addColorStop(1, withAlpha(node.color, 0));
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        drawLogoTile(ctx, brand, p.x, p.y, r * 1.9, 0.4 + 0.6 * emph);
+        roundRectPath(ctx, p.x - r * 0.95, p.y - r * 0.95, r * 1.9, r * 1.9, r * 0.53);
+        ctx.strokeStyle = withAlpha(light, 0.5 * emph + 0.15);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        if (isSelected || isFocus || isHover) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
+          ctx.strokeStyle = withAlpha("#ffffff", isSelected ? 0.95 : isHover ? 0.65 : 0.4);
+          ctx.lineWidth = isSelected ? 2 : 1.4;
+          ctx.stroke();
+        }
+        const showBrandLabel =
+          isSelected || isFocus || isHover || (o.activeBranch !== null && node.branch === o.activeBranch);
+        if (showBrandLabel) labelQueue.push({ node, x: p.x, y: p.y, r, emph });
+        return;
+      }
+    }
 
     if (img && (node.kind === "person" || node.kind === "persona" || node.kind === "activity" || node.kind === "post")) {
       // Bloom behind the avatar, then the image inside a lit rim.
@@ -1014,7 +1086,15 @@ export function drawScene(o: RenderOptions): void {
 
     // Aliveness: people online right now breathe — a soft green pulse ring
     // plus the status dot, so the living parts of your world stand out.
-    if ((node.kind === "person" || node.kind === "persona") && node.status === "online") {
+    // Live presence (heartbeats) is the truth; the snapshot status backs it.
+    const personUid =
+      node.kind === "person" || node.kind === "persona"
+        ? node.id.startsWith("person:")
+          ? node.id.slice(7)
+          : null
+        : null;
+    const live = personUid ? o.livePresence?.get(personUid) : undefined;
+    if (personUid && (live || node.status === "online")) {
       const breathe = 0.5 + 0.5 * Math.sin(time * 0.0035 + node.x * 0.05);
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 5 + 3 * breathe, 0, Math.PI * 2);
@@ -1028,6 +1108,46 @@ export function drawScene(o: RenderOptions): void {
       ctx.lineWidth = 1.5;
       ctx.fill();
       ctx.stroke();
+    }
+
+    // Where are they? A discrete chip above the node names the mesh they're
+    // exploring right now — no Meshi hovering, just a quiet, readable status.
+    if (live && emph > 0.3 && o.camera.zoom >= 0.4) {
+      let text = "online";
+      if (live.where) {
+        if (live.where === personUid) {
+          text = "on their mesh";
+        } else {
+          const whereNode = nodes.get(`person:${live.where}`);
+          text = whereNode ? `in ${whereNode.label}'s mesh` : "exploring a mesh";
+        }
+      }
+      ctx.save();
+      const chipFont = 9.5;
+      ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
+      const label = fitText(ctx, text, 118);
+      const textW = ctx.measureText(label).width;
+      const dotR = 2.6;
+      const padX = 7;
+      const h = chipFont + 8;
+      const w = textW + padX * 2 + dotR * 2 + 5;
+      const cx0 = p.x - w / 2;
+      const cy0 = p.y - r - h - 9;
+      roundRectPath(ctx, cx0, cy0, w, h, h / 2);
+      ctx.fillStyle = "rgba(6, 10, 20, 0.78)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(74, 222, 128, 0.35)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx0 + padX + dotR, cy0 + h / 2, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = "#4ade80";
+      ctx.fill();
+      ctx.fillStyle = "rgba(226, 236, 255, 0.92)";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, cx0 + padX + dotR * 2 + 5, cy0 + h / 2 + 0.5);
+      ctx.restore();
     }
 
     if (isSelected) {

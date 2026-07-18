@@ -7,15 +7,16 @@ const SESSION_ID_REGEX = /^(?:[0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const proxyRateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
+// NOTE: /explore, /flow, and /feed are intentionally absent — guests may
+// browse content surfaces. The (app) layout decides per-path whether an
+// anonymous visitor gets the guest shell or a login redirect.
 const protectedPagePrefixes = [
   "/admin",
   "/analytics",
   "/communities",
   "/connected-accounts",
   "/content-hub",
-  "/explore",
   "/feature-requests",
-  "/feed",
   "/feedback",
   "/innovation",
   "/marketplace",
@@ -248,7 +249,9 @@ export function proxy(request: NextRequest) {
   }
 
   const requestHeaders = new Headers(request.headers);
-  if (isProtectedPage) {
+  // Every page render gets its true path (guest shells and login redirects
+  // both key off it); always overwritten here so it can't be spoofed.
+  if (!pathname.startsWith("/api/")) {
     requestHeaders.set("x-mesh-current-path", returnPath);
   }
 

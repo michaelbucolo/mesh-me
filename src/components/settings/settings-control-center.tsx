@@ -32,10 +32,12 @@ import {
   Smartphone,
   Trash2,
   UserRound,
+  Volume2,
   WandSparkles,
   Waypoints,
   type LucideIcon,
 } from "lucide-react";
+import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import {
   MeshiMascot,
@@ -219,7 +221,7 @@ const sectionOrder: Array<{
   { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
   { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints, keywords: ["graph", "nodes", "connections", "branches", "visibility", "motion", "atmosphere", "sky", "pro"] },
   { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
-  { id: "appearance", label: "Appearance", description: "Theme and mode", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom"] },
+  { id: "appearance", label: "Appearance", description: "Theme, mode, and sound", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom", "sound", "sounds", "audio", "mute"] },
   { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
   { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
 ];
@@ -1787,6 +1789,7 @@ function AppearanceSection({
   hasCustomTheme: boolean;
   isMeshPro: boolean;
 }) {
+  const [soundsOn, setSoundsOn] = useState(() => isSoundEnabled());
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Appearance" icon={Palette}>
@@ -1806,6 +1809,19 @@ function AppearanceSection({
             ))}
           </PickerGroup>
         </div>
+      </SettingsCard>
+
+      <SettingsCard title="Sound" icon={Volume2}>
+        <Toggle
+          label="Interface sounds"
+          description="Soft pops and chimes for likes, arrivals, messages, and travel"
+          value={soundsOn}
+          onChange={(value) => {
+            setSoundsOn(value);
+            setSoundEnabled(value);
+            if (value) playSound("chime");
+          }}
+        />
       </SettingsCard>
 
       <form onSubmit={applyCustomTheme}>

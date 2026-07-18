@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getFeedPostById } from "@/lib/feed-data";
+import { ANONYMOUS_VIEWER, getFeedPostById } from "@/lib/feed-data";
 import { getPostById } from "@/lib/queries";
 import { ExternalPostDetail } from "./external-post-detail";
 import { PostDetailClient } from "./post-detail-client";
@@ -34,9 +34,10 @@ function serializePost(post: NonNullable<Awaited<ReturnType<typeof getPostById>>
 }
 
 export default async function PostDetailPage({ params }: PostDetailPageProps) {
+  // Post details are readable by guests when the post is public; commenting
+  // and reacting ask for an account (the client already gates on the id).
   const currentUser = await getCurrentUser();
-  if (!currentUser) redirect("/login?next=/feed");
-  if (!currentUser.onboarded) redirect("/onboarding");
+  if (currentUser && !currentUser.onboarded) redirect("/onboarding");
 
   const { postId } = await params;
   const post = await getPostById(postId);
@@ -44,7 +45,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
     // Connected-platform and external-feed posts get an in-app home too —
     // the Flow, shares, and saves all link here, and nothing should 404.
     if (postId.startsWith("platform-") || postId.startsWith("feeditem-")) {
-      const external = await getFeedPostById(currentUser, postId);
+      const external = await getFeedPostById(currentUser ?? ANONYMOUS_VIEWER, postId);
       if (external) {
         return <ExternalPostDetail post={{ ...external, createdAt: String(external.createdAt) }} />;
       }
@@ -52,5 +53,9 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
     notFound();
   }
 
-  return <PostDetailClient post={serializePost(post)} currentUserId={currentUser.id} />;
+  if (!currentUser && post.visibility !== "public") {
+    redirect(`/login?next=${encodeURIComponent(`/feed/${postId}`)}`);
+  }
+
+  return <PostDetailClient post={serializePost(post)} currentUserId={currentUser?.id} />;
 }

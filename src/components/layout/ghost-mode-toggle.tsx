@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Ghost } from "lucide-react";
+import { playSound } from "@/lib/sound";
 
 const STORAGE_KEY = "meshGhostMode";
 
@@ -24,6 +25,7 @@ export function GhostModeToggle({ compact = false }: { compact?: boolean }) {
   const toggle = () => {
     const next = !ghost;
     setGhost(next);
+    playSound(next ? "ghost" : "pop");
     try {
       localStorage.setItem(STORAGE_KEY, String(next));
     } catch {

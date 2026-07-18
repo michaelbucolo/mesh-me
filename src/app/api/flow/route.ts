@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, rankFlowPosts } from "@/lib/flow-ranking";
 
 /**
  * Ranked Flow feed. The client sends the ids it already has (`exclude`) plus
  * ids the viewer has recently watched (`seen`); the server returns the next
- * best-ranked batch the viewer hasn't been handed yet.
+ * best-ranked batch the viewer hasn't been handed yet. Guests get the public
+ * discover supply — watching is free, interacting needs an account.
  */
 export async function GET(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const user = (await getCurrentUser()) ?? ANONYMOUS_VIEWER;
 
   const { searchParams } = new URL(request.url);
   const limitRaw = parseInt(searchParams.get("limit") || "12", 10);
