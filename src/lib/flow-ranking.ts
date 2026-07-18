@@ -31,8 +31,8 @@ const HOUR_MS = 3_600_000;
  */
 export async function getFlowCandidates(user: FeedCurrentUser): Promise<FeedCardPost[]> {
   const [inNetwork, outOfNetwork] = await Promise.all([
-    getCombinedFeedPosts({ user, source: "all", contentFilter: "all", limit: 120 }),
-    getCombinedFeedPosts({ user, source: "discover", contentFilter: "all", limit: 60 }),
+    getCombinedFeedPosts({ user, source: "all", contentFilter: "all", limit: 240 }),
+    getCombinedFeedPosts({ user, source: "discover", contentFilter: "all", limit: 240 }),
   ]);
   const byId = new Map<string, FeedCardPost>();
   for (const post of [...inNetwork, ...outOfNetwork]) byId.set(post.id, post);
@@ -290,6 +290,11 @@ function scoreFlowPost(
   // fresh material runs out.
   if (opts.seen?.has(post.id)) score *= 0.06;
 
+  // Dither: a whisper of randomness among near-ties, so two visits to the
+  // same pool never produce the same march of posts. Real signal still wins —
+  // the jitter is smaller than any meaningful score gap.
+  score += Math.random() * 0.22;
+
   return score;
 }
 
@@ -344,6 +349,11 @@ export function rankFlowPosts(
     const runAuthors = result.slice(runStart, slot).map((p) => authorKey(p));
     const runIsFull = (key: string) =>
       runAuthors.length >= weights.maxRun && runAuthors.every((a) => a === key);
+    // No platform monopolizes the screen either: three of the last three
+    // slots from one platform means the next pick prefers anywhere else.
+    const lastPlatforms = result.slice(Math.max(0, slot - 3), slot).map((p) => p.platform || "mesh");
+    const platformRunFull = (platform: string) =>
+      lastPlatforms.length >= 3 && lastPlatforms.every((p) => p === platform);
     const explorationSlot =
       weights.explorationEvery > 0 && slot > 0 && slot % weights.explorationEvery === 0;
 
@@ -354,6 +364,11 @@ export function rankFlowPosts(
         ({ post }) =>
           !(profile.authorAffinity.get(authorKey(post)) ?? 0) &&
           authorKey(post) !== lastAuthor,
+      );
+    }
+    if (pickIndex === -1) {
+      pickIndex = pool.findIndex(
+        ({ post }) => !runIsFull(authorKey(post)) && !platformRunFull(post.platform || "mesh"),
       );
     }
     if (pickIndex === -1) {

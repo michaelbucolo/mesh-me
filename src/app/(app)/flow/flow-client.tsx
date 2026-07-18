@@ -234,7 +234,7 @@ function RailButton({
 
 function Reel({
   post,
-  slotId,
+  slotIndex,
   active,
   muted,
   onToggleMute,
@@ -246,7 +246,9 @@ function Reel({
   signedOut = false,
 }: {
   post: FlowPost;
-  slotId: string;
+  /** Position in the vertical list — the observer's identity for this slot,
+   * stable even when the Flow wraps and a post id appears twice. */
+  slotIndex: number;
   active: boolean;
   muted: boolean;
   onToggleMute: () => void;
@@ -338,7 +340,7 @@ function Reel({
   return (
     <section
       className="relative h-full w-full snap-start snap-always"
-      data-flow-reel={slotId}
+      data-flow-reel={String(slotIndex)}
       onTouchStart={(e) => {
         swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       }}
@@ -799,9 +801,8 @@ export function FlowClient({
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
-          const id = (entry.target as HTMLElement).dataset.flowReel;
-          const idx = postsRef.current.findIndex((p) => p.id === id);
-          if (idx >= 0) setActiveIndex(idx);
+          const idx = Number((entry.target as HTMLElement).dataset.flowReel);
+          if (Number.isFinite(idx) && idx >= 0) setActiveIndex(idx);
         }
       },
       { root, threshold: 0.6 },
@@ -835,6 +836,9 @@ export function FlowClient({
       if (data && Array.isArray(data.posts)) {
         hasMoreRef.current = Boolean(data.hasMore) && data.posts.length > 0;
         setPosts((prev) => {
+          // Recycled batches deliberately repeat ids — the Flow loops rather
+          // than ends, so duplicates are welcome once supply wraps around.
+          if (data.recycled) return [...prev, ...data.posts];
           const existing = new Set(prev.map((p) => p.id));
           return [...prev, ...data.posts.filter((p: FlowPost) => !existing.has(p.id))];
         });
@@ -1099,9 +1103,9 @@ export function FlowClient({
           const displayed = lane && lane.index > 0 ? lane.posts[lane.index - 1] ?? post : post;
           return (
             <Reel
-              key={`${post.id}:${displayed.id}`}
+              key={`${i}:${post.id}:${displayed.id}`}
               post={displayed}
-              slotId={post.id}
+              slotIndex={i}
               active={i === activeIndex}
               muted={muted}
               onToggleMute={() => setMuted((m) => !m)}

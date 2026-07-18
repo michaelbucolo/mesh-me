@@ -313,6 +313,98 @@ async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20):
   }
 }
 
+/**
+ * The open supply: PUBLIC posts synced from ANY member's connected platforms
+ * (owner opted into discovery, post visibility public). This is what makes
+ * the Flow feel like the whole internet instead of just your own graph —
+ * every item real, human, platform-labeled content.
+ */
+async function getDiscoverPlatformPosts(user: FeedCurrentUser, limit = 60): Promise<FeedCardPost[]> {
+  try {
+    const platformPosts = await prisma.platformPost.findMany({
+      where: {
+        ...nsfwHiddenWhere(user),
+        visibility: "public",
+        connectedAccount: {
+          isActive: true,
+          userId: { not: user.id },
+          user: { isSuspended: false, showInDiscovery: true },
+        },
+      },
+      include: {
+        connectedAccount: {
+          select: {
+            platform: true,
+            platformUsername: true,
+            user: { select: { id: true, username: true, displayName: true, avatarUrl: true, isVerified: true } },
+          },
+        },
+        media: true,
+      },
+      orderBy: [
+        { publishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: limit,
+    });
+
+    return platformPosts.map((post) => {
+      const media = post.media.length > 0
+        ? post.media.flatMap((item) =>
+            buildExternalMedia({
+              id: item.id,
+              mediaUrl: item.url,
+              thumbnailUrl: item.thumbnailUrl,
+              mediaType: item.mediaType,
+              postType: post.postType,
+            }),
+          )
+        : buildExternalMedia({
+            id: `${post.id}-thumbnail`,
+            thumbnailUrl: post.thumbnailUrl,
+            postType: post.postType,
+          });
+      const owner = post.connectedAccount.user;
+      const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
+
+      return {
+        id: `platform-${post.id}`,
+        content: content || `${post.connectedAccount.platform} post`,
+        createdAt: post.publishedAt ?? post.createdAt,
+        author: {
+          id: owner.id,
+          username: owner.username,
+          displayName: owner.displayName,
+          avatarUrl: owner.avatarUrl,
+          isVerified: owner.isVerified,
+        },
+        community: null,
+        media,
+        tags: [],
+        _count: {
+          comments: post.commentCount,
+          reactions: post.likeCount,
+          reposts: post.shareCount,
+        },
+        reactions: [],
+        savedBy: [],
+        isPinned: false,
+        platform: post.connectedAccount.platform,
+        sourceId: post.id,
+        externalUrl: post.url,
+        platformPostId: post.platformPostId,
+        crossPostedTo: [],
+        isNsfw: post.isNsfw,
+        contentRating: post.contentRating,
+        visibility: post.visibility,
+      };
+    });
+  } catch (error) {
+    console.error("[feed-data] Discover platform posts unavailable", error);
+    return [];
+  }
+}
+
 export async function getMergedForYouFeedPosts(user: FeedCurrentUser, limit = 40): Promise<FeedCardPost[]> {
   try {
     const items = await prisma.platformFeedItem.findMany({
@@ -541,21 +633,29 @@ export async function getCombinedFeedPosts({
   contentFilter: FeedContentFilter;
   limit: number;
 }) {
-  const providerLimit = Math.min(Math.max(limit * 2, 48), 120);
-  const [nativePosts, ownPlatformPosts, friendPlatformPosts, mergedForYouPosts] = await Promise.all([
+  const providerLimit = Math.min(Math.max(limit * 2, 48), 240);
+  const [nativePosts, ownPlatformPosts, friendPlatformPosts, mergedForYouPosts, discoverPlatformPosts] = await Promise.all([
     getNativeFeedPostsForSource(user, source, providerLimit),
     source === "discover" ? Promise.resolve([]) : getConnectedPlatformFeedPosts(user, providerLimit),
     source === "discover" ? Promise.resolve([]) : getFriendPlatformFeedPosts(user, providerLimit),
     source === "following" ? Promise.resolve([]) : getMergedForYouFeedPosts(user, providerLimit),
+    // Everyone's public platform content circulates — the open internet's
+    // supply, not just the viewer's own graph.
+    source === "following" ? Promise.resolve([]) : getDiscoverPlatformPosts(user, providerLimit),
   ]);
 
-  return filterFeedPostsByContent(
-    sortFeedPosts([
-      ...nativePosts.map(toFeedCardPost),
-      ...ownPlatformPosts,
-      ...(friendPlatformPosts as FriendPlatformFeedPost[]),
-      ...mergedForYouPosts,
-    ]),
-    contentFilter,
-  ).slice(0, limit);
+  // A friend's shared post and the open-discovery copy are the same item —
+  // keep one of each id.
+  const byId = new Map<string, FeedCardPost>();
+  for (const post of [
+    ...nativePosts.map(toFeedCardPost),
+    ...ownPlatformPosts,
+    ...(friendPlatformPosts as FriendPlatformFeedPost[]),
+    ...mergedForYouPosts,
+    ...discoverPlatformPosts,
+  ]) {
+    if (!byId.has(post.id)) byId.set(post.id, post);
+  }
+
+  return filterFeedPostsByContent(sortFeedPosts([...byId.values()]), contentFilter).slice(0, limit);
 }
