@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Footprints, Heart, 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { takeMeshPrefetch } from "./mesh-prefetch";
 import { toggleReaction } from "@/lib/actions";
 import { MeshiLoader } from "@/components/meshi/meshi-loader";
 import {
@@ -393,7 +394,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         setMeshData(null);
       }
       try {
-        const res = await fetch(url, { cache: "no-store", signal: opts?.signal });
+        // First load rides the request the loader shell started while this
+        // chunk was still downloading; refreshes fetch normally.
+        const prefetched = opts?.quiet ? undefined : takeMeshPrefetch(url);
+        const res = prefetched
+          ? await prefetched
+          : await fetch(url, { cache: "no-store", signal: opts?.signal });
         if (opts?.signal?.aborted) return;
         if (!res.ok) throw new Error(String(res.status));
         const payload: MeshApiResponse = await res.json();
