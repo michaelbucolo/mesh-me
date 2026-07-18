@@ -37,54 +37,8 @@ function cleanupExpiredEntries() {
   }
 }
 
-// ─── Account Lockout ────────────────────────────────────────
-const loginAttempts = new Map<string, { count: number; lockCount: number; lockedUntil: number | null }>();
-
-export function checkAccountLockout(email: string): { locked: boolean; lockedUntilMs: number } {
-  const entry = loginAttempts.get(email);
-  if (!entry) return { locked: false, lockedUntilMs: 0 };
-
-  if (entry.lockedUntil && Date.now() < entry.lockedUntil) {
-    return { locked: true, lockedUntilMs: entry.lockedUntil - Date.now() };
-  }
-
-  // Lockout expired — reset count for next cycle but keep lockCount for escalation
-  if (entry.lockedUntil && Date.now() >= entry.lockedUntil) {
-    entry.lockedUntil = null;
-    entry.count = 0;
-    loginAttempts.set(email, entry);
-    return { locked: false, lockedUntilMs: 0 };
-  }
-
-  return { locked: false, lockedUntilMs: 0 };
-}
-
-// Escalating lockout durations: 15min, 30min, 1hr, 24hr
-const LOCKOUT_DURATIONS = [
-  15 * 60 * 1000,      // 15 minutes
-  30 * 60 * 1000,      // 30 minutes
-  60 * 60 * 1000,      // 1 hour
-  24 * 60 * 60 * 1000, // 24 hours
-];
-
-export function recordFailedLogin(email: string): void {
-  const entry = loginAttempts.get(email) || { count: 0, lockCount: 0, lockedUntil: null };
-  entry.count++;
-
-  // Lock after 5 failed attempts with escalating duration
-  if (entry.count >= 5) {
-    const durationIndex = Math.min(entry.lockCount, LOCKOUT_DURATIONS.length - 1);
-    entry.lockedUntil = Date.now() + LOCKOUT_DURATIONS[durationIndex];
-    entry.lockCount++;
-    // Don't reset count — it resets when lockout expires in checkAccountLockout
-  }
-
-  loginAttempts.set(email, entry);
-}
-
-export function clearFailedLogins(email: string): void {
-  loginAttempts.delete(email);
-}
+// Account lockout moved to durable-rate-limit.ts (cross-instance, DB-backed) —
+// the in-memory version reset on every serverless cold start.
 
 // ─── Input Sanitization ─────────────────────────────────────
 

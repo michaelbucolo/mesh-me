@@ -1276,3 +1276,18 @@ model MeshPresence {
   @@index([lastSeen])
   @@index([viewingMesh])
 }
+
+/// Cross-instance rate-limit + lockout counters. In-memory Maps reset on every
+/// serverless cold start and are per-instance, so this durably backs the
+/// sensitive auth endpoints (login lockout, signup, password reset). Reads and
+/// writes fail open — a DB hiccup degrades to no limiting, never a lockout.
+model RateLimitHit {
+  key         String    @id
+  count       Int       @default(0)
+  resetAt     DateTime
+  lockedUntil DateTime?
+  lockCount   Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+
+  @@index([resetAt])
+}

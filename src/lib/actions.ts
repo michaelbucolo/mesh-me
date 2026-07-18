@@ -8,9 +8,15 @@ import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
 import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
-import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
+import { rateLimit, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
 import { canUserInteractWithPost } from "./privacy-policy";
+import {
+  durableRateLimit,
+  checkDurableLockout,
+  recordDurableFailedLogin,
+  clearDurableFailedLogins,
+} from "./durable-rate-limit";
 import { communityThreadTitle } from "./community-constants";
 import { isUniqueConstraintError } from "./prisma-errors";
 
@@ -187,7 +193,7 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
   const isPhone = normalizedPhone.length >= 7 && !lowered.includes("@");
   const identifierKey = isPhone ? normalizedPhone : lowered;
 
-  const rl = rateLimit(`entry-identity:${identifierKey}`, 12, 15 * 60 * 1000);
+  const rl = await durableRateLimit(`entry-identity:${identifierKey}`, 12, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many attempts. Please try again later." };
   }
@@ -257,8 +263,8 @@ export async function signUp(formData: FormData) {
     return { error: "All fields are required" };
   }
 
-  // Rate limit signups
-  const rl = rateLimit(`signup:${rawEmail.trim().toLowerCase()}`, 5, 60 * 60 * 1000);
+  // Rate limit signups — durable so the limit holds across serverless instances.
+  const rl = await durableRateLimit(`signup:${rawEmail.trim().toLowerCase()}`, 5, 60 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many signup attempts. Please try again later." };
   }
@@ -425,8 +431,9 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
   const normalizedPhone = identifier.replace(/[^\d+]/g, "");
   const identifierKey = normalizedPhone.length >= 7 && !email.includes("@") ? normalizedPhone : email;
 
-  // Pre-lookup rate limit to prevent DB spam from automated scanners
-  const preRl = rateLimit(`login-input:${identifierKey}`, 10, 15 * 60 * 1000);
+  // Pre-lookup rate limit to prevent DB spam from automated scanners —
+  // durable so a scanner can't reset it by hopping serverless instances.
+  const preRl = await durableRateLimit(`login-input:${identifierKey}`, 10, 15 * 60 * 1000);
   if (!preRl.allowed) {
     return { error: "Too many login attempts. Please try again later." };
   }
@@ -483,14 +490,15 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
 
   // Post-lookup rate limit keyed by user ID — prevents bypass via email/username alternation
   if (user) {
-    const userRl = rateLimit(`login-user:${user.id}`, 10, 15 * 60 * 1000);
+    const userRl = await durableRateLimit(`login-user:${user.id}`, 10, 15 * 60 * 1000);
     if (!userRl.allowed) {
       return { error: "Too many login attempts. Please try again later." };
     }
   }
 
-  // Check account lockout
-  const lockout = checkAccountLockout(lockoutKey);
+  // Check account lockout (durable — escalating lockout state survives cold
+  // starts and can't be shed by spreading attempts across instances).
+  const lockout = await checkDurableLockout(lockoutKey);
   if (lockout.locked) {
     const minutes = Math.ceil(lockout.lockedUntilMs / 60000);
     return { error: `Account temporarily locked. Try again in ${minutes} minutes.` };
@@ -498,7 +506,7 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
 
   if (!user) {
     if (!unverifiedIdentifier) {
-      recordFailedLogin(lockoutKey);
+      await recordDurableFailedLogin(lockoutKey);
     }
     return { error: "Invalid email or password" };
   }
@@ -512,14 +520,16 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
-    recordFailedLogin(user.id);
+    await recordDurableFailedLogin(user.id);
     return { error: "Invalid email or password" };
   }
 
   // Clear lockout state for both user.id and the raw email/username input
   // to avoid stale entries from pre-lookup failed attempts
-  clearFailedLogins(user.id);
-  clearFailedLogins(identifierKey);
+  await Promise.all([
+    clearDurableFailedLogins(user.id),
+    clearDurableFailedLogins(identifierKey),
+  ]);
   if (shouldCreateSession) {
     await createSession(user.id);
   }
@@ -541,7 +551,7 @@ export async function signOut() {
 
 export async function requestPasswordReset(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
-  const rl = rateLimit(`reset:${normalizedEmail}`, 3, 15 * 60 * 1000);
+  const rl = await durableRateLimit(`reset:${normalizedEmail}`, 3, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many reset requests. Please try again later." };
   }
@@ -584,7 +594,7 @@ export async function requestEmailVerification(formData?: FormData) {
     return { error: "Please enter a valid email address" };
   }
 
-  const rl = rateLimit(`email-verification:${user.id}:${normalizedEmail}`, 3, 15 * 60 * 1000);
+  const rl = await durableRateLimit(`email-verification:${user.id}:${normalizedEmail}`, 3, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many verification emails requested. Please try again later." };
   }
@@ -617,7 +627,7 @@ export async function verifyEmailToken(token: string) {
     return { error: "Invalid verification link. Please request a new one." };
   }
 
-  const rl = rateLimit(`email-token:${trimmedToken.slice(0, 16)}`, 8, 15 * 60 * 1000);
+  const rl = await durableRateLimit(`email-token:${trimmedToken.slice(0, 16)}`, 8, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many verification attempts. Please try again later." };
   }
@@ -691,7 +701,7 @@ export async function resetPassword(token: string, newPassword: string) {
     return { error: "Invalid request" };
   }
 
-  const rl = rateLimit(`reset-verify:${token.slice(0, 16)}`, 5, 15 * 60 * 1000);
+  const rl = await durableRateLimit(`reset-verify:${token.slice(0, 16)}`, 5, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many attempts. Please try again later." };
   }
