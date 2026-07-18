@@ -22,6 +22,7 @@ type TrailStep = {
 };
 
 type TrailData = {
+  range?: "month" | "year";
   month: string;
   label: string;
   isCurrentMonth: boolean;
@@ -86,17 +87,25 @@ function layoutTrail(steps: TrailStep[], width: number) {
   return { points, d, height, width: usable };
 }
 
-function TrailInner() {
+function TrailInner({ isPro }: { isPro: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const month = searchParams.get("month");
+  // "Your Year" — the same thread across twelve months (Mesh Pro).
+  const yearMode = searchParams.get("range") === "year" && isPro;
+  const yearParam = searchParams.get("year");
   const [data, setData] = useState<TrailData | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   const loadTrail = useCallback(async (signal: AbortSignal) => {
     setStatus("loading");
     try {
-      const res = await fetch(`/api/trail${month ? `?month=${encodeURIComponent(month)}` : ""}`, {
+      const query = yearMode
+        ? `?range=year${yearParam ? `&year=${encodeURIComponent(yearParam)}` : ""}`
+        : month
+          ? `?month=${encodeURIComponent(month)}`
+          : "";
+      const res = await fetch(`/api/trail${query}`, {
         cache: "no-store",
         signal,
       });
@@ -109,7 +118,7 @@ function TrailInner() {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setStatus("error");
     }
-  }, [month]);
+  }, [month, yearMode, yearParam]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -167,16 +176,16 @@ function TrailInner() {
         </div>
         <div className="flex items-center gap-1.5">
           <Link
-            href={`/trail?month=${data.prevMonth}`}
-            aria-label="Previous month"
+            href={yearMode ? `/trail?range=year&year=${data.prevMonth}` : `/trail?month=${data.prevMonth}`}
+            aria-label={yearMode ? "Previous year" : "Previous month"}
             className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/70 hover:text-white"
           >
             <ChevronLeft size={15} />
           </Link>
           {data.nextMonth ? (
             <Link
-              href={`/trail?month=${data.nextMonth}`}
-              aria-label="Next month"
+              href={yearMode ? `/trail?range=year&year=${data.nextMonth}` : `/trail?month=${data.nextMonth}`}
+              aria-label={yearMode ? "Next year" : "Next month"}
               className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/70 hover:text-white"
             >
               <ChevronRight size={15} />
@@ -188,6 +197,36 @@ function TrailInner() {
           )}
         </div>
       </div>
+
+      {/* Month / Year range. Your Year is the Mesh Pro long view. */}
+      <div className="mb-3 flex items-center gap-1.5">
+        <Link
+          href="/trail"
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            !yearMode ? "bg-white text-black" : "border border-white/12 text-white/60 hover:text-white"
+          }`}
+        >
+          Month
+        </Link>
+        {isPro ? (
+          <Link
+            href="/trail?range=year"
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              yearMode ? "bg-white text-black" : "border border-white/12 text-white/60 hover:text-white"
+            }`}
+          >
+            Your Year
+          </Link>
+        ) : (
+          <Link
+            href="/meshpro"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 text-xs font-semibold text-white/60 transition hover:text-white"
+          >
+            <Lock size={11} />
+            Your Year · Pro
+          </Link>
+        )}
+      </div>
       <p className="mb-5 flex items-center gap-1.5 text-[11px] text-white/45">
         <Lock size={11} />
         Built only from your own activity on mesh.me. Only you can see your Trail.
@@ -196,7 +235,7 @@ function TrailInner() {
       {data.steps.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
           <Footprints size={28} className="text-white/25" />
-          <p className="text-sm font-semibold text-white/80">A quiet month on the mesh</p>
+          <p className="text-sm font-semibold text-white/80">A quiet {yearMode ? "year" : "month"} on the mesh</p>
           <p className="max-w-xs text-xs leading-relaxed text-white/50">
             Trails appear as you live here — every post, heart, comment, and new person becomes a step on your path.
           </p>
@@ -231,7 +270,7 @@ function TrailInner() {
           </div>
           {summary.topPeople.length > 0 && (
             <p className="mb-6 text-xs text-white/55">
-              You spent this month around{" "}
+              You spent this {yearMode ? "year" : "month"} around{" "}
               <span className="font-semibold text-white">
                 {summary.topPeople.map((p) => p.name).join(", ")}
               </span>
@@ -310,7 +349,7 @@ function TrailInner() {
           </div>
           {summary.totalMoments > data.steps.length && (
             <p className="mt-3 text-center text-[11px] text-white/40">
-              Showing {data.steps.length} of {summary.totalMoments} moments — the thread samples your whole month.
+              Showing {data.steps.length} of {summary.totalMoments} moments — the thread samples your whole {yearMode ? "year" : "month"}.
             </p>
           )}
         </>
@@ -334,7 +373,7 @@ function TrailLabel({ step, align }: { step: TrailStep; align: "left" | "right" 
   );
 }
 
-export function TrailClient() {
+export function TrailClient({ isPro = false }: { isPro?: boolean }) {
   return (
     <Suspense
       fallback={
@@ -343,7 +382,7 @@ export function TrailClient() {
         </div>
       }
     >
-      <TrailInner />
+      <TrailInner isPro={isPro} />
     </Suspense>
   );
 }

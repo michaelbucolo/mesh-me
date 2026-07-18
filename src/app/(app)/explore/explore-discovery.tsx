@@ -774,7 +774,7 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
 
   return (
     <section className="mt-5" aria-label="Trending now">
-      <SectionHeader title="🔥 Trending now" action={{ label: "See all", onClick: onSeeAll }} />
+      <SectionHeader title="Trending now" action={{ label: "See all", onClick: onSeeAll }} />
       <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
         {top.map((post, index) => {
           const media = post.media.find((item) => item.type.toLowerCase() !== "video") || post.media[0];

@@ -527,6 +527,48 @@ function readStoredMode(): FlowMode {
   }
 }
 
+// Algorithm Studio (Mesh Pro): the viewer's own ranking mix. Five sliders,
+// 50 = neutral; validated again server-side, where Pro is enforced.
+type StudioMix = {
+  enabled: boolean;
+  weights: { relationships: number; recency: number; discovery: number; interests: number; variety: number };
+};
+const STUDIO_STORAGE_KEY = "meshFlowStudio";
+const STUDIO_DEFAULT: StudioMix = {
+  enabled: false,
+  weights: { relationships: 50, recency: 50, discovery: 50, interests: 50, variety: 50 },
+};
+const STUDIO_SLIDERS: Array<{ key: keyof StudioMix["weights"]; label: string; hint: string }> = [
+  { key: "relationships", label: "Relationships", hint: "People you actually talk to" },
+  { key: "recency", label: "Recency", hint: "How fresh things must be" },
+  { key: "discovery", label: "Discovery", hint: "New creators and topics" },
+  { key: "interests", label: "Interests", hint: "Formats and tags you enjoy" },
+  { key: "variety", label: "Variety", hint: "No one voice dominates" },
+];
+
+function readStoredStudio(): StudioMix {
+  if (typeof window === "undefined") return STUDIO_DEFAULT;
+  try {
+    const raw = localStorage.getItem(STUDIO_STORAGE_KEY);
+    if (!raw) return STUDIO_DEFAULT;
+    const parsed = JSON.parse(raw) as StudioMix;
+    if (!parsed || typeof parsed !== "object" || !parsed.weights) return STUDIO_DEFAULT;
+    const clamp = (v: unknown) => (Number.isFinite(Number(v)) ? Math.min(100, Math.max(0, Math.round(Number(v)))) : 50);
+    return {
+      enabled: parsed.enabled === true,
+      weights: {
+        relationships: clamp(parsed.weights.relationships),
+        recency: clamp(parsed.weights.recency),
+        discovery: clamp(parsed.weights.discovery),
+        interests: clamp(parsed.weights.interests),
+        variety: clamp(parsed.weights.variety),
+      },
+    };
+  } catch {
+    return STUDIO_DEFAULT;
+  }
+}
+
 export type FlowSuggestedPerson = {
   id: string;
   username: string;
@@ -643,11 +685,13 @@ export function FlowClient({
   initialHasMore,
   suggestedPeople = [],
   signedOut = false,
+  isPro = false,
 }: {
   initialPosts: FlowPost[];
   initialHasMore: boolean;
   suggestedPeople?: FlowSuggestedPerson[];
   signedOut?: boolean;
+  isPro?: boolean;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -659,6 +703,10 @@ export function FlowClient({
   const [showModes, setShowModes] = useState(false);
   const modeRef = useRef<FlowMode>(mode);
   modeRef.current = mode;
+  const [studio, setStudio] = useState<StudioMix>(readStoredStudio);
+  const studioRef = useRef(studio);
+  studioRef.current = studio;
+  const studioActive = isPro && studio.enabled;
   // Sideways "more like this" lanes, keyed by the vertical slot's post id.
   const [lanes, setLanes] = useState<Record<string, LaneState>>({});
   const [slideDirs, setSlideDirs] = useState<Record<string, 1 | -1 | 0>>({});
@@ -699,6 +747,23 @@ export function FlowClient({
 
   const seenParam = useCallback(() => [...seenRef.current].slice(-200).join(","), []);
 
+  // Studio mix rides along on ranked fetches (server re-validates Pro).
+  const studioParam = useCallback(() => {
+    const s = studioRef.current;
+    if (!isPro || !s.enabled) return "";
+    return `&studio=${encodeURIComponent(JSON.stringify(s.weights))}`;
+  }, [isPro]);
+
+  const persistStudio = useCallback((next: StudioMix) => {
+    setStudio(next);
+    studioRef.current = next;
+    try {
+      localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // storage unavailable — session-only is fine
+    }
+  }, []);
+
   // Swipe down at the very top (or just reload) to pull fresh content.
   const refresh = useCallback(async () => {
     if (loadingRef.current) return;
@@ -706,7 +771,7 @@ export function FlowClient({
     setRefreshing(true);
     try {
       const res = await fetch(
-        `/api/flow?limit=12&seen=${encodeURIComponent(seenParam())}&mode=${modeRef.current}`,
+        `/api/flow?limit=12&seen=${encodeURIComponent(seenParam())}&mode=${modeRef.current}${studioParam()}`,
         { credentials: "same-origin", cache: "no-store" },
       );
       if (!res.ok) return;
@@ -723,7 +788,7 @@ export function FlowClient({
       loadingRef.current = false;
       setRefreshing(false);
     }
-  }, [seenParam]);
+  }, [seenParam, studioParam]);
 
   // Track which reel owns the screen. Lanes remount reels, so re-arm the
   // observer whenever either the list or a lane changes.
@@ -762,7 +827,7 @@ export function FlowClient({
     try {
       const exclude = postsRef.current.map((p) => p.id).slice(-300).join(",");
       const res = await fetch(
-        `/api/flow?limit=12&exclude=${encodeURIComponent(exclude)}&seen=${encodeURIComponent(seenParam())}&mode=${modeRef.current}`,
+        `/api/flow?limit=12&exclude=${encodeURIComponent(exclude)}&seen=${encodeURIComponent(seenParam())}&mode=${modeRef.current}${studioParam()}`,
         { credentials: "same-origin" },
       );
       if (!res.ok) return;
@@ -777,7 +842,7 @@ export function FlowClient({
     } finally {
       loadingRef.current = false;
     }
-  }, [seenParam]);
+  }, [seenParam, studioParam]);
 
   useEffect(() => {
     if (activeIndex >= posts.length - 3) void loadMore();
@@ -786,14 +851,19 @@ export function FlowClient({
   // The server rendered Balanced; if the viewer's saved mode differs, re-rank
   // immediately on arrival.
   useEffect(() => {
-    if (readStoredMode() !== "balanced") void refresh();
+    if (readStoredMode() !== "balanced" || (isPro && readStoredStudio().enabled)) void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selectMode = useCallback(
     (next: FlowMode) => {
       setShowModes(false);
-      if (next === modeRef.current) return;
+      // Picking a preset hands control back to it — the Studio mix rests.
+      if (studioRef.current.enabled) {
+        persistStudio({ ...studioRef.current, enabled: false });
+      } else if (next === modeRef.current) {
+        return;
+      }
       modeRef.current = next;
       setMode(next);
       try {
@@ -804,7 +874,7 @@ export function FlowClient({
       hasMoreRef.current = true;
       void refresh();
     },
-    [refresh],
+    [refresh, persistStudio],
   );
 
   // Step sideways through content similar to this reel. First step fetches
@@ -876,11 +946,11 @@ export function FlowClient({
         aria-label="Choose how your Flow is ranked"
         onClick={() => setShowModes(true)}
         className={`absolute left-14 top-3 z-20 flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold backdrop-blur transition-colors ${
-          mode === "balanced" ? "bg-black/55 text-white hover:bg-black/75" : "bg-white/90 text-black hover:bg-white"
+          mode === "balanced" && !studioActive ? "bg-black/55 text-white hover:bg-black/75" : "bg-white/90 text-black hover:bg-white"
         }`}
       >
         <SlidersHorizontal size={14} aria-hidden="true" />
-        {FLOW_MODES.find((m) => m.id === mode)?.name}
+        {studioActive ? "Studio" : FLOW_MODES.find((m) => m.id === mode)?.name}
       </button>
       {showModes && (
         <div
@@ -904,7 +974,7 @@ export function FlowClient({
                   type="button"
                   onClick={() => selectMode(m.id)}
                   className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
-                    mode === m.id
+                    mode === m.id && !studioActive
                       ? "border-white/25 bg-white/10"
                       : "border-transparent hover:bg-white/5"
                   }`}
@@ -913,9 +983,77 @@ export function FlowClient({
                     <p className="text-sm font-semibold text-white">{m.name}</p>
                     <p className="text-xs text-white/55">{m.desc}</p>
                   </div>
-                  {mode === m.id && <Check size={16} className="shrink-0 text-white" aria-hidden="true" />}
+                  {mode === m.id && !studioActive && <Check size={16} className="shrink-0 text-white" aria-hidden="true" />}
                 </button>
               ))}
+            </div>
+
+            {/* Algorithm Studio — the Mesh Pro layer: your own mix, five
+                sliders, applied server-side. Not a preset; a possession. */}
+            <div className={`mt-5 rounded-2xl border px-4 py-4 ${studioActive ? "border-white/25 bg-white/10" : "border-white/10"}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white">Your mix</p>
+                  <p className="text-xs text-white/55">
+                    {isPro ? "Tune the exact weights your Flow ranks by." : "A Mesh Pro control — tune the exact weights your Flow ranks by."}
+                  </p>
+                </div>
+                {isPro ? (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={studio.enabled}
+                    aria-label="Use my Studio mix"
+                    onClick={() => {
+                      persistStudio({ ...studio, enabled: !studio.enabled });
+                      hasMoreRef.current = true;
+                      void refresh();
+                    }}
+                    className={`relative shrink-0 rounded-full p-0 transition-colors ${studio.enabled ? "bg-white" : "bg-white/20"}`}
+                    style={{ height: 24, width: 44, minHeight: 0, minWidth: 0 }}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${studio.enabled ? "left-[1.4rem] bg-black" : "left-0.5 bg-white"}`}
+                    />
+                  </button>
+                ) : (
+                  <Link href="/meshpro" className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/10">
+                    Mesh Pro
+                  </Link>
+                )}
+              </div>
+              {isPro && (
+                <div className="mt-3 grid gap-2.5">
+                  {STUDIO_SLIDERS.map((s) => (
+                    <label key={s.key} className="grid gap-1">
+                      <span className="flex items-baseline justify-between text-xs text-white/70">
+                        <span className="font-semibold text-white/90">{s.label}</span>
+                        <span>{s.hint}</span>
+                      </span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={studio.weights[s.key]}
+                        disabled={!studio.enabled}
+                        onChange={(e) => {
+                          const next = {
+                            ...studio,
+                            weights: { ...studio.weights, [s.key]: Number(e.target.value) },
+                          };
+                          persistStudio(next);
+                        }}
+                        onPointerUp={() => {
+                          if (!studio.enabled) return;
+                          hasMoreRef.current = true;
+                          void refresh();
+                        }}
+                        className="h-1.5 w-full cursor-pointer accent-white disabled:opacity-40"
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

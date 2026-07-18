@@ -33,12 +33,12 @@ function formatBillingDate(value: Date | null) {
 }
 
 const meshProUnlocks: Array<{ title: string; body: string; href: string; icon: LucideIcon }> = [
+  { title: "Algorithm Studio", body: "Five sliders in the Flow set the exact weights your feed ranks by. Your algorithm, literally.", href: "/flow", icon: BarChart3 },
+  { title: "Your Year", body: "Your Trail across twelve months — the whole year as one thread.", href: "/trail?range=year", icon: Sparkles },
   { title: "Mesh Atmospheres", body: "Aurora, Ember, Ocean, and Dawn skies for your mesh — visitors see them too.", href: "/settings#mesh", icon: Palette },
-  { title: "Live Pro aura", body: "Your Meshi carries a gold aura everywhere it appears on the live mesh.", href: "/mesh", icon: Sparkles },
   { title: "Analytics", body: "Pro insight cards appear in Analytics.", href: "/analytics", icon: BarChart3 },
   { title: "Mesh visuals", body: "Thread color, node style, and motion studio in Settings.", href: "/settings#mesh", icon: WandSparkles },
-  { title: "Meshi cosmetics", body: "Premium hats, hair, badges, and outfits unlock.", href: "/settings", icon: Sparkles },
-  { title: "Profile badge", body: "Your profile shows a Mesh Pro badge.", href: "/profile", icon: Crown },
+  { title: "Meshi cosmetics", body: "Premium hats, hair, badges, and outfits — plus a discreet gold hairline on your live Meshi.", href: "/settings", icon: Crown },
 ];
 
 export default async function MeshProPage({ searchParams }: MeshProPageProps) {
@@ -84,7 +84,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
             <Badge variant={isPro ? "success" : "accent"}>{isPro ? "Mesh Pro active" : "Optional upgrade"}</Badge>
             <h1 className="mt-3 max-w-3xl text-4xl font-bold leading-tight md:text-6xl">Mesh Pro</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
-              Premium analytics, deeper customization, Pro Meshi cosmetics, badges, and billing controls without ads or data selling.
+              Your algorithm, your year, your world&apos;s look — real controls, not decorations. No ads, no data selling, ever.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {isPro ? (
@@ -107,7 +107,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
           <div className="mesh-surface rounded-lg border border-[var(--ds-border)] bg-[var(--bg-primary)]/60 p-4">
             <div className="flex items-center gap-3">
               <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[var(--accent-subtle)]">
-                <MeshiMascot size={54} mood="celebrating" color="gold" hat="crown" badge="verified" outfit="cape" animate showGlow={false} />
+                <MeshiMascot size={54} mood="happy" color="blue" animate showGlow={false} />
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Current plan</p>

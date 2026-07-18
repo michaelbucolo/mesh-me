@@ -18,15 +18,15 @@ export const MESH_PRO_PRICING = {
 } as const;
 
 export const MESH_PRO_FEATURES = [
+  "Algorithm Studio: set the exact weights your Flow ranks by",
+  "Your Year: your Trail across twelve months, one thread",
   "Premium creator analytics",
   "Mesh Atmospheres — five sky palettes for your world",
   "Custom Mesh branch visuals",
-  "Gold Pro aura on your live Meshi",
   "Expanded Meshi cosmetics",
   "Profile Pro badge",
   "Custom app themes",
   "Advanced privacy and security views",
-  "Priority launch-readiness tools",
   "Zero ads and no data selling",
 ] as const;
 
@@ -42,7 +42,7 @@ export const MESH_PRO_CUSTOMIZATION = [
   "Mesh Atmospheres: Aurora, Ember, Ocean, and Dawn skies — visitors see your mesh dressed your way",
   "Custom Mesh connection colors",
   "Custom Mesh node styles and motion",
-  "Gold Pro aura on your live Meshi, visible to everyone in the room",
+  "A discreet gold hairline on your live Meshi",
   "Premium Meshi hats, hair, accessories, badges, and outfits",
   "Custom app theme colors",
   "Use Meshi as a personal profile badge",

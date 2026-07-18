@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
-import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, rankFlowPosts } from "@/lib/flow-ranking";
+import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts } from "@/lib/flow-ranking";
 
 /**
  * Ranked Flow feed. The client sends the ids it already has (`exclude`) plus
@@ -24,6 +24,10 @@ export async function GET(request: Request) {
   const exclude = new Set(parseIds("exclude"));
   const seen = new Set(parseIds("seen"));
   const mode = normalizeFlowRankMode(searchParams.get("mode"));
+  // Custom Studio weights are a Mesh Pro control — validated server-side so
+  // the flag can't be spoofed by the client.
+  const isPro = (user as { isMeshPro?: boolean }).isMeshPro === true;
+  const studio = isPro ? normalizeStudioWeights(searchParams.get("studio")) : null;
 
   const [candidates, profile] = await Promise.all([
     getFlowCandidates(user),
@@ -31,9 +35,9 @@ export async function GET(request: Request) {
   ]);
 
   const fresh = candidates.filter((post) => !exclude.has(post.id));
-  const ranked = rankFlowPosts(fresh, profile, { seen, limit, mode }).map((post) => ({
+  const ranked = rankFlowPosts(fresh, profile, { seen, limit, mode, studio }).map((post) => ({
     ...post,
-    whyThis: explainFlowPost(post, profile, mode),
+    whyThis: explainFlowPost(post, profile, mode, studio),
   }));
 
   return NextResponse.json({

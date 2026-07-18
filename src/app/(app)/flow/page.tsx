@@ -52,6 +52,7 @@ export default async function FlowPage() {
       initialHasMore={candidates.length > posts.length}
       suggestedPeople={suggestedPeople}
       signedOut={!user}
+      isPro={Boolean(user?.isMeshPro)}
     />
   );
 }

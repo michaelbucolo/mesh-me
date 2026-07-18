@@ -168,6 +168,54 @@ type RankWeights = {
   maxRun: number;
 };
 
+/**
+ * Algorithm Studio (Mesh Pro): five human sliders, 0–100 with 50 neutral,
+ * compiled into the same RankWeights the presets use. This is the opposite
+ * of an engagement dial — the OWNER tunes their own feed, and no post can
+ * pay its way up.
+ */
+export type StudioWeights = {
+  relationships: number;
+  recency: number;
+  discovery: number;
+  interests: number;
+  variety: number;
+};
+
+export function normalizeStudioWeights(raw: string | null | undefined): StudioWeights | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const take = (key: keyof StudioWeights) => {
+      const v = Number(parsed[key]);
+      if (!Number.isFinite(v)) return null;
+      return Math.min(100, Math.max(0, Math.round(v)));
+    };
+    const relationships = take("relationships");
+    const recency = take("recency");
+    const discovery = take("discovery");
+    const interests = take("interests");
+    const variety = take("variety");
+    if (relationships == null || recency == null || discovery == null || interests == null || variety == null) return null;
+    return { relationships, recency, discovery, interests, variety };
+  } catch {
+    return null;
+  }
+}
+
+function weightsFromStudio(s: StudioWeights): RankWeights {
+  const f = (v: number) => v / 50; // 50 = the balanced preset's neutral point
+  return {
+    velocity: 0.4 + 1.0 * f(s.discovery),
+    recency: 0.5 + 0.8 * f(s.recency),
+    affinity: 0.6 + 1.4 * f(s.relationships),
+    formatMatch: 0.5 + 0.6 * f(s.interests),
+    tagMatch: 0.4 + 0.6 * f(s.interests),
+    explorationEvery: s.discovery >= 66 ? 3 : s.discovery >= 25 ? 6 : 0,
+    maxRun: s.variety >= 66 ? 1 : s.variety >= 25 ? 2 : 3,
+  };
+}
+
 const MODE_WEIGHTS: Record<Exclude<FlowRankMode, "chronological">, RankWeights> = {
   // Relationships, interests, discovery, and recency.
   balanced: { velocity: 1.2, recency: 1.0, affinity: 2.6, formatMatch: 1.2, tagMatch: 0.9, explorationEvery: 6, maxRun: 2 },
@@ -243,7 +291,7 @@ function scoreFlowPost(
 export function rankFlowPosts(
   posts: FeedCardPost[],
   profile: TasteProfile,
-  opts: { seen?: Set<string>; limit?: number; mode?: FlowRankMode } = {},
+  opts: { seen?: Set<string>; limit?: number; mode?: FlowRankMode; studio?: StudioWeights | null } = {},
 ): FeedCardPost[] {
   const mode = opts.mode ?? "balanced";
   const limit = opts.limit ?? posts.length;
@@ -267,7 +315,9 @@ export function rankFlowPosts(
       .slice(0, limit);
   }
 
-  const weights = MODE_WEIGHTS[mode];
+  // A Studio mix (Mesh Pro) overrides the preset's weights outright — the
+  // caller is responsible for gating who may pass one.
+  const weights = opts.studio ? weightsFromStudio(opts.studio) : MODE_WEIGHTS[mode];
   const now = Date.now();
   const scored = candidates
     .map((post) => ({ post, score: scoreFlowPost(post, profile, { now, seen: opts.seen, weights }) }))
@@ -315,8 +365,10 @@ export function explainFlowPost(
   post: FeedCardPost,
   profile: TasteProfile,
   mode: FlowRankMode = "balanced",
+  studio?: StudioWeights | null,
 ): string {
   const handle = `@${post.author.username}`;
+  if (studio) return "Ranked by your Studio mix — you tuned these weights";
   if (mode === "chronological") return "Newest first — you're in Chronological mode";
   if (mode === "following") return `You follow ${handle} — Following mode shows only your people`;
   if (!post.externalAuthor && profile.followingIds.has(post.author.id)) {

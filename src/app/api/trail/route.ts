@@ -30,19 +30,35 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const monthParam = searchParams.get("month");
   const now = new Date();
+  // "Your Year" — the same trail across twelve months, a Mesh Pro view.
+  const yearMode = searchParams.get("range") === "year";
+  if (yearMode && !user.isMeshPro) {
+    return NextResponse.json({ error: "Your Year is a Mesh Pro view." }, { status: 403 });
+  }
+
   let year = now.getFullYear();
   let monthIndex = now.getMonth();
-  const m = monthParam ? /^(\d{4})-(\d{2})$/.exec(monthParam) : null;
-  if (m) {
-    year = Number(m[1]);
-    monthIndex = Number(m[2]) - 1;
-  }
-  const start = new Date(year, monthIndex, 1);
-  const end = new Date(year, monthIndex + 1, 1);
-  if (!Number.isFinite(start.getTime()) || monthIndex < 0 || monthIndex > 11 || start > now) {
-    return NextResponse.json({ error: "Invalid month" }, { status: 400 });
+  let start: Date;
+  let end: Date;
+  if (yearMode) {
+    const yr = searchParams.get("year");
+    if (yr && /^\d{4}$/.test(yr)) year = Number(yr);
+    start = new Date(year, 0, 1);
+    end = new Date(year + 1, 0, 1);
+    if (start > now) return NextResponse.json({ error: "Invalid year" }, { status: 400 });
+  } else {
+    const monthParam = searchParams.get("month");
+    const m = monthParam ? /^(\d{4})-(\d{2})$/.exec(monthParam) : null;
+    if (m) {
+      year = Number(m[1]);
+      monthIndex = Number(m[2]) - 1;
+    }
+    start = new Date(year, monthIndex, 1);
+    end = new Date(year, monthIndex + 1, 1);
+    if (!Number.isFinite(start.getTime()) || monthIndex < 0 || monthIndex > 11 || start > now) {
+      return NextResponse.json({ error: "Invalid month" }, { status: 400 });
+    }
   }
   const range = { gte: start, lt: end };
 
@@ -259,18 +275,27 @@ export async function GET(req: Request) {
     }
   }
 
-  const label = start.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const isCurrentMonth = year === now.getFullYear() && monthIndex === now.getMonth();
+  const label = yearMode
+    ? `Your ${year}`
+    : start.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const isCurrentMonth = yearMode
+    ? year === now.getFullYear()
+    : year === now.getFullYear() && monthIndex === now.getMonth();
   const prev = new Date(year, monthIndex - 1, 1);
 
   return NextResponse.json({
-    month: `${year}-${String(monthIndex + 1).padStart(2, "0")}`,
+    range: yearMode ? "year" : "month",
+    month: yearMode ? String(year) : `${year}-${String(monthIndex + 1).padStart(2, "0")}`,
     label,
     isCurrentMonth,
-    prevMonth: `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`,
+    prevMonth: yearMode
+      ? String(year - 1)
+      : `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`,
     nextMonth: isCurrentMonth
       ? null
-      : `${new Date(year, monthIndex + 1, 1).getFullYear()}-${String(new Date(year, monthIndex + 1, 1).getMonth() + 1).padStart(2, "0")}`,
+      : yearMode
+        ? String(year + 1)
+        : `${new Date(year, monthIndex + 1, 1).getFullYear()}-${String(new Date(year, monthIndex + 1, 1).getMonth() + 1).padStart(2, "0")}`,
     steps: shown,
     summary: {
       totalMoments: total,
