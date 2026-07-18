@@ -17,37 +17,6 @@ export const MESH_PRO_PRICING = {
   },
 } as const;
 
-export const MESH_PRO_FEATURES = [
-  "Algorithm Studio: set the exact weights your Flow ranks by",
-  "Your Year: your Trail across twelve months, one thread",
-  "Premium creator analytics",
-  "Mesh Atmospheres — five sky palettes for your world",
-  "Custom Mesh branch visuals",
-  "Expanded Meshi cosmetics",
-  "Profile Pro badge",
-  "Custom app themes",
-  "Advanced privacy and security views",
-  "Zero ads and no data selling",
-] as const;
-
-export const MESH_PRO_ANALYTICS = [
-  "Audience overlap across connected platforms",
-  "Longer performance history",
-  "Best-platform recommendations",
-  "Exportable creator reports",
-  "Profile and content conversion signals",
-] as const;
-
-export const MESH_PRO_CUSTOMIZATION = [
-  "Mesh Atmospheres: Aurora, Ember, Ocean, and Dawn skies — visitors see your mesh dressed your way",
-  "Custom Mesh connection colors",
-  "Custom Mesh node styles and motion",
-  "A discreet gold hairline on your live Meshi",
-  "Premium Meshi hats, hair, accessories, badges, and outfits",
-  "Custom app theme colors",
-  "Use Meshi as a personal profile badge",
-] as const;
-
 export const FREE_MESHI_OPTIONS = {
   hats: new Set(["none", "cap"]),
   faces: new Set(["happy", "thinking", "wink"]),

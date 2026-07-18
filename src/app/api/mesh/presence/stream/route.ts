@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     async start(controller) {
       let pending = false;
       let lastPush = 0;
-      const MIN_INTERVAL_MS = 180;
+      const MIN_INTERVAL_MS = 140;
       let coalesceTimer: ReturnType<typeof setTimeout> | null = null;
 
       const send = (event: string, data: unknown) => {
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
       // instances, whose in-process emitters this stream can't hear. Tick the
       // shared store on a short interval — the change-dedupe above means only
       // real movement is pushed, and it crosses instances in <1s.
-      const tickTimer = setInterval(schedulePush, 650);
+      const tickTimer = setInterval(schedulePush, 400);
 
       // Refresh the viewer's mutual-connection set periodically so newly added
       // connections become visible without reopening the stream.

@@ -766,8 +766,8 @@ export function drawScene(o: RenderOptions): void {
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, width, height);
 
-  // --- Closeness guide rings: the geometry explains itself. On your own
-  // mesh, faint labeled rings show that distance from you is real closeness.
+  // --- Closeness guide rings: quiet geometry only — the welcome note says
+  // closeness = distance once; the world shouldn't caption itself.
   if (o.isOwnMesh && o.camera.zoom <= 1.15 && model.nodes.size > 1) {
     ctx.save();
     for (const ring of GUIDE_RINGS) {
@@ -779,19 +779,6 @@ export function drawScene(o: RenderOptions): void {
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.setLineDash([]);
-      // Label on the upper-left diagonal, clear of the "made by you" top arc.
-      const la = -Math.PI * 0.78;
-      const lx = gcx + Math.cos(la) * rr;
-      const ly = gcy + Math.sin(la) * rr;
-      ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
-      const tw = ctx.measureText(ring.label).width;
-      roundRectPath(ctx, lx - tw / 2 - 6, ly - 8, tw + 12, 16, 8);
-      ctx.fillStyle = "rgba(4,6,14,0.55)";
-      ctx.fill();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(196,205,232,0.42)";
-      ctx.fillText(ring.label, lx, ly + 0.5);
     }
     ctx.restore();
   }

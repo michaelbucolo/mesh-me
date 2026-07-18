@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Footprints, Heart, HelpCircle, History, List, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, History, List, LocateFixed, MessageCircle, PenLine, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -1146,9 +1146,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   useEffect(() => {
     let stopped = false;
 
+    // One global throttle across every trigger (fast lane, hover blips,
+    // action beats) so bursts can't stack into a POST flood.
+    let lastBeatAt = 0;
     const heartbeat = async () => {
       const meshOwner = meshOwnerIdRef.current;
       if (!meshOwner || document.visibilityState !== "visible") return;
+      const beatNow = Date.now();
+      if (beatNow - lastBeatAt < 250) return;
+      lastBeatAt = beatNow;
       const vp = cursorVpRef.current;
       try {
         await fetch("/api/mesh/presence", {
@@ -1425,7 +1431,24 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     };
     const esKick = setInterval(openStream, 1200);
 
-    const hb = setInterval(heartbeat, 2000);
+    // Adaptive heartbeat: while the cursor is actually moving, broadcast at
+    // ~350ms so the room sees live motion instead of 2-second snapshots; when
+    // idle, drop to a slow keepalive. Movement is measured in world units so
+    // zoom level doesn't change the threshold's feel.
+    let lastSent = { x: Number.NaN, y: Number.NaN };
+    let lastFullBeat = 0;
+    const hb = setInterval(() => {
+      const now = Date.now();
+      const cur = coarseRef.current
+        ? { x: -cameraRef.current.panX / cameraRef.current.zoom, y: -cameraRef.current.panY / cameraRef.current.zoom }
+        : { x: cursorWorldTargetRef.current.x, y: cursorWorldTargetRef.current.y };
+      const moved = Math.hypot(cur.x - lastSent.x, cur.y - lastSent.y);
+      const due = now - lastFullBeat >= 2000;
+      if (!due && !(moved > 6 / Math.max(cameraRef.current.zoom, 0.2))) return;
+      lastSent = cur;
+      lastFullBeat = now;
+      void heartbeat();
+    }, 350);
     const pl = setInterval(poll, 2000);
     const kick = setTimeout(() => {
       void heartbeat();
@@ -1454,7 +1477,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // coordinates so they pan/zoom with the web, and a screen-space pass keeps
   // them from ever sitting on top of a node.
   useEffect(() => {
-    let meshiRLive = 16;
+    let meshiRLive = 13;
     // Deterministic per-frame push away from any node the Meshi would cover.
     // Recomputed from the world position each frame (never written back), so
     // it can't feedback-oscillate.
@@ -1550,15 +1573,17 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       // changes. Applied via a CSS variable so entrance/exit animations and
       // the model itself stay untouched.
       const meshiScale = Math.max(0.5, Math.min(cameraRef.current.zoom, 2.2));
-      meshiRLive = 14 * meshiScale;
+      meshiRLive = 12 * meshiScale;
       // Ambient easing for your own idle Meshi ambling home…
       const k = 1 - Math.exp(-dt / 650);
       // Visitors GLIDE: a gentle ease plus a hard speed cap, so a Meshi
       // always floats to its updated spot — no teleports, and no darting
-      // across the room that turns overstimulating with a crowd.
-      const kGlide = 1 - Math.exp(-dt / 420);
+      // across the room that turns overstimulating with a crowd. Tuned for
+      // the ~350ms movement broadcasts: tight enough to track live motion,
+      // soft enough to stay smooth between frames.
+      const kGlide = 1 - Math.exp(-dt / 300);
       // Screen-space speed cap (px/s), converted to world units per mode.
-      const MAX_MESHI_SPEED = 560;
+      const MAX_MESHI_SPEED = 680;
       const glide = (
         pos: { x: number; y: number },
         tx: number,
@@ -1892,7 +1917,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           <div className="meshi-world-scale">
           <div className={isGhosting ? "mesh-ghosted" : undefined}>
           <MeshiMascot
-            size={64}
+            size={54}
             color={prefs.color}
             hat={prefs.hat}
             mood={hoverNode ? "excited" : prefs.face}
@@ -1980,7 +2005,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
               <div className={!viewUserId && isGhosting ? "mesh-ghosted" : undefined}>
               <MeshiMascot
-                size={64}
+                size={54}
                 color={(m.colorTheme || "blue") as MeshiColor}
                 hat={(m.hatStyle || "none") as MeshiHat}
                 hair={(m.hairStyle || "none") as MeshiHair}
@@ -2039,7 +2064,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           <div className="meshi-world-scale">
             {p.isPro && <span className="meshi-pro-aura" aria-hidden />}
             <MeshiMascot
-              size={64}
+              size={54}
               color={p.meshiColor as MeshiColor}
               hat={p.meshiHat as MeshiHat}
               hair={(p.meshiHair || "none") as MeshiHair}
@@ -2069,7 +2094,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         >
           <div className="meshi-world-scale" style={{ ["--meshi-scale" as string]: l.s.toFixed(3) } as React.CSSProperties}>
             <MeshiMascot
-              size={64}
+              size={54}
               color={l.p.meshiColor as MeshiColor}
               hat={l.p.meshiHat as MeshiHat}
               hair={(l.p.meshiHair || "none") as MeshiHair}
@@ -2122,11 +2147,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         <RailButton label="Explore as a list" onClick={() => setShowList(true)}>
           <List size={16} />
         </RailButton>
-        {!viewedUser && (
-          <RailButton label="Your Trail this month" onClick={() => router.push("/trail")}>
-            <Footprints size={16} />
-          </RailButton>
-        )}
         {oldestMoment != null && (
           <RailButton
             label="Rewind time"
@@ -2143,17 +2163,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <History size={16} />
           </RailButton>
         )}
-        <RailButton label="Zoom in" onClick={() => zoomBy(1.25)}>
-          <Plus size={16} />
-        </RailButton>
-        <RailButton label="Zoom out" onClick={() => zoomBy(0.8)}>
-          <Minus size={16} />
-        </RailButton>
         <RailButton label="Recenter" onClick={fitToContent}>
           <LocateFixed size={16} />
-        </RailButton>
-        <RailButton label="How to explore" onClick={() => setShowTips(true)}>
-          <HelpCircle size={16} />
         </RailButton>
       </div>
 
@@ -2182,9 +2193,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           style={{ animation: "meshWeaveToast 4s ease forwards" }}
         >
           <Sparkles size={13} />
-          {weaveToast.count === 1
-            ? "Something new just wove into the mesh"
-            : `${weaveToast.count} new things just wove into the mesh`}
+          {weaveToast.count === 1 ? "Something new just arrived" : `${weaveToast.count} new things just arrived`}
         </div>
       )}
 
@@ -2365,11 +2374,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-5 shadow-2xl"
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <div className="mb-3 flex items-start justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white">Welcome to your mesh</p>
-                <p className="text-[11px] text-white/50">Your world, arranged the way you actually hold it.</p>
-              </div>
+            <div className="mb-2 flex items-start justify-between">
+              <p className="text-sm font-semibold text-white">This is your world</p>
               <button
                 type="button"
                 aria-label="Close"
@@ -2379,36 +2385,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 <X size={16} />
               </button>
             </div>
-            <ul className="space-y-2.5 text-xs leading-relaxed text-white/75">
-              <li className="flex gap-2.5">
-                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>Distance is real: the people you actually talk to sit closest to you, acquaintances further out.</span>
-              </li>
-              <li className="flex gap-2.5">
-                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>Time flows outward: everyone&apos;s newest work sits nearest them and fades as it ages. Walking out is walking back in time.</span>
-              </li>
-              <li className="flex gap-2.5">
-                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>A green pulse means someone&apos;s here right now. &ldquo;New&rdquo; marks what arrived since your last visit.</span>
-              </li>
-              <li className="flex gap-2.5">
-                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>{isCoarsePointer ? "Drag to pan, pinch to zoom, tap anything to open it" : "Drag to pan, scroll to zoom, click anything to open it"} — posts play right here, people lead into their meshes.</span>
-              </li>
-              {!isCoarsePointer && (
-                <li className="flex gap-2.5">
-                  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                  <span>
-                    Press <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">/</kbd> to search,{" "}
-                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">L</kbd> for the same world as a list,{" "}
-                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">0</kbd> to recenter, and{" "}
-                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">+</kbd>/
-                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">-</kbd> to zoom.
-                  </span>
-                </li>
-              )}
-            </ul>
+            <p className="text-xs leading-relaxed text-white/70">
+              The people and posts you&apos;re closest to sit closest to you.{" "}
+              {isCoarsePointer
+                ? "Drag to look around, pinch to zoom, tap anything to open it."
+                : "Drag to look around, scroll to zoom, click anything to open it."}
+            </p>
             <button
               type="button"
               onClick={dismissTips}
