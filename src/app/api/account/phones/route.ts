@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
+import { rateLimit } from "@/lib/security";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
+
+const MAX_PHONES_PER_ACCOUNT = 5;
 
 export async function GET() {
   const session = await getSession();
@@ -23,6 +27,13 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  // Unverified additions reserve the global UserPhone.phone namespace, so cap
+  // the rate and count to blunt namespace-squatting from a single account.
+  const limit = rateLimit(`account-phone-add:${session.userId}`, 5, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many phone additions. Please try again later." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
@@ -35,19 +46,34 @@ export async function POST(req: NextRequest) {
   // Normalize: strip non-digits except leading +
   const normalized = phone.replace(/[^\d+]/g, "");
 
+  const phoneCount = await prisma.userPhone.count({ where: { userId: session.userId } });
+  if (phoneCount >= MAX_PHONES_PER_ACCOUNT) {
+    return NextResponse.json({ error: "You've reached the maximum number of phone numbers on this account." }, { status: 409 });
+  }
+
   const existing = await prisma.userPhone.findUnique({ where: { phone: normalized } });
   if (existing) {
     return NextResponse.json({ error: "Phone number already in use" }, { status: 409 });
   }
 
-  const userPhone = await prisma.userPhone.create({
-    data: {
-      userId: session.userId,
-      phone: normalized,
-      isPrimary: false,
-      isVerified: false,
-    },
-  });
+  let userPhone;
+  try {
+    userPhone = await prisma.userPhone.create({
+      data: {
+        userId: session.userId,
+        phone: normalized,
+        isPrimary: false,
+        isVerified: false,
+      },
+    });
+  } catch (error) {
+    // Lost the race between the pre-check and the insert: return a clean 409
+    // instead of letting the raw unique-constraint error escape as a 500.
+    if (isUniqueConstraintError(error)) {
+      return NextResponse.json({ error: "Phone number already in use" }, { status: 409 });
+    }
+    throw error;
+  }
 
   return NextResponse.json({ phone: userPhone });
 }

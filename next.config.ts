@@ -63,7 +63,7 @@ const nextConfig: NextConfig = {
     ];
 
     if (useHttpsOnlyHeaders) {
-      headers.splice(1, 0, { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" });
+      headers.splice(1, 0, { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" });
     }
 
     return [

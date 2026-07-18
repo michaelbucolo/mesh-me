@@ -227,8 +227,8 @@ export default function FeaturesPage() {
 
       <section className="mt-12">
         <SiteRouteMap
-          title="The feature pages point into the rest of the product"
-          description="This page no longer ends as a static marketing list. It now acts as a decision surface for users comparing Mesh, Feed, MeChat, Analytics, trust, and policy routes."
+          title="See how the pieces fit together"
+          description="Compare Mesh, Feed, MeChat, and Analytics, then dig into the trust and policy routes to see how they work."
         />
       </section>
 

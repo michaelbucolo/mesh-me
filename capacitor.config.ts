@@ -5,11 +5,10 @@ const config: CapacitorConfig = {
   appName: "mesh.me",
   webDir: "out",
 
-  // Server configuration — in development, point to the live site.
-  // For production builds, the static export in `out/` is used instead.
+  // The iOS shell loads the hosted site directly so SSR, API routes, and auth
+  // all work; there is no bundled static export today (no output: "export").
   server: {
-    // Use the hosted URL so SSR, API routes, and auth all work.
-    url: "https://meshme.vercel.app",
+    url: "https://www.meshs.me",
     cleartext: false,
   },
 

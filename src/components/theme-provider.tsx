@@ -77,7 +77,7 @@ function resolveTheme(mode: ThemeMode): ResolvedTheme {
 }
 
 function updateBrowserThemeColor(resolved: ResolvedTheme) {
-  const color = resolved === "light" ? "#f7f9fc" : "#0d1117";
+  const color = resolved === "light" ? "#f7f9fc" : "#0f141b";
   document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
     if (!meta.media) meta.content = color;
   });
