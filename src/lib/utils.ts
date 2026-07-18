@@ -5,6 +5,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Guard a URL before placing it in an href/src. React does not sanitize hrefs,
+ * so a `javascript:`/`data:`/`vbscript:` URL in user- or platform-supplied
+ * content would execute on click. Returns the URL only when it's http(s) (or a
+ * site-relative path); otherwise undefined so the link renders inert.
+ */
+export function safeHref(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  // Site-relative paths are safe (but not protocol-relative "//host").
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function formatRelativeTime(date: Date | string): string {
   const now = new Date();
   const d = new Date(date);

@@ -252,9 +252,18 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
 
   const searchTerm = name.toLowerCase().replace(/^@/, "");
 
-  // Search in followed users
-  const follows = await prisma.follow.findMany({
-    where: { followerId: user.id },
+  // Search in followed users — filter in the database instead of loading the
+  // whole follow graph (with three per-row count aggregates) to find one name.
+  const found = await prisma.follow.findFirst({
+    where: {
+      followerId: user.id,
+      following: {
+        OR: [
+          { username: { contains: searchTerm } },
+          { displayName: { contains: searchTerm } },
+        ],
+      },
+    },
     include: {
       following: {
         select: {
@@ -265,11 +274,6 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
       },
     },
   });
-
-  const found = follows.find(f =>
-    f.following.username.toLowerCase().includes(searchTerm) ||
-    f.following.displayName.toLowerCase().includes(searchTerm)
-  );
 
   if (found) {
     const u = found.following;
@@ -340,8 +344,9 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
     return { content: `I can't find "${name}" on mesh.me. Make sure you have the right name!`, mood: "thinking" };
   }
 
-  // Find posts where either user tagged/mentioned the other, or where both commented
-  const [myPostsCommentedByThem, theirPostsCommentedByMe] = await Promise.all([
+  // Find posts where either user tagged/mentioned the other, or where both
+  // commented — all three are independent, so they share one batch.
+  const [myPostsCommentedByThem, theirPostsCommentedByMe, mentionPosts] = await Promise.all([
     prisma.post.findMany({
       where: {
         ...safetyWhere,
@@ -360,18 +365,16 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
       select: { id: true, content: true, createdAt: true },
       take: 10,
     }),
+    prisma.post.findMany({
+      where: {
+        ...safetyWhere,
+        authorId: user.id,
+        content: { contains: otherUser.username },
+      },
+      select: { id: true, content: true, createdAt: true },
+      take: 10,
+    }),
   ]);
-
-  // Also check for posts where content mentions the other user
-  const mentionPosts = await prisma.post.findMany({
-    where: {
-      ...safetyWhere,
-      authorId: user.id,
-      content: { contains: otherUser.username },
-    },
-    select: { id: true, content: true, createdAt: true },
-    take: 10,
-  });
 
   const totalInteractions = myPostsCommentedByThem.length + theirPostsCommentedByMe.length + mentionPosts.length;
 
@@ -979,25 +982,29 @@ async function getContentStats(): Promise<MeshiAnswer> {
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
   const safetyWhere = nsfwHiddenWhere(user);
 
-  const [totalPosts, totalReactions, totalComments, platformPosts] = await Promise.all([
+  const [totalPosts, totalReactions, totalComments, platformTotals] = await Promise.all([
     prisma.post.count({ where: { ...safetyWhere, authorId: user.id } }),
     prisma.reaction.count({ where: { post: { ...safetyWhere, authorId: user.id } } }),
     prisma.comment.count({ where: { post: { ...safetyWhere, authorId: user.id } } }),
-    prisma.platformPost.findMany({
+    // Sum in the database — loading every synced post row to add four integers
+    // in JS scales with the user's entire cross-platform history.
+    prisma.platformPost.aggregate({
       where: { ...safetyWhere, connectedAccount: { userId: user.id } },
-      select: { likeCount: true, commentCount: true, viewCount: true, shareCount: true },
+      _sum: { likeCount: true, commentCount: true, viewCount: true, shareCount: true },
+      _count: true,
     }),
   ]);
 
-  const crossPlatformLikes = platformPosts.reduce((sum, p) => sum + p.likeCount, 0);
-  const crossPlatformViews = platformPosts.reduce((sum, p) => sum + p.viewCount, 0);
-  const crossPlatformComments = platformPosts.reduce((sum, p) => sum + p.commentCount, 0);
-  const crossPlatformShares = platformPosts.reduce((sum, p) => sum + p.shareCount, 0);
+  const syncedPostCount = platformTotals._count;
+  const crossPlatformLikes = platformTotals._sum.likeCount ?? 0;
+  const crossPlatformViews = platformTotals._sum.viewCount ?? 0;
+  const crossPlatformComments = platformTotals._sum.commentCount ?? 0;
+  const crossPlatformShares = platformTotals._sum.shareCount ?? 0;
 
   const parts = ["Your engagement stats:"];
   parts.push(`mesh.me: ${totalPosts} posts, ${totalReactions} reactions received, ${totalComments} comments received`);
-  if (platformPosts.length > 0) {
-    parts.push(`Cross-platform (${platformPosts.length} synced posts):`);
+  if (syncedPostCount > 0) {
+    parts.push(`Cross-platform (${syncedPostCount} synced posts):`);
     if (crossPlatformViews > 0) parts.push(`  ${crossPlatformViews.toLocaleString()} total views`);
     if (crossPlatformLikes > 0) parts.push(`  ${crossPlatformLikes.toLocaleString()} total likes`);
     if (crossPlatformComments > 0) parts.push(`  ${crossPlatformComments.toLocaleString()} total comments`);

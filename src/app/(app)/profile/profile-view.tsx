@@ -29,7 +29,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { getCurrentUser } from "@/lib/auth";
 import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
-import { formatCount, formatRelativeTime } from "@/lib/utils";
+import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 
@@ -374,7 +374,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               links.map((link) => (
                 <a
                   key={link.id}
-                  href={link.url}
+                  href={safeHref(link.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-5 py-4 transition-colors hover:border-[var(--mesh-border-active)]"
@@ -550,7 +550,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               {links.map((link) => (
                 <a
                   key={link.id}
-                  href={link.url}
+                  href={safeHref(link.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-[var(--mesh-text-secondary)] transition-colors hover:bg-[var(--mesh-panel)]"

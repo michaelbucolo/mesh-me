@@ -31,7 +31,17 @@ export function encryptSecret(value: string | null | undefined): string | null {
   if (!value) return null;
 
   const key = getKey();
-  if (!key) return value;
+  if (!key) {
+    // Fail closed in production: silently persisting OAuth access/refresh
+    // tokens in cleartext is worse than not persisting them. In dev (no key
+    // configured) we still allow it so local flows work.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "Refusing to store a secret without APP_DATA_ENCRYPTION_KEY configured (would be plaintext).",
+      );
+    }
+    return value;
+  }
   if (value.startsWith(`${PREFIX}:`)) return value;
 
   const iv = randomBytes(12);

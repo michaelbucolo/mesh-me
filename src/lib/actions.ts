@@ -10,6 +10,7 @@ import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
+import { canUserInteractWithPost } from "./privacy-policy";
 import { communityThreadTitle } from "./community-constants";
 import { isUniqueConstraintError } from "./prisma-errors";
 
@@ -1238,9 +1239,10 @@ export async function toggleReaction(postId: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true },
+    select: { authorId: true, visibility: true, communityId: true },
   });
   if (!post) return { error: "Post not found" };
+  if (!(await canUserInteractWithPost(user.id, post))) return { error: "Post not found" };
 
   const existing = await prisma.reaction.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
@@ -1294,9 +1296,10 @@ export async function createComment(formData: FormData) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true },
+    select: { authorId: true, visibility: true, communityId: true },
   });
   if (!post) return { error: "Post not found" };
+  if (!(await canUserInteractWithPost(user.id, post))) return { error: "Post not found" };
 
   await prisma.comment.create({
     data: {
