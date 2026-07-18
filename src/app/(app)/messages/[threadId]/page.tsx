@@ -216,7 +216,9 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
 
   const [{ threadId }, query] = await Promise.all([params, searchParams]);
   const isNewConversation = query.new === "true";
-  const sharedContent = await getOptionalSharedContent(query, user);
+  // Only awaited where it's rendered, so its (usually no-op) lookup overlaps
+  // the thread queries below instead of preceding them.
+  const sharedContentPromise = getOptionalSharedContent(query, user);
 
   let activeThreadId = isNewConversation ? "" : threadId;
   let recipient: ConversationUser | null = null;
@@ -249,31 +251,35 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
   }];
 
   if (isNewConversation) {
-    recipient = await prisma.user.findFirst({
-      where: {
-        id: threadId,
-        isSuspended: false,
-      },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        isVerified: true,
-      },
-    });
+    // In new-conversation mode the route param IS the recipient id, so the
+    // existing-thread lookup doesn't need to wait for the recipient row.
+    const [foundRecipient, existingThread] = await Promise.all([
+      prisma.user.findFirst({
+        where: {
+          id: threadId,
+          isSuspended: false,
+        },
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          isVerified: true,
+        },
+      }),
+      prisma.messageThread.findFirst({
+        where: {
+          threadType: "direct",
+          AND: [
+            { members: { some: { userId: user.id } } },
+            { members: { some: { userId: threadId } } },
+          ],
+        },
+      }),
+    ]);
+    recipient = foundRecipient;
 
     if (!recipient || recipient.id === user.id) notFound();
-
-    const existingThread = await prisma.messageThread.findFirst({
-      where: {
-        threadType: "direct",
-        AND: [
-          { members: { some: { userId: user.id } } },
-          { members: { some: { userId: recipient.id } } },
-        ],
-      },
-    });
 
     if (existingThread) {
       activeThreadId = existingThread.id;
@@ -370,6 +376,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
         getThreadMessages(activeThreadId, { membershipVerified: true }),
       ])
     : [undefined, []];
+  const sharedContent = await sharedContentPromise;
   const messagesById = new Map(messages.map((message) => [message.id, {
     id: message.id,
     content: message.content,
