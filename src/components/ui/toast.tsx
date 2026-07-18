@@ -45,8 +45,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   const styles = {
-    success: "border-emerald-500/20 bg-emerald-950/90 text-emerald-100",
-    error: "border-red-500/20 bg-red-950/90 text-red-100",
+    success: "border-[var(--ds-success-border)] bg-[var(--bg-elevated)] text-[var(--text-primary)]",
+    error: "border-[var(--ds-danger-border)] bg-[var(--bg-elevated)] text-[var(--text-primary)]",
     info: "border-[var(--border-primary)] bg-[var(--bg-elevated)] text-[var(--text-primary)]",
   };
 

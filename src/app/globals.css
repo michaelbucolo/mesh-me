@@ -1947,14 +1947,9 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 /* ─── Soft Bounce Entry ─── */
 
-/* ─── Reduced Motion ─── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* ─── Reduced Motion ───
+   The universal reduced-motion reset lives in the fuller block further down
+   (which also disables smooth scroll + shimmer pseudo-elements) — kept once. */
 
 /* ─── iOS Native Feel ─── */
 
