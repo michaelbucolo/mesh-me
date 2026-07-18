@@ -112,24 +112,24 @@ export const getCurrentUser = cache(async () => {
 });
 
 export async function getCurrentUserRedirectState() {
-  const session = await getSession();
-  if (!session) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      id: true,
-      onboarded: true,
-      isSuspended: true,
-    },
-  });
-
-  if (!user || user.isSuspended) return null;
+  // Piggybacks on the cached getCurrentUser: one session+user round trip at
+  // most, and zero extra queries on pages whose layout already loaded the user.
+  const user = await getCurrentUser();
+  if (!user) return null;
 
   return {
     id: user.id,
     onboarded: user.onboarded,
   };
+}
+
+export async function hasSessionCookieHint() {
+  // Cookie-presence check only — no database hit. Useful for redirect-only
+  // routes where a stale cookie just bounces through the protected page's own
+  // auth check.
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
+  return Boolean(sessionId && SESSION_ID_REGEX.test(sessionId));
 }
 
 export async function destroySession() {

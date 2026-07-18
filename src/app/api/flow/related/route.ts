@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getFeedPostById } from "@/lib/feed-data";
+import { ANONYMOUS_VIEWER, getFeedPostById } from "@/lib/feed-data";
 import { getFlowCandidates, rankRelatedPosts } from "@/lib/flow-ranking";
 
 /**
  * The sideways lane: content similar/related to the reel the viewer just
  * watched. Anchored on a post id; returns the closest matches by author,
- * tags, platform, and format.
+ * tags, platform, and format. Open to guests (public supply only).
  */
 export async function GET(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const user = (await getCurrentUser()) ?? ANONYMOUS_VIEWER;
 
   const { searchParams } = new URL(request.url);
   const anchorId = searchParams.get("anchor");

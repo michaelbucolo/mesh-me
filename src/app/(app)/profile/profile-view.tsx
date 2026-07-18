@@ -31,6 +31,7 @@ import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
+import { PlatformLogo } from "@/components/platform/platform-logo";
 
 const DEFAULT_MESHI = {
   colorTheme: "blue",
@@ -43,32 +44,8 @@ const DEFAULT_MESHI = {
   outfitStyle: "none",
 };
 
-const PLATFORM_ICONS: Record<string, { icon: string; bg: string }> = {
-  github: { icon: "GH", bg: "#24292e" },
-  linkedin: { icon: "in", bg: "#0077b5" },
-  medium: { icon: "M", bg: "#292929" },
-  spotify: { icon: "♫", bg: "#1db954" },
-  twitter: { icon: "𝕏", bg: "#1d9bf0" },
-  youtube: { icon: "▶", bg: "#ff0000" },
-  tiktok: { icon: "♪", bg: "#010101" },
-  instagram: { icon: "IG", bg: "#e4405f" },
-  discord: { icon: "DC", bg: "#5865f2" },
-  twitch: { icon: "Tw", bg: "#9146ff" },
-  facebook: { icon: "fb", bg: "#1877f2" },
-  snapchat: { icon: "👻", bg: "#fffc00" },
-};
-
 function PlatformIcon({ platform }: { platform: string }) {
-  const info = PLATFORM_ICONS[platform.toLowerCase()] ?? { icon: platform.charAt(0).toUpperCase(), bg: "var(--mesh-panel-solid)" };
-  return (
-    <div
-      className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
-      style={{ backgroundColor: info.bg }}
-      title={platform}
-    >
-      {info.icon}
-    </div>
-  );
+  return <PlatformLogo platform={platform} size={36} className="rounded-full" />;
 }
 
 export async function InstagramProfileView({ username, tab }: { username: string; tab?: string }) {
@@ -80,20 +57,21 @@ export async function InstagramProfileView({ username, tab }: { username: string
   // memberships are fetched alongside but rendered only when the profile's
   // visibility settings allow it.
   const isSelf = currentUser.username.toLowerCase() === username.toLowerCase();
-  const [profile, posts, allMemberships, [savedPosts, savedPostCount]] = await Promise.all([
-    getUserProfile(username),
+  // Real presence — the same live signal that animates Meshi on the mesh and
+  // "Active now" in MeChat, not a decorative badge. It needs the profile's id,
+  // so it chains off the profile promise but overlaps with the other queries.
+  const profilePromise = getUserProfile(username);
+  const [profile, posts, allMemberships, [savedPosts, savedPostCount], isLiveNow] = await Promise.all([
+    profilePromise,
     getUserPosts(username, 1, 24),
     getUserCommunities(username),
     isSelf
       ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
       : Promise.resolve<[Awaited<ReturnType<typeof getSavedPosts>>, number]>([[], 0]),
+    profilePromise.then((p) => (p ? isUserLiveNow(p.id) : false)),
   ]);
 
   if (!profile) notFound();
-
-  // Real presence — the same live signal that animates Meshi on the mesh and
-  // "Active now" in MeChat, not a decorative badge.
-  const isLiveNow = await isUserLiveNow(profile.id);
 
   const isOwnProfile = profile.isOwnProfile;
   const canViewProfile = profile.sectionVisibility.profile;

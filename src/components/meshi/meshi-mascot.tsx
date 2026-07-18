@@ -1362,35 +1362,3 @@ export function MeshiLogo({ size = 32, color = "blue", mood = "happy", className
 }
 
 // Determine Meshi's mood based on user activity
-
-// Small social Meshi for displaying on other users' mesh nodes
-export function MeshiMini({ size = 20, color = "blue", hat = "none", mood = "happy", hair = "none", accessory = "none", eyeStyle = "regular", badge = "none", outfit = "none" }: {
-  size?: number; color?: MeshiColor; hat?: MeshiHat; mood?: MeshiMood; hair?: MeshiHair; accessory?: MeshiAccessory; eyeStyle?: MeshiEyeStyle; badge?: MeshiBadge; outfit?: MeshiOutfit;
-}) {
-  const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
-  const wearable = lightenHex(theme.primary, 0.42);
-  const hatElement = HATS[hat] || null;
-  const hairElement = HAIRS[hair] || null;
-  const effectiveEyeStyle = accessory === "lashes" ? "lashes" : eyeStyle;
-  const effectiveAccessory = accessory === "lashes" ? "none" : accessory;
-  const eyeStyleElement = EYE_STYLES[effectiveEyeStyle] || null;
-  const accessoryElement = ACCESSORIES[effectiveAccessory] || null;
-  const badgeElement = BADGES[badge] || null;
-  const outfitElement = OUTFITS[outfit] || null;
-  return (
-    <svg width={size} height={size} viewBox="-24 -24 48 48">
-      <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2.5" />
-      <g style={{ color: wearable }}>{outfitElement}</g>
-      <g style={{ color: wearable }}>
-        {hairElement && hat && !OPEN_HATS.has(hat) ? <g transform={HAIR_TUCK_TRANSFORM}>{hairElement}</g> : hairElement}
-      </g>
-      <g transform="scale(0.8)">
-        {(SVG_FACES[mood] || SVG_FACES.happy)(theme.primary)}
-      </g>
-      {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
-      {accessoryElement && <g style={{ color: wearable }}>{accessoryElement}</g>}
-      {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
-      <g style={{ color: wearable }}>{hatElement}</g>
-    </svg>
-  );
-}

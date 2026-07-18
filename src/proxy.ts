@@ -7,6 +7,9 @@ const SESSION_ID_REGEX = /^(?:[0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const proxyRateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
+// NOTE: /explore, /flow, and /feed are intentionally absent — guests may
+// browse content surfaces. The (app) layout decides per-path whether an
+// anonymous visitor gets the guest shell or a login redirect.
 const protectedPagePrefixes = [
   "/account",
   "/admin",
@@ -15,11 +18,8 @@ const protectedPagePrefixes = [
   "/communities",
   "/connected-accounts",
   "/content-hub",
-  "/explore",
   "/feature-requests",
-  "/feed",
   "/feedback",
-  "/flow",
   "/innovation",
   "/marketplace",
   "/mesh",
@@ -48,7 +48,6 @@ const protectedApiPrefixes = [
   "/api/feature-requests",
   "/api/feed",
   "/api/feedback",
-  "/api/flow",
   "/api/layout",
   "/api/mechat",
   "/api/mesh",
@@ -190,7 +189,7 @@ function hardenResponse(response: NextResponse, options: { sensitive?: boolean; 
   response.headers.set("Referrer-Policy", "no-referrer");
   // Autoplay + encrypted-media are granted to the video embed players the
   // Flow and mesh hover previews rely on — everything else stays locked down.
-  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\" \"https://clips.twitch.tv\" \"https://player.twitch.tv\"), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\"), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
+  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\" \"https://clips.twitch.tv\" \"https://player.twitch.tv\" \"https://www.tiktok.com\"), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\"), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
   response.headers.set("X-DNS-Prefetch-Control", "off");
   response.headers.set("X-Download-Options", "noopen");
   response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
@@ -260,7 +259,9 @@ export function proxy(request: NextRequest) {
   }
 
   const requestHeaders = new Headers(request.headers);
-  if (isProtectedPage) {
+  // Every page render gets its true path (guest shells and login redirects
+  // both key off it); always overwritten here so it can't be spoofed.
+  if (!pathname.startsWith("/api/")) {
     requestHeaders.set("x-mesh-current-path", returnPath);
   }
 

@@ -339,6 +339,19 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
           </div>
         </div>
       )}
+      {!currentUserId && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl glass-card p-4">
+          <p className="min-w-0 text-sm text-[var(--text-secondary)]">
+            Sign in to join the conversation — comment, react, and follow.
+          </p>
+          <Link
+            href="/login"
+            className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white transition hover:opacity-90"
+          >
+            Sign in
+          </Link>
+        </div>
+      )}
 
       {/* Comments */}
       <div className="space-y-4">

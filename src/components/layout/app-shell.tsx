@@ -67,6 +67,7 @@ const routeInfoMap: Record<string, RouteInfo> = {
   "/communities": { title: "Communities", description: "Discover, join, and build with communities around the world." },
   "/spaces": { title: "Spaces", description: "Shared areas for collaboration and creativity." },
   "/connected-accounts": { title: "Connections", description: "Manage your connected platforms and accounts." },
+  "/one-account": { title: "One Account", description: "Every platform and account, merged into one you." },
   "/vault": { title: "Vault", description: "Your private archive. Saved and secure." },
   "/trust": { title: "Verify", description: "Identity verification and trust management." },
   "/settings": { title: "Settings", description: "Configure your Mesh.me experience." },
@@ -214,6 +215,7 @@ function ShellTopBar({
             </div>
             <div className="mt-2 grid gap-0.5">
               <Link href={`/profile/${user.username}`} className="mesh-dropdown-item">Profile</Link>
+              <Link href="/one-account" className="mesh-dropdown-item">One Account</Link>
               <Link href="/settings" className="mesh-dropdown-item">Settings</Link>
               <Link href="/search" className="mesh-dropdown-item lg:hidden">Search</Link>
               <Link href="/trust" className="mesh-dropdown-item lg:hidden">Verify</Link>

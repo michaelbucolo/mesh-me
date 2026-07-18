@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { playSound } from "@/lib/sound";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
 import {
   buildLinkPreview,
@@ -406,6 +407,7 @@ export function MeChatThread({
         });
         optimisticId = optimistic.id;
         setMessages((current) => [...current, optimistic]);
+        playSound("send");
 
         const response = await fetch(`/api/messages/${threadId}`, {
           method: "POST",
@@ -1020,7 +1022,7 @@ function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachmen
     return (
       <a href={attachment.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-black/10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={attachment.url} alt={attachment.name || "Shared image"} className="max-h-72 w-full object-cover" />
+        <img src={attachment.url} alt={attachment.name || "Shared image"} loading="lazy" decoding="async" className="max-h-72 w-full object-cover" />
       </a>
     );
   }

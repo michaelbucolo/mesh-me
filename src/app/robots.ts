@@ -21,7 +21,6 @@ export default function robots(): MetadataRoute.Robots {
         "/feature-requests",
         "/feed",
         "/feedback",
-        "/flow",
         "/innovation",
         "/marketplace",
         "/mesh",

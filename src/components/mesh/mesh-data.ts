@@ -7,15 +7,13 @@ export interface MeshApiResponse {
   // Set when the viewer isn't allowed into this mesh: only `user` identity
   // fields are present and the client renders a locked state.
   privateMesh?: boolean;
-  user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null; isVerified: boolean };
+  user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null; isVerified: boolean; isMeshPro?: boolean };
   following: any[];
   followers: any[];
   communities: any[];
   interests: string[];
   posts: any[];
   connectedAccounts: any[];
-  platforms?: MeshPlatform[];
-  recentComments?: MeshRecentComment[];
   activities?: Array<{
     id: string;
     type: string;
@@ -62,42 +60,6 @@ export interface MeshApiResponse {
     activityCount?: number;
   };
 }
-
-export interface MeshPlatform {
-  id: string;
-  platform: string;
-  platformUsername: string | null;
-  syncStatus: string;
-  isConnected: boolean;
-  counts: {
-    posts: number;
-    comments: number;
-    followers: number;
-    media: number;
-  };
-  manageHref: string;
-  sourcesHref: string;
-}
-
-export interface MeshRecentComment {
-  id: string;
-  content: string;
-  createdAt: string;
-  replyCount: number;
-  author: {
-    id: string;
-    username: string;
-    displayName: string | null;
-    avatarUrl: string | null;
-    isVerified: boolean;
-  };
-  post: {
-    id: string;
-    content: string;
-  };
-}
-
-
 
 /**
  * Lay out items in a ring around (cx, cy) at the given radius.

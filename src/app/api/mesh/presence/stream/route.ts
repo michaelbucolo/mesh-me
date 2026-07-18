@@ -49,6 +49,7 @@ export async function GET(request: Request) {
         }
       };
 
+      let lastSerialized = "";
       const pushPayload = async () => {
         pending = false;
         lastPush = Date.now();
@@ -61,7 +62,13 @@ export async function GET(request: Request) {
             surface,
             activePostId,
           });
-          send("presence", payload);
+          // Only push when something actually changed, so the cross-instance
+          // tick below doesn't spam identical frames.
+          const serialized = JSON.stringify(payload);
+          if (serialized !== lastSerialized) {
+            lastSerialized = serialized;
+            send("presence", payload);
+          }
         } catch {
           // Best-effort; keep the stream open for the next change.
         }
@@ -81,6 +88,12 @@ export async function GET(request: Request) {
       };
 
       const unsubscribe = subscribePresence(schedulePush);
+
+      // Cross-instance liveness: heartbeats usually land on OTHER serverless
+      // instances, whose in-process emitters this stream can't hear. Tick the
+      // shared store on a short interval — the change-dedupe above means only
+      // real movement is pushed, and it crosses instances in <1s.
+      const tickTimer = setInterval(schedulePush, 650);
 
       // Refresh the viewer's mutual-connection set periodically so newly added
       // connections become visible without reopening the stream.
@@ -106,6 +119,7 @@ export async function GET(request: Request) {
         if (closed) return;
         closed = true;
         unsubscribe();
+        clearInterval(tickTimer);
         clearInterval(connectionsTimer);
         clearInterval(keepaliveTimer);
         if (coalesceTimer) clearTimeout(coalesceTimer);
