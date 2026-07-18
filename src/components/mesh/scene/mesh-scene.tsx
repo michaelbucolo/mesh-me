@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, HelpCircle, List, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, HelpCircle, History, List, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -160,6 +160,19 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [showList, setShowList] = useState(false);
   const [newCount, setNewCount] = useState(0);
   const [showTips, setShowTips] = useState(false);
+  // Rewind: travel back through your world. rewindAt is the moment being
+  // viewed (null = now); rewindValue is the slider position (0..1000).
+  const [showRewind, setShowRewind] = useState(false);
+  const [rewindAt, setRewindAt] = useState<number | null>(null);
+  const [rewindValue, setRewindValue] = useState(1000);
+  const rewindDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Catch-up tour: the ordered ids of new-since-last-visit content the lens
+  // walks through when you tap the "new things" chip.
+  const [tourIds, setTourIds] = useState<string[] | null>(null);
+  const tourIdsRef = useRef<string[] | null>(null);
+  useEffect(() => {
+    tourIdsRef.current = tourIds;
+  }, [tourIds]);
   const [searchQuery, setSearchQuery] = useState("");
   const [discoverUsers, setDiscoverUsers] = useState<
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
@@ -344,6 +357,102 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     return () => controller.abort();
   }, [loadScene]);
 
+  // --- Rewind: rebuild the world as it existed at a past moment ---
+  // The oldest dated thing in this world bounds how far back you can travel.
+  const oldestMoment = (() => {
+    if (!meshData) return null;
+    let oldest = Infinity;
+    const see = (v: unknown) => {
+      if (!v) return;
+      const ms = new Date(v as string).getTime();
+      if (Number.isFinite(ms)) oldest = Math.min(oldest, ms);
+    };
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    (meshData.posts || []).forEach((p: any) => see(p.createdAt));
+    (meshData.following || []).forEach((f: any) => see(f.joinedAt));
+    (meshData.followers || []).forEach((f: any) => see(f.joinedAt));
+    (meshData.connectedAccounts || []).forEach((a: any) => {
+      see(a.createdAt);
+      (a.topPosts || []).forEach((pp: any) => see(pp.publishedAt));
+    });
+    (meshData.friendMeshes || []).forEach((fm) => (fm.posts || []).forEach((p: any) => see(p.createdAt)));
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+    return Number.isFinite(oldest) ? oldest : null;
+  })();
+
+  const applyAsOf = useCallback(
+    (asOf: number | null) => {
+      if (!meshData) return;
+      const prev = modelRef.current;
+      const model = buildSceneModel(meshData, {
+        // New marks only make sense in the present.
+        lastVisitAt: asOf != null || viewUserId ? null : lastVisitRef.current ?? null,
+        asOf,
+      });
+      layoutScene(model);
+      const stamp = typeof performance !== "undefined" ? performance.now() : Date.now();
+      model.nodes.forEach((node) => {
+        const old = prev?.nodes.get(node.id);
+        if (old) {
+          node.dx = old.dx;
+          node.dy = old.dy;
+          node.vx = old.vx;
+          node.vy = old.vy;
+          node.bornAt = old.bornAt;
+        } else {
+          // Scrubbing forward: things come into existence out of whoever made
+          // them, with the arrival burst — your life re-assembling.
+          const parent = node.parentId ? model.nodes.get(node.parentId) : null;
+          node.dx = parent ? parent.dx : 0;
+          node.dy = parent ? parent.dy : 0;
+          node.bornAt = stamp;
+        }
+      });
+      modelRef.current = model;
+      loadImages(model);
+      // Whatever was selected may not exist at this moment in time.
+      if (selectedIdRef.current && !model.nodes.get(selectedIdRef.current)) {
+        setSelectedNode(null);
+        setActiveBranch(null);
+      }
+    },
+    [meshData, viewUserId, loadImages],
+  );
+
+  const onRewindInput = useCallback(
+    (value: number) => {
+      setRewindValue(value);
+      if (rewindDebounceRef.current) clearTimeout(rewindDebounceRef.current);
+      rewindDebounceRef.current = setTimeout(() => {
+        if (!oldestMoment) return;
+        if (value >= 1000) {
+          setRewindAt(null);
+          applyAsOf(null);
+          return;
+        }
+        const span = Date.now() - oldestMoment;
+        // Quadratic mapping gives fine control over the recent past while the
+        // far end still reaches the very beginning.
+        const asOf = Math.round(Date.now() - Math.pow(1 - value / 1000, 2) * span);
+        setRewindAt(asOf);
+        applyAsOf(asOf);
+      }, 40);
+    },
+    [oldestMoment, applyAsOf],
+  );
+
+  const backToNow = useCallback(() => {
+    if (rewindDebounceRef.current) clearTimeout(rewindDebounceRef.current);
+    setRewindValue(1000);
+    setRewindAt(null);
+    applyAsOf(null);
+  }, [applyAsOf]);
+
+  const closeRewind = useCallback(() => {
+    backToNow();
+    setShowRewind(false);
+  }, [backToNow]);
+
   // --- Canvas sizing + render loop ---
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -512,16 +621,46 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
   // Every readable piece of content on the mesh, newest first — so the
   // content lens glides through your world the way memory works: from now,
-  // backward.
+  // backward. During a catch-up tour the stream is exactly the new items, in
+  // the order they happened.
   const contentList = useCallback((): SceneNode[] => {
     const model = modelRef.current;
     if (!model) return [];
+    const tour = tourIdsRef.current;
+    if (tour && tour.length) {
+      return tour
+        .map((id) => model.nodes.get(id))
+        .filter((n): n is SceneNode => Boolean(n));
+    }
     const out: SceneNode[] = [];
     model.nodes.forEach((n) => {
       if (n.kind === "post" || n.kind === "activity") out.push(n);
     });
     out.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
     return out;
+  }, []);
+
+  // Catch-up tour: fly through what arrived since your last visit, oldest
+  // first, right in the world — each stop opens in the lens where it lives.
+  const startCatchUp = useCallback(() => {
+    const model = modelRef.current;
+    if (!model) return;
+    const fresh = Array.from(model.nodes.values())
+      .filter((n) => n.isNew && (n.kind === "post" || n.kind === "activity"))
+      .sort((a, b) => (a.createdAtMs ?? 0) - (b.createdAtMs ?? 0));
+    if (fresh.length === 0) {
+      setShowList(true);
+      return;
+    }
+    const ids = fresh.map((n) => n.id);
+    // Sync the ref immediately so the lens's very first render already sees
+    // the tour stream, not the full mesh stream.
+    tourIdsRef.current = ids;
+    setTourIds(ids);
+    const first = fresh[0];
+    setActiveBranch(first.branch);
+    setSelectedNode(first);
+    panTargetRef.current = { nodeId: first.id };
   }, []);
 
   const navigateContent = useCallback(
@@ -1098,6 +1237,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         setSelectedNode(null);
         setActiveBranch(null);
         setShowTips(false);
+        tourIdsRef.current = null;
+        setTourIds(null);
         return;
       }
       if (typing) return;
@@ -1410,6 +1551,22 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         <RailButton label="Explore as a list" onClick={() => setShowList(true)}>
           <List size={16} />
         </RailButton>
+        {oldestMoment != null && (
+          <RailButton
+            label="Rewind time"
+            onClick={() => {
+              setShowRewind((open) => {
+                if (open) {
+                  backToNow();
+                  return false;
+                }
+                return true;
+              });
+            }}
+          >
+            <History size={16} />
+          </RailButton>
+        )}
         <RailButton label="Zoom in" onClick={() => zoomBy(1.25)}>
           <Plus size={16} />
         </RailButton>
@@ -1431,16 +1588,73 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         />
       ) : null}
 
-      {/* What arrived while you were away — one tap opens it as a list. */}
-      {status === "ready" && !viewUserId && newCount > 0 && (
+      {/* A whisper of amber over the whole world while viewing the past. */}
+      {rewindAt != null && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[4] bg-amber-400/[0.05]" />
+      )}
+
+      {/* Rewind — drag through time and watch this world re-assemble. */}
+      {showRewind && oldestMoment != null && status === "ready" && (
+        <div className="absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
+          <div
+            className="w-full max-w-xl rounded-2xl border border-white/12 bg-black/60 px-4 py-3 backdrop-blur"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-semibold text-white/85">
+                <History size={12} className="shrink-0 text-amber-300/90" />
+                {rewindAt
+                  ? `${viewedUser ? "This mesh" : "Your mesh"} on ${new Date(rewindAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                  : "Rewind — drag to travel back through this world"}
+              </p>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {rewindAt != null && (
+                  <button
+                    type="button"
+                    onClick={backToNow}
+                    className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-white/15"
+                  >
+                    Back to now
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="Close rewind"
+                  onClick={closeRewind}
+                  className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={1000}
+              value={rewindValue}
+              aria-label="Rewind this mesh through time"
+              onChange={(e) => onRewindInput(Number(e.target.value))}
+              className="w-full accent-amber-300"
+            />
+            <div className="flex justify-between text-[9px] font-medium uppercase tracking-wide text-white/35">
+              <span>{new Date(oldestMoment).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>
+              <span>Now</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* What arrived while you were away — one tap starts a flying tour
+          through it, right in the world. */}
+      {status === "ready" && !viewUserId && newCount > 0 && !rewindAt && !tourIds && (
         <button
           type="button"
-          onClick={() => setShowList(true)}
+          onClick={startCatchUp}
           onPointerDown={(e) => e.stopPropagation()}
           className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur transition-colors hover:bg-cyan-400/20"
         >
           <Sparkles size={13} />
-          {newCount === 1 ? "1 new thing" : `${newCount} new things`} since your last visit
+          Catch up: {newCount === 1 ? "1 new thing" : `${newCount} new things`} since your last visit
         </button>
       )}
 
@@ -1695,11 +1909,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           key={selectedNode.id}
           node={selectedNode}
           list={contentList()}
+          streamLabel={tourIds ? "new since your last visit" : "on your mesh"}
           onClose={() => {
             // Closing the lens un-dims the whole world — never leave the mesh
             // stuck spotlighting one branch after you're done reading.
             setSelectedNode(null);
             setActiveBranch(null);
+            tourIdsRef.current = null;
+            setTourIds(null);
           }}
           onNavigate={navigateContent}
         />
@@ -2083,11 +2300,13 @@ function metaCount(node: SceneNode, label: string): number {
 function ContentLens({
   node,
   list,
+  streamLabel = "on your mesh",
   onClose,
   onNavigate,
 }: {
   node: SceneNode;
   list: SceneNode[];
+  streamLabel?: string;
   onClose: () => void;
   onNavigate: (dir: 1 | -1) => void;
 }) {
@@ -2270,7 +2489,7 @@ function ContentLens({
               Prev
             </button>
             <span className="text-[11px] font-medium tracking-wide text-white/40">
-              {index >= 0 ? index + 1 : 1} / {total} on your mesh
+              {index >= 0 ? index + 1 : 1} / {total} {streamLabel}
             </span>
             <button
               type="button"

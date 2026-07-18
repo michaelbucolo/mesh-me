@@ -142,12 +142,22 @@ function freshnessOf(ms: number | undefined): number {
 export interface BuildSceneOptions {
   /** Your previous visit (ms epoch): anything made after it is marked New. */
   lastVisitAt?: number | null;
+  /**
+   * Rewind: build the world as it existed at this moment (ms epoch). People
+   * who hadn't entered your life yet, platforms not yet connected, and posts
+   * not yet made simply don't exist in the model.
+   */
+  asOf?: number | null;
 }
 
 export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions): SceneModel {
   const nodes = new Map<string, SceneNode>();
   const lastVisitAt = opts?.lastVisitAt ?? null;
   const isNewSince = (ms: number | undefined) => Boolean(lastVisitAt && ms && ms > lastVisitAt);
+  const asOf = opts?.asOf ?? null;
+  // Undated things are kept when rewinding — the mesh never hides what it
+  // can't honestly date.
+  const existedBy = (ms: number | undefined) => asOf == null || ms == null || ms <= asOf;
 
   const add = (node: Omit<SceneNode, "x" | "y" | "angle" | "depth" | "dx" | "dy" | "vx" | "vy">) => {
     const full: SceneNode = { ...node, x: 0, y: 0, angle: 0, depth: 0, dx: 0, dy: 0, vx: 0, vy: 0 };
@@ -182,8 +192,11 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
   const platforms: any[] = data.connectedAccounts || [];
   if (platforms.length) {
     platforms.forEach((acct: any) => {
+      const acctMs = toMs(acct.createdAt);
+      if (!existedBy(acctMs)) return;
       const platformId = `platform:${acct.id}`;
       const topPosts: any[] = (acct.topPosts || [])
+        .filter((pp: any) => existedBy(toMs(pp.publishedAt)))
         .slice(0, MAX_PLATFORM_POSTS)
         .sort((a: any, b: any) => (toMs(b.publishedAt) ?? 0) - (toMs(a.publishedAt) ?? 0));
       const followers = acct.analytics?.followerCount ?? acct.counts?.platformFollowers ?? 0;
@@ -200,6 +213,7 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
         href: "/connected-accounts",
         count: topPosts.length || undefined,
         status: acct.syncStatus,
+        createdAtMs: acctMs,
         weight: clamp01(0.48 + Math.min(postCount, 200) / 400),
         placeReason: "Your bridge to the wider internet — connected and syncing",
         meta: [
@@ -260,9 +274,13 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
   const peopleToShow = people.slice(0, MAX_PEOPLE);
   if (peopleToShow.length) {
     peopleToShow.forEach((p: any) => {
+      const joinedMs = toMs(p.joinedAt);
+      if (!existedBy(joinedMs)) return;
       const personId = `person:${p.id}`;
       const friendMesh = friendMeshMap.get(p.id);
-      const friendPosts: any[] = ((friendMesh?.posts as any[]) || []).slice(0, 4);
+      const friendPosts: any[] = ((friendMesh?.posts as any[]) || [])
+        .filter((fp: any) => existedBy(toMs(fp.createdAt)))
+        .slice(0, 4);
       // Closeness is the human truth of the tie: following each other, how
       // often you actually interact, and whether they're here right now.
       const interaction = Math.min(p.interactionCount || 0, 24);
@@ -295,6 +313,7 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
         count: friendPosts.length || undefined,
         closeness,
         placeReason,
+        createdAtMs: joinedMs,
         weight: clamp01(0.34 + closeness * 0.55),
         meta: [
           { label: "Followers", value: String(p.followerCount ?? p._count?.followers ?? 0) },
@@ -334,7 +353,9 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
   }
 
   // --- Posts (your own native posts) — strand straight from you ---
-  const posts: any[] = (data.posts || []).slice(0, MAX_POSTS);
+  const posts: any[] = (data.posts || [])
+    .filter((p: any) => existedBy(toMs(p.createdAt)))
+    .slice(0, MAX_POSTS);
   if (posts.length) {
     posts.forEach((p: any) => {
       const media = p.media?.[0];

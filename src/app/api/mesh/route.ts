@@ -94,6 +94,7 @@ export async function GET(req: Request) {
       where: { userId: user.id, isActive: true },
       select: {
         id: true, platform: true, platformUsername: true,
+        createdAt: true,
         lastSyncAt: true, syncStatus: true,
         _count: { select: { platformPosts: true, platformFollowers: true, platformMedia: true, platformComments: true } },
         platformPosts: {
@@ -570,6 +571,8 @@ export async function GET(req: Request) {
       isMutual: mutualSet.has(f.following.id),
       sharedCommunities: userCommunityLinks[f.following.id] || [],
       sharedInterests: userSharedInterests[f.following.id] || [],
+      // When this person entered your world — powers the mesh's Rewind.
+      joinedAt: f.createdAt,
       lastSeenAt: f.following.lastSeenAt,
       followerCount: f.following._count.followers,
       postCount: f.following._count.posts,
@@ -581,6 +584,7 @@ export async function GET(req: Request) {
       isMutual: mutualSet.has(f.follower.id),
       sharedCommunities: userCommunityLinks[f.follower.id] || [],
       sharedInterests: userSharedInterests[f.follower.id] || [],
+      joinedAt: f.createdAt,
       followerCount: f.follower._count.followers,
       postCount: f.follower._count.posts,
       interactionCount: interactionCounts[f.follower.id] || 0,
@@ -617,6 +621,7 @@ export async function GET(req: Request) {
       id: acct.id,
       platform: acct.platform,
       platformUsername: acct.platformUsername,
+      createdAt: acct.createdAt,
       lastSyncAt: acct.lastSyncAt,
       syncStatus: acct.syncStatus,
       counts: acct._count,
@@ -814,6 +819,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     prisma.follow.findMany({
       where: { followerId: targetUserId },
       select: {
+        createdAt: true,
         following: {
           select: { id: true, username: true, displayName: true, avatarUrl: true },
         },
@@ -823,6 +829,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     prisma.follow.findMany({
       where: { followingId: targetUserId },
       select: {
+        createdAt: true,
         follower: {
           select: { id: true, username: true, displayName: true, avatarUrl: true },
         },
@@ -849,7 +856,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     }),
     prisma.connectedAccount.findMany({
       where: { userId: targetUserId },
-      select: { id: true, platform: true, platformUsername: true, isActive: true },
+      select: { id: true, platform: true, platformUsername: true, isActive: true, createdAt: true },
     }),
     prisma.comment.findMany({
       where: {
@@ -894,8 +901,8 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     }),
   ]);
 
-  const following = followingData.map((f) => f.following);
-  const followers = followersData.map((f) => f.follower);
+  const following = followingData.map((f) => ({ ...f.following, joinedAt: f.createdAt }));
+  const followers = followersData.map((f) => ({ ...f.follower, joinedAt: f.createdAt }));
   const interests = interestsData.map((i) => i.tag);
   const visibleConnectedAccounts = connectedAccountsData.filter((ca) => {
     const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
