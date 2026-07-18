@@ -689,19 +689,26 @@ export function drawScene(o: RenderOptions): void {
   o.profileHitboxes?.clear();
 
   // Chain of ids from the hovered node back to the center — these strands light up.
-  const hoverChain = new Set<string>();
-  if (o.hoverId) {
-    let cursor: SceneNode | undefined = nodes.get(o.hoverId);
+  const chainFrom = (id: string | null | undefined): Set<string> => {
+    const chain = new Set<string>();
+    if (!id) return chain;
+    let cursor: SceneNode | undefined = nodes.get(id);
     while (cursor) {
-      hoverChain.add(cursor.id);
+      chain.add(cursor.id);
       cursor = cursor.parentId ? nodes.get(cursor.parentId) : undefined;
     }
-  }
+    return chain;
+  };
+  const hoverChain = chainFrom(o.hoverId);
+  // Selecting something focuses the world on its lineage: the selected node,
+  // its maker, and you stay lit; everything unrelated recedes. This is how
+  // "what am I looking at, and where did it come from" stays unmistakable.
+  const selChain = chainFrom(o.selectedId);
 
   const emphasisFor = (node: SceneNode): number => {
-    if (hoverChain.has(node.id)) return 1;
-    if (o.selectedId === node.id) return 1;
+    if (hoverChain.has(node.id) || selChain.has(node.id)) return 1;
     if (node.kind === "self" || node.kind === "branch") return 1;
+    if (selChain.size > 0) return 0.24;
     // At rest the mesh should read as CONTENT, not dim geometry — posts and
     // people stay bright enough to recognize without focusing a branch.
     if (!o.activeBranch) return 0.8;
@@ -721,7 +728,13 @@ export function drawScene(o: RenderOptions): void {
     const sp = o.strands?.get(`${parent.id}>${node.id}`);
     const c = sp ? project({ dx: sp.mx, dy: sp.my }, o) : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const emph = Math.min(emphasisFor(node), emphasisFor(parent));
-    const onHoverPath = hoverChain.has(node.id) && hoverChain.has(parent.id);
+    const onHoverPath =
+      (hoverChain.has(node.id) && hoverChain.has(parent.id)) ||
+      (selChain.has(node.id) && selChain.has(parent.id));
+    // Two kinds of strand, two visual languages: dotted thread = a
+    // relationship (you↔person, you↔platform); solid line = authorship
+    // (maker→work). Every line on the mesh means exactly one of those.
+    const isRelationship = parent.kind === "self" && node.kind !== "post";
     const baseAlpha = node.depth === 1 ? 0.34 : node.depth === 2 ? 0.22 : 0.14;
     const alpha = onHoverPath ? 0.85 : baseAlpha * (0.35 + 0.65 * emph);
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
@@ -753,8 +766,10 @@ export function drawScene(o: RenderOptions): void {
       ctx.fillStyle = withAlpha(node.color, 0.9 * (1 - strandGrow) + 0.2);
       ctx.fill();
     } else {
+      if (isRelationship) ctx.setLineDash([2.5 * Math.max(0.7, o.camera.zoom), 7 * Math.max(0.7, o.camera.zoom)]);
       ctx.quadraticCurveTo(c.x, c.y, b.x, b.y);
       ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     // Relationship pills only appear when you're tracing that strand — the
@@ -789,43 +804,6 @@ export function drawScene(o: RenderOptions): void {
       ctx.fill();
     }
   });
-
-  // --- Web cross-links ---
-  // Beyond the parent→child spokes, weave faint threads between spatially near
-  // nodes so the whole thing reads as one interconnected mesh — a living web,
-  // not a spoke diagram. Post cards are excluded so the weave stays airy.
-  const webNodes: { node: SceneNode; x: number; y: number }[] = [];
-  nodes.forEach((node) => {
-    if (node.kind === "self" || node.kind === "post") return;
-    const p = project(node, o);
-    if (p.x < -60 || p.x > width + 60 || p.y < -60 || p.y > height + 60) return;
-    webNodes.push({ node, x: p.x, y: p.y });
-  });
-  const linkDist = 168 * Math.max(0.6, o.camera.zoom);
-  for (let i = 0; i < webNodes.length; i += 1) {
-    const A = webNodes[i];
-    for (let j = i + 1; j < webNodes.length; j += 1) {
-      const B = webNodes[j];
-      // Skip pairs already joined by a spoke.
-      if (A.node.parentId === B.node.id || B.node.parentId === A.node.id) continue;
-      const dx = A.x - B.x;
-      const dy = A.y - B.y;
-      const d = Math.hypot(dx, dy);
-      if (d > linkDist) continue;
-      const emph = Math.min(emphasisFor(A.node), emphasisFor(B.node));
-      const alpha = (1 - d / linkDist) * 0.14 * (0.35 + 0.65 * emph);
-      if (alpha < 0.012) continue;
-      const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
-      grad.addColorStop(0, withAlpha(A.node.color, alpha));
-      grad.addColorStop(1, withAlpha(B.node.color, alpha));
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 0.9 * Math.max(0.7, o.camera.zoom);
-      ctx.beginPath();
-      ctx.moveTo(A.x, A.y);
-      ctx.lineTo(B.x, B.y);
-      ctx.stroke();
-    }
-  }
 
   // --- Nodes ---
   const labelQueue: { node: SceneNode; x: number; y: number; r: number; emph: number }[] = [];
@@ -956,11 +934,24 @@ export function drawScene(o: RenderOptions): void {
       ctx.stroke();
     }
 
-    if (isSelected || isFocus || isHover) {
+    if (isSelected) {
+      // Selection is unmistakable: a bright ring plus a slow color pulse.
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha("#ffffff", isSelected ? 0.9 : isHover ? 0.65 : 0.4);
-      ctx.lineWidth = isSelected ? 2 : isHover ? 1.6 : 1.2;
+      ctx.strokeStyle = withAlpha("#ffffff", 0.95);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      const selPulse = 0.5 + 0.5 * Math.sin(time * 0.005);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r + 11 + selPulse * 3, 0, Math.PI * 2);
+      ctx.strokeStyle = withAlpha(node.color, 0.35 + 0.35 * selPulse);
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    } else if (isFocus || isHover) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = withAlpha("#ffffff", isHover ? 0.65 : 0.4);
+      ctx.lineWidth = isHover ? 1.6 : 1.2;
       ctx.stroke();
     }
 

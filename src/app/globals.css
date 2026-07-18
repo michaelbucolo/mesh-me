@@ -9333,3 +9333,34 @@ body > * { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) {
   .mesh-ghosted { animation: none; }
 }
+
+/* ── Presence moments: Meshis materialize in and fade out ─────────────── */
+@keyframes meshiArrive {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.15); }
+  62% { opacity: 1; transform: translate(-50%, -50%) scale(1.16); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.meshi-arrive { animation: meshiArrive 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.meshi-arrive-ring {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid rgba(167, 139, 250, 0.75);
+  border-radius: 9999px;
+  animation: meshiArriveRing 0.8s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes meshiArriveRing {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.4); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
+}
+@keyframes meshiLeave {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -86%) scale(0.55); }
+}
+.meshi-leave { animation: meshiLeave 0.7s ease-in forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .meshi-arrive, .meshi-arrive-ring, .meshi-leave { animation-duration: 0.01s; }
+}

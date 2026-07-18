@@ -59,6 +59,14 @@ type RemotePresence = {
   isOnline: boolean;
 };
 
+/** A departed visitor fading out where their Meshi last stood. */
+type LeavingMeshi = {
+  key: string;
+  x: number;
+  y: number;
+  p: RemotePresence;
+};
+
 /** A heart mid-flight from a Meshi to the post it just liked. */
 type FlyingHeart = {
   id: number;
@@ -120,13 +128,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // a screen layer. It ambles casually toward wherever the pointer points.
   const cursorWorldTargetRef = useRef<{ x: number; y: number; seen: boolean }>({ x: 0, y: 0, seen: false });
   const cursorWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  // Local-only hover growth — only YOU see your Meshi lean in toward a node.
-  const cursorScaleRef = useRef(1);
   // Reactive body language: Meshi leans into its direction of travel, and a
   // click/tap gives a happy little pop. Screen-space, per-frame, local-only.
   const cursorRotRef = useRef(0);
   const cursorPrevRef = useRef<{ x: number; y: number } | null>(null);
-  const ownerScaleRef = useRef(1);
   const ownerRotRef = useRef(0);
   const ownerPrevRef = useRef<{ x: number; y: number } | null>(null);
   // Whether the mouse is currently over the canvas — while it is, your Meshi
@@ -205,6 +210,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const presenceActionBaselineRef = useRef(false);
   const pendingActionRef = useRef<{ targetId: string; at: number } | null>(null);
   const heartbeatNowRef = useRef<(() => void) | null>(null);
+  // Join/leave moments: who just materialized, who's fading out.
+  const [leavingMeshis, setLeavingMeshis] = useState<LeavingMeshi[]>([]);
+  const [presenceToast, setPresenceToast] = useState<{ text: string; key: number } | null>(null);
+  const prevPresenceIdsRef = useRef<Set<string> | null>(null);
+  const prevPresencesRef = useRef<RemotePresence[]>([]);
+  const joinStampRef = useRef<Map<string, number>>(new Map());
+  const lastMoveHbRef = useRef(0);
+  useEffect(() => {
+    if (!presenceToast) return;
+    const t = setTimeout(() => setPresenceToast(null), 3600);
+    return () => clearTimeout(t);
+  }, [presenceToast]);
   // Travel dive into a friend's mesh.
   const [traveling, setTraveling] = useState<{ label: string } | null>(null);
   const travelingRef = useRef(false);
@@ -308,10 +325,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const isNarrowViewport = width < 640;
     const zoom = isNarrowViewport
       ? Math.max(MIN_ZOOM, 0.72)
-      : Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, height / contentH)));
+      : Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, (height - 130) / contentH)));
     const midX = isNarrowViewport ? 0 : (b.minX + b.maxX) / 2;
     const midY = isNarrowViewport ? 0 : (b.minY + b.maxY) / 2;
-    cameraRef.current = { zoom, panX: -midX * zoom, panY: -midY * zoom };
+    // Nudge the world down so the top arc never hides under the top bar.
+    cameraRef.current = { zoom, panX: -midX * zoom, panY: -midY * zoom + 30 };
   }, []);
 
   const loadScene = useCallback(
@@ -839,9 +857,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       }
       lastInputAtRef.current = performance.now();
       if (e.pointerType === "mouse") pointerOnCanvasRef.current = true;
-      // A press is a moment of intent — Meshi pops with you, everywhere.
-      cursorScaleRef.current = Math.min(cursorScaleRef.current + 0.3, 1.6);
-      ownerScaleRef.current = Math.min(ownerScaleRef.current + 0.3, 1.6);
       if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "1";
     }
     const d = dragRef.current;
@@ -885,6 +900,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         t.y = wy;
         lastInputAtRef.current = performance.now();
         pointerOnCanvasRef.current = true;
+        // Movement broadcasts fast so the room sees you glide, not teleport.
+        if (performance.now() - lastMoveHbRef.current > 1200) {
+          lastMoveHbRef.current = performance.now();
+          heartbeatNowRef.current?.();
+        }
       }
     }
     const cursor = meshiCursorRef.current;
@@ -1069,15 +1089,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     };
     heartbeatNowRef.current = () => void heartbeat();
 
-    const poll = async () => {
+    const processPayload = (data: { presences?: unknown }) => {
       const meshOwner = meshOwnerIdRef.current;
-      if (!meshOwner || document.visibilityState !== "visible") return;
-      try {
-        const res = await fetch(`/api/mesh/presence?meshOwner=${encodeURIComponent(meshOwner)}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json().catch(() => null);
-        if (stopped || !data) return;
-        const list: RemotePresence[] = Array.isArray(data.presences) ? data.presences : [];
+      if (stopped || !meshOwner) return;
+      {
+        const list: RemotePresence[] = Array.isArray(data.presences) ? (data.presences as RemotePresence[]) : [];
         // Everyone online: people viewing THIS mesh drift as live cursors;
         // connections online elsewhere perch on their own node in the web.
         const visible = list.filter((p) => p.isOnline);
@@ -1152,6 +1168,57 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             presenceWorldRef.current.delete(p.userId);
           }
         }
+        // Entering and leaving are MOMENTS: newcomers materialize with a
+        // burst, departures fade out right where they stood, and your own
+        // mesh quietly announces who walked in. (Positions are captured here,
+        // before the cleanup below forgets them.)
+        const prevIds = prevPresenceIdsRef.current;
+        if (prevIds) {
+          for (const p of visible) {
+            if (prevIds.has(p.userId)) continue;
+            joinStampRef.current.set(p.userId, Date.now());
+            if (!viewUserId && p.viewingMesh === meshOwner && p.surface === "mesh") {
+              setPresenceToast({ text: `@${p.username} entered your mesh`, key: Date.now() });
+            }
+          }
+          const departed = prevPresencesRef.current.filter((q) => !visibleIds.has(q.userId));
+          if (departed.length) {
+            const c = containerRef.current;
+            const cam = cameraRef.current;
+            const leaves: LeavingMeshi[] = [];
+            for (const q of departed) {
+              let x: number | null = null;
+              let y: number | null = null;
+              const world = presenceWorldPosRef.current.get(q.userId) ?? presenceWorldRef.current.get(q.userId);
+              if (world && c) {
+                x = c.clientWidth / 2 + cam.panX + world.x * cam.zoom;
+                y = c.clientHeight / 2 + cam.panY + world.y * cam.zoom;
+              } else {
+                const perch = perchPosRef.current.get(q.userId);
+                if (perch) {
+                  x = perch.x;
+                  y = perch.y;
+                } else {
+                  // Viewport-anchored visitor (never broadcast a world spot).
+                  const vp = presencePosRef.current.get(q.userId) ?? presenceTargetsRef.current.get(q.userId);
+                  if (vp && c) {
+                    x = vp.vx * c.clientWidth;
+                    y = vp.vy * c.clientHeight;
+                  }
+                }
+              }
+              if (x != null && y != null) leaves.push({ key: `${q.userId}:${Date.now()}`, x, y, p: q });
+            }
+            if (leaves.length) {
+              setLeavingMeshis((cur) => [...cur, ...leaves]);
+              const keys = new Set(leaves.map((l) => l.key));
+              setTimeout(() => setLeavingMeshis((cur) => cur.filter((l) => !keys.has(l.key))), 780);
+            }
+          }
+        }
+        prevPresenceIdsRef.current = visibleIds;
+        prevPresencesRef.current = visible;
+
         presenceTargetsRef.current.forEach((_, id) => {
           if (!visibleIds.has(id)) {
             presenceTargetsRef.current.delete(id);
@@ -1167,16 +1234,52 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           }
         });
         setRemotePresences(visible);
+      }
+    };
+
+    const poll = async () => {
+      const meshOwner = meshOwnerIdRef.current;
+      if (!meshOwner || document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch(`/api/mesh/presence?meshOwner=${encodeURIComponent(meshOwner)}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (stopped || !data) return;
+        processPayload(data);
       } catch {
         // Presence is best-effort.
       }
     };
 
-    const hb = setInterval(heartbeat, 5000);
-    const pl = setInterval(poll, 5000);
+    // INSTANT lane: the presence stream pushes the room's every movement the
+    // moment the server sees it. The poll stays as the cross-instance safety
+    // net (serverless instances can't always signal each other).
+    let es: EventSource | null = null;
+    const openStream = () => {
+      if (es || stopped) return;
+      const meshOwner = meshOwnerIdRef.current;
+      if (!meshOwner) return;
+      try {
+        es = new EventSource(`/api/mesh/presence/stream?meshOwner=${encodeURIComponent(meshOwner)}`);
+        es.addEventListener("presence", (e) => {
+          try {
+            processPayload(JSON.parse((e as MessageEvent).data));
+          } catch {
+            // Malformed frame — the next push or poll corrects it.
+          }
+        });
+      } catch {
+        es = null;
+      }
+    };
+    const esKick = setInterval(openStream, 1200);
+
+    const hb = setInterval(heartbeat, 2000);
+    const pl = setInterval(poll, 2500);
     const kick = setTimeout(() => {
       void heartbeat();
       void poll();
+      openStream();
     }, 400);
 
     return () => {
@@ -1184,7 +1287,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       heartbeatNowRef.current = null;
       clearInterval(hb);
       clearInterval(pl);
+      clearInterval(esKick);
       clearTimeout(kick);
+      es?.close();
     };
   }, [viewUserId, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart]);
 
@@ -1198,7 +1303,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // coordinates so they pan/zoom with the web, and a screen-space pass keeps
   // them from ever sitting on top of a node.
   useEffect(() => {
-    const MESHI_R = 24;
+    const MESHI_R = 16;
     // Deterministic per-frame push away from any node the Meshi would cover.
     // Recomputed from the world position each frame (never written back), so
     // it can't feedback-oscillate.
@@ -1283,9 +1388,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const dt = last ? Math.min(time - last, 50) : 16;
       last = time;
       stepHearts(time);
-      // Casual, unhurried easing — Meshis drift toward where their user is
-      // looking rather than mirroring a mouse at full speed.
+      // Ambient easing for your own idle Meshi ambling home…
       const k = 1 - Math.exp(-dt / 650);
+      // …but LIVE visitors track their real position near-instantly: presence
+      // now streams, so their Meshis should feel present, not laggy.
+      const kLive = 1 - Math.exp(-dt / 150);
       presenceElsRef.current.forEach((el, userId) => {
         // Connections online elsewhere perch above their own node in the web,
         // tracking it as the mesh pans and drifts.
@@ -1296,10 +1403,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             return;
           }
           const tx = hb.x;
-          const ty = hb.y - hb.r - 24;
+          const ty = hb.y - hb.r - 18;
           const pos = perchPosRef.current.get(userId) ?? { x: tx, y: ty };
-          pos.x += (tx - pos.x) * k;
-          pos.y += (ty - pos.y) * k;
+          pos.x += (tx - pos.x) * kLive;
+          pos.y += (ty - pos.y) * kLive;
           perchPosRef.current.set(userId, pos);
           el.style.opacity = "1";
           el.style.left = `${pos.x}px`;
@@ -1311,8 +1418,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         const world = presenceWorldRef.current.get(userId);
         if (world) {
           const pos = presenceWorldPosRef.current.get(userId) ?? { ...world };
-          pos.x += (world.x - pos.x) * k;
-          pos.y += (world.y - pos.y) * k;
+          pos.x += (world.x - pos.x) * kLive;
+          pos.y += (world.y - pos.y) * kLive;
           presenceWorldPosRef.current.set(userId, pos);
           const s = project(pos.x, pos.y);
           const clear = avoidNodes(s.x, s.y);
@@ -1325,8 +1432,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         if (!target) return;
         el.style.opacity = "1";
         const pos = presencePosRef.current.get(userId) ?? { ...target };
-        pos.vx += (target.vx - pos.vx) * k;
-        pos.vy += (target.vy - pos.vy) * k;
+        pos.vx += (target.vx - pos.vx) * kLive;
+        pos.vy += (target.vy - pos.vy) * kLive;
         presencePosRef.current.set(userId, pos);
         el.style.left = `${pos.vx * 100}%`;
         el.style.top = `${pos.vy * 100}%`;
@@ -1354,15 +1461,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         p.y += (t.y - p.y) * ck;
         const s = project(p.x, p.y);
         const clear = coarseRef.current ? s : avoidNodes(s.x, s.y);
-        const targetScale = hoverIdRef.current ? 1.28 : 1;
-        cursorScaleRef.current += (targetScale - cursorScaleRef.current) * (1 - Math.exp(-dt / 140));
         // Lean into the direction of travel — pure body language, local-only.
         const prev = cursorPrevRef.current;
         const vpf = prev ? (clear.x - prev.x) / Math.max(dt, 1) : 0;
         cursorPrevRef.current = { x: clear.x, y: clear.y };
         const leanTarget = Math.max(-16, Math.min(16, vpf * 24));
         cursorRotRef.current += (leanTarget - cursorRotRef.current) * (1 - Math.exp(-dt / 110));
-        cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) rotate(${cursorRotRef.current.toFixed(2)}deg) scale(${cursorScaleRef.current.toFixed(3)})`;
+        cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) rotate(${cursorRotRef.current.toFixed(2)}deg)`;
       }
 
       // The mesh owner's Meshi. On someone else's mesh it rests at the heart
@@ -1397,7 +1502,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           let py = s.y;
           hitboxesRef.current.forEach((hb, id) => {
             if (id === selfId) return;
-            const minD = hb.r + 24;
+            const minD = hb.r + 16;
             const dx = px - hb.x;
             const dy = py - hb.y;
             const d = Math.hypot(dx, dy);
@@ -1414,14 +1519,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // Local body language for YOUR OWN Meshi: grow toward hovered nodes,
         // pop on click, lean into travel. Visitors' views are untouched.
         if (isMe) {
-          const growTarget = hoverIdRef.current ? 1.28 : 1;
-          ownerScaleRef.current += (growTarget - ownerScaleRef.current) * (1 - Math.exp(-dt / 140));
           const prevO = ownerPrevRef.current;
           const vpfO = prevO ? (cx - prevO.x) / Math.max(dt, 1) : 0;
           ownerPrevRef.current = { x: cx, y: cy };
           const leanTargetO = Math.max(-16, Math.min(16, vpfO * 24));
           ownerRotRef.current += (leanTargetO - ownerRotRef.current) * (1 - Math.exp(-dt / 110));
-          ownerEl.style.transform = `translate(-50%, -50%) rotate(${ownerRotRef.current.toFixed(2)}deg) scale(${ownerScaleRef.current.toFixed(3)})`;
+          ownerEl.style.transform = `translate(-50%, -50%) rotate(${ownerRotRef.current.toFixed(2)}deg)`;
         }
       }
 
@@ -1566,7 +1669,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         >
           <div className={isGhosting ? "mesh-ghosted" : undefined}>
           <MeshiMascot
-            size={44}
+            size={28}
             color={prefs.color}
             hat={prefs.hat}
             mood={hoverNode ? "excited" : prefs.face}
@@ -1652,7 +1755,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
               <div className={!viewUserId && isGhosting ? "mesh-ghosted" : undefined}>
               <MeshiMascot
-                size={44}
+                size={28}
                 color={(m.colorTheme || "blue") as MeshiColor}
                 hat={(m.hatStyle || "none") as MeshiHat}
                 hair={(m.hairStyle || "none") as MeshiHair}
@@ -1679,14 +1782,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       })()}
 
       {/* Other users' Meshis — visible only while they're viewing this same mesh */}
-      {remotePresences.map((p) => (
+      {remotePresences.map((p) => {
+        const arriving = Date.now() - (joinStampRef.current.get(p.userId) ?? 0) < 1100;
+        return (
         <div
           key={p.userId}
           ref={(el) => {
             if (el) presenceElsRef.current.set(p.userId, el);
             else presenceElsRef.current.delete(p.userId);
           }}
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
+          className={`pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2${arriving ? " meshi-arrive" : ""}`}
           style={(() => {
             // Perched connections are positioned per-frame from their node;
             // start invisible so they never flash in at the viewport centre.
@@ -1709,7 +1814,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           })()}
         >
           <MeshiMini
-            size={44}
+            size={28}
             color={p.meshiColor as MeshiColor}
             hat={p.meshiHat as MeshiHat}
             hair={(p.meshiHair || "none") as MeshiHair}
@@ -1719,9 +1824,32 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             outfit={(p.meshiOutfit || "none") as MeshiOutfit}
             mood={(p.meshiMood as MeshiMood) || "happy"}
           />
-          <p className="mt-0.5 max-w-[6rem] truncate text-center text-[10px] font-medium text-white/75">
+          <p className="mt-0.5 max-w-[5rem] truncate text-center text-[9px] font-medium text-white/70">
             @{p.username}
           </p>
+          {arriving && <span className="meshi-arrive-ring" aria-hidden />}
+        </div>
+        );
+      })}
+
+      {/* Departed visitors fade out right where they stood. */}
+      {leavingMeshis.map((l) => (
+        <div
+          key={l.key}
+          className="meshi-leave pointer-events-none absolute z-10"
+          style={{ left: `${l.x}px`, top: `${l.y}px` }}
+        >
+          <MeshiMini
+            size={28}
+            color={l.p.meshiColor as MeshiColor}
+            hat={l.p.meshiHat as MeshiHat}
+            hair={(l.p.meshiHair || "none") as MeshiHair}
+            accessory={(l.p.meshiAccessory || "none") as MeshiAccessory}
+            eyeStyle={(l.p.meshiEyeStyle || "regular") as MeshiEyeStyle}
+            badge={(l.p.meshiBadge || "none") as MeshiBadge}
+            outfit={(l.p.meshiOutfit || "none") as MeshiOutfit}
+            mood="sleepy"
+          />
         </div>
       ))}
 
@@ -1809,6 +1937,17 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {/* A whisper of amber over the whole world while viewing the past. */}
       {rewindAt != null && (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-[4] bg-amber-400/[0.05]" />
+      )}
+
+      {/* Someone just walked into your mesh. */}
+      {presenceToast && (
+        <div
+          key={presenceToast.key}
+          className="pointer-events-none absolute left-1/2 top-[8.25rem] z-30 flex items-center gap-1.5 rounded-full border border-violet-300/25 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-100 backdrop-blur"
+          style={{ animation: "meshWeaveToast 3.5s ease forwards" }}
+        >
+          {presenceToast.text}
+        </div>
       )}
 
       {/* Something just wove itself into the mesh, live. */}
