@@ -7,6 +7,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronDown,
+  Combine,
   Info,
   KeyRound,
   PauseCircle,
@@ -588,10 +589,16 @@ export function ConnectedAccountsClient({
             Official APIs only · disconnect anytime
           </p>
         </div>
-        <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
-          <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/one-account" className={cn(buttonVariants({ variant: "default" }))}>
+            <Combine className="h-4 w-4" aria-hidden="true" />
+            One Account
+          </Link>
+          <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Refresh
+          </Button>
+        </div>
       </header>
 
       {fromOnboarding && quickMergePlatforms.length > 0 && (
