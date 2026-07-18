@@ -3,6 +3,7 @@
 // strokes and labels stay crisp. The painter also records each node's screen
 // hitbox for pointer hit-testing.
 
+import { GUIDE_RINGS } from "./scene-layout";
 import type { BranchKey, SceneModel, SceneNode } from "./scene-model";
 
 export interface Camera {
@@ -443,7 +444,9 @@ function drawPostCard(
   const x = cx - w / 2;
   const y = cy - h / 2;
   const radius = 16 * scale;
-  const alpha = 0.4 + 0.6 * emph;
+  // Time flows outward AND fades: fresh work is vivid, old work recedes like
+  // memory — but never below readable.
+  const alpha = (0.4 + 0.6 * emph) * (0.62 + 0.38 * (node.freshness ?? 1));
   const bodyFill = "rgba(13, 17, 30, 0.94)";
 
   ctx.save();
@@ -563,6 +566,12 @@ function drawPostCard(
   ctx.lineWidth = isSelected || isHover ? 1.8 : 1.1;
   ctx.stroke();
 
+  // Arrived since your last visit — a bright, unmissable mark.
+  if (node.isNew) {
+    ctx.globalAlpha = 1;
+    drawPill(ctx, x + 26 * scale, y, "New", "rgba(34,211,238,0.94)", "rgba(165,243,252,0.9)", "#032830", Math.max(8, 9 * scale), 7);
+  }
+
   ctx.restore();
   return { w, h };
 }
@@ -644,6 +653,36 @@ export function drawScene(o: RenderOptions): void {
   vig.addColorStop(1, "rgba(2,3,7,0.45)");
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, width, height);
+
+  // --- Closeness guide rings: the geometry explains itself. On your own
+  // mesh, faint labeled rings show that distance from you is real closeness.
+  if (o.isOwnMesh && o.camera.zoom <= 1.15 && model.nodes.size > 1) {
+    ctx.save();
+    for (const ring of GUIDE_RINGS) {
+      const rr = ring.radius * o.camera.zoom;
+      ctx.beginPath();
+      ctx.setLineDash([3, 9]);
+      ctx.arc(gcx, gcy, rr, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(148,163,184,0.10)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Label on the upper-left diagonal, clear of the "made by you" top arc.
+      const la = -Math.PI * 0.78;
+      const lx = gcx + Math.cos(la) * rr;
+      const ly = gcy + Math.sin(la) * rr;
+      ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
+      const tw = ctx.measureText(ring.label).width;
+      roundRectPath(ctx, lx - tw / 2 - 6, ly - 8, tw + 12, 16, 8);
+      ctx.fillStyle = "rgba(4,6,14,0.55)";
+      ctx.fill();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(196,205,232,0.42)";
+      ctx.fillText(ring.label, lx, ly + 0.5);
+    }
+    ctx.restore();
+  }
 
   const nodes = model.nodes;
   o.pillHitboxes?.clear();
@@ -869,8 +908,15 @@ export function drawScene(o: RenderOptions): void {
       }
     }
 
-    // Online status dot for people.
+    // Aliveness: people online right now breathe — a soft green pulse ring
+    // plus the status dot, so the living parts of your world stand out.
     if ((node.kind === "person" || node.kind === "persona") && node.status === "online") {
+      const breathe = 0.5 + 0.5 * Math.sin(time * 0.0035 + node.x * 0.05);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r + 5 + 3 * breathe, 0, Math.PI * 2);
+      ctx.strokeStyle = withAlpha("#22c55e", 0.18 + 0.2 * (1 - breathe));
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
       ctx.beginPath();
       ctx.arc(p.x + r * 0.72, p.y + r * 0.72, Math.max(2.5, r * 0.28), 0, Math.PI * 2);
       ctx.fillStyle = "#22c55e";

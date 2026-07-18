@@ -1,10 +1,11 @@
 // Builds the constellation model from the /api/mesh response.
 //
-// Ground-up world structure: YOU at the center, and everything real connected
-// DIRECTLY to its actual source — no abstract category hubs in between. Your
-// people and your platforms form the inner ring around you; everything they
-// (and you) made fans outward from its source, so every strand means a real
-// relationship: you→person, you→platform, source→content. Layout is computed
+// The world is organized the way people actually hold their world in their
+// heads: YOU at the center; the people you genuinely talk to physically CLOSE
+// to you and acquaintances further out (closeness is distance); everything
+// anyone made fanning outward from its maker with the newest work nearest
+// (time flows outward); and live people visibly alive. Every placement has a
+// stated reason — nothing on the mesh is arbitrary. Layout is computed
 // separately by scene-layout.ts.
 
 import { bestStillUrl, playableVideoUrl } from "@/lib/external-media";
@@ -58,6 +59,16 @@ export interface SceneNode {
   count?: number;
   /** Relative visual weight (drives star size); 0..1. */
   weight: number;
+  /** People: 0..1 real relationship strength — drives distance from you. */
+  closeness?: number;
+  /** Content: 0..1 recency — new work glows, old work fades like memory. */
+  freshness?: number;
+  /** Content created since your last visit gets a visible mark. */
+  isNew?: boolean;
+  /** Content creation time (ms epoch) — time flows outward on the mesh. */
+  createdAtMs?: number;
+  /** Honest one-line reason this node sits where it sits. */
+  placeReason?: string;
   meta?: { label: string; value: string }[];
   // Layout output (filled by scene-layout)
   x: number;
@@ -76,8 +87,6 @@ export interface SceneNode {
 export interface SceneModel {
   selfId: string;
   nodes: Map<string, SceneNode>;
-  /** Branch keys present in the world (no hub nodes exist anymore). */
-  branchOrder: BranchKey[];
 }
 
 const BRANCH_META: Record<BranchKey, { label: string; color: string }> = {
@@ -88,15 +97,6 @@ const BRANCH_META: Record<BranchKey, { label: string; color: string }> = {
   posts: { label: "Posts", color: "#34d399" },
   activity: { label: "Activity", color: "#38bdf8" },
 };
-
-// Branches render clockwise from the top in this order.
-// The mesh stays focused on the three things that matter: your people,
-// your posts, and your platforms.
-const BRANCH_DISPLAY_ORDER: BranchKey[] = [
-  "platforms",
-  "people",
-  "posts",
-];
 
 const MAX_PEOPLE = 24;
 const MAX_POSTS = 18;
@@ -115,14 +115,43 @@ function platformColor(platform: string | null | undefined): string {
   return PLATFORM_COLORS[(platform || "").toLowerCase()] || BRANCH_META.platforms.color;
 }
 
-export function buildSceneModel(data: MeshApiResponse): SceneModel {
+function toMs(value: string | number | Date | null | undefined): number | undefined {
+  if (value == null) return undefined;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
+/** Compact human age: "5m", "3h", "2d", "4mo", "1y". */
+function relAge(ms: number): string {
+  const s = Math.max(60, (Date.now() - ms) / 1000);
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 86400 * 30) return `${Math.floor(s / 86400)}d`;
+  if (s < 86400 * 365) return `${Math.floor(s / (86400 * 30))}mo`;
+  return `${Math.floor(s / (86400 * 365))}y`;
+}
+
+// Recency decay with a ~3-week feel: this week ≈ bright, a season old ≈ dim,
+// years old ≈ a faint memory. Undated content sits in the middle.
+function freshnessOf(ms: number | undefined): number {
+  if (!ms) return 0.55;
+  const ageDays = Math.max(0, (Date.now() - ms) / 86400000);
+  return clamp01(Math.exp(-ageDays / 21));
+}
+
+export interface BuildSceneOptions {
+  /** Your previous visit (ms epoch): anything made after it is marked New. */
+  lastVisitAt?: number | null;
+}
+
+export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions): SceneModel {
   const nodes = new Map<string, SceneNode>();
-  const present = new Set<BranchKey>();
+  const lastVisitAt = opts?.lastVisitAt ?? null;
+  const isNewSince = (ms: number | undefined) => Boolean(lastVisitAt && ms && ms > lastVisitAt);
 
   const add = (node: Omit<SceneNode, "x" | "y" | "angle" | "depth" | "dx" | "dy" | "vx" | "vy">) => {
     const full: SceneNode = { ...node, x: 0, y: 0, angle: 0, depth: 0, dx: 0, dy: 0, vx: 0, vy: 0 };
     nodes.set(full.id, full);
-    if (full.branch) present.add(full.branch);
     if (full.parentId) {
       const parent = nodes.get(full.parentId);
       if (parent && !parent.childIds.includes(full.id)) parent.childIds.push(full.id);
@@ -147,13 +176,16 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     weight: 1,
   });
 
-  // --- Platforms (connected accounts) with their top posts ---
-  // Platforms strand straight to you; their content fans out beyond them.
+  // --- Platforms (connected accounts) with their recent-best posts ---
+  // Platforms strand straight to you; their content fans out beyond them,
+  // newest first, so each platform reads as "what I've made there lately".
   const platforms: any[] = data.connectedAccounts || [];
   if (platforms.length) {
     platforms.forEach((acct: any) => {
       const platformId = `platform:${acct.id}`;
-      const topPosts: any[] = (acct.topPosts || []).slice(0, MAX_PLATFORM_POSTS);
+      const topPosts: any[] = (acct.topPosts || [])
+        .slice(0, MAX_PLATFORM_POSTS)
+        .sort((a: any, b: any) => (toMs(b.publishedAt) ?? 0) - (toMs(a.publishedAt) ?? 0));
       const followers = acct.analytics?.followerCount ?? acct.counts?.platformFollowers ?? 0;
       const postCount = acct.counts?.platformPosts ?? topPosts.length;
       add({
@@ -169,6 +201,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         count: topPosts.length || undefined,
         status: acct.syncStatus,
         weight: clamp01(0.48 + Math.min(postCount, 200) / 400),
+        placeReason: "Your bridge to the wider internet — connected and syncing",
         meta: [
           { label: "Posts", value: String(postCount) },
           { label: "Followers", value: String(followers) },
@@ -176,6 +209,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
       });
       topPosts.forEach((pp: any) => {
         const media = pp.media?.[0];
+        const publishedMs = toMs(pp.publishedAt);
         // Node thumbnails render through <img>/canvas Image — only ever hand
         // them a still, never a video file or platform page URL.
         const image =
@@ -195,8 +229,12 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           childIds: [],
           branch: "platforms",
           href: pp.url || undefined,
+          createdAtMs: publishedMs,
+          freshness: freshnessOf(publishedMs),
+          isNew: isNewSince(publishedMs),
           weight: clamp01(0.22 + Math.min((pp.likeCount || 0) + (pp.commentCount || 0) * 2, 400) / 800),
           meta: [
+            ...(publishedMs ? [{ label: "Time", value: relAge(publishedMs) }] : []),
             { label: "Likes", value: String(pp.likeCount ?? 0) },
             { label: "Comments", value: String(pp.commentCount ?? 0) },
           ],
@@ -205,7 +243,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     });
   }
 
-  // --- People (following + followers, mutuals first) ---
+  // --- People — placed by real relationship strength, not follow order ---
   const seen = new Set<string>();
   const people: any[] = [];
   for (const f of data.following || []) {
@@ -225,6 +263,21 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
       const personId = `person:${p.id}`;
       const friendMesh = friendMeshMap.get(p.id);
       const friendPosts: any[] = ((friendMesh?.posts as any[]) || []).slice(0, 4);
+      // Closeness is the human truth of the tie: following each other, how
+      // often you actually interact, and whether they're here right now.
+      const interaction = Math.min(p.interactionCount || 0, 24);
+      const closeness = clamp01(
+        0.22 + (p.isMutual ? 0.34 : 0) + (interaction / 24) * 0.36 + (p.status === "online" ? 0.08 : 0),
+      );
+      const placeReason = p.isMutual
+        ? interaction >= 6
+          ? "Right beside you — you follow each other and talk often"
+          : "Close to you — you follow each other"
+        : interaction >= 6
+          ? "Near you — you interact a lot"
+          : p.isFollowing
+            ? "In your circle — you follow them"
+            : "In your circle — they follow you";
       add({
         id: personId,
         kind: "person",
@@ -240,7 +293,9 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         username: p.username,
         status: p.status || "offline",
         count: friendPosts.length || undefined,
-        weight: clamp01(0.42 + (p.isMutual ? 0.18 : 0) + Math.min(p.interactionCount || 0, 40) / 120),
+        closeness,
+        placeReason,
+        weight: clamp01(0.34 + closeness * 0.55),
         meta: [
           { label: "Followers", value: String(p.followerCount ?? p._count?.followers ?? 0) },
           { label: "Posts", value: String(p.postCount ?? p._count?.posts ?? 0) },
@@ -248,6 +303,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
       });
       friendPosts.forEach((fp: any) => {
         const media = fp.media?.[0];
+        const createdMs = toMs(fp.createdAt);
         add({
           id: `friend-post:${p.id}:${fp.id}`,
           kind: "post",
@@ -263,8 +319,12 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
           childIds: [],
           branch: "people",
           href: "/feed/" + fp.id,
+          createdAtMs: createdMs,
+          freshness: freshnessOf(createdMs),
+          isNew: isNewSince(createdMs),
           weight: 0.24,
           meta: [
+            ...(createdMs ? [{ label: "Time", value: relAge(createdMs) }] : []),
             { label: "Likes", value: String(fp.likeCount ?? fp._count?.likes ?? 0) },
             { label: "Comments", value: String(fp.commentCount ?? fp._count?.comments ?? 0) },
           ],
@@ -278,6 +338,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
   if (posts.length) {
     posts.forEach((p: any) => {
       const media = p.media?.[0];
+      const createdMs = toMs(p.createdAt);
       add({
         id: `post:${p.id}`,
         kind: "post",
@@ -290,8 +351,12 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         childIds: [],
         branch: "posts",
         href: "/feed/" + p.id,
+        createdAtMs: createdMs,
+        freshness: freshnessOf(createdMs),
+        isNew: isNewSince(createdMs),
         weight: clamp01(0.24 + Math.min((p.likeCount || 0) + (p.commentCount || 0) * 2, 400) / 800),
         meta: [
+          ...(createdMs ? [{ label: "Time", value: relAge(createdMs) }] : []),
           { label: "Likes", value: String(p.likeCount ?? 0) },
           { label: "Comments", value: String(p.commentCount ?? 0) },
         ],
@@ -299,6 +364,5 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     });
   }
 
-  const branchOrder = BRANCH_DISPLAY_ORDER.filter((key) => present.has(key));
-  return { selfId, nodes, branchOrder };
+  return { selfId, nodes };
 }

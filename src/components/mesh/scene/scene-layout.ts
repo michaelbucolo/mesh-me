@@ -1,21 +1,32 @@
-// Ring layout for the constellation — ground-up rebuild.
+// Layout for the constellation — organized by logic and human nature.
 //
-// You sit at the origin. Your SOURCES — people and platforms — form the inner
-// ring around you, every one strung directly to you. CONTENT fans outward
-// from whatever made it: your native posts spread from you across the top,
-// a platform's posts cluster beyond that platform, a friend's shared posts
-// cluster beyond that friend. Two readable rings, no abstract hubs, and every
-// strand is a real relationship. A final relaxation pass guarantees nothing
+// You sit at the origin, and the geometry tells the truth about your life:
+//
+//   CLOSENESS IS DISTANCE. People are placed at a radius set by the real
+//   strength of the tie — mutuals you talk to daily sit right beside you,
+//   acquaintances drift toward the rim. One glance shows who your people are.
+//
+//   TIME FLOWS OUTWARD. Everything anyone made fans out from its maker with
+//   the newest work nearest — your latest post sits closest to you, a
+//   platform's latest video sits closest to that platform. Walking outward is
+//   walking back in time.
+//
+//   PROVENANCE IS GEOMETRY. Every strand is a real relationship: you→person,
+//   you→platform, maker→work. No abstract hubs, nothing arbitrary.
+//
+// Angles are deterministic per node id, so everyone keeps their place between
+// visits and spatial memory works. A final relaxation pass guarantees nothing
 // overlaps regardless of how much lives on the mesh.
 
 import type { SceneModel, SceneNode, SceneNodeKind } from "./scene-model";
 
 const TOP_ANGLE = -Math.PI / 2;
-// Inner ring: people sit slightly closer than platforms so the two source
-// kinds read as one ring with texture, not two competing circles.
-const PERSON_RADIUS = 330;
-const MUTUAL_RADIUS = 300;
-const PLATFORM_RADIUS = 385;
+// People: closeness maps onto this radial band. closeness 1 → right beside
+// you; closeness 0 → the rim of your social world.
+const PERSON_NEAR = 240;
+const PERSON_SPREAD = 290;
+// Platforms: your bridge to the wider internet, grounded at the bottom.
+const PLATFORM_RADIUS = 400;
 // Content ring: post cards are wide, so they live well beyond the sources.
 const CONTENT_RADIUS = 680;
 const CONTENT_RING_GAP = 240;
@@ -24,6 +35,13 @@ const NATIVE_ARC_HALF = (72 * Math.PI) / 180;
 const NATIVE_PER_RING = 5;
 // Content clustered beyond a source spreads inside this half-angle.
 const CLUSTER_HALF = (26 * Math.PI) / 180;
+
+// Faint labeled rings the renderer draws so the closeness geometry is
+// self-explaining: radii in world units, matched to the person band above.
+export const GUIDE_RINGS: { radius: number; label: string }[] = [
+  { radius: PERSON_NEAR + PERSON_SPREAD * 0.22, label: "Closest to you" },
+  { radius: PERSON_NEAR + PERSON_SPREAD * 0.92, label: "Your wider circle" },
+];
 
 function normalizeAngle(angle: number): number {
   const full = Math.PI * 2;
@@ -54,29 +72,30 @@ export function layoutScene(model: SceneModel): void {
   const all = Array.from(nodes.values());
   const people = all.filter((n) => n.kind === "person");
   const platforms = all.filter((n) => n.kind === "platform");
-  const nativePosts = all.filter((n) => n.kind === "post" && n.parentId === selfId);
+  const nativePosts = all
+    .filter((n) => n.kind === "post" && n.parentId === selfId)
+    .sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
 
-  // ── Inner ring: sources. People fill most of the circle; platforms take
-  // the lower arc so connected accounts read as "the wider internet below
-  // you" while your people surround you. The top arc stays clear for your
-  // own content.
-  const sourceCount = people.length + platforms.length;
-  if (sourceCount > 0) {
-    // People: spread across the two sides, leaving the top arc for native
-    // posts and the bottom arc for platforms.
-    const peopleStart = TOP_ANGLE + NATIVE_ARC_HALF + 0.18;
-    const peopleSweep = Math.PI * 2 - NATIVE_ARC_HALF * 2 - 0.36 - (platforms.length > 0 ? 0.9 : 0);
-    people.forEach((p, i) => {
-      const frac = people.length <= 1 ? 0.5 : i / (people.length - 1);
-      const angle = normalizeAngle(peopleStart + frac * peopleSweep + jitter(p.id) * 0.05);
-      const radius = (p.color === "#a78bfa" ? MUTUAL_RADIUS : PERSON_RADIUS) + jitter(p.id + "r") * 16;
-      p.angle = angle;
-      p.depth = 1;
-      p.x = Math.cos(angle) * radius;
-      p.y = Math.sin(angle) * radius;
-    });
+  // ── People: spread across the two sides in a stable, id-deterministic
+  // order (so everyone keeps their place between visits), at a radius set by
+  // closeness. The top arc stays clear for your own content, the bottom arc
+  // for platforms.
+  const peopleOrdered = [...people].sort((a, b) => jitter(a.id) - jitter(b.id));
+  const peopleStart = TOP_ANGLE + NATIVE_ARC_HALF + 0.18;
+  const peopleSweep = Math.PI * 2 - NATIVE_ARC_HALF * 2 - 0.36 - (platforms.length > 0 ? 0.9 : 0);
+  peopleOrdered.forEach((p, i) => {
+    const frac = peopleOrdered.length <= 1 ? 0.5 : i / (peopleOrdered.length - 1);
+    const angle = normalizeAngle(peopleStart + frac * peopleSweep + jitter(p.id) * 0.05);
+    const closeness = p.closeness ?? 0.35;
+    const radius = PERSON_NEAR + (1 - closeness) * PERSON_SPREAD + jitter(p.id + "r") * 14;
+    p.angle = angle;
+    p.depth = 1;
+    p.x = Math.cos(angle) * radius;
+    p.y = Math.sin(angle) * radius;
+  });
 
-    // Platforms: centered on the bottom.
+  // ── Platforms: centered on the bottom.
+  if (platforms.length) {
     const platformSweep = Math.min(1.5, 0.5 * Math.max(platforms.length - 1, 0) + 0.001);
     platforms.forEach((p, i) => {
       const frac = platforms.length <= 1 ? 0.5 : i / (platforms.length - 1);
@@ -88,7 +107,8 @@ export function layoutScene(model: SceneModel): void {
     });
   }
 
-  // ── Your content: fans across the top, closest to you of all content.
+  // ── Your content: fans across the top, newest nearest to you, each older
+  // ring a step further back in time.
   nativePosts.forEach((post, i) => {
     const ring = Math.floor(i / NATIVE_PER_RING);
     const onRing = Math.min(NATIVE_PER_RING, nativePosts.length - ring * NATIVE_PER_RING);
@@ -102,12 +122,15 @@ export function layoutScene(model: SceneModel): void {
     post.y = Math.sin(angle) * radius;
   });
 
-  // ── Source content: each source's posts cluster just beyond it, in its own
-  // radial direction — the strand from source to content stays short and the
-  // provenance stays visually obvious.
+  // ── Source content: each maker's work clusters just beyond them in their
+  // own radial direction, newest closest to its maker — short strands, obvious
+  // provenance, and time flowing outward everywhere on the mesh.
   const sources = [...people, ...platforms];
   sources.forEach((source) => {
-    const children = source.childIds.map((id) => nodes.get(id)!).filter(Boolean);
+    const children = source.childIds
+      .map((id) => nodes.get(id)!)
+      .filter(Boolean)
+      .sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
     children.forEach((child, i) => {
       const ring = Math.floor(i / 3);
       const onRing = Math.min(3, children.length - ring * 3);

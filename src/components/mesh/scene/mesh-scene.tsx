@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, HelpCircle, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, HelpCircle, List, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -26,7 +26,7 @@ import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from "./scene-model";
 import { layoutScene, sceneBounds } from "./scene-layout";
 import { drawScene, type Camera } from "./scene-render";
-import { createPhysicsState, stepExpansion, stepScenePhysics, type PhysicsState } from "./scene-physics";
+import { createPhysicsState, stepScenePhysics, type PhysicsState } from "./scene-physics";
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -35,6 +35,8 @@ interface MeshSceneProps {
 const MIN_ZOOM = 0.22;
 const MAX_ZOOM = 2.4;
 const TIPS_SEEN_KEY = "mesh-tips-seen";
+// Your previous visit's timestamp — anything made after it is marked "New".
+const LAST_VISIT_KEY = "meshLastVisit";
 
 type RemotePresence = {
   userId: string;
@@ -155,6 +157,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [showList, setShowList] = useState(false);
+  const [newCount, setNewCount] = useState(0);
   const [showTips, setShowTips] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [discoverUsers, setDiscoverUsers] = useState<
@@ -168,6 +172,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const showCursorMeshi = prefs.enabled && (Boolean(viewUserId) || !meshData?.meshiPreference);
 
   const lastTapRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  // Read once per session so "New" marks stay stable while you explore, even
+  // though the stored timestamp advances the moment you arrive.
+  const lastVisitRef = useRef<number | null | undefined>(undefined);
   const activeBranchRef = useRef<BranchKey | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   const focusIdRef = useRef<string | null>(null);
@@ -256,8 +263,25 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           return;
         }
         setMeshData(payload);
-        const model = buildSceneModel(payload);
+        if (lastVisitRef.current === undefined) {
+          try {
+            const raw = localStorage.getItem(LAST_VISIT_KEY);
+            lastVisitRef.current = raw ? Number(raw) || null : null;
+          } catch {
+            lastVisitRef.current = null;
+          }
+        }
+        const model = buildSceneModel(payload, {
+          lastVisitAt: viewUserId ? null : lastVisitRef.current ?? null,
+        });
         layoutScene(model);
+        if (!viewUserId) {
+          try {
+            localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
+          } catch {
+            // Storage may be unavailable — New marks just won't persist.
+          }
+        }
         const quiet = Boolean(opts?.quiet && modelRef.current);
         if (quiet) {
           // Carry over animated positions so a refresh doesn't re-form the sky.
@@ -298,6 +322,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // An empty mesh is still the mesh: render the canvas (you + your
         // Meshi) and let compose/search work — just surface a gentle hint.
         setMeshIsEmpty(model.nodes.size <= 1);
+        let fresh = 0;
+        model.nodes.forEach((n) => {
+          if (n.isNew) fresh += 1;
+        });
+        setNewCount(fresh);
         setStatus("ready");
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -347,8 +376,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const dt = lastFrameRef.current ? time - lastFrameRef.current : 16;
       lastFrameRef.current = time;
       if (model && width && height) {
-        // Physics: branch expansion easing + node springs.
-        stepExpansion(physicsRef.current, model.branchOrder, activeBranchRef.current, dt);
+        // Physics: node springs toward the closeness/time layout.
         stepScenePhysics(model, physicsRef.current, time, dt);
 
         // Inertial pan: carry the fling velocity after release, with decay.
@@ -482,8 +510,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     [fitToContent, flyToNode, enterFriendMesh],
   );
 
-  // Every readable piece of content on the mesh, in reading order — so the
-  // content lens can glide from one to the next like a stream you scroll.
+  // Every readable piece of content on the mesh, newest first — so the
+  // content lens glides through your world the way memory works: from now,
+  // backward.
   const contentList = useCallback((): SceneNode[] => {
     const model = modelRef.current;
     if (!model) return [];
@@ -491,6 +520,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     model.nodes.forEach((n) => {
       if (n.kind === "post" || n.kind === "activity") out.push(n);
     });
+    out.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
     return out;
   }, []);
 
@@ -1064,7 +1094,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       if (e.key === "Escape") {
         setShowSearch(false);
         setShowCompose(false);
+        setShowList(false);
         setSelectedNode(null);
+        setActiveBranch(null);
         setShowTips(false);
         return;
       }
@@ -1075,6 +1107,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       } else if (e.key === "+" || e.key === "=") zoomBy(1.25);
       else if (e.key === "-") zoomBy(0.8);
       else if (e.key === "0" || e.key.toLowerCase() === "f") fitToContent();
+      else if (e.key.toLowerCase() === "l") setShowList((v) => !v);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1201,6 +1234,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               <div className="px-3 py-2">
                 <p className="truncate text-[11.5px] font-semibold text-white">{hoverNode.label}</p>
                 {hoverNode.sublabel && <p className="truncate text-[10px] text-white/55">{hoverNode.sublabel}</p>}
+                {hoverNode.kind === "person" && hoverNode.placeReason && (
+                  <p className="mt-0.5 text-[9.5px] leading-snug text-white/45">{hoverNode.placeReason}</p>
+                )}
                 {hoverNode.content && hoverNode.content !== hoverNode.label && (
                   <p className="mt-1 line-clamp-2 text-left text-[10px] leading-snug text-white/75">{hoverNode.content}</p>
                 )}
@@ -1371,6 +1407,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         <RailButton label="Search your mesh" onClick={() => setShowSearch(true)}>
           <Search size={16} />
         </RailButton>
+        <RailButton label="Explore as a list" onClick={() => setShowList(true)}>
+          <List size={16} />
+        </RailButton>
         <RailButton label="Zoom in" onClick={() => zoomBy(1.25)}>
           <Plus size={16} />
         </RailButton>
@@ -1391,6 +1430,19 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           recentComments={meshData.recentComments}
         />
       ) : null}
+
+      {/* What arrived while you were away — one tap opens it as a list. */}
+      {status === "ready" && !viewUserId && newCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowList(true)}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur transition-colors hover:bg-cyan-400/20"
+        >
+          <Sparkles size={13} />
+          {newCount === 1 ? "1 new thing" : `${newCount} new things`} since your last visit
+        </button>
+      )}
 
       {/* Loading / states */}
       {status === "loading" && (
@@ -1493,7 +1545,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <div className="mb-3 flex items-start justify-between">
               <div>
                 <p className="text-sm font-semibold text-white">Welcome to your mesh</p>
-                <p className="text-[11px] text-white/50">Your whole world, woven into one web.</p>
+                <p className="text-[11px] text-white/50">Your world, arranged the way you actually hold it.</p>
               </div>
               <button
                 type="button"
@@ -1507,25 +1559,26 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <ul className="space-y-2.5 text-xs leading-relaxed text-white/75">
               <li className="flex gap-2.5">
                 <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>{isCoarsePointer ? "Drag to pan and pinch to zoom around your web." : "Drag to pan and scroll to zoom around your web."}</span>
+                <span>Distance is real: the people you actually talk to sit closest to you, acquaintances further out.</span>
               </li>
               <li className="flex gap-2.5">
                 <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>{isCoarsePointer ? "Tap any node to open it — posts, people, platforms." : "Click any node to open it — posts, people, platforms."}</span>
+                <span>Time flows outward: everyone&apos;s newest work sits nearest them and fades as it ages. Walking out is walking back in time.</span>
               </li>
               <li className="flex gap-2.5">
                 <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>{isCoarsePointer ? "Double-tap empty space to zoom in on that spot." : "Double-click empty space to zoom in on that spot."}</span>
+                <span>A green pulse means someone&apos;s here right now. &ldquo;New&rdquo; marks what arrived since your last visit.</span>
               </li>
               <li className="flex gap-2.5">
                 <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
-                <span>Friends glow on the web — open one to step into their mesh.</span>
+                <span>{isCoarsePointer ? "Drag to pan, pinch to zoom, tap anything to open it" : "Drag to pan, scroll to zoom, click anything to open it"} — posts play right here, people lead into their meshes.</span>
               </li>
               {!isCoarsePointer && (
                 <li className="flex gap-2.5">
                   <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--mesh-blue)]" />
                   <span>
                     Press <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">/</kbd> to search,{" "}
+                    <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">L</kbd> for the same world as a list,{" "}
                     <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">0</kbd> to recenter, and{" "}
                     <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">+</kbd>/
                     <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white">-</kbd> to zoom.
@@ -1642,7 +1695,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           key={selectedNode.id}
           node={selectedNode}
           list={contentList()}
-          onClose={() => setSelectedNode(null)}
+          onClose={() => {
+            // Closing the lens un-dims the whole world — never leave the mesh
+            // stuck spotlighting one branch after you're done reading.
+            setSelectedNode(null);
+            setActiveBranch(null);
+          }}
           onNavigate={navigateContent}
         />
       )}
@@ -1653,8 +1711,28 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         selectedNode.kind !== "branch" &&
         selectedNode.kind !== "post" &&
         selectedNode.kind !== "activity" && (
-          <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} onEnterMesh={enterFriendMesh} />
+          <NodeDetail
+            node={selectedNode}
+            onClose={() => {
+              setSelectedNode(null);
+              setActiveBranch(null);
+            }}
+            onEnterMesh={enterFriendMesh}
+          />
         )}
+
+      {/* The same world, as a list — full keyboard/screen-reader parity with
+          the canvas: closest people first, newest work first. */}
+      {showList && status === "ready" && (
+        <MeshListView
+          model={modelRef.current}
+          onClose={() => setShowList(false)}
+          onOpen={(node) => {
+            setShowList(false);
+            jumpToNode(node);
+          }}
+        />
+      )}
 
       {/* Compose: post straight onto your constellation */}
       {showCompose && meshUser && (
@@ -1716,6 +1794,185 @@ function RailButton({ label, onClick, children }: { label: string; onClick: () =
   );
 }
 
+/**
+ * The whole mesh as a structured, keyboard-navigable list — the accessible
+ * twin of the canvas. Same organizing logic, stated in words: people sorted
+ * by real closeness, everyone's work newest-first under its maker.
+ */
+function MeshListView({
+  model,
+  onClose,
+  onOpen,
+}: {
+  model: SceneModel | null;
+  onClose: () => void;
+  onOpen: (node: SceneNode) => void;
+}) {
+  if (!model) return null;
+  const all = Array.from(model.nodes.values());
+  const byNewest = (a: SceneNode, b: SceneNode) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0);
+  const people = all
+    .filter((n) => n.kind === "person")
+    .sort((a, b) => (b.closeness ?? 0) - (a.closeness ?? 0));
+  const nativePosts = all
+    .filter((n) => n.kind === "post" && n.parentId === model.selfId)
+    .sort(byNewest);
+  const platforms = all.filter((n) => n.kind === "platform");
+  const postsOf = (source: SceneNode) =>
+    source.childIds
+      .map((id) => model.nodes.get(id))
+      .filter((n): n is SceneNode => Boolean(n && n.kind === "post"))
+      .sort(byNewest);
+
+  const timeOf = (node: SceneNode) => node.meta?.find((m) => m.label === "Time")?.value;
+
+  const PostRow = ({ node, indent }: { node: SceneNode; indent?: boolean }) => (
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(node)}
+        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6 ${indent ? "pl-8" : ""}`}
+      >
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: node.color }} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-sm text-white">{node.label}</span>
+            {node.isNew && (
+              <span className="shrink-0 rounded-full bg-cyan-400/15 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-cyan-200">
+                New
+              </span>
+            )}
+          </span>
+          <span className="block truncate text-[11px] text-white/45">
+            {[timeOf(node), node.sublabel].filter(Boolean).join(" · ") || "Post"}
+          </span>
+        </span>
+      </button>
+    </li>
+  );
+
+  return (
+    <div
+      className="absolute inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-label="Your mesh as a list"
+        className="flex h-full w-full max-w-md flex-col border-l border-white/10 bg-[#0b1020] pt-16 shadow-2xl"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-white/8 px-4 py-3.5">
+          <div>
+            <p className="text-sm font-semibold text-white">The same world, as a list</p>
+            <p className="text-[11px] text-white/50">Closest people first · newest work first</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close list"
+            onClick={onClose}
+            className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-6 pt-1">
+          {people.length > 0 && (
+            <>
+              <p className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                Your people — closest first
+              </p>
+              <ul>
+                {people.map((node) => (
+                  <li key={node.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpen(node)}
+                      className="flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                    >
+                      {node.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={node.avatarUrl} alt="" className="mt-0.5 h-7 w-7 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span
+                          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+                          style={{ background: node.color }}
+                        >
+                          {node.label.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="truncate text-sm text-white">{node.label}</span>
+                          {node.status === "online" && (
+                            <span className="flex items-center gap-1 text-[9.5px] font-semibold text-emerald-300">
+                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                              here now
+                            </span>
+                          )}
+                        </span>
+                        {node.sublabel && <span className="block truncate text-[11px] text-white/50">{node.sublabel}</span>}
+                        {node.placeReason && <span className="block text-[10px] leading-snug text-white/40">{node.placeReason}</span>}
+                      </span>
+                    </button>
+                    {postsOf(node).length > 0 && <ul>{postsOf(node).map((p) => <PostRow key={p.id} node={p} indent />)}</ul>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {nativePosts.length > 0 && (
+            <>
+              <p className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                Made by you — newest first
+              </p>
+              <ul>
+                {nativePosts.map((node) => (
+                  <PostRow key={node.id} node={node} />
+                ))}
+              </ul>
+            </>
+          )}
+
+          {platforms.length > 0 && (
+            <>
+              <p className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                Your platforms — the wider internet
+              </p>
+              <ul>
+                {platforms.map((node) => (
+                  <li key={node.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpen(node)}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                    >
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: node.color }} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm capitalize text-white">{node.label}</span>
+                        {node.sublabel && <span className="block truncate text-[11px] text-white/50">{node.sublabel}</span>}
+                      </span>
+                    </button>
+                    {postsOf(node).length > 0 && <ul>{postsOf(node).map((p) => <PostRow key={p.id} node={p} indent />)}</ul>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {people.length === 0 && nativePosts.length === 0 && platforms.length === 0 && (
+            <p className="px-3 py-6 text-center text-xs text-white/45">This mesh is just its owner for now.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NodeDetail({
   node,
   onClose,
@@ -1757,6 +2014,12 @@ function NodeDetail({
           <X size={16} />
         </button>
       </div>
+
+      {node.placeReason && (
+        <p className="mt-2.5 rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-[11px] leading-snug text-white/55">
+          {node.placeReason}
+        </p>
+      )}
 
       {node.content && <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-white/70">{node.content}</p>}
 
