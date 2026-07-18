@@ -107,7 +107,7 @@ export function MeChatInfoRail({
           </div>
           <p className="mt-1 text-sm text-[var(--mesh-text-secondary)]">{subtitle}</p>
 
-          <div className="mt-4 grid w-full grid-cols-4 gap-2">
+          <div className="mt-4 grid w-full grid-cols-2 gap-2 min-[360px]:grid-cols-4">
             {[
               { icon: Users, label: "Members", value: members.length },
               { icon: ImageIcon, label: "Media", value: mediaCount },
