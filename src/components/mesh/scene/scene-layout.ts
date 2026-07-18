@@ -1,21 +1,29 @@
-// Static sectored radial-tree layout for the constellation.
+// Ring layout for the constellation — ground-up rebuild.
 //
-// You sit at the origin. Each category branch owns an angular sector so the
-// branches never overlap. A branch's items fan out on one or more arcs inside
-// that sector; an item's own footprint (posts, accounts) clusters just beyond
-// it like a small constellation. A little deterministic jitter keeps it
-// organic rather than mechanical, while staying inside the sector bounds.
+// You sit at the origin. Your SOURCES — people and platforms — form the inner
+// ring around you, every one strung directly to you. CONTENT fans outward
+// from whatever made it: your native posts spread from you across the top,
+// a platform's posts cluster beyond that platform, a friend's shared posts
+// cluster beyond that friend. Two readable rings, no abstract hubs, and every
+// strand is a real relationship. A final relaxation pass guarantees nothing
+// overlaps regardless of how much lives on the mesh.
 
 import type { SceneModel, SceneNode, SceneNodeKind } from "./scene-model";
 
-const BRANCH_RADIUS = 310;
-const ITEM_RING_START = 540;
-const ITEM_RING_GAP = 120;
-const ITEMS_PER_RING = 6;
-const SUB_RADIUS_STEP = 64;
 const TOP_ANGLE = -Math.PI / 2;
-const BOTTOM_CORRIDOR_HALF = (55 * Math.PI) / 180;
-const BRANCH_SWEEP = Math.PI * 2 - BOTTOM_CORRIDOR_HALF * 2;
+// Inner ring: people sit slightly closer than platforms so the two source
+// kinds read as one ring with texture, not two competing circles.
+const PERSON_RADIUS = 330;
+const MUTUAL_RADIUS = 300;
+const PLATFORM_RADIUS = 385;
+// Content ring: post cards are wide, so they live well beyond the sources.
+const CONTENT_RADIUS = 680;
+const CONTENT_RING_GAP = 240;
+// Native posts fan across the top arc reserved for "made by you".
+const NATIVE_ARC_HALF = (72 * Math.PI) / 180;
+const NATIVE_PER_RING = 5;
+// Content clustered beyond a source spreads inside this half-angle.
+const CLUSTER_HALF = (26 * Math.PI) / 180;
 
 function normalizeAngle(angle: number): number {
   const full = Math.PI * 2;
@@ -33,7 +41,7 @@ function jitter(id: string): number {
 }
 
 export function layoutScene(model: SceneModel): void {
-  const { nodes, selfId, branchOrder } = model;
+  const { nodes, selfId } = model;
 
   const self = nodes.get(selfId);
   if (self) {
@@ -43,89 +51,91 @@ export function layoutScene(model: SceneModel): void {
     self.depth = 0;
   }
 
-  const branchCount = Math.max(branchOrder.length, 1);
-  const isSingleBranch = branchCount === 1;
-  const sectorWidth = branchCount > 1 ? BRANCH_SWEEP / (branchCount - 1) : 0;
-  const sectorHalf = isSingleBranch
-    ? Math.min((BRANCH_SWEEP / 2) * 0.82, (14 * Math.PI) / 180)
-    : Math.min((sectorWidth / 2) * 0.82, (14 * Math.PI) / 180);
+  const all = Array.from(nodes.values());
+  const people = all.filter((n) => n.kind === "person");
+  const platforms = all.filter((n) => n.kind === "platform");
+  const nativePosts = all.filter((n) => n.kind === "post" && n.parentId === selfId);
 
-  branchOrder.forEach((branchHubId, branchIndex) => {
-    const branch = nodes.get(branchHubId);
-    if (!branch) return;
-    const baseAngle = normalizeAngle(
-      isSingleBranch ? TOP_ANGLE : TOP_ANGLE - BRANCH_SWEEP / 2 + branchIndex * sectorWidth,
-    );
-    branch.angle = baseAngle;
-    branch.depth = 1;
-    branch.x = Math.cos(baseAngle) * BRANCH_RADIUS;
-    branch.y = Math.sin(baseAngle) * BRANCH_RADIUS;
+  // ── Inner ring: sources. People fill most of the circle; platforms take
+  // the lower arc so connected accounts read as "the wider internet below
+  // you" while your people surround you. The top arc stays clear for your
+  // own content.
+  const sourceCount = people.length + platforms.length;
+  if (sourceCount > 0) {
+    // People: spread across the two sides, leaving the top arc for native
+    // posts and the bottom arc for platforms.
+    const peopleStart = TOP_ANGLE + NATIVE_ARC_HALF + 0.18;
+    const peopleSweep = Math.PI * 2 - NATIVE_ARC_HALF * 2 - 0.36 - (platforms.length > 0 ? 0.9 : 0);
+    people.forEach((p, i) => {
+      const frac = people.length <= 1 ? 0.5 : i / (people.length - 1);
+      const angle = normalizeAngle(peopleStart + frac * peopleSweep + jitter(p.id) * 0.05);
+      const radius = (p.color === "#a78bfa" ? MUTUAL_RADIUS : PERSON_RADIUS) + jitter(p.id + "r") * 16;
+      p.angle = angle;
+      p.depth = 1;
+      p.x = Math.cos(angle) * radius;
+      p.y = Math.sin(angle) * radius;
+    });
 
-    const items = branch.childIds.map((id) => nodes.get(id)!).filter(Boolean);
-    // Post cards are much wider than stars, so they get fewer per ring and
-    // more breathing room between rings.
-    const isPostBranch = items.length > 0 && items.every((i) => i.kind === "post");
-    const perRing = isPostBranch ? 3 : ITEMS_PER_RING;
-    const ringStart = isPostBranch ? ITEM_RING_START + 60 : ITEM_RING_START;
-    const ringGap = isPostBranch ? 200 : ITEM_RING_GAP;
-    const ringCount = Math.max(1, Math.ceil(items.length / perRing));
+    // Platforms: centered on the bottom.
+    const platformSweep = Math.min(1.5, 0.5 * Math.max(platforms.length - 1, 0) + 0.001);
+    platforms.forEach((p, i) => {
+      const frac = platforms.length <= 1 ? 0.5 : i / (platforms.length - 1);
+      const angle = normalizeAngle(Math.PI / 2 + (frac - 0.5) * platformSweep + jitter(p.id) * 0.04);
+      p.angle = angle;
+      p.depth = 1;
+      p.x = Math.cos(angle) * PLATFORM_RADIUS;
+      p.y = Math.sin(angle) * PLATFORM_RADIUS;
+    });
+  }
 
-    items.forEach((item, itemIndex) => {
-      const ring = Math.floor(itemIndex / perRing);
-      const ringRadius = ringStart + ring * ringGap;
+  // ── Your content: fans across the top, closest to you of all content.
+  nativePosts.forEach((post, i) => {
+    const ring = Math.floor(i / NATIVE_PER_RING);
+    const onRing = Math.min(NATIVE_PER_RING, nativePosts.length - ring * NATIVE_PER_RING);
+    const pos = i % NATIVE_PER_RING;
+    const frac = onRing <= 1 ? 0.5 : pos / (onRing - 1);
+    const angle = TOP_ANGLE + (frac - 0.5) * 2 * NATIVE_ARC_HALF + jitter(post.id) * 0.04;
+    const radius = CONTENT_RADIUS - 80 + ring * CONTENT_RING_GAP;
+    post.angle = normalizeAngle(angle);
+    post.depth = 2;
+    post.x = Math.cos(angle) * radius;
+    post.y = Math.sin(angle) * radius;
+  });
 
-      // How many items live on this ring (last ring may be partial).
-      const onThisRing =
-        ring === ringCount - 1 && items.length % perRing !== 0
-          ? items.length % perRing
-          : Math.min(perRing, items.length - ring * perRing);
-      const posInRing = itemIndex % perRing;
-
-      const frac = onThisRing <= 1 ? 0.5 : posInRing / (onThisRing - 1);
-      // Alternate ring offset so stacked rings interleave instead of aligning.
-      const ringSkew = (ring % 2) * (sectorHalf / Math.max(onThisRing, 1)) * 0.5;
-      const spread = (frac - 0.5) * 2 * sectorHalf;
-      const angle = baseAngle + spread + ringSkew + jitter(item.id) * 0.05;
-
-      item.angle = angle;
-      item.depth = 2;
-      item.x = Math.cos(angle) * ringRadius;
-      item.y = Math.sin(angle) * ringRadius;
-
-      // Sub-items (item's own footprint) cluster just beyond the item, fanning
-      // outward along the same radial direction.
-      const subs = item.childIds.map((id) => nodes.get(id)!).filter(Boolean);
-      subs.forEach((sub, subIndex) => {
-        const isCard = sub.kind === "post";
-        const subFrac = subs.length <= 1 ? 0 : subIndex / (subs.length - 1) - 0.5;
-        const subAngle = angle + subFrac * (isCard ? 0.8 : 0.42) + jitter(sub.id) * 0.04;
-        const subRadius =
-          ringRadius + SUB_RADIUS_STEP + (subIndex % 2) * (isCard ? 120 : 26) + (isCard ? 90 : 30);
-        sub.angle = subAngle;
-        sub.depth = 3;
-        sub.x = Math.cos(subAngle) * subRadius;
-        sub.y = Math.sin(subAngle) * subRadius;
-      });
+  // ── Source content: each source's posts cluster just beyond it, in its own
+  // radial direction — the strand from source to content stays short and the
+  // provenance stays visually obvious.
+  const sources = [...people, ...platforms];
+  sources.forEach((source) => {
+    const children = source.childIds.map((id) => nodes.get(id)!).filter(Boolean);
+    children.forEach((child, i) => {
+      const ring = Math.floor(i / 3);
+      const onRing = Math.min(3, children.length - ring * 3);
+      const pos = i % 3;
+      const frac = onRing <= 1 ? 0.5 : pos / (onRing - 1);
+      const angle = source.angle + (frac - 0.5) * 2 * CLUSTER_HALF + jitter(child.id) * 0.03;
+      const radius = CONTENT_RADIUS + ring * CONTENT_RING_GAP + jitter(child.id + "r") * 30;
+      child.angle = normalizeAngle(angle);
+      child.depth = 2;
+      child.x = Math.cos(angle) * radius;
+      child.y = Math.sin(angle) * radius;
     });
   });
 
-  // Final pass: guarantee nothing overlaps. The radial placement above spaces
-  // nodes by *angle*, which ignores how much room each node actually occupies —
-  // a post card is ~172px across, a star ~30px. Relax any pair whose footprints
-  // collide by pushing them apart along the line between their centres. Self
-  // stays pinned at the origin; everything else settles into a clean, legible
-  // constellation while keeping its radial branch structure.
+  // Final pass: guarantee nothing overlaps. Radial placement spaces nodes by
+  // angle, which ignores real footprints — a post card is ~172px across, an
+  // avatar ~40px. Relax colliding pairs apart; self stays pinned.
   resolveOverlaps(model);
 }
 
 // Half-footprint (world units) each kind claims for collision purposes.
 const FOOTPRINT: Record<SceneNodeKind, number> = {
-  self: 74,
+  self: 84,
   branch: 48,
   post: 132,
   persona: 42,
-  platform: 38,
-  person: 40,
+  platform: 46,
+  person: 48,
   community: 40,
   interest: 34,
   activity: 34,

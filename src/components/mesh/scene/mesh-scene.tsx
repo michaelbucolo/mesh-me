@@ -297,7 +297,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         }
         // An empty mesh is still the mesh: render the canvas (you + your
         // Meshi) and let compose/search work — just surface a gentle hint.
-        setMeshIsEmpty(model.branchOrder.length === 0);
+        setMeshIsEmpty(model.nodes.size <= 1);
         setStatus("ready");
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -348,12 +348,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       lastFrameRef.current = time;
       if (model && width && height) {
         // Physics: branch expansion easing + node springs.
-        stepExpansion(
-          physicsRef.current,
-          model.branchOrder.map((id) => model.nodes.get(id)!.branch as BranchKey),
-          activeBranchRef.current,
-          dt,
-        );
+        stepExpansion(physicsRef.current, model.branchOrder, activeBranchRef.current, dt);
         stepScenePhysics(model, physicsRef.current, time, dt);
 
         // Inertial pan: carry the fling velocity after release, with decay.

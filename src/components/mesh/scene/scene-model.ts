@@ -1,10 +1,11 @@
-// Builds a constellation model from the /api/mesh response.
+// Builds the constellation model from the /api/mesh response.
 //
-// The model is a shallow tree: you at the center, a ring of labelled category
-// branches (your whole online presence, grouped), and each branch's items
-// underneath it. Items that have their own footprint (a connected platform's
-// posts, a persona's accounts, a friend's shared world) carry children so they
-// can be opened in place. Layout is computed separately by scene-layout.ts.
+// Ground-up world structure: YOU at the center, and everything real connected
+// DIRECTLY to its actual source — no abstract category hubs in between. Your
+// people and your platforms form the inner ring around you; everything they
+// (and you) made fans outward from its source, so every strand means a real
+// relationship: you→person, you→platform, source→content. Layout is computed
+// separately by scene-layout.ts.
 
 import { bestStillUrl, playableVideoUrl } from "@/lib/external-media";
 import type { MeshApiResponse } from "../mesh-data";
@@ -75,8 +76,8 @@ export interface SceneNode {
 export interface SceneModel {
   selfId: string;
   nodes: Map<string, SceneNode>;
-  /** Branch hub ids in display order. */
-  branchOrder: string[];
+  /** Branch keys present in the world (no hub nodes exist anymore). */
+  branchOrder: BranchKey[];
 }
 
 const BRANCH_META: Record<BranchKey, { label: string; color: string }> = {
@@ -116,11 +117,12 @@ function platformColor(platform: string | null | undefined): string {
 
 export function buildSceneModel(data: MeshApiResponse): SceneModel {
   const nodes = new Map<string, SceneNode>();
-  const branchOrder: string[] = [];
+  const present = new Set<BranchKey>();
 
   const add = (node: Omit<SceneNode, "x" | "y" | "angle" | "depth" | "dx" | "dy" | "vx" | "vy">) => {
     const full: SceneNode = { ...node, x: 0, y: 0, angle: 0, depth: 0, dx: 0, dy: 0, vx: 0, vy: 0 };
     nodes.set(full.id, full);
+    if (full.branch) present.add(full.branch);
     if (full.parentId) {
       const parent = nodes.get(full.parentId);
       if (parent && !parent.childIds.includes(full.id)) parent.childIds.push(full.id);
@@ -145,33 +147,10 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     weight: 1,
   });
 
-  const branchId = (key: BranchKey) => `branch:${key}`;
-
-  const ensureBranch = (key: BranchKey, count: number) => {
-    const id = branchId(key);
-    if (nodes.has(id)) {
-      const existing = nodes.get(id)!;
-      existing.count = count;
-      return existing;
-    }
-    branchOrder.push(id);
-    return add({
-      id,
-      kind: "branch",
-      label: BRANCH_META[key].label,
-      color: BRANCH_META[key].color,
-      parentId: selfId,
-      childIds: [],
-      branch: key,
-      count,
-      weight: 0.62,
-    });
-  };
-
   // --- Platforms (connected accounts) with their top posts ---
+  // Platforms strand straight to you; their content fans out beyond them.
   const platforms: any[] = data.connectedAccounts || [];
   if (platforms.length) {
-    ensureBranch("platforms", platforms.length);
     platforms.forEach((acct: any) => {
       const platformId = `platform:${acct.id}`;
       const topPosts: any[] = (acct.topPosts || []).slice(0, MAX_PLATFORM_POSTS);
@@ -183,13 +162,13 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         label: acct.platform,
         sublabel: acct.platformUsername ? "@" + acct.platformUsername : undefined,
         color: platformColor(acct.platform),
-        parentId: branchId("platforms"),
+        parentId: selfId,
         childIds: [],
         branch: "platforms",
         href: "/connected-accounts",
         count: topPosts.length || undefined,
         status: acct.syncStatus,
-        weight: clamp01(0.4 + Math.min(postCount, 200) / 400),
+        weight: clamp01(0.48 + Math.min(postCount, 200) / 400),
         meta: [
           { label: "Posts", value: String(postCount) },
           { label: "Followers", value: String(followers) },
@@ -242,7 +221,6 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
   const friendMeshMap = new Map((data.friendMeshes || []).map((f) => [f.user.id, f]));
   const peopleToShow = people.slice(0, MAX_PEOPLE);
   if (peopleToShow.length) {
-    ensureBranch("people", people.length);
     peopleToShow.forEach((p: any) => {
       const personId = `person:${p.id}`;
       const friendMesh = friendMeshMap.get(p.id);
@@ -254,7 +232,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         sublabel: "@" + p.username,
         avatarUrl: p.avatarUrl,
         color: p.isMutual ? "#a78bfa" : BRANCH_META.people.color,
-        parentId: branchId("people"),
+        parentId: selfId,
         childIds: [],
         branch: "people",
         href: "/profile/" + p.username,
@@ -262,7 +240,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         username: p.username,
         status: p.status || "offline",
         count: friendPosts.length || undefined,
-        weight: clamp01(0.34 + (p.isMutual ? 0.16 : 0) + Math.min(p.interactionCount || 0, 40) / 120),
+        weight: clamp01(0.42 + (p.isMutual ? 0.18 : 0) + Math.min(p.interactionCount || 0, 40) / 120),
         meta: [
           { label: "Followers", value: String(p.followerCount ?? p._count?.followers ?? 0) },
           { label: "Posts", value: String(p.postCount ?? p._count?.posts ?? 0) },
@@ -295,10 +273,9 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     });
   }
 
-  // --- Posts (your own native posts) ---
+  // --- Posts (your own native posts) — strand straight from you ---
   const posts: any[] = (data.posts || []).slice(0, MAX_POSTS);
   if (posts.length) {
-    ensureBranch("posts", (data.posts || []).length);
     posts.forEach((p: any) => {
       const media = p.media?.[0];
       add({
@@ -309,7 +286,7 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
         imageUrl: media && media.type !== "video" ? media.url : null,
         videoUrl: media && media.type === "video" ? media.url : null,
         color: BRANCH_META.posts.color,
-        parentId: branchId("posts"),
+        parentId: selfId,
         childIds: [],
         branch: "posts",
         href: "/feed/" + p.id,
@@ -322,12 +299,6 @@ export function buildSceneModel(data: MeshApiResponse): SceneModel {
     });
   }
 
-  // Order branches by the canonical display order.
-  branchOrder.sort(
-    (a, b) =>
-      BRANCH_DISPLAY_ORDER.indexOf(nodes.get(a)!.branch as BranchKey) -
-      BRANCH_DISPLAY_ORDER.indexOf(nodes.get(b)!.branch as BranchKey),
-  );
-
+  const branchOrder = BRANCH_DISPLAY_ORDER.filter((key) => present.has(key));
   return { selfId, nodes, branchOrder };
 }
