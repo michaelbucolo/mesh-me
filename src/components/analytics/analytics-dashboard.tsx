@@ -167,7 +167,7 @@ function PlatformRow({ account }: { account: AnalyticsDashboardData["platformCom
           </span>
         )}
       </div>
-      <div className="mt-3 grid grid-cols-4 gap-x-3 gap-y-2 sm:grid-cols-8">
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[400px]:grid-cols-4 sm:grid-cols-8">
         {cells.map(([label, value]) => (
           <div key={label} className="min-w-0">
             <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
