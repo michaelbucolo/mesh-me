@@ -559,7 +559,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               >
                 {visualMedia[0] && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={visualMedia[0].url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <img src={visualMedia[0].url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                 )}
                 <span className="absolute inset-0 flex items-center justify-center bg-black/25 transition group-hover/embed:bg-black/35">
                   <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur transition group-hover/embed:scale-105">

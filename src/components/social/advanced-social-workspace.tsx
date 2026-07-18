@@ -779,7 +779,7 @@ export function AdvancedSocialWorkspace({ mode, data }: AdvancedSocialWorkspaceP
                         {post.media[0] && (
                           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={post.media[0].url} alt="" className="h-full w-full object-cover" />
+                            <img src={post.media[0].url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                           </div>
                         )}
                       </div>
@@ -1088,7 +1088,7 @@ function ContentQueue({
                   {(post.thumbnailUrl || post.media[0]?.thumbnailUrl || post.media[0]?.url) && (
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={post.thumbnailUrl || post.media[0]?.thumbnailUrl || post.media[0]?.url || ""} alt="" className="h-full w-full object-cover" />
+                      <img src={post.thumbnailUrl || post.media[0]?.thumbnailUrl || post.media[0]?.url || ""} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                     </div>
                   )}
                   <div className="min-w-0">

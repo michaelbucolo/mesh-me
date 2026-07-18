@@ -358,13 +358,18 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     }));
   }
 
-  if (activeThreadId) {
-    await prisma.threadMember.update({
-      where: { userId_threadId: { userId: user.id, threadId: activeThreadId } },
-      data: { lastRead: new Date() },
-    }).catch(() => {});
-  }
-  const messages = activeThreadId ? await getThreadMessages(activeThreadId) : [];
+  // Both branches above only produce an activeThreadId after proving the
+  // viewer's membership, so the messages fetch can skip its own check and run
+  // in parallel with the lastRead write instead of chaining three round trips.
+  const [, messages] = activeThreadId
+    ? await Promise.all([
+        prisma.threadMember.update({
+          where: { userId_threadId: { userId: user.id, threadId: activeThreadId } },
+          data: { lastRead: new Date() },
+        }).catch(() => {}),
+        getThreadMessages(activeThreadId, { membershipVerified: true }),
+      ])
+    : [undefined, []];
   const messagesById = new Map(messages.map((message) => [message.id, {
     id: message.id,
     content: message.content,

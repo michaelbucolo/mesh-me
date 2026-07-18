@@ -144,9 +144,9 @@ function ReelMedia({
     return (
       <div className="relative h-full w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image.url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" aria-hidden />
+        <img src={image.url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" aria-hidden />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image.url} alt="" className="relative h-full w-full object-contain" />
+        <img src={image.url} alt="" loading="lazy" decoding="async" className="relative h-full w-full object-contain" />
         {embedUrl && (
           <span className="absolute inset-0 flex items-center justify-center">
             <Play size={64} className="text-white/85 drop-shadow-lg" fill="currentColor" />
@@ -434,7 +434,7 @@ function Reel({
               <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2">
                 {post.author.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={post.author.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/40" />
+                  <img src={post.author.avatarUrl} alt="" loading="lazy" decoding="async" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/40" />
                 ) : (
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
                     {(post.author.displayName || post.author.username).slice(0, 1).toUpperCase()}
@@ -577,7 +577,7 @@ function FlowColdStart({
                 <Link href={`/profile/${person.username}`} className="shrink-0">
                   {person.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={person.avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
+                    <img src={person.avatarUrl} alt="" loading="lazy" decoding="async" className="h-11 w-11 rounded-full object-cover" />
                   ) : (
                     <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">
                       {(person.displayName || person.username).slice(0, 1).toUpperCase()}

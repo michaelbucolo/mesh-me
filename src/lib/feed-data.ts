@@ -1,7 +1,35 @@
+import { cache } from "react";
 import { nsfwHiddenWhere } from "./content-safety";
 import { buildExternalMedia } from "./external-media";
 import { getFriendPlatformFeedPosts, type FriendPlatformFeedPost } from "./friend-mesh";
 import { prisma } from "./prisma";
+
+// The viewer's follow/community graph is stable within a request, but the feed
+// builds several candidate passes (all + discover + per-platform) that each
+// need it. Request-level cache() collapses those into one 3-query batch.
+export const getViewerSocialGraph = cache(async (userId: string) => {
+  const [following, communityMemberships, followers] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: userId },
+      select: { followingId: true },
+    }),
+    prisma.communityMember.findMany({
+      where: { userId },
+      select: { communityId: true },
+    }),
+    prisma.follow.findMany({
+      where: { followingId: userId },
+      select: { followerId: true },
+    }),
+  ]);
+
+  const followingIds = following.map((follow) => follow.followingId);
+  const communityIds = communityMemberships.map((membership) => membership.communityId);
+  const followerIds = new Set(followers.map((follow) => follow.followerId));
+  const friendIds = followingIds.filter((id) => followerIds.has(id));
+
+  return { followingIds, communityIds, followerIds, friendIds };
+});
 
 export type FeedSource = "all" | "following" | "discover";
 export type FeedContentFilter = "all" | "mesh" | "platforms" | "media" | "links" | "text" | "photos" | "videos";
@@ -110,25 +138,7 @@ export function toFeedCardPost(post: NativeFeedPost): FeedCardPost {
 }
 
 async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSource, take: number) {
-  const [following, communityMemberships, followers] = await Promise.all([
-    prisma.follow.findMany({
-      where: { followerId: user.id },
-      select: { followingId: true },
-    }),
-    prisma.communityMember.findMany({
-      where: { userId: user.id },
-      select: { communityId: true },
-    }),
-    prisma.follow.findMany({
-      where: { followingId: user.id },
-      select: { followerId: true },
-    }),
-  ]);
-
-  const followingIds = following.map((follow) => follow.followingId);
-  const communityIds = communityMemberships.map((membership) => membership.communityId);
-  const followerIds = new Set(followers.map((follow) => follow.followerId));
-  const friendIds = followingIds.filter((id) => followerIds.has(id));
+  const { followingIds, communityIds, friendIds } = await getViewerSocialGraph(user.id);
   const safetyWhere = nsfwHiddenWhere(user);
   const audienceWhere = {
     OR: [
@@ -472,15 +482,7 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
     }
   }
 
-  const [following, communityMemberships, followers] = await Promise.all([
-    prisma.follow.findMany({ where: { followerId: user.id }, select: { followingId: true } }),
-    prisma.communityMember.findMany({ where: { userId: user.id }, select: { communityId: true } }),
-    prisma.follow.findMany({ where: { followingId: user.id }, select: { followerId: true } }),
-  ]);
-  const followingIds = following.map((follow) => follow.followingId);
-  const followerIds = new Set(followers.map((follow) => follow.followerId));
-  const friendIds = followingIds.filter((followingId) => followerIds.has(followingId));
-  const communityIds = communityMemberships.map((membership) => membership.communityId);
+  const { communityIds, friendIds } = await getViewerSocialGraph(user.id);
 
   const post = await prisma.post.findFirst({
     where: {
