@@ -31,6 +31,8 @@ export type PresenceEntry = {
    * it once, deduped by the timestamp.
    */
   lastAction: string | null;
+  /** Mesh Pro member — their Meshi carries a gold aura in the room. */
+  isPro: boolean;
   lastSeen: number;
 };
 
@@ -98,6 +100,7 @@ type PresenceRow = {
   activity: string;
   ghostMode: boolean;
   lastAction: string | null;
+  isPro: boolean;
   lastSeen: Date;
 };
 
@@ -129,6 +132,7 @@ function rowToEntry(row: PresenceRow): PresenceEntry {
         : "idle",
     ghostMode: row.ghostMode,
     lastAction: row.lastAction,
+    isPro: row.isPro,
     lastSeen: row.lastSeen.getTime(),
   };
 }
@@ -159,6 +163,7 @@ function entryToRow(entry: PresenceEntry) {
     activity: entry.activity,
     ghostMode: entry.ghostMode,
     lastAction: entry.lastAction,
+    isPro: entry.isPro,
     lastSeen: new Date(entry.lastSeen),
   };
 }
@@ -338,6 +343,7 @@ export function buildPresencePayload(
       activity: entry.activity,
       ghostMode: entry.ghostMode,
       lastAction: entry.lastAction,
+      isPro: entry.isPro,
       isOnline,
     });
   }

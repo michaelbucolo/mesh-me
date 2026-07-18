@@ -910,6 +910,7 @@ CREATE TABLE IF NOT EXISTS "MeshPresence" (
     "activity" TEXT NOT NULL DEFAULT 'idle',
     "ghostMode" BOOLEAN NOT NULL DEFAULT false,
     "lastAction" TEXT,
+    "isPro" BOOLEAN NOT NULL DEFAULT false,
     "lastSeen" DATETIME NOT NULL
 );
 

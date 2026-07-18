@@ -73,6 +73,8 @@ export async function POST(request: Request) {
       activity: activity === "traveling" || activity === "exploring" ? activity : "idle",
       ghostMode: ghostMode === true,
       lastAction,
+      // Server-authoritative: the gold Pro aura can't be spoofed by clients.
+      isPro: Boolean(user.isMeshPro),
       lastSeen: Date.now(),
     });
 

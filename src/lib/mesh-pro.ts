@@ -19,7 +19,9 @@ export const MESH_PRO_PRICING = {
 
 export const MESH_PRO_FEATURES = [
   "Premium creator analytics",
+  "Mesh Atmospheres — five sky palettes for your world",
   "Custom Mesh branch visuals",
+  "Gold Pro aura on your live Meshi",
   "Expanded Meshi cosmetics",
   "Profile Pro badge",
   "Custom app themes",
@@ -37,8 +39,10 @@ export const MESH_PRO_ANALYTICS = [
 ] as const;
 
 export const MESH_PRO_CUSTOMIZATION = [
+  "Mesh Atmospheres: Aurora, Ember, Ocean, and Dawn skies — visitors see your mesh dressed your way",
   "Custom Mesh connection colors",
-  "Custom Mesh node styles",
+  "Custom Mesh node styles and motion",
+  "Gold Pro aura on your live Meshi, visible to everyone in the room",
   "Premium Meshi hats, hair, accessories, badges, and outfits",
   "Custom app theme colors",
   "Use Meshi as a personal profile badge",

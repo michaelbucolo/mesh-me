@@ -9370,9 +9370,45 @@ body > * { position: relative; z-index: 1; }
 
 /* ── Meshis live IN the world: they scale with the zoom like nodes do. ── */
 .meshi-world-scale {
+  position: relative;
   transform: scale(var(--meshi-scale, 1));
   transform-origin: center;
   will-change: transform;
+}
+
+/* Mesh Pro aura — a quiet gold halo breathing behind a Pro member's Meshi.
+   Server-authoritative (presence carries isPro), purely decorative. */
+.meshi-pro-aura {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.22) 0%, rgba(250, 204, 21, 0.08) 45%, rgba(250, 204, 21, 0) 70%);
+  animation: meshiProAura 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.meshi-pro-aura::after {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border-radius: 9999px;
+  border: 1px solid rgba(253, 224, 71, 0.35);
+}
+
+@keyframes meshiProAura {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
 }
 
 /* ── Precise cursor marker on the mesh (fine pointers) ────────────────── */

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toggleReaction } from "@/lib/actions";
 import { MeshiLoader } from "@/components/meshi/meshi-loader";
-import { MeshDesktopChrome } from "@/components/mesh/mesh-desktop-chrome";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -25,7 +24,7 @@ import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from "./scene-model";
 import { layoutScene, sceneBounds } from "./scene-layout";
 import { drawScene, type Camera } from "./scene-render";
-import { createPhysicsState, stepScenePhysics, type PhysicsState } from "./scene-physics";
+import { createPhysicsState, driftScaleFor, stepScenePhysics, type PhysicsState } from "./scene-physics";
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -57,6 +56,8 @@ type RemotePresence = {
   activeNodeId?: string | null;
   /** Encoded tiny world action ("heart|targetId|atMs") to replay in the room. */
   lastAction?: string | null;
+  /** Mesh Pro member — their Meshi carries a subtle gold aura. */
+  isPro?: boolean;
   isOnline: boolean;
 };
 
@@ -281,7 +282,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [discoverUsers, setDiscoverUsers] = useState<
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
   >([]);
-  const showDesktopChrome = Boolean(meshData && !viewUserId);
   // On your OWN mesh, the owner Meshi pinned at the heart already is you — so
   // don't ALSO render the pointer-following cursor Meshi, or there are two of
   // you. The cursor Meshi is for exploring: show it only when visiting someone
@@ -296,6 +296,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const selectedIdRef = useRef<string | null>(null);
   const focusIdRef = useRef<string | null>(null);
   const coarseRef = useRef(true);
+  // Mesh Pro visuals chosen by this mesh's OWNER (atmosphere, thread color,
+  // node style, motion) — visitors see the owner's world the way they dressed
+  // it. Read per-frame by the painter and physics.
+  const proVisualsRef = useRef<{
+    connectionColor: string | null;
+    nodeStyle: string | null;
+    motionStyle: string | null;
+    atmosphere: string | null;
+  }>({ connectionColor: null, nodeStyle: null, motionStyle: null, atmosphere: null });
 
   useEffect(() => {
     activeBranchRef.current = activeBranch;
@@ -381,6 +390,17 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           return;
         }
         setMeshData(payload);
+        {
+          const cosmetics = payload.meshCosmetics || [];
+          const pick = (type: string) =>
+            cosmetics.find((c) => c.type === type && c.isActive !== false)?.value ?? null;
+          proVisualsRef.current = {
+            connectionColor: pick("connectionColor"),
+            nodeStyle: pick("nodeStyle"),
+            motionStyle: pick("motionStyle"),
+            atmosphere: pick("atmosphere"),
+          };
+        }
         if (lastVisitRef.current === undefined) {
           try {
             const raw = localStorage.getItem(LAST_VISIT_KEY);
@@ -612,8 +632,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const dt = lastFrameRef.current ? time - lastFrameRef.current : 16;
       lastFrameRef.current = time;
       if (model && width && height) {
-        // Physics: node springs toward the closeness/time layout.
-        stepScenePhysics(model, physicsRef.current, time, dt);
+        // Physics: node springs toward the closeness/time layout, drifting at
+        // the owner's chosen motion style.
+        stepScenePhysics(model, physicsRef.current, time, dt, driftScaleFor(proVisualsRef.current.motionStyle));
 
         // Inertial pan: carry the fling velocity after release, with decay.
         const fling = flingRef.current;
@@ -677,6 +698,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           isOwnMesh: !viewUserId,
           strands: physicsRef.current.strands,
           strandPulses: strandPulsesRef.current,
+          visuals: proVisualsRef.current,
         });
 
         // Focus = item nearest screen center (the Meshi cursor's target).
@@ -1865,6 +1887,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             aria-hidden="true"
           >
             <div className="meshi-world-scale">
+            {meshData?.user.isMeshPro && ownerOnline && <span className="meshi-pro-aura" aria-hidden />}
             <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
               {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
               <div className={!viewUserId && isGhosting ? "mesh-ghosted" : undefined}>
@@ -1922,13 +1945,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
                 vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
               };
-            // Keep other visitors in the open canvas, never tucked behind the
-            // right-hand desktop chrome panel where they read as clipped clutter.
-            const maxVx = showDesktopChrome ? 0.68 : 0.95;
-            return { left: `${Math.min(pos.vx, maxVx) * 100}%`, top: `${pos.vy * 100}%` };
+            return { left: `${Math.min(pos.vx, 0.95) * 100}%`, top: `${pos.vy * 100}%` };
           })()}
         >
           <div className="meshi-world-scale">
+            {p.isPro && <span className="meshi-pro-aura" aria-hidden />}
             <MeshiMascot
               size={64}
               color={p.meshiColor as MeshiColor}
@@ -2000,9 +2021,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         data-testid="mesh-action-bar"
         role="toolbar"
         aria-label="Mesh actions"
-        className={`absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2 ${
-          showDesktopChrome ? "lg:right-[min(23rem,calc(100vw_-_4rem))]" : ""
-        }`}
+        className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2"
       >
         {!viewedUser && meshUser && (
           <RailButton label="Create on your mesh" onClick={() => setShowCompose(true)}>
@@ -2050,12 +2069,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         </RailButton>
       </div>
 
-      {showDesktopChrome && meshData ? (
-        <MeshDesktopChrome
-          platforms={meshData.platforms}
-          recentComments={meshData.recentComments}
-        />
-      ) : null}
 
       {/* A whisper of amber over the whole world while viewing the past. */}
       {rewindAt != null && (

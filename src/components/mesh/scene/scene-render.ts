@@ -25,6 +25,12 @@ export interface RenderOptions {
   hoverId?: string | null;
   images: Map<string, HTMLImageElement>;
   backgroundStars: { x: number; y: number; r: number; tw: number }[];
+  /** Mesh Pro visuals chosen by this mesh's OWNER — visitors see them too. */
+  visuals?: {
+    connectionColor?: string | null;
+    nodeStyle?: string | null;
+    atmosphere?: string | null;
+  };
   /** Output: screen-space hitboxes keyed by node id. */
   hitboxes: Map<string, { x: number; y: number; r: number }>;
   /** Output: screen-space label-pill rects keyed by node id (branch/self). */
@@ -78,10 +84,18 @@ function drawOrb(
   color: string,
   emph: number,
   light: string,
+  style?: string | null,
 ): void {
+  // Mesh Pro node styles reshape the same three layers — halo, body, rim —
+  // rather than adding new effects, so every style stays clean.
+  const haloMul = style === "soft" ? 1.7 : style === "bold" ? 1.25 : 1;
+  const bodyMul = style === "glass" ? 0.68 : 1;
+  const rimMul = style === "glass" ? 1.5 : style === "soft" ? 0.7 : 1;
+  const rimWidth = style === "bold" ? 1.8 : 1;
+
   // Soft ambient halo — single, gentle, so the node glows without smearing.
   const halo = ctx.createRadialGradient(x, y, r * 0.7, x, y, r * 2.4);
-  halo.addColorStop(0, withAlpha(color, 0.22 * emph));
+  halo.addColorStop(0, withAlpha(color, Math.min(0.4, 0.22 * haloMul) * emph));
   halo.addColorStop(1, withAlpha(color, 0));
   ctx.fillStyle = halo;
   ctx.beginPath();
@@ -90,8 +104,8 @@ function drawOrb(
 
   // Flat body with a subtle top-down sheen — reads as a solid, lit surface.
   const body = ctx.createLinearGradient(x, y - r, x, y + r);
-  body.addColorStop(0, withAlpha(tint(color, 0.18), 0.92 * emph + 0.08));
-  body.addColorStop(1, withAlpha(color, 0.92 * emph + 0.08));
+  body.addColorStop(0, withAlpha(tint(color, 0.18), (0.92 * emph + 0.08) * bodyMul));
+  body.addColorStop(1, withAlpha(color, (0.92 * emph + 0.08) * bodyMul));
   ctx.fillStyle = body;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -100,8 +114,8 @@ function drawOrb(
   // Crisp lit hairline defines the edge cleanly.
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.strokeStyle = withAlpha(light, 0.55 * emph + 0.12);
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = withAlpha(light, Math.min(0.95, (0.55 * emph + 0.12) * rimMul));
+  ctx.lineWidth = rimWidth;
   ctx.stroke();
 }
 
@@ -604,35 +618,71 @@ function roundedImage(
 
 // Kept deliberately quiet: the world should read clean and professional,
 // with content in front — not a light show behind it.
-const NEBULAE = [
-  { hue: "#3b62c9", ax: 0.24, ay: 0.28, rad: 0.55, sp: 0.00007, a: 0.06 },
-  { hue: "#7c3aed", ax: 0.78, ay: 0.34, rad: 0.5, sp: -0.00005, a: 0.05 },
-  { hue: "#d6438f", ax: 0.6, ay: 0.82, rad: 0.6, sp: 0.00006, a: 0.04 },
+const NEBULA_FIELD = [
+  { ax: 0.24, ay: 0.28, rad: 0.55, sp: 0.00007, a: 0.06 },
+  { ax: 0.78, ay: 0.34, rad: 0.5, sp: -0.00005, a: 0.05 },
+  { ax: 0.6, ay: 0.82, rad: 0.6, sp: 0.00006, a: 0.04 },
 ];
+
+/**
+ * Mesh Atmospheres — the sky palette of a mesh. "midnight" is the free
+ * default; the rest are Mesh Pro skies. Every palette keeps the same quiet
+ * alpha budget, so a Pro sky changes the mood, never the readability.
+ */
+interface AtmosphereSpec {
+  id: string;
+  label: string;
+  pro: boolean;
+  /** Radial background stops: centre → mid → rim. */
+  bg: [string, string, string];
+  /** Hues for the three drifting nebulae. */
+  nebulae: [string, string, string];
+  /** Star tint. */
+  star: string;
+}
+
+const ATMOSPHERES: Record<string, AtmosphereSpec> = {
+  midnight: { id: "midnight", label: "Midnight", pro: false, bg: ["#0c1226", "#070a16", "#030409"], nebulae: ["#3b62c9", "#7c3aed", "#d6438f"], star: "#aab4e8" },
+  aurora: { id: "aurora", label: "Aurora", pro: true, bg: ["#0a1f28", "#06121b", "#02070c"], nebulae: ["#14b8a6", "#22c55e", "#3b62c9"], star: "#a7e8d0" },
+  ember: { id: "ember", label: "Ember", pro: true, bg: ["#241318", "#140b10", "#080406"], nebulae: ["#f97316", "#e11d48", "#7c3aed"], star: "#f5c9a8" },
+  ocean: { id: "ocean", label: "Ocean", pro: true, bg: ["#0a1a30", "#051224", "#02060d"], nebulae: ["#0284c7", "#06b6d4", "#4f46e5"], star: "#a5d8f0" },
+  dawn: { id: "dawn", label: "Dawn", pro: true, bg: ["#1d1330", "#100a1c", "#06040a"], nebulae: ["#c026d3", "#f59e0b", "#3b62c9"], star: "#e8c9f0" },
+};
+
+function atmosphereOf(id?: string | null): AtmosphereSpec {
+  return (id && ATMOSPHERES[id]) || ATMOSPHERES.midnight;
+}
 
 export function drawScene(o: RenderOptions): void {
   const { ctx, model, width, height, time } = o;
   ctx.clearRect(0, 0, width, height);
 
-  // Deep-space background with your core's glow anchored at centre.
+  // Deep-space background in the owner's atmosphere, with your core's glow
+  // anchored at centre.
+  const atmo = atmosphereOf(o.visuals?.atmosphere);
   const gcx = width / 2 + o.camera.panX;
   const gcy = height / 2 + o.camera.panY;
   const bg = ctx.createRadialGradient(gcx, gcy, 0, width / 2, height / 2, Math.max(width, height) * 0.85);
-  bg.addColorStop(0, "#0c1226");
-  bg.addColorStop(0.55, "#070a16");
-  bg.addColorStop(1, "#030409");
+  bg.addColorStop(0, atmo.bg[0]);
+  bg.addColorStop(0.55, atmo.bg[1]);
+  bg.addColorStop(1, atmo.bg[2]);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  // Drifting aurora nebulae in the brand hues — slow, additive, alive.
+  // Drifting aurora nebulae in the atmosphere's hues — slow, additive, alive.
+  // Pro skies get a slightly richer color budget so the change of mood is
+  // unmistakable, while content still sits clearly in front.
+  const nebulaBoost = atmo.pro ? 1.8 : 1;
   ctx.globalCompositeOperation = "lighter";
-  for (const n of NEBULAE) {
+  for (let ni = 0; ni < NEBULA_FIELD.length; ni += 1) {
+    const n = NEBULA_FIELD[ni];
+    const hue = atmo.nebulae[ni] ?? atmo.nebulae[0];
     const px = width * n.ax + Math.sin(time * n.sp) * width * 0.05 + o.camera.panX * 0.04;
     const py = height * n.ay + Math.cos(time * n.sp * 1.3) * height * 0.05 + o.camera.panY * 0.04;
     const rr = Math.max(width, height) * n.rad;
     const g = ctx.createRadialGradient(px, py, 0, px, py, rr);
-    g.addColorStop(0, withAlpha(n.hue, n.a));
-    g.addColorStop(1, withAlpha(n.hue, 0));
+    g.addColorStop(0, withAlpha(hue, Math.min(0.12, n.a * nebulaBoost)));
+    g.addColorStop(1, withAlpha(hue, 0));
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, width, height);
   }
@@ -645,7 +695,7 @@ export function drawScene(o: RenderOptions): void {
     const tw = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(time * 0.0012 + s.tw));
     ctx.beginPath();
     ctx.arc(sx < 0 ? sx + width : sx, sy < 0 ? sy + height : sy, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha("#aab4e8", 0.12 * tw);
+    ctx.fillStyle = withAlpha(atmo.star, 0.12 * tw);
     ctx.fill();
   }
 
@@ -748,9 +798,11 @@ export function drawScene(o: RenderOptions): void {
     const isRelationship = parent.kind === "self" && node.kind !== "post";
     const baseAlpha = node.depth === 1 ? 0.34 : node.depth === 2 ? 0.22 : 0.14;
     const alpha = onHoverPath ? 0.85 : baseAlpha * (0.35 + 0.65 * emph);
+    // Mesh Pro: the owner can dye their relationship threads a signature color.
+    const threadColor = isRelationship ? o.visuals?.connectionColor || null : null;
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-    grad.addColorStop(0, withAlpha(parent.color, alpha));
-    grad.addColorStop(1, withAlpha(node.color, alpha));
+    grad.addColorStop(0, withAlpha(threadColor ?? parent.color, alpha));
+    grad.addColorStop(1, withAlpha(threadColor ?? node.color, alpha));
     ctx.strokeStyle = grad;
     ctx.lineWidth = (onHoverPath ? 2.4 : node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);
 
@@ -949,7 +1001,7 @@ export function drawScene(o: RenderOptions): void {
       ctx.stroke();
     } else {
       // Everything else is a clean luminous orb.
-      drawOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, light);
+      drawOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, light, o.visuals?.nodeStyle);
       if ((node.kind === "person" || node.kind === "persona" || node.kind === "community") && r >= 11) {
         const initial = (node.label || "?").trim().charAt(0).toUpperCase();
         ctx.fillStyle = withAlpha("#ffffff", 0.96 * emph + 0.08);

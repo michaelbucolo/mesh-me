@@ -33,8 +33,10 @@ function formatBillingDate(value: Date | null) {
 }
 
 const meshProUnlocks: Array<{ title: string; body: string; href: string; icon: LucideIcon }> = [
+  { title: "Mesh Atmospheres", body: "Aurora, Ember, Ocean, and Dawn skies for your mesh — visitors see them too.", href: "/settings#mesh", icon: Palette },
+  { title: "Live Pro aura", body: "Your Meshi carries a gold aura everywhere it appears on the live mesh.", href: "/mesh", icon: Sparkles },
   { title: "Analytics", body: "Pro insight cards appear in Analytics.", href: "/analytics", icon: BarChart3 },
-  { title: "Mesh visuals", body: "Branch color and node style studio appears in Settings.", href: "/settings", icon: WandSparkles },
+  { title: "Mesh visuals", body: "Thread color, node style, and motion studio in Settings.", href: "/settings#mesh", icon: WandSparkles },
   { title: "Meshi cosmetics", body: "Premium hats, hair, badges, and outfits unlock.", href: "/settings", icon: Sparkles },
   { title: "Profile badge", body: "Your profile shows a Mesh Pro badge.", href: "/profile", icon: Crown },
 ];
@@ -177,7 +179,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
             </Link>
           </Button>
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {meshProUnlocks.map(({ title, body, href, icon: Icon }) => (
             <Link key={title} href={title === "Profile badge" ? `/profile/${user.username}` : href} className="mesh-choice rounded-lg p-4 transition hover:-translate-y-0.5">
               <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />

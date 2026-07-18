@@ -97,13 +97,13 @@ function stepStrands(model: SceneModel, state: PhysicsState, dt: number): void {
   }
 }
 
-function targetFor(node: SceneNode, time: number): { x: number; y: number } {
+function targetFor(node: SceneNode, time: number, driftScale: number): { x: number; y: number } {
   let tx = node.x;
   let ty = node.y;
 
-  if (node.depth >= 1) {
+  if (node.depth >= 1 && driftScale > 0) {
     const p = phase(node.id);
-    const amp = DRIFT_AMP * (node.depth >= 2 ? 1 : 0.6);
+    const amp = DRIFT_AMP * driftScale * (node.depth >= 2 ? 1 : 0.6);
     tx += Math.sin(time * 0.00045 + p) * amp;
     ty += Math.cos(time * 0.00038 + p * 1.7) * amp;
   }
@@ -111,7 +111,14 @@ function targetFor(node: SceneNode, time: number): { x: number; y: number } {
   return { x: tx, y: ty };
 }
 
-export function stepScenePhysics(model: SceneModel, state: PhysicsState, time: number, dtMs: number): void {
+/** Mesh Pro motion styles map onto a single drift multiplier. */
+export function driftScaleFor(motionStyle?: string | null): number {
+  if (motionStyle === "lively") return 1.9;
+  if (motionStyle === "minimal") return 0.22;
+  return 1;
+}
+
+export function stepScenePhysics(model: SceneModel, state: PhysicsState, time: number, dtMs: number, driftScale = 1): void {
   const dt = Math.min(dtMs, 50) / 1000;
 
   // Seed display positions on first frame: every node starts AT ITS MAKER
@@ -129,7 +136,7 @@ export function stepScenePhysics(model: SceneModel, state: PhysicsState, time: n
   }
 
   model.nodes.forEach((node) => {
-    const t = targetFor(node, time);
+    const t = targetFor(node, time, driftScale);
     node.vx += (t.x - node.dx) * STIFFNESS * dt - node.vx * DAMPING * dt;
     node.vy += (t.y - node.dy) * STIFFNESS * dt - node.vy * DAMPING * dt;
     node.dx += node.vx * dt;
