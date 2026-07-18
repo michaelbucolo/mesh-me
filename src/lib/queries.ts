@@ -1085,6 +1085,9 @@ export async function getUserSettings() {
       where: { id: user.id },
       select: {
         email: true,
+        // bannerUrl is omitted from the session user (auth hot path); the
+        // settings/profile view is the one place that needs it, so load it here.
+        bannerUrl: true,
         activeTitle: true,
         interests: true,
         links: true,
@@ -1132,7 +1135,7 @@ export async function getUserSettings() {
     location: user.location,
     website: user.website,
     avatarUrl: user.avatarUrl,
-    bannerUrl: user.bannerUrl,
+    bannerUrl: userWithProfile?.bannerUrl ?? null,
     accentColor: user.accentColor,
     isPublic: user.isPublic,
     showInDiscovery: user.showInDiscovery,
