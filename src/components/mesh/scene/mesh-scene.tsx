@@ -9,7 +9,6 @@ import { MeshiLoader } from "@/components/meshi/meshi-loader";
 import { MeshDesktopChrome } from "@/components/mesh/mesh-desktop-chrome";
 import {
   MeshiMascot,
-  MeshiMini,
   type MeshiAccessory,
   type MeshiBadge,
   type MeshiColor,
@@ -64,6 +63,8 @@ type LeavingMeshi = {
   key: string;
   x: number;
   y: number;
+  /** World scale at departure so the ghost of them matches the zoom. */
+  s: number;
   p: RemotePresence;
 };
 
@@ -1207,7 +1208,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                   }
                 }
               }
-              if (x != null && y != null) leaves.push({ key: `${q.userId}:${Date.now()}`, x, y, p: q });
+              if (x != null && y != null) {
+                leaves.push({
+                  key: `${q.userId}:${Date.now()}`,
+                  x,
+                  y,
+                  s: Math.max(0.5, Math.min(cam.zoom, 2.2)),
+                  p: q,
+                });
+              }
             }
             if (leaves.length) {
               setLeavingMeshis((cur) => [...cur, ...leaves]);
@@ -1303,7 +1312,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // coordinates so they pan/zoom with the web, and a screen-space pass keeps
   // them from ever sitting on top of a node.
   useEffect(() => {
-    const MESHI_R = 16;
+    let meshiRLive = 16;
     // Deterministic per-frame push away from any node the Meshi would cover.
     // Recomputed from the world position each frame (never written back), so
     // it can't feedback-oscillate.
@@ -1313,7 +1322,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       for (let pass = 0; pass < 2; pass += 1) {
         let pushed = false;
         hitboxesRef.current.forEach((hb) => {
-          const minD = hb.r + MESHI_R;
+          const minD = hb.r + meshiRLive;
           const dx = x - hb.x;
           const dy = y - hb.y;
           const d = Math.hypot(dx, dy);
@@ -1388,12 +1397,19 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const dt = last ? Math.min(time - last, 50) : 16;
       last = time;
       stepHearts(time);
+      // Meshis are THINGS IN THE WORLD: they scale with the zoom exactly like
+      // nodes do (same clamp), so their size relative to the mesh never
+      // changes. Applied via a CSS variable so entrance/exit animations and
+      // the model itself stay untouched.
+      const meshiScale = Math.max(0.5, Math.min(cameraRef.current.zoom, 2.2));
+      meshiRLive = 14 * meshiScale;
       // Ambient easing for your own idle Meshi ambling home…
       const k = 1 - Math.exp(-dt / 650);
       // …but LIVE visitors track their real position near-instantly: presence
       // now streams, so their Meshis should feel present, not laggy.
       const kLive = 1 - Math.exp(-dt / 150);
       presenceElsRef.current.forEach((el, userId) => {
+        el.style.setProperty("--meshi-scale", meshiScale.toFixed(3));
         // Connections online elsewhere perch above their own node in the web,
         // tracking it as the mesh pans and drifts.
         if (presenceModeRef.current.get(userId) === "perch") {
@@ -1403,7 +1419,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             return;
           }
           const tx = hb.x;
-          const ty = hb.y - hb.r - 18;
+          const ty = hb.y - hb.r - 8 - 12 * meshiScale;
           const pos = perchPosRef.current.get(userId) ?? { x: tx, y: ty };
           pos.x += (tx - pos.x) * kLive;
           pos.y += (ty - pos.y) * kLive;
@@ -1450,6 +1466,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         center.seen = true;
         cursorVpRef.current = { vx: 0.5, vy: 0.5 };
       }
+      if (cursorEl) cursorEl.style.setProperty("--meshi-scale", meshiScale.toFixed(3));
       if (cursorEl && cursorWorldTargetRef.current.seen) {
         // Meshi IS your cursor: while the mouse is on the canvas it mirrors it
         // tightly (a whisper of trailing keeps it alive, never vague). Only
@@ -1476,6 +1493,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const ownerEl = ownerMeshiElRef.current;
       const container = containerRef.current;
       if (ownerEl && container) {
+        ownerEl.style.setProperty("--meshi-scale", meshiScale.toFixed(3));
         const isMe = !viewUserId;
         // On your own mesh your Meshi IS your cursor: it mirrors the mouse
         // while it's over the canvas, and only ambles home (casually) once
@@ -1502,7 +1520,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           let py = s.y;
           hitboxesRef.current.forEach((hb, id) => {
             if (id === selfId) return;
-            const minD = hb.r + 16;
+            const minD = hb.r + 14 * meshiScale;
             const dx = px - hb.x;
             const dy = py - hb.y;
             const d = Math.hypot(dx, dy);
@@ -1667,9 +1685,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           ref={meshiCursorRef}
           className="pointer-events-none absolute left-0 top-0 z-20 opacity-0 transition-opacity duration-150"
         >
+          <div className="meshi-world-scale">
           <div className={isGhosting ? "mesh-ghosted" : undefined}>
           <MeshiMascot
-            size={28}
+            size={64}
             color={prefs.color}
             hat={prefs.hat}
             mood={hoverNode ? "excited" : prefs.face}
@@ -1680,6 +1699,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             outfit={prefs.outfit}
             prop="compass"
           />
+          </div>
           </div>
           {hoverNode && hoverNode.kind !== "self" && (
             <div
@@ -1751,11 +1771,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             className="pointer-events-none absolute left-1/2 top-1/2 z-[6] -translate-x-1/2 -translate-y-1/2"
             aria-hidden="true"
           >
+            <div className="meshi-world-scale">
             <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
               {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
               <div className={!viewUserId && isGhosting ? "mesh-ghosted" : undefined}>
               <MeshiMascot
-                size={28}
+                size={64}
                 color={(m.colorTheme || "blue") as MeshiColor}
                 hat={(m.hatStyle || "none") as MeshiHat}
                 hair={(m.hairStyle || "none") as MeshiHair}
@@ -1776,6 +1797,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 showGlow={ownerOnline}
               />
               </div>
+            </div>
             </div>
           </div>
         );
@@ -1813,17 +1835,21 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             return { left: `${Math.min(pos.vx, maxVx) * 100}%`, top: `${pos.vy * 100}%` };
           })()}
         >
-          <MeshiMini
-            size={28}
-            color={p.meshiColor as MeshiColor}
-            hat={p.meshiHat as MeshiHat}
-            hair={(p.meshiHair || "none") as MeshiHair}
-            accessory={(p.meshiAccessory || "none") as MeshiAccessory}
-            eyeStyle={(p.meshiEyeStyle || "regular") as MeshiEyeStyle}
-            badge={(p.meshiBadge || "none") as MeshiBadge}
-            outfit={(p.meshiOutfit || "none") as MeshiOutfit}
-            mood={(p.meshiMood as MeshiMood) || "happy"}
-          />
+          <div className="meshi-world-scale">
+            <MeshiMascot
+              size={64}
+              color={p.meshiColor as MeshiColor}
+              hat={p.meshiHat as MeshiHat}
+              hair={(p.meshiHair || "none") as MeshiHair}
+              accessory={(p.meshiAccessory || "none") as MeshiAccessory}
+              eyeStyle={(p.meshiEyeStyle || "regular") as MeshiEyeStyle}
+              badge={(p.meshiBadge || "none") as MeshiBadge}
+              outfit={(p.meshiOutfit || "none") as MeshiOutfit}
+              mood={(p.meshiMood as MeshiMood) || "happy"}
+              animate
+              showGlow={false}
+            />
+          </div>
           <p className="mt-0.5 max-w-[5rem] truncate text-center text-[9px] font-medium text-white/70">
             @{p.username}
           </p>
@@ -1839,17 +1865,21 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           className="meshi-leave pointer-events-none absolute z-10"
           style={{ left: `${l.x}px`, top: `${l.y}px` }}
         >
-          <MeshiMini
-            size={28}
-            color={l.p.meshiColor as MeshiColor}
-            hat={l.p.meshiHat as MeshiHat}
-            hair={(l.p.meshiHair || "none") as MeshiHair}
-            accessory={(l.p.meshiAccessory || "none") as MeshiAccessory}
-            eyeStyle={(l.p.meshiEyeStyle || "regular") as MeshiEyeStyle}
-            badge={(l.p.meshiBadge || "none") as MeshiBadge}
-            outfit={(l.p.meshiOutfit || "none") as MeshiOutfit}
-            mood="sleepy"
-          />
+          <div className="meshi-world-scale" style={{ ["--meshi-scale" as string]: l.s.toFixed(3) } as React.CSSProperties}>
+            <MeshiMascot
+              size={64}
+              color={l.p.meshiColor as MeshiColor}
+              hat={l.p.meshiHat as MeshiHat}
+              hair={(l.p.meshiHair || "none") as MeshiHair}
+              accessory={(l.p.meshiAccessory || "none") as MeshiAccessory}
+              eyeStyle={(l.p.meshiEyeStyle || "regular") as MeshiEyeStyle}
+              badge={(l.p.meshiBadge || "none") as MeshiBadge}
+              outfit={(l.p.meshiOutfit || "none") as MeshiOutfit}
+              mood="sleepy"
+              animate={false}
+              showGlow={false}
+            />
+          </div>
         </div>
       ))}
 

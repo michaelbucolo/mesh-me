@@ -9364,3 +9364,10 @@ body > * { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) {
   .meshi-arrive, .meshi-arrive-ring, .meshi-leave { animation-duration: 0.01s; }
 }
+
+/* ── Meshis live IN the world: they scale with the zoom like nodes do. ── */
+.meshi-world-scale {
+  transform: scale(var(--meshi-scale, 1));
+  transform-origin: center;
+  will-change: transform;
+}
