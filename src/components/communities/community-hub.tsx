@@ -42,7 +42,7 @@ function FeaturedCard({ community }: { community: Community }) {
             <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="lg" />
           </div>
         )}
-        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${community.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-amber-500/20 text-amber-400"}`}>
+        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${community.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-white/10 text-white/70"}`}>
           {community.isPublic ? "Public" : "Private"}
         </span>
       </div>
@@ -221,7 +221,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 {selectedCommunity.iconUrl && (
                   <Image src={selectedCommunity.iconUrl} alt="" fill sizes="380px" className="object-cover opacity-50" />
                 )}
-                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${selectedCommunity.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-amber-500/20 text-amber-400"}`}>
+                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${selectedCommunity.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-white/10 text-white/70"}`}>
                   {selectedCommunity.isPublic ? "Public" : "Private"}
                 </span>
                 <div className="absolute -bottom-8 left-5">

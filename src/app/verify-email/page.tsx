@@ -37,7 +37,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
           <MeshiMascot size={68} mood={success ? "celebrating" : "thinking"} animate />
         </div>
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)]">
-          {success ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <MailWarning className="h-6 w-6 text-amber-500" />}
+          {success ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <MailWarning className="h-6 w-6 text-rose-400" />}
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
           {success ? "Email verified" : "That link did not work"}

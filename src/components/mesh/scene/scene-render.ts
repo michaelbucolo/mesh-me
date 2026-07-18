@@ -469,10 +469,18 @@ function drawSelfProfile(
     ctx.lineWidth = 1.2;
     ctx.strokeStyle = withAlpha('#93c5fd', 0.8);
     ctx.stroke();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `700 ${Math.max(8, 9 * zoomScale)}px ui-sans-serif, system-ui, sans-serif`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText('✓', badgeX, badgeY + 0.5);
+    // Vector checkmark (never a font glyph) so the verified badge is identical
+    // on every OS/font.
+    const cr = 3.4 * zoomScale;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.2, 1.6 * zoomScale);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(badgeX - cr, badgeY + 0.2);
+    ctx.lineTo(badgeX - cr * 0.28, badgeY + cr * 0.82);
+    ctx.lineTo(badgeX + cr, badgeY - cr * 0.72);
+    ctx.stroke();
     ctx.textBaseline = 'top';
   }
 
