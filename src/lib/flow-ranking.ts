@@ -307,7 +307,16 @@ function scoreFlowPost(
 export function rankFlowPosts(
   posts: FeedCardPost[],
   profile: TasteProfile,
-  opts: { seen?: Set<string>; limit?: number; mode?: FlowRankMode; studio?: StudioWeights | null } = {},
+  opts: {
+    seen?: Set<string>;
+    limit?: number;
+    mode?: FlowRankMode;
+    studio?: StudioWeights | null;
+    /** Posts the viewer scrolled immediately before this batch, oldest→newest.
+     * Seeds the diversity window so author/platform runs can't straddle the
+     * seam between one response and the next. */
+    recent?: FeedCardPost[];
+  } = {},
 ): FeedCardPost[] {
   const mode = opts.mode ?? "balanced";
   const limit = opts.limit ?? posts.length;
@@ -341,17 +350,20 @@ export function rankFlowPosts(
 
   const result: FeedCardPost[] = [];
   const pool = [...scored];
+  // The diversity window looks at what the viewer actually just watched, not
+  // just this batch — seeded with the tail of the previous response.
+  const history: FeedCardPost[] = [...(opts.recent ?? [])];
 
   while (result.length < limit && pool.length > 0) {
     const slot = result.length;
-    const lastAuthor = result[slot - 1] ? authorKey(result[slot - 1]) : null;
-    const runStart = Math.max(0, slot - weights.maxRun);
-    const runAuthors = result.slice(runStart, slot).map((p) => authorKey(p));
+    const h = history.length;
+    const lastAuthor = history[h - 1] ? authorKey(history[h - 1]) : null;
+    const runAuthors = history.slice(Math.max(0, h - weights.maxRun), h).map((p) => authorKey(p));
     const runIsFull = (key: string) =>
       runAuthors.length >= weights.maxRun && runAuthors.every((a) => a === key);
     // No platform monopolizes the screen either: three of the last three
     // slots from one platform means the next pick prefers anywhere else.
-    const lastPlatforms = result.slice(Math.max(0, slot - 3), slot).map((p) => p.platform || "mesh");
+    const lastPlatforms = history.slice(Math.max(0, h - 3), h).map((p) => p.platform || "mesh");
     const platformRunFull = (platform: string) =>
       lastPlatforms.length >= 3 && lastPlatforms.every((p) => p === platform);
     const explorationSlot =
@@ -376,7 +388,9 @@ export function rankFlowPosts(
     }
     if (pickIndex === -1) pickIndex = 0;
 
-    result.push(pool.splice(pickIndex, 1)[0].post);
+    const pick = pool.splice(pickIndex, 1)[0].post;
+    result.push(pick);
+    history.push(pick);
   }
 
   return result;
