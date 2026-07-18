@@ -32,7 +32,7 @@ function FeaturedCard({ community }: { community: Community }) {
   return (
     <Link
       href={`/communities/${community.slug}`}
-      className="group relative flex min-w-[260px] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-all duration-200 hover:border-[var(--mesh-border-active)] hover:-translate-y-0.5"
+      className="group relative flex min-w-[min(260px,80vw)] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-all duration-200 hover:border-[var(--mesh-border-active)] hover:-translate-y-0.5"
     >
       <div className="relative h-36 bg-gradient-to-br from-[var(--mesh-bg)] to-[#0a1628]">
         {community.iconUrl ? (

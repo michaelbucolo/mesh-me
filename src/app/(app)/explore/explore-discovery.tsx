@@ -784,7 +784,7 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
             <Link
               key={post.id}
               href={post.externalUrl || `/feed/${post.id}`}
-              className="group relative h-44 w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
+              className="group relative h-44 w-[min(16rem,75vw)] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
             >
               {still ? (
                 // eslint-disable-next-line @next/next/no-img-element
