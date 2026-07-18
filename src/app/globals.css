@@ -9311,3 +9311,25 @@ body > * { position: relative; z-index: 1; }
   .mesh-rail-btn, .mesh-rail-btn:hover, .mesh-rail-btn:active { transition: none; transform: none; }
   .mesh-bubble-btn, .mesh-bubble-btn:hover, .mesh-bubble-btn:active { transition: none; transform: none; }
 }
+
+/* ── Monthly Trail: the thread draws itself, moments pop in along it ──── */
+@keyframes trailDraw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes trailNodeIn {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+/* ── Ghost Mode: your own Meshi literally becomes a ghost ─────────────── */
+@keyframes meshGhostFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.mesh-ghosted {
+  filter: grayscale(0.92) brightness(1.55) opacity(0.52) drop-shadow(0 0 10px rgba(200, 215, 255, 0.35));
+  animation: meshGhostFloat 2.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-ghosted { animation: none; }
+}

@@ -29,6 +29,12 @@ export function GhostModeToggle({ compact = false }: { compact?: boolean }) {
     } catch {
       // best-effort persistence
     }
+    // Same-tab listeners (the mesh turns your Meshi into a ghost) react now.
+    try {
+      window.dispatchEvent(new Event("meshGhostModeChanged"));
+    } catch {
+      // best-effort broadcast
+    }
     // Take effect immediately instead of waiting for the next heartbeat.
     void fetch("/api/mesh/presence", {
       method: "POST",

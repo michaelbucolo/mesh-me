@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, HelpCircle, History, List, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Footprints, Heart, HelpCircle, History, List, LocateFixed, MessageCircle, Minus, PenLine, Plus, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -212,6 +212,25 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     setTraveling(null);
     travelingRef.current = false;
   }, [viewUserId]);
+  // Ghost Mode literally ghosts YOUR Meshi — pale, translucent, drifting —
+  // so you can always see that you're browsing unseen.
+  const [isGhosting, setIsGhosting] = useState(false);
+  useEffect(() => {
+    const read = () => {
+      try {
+        setIsGhosting(localStorage.getItem("meshGhostMode") === "true");
+      } catch {
+        // Storage unavailable — assume visible.
+      }
+    };
+    read();
+    window.addEventListener("meshGhostModeChanged", read);
+    window.addEventListener("storage", read);
+    return () => {
+      window.removeEventListener("meshGhostModeChanged", read);
+      window.removeEventListener("storage", read);
+    };
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [discoverUsers, setDiscoverUsers] = useState<
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
@@ -1545,6 +1564,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           ref={meshiCursorRef}
           className="pointer-events-none absolute left-0 top-0 z-20 opacity-0 transition-opacity duration-150"
         >
+          <div className={isGhosting ? "mesh-ghosted" : undefined}>
           <MeshiMascot
             size={44}
             color={prefs.color}
@@ -1557,6 +1577,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             outfit={prefs.outfit}
             prop="compass"
           />
+          </div>
           {hoverNode && hoverNode.kind !== "self" && (
             <div
               className="absolute left-1/2 top-full mt-1.5 w-max max-w-[16.5rem] -translate-x-1/2 animate-[fadeIn_.14s_ease] overflow-hidden rounded-xl border border-white/12 bg-[#0a0f1f]/90 text-center shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
@@ -1629,6 +1650,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           >
             <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
               {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
+              <div className={!viewUserId && isGhosting ? "mesh-ghosted" : undefined}>
               <MeshiMascot
                 size={44}
                 color={(m.colorTheme || "blue") as MeshiColor}
@@ -1650,6 +1672,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 animate={ownerOnline}
                 showGlow={ownerOnline}
               />
+              </div>
             </div>
           </div>
         );
@@ -1741,6 +1764,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         <RailButton label="Explore as a list" onClick={() => setShowList(true)}>
           <List size={16} />
         </RailButton>
+        {!viewedUser && (
+          <RailButton label="Your Trail this month" onClick={() => router.push("/trail")}>
+            <Footprints size={16} />
+          </RailButton>
+        )}
         {oldestMoment != null && (
           <RailButton
             label="Rewind time"
