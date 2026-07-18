@@ -5421,7 +5421,10 @@ body {
     right: 0;
     width: calc(env(viewport-segment-width 1 0, 100vw) - 2rem);
     max-width: min(32rem, calc(env(viewport-segment-width 1 0, 100vw) - 2rem));
-    transform: translateY(-50%);
+    /* Tailwind v4's -translate-x/y-1/2 utilities set the native `translate`
+       property, so override that (not `transform`) to keep only the vertical
+       centering shift. */
+    translate: 0 -50%;
     margin-right: 1rem;
   }
 }
