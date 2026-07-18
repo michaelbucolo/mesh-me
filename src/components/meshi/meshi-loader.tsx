@@ -290,6 +290,16 @@ export function MeshiLoader({
       <span className="sr-only">{title}</span>
 
       <div className="meshi-load-stage" data-mode={mode} aria-hidden>
+        {/* Ambient depth: parallax stars + a soft aura in the mode's palette */}
+        <div className="meshi-load-starfield">
+          <span className="meshi-load-stars" />
+          <span className="meshi-load-stars-near" />
+        </div>
+        <span
+          className="meshi-load-aura"
+          style={{ ["--aura-1" as string]: palette[0], ["--aura-2" as string]: palette[2] } as MotifStyle}
+        />
+
         {/* The motif — mirrors what's actually loading. */}
         <Motif mode={mode} palette={palette} />
 
@@ -318,6 +328,12 @@ export function MeshiLoader({
       <h2 className="meshi-load-title mt-4 text-center text-base font-semibold text-[var(--text-primary)]">
         {title}
       </h2>
+
+      <span
+        className="meshi-load-progress"
+        style={{ ["--pf" as string]: color } as MotifStyle}
+        aria-hidden
+      />
     </div>
   );
 }
