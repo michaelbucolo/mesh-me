@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useRef, useState, useTransition, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPost } from "@/lib/actions";
+import { playSound } from "@/lib/sound";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Loader2, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
 
 // Connected platforms for cross-posting
@@ -261,6 +262,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
       try {
         const result = await createPost(formData);
         if (result?.success) {
+          playSound("chime");
           const crossPostResults = result.crossPostResults ? Object.entries(result.crossPostResults) : [];
           const failedCrossPosts = crossPostResults.filter(([, value]) => !value.success);
           if (result.post) {

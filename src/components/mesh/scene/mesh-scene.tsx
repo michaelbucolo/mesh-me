@@ -61,6 +61,8 @@ type RemotePresence = {
   activeNodeId?: string | null;
   /** Encoded tiny world action ("heart|targetId|atMs") to replay in the room. */
   lastAction?: string | null;
+  /** Where on mesh.me they are when not on a mesh surface (e.g. "/flow"). */
+  activeRoute?: string | null;
   /** Mesh Pro member — their Meshi carries a subtle gold aura. */
   isPro?: boolean;
   isOnline: boolean;
@@ -185,9 +187,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // like any other, so it glides instead of snapping sideways.
   const avoidOffsetRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   // Connections online but NOT in this room: the canvas draws discrete
-  // indicators at their node (online ring + "in @x's mesh" chip) instead of
-  // a full Meshi hovering over it.
-  const presenceInfoRef = useRef<Map<string, { where: string | null }>>(new Map());
+  // indicators at their node (online ring + a chip naming where they are —
+  // a mesh, the Flow, MeChat) instead of a full Meshi hovering over it.
+  const presenceInfoRef = useRef<Map<string, { where: string | null; route: string | null }>>(new Map());
   const hoverIdRef = useRef<string | null>(null);
   // Mirrors showCompose for the heartbeat, which runs outside React renders.
   const composingRef = useRef(false);
@@ -1210,6 +1212,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           if (visibleIds.has(p.userId)) continue;
           presenceInfoRef.current.set(p.userId, {
             where: p.surface === "mesh" ? p.viewingMesh : null,
+            route: p.activeRoute ?? null,
           });
         }
 

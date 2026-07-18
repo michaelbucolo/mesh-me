@@ -5049,8 +5049,13 @@ body {
   }
 }
 
-/* --- Sidebar: icon-rail mode for tablets (md to lg) --- */
-@media (min-width: 768px) and (max-width: 1023px) {
+/* --- Sidebar: icon-rail mode for tablets (md to lg) and unfolded foldables.
+   Unfolded book-style foldables (Galaxy Z Fold main display ~673×812, Pixel
+   Fold portrait ~701×841) are squarish tablet-class screens that fall just
+   below the 768px tablet breakpoint — give them the icon rail too instead of
+   the phone bottom nav. --- */
+@media (min-width: 768px) and (max-width: 1023px),
+  (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) and (min-aspect-ratio: 3/4) {
   .mesh-shell {
     --mesh-sidebar-width: 4.5rem;
   }
@@ -5334,9 +5339,61 @@ body {
 }
 
 /* --- Foldable / dual-screen devices --- */
+
+/* Unfolded book-style foldables (600–767px squarish, e.g. Galaxy Z Fold main
+   display ~673×812, Pixel Fold portrait ~701×841): the Tailwind md: grid and
+   sidebar classes don't apply below 768px, so recreate the tablet shell
+   structure and neutralize phone rules that assume the bottom nav exists.
+   This block must stay after the phone-tier (max-width: 767px) rules so it
+   wins the cascade. */
+@media (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) and (min-aspect-ratio: 3/4) {
+  .mesh-shell {
+    display: grid;
+    grid-template-columns: var(--mesh-sidebar-width) 1fr;
+  }
+
+  .mesh-sidebar {
+    display: flex !important;
+  }
+
+  .mobile-bottom-nav,
+  .mobile-compose-fab {
+    display: none !important;
+  }
+
+  .mesh-main {
+    padding-bottom: 0 !important;
+  }
+
+  /* Phone MeChat height subtracts the 5rem bottom nav that is hidden here;
+     the icon-rail top bar in this band is 3.5rem tall. */
+  .mechat-layout {
+    height: calc(100dvh - 3.5rem) !important;
+  }
+
+  .app-shell-layout-feed .app-main-feed {
+    padding-bottom: 0 !important;
+  }
+
+  .bug-report-widget {
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .pb-safe {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-app-chrome {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Dual-screen spanning, vertical hinge (e.g. Surface Duo spanned): pin the
+   sidebar to the left segment and keep content clear of the hinge. */
 @media (horizontal-viewport-segments: 2) {
   .mesh-shell {
-    grid-template-columns: env(viewport-segment-width 0 0) 1fr;
+    display: grid;
+    grid-template-columns: env(viewport-segment-width 0 0, var(--mesh-sidebar-width)) 1fr;
   }
 
   .mesh-sidebar {
@@ -5344,12 +5401,38 @@ body {
     width: 100%;
   }
 
-  .mobile-bottom-nav {
+  .mobile-bottom-nav,
+  .mobile-compose-fab {
     display: none !important;
   }
 
   .mesh-main {
     padding-bottom: 0 !important;
+    /* Hinge width = left edge of segment 1 minus width of segment 0. The
+       sidebar fills segment 0 exactly, so padding the main pane by the hinge
+       keeps content off the fold. Falls back to 0px on single screens. */
+    padding-left: max(0px, calc(env(viewport-segment-left 1 0, 0px) - env(viewport-segment-width 0 0, 0px)));
+  }
+
+  /* Keep centered dialogs inside the right-hand segment instead of straddling
+     the hinge. */
+  .ds-glass-panel[role="dialog"] {
+    left: auto;
+    right: 0;
+    width: calc(env(viewport-segment-width 1 0, 100vw) - 2rem);
+    max-width: min(32rem, calc(env(viewport-segment-width 1 0, 100vw) - 2rem));
+    transform: translateY(-50%);
+    margin-right: 1rem;
+  }
+}
+
+/* Half-folded flex/tent posture, horizontal hinge (e.g. Z Flip or Z Fold half
+   open, vertical dual-screen spanning): keep centered dialogs fully inside the
+   top segment instead of straddling the fold. */
+@media (vertical-viewport-segments: 2) {
+  .ds-glass-panel[role="dialog"] {
+    top: calc(env(viewport-segment-height 0 0, 100dvh) / 2);
+    max-height: min(42rem, calc(env(viewport-segment-height 0 0, 86dvh) - 1.5rem));
   }
 }
 
@@ -5417,6 +5500,70 @@ body {
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* --- Ultra-narrow cover displays (folded Galaxy Z Fold cover screen and
+   similar, ≈280–380px CSS wide): scale the rem base down so every rem-sized
+   surface tightens proportionally, and clamp the few fixed-width floaters. --- */
+@media (max-width: 379px) {
+  html {
+    font-size: 15px;
+  }
+
+  .mesh-topbar {
+    gap: 0.3rem;
+    padding-inline: 0.5rem;
+  }
+
+  .mesh-topbar h1 {
+    font-size: 0.9rem;
+  }
+
+  /* Account menu dropdown is w-64 (16rem); keep it inside the viewport */
+  .mesh-topbar details > div {
+    width: min(16rem, calc(100vw - 1rem));
+  }
+
+  .mobile-compose-fab {
+    width: 3rem;
+    height: 3rem;
+    right: 0.75rem;
+  }
+
+  .simple-page {
+    padding: 0.5rem 0.4rem;
+  }
+}
+
+/* Smallest cover screens (≈280px, e.g. original Galaxy Fold front display) */
+@media (max-width: 320px) {
+  html {
+    font-size: 13.5px;
+  }
+
+  .mesh-topbar [aria-pressed][title*="Ghost Mode"] {
+    padding-inline: 0.5rem;
+  }
+
+  /* Keep touch targets at 44px even with the smaller rem base */
+  .mobile-bottom-nav a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .mobile-compose-fab {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* --- Generic responsive utilities --- */
+.touch-pan-x { touch-action: pan-x; }
+.touch-pan-y { touch-action: pan-y; }
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-snap-start { scroll-snap-align: start; }
 
 /* iPad Pro 12.9" in split-view (roughly 680px wide) */
 @media (min-width: 640px) and (max-width: 767px) {
@@ -6691,4 +6838,20 @@ body > * { position: relative; z-index: 1; }
   color: #000;
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+/* ── Reduced motion, everywhere ─────────────────────────────────────────
+   When the OS asks for less motion, every CSS animation and transition
+   collapses to an instant (forwards-filled animations land on their final
+   frame). Canvas physics stays — it IS the content — but the decorative
+   choreography steps aside. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

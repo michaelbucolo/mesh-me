@@ -87,8 +87,9 @@ export interface RenderOptions {
   strandPulses?: Map<string, number>;
   /** Connections online right now but NOT in this room, keyed by userId.
    * `where` is the mesh owner's userId they're exploring (null = elsewhere
-   * on mesh.me). Drawn as discrete indicators at their node. */
-  livePresence?: Map<string, { where: string | null }>;
+   * on mesh.me); `route` is their app route when off the mesh surface.
+   * Drawn as discrete indicators at their node. */
+  livePresence?: Map<string, { where: string | null; route?: string | null }>;
 }
 
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
@@ -1121,6 +1122,12 @@ export function drawScene(o: RenderOptions): void {
           const whereNode = nodes.get(`person:${live.where}`);
           text = whereNode ? `in ${whereNode.label}'s mesh` : "exploring a mesh";
         }
+      } else if (live.route) {
+        // Off the mesh surface, their route still says what they're up to.
+        if (live.route.startsWith("/flow")) text = "watching the Flow";
+        else if (live.route.startsWith("/messages")) text = "in MeChat";
+        else if (live.route.startsWith("/explore")) text = "exploring";
+        else if (live.route.startsWith("/trail")) text = "on their Trail";
       }
       ctx.save();
       const chipFont = 9.5;
