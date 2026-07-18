@@ -9,13 +9,14 @@ description: Test Meshi companion features end-to-end — chat engine Q&A, auth-
 Meshi is the AI companion mascot for mesh.me. It appears across the entire app as a living entity with personality, mood changes, speech bubbles, and mesh-awareness. Meshi has a smart query engine that answers natural language questions using real database data.
 
 ## Key Components
-- **MeshEntry** (`src/components/mesh-entry.tsx`): Auth flow with Meshi personality — speech bubbles react to login/signup steps
-- **MeshiFloat** (`src/components/meshi/meshi-float.tsx`): Global floating companion visible on all authenticated pages. Click to open actions menu, then select "Full Chat with Meshi" for Q&A testing
-- **MeshiChat** (`src/components/meshi/meshi-chat.tsx`): Knowledge boundary enforcement — Meshi only knows about entities on the user's mesh
+- **MeshEntryExperience** (`src/components/auth/mesh-entry-experience.tsx`): Auth flow with Meshi personality — speech bubbles react to login/signup steps
+- **MeshiFloat** (`src/components/meshi/meshi-float.tsx`): Global floating companion visible on all authenticated pages. Click to open actions menu, then select "Full Chat with Meshi" for Q&A testing. Speech mode can confirm-and-run vessel actions (e.g. "Post: hello mesh!" → "Post it" button)
+- **MeshiChat** (`src/components/meshi/meshi-chat.tsx`): Knowledge boundary enforcement — Meshi only knows about entities on the user's mesh. Renders vessel-action controls: "Post it"/"Not now" for ready posts, prefill chips for post/follow/message prompts, and auto-fetches suggestions
 - **MeshiMascot** (`src/components/meshi/meshi-mascot.tsx`): Interactive mascot with physics, moods, and animations
 - **MeshiEngine** (`src/lib/meshi-engine.ts`): Server-side smart query engine with 18+ intent handlers. Queries the database for real answers (post counts, person lookups, platform summaries, community lists, mutual connections, content stats, recent activity, who's active)
-- **MeshiDelivery** (`src/components/meshi/meshi-delivery.tsx`): Animated message delivery system (traveling → arriving → delivered phases)
-- **Sidebar** (`src/components/layout/sidebar.tsx`): MeshiMascot replaces static logo with BETA badge
+- **MeshiDelivery** (`src/components/meshi/meshi-delivery.tsx`): Renders incoming `meshi_delivery` notifications — the sender's customized Meshi arrives bottom-left with the message, "Reply in MeChat" and "Got it" controls, and marks the delivery read on dismiss (`/api/meshi/deliveries`)
+- **Vessel actions** (`/api/meshi/actions` via `runMeshiAction` in `src/lib/meshi-client.ts`): post, message, follow/unfollow, react, suggest — executed from chat/speech UIs
+- **Content Lens on `/mesh`** (`src/components/mesh/scene/mesh-scene.tsx`): the lens exposes `data-meshi-content-card` attributes and an "Ask Meshi" button, so focused-content questions ("summarize this post") work on the mesh like on the feed
 
 ## How to Test
 
@@ -43,10 +44,10 @@ Meshi is the AI companion mascot for mesh.me. It appears across the entire app a
 
 #### 3. Intent Regex Safety (Critical)
 - Type: "tell me about my followers"
-- PASS: Any informational response (NOT "Message delivered" or "traveled across the mesh")
+- PASS: A follower-count answer (self-phrases like "my followers"/"my communities" reroute to the matching stats intent instead of person_lookup)
 - FAIL: Response contains "Message delivered" — means the SELF_WORDS exclusion is broken
-- The SELF_WORDS list ["me", "my", "i", "myself"] at line 51 prevents "tell me about X" from triggering send_message
-- NOTE: This query may fall through to person_lookup (searching for "my followers" as a person) rather than follower_count. That's acceptable — the critical test is that no message is sent.
+- The SELF_WORDS list ["me", "my", "i", "myself"] prevents "tell me about X" from triggering send_message
+- Also: "who is online" routes to who_active, not a person lookup for "online"
 
 #### 4. Privacy Transparency Dashboard
 - Navigate to Settings → click "Privacy & Safety" tab in the left settings nav
@@ -88,11 +89,17 @@ Meshi is the AI companion mascot for mesh.me. It appears across the entire app a
 6. Test greetings: "hey" → friendly response
 7. Test gratitude: "thanks" → thankful response
 
-### Message Delivery Animation
-1. In Meshi chat, type: "send @demouser: hello there!"
-2. Expected animation sequence: Meshi travels with envelope (1.5s) → arrives and reveals message (1s) → shows delivered checkmark (3.5s) → total ~6s
-3. FAIL indicator: Animation stuck in "traveling" phase forever (would indicate the useEffect split bug has regressed)
-4. After animation completes, the delivery should be marked as read on the server via POST
+### Message Delivery Arrival
+1. As alexcreates, in Meshi chat type: "send @demouser: hello there!" — expect a "sent" confirmation (the engine creates the message + a `meshi_delivery` notification)
+2. Log in as demouser — within ~5s of page load (or on tab refocus) the sender's customized Meshi should arrive at the bottom-left carrying the message
+3. The card offers "Reply in MeChat" (navigates to /messages) and "Got it"; either marks the delivery read via POST `/api/meshi/deliveries`
+4. FAIL indicators: no arrival for an unread delivery, or the same delivery reappearing after dismissal (read-marking broken)
+
+### Vessel Actions from Chat
+1. In Meshi chat, type: "Post: hello from Meshi testing!"
+2. Expected: Meshi replies with the draft and a "Post it" button; clicking it creates a real post (verify on /feed) and Meshi confirms in-chat
+3. "suggest people to follow" should return real usernames from the database, fetched automatically
+4. In speech mode (mascot → Ask), the same "Post: ..." flow shows a confirm card above the input
 
 ## Dev Server
 - Run: `npx next dev -p 3333` (port 3333 per local-dev-setup skill)
@@ -115,7 +122,7 @@ Meshi is the AI companion mascot for mesh.me. It appears across the entire app a
 
 ## Common Issues
 - **Meshi chat not opening**: You must click the mascot first to open the actions menu, THEN click "Full Chat with Meshi". Clicking the mascot does NOT directly open the chat.
-- **Intent routing quirks**: "tell me about my followers" routes to person_lookup (searching for "my followers") instead of follower_count. The critical safety check is that it doesn't trigger send_message.
+- **Intent routing**: self-phrases ("tell me about my followers/communities/interests…") reroute to stats intents in `detectIntent`; if one regresses to person_lookup, check the selfTopicMatch block in `src/lib/meshi-engine.ts`.
 - **MeshiFloat may overlap with sidebar elements on small screens** — check responsive behavior
 - **Feature word filter uses prefix matching** ("communit" matches both "community" and "communities")
 - **Privacy dashboard lazy-loads** — data only fetches when the Privacy & Safety tab is selected. If you navigate there and see no data, wait a moment for the async fetch to complete.
