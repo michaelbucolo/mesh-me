@@ -308,6 +308,9 @@ model Message {
   thread            MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@index([threadId])
+  // Serves the polled "latest N messages in a thread, newest first" window and
+  // the unread scan (threadId + createdAt) without a filesort.
+  @@index([threadId, createdAt])
   @@index([sourcePlatform])
   @@index([platformPostId])
   @@index([platformCommentId])
@@ -330,6 +333,11 @@ model Notification {
 
   @@index([recipientId])
   @@index([createdAt])
+  // Serves the continuously-polled unread count (recipientId + read=false) and
+  // the ordered notification page (recipientId ordered by createdAt) directly,
+  // without a per-row filter/filesort.
+  @@index([recipientId, read])
+  @@index([recipientId, createdAt])
 }
 
 model UserNotificationPreference {

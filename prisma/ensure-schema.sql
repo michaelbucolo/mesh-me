@@ -1005,6 +1005,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS "ThreadMember_userId_threadId_key" ON "ThreadM
 CREATE INDEX IF NOT EXISTS "Message_threadId_idx" ON "Message"("threadId");
 
 -- CreateIndex
+CREATE INDEX IF NOT EXISTS "Message_threadId_createdAt_idx" ON "Message"("threadId", "createdAt");
+
+-- CreateIndex
 CREATE INDEX IF NOT EXISTS "Message_sourcePlatform_idx" ON "Message"("sourcePlatform");
 
 -- CreateIndex
@@ -1021,6 +1024,12 @@ CREATE INDEX IF NOT EXISTS "Notification_recipientId_idx" ON "Notification"("rec
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Notification_createdAt_idx" ON "Notification"("createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Notification_recipientId_read_idx" ON "Notification"("recipientId", "read");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Notification_recipientId_createdAt_idx" ON "Notification"("recipientId", "createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "UserNotificationPreference_userId_key" ON "UserNotificationPreference"("userId");

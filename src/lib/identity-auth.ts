@@ -282,10 +282,22 @@ export async function signInWithIdentity(
   if (identity.email && identity.emailVerified) {
     const byEmail = await prisma.user.findUnique({
       where: { email: identity.email },
-      select: { id: true, onboarded: true, isSuspended: true },
+      select: { id: true, onboarded: true, isSuspended: true, emailVerified: true },
     });
     if (byEmail) {
       if (byEmail.isSuspended) throw new Error("This account is unavailable");
+      // Account pre-hijacking guard: only auto-link when the *local* account's
+      // email is itself verified. Signup creates users with emailVerified=false,
+      // so without this an attacker could pre-register victim@example.com
+      // (unverified), then have the victim's real Google/Apple login silently
+      // attach to — and log into — the attacker's account. If the collision is
+      // unverified, refuse and require the owner to verify via password sign-in
+      // first, then link the provider from settings.
+      if (!byEmail.emailVerified) {
+        throw new Error(
+          "An account already uses this email. Sign in with your password and verify your email, then link this provider from Settings.",
+        );
+      }
       await prisma.authIdentity.create({
         data: { userId: byEmail.id, provider, providerAccountId: identity.providerAccountId, email: identity.email },
       });

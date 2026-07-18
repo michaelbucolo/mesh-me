@@ -63,7 +63,12 @@ function pathMatchesPrefix(pathname: string, prefixes: string[]) {
 }
 
 function hasSessionCookie(request: NextRequest) {
-  const sessionId = request.cookies.get(SESSION_COOKIE)?.value || request.cookies.get(LEGACY_SESSION_COOKIE)?.value;
+  // The unprefixed legacy cookie is only honored outside production; in
+  // production the `__Host-` prefix is required so a subdomain or HTTP MITM
+  // can't fixate a session. Mirrors readSessionId() in auth.ts.
+  const sessionId =
+    request.cookies.get(SESSION_COOKIE)?.value ||
+    (process.env.NODE_ENV !== "production" ? request.cookies.get(LEGACY_SESSION_COOKIE)?.value : undefined);
   return Boolean(sessionId && SESSION_ID_REGEX.test(sessionId));
 }
 

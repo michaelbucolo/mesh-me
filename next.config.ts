@@ -40,7 +40,15 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "date-fns", "framer-motion"],
   },
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
+    // SSRF hardening: the Next image optimizer fetches its `url` param
+    // server-side, so a wildcard `remotePatterns` turns /_next/image into an
+    // open proxy and a blind-SSRF probe against internal hosts (it sits outside
+    // the middleware matcher, so it's unauthenticated). User-supplied media
+    // URLs (post media, community icons, profile sites) flow to <Image>, so we
+    // must not let the server fetch arbitrary hosts. `unoptimized` renders
+    // images directly in the browser (no server fetch), and with no
+    // `remotePatterns` configured the optimizer endpoint rejects remote URLs.
+    unoptimized: true,
   },
   async headers() {
     const isDev = process.env.NODE_ENV === "development";

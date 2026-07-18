@@ -7,17 +7,10 @@ import {
   signInWithIdentity,
   type FederatedIdentity,
 } from "@/lib/identity-auth";
+import { safeInternalPath } from "@/lib/request-guard";
 
 function securePrefix() {
   return process.env.NODE_ENV === "production" ? "__Host-" : "";
-}
-
-// Re-validate the post-auth redirect target. The cookie was written with this
-// same check, but cookies are client-controllable, so never trust it blindly.
-function safeNextPath(value: string | null): string | null {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
-  if (value.startsWith("/login") || value.startsWith("/signup")) return null;
-  return value;
 }
 
 function clearFlowCookies(
@@ -48,7 +41,9 @@ async function handleCallback(
   const prefix = securePrefix();
   const storedState = cookieStore.get(`${prefix}identity_state_${provider}`)?.value ?? null;
   const codeVerifier = cookieStore.get(`${prefix}identity_pkce_${provider}`)?.value ?? null;
-  const nextPath = safeNextPath(cookieStore.get(`${prefix}identity_next_${provider}`)?.value ?? null);
+  // The cookie was written with this same check, but cookies are
+  // client-controllable, so re-validate against our own origin before trusting it.
+  const nextPath = safeInternalPath(cookieStore.get(`${prefix}identity_next_${provider}`)?.value ?? null, origin);
   const expectedNonce = storedState?.split(".")[1] ?? null;
 
   const failure = (message: string) => {

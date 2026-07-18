@@ -9,12 +9,7 @@ import {
   isIdentityProviderConfigured,
 } from "@/lib/identity-auth";
 import { generatePKCE } from "@/lib/oauth";
-
-function safeNextPath(value: string | null): string | null {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
-  if (value.startsWith("/login") || value.startsWith("/signup")) return null;
-  return value;
-}
+import { safeInternalPath } from "@/lib/request-guard";
 
 export async function GET(
   request: Request,
@@ -56,7 +51,7 @@ export async function GET(
   };
   cookieStore.set(stateCookie, `${state}.${nonce}`, cookieOptions);
 
-  const nextPath = safeNextPath(requestUrl.searchParams.get("next"));
+  const nextPath = safeInternalPath(requestUrl.searchParams.get("next"), requestUrl.origin);
   if (nextPath) cookieStore.set(nextCookie, nextPath, cookieOptions);
 
   const authParams = new URLSearchParams({

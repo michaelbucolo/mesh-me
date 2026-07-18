@@ -2,25 +2,43 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypt
 
 const PREFIX = "enc:v1";
 
+// Placeholder values shipped in .env.example / docs. If any of these is left in
+// place they are publicly known, so they must never be accepted as a real key.
+const SHIPPED_PLACEHOLDER_KEYS = new Set([
+  "change-me-please",
+  "change-me-to-a-long-random-secret",
+  "replace-me-with-a-long-random-secret",
+]);
+
 function getKey(): Buffer | null {
   const raw =
     process.env.APP_DATA_ENCRYPTION_KEY ||
     process.env.MESHME_TOKEN_ENCRYPTION_KEY ||
     process.env.MESHME_SECRET_KEY;
 
-  if (!raw || raw === "change-me-please") return null;
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed || SHIPPED_PLACEHOLDER_KEYS.has(trimmed)) return null;
 
+  // Prefer a real 32-byte key supplied as base64 or raw bytes.
   try {
-    const base64Buffer = Buffer.from(raw, "base64");
+    const base64Buffer = Buffer.from(trimmed, "base64");
     if (base64Buffer.length === 32) return base64Buffer;
   } catch {
     // ignore invalid base64 input and try other formats
   }
 
-  const utf8Buffer = Buffer.from(raw, "utf8");
+  const utf8Buffer = Buffer.from(trimmed, "utf8");
   if (utf8Buffer.length === 32) return utf8Buffer;
 
-  return createHash("sha256").update(raw).digest();
+  // Fallback: stretch a passphrase with SHA-256. In production we refuse this —
+  // a proper 32-byte key must be configured — so a short/low-entropy or public
+  // example passphrase can never silently stand in for a real key (getKey()
+  // returning null makes encryptSecret fail closed and the OAuth callback
+  // refuse to store plaintext tokens). Allowed outside production for local dev.
+  if (process.env.NODE_ENV === "production") return null;
+
+  return createHash("sha256").update(trimmed).digest();
 }
 
 export function hasSecretEncryptionKey(): boolean {

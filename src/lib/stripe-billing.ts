@@ -174,9 +174,12 @@ export async function getMeshProBillingState(userId: string): Promise<MeshProBil
       currency: price?.currency ?? null,
     });
   } catch (error) {
+    // Don't surface raw upstream (Stripe SDK) error text to the client — log it
+    // server-side and return a generic message.
+    console.error("Failed to load Stripe subscription:", error);
     return billingFallback(user, {
       isConfigured: true,
-      stripeError: error instanceof Error ? error.message : "Could not load Stripe subscription.",
+      stripeError: "Could not load your subscription right now. Please try again shortly.",
     });
   }
 }

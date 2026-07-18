@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { canUserInteractWithPost } from "@/lib/privacy-policy";
 import { classifyContentSafety } from "@/lib/content-safety";
-import { sanitizeForDisplay } from "@/lib/security";
+import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
 // Meshi Vessel Actions — Meshi can act on behalf of the user
 // These are explicit user-triggered actions through the Meshi interface
@@ -46,6 +46,15 @@ export async function POST(req: Request) {
 
     if (!action) {
       return NextResponse.json({ error: "Action is required" }, { status: 400 });
+    }
+
+    // Throttle privileged writes (post / follow / message / react) so this
+    // action path can't be scripted into mass-follow, mass-DM, or post floods.
+    if (action !== "suggest") {
+      const rl = rateLimit(`meshi-actions:${user.id}`, 30, 60 * 1000);
+      if (!rl.allowed) {
+        return NextResponse.json({ error: "Meshi is acting too fast. Please slow down." }, { status: 429 });
+      }
     }
 
     switch (action) {

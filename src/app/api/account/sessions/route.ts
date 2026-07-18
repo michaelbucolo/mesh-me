@@ -12,7 +12,9 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const cookieStore = await cookies();
-  const currentSessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value || null;
+  const currentSessionId = cookieStore.get(SESSION_COOKIE)?.value
+    || (process.env.NODE_ENV !== "production" ? cookieStore.get(LEGACY_SESSION_COOKIE)?.value : undefined)
+    || null;
 
   const sessions = await prisma.session.findMany({
     where: { userId: session.userId },
@@ -45,7 +47,9 @@ export async function DELETE(req: Request) {
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const cookieStore = await cookies();
-  const currentSessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value || null;
+  const currentSessionId = cookieStore.get(SESSION_COOKIE)?.value
+    || (process.env.NODE_ENV !== "production" ? cookieStore.get(LEGACY_SESSION_COOKIE)?.value : undefined)
+    || null;
 
   if (!currentSessionId) {
     return NextResponse.json({ error: "Current session unavailable" }, { status: 400 });
