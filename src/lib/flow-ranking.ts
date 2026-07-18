@@ -51,7 +51,7 @@ function dominantFormat(post: FeedCardPost): "video" | "image" | "text" {
   return "text";
 }
 
-function authorKey(post: FeedCardPost): string {
+export function authorKey(post: FeedCardPost): string {
   if (post.externalAuthor) {
     return `ext:${(post.externalAuthor.username || post.externalAuthor.name).toLowerCase()}`;
   }

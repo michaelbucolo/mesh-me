@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
-import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts } from "@/lib/flow-ranking";
+import { authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts } from "@/lib/flow-ranking";
 
 /**
  * Ranked Flow feed. The client sends the ids it already has (`exclude`) plus
@@ -73,17 +73,26 @@ export async function GET(request: Request) {
     // Hold back as many recently-scrolled ids as the pool can afford — shrink
     // the hold-back window rather than abandon it, so even a tiny library
     // keeps repeats spaced apart instead of showing the same post twice in a
-    // row. Aim for double the needed pool so the ranker has slack to
-    // interleave authors and platforms instead of draining one voice dry.
+    // row. The pool must be big enough (double the need, so the ranker has
+    // slack) AND span multiple voices: when one author dominates the library,
+    // their posts are the only "not recently seen" ones and a size-only pool
+    // collapses to a single author — a shorter repeat gap on the scarce
+    // authors beats sixteen reels in a row from the same person.
+    const distinctAuthors = new Set(candidates.map(authorKey)).size;
+    const wantedAuthors = Math.min(distinctAuthors, 3);
+    const poolFits = (pool: typeof candidates) =>
+      pool.length >= need * 2 && new Set(pool.map(authorKey)).size >= wantedAuthors;
     let pool: typeof candidates = [];
     let fallback: typeof candidates | null = null;
     for (let tail = recent.length; tail >= 0; tail = tail > 0 ? Math.floor(tail / 2) : -1) {
       const held = new Set(recent.slice(0, tail));
       pool = candidates.filter((post) => !already.has(post.id) && !held.has(post.id));
-      if (pool.length >= need * 2) break;
+      if (poolFits(pool)) break;
       if (!fallback && pool.length >= need) fallback = pool;
     }
-    if (pool.length < need * 2 && fallback) pool = fallback;
+    if (!poolFits(pool) && fallback && new Set(fallback.map(authorKey)).size >= new Set(pool.map(authorKey)).size) {
+      pool = fallback;
+    }
     const seamRecent = [...recentPosts, ...ranked].slice(-8);
     const refill = rankFlowPosts(pool, profile, { seen, limit: need, mode, studio, recent: seamRecent });
     ranked = [...ranked, ...refill];
