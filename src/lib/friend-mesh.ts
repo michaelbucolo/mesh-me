@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "./prisma";
 import { nsfwHiddenWhere } from "./content-safety";
 
@@ -73,7 +74,9 @@ export function canShareFriendMeshBranch(
   return meshVisibility !== "partial";
 }
 
-async function getMutualFriendIds(userId: string, limit = 80) {
+// Request-cached: the feed can ask for friend platform posts more than once
+// per render (e.g. multi-pass flow ranking) with the same viewer and limit.
+const getMutualFriendIds = cache(async (userId: string, limit = 80) => {
   const [following, followers] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: userId },
@@ -91,7 +94,7 @@ async function getMutualFriendIds(userId: string, limit = 80) {
   return following
     .map((follow) => follow.followingId)
     .filter((id) => followerIds.has(id));
-}
+});
 
 export async function getFriendPlatformFeedPosts(user: FriendMeshCurrentUser, limit = 20): Promise<FriendPlatformFeedPost[]> {
   try {

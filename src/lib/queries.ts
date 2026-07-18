@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
@@ -597,15 +598,21 @@ export async function getMessageThreads() {
   }));
 }
 
-export async function getThreadMessages(threadId: string) {
+export async function getThreadMessages(
+  threadId: string,
+  options: { membershipVerified?: boolean } = {},
+) {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  // Verify the user is a member of this thread
-  const membership = await prisma.threadMember.findFirst({
-    where: { threadId, userId: user.id },
-  });
-  if (!membership) return [];
+  // Verify the user is a member of this thread. Callers that already loaded
+  // the thread scoped to the viewer can skip the extra round trip.
+  if (!options.membershipVerified) {
+    const membership = await prisma.threadMember.findFirst({
+      where: { threadId, userId: user.id },
+    });
+    if (!membership) return [];
+  }
 
   // Latest window only — an unbounded fetch over a long thread multiplies
   // into enormous payloads and render work. The API route uses the same cap.
@@ -949,16 +956,22 @@ export async function getDiscoverUsers(currentUser?: CurrentUser | null) {
   return suggested;
 }
 
-export async function getTrendingCommunities() {
-  return prisma.community.findMany({
-    where: { isPublic: true },
-    include: {
-      _count: { select: { members: true, posts: true } },
-    },
-    orderBy: { members: { _count: "desc" } },
-    take: 10,
-  });
-}
+// Not user-specific, and ordering the whole community table by member count is
+// one of the heavier queries on /explore — a short shared cache keeps trending
+// fresh enough while serving repeat views instantly.
+export const getTrendingCommunities = unstable_cache(
+  async () =>
+    prisma.community.findMany({
+      where: { isPublic: true },
+      include: {
+        _count: { select: { members: true, posts: true } },
+      },
+      orderBy: { members: { _count: "desc" } },
+      take: 10,
+    }),
+  ["trending-communities"],
+  { revalidate: 60 },
+);
 
 // ─── Admin Queries ───────────────────────────────────────────
 
@@ -1291,17 +1304,23 @@ export async function getBlockedUsers() {
 }
 
 
-export async function getTrendingTags() {
-  const tags = await prisma.postTag.groupBy({
-    by: ["tag"],
-    where: { post: { isNsfw: false } },
-    _count: { tag: true },
-    orderBy: { _count: { tag: "desc" } },
-    take: 20,
-  });
+// Global aggregation over every post tag — same story as trending communities:
+// cache the shared answer briefly instead of re-grouping per request.
+export const getTrendingTags = unstable_cache(
+  async () => {
+    const tags = await prisma.postTag.groupBy({
+      by: ["tag"],
+      where: { post: { isNsfw: false } },
+      _count: { tag: true },
+      orderBy: { _count: { tag: "desc" } },
+      take: 20,
+    });
 
-  return tags.map((t) => ({ tag: t.tag, count: t._count.tag }));
-}
+    return tags.map((t) => ({ tag: t.tag, count: t._count.tag }));
+  },
+  ["trending-tags"],
+  { revalidate: 60 },
+);
 
 
 export async function getUserSettings() {

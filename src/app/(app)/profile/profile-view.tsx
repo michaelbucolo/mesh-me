@@ -57,20 +57,21 @@ export async function InstagramProfileView({ username, tab }: { username: string
   // memberships are fetched alongside but rendered only when the profile's
   // visibility settings allow it.
   const isSelf = currentUser.username.toLowerCase() === username.toLowerCase();
-  const [profile, posts, allMemberships, [savedPosts, savedPostCount]] = await Promise.all([
-    getUserProfile(username),
+  // Real presence — the same live signal that animates Meshi on the mesh and
+  // "Active now" in MeChat, not a decorative badge. It needs the profile's id,
+  // so it chains off the profile promise but overlaps with the other queries.
+  const profilePromise = getUserProfile(username);
+  const [profile, posts, allMemberships, [savedPosts, savedPostCount], isLiveNow] = await Promise.all([
+    profilePromise,
     getUserPosts(username, 1, 24),
     getUserCommunities(username),
     isSelf
       ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
       : Promise.resolve<[Awaited<ReturnType<typeof getSavedPosts>>, number]>([[], 0]),
+    profilePromise.then((p) => (p ? isUserLiveNow(p.id) : false)),
   ]);
 
   if (!profile) notFound();
-
-  // Real presence — the same live signal that animates Meshi on the mesh and
-  // "Active now" in MeChat, not a decorative badge.
-  const isLiveNow = await isUserLiveNow(profile.id);
 
   const isOwnProfile = profile.isOwnProfile;
   const canViewProfile = profile.sectionVisibility.profile;

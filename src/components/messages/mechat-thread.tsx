@@ -1022,7 +1022,7 @@ function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachmen
     return (
       <a href={attachment.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-black/10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={attachment.url} alt={attachment.name || "Shared image"} className="max-h-72 w-full object-cover" />
+        <img src={attachment.url} alt={attachment.name || "Shared image"} loading="lazy" decoding="async" className="max-h-72 w-full object-cover" />
       </a>
     );
   }

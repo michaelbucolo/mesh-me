@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { hasSessionCookieHint } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Mesh Pro Pricing",
@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 };
 
 export default async function PricingPage() {
-  const user = await getCurrentUser();
-  redirect(user ? "/meshpro" : "/login?next=/meshpro");
+  // Redirect-only route: cookie presence is enough to pick a destination, and
+  // /meshpro re-validates the session anyway — no database hit needed here.
+  const signedIn = await hasSessionCookieHint();
+  redirect(signedIn ? "/meshpro" : "/login?next=/meshpro");
 }
