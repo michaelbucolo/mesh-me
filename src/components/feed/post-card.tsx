@@ -2,7 +2,7 @@
 
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
+import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -181,7 +181,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const isOptimistic = Boolean(post.optimistic);
   const externalAuthor = post.externalAuthor;
   const isExternalFeedItem = Boolean(externalAuthor);
-  const postHref = isOptimistic ? "/feed" : post.externalUrl || `/feed/${post.id}`;
+  const postHref = isOptimistic ? "/feed" : safeHref(post.externalUrl) || `/feed/${post.id}`;
   const mediaTypes = getMediaTypes(post.media);
   const mediaSignals = detectMediaSignals(post);
   const visualMedia = post.media.filter((item) => isVisualMedia(item.type));
@@ -378,7 +378,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             {isExternalFeedItem && externalAuthor?.profileUrl ? (
-              <a href={externalAuthor.profileUrl} target="_blank" rel="noopener noreferrer">
+              <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer">
                 <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
               </a>
             ) : isExternalFeedItem ? (
@@ -391,7 +391,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1.5">
                 {isExternalFeedItem && externalAuthor?.profileUrl ? (
-                  <a href={externalAuthor.profileUrl} target="_blank" rel="noopener noreferrer" className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
+                  <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
                     {post.author.displayName}
                   </a>
                 ) : isExternalFeedItem ? (
@@ -411,7 +411,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               </div>
               <div className="flex items-center gap-1 text-[0.8rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
                 {isExternalFeedItem && externalAuthor?.profileUrl ? (
-                  <a href={externalAuthor.profileUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                  <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="hover:underline">
                     @{post.author.username}
                   </a>
                 ) : isExternalFeedItem ? (
@@ -623,7 +623,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         {linkMedia.length > 0 && (
           <div className="px-3 pb-3 sm:px-4">
             {linkMedia.slice(0, 2).map((media) => (
-              <a key={media.id} href={media.url} target="_blank" rel="noopener noreferrer" className="feed-link-preview">
+              <a key={media.id} href={safeHref(media.url)} target="_blank" rel="noopener noreferrer" className="feed-link-preview">
                 <span className="feed-link-preview-icon">
                   <ExternalLink className="h-4 w-4" />
                 </span>

@@ -42,6 +42,33 @@ export async function areMutualFollowers(viewerId: string, targetUserId: string)
   return !!viewerFollowsTarget && !!targetFollowsViewer;
 }
 
+/**
+ * Can this user see — and therefore interact with (react/comment) — the given
+ * post? Mirrors the feed's read-side audience clause so a user who only knows
+ * a post's id cannot react to or comment on a private/friends-only post they
+ * were never allowed to see. Community posts require membership.
+ */
+export async function canUserInteractWithPost(
+  userId: string,
+  post: { authorId: string; visibility: string; communityId?: string | null },
+): Promise<boolean> {
+  if (post.authorId === userId) return true;
+
+  if (post.communityId) {
+    const membership = await prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId, communityId: post.communityId } },
+      select: { userId: true },
+    });
+    if (membership) return true;
+    // Not a member: fall through to the post's own visibility (a public post
+    // in a public community is still publicly readable).
+  }
+
+  if (post.visibility === "public") return true;
+  if (post.visibility === "friends") return areMutualFollowers(userId, post.authorId);
+  return false;
+}
+
 export function canViewProfile(
   viewer: Viewer,
   subject: ProfileSubject,

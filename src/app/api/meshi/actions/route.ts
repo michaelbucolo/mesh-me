@@ -3,6 +3,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
+import { canUserInteractWithPost } from "@/lib/privacy-policy";
+import { classifyContentSafety } from "@/lib/content-safety";
+import { sanitizeForDisplay } from "@/lib/security";
 
 // Meshi Vessel Actions — Meshi can act on behalf of the user
 // These are explicit user-triggered actions through the Meshi interface
@@ -54,13 +57,34 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Post content too long (max 500 chars)" }, { status: 400 });
         }
 
+        // Community posting requires membership — mirror createPost so this
+        // path can't inject posts into communities (including private ones)
+        // the user never joined.
+        if (body.communityId) {
+          const membership = await prisma.communityMember.findUnique({
+            where: { userId_communityId: { userId: user.id, communityId: body.communityId } },
+            select: { userId: true },
+          });
+          if (!membership) {
+            return NextResponse.json({ error: "You must be a member of this community to post" }, { status: 403 });
+          }
+        }
+
+        const sanitizedContent = sanitizeForDisplay(body.content.trim());
+        const normalizedTags = (body.tags ?? [])
+          .map((tag) => tag.toLowerCase().trim())
+          .filter(Boolean);
+        const safety = classifyContentSafety(sanitizedContent, normalizedTags.join(","), "");
+
         const post = await prisma.post.create({
           data: {
-            content: body.content.trim(),
+            content: sanitizedContent,
             authorId: user.id,
             communityId: body.communityId || null,
-            tags: body.tags && body.tags.length > 0
-              ? { create: body.tags.map((tag) => ({ tag: tag.toLowerCase().trim() })) }
+            isNsfw: safety.isNsfw,
+            contentRating: safety.contentRating,
+            tags: normalizedTags.length > 0
+              ? { create: normalizedTags.map((tag) => ({ tag })) }
               : undefined,
           },
           include: {
@@ -266,9 +290,12 @@ export async function POST(req: Request) {
 
         const post = await prisma.post.findUnique({
           where: { id: body.postId },
-          select: { id: true, authorId: true, content: true },
+          select: { id: true, authorId: true, content: true, visibility: true, communityId: true },
         });
         if (!post) {
+          return NextResponse.json({ error: "Post not found" }, { status: 404 });
+        }
+        if (!(await canUserInteractWithPost(user.id, post))) {
           return NextResponse.json({ error: "Post not found" }, { status: 404 });
         }
 

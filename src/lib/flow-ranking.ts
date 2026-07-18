@@ -10,7 +10,7 @@
  */
 
 import { prisma } from "./prisma";
-import { getCombinedFeedPosts, type FeedCardPost, type FeedCurrentUser } from "./feed-data";
+import { ANONYMOUS_VIEWER, getCombinedFeedPosts, type FeedCardPost, type FeedCurrentUser } from "./feed-data";
 
 export type TasteProfile = {
   // authorKey (user id or external author handle) -> interaction weight
@@ -64,6 +64,17 @@ function authorKey(post: FeedCardPost): string {
  * follows (weight 3). Mirrors how Instagram leans on interaction history.
  */
 export async function getViewerTasteProfile(userId: string): Promise<TasteProfile> {
+  // Guests have no interaction history by construction — skip the three
+  // guaranteed-empty round trips on the guest Flow hot path.
+  if (userId === ANONYMOUS_VIEWER.id) {
+    return {
+      authorAffinity: new Map(),
+      formatPreference: new Map(),
+      tagAffinity: new Map(),
+      followingIds: new Set(),
+    };
+  }
+
   const [reactions, comments, follows] = await Promise.all([
     prisma.reaction.findMany({
       where: { userId },
