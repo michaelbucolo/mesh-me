@@ -901,8 +901,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         t.y = wy;
         lastInputAtRef.current = performance.now();
         pointerOnCanvasRef.current = true;
-        // Movement broadcasts fast so the room sees you glide, not teleport.
-        if (performance.now() - lastMoveHbRef.current > 1200) {
+        // Movement broadcasts ~3×/second while you glide — the room should
+        // see you move, not teleport.
+        if (performance.now() - lastMoveHbRef.current > 350) {
           lastMoveHbRef.current = performance.now();
           heartbeatNowRef.current?.();
         }
@@ -1284,7 +1285,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const esKick = setInterval(openStream, 1200);
 
     const hb = setInterval(heartbeat, 2000);
-    const pl = setInterval(poll, 2500);
+    const pl = setInterval(poll, 2000);
     const kick = setTimeout(() => {
       void heartbeat();
       void poll();

@@ -661,7 +661,9 @@ select:focus-visible {
 }
 
 .animate-page-enter {
-  animation: pageEnter 140ms var(--mesh-ease-out) both;
+  /* Every navigation lands with a springy rise — one connected world, not
+     separate pages loading. */
+  animation: pageEnter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .mesh-shell-mesh:not(.mesh-shell-flow) .mesh-route-slot.animate-page-enter {
@@ -822,8 +824,9 @@ select:focus-visible {
 
 /* ─── Page Enter ─── */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(2px); }
-  to { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateY(14px) scale(0.988); }
+  70% { opacity: 1; transform: translateY(-2px) scale(1.002); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes meshChildEnter {
