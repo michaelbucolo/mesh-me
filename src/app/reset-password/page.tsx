@@ -76,7 +76,7 @@ function ResetPasswordForm() {
         <h1 className="mt-4 text-2xl font-bold text-[var(--text-primary)]">Set a new password</h1>
         <p className="mt-2 text-sm text-[var(--text-tertiary)]">Choose a strong password with at least 12 characters.</p>
       </div>
-      <div className="rounded-3xl p-6 space-y-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+      <div className="rounded-2xl p-6 space-y-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}

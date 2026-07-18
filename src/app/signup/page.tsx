@@ -25,7 +25,7 @@ export default async function SignupPage() {
       title="Create your account."
       description={`Set up ${meshBrand.name} in a few steps.`}
     >
-      <section className="mx-auto w-full max-w-full rounded-lg border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-lg)] sm:w-full sm:max-w-md sm:p-8">
+      <section className="mx-auto w-full max-w-full rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-lg)] sm:w-full sm:max-w-md sm:p-8">
         <div className="mb-5 sm:mb-6">
           <Link href="/" className="brand-wordmark text-xl text-[var(--text-primary)]">
             mesh<span className="brand-wordmark-accent">.me</span>

@@ -544,7 +544,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
           <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-[var(--mesh-text)]">Creator Links</h3>
-              <span className="text-xs text-[var(--mesh-text-muted)]">View all</span>
+              <Link href="?tab=links" className="text-xs text-[var(--accent)] hover:underline">View all</Link>
             </div>
             <div className="space-y-2.5">
               {links.map((link) => (
