@@ -8,9 +8,7 @@ import { meshBrand } from "@/lib/brand";
 const navLinks = [
   { href: "/features", label: "Features" },
   { href: "/trust", label: "Trust" },
-  { href: "/roadmap", label: "Roadmap" },
   { href: "/help", label: "Help" },
-  { href: "/vision", label: "Vision" },
 ];
 
 const footerLinks = [

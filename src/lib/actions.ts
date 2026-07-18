@@ -1775,19 +1775,6 @@ async function sharePostViaMeChatLegacy(formData: FormData) {
 void sharePostViaMeChatLegacy;
 
 
-export async function markNotificationsRead() {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  await prisma.notification.updateMany({
-    where: { recipientId: user.id, read: false },
-    data: { read: true },
-  });
-
-  revalidatePath("/notifications");
-  return { success: true };
-}
-
 // ─── Report Actions ──────────────────────────────────────────
 
 

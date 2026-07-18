@@ -493,7 +493,7 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
       title: safeExcerpt(post.title, post.content),
       detail: `${post.connectedAccount.platform} content imported`,
       timestamp: post.createdAt,
-      href: post.url || "/content-hub",
+      href: post.url || "/connected-accounts",
     })),
     ...recentCommentsWritten.map((comment) => ({
       id: `comment-${comment.id}`,

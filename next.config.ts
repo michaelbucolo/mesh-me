@@ -20,6 +20,22 @@ function isPublicHttpsAppUrl() {
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Retired experiment-era surfaces land somewhere real instead of 404ing.
+  async redirects() {
+    return [
+      { source: "/marketplace", destination: "/meshpro", permanent: true },
+      { source: "/content-hub", destination: "/connected-accounts", permanent: true },
+      { source: "/spaces", destination: "/communities", permanent: true },
+      { source: "/super-app", destination: "/connected-accounts", permanent: true },
+      { source: "/vault", destination: "/profile", permanent: true },
+      { source: "/innovation", destination: "/mesh", permanent: true },
+      { source: "/meshi-voice", destination: "/mesh", permanent: true },
+      { source: "/feedback", destination: "/support", permanent: true },
+      { source: "/feature-requests", destination: "/support", permanent: true },
+      { source: "/roadmap", destination: "/about", permanent: true },
+      { source: "/vision", destination: "/about", permanent: true },
+    ];
+  },
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns", "framer-motion"],
   },

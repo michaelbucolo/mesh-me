@@ -64,7 +64,7 @@ const oauthShell = (
   ...extra,
 });
 
-export const PLATFORM_CAPABILITIES: PlatformCapability[] = [
+const PLATFORM_CAPABILITIES: PlatformCapability[] = [
   oauthShell("github", "GitHub", {
     importContent: true,
     developerDocsUrl: "https://docs.github.com/en/rest",

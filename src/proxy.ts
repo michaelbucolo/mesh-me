@@ -17,13 +17,7 @@ const protectedPagePrefixes = [
   "/billing",
   "/communities",
   "/connected-accounts",
-  "/content-hub",
-  "/feature-requests",
-  "/feedback",
-  "/innovation",
-  "/marketplace",
   "/mesh",
-  "/meshi-voice",
   "/meshpro",
   "/messages",
   "/notifications",
@@ -32,9 +26,6 @@ const protectedPagePrefixes = [
   "/profile",
   "/search",
   "/settings",
-  "/spaces",
-  "/super-app",
-  "/vault",
 ];
 
 const protectedApiPrefixes = [
@@ -45,9 +36,7 @@ const protectedApiPrefixes = [
   "/api/connected-accounts",
   "/api/data-controls",
   "/api/explore",
-  "/api/feature-requests",
   "/api/feed",
-  "/api/feedback",
   "/api/layout",
   "/api/mechat",
   "/api/mesh",
@@ -61,10 +50,8 @@ const protectedApiPrefixes = [
   "/api/status",
   "/api/stripe/checkout",
   "/api/stripe/portal",
-  "/api/super-app",
   "/api/sync",
   "/api/users",
-  "/api/vault",
 ];
 
 function isLocalHost(host: string): boolean {

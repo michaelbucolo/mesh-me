@@ -48,8 +48,6 @@ const GREETINGS: Record<string, { text: string; mood: MeshiMood }> = {
   "/settings": { text: "I help protect your world.", mood: "happy" },
   "/analytics": { text: "I can explain what is changing.", mood: "thinking" },
   "/connected-accounts": { text: "I bridge platforms carefully.", mood: "cool" },
-  "/content-hub": { text: "I can organize every source.", mood: "happy" },
-  "/vault": { text: "I keep saved moments close.", mood: "love" },
   "/explore": { text: "I can guide you across the internet.", mood: "excited" },
   "/search": { text: "I can find it across your Mesh.", mood: "thinking" },
   "/profile": { text: "I represent you here.", mood: "wink" },
@@ -78,8 +76,6 @@ const PAGE_AMBIENT_MOODS: Record<string, MeshiMood[]> = {
   "/settings": ["thinking", "happy", "cool"],
   "/analytics": ["thinking", "cool", "happy"],
   "/connected-accounts": ["cool", "thinking", "happy"],
-  "/content-hub": ["happy", "thinking", "wink"],
-  "/vault": ["love", "happy", "cool"],
   "/profile": ["wink", "happy", "love"],
   "/meshpro": ["excited", "cool", "happy"],
   "/notifications": ["thinking", "surprised", "happy"],
@@ -507,7 +503,7 @@ function getPageArrivalPosition(pathname: string): MeshiPoint {
   const middle = window.innerHeight * 0.42;
   const lower = window.innerHeight * 0.68;
 
-  if (pathname.startsWith("/feed") || pathname.startsWith("/content-hub")) {
+  if (pathname.startsWith("/feed") || pathname.startsWith("/connected-accounts")) {
     return findSafeMeshiPosition({ x: rightRail, y: middle });
   }
   if (pathname.startsWith("/messages") || pathname.startsWith("/notifications")) {
@@ -516,7 +512,7 @@ function getPageArrivalPosition(pathname: string): MeshiPoint {
   if (pathname.startsWith("/settings") || pathname.startsWith("/analytics")) {
     return findSafeMeshiPosition({ x: rightRail, y: lower });
   }
-  if (pathname.startsWith("/connected-accounts") || pathname.startsWith("/vault")) {
+  if (pathname.startsWith("/connected-accounts")) {
     return findSafeMeshiPosition({ x: rightRail, y: middle });
   }
   if (pathname.startsWith("/profile") || pathname.startsWith("/communities") || pathname.startsWith("/explore")) {

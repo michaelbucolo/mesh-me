@@ -189,11 +189,9 @@ async function runAuthenticatedAppChecks(user) {
     "/privacy-controls",
     "/connected-accounts",
     "/meshpro",
-    "/vault",
-    "/super-app",
     "/search",
     "/communities",
-    "/content-hub",
+    "/trail",
   ];
 
   const context = await browser.newContext({ viewport: { width: 1440, height: 920 }, reducedMotion: "reduce" });

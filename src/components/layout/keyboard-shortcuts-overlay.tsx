@@ -214,7 +214,7 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
       profile: `/profile/${username}`,
       settings: "/settings",
       compose: "/feed?compose=true",
-      contentHub: "/content-hub",
+      contentHub: "/connected-accounts",
     };
 
     navigate(actionHref[action]);

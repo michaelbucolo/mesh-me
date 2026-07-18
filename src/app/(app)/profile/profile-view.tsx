@@ -520,7 +520,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-[var(--mesh-text)]">Collections</h3>
-            <Link href="/vault" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
+            <Link href="?tab=collections" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {collectionCount > 0 ? (

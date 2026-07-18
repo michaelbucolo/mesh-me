@@ -4,15 +4,12 @@ const MESHI_PUBLIC_ROUTES = new Set([
   "/",
   "/about",
   "/features",
-  "/innovation",
   "/login",
   "/privacy",
   "/reset-password",
-  "/roadmap",
   "/signup",
   "/terms",
   "/trust",
-  "/vision",
 ]);
 
 export function shouldHideGlobalMeshi(pathname: string) {
