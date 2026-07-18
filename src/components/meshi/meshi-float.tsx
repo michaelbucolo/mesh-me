@@ -21,8 +21,8 @@ import {
 } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
 import { MeshiActionsMenu } from "./meshi-actions-menu";
-import { askMeshi } from "@/lib/meshi-client";
-import type { MeshiHistoryMessage } from "@/lib/meshi-shared";
+import { askMeshi, runMeshiAction } from "@/lib/meshi-client";
+import type { MeshiAction, MeshiHistoryMessage } from "@/lib/meshi-shared";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 import { getMeshiPreference } from "@/lib/actions";
 import {
@@ -31,6 +31,7 @@ import {
 } from "@/lib/meshi-knowledge";
 import { impactFeedback } from "@/lib/native/haptics";
 import { MESHI_OPEN_EVENT, type MeshiOpenMode } from "@/lib/meshi-events";
+import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
 import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
 import type { MeshiContext } from "@/lib/meshi-shared";
 
@@ -58,25 +59,6 @@ const GREETINGS: Record<string, { text: string; mood: MeshiMood }> = {
 function getGreetingForPath(pathname: string) {
   const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
   return matchedKey ? GREETINGS[matchedKey] : { text: "I am your bridge to the internet.", mood: "happy" as MeshiMood };
-}
-
-const MESHI_PUBLIC_ROUTES = new Set([
-  "/",
-  "/about",
-  "/features",
-  "/innovation",
-  "/login",
-  "/privacy",
-  "/reset-password",
-  "/roadmap",
-  "/signup",
-  "/terms",
-  "/trust",
-  "/vision",
-]);
-
-function shouldHideGlobalMeshi(pathname: string) {
-  return MESHI_PUBLIC_ROUTES.has(pathname) || pathname.startsWith("/login/");
 }
 
 // On the Mesh, the canvas renders the single living Meshi (the user's cursor/avatar
@@ -669,6 +651,9 @@ export function MeshiFloat() {
   }>>([]);
   const [speechInput, setSpeechInput] = useState("");
   const [isMeshiTyping, setIsMeshiTyping] = useState(false);
+  // A vessel action Meshi proposed in speech mode that still needs the user's
+  // go-ahead (currently: posting on their behalf).
+  const [pendingSpeechAction, setPendingSpeechAction] = useState<MeshiAction | null>(null);
   const speechInputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
@@ -1261,6 +1246,8 @@ export function MeshiFloat() {
     addSpeechBubble("user", text);
     setMood("thinking");
     setIsMeshiTyping(true);
+    // A new prompt supersedes any unconfirmed vessel action from the last one.
+    setPendingSpeechAction(null);
 
     const q = text.toLowerCase();
     const isSearchQuery = SEARCH_TRIGGERS.some((trigger) => q.includes(trigger));
@@ -1335,9 +1322,40 @@ export function MeshiFloat() {
       addSpeechBubble("meshi", response.content);
       setIsMeshiTyping(false);
       setChatHistory((prev) => [...prev.slice(-49), { q: text, a: response.content, time: new Date() }]);
+
+      // Vessel actions: suggestions are read-only so Meshi runs them right away;
+      // a ready-to-send post waits for explicit confirmation.
+      if (response.action?.type === "suggest") {
+        setIsMeshiTyping(true);
+        const result = await runMeshiAction({
+          action: "suggest",
+          suggestionType: (response.action.suggestionType as "people" | "communities" | "content") || "people",
+        });
+        setMood(result.mood);
+        addSpeechBubble("meshi", result.message);
+        setIsMeshiTyping(false);
+      } else if (response.action?.type === "post" && response.action.content) {
+        setPendingSpeechAction(response.action);
+      }
+
       setTimeout(() => setMood("happy"), 3000);
     })();
   }, [isMeshiTyping, addSpeechBubble, focusedContent, isSearching, chatHistory, meshStats, meshEntities, pathname]);
+
+  const confirmPendingSpeechAction = useCallback(() => {
+    const content = pendingSpeechAction?.content;
+    if (!content || isMeshiTyping) return;
+    setPendingSpeechAction(null);
+    setIsMeshiTyping(true);
+    setMood("thinking");
+    void (async () => {
+      const result = await runMeshiAction({ action: "post", content });
+      setMood(result.mood);
+      addSpeechBubble("meshi", result.message);
+      setIsMeshiTyping(false);
+      if (result.success) void impactFeedback("MEDIUM");
+    })();
+  }, [pendingSpeechAction, isMeshiTyping, addSpeechBubble]);
 
   const handleSpeechSend = useCallback(() => {
     const text = speechInput.trim();
@@ -1415,7 +1433,7 @@ export function MeshiFloat() {
     }
 }, [meshiX, meshiY, persistContinuityState]);
 
-  const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); }, []);
+  const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); setPendingSpeechAction(null); }, []);
 
   // Global Meshi entrypoint so any screen can open Meshi in a specific mode.
   useEffect(() => {
@@ -1660,6 +1678,28 @@ export function MeshiFloat() {
                     </div>
                   </motion.div>
                 )}
+                {pendingSpeechAction?.type === "post" && pendingSpeechAction.content && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="w-full rounded-2xl rounded-bl-sm border border-[var(--accent)]/40 bg-[var(--bg-elevated)] px-3 py-2 shadow-lg">
+                    <p className="mb-2 text-[10px] font-medium text-[var(--accent)]">Ready to post for you</p>
+                    <p className="mb-2 max-h-20 overflow-y-auto text-xs leading-relaxed text-[var(--text-primary)]">
+                      {pendingSpeechAction.content}
+                    </p>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={confirmPendingSpeechAction}
+                        className="rounded-lg brand-button px-2.5 py-1 text-[11px] font-semibold text-white shadow">
+                        Post it
+                      </button>
+                      <button
+                        onClick={() => setPendingSpeechAction(null)}
+                        className="rounded-lg bg-[var(--bg-tertiary)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)]">
+                        Not now
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 w-full">
                   <input ref={speechInputRef} type="text" value={speechInput}
                     onChange={(e) => setSpeechInput(e.target.value)}
@@ -1818,6 +1858,7 @@ export function MeshiFloat() {
         faceStyle={mood}
         meshData={meshStats}
         meshEntities={meshEntities}
+        focusedContent={focusedContent || undefined}
       />
     </>
   );

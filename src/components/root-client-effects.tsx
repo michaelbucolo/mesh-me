@@ -15,6 +15,9 @@ const PwaRegister = dynamic(() => import("@/components/pwa-register").then((mod)
 const MeshiFloat = dynamic(() => import("@/components/meshi/meshi-float").then((mod) => mod.MeshiFloat), {
   ssr: false,
 });
+const MeshiDelivery = dynamic(() => import("@/components/meshi/meshi-delivery").then((mod) => mod.MeshiDelivery), {
+  ssr: false,
+});
 const BugReportWidget = dynamic(() => import("@/components/support/bug-report-widget").then((mod) => mod.BugReportWidget), {
   ssr: false,
 });
@@ -49,6 +52,7 @@ export function RootClientEffects() {
       {lightEffectsReady ? <SpatialInit /> : null}
       {lightEffectsReady ? <PwaRegister /> : null}
       {companionReady ? <MeshiFloat /> : null}
+      {companionReady ? <MeshiDelivery /> : null}
       {companionReady ? <BugReportWidget /> : null}
     </>
   );

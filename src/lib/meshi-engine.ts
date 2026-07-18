@@ -135,9 +135,31 @@ function detectIntent(query: string): QueryIntent {
     || q.match(/(?:find|search for|look for)\s+(?:@)?(\w+)/i);
   if (personMatch) {
     const name = personMatch[1].replace(/[?!.]+$/, "").trim();
-    const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "meshi", "privacy", "security", "meshpro"];
-    if (name && !featureWords.some(fw => name.toLowerCase().includes(fw))) {
-      return { type: "person_lookup", name };
+    // "who is online/active" asks about presence, not a person named "online".
+    if (/^(?:online|active|around)\b/.test(name.toLowerCase())) {
+      return { type: "who_active" };
+    }
+    // "tell me about my followers" is a stats question about the user, never a
+    // person named "my followers" — reroute self-phrases to the right intent.
+    // Self-topics without a matching intent ("my privacy settings", "my
+    // profile") fall through to the later detectors and the local knowledge
+    // base instead of being answered as a person or a mesh summary.
+    const selfTopicMatch = name.toLowerCase().match(/^(?:my|our)\s+(.+)$/);
+    if (selfTopicMatch) {
+      const topic = selfTopicMatch[1];
+      if (topic.includes("follower")) return { type: "follower_count" };
+      if (topic.includes("following")) return { type: "following_count" };
+      if (topic.includes("mutual")) return { type: "mutual_connections" };
+      if (topic.includes("post") || topic.includes("content")) return { type: "post_count" };
+      if (topic.includes("communit") || topic.includes("group")) return { type: "community_list" };
+      if (topic.includes("interest") || topic.includes("hobby")) return { type: "interest_list" };
+      if (topic.includes("platform") || topic.includes("account") || topic.includes("channel")) return { type: "platform_summary" };
+      if (topic.includes("activity") || topic.includes("notification")) return { type: "recent_activity" };
+    } else {
+      const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "meshi", "privacy", "security", "meshpro"];
+      if (name && !featureWords.some(fw => name.toLowerCase().includes(fw))) {
+        return { type: "person_lookup", name };
+      }
     }
   }
 

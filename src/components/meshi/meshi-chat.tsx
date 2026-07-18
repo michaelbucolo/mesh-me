@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Sparkles, Search, BarChart3, Shield, HelpCircle } from "lucide-react";
-import { askMeshi } from "@/lib/meshi-client";
-import type { MeshiHistoryMessage } from "@/lib/meshi-shared";
+import { X, Send, Sparkles, Search, BarChart3, Shield, HelpCircle, PenLine, UserPlus, MessageSquare } from "lucide-react";
+import { askMeshi, runMeshiAction } from "@/lib/meshi-client";
+import type { MeshiAction, MeshiContext, MeshiHistoryMessage } from "@/lib/meshi-shared";
 import type { MeshGraphEntity } from "@/lib/queries";
 import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
 import type { MeshiAccessory, MeshiMood, MeshiHat, MeshiColor, MeshiHair } from "./meshi-mascot";
@@ -14,6 +14,9 @@ interface ChatMessage {
   role: "user" | "meshi";
   content: string;
   timestamp: Date;
+  /** Vessel action Meshi proposed with this message; rendered as live controls. */
+  action?: MeshiAction;
+  actionDone?: boolean;
 }
 
 const QUICK_ACTIONS = [
@@ -39,6 +42,7 @@ interface MeshiChatProps {
     platforms?: number;
   };
   meshEntities?: MeshGraphEntity[];
+  focusedContent?: MeshiContext["focusedContent"];
 }
 
 function toMeshiHistory(messages: ChatMessage[]): MeshiHistoryMessage[] {
@@ -57,6 +61,7 @@ export function MeshiChat({
   faceStyle,
   meshData,
   meshEntities,
+  focusedContent,
 }: MeshiChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -112,6 +117,7 @@ export function MeshiChat({
         context: {
           meshData,
           meshEntities: meshEntities?.slice(0, 50),
+          focusedContent,
           currentPage: typeof window === "undefined" ? undefined : window.location.pathname,
         },
         history: toMeshiHistory(previousMessages),
@@ -134,11 +140,57 @@ export function MeshiChat({
           role: "meshi",
           content: response.content,
           timestamp: new Date(),
+          action: response.action,
         },
       ]);
       setIsTyping(false);
+
+      // Suggestions are read-only, so Meshi fetches them right away instead of
+      // asking permission first.
+      if (response.action?.type === "suggest") {
+        setIsTyping(true);
+        const result = await runMeshiAction({
+          action: "suggest",
+          suggestionType: (response.action.suggestionType as "people" | "communities" | "content") || "people",
+        });
+        setMeshiMood(result.mood);
+        setMessages((prev) => [
+          ...prev.map((m) => (m.action?.type === "suggest" ? { ...m, actionDone: true } : m)),
+          { id: `meshi-${Date.now()}-suggest`, role: "meshi" as const, content: result.message, timestamp: new Date() },
+        ]);
+        setIsTyping(false);
+      }
     })();
-  }, [input, isTyping, meshData, meshEntities, messages]);
+  }, [input, isTyping, meshData, meshEntities, focusedContent, messages]);
+
+  const confirmPostAction = useCallback((messageId: string, action: MeshiAction) => {
+    const content = action.content;
+    if (!content || isTyping) return;
+    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, actionDone: true } : m)));
+    setIsTyping(true);
+    setMeshiMood("thinking");
+    setStatusLabel("Acting on your behalf");
+
+    void (async () => {
+      const result = await runMeshiAction({ action: "post", content });
+      setMeshiMood(result.mood);
+      setStatusLabel(result.success ? "Vessel action complete" : "Vessel action failed");
+      setMessages((prev) => [
+        ...prev,
+        { id: `meshi-${Date.now()}-action`, role: "meshi" as const, content: result.message, timestamp: new Date() },
+      ]);
+      setIsTyping(false);
+    })();
+  }, [isTyping]);
+
+  const dismissAction = useCallback((messageId: string) => {
+    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, actionDone: true } : m)));
+  }, []);
+
+  const prefillFromPrompt = useCallback((template: string) => {
+    setInput(template);
+    inputRef.current?.focus();
+  }, []);
 
   return (
     <AnimatePresence>
@@ -188,6 +240,54 @@ export function MeshiChat({
                   }`}
                 >
                   {msg.content}
+                  {msg.role === "meshi" && msg.action && !msg.actionDone && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {msg.action.type === "post" && msg.action.content && (
+                        <>
+                          <button
+                            onClick={() => confirmPostAction(msg.id, msg.action!)}
+                            className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:shadow"
+                          >
+                            <PenLine className="h-3 w-3" />
+                            Post it
+                          </button>
+                          <button
+                            onClick={() => dismissAction(msg.id)}
+                            className="rounded-lg bg-[var(--bg-tertiary)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                          >
+                            Not now
+                          </button>
+                        </>
+                      )}
+                      {msg.action.type === "post_prompt" && (
+                        <button
+                          onClick={() => prefillFromPrompt("Post: ")}
+                          className="flex items-center gap-1 rounded-lg bg-[var(--bg-tertiary)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                        >
+                          <PenLine className="h-3 w-3" />
+                          Draft a post
+                        </button>
+                      )}
+                      {msg.action.type === "follow_prompt" && (
+                        <button
+                          onClick={() => prefillFromPrompt("Find @")}
+                          className="flex items-center gap-1 rounded-lg bg-[var(--bg-tertiary)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                        >
+                          <UserPlus className="h-3 w-3" />
+                          Find someone
+                        </button>
+                      )}
+                      {msg.action.type === "message_prompt" && (
+                        <button
+                          onClick={() => prefillFromPrompt("Message @username: ")}
+                          className="flex items-center gap-1 rounded-lg bg-[var(--bg-tertiary)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          Write a message
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}

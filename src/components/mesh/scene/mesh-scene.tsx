@@ -19,6 +19,7 @@ import {
   type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { openMeshi } from "@/lib/meshi-events";
 import { playSound } from "@/lib/sound";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import type { MeshApiResponse } from "../mesh-data";
@@ -2975,6 +2976,15 @@ function ContentLens({
       <div
         className="relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0b1020]/95 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
+        // The lens speaks Meshi's focused-content contract, so asking Meshi
+        // about "this post" works on the mesh exactly like it does on the feed.
+        data-meshi-content-card="true"
+        data-meshi-content-id={node.id}
+        data-meshi-content-platform={isExternal ? node.sublabel || "external" : "meshme"}
+        data-meshi-content-author={node.label}
+        data-meshi-content-text={(node.content || node.label).slice(0, 900)}
+        data-meshi-content-url={node.href}
+        data-meshi-content-media={node.videoUrl || lensEmbedUrl ? "video" : node.imageUrl ? "image" : ""}
       >
         {/* Media stage — everything plays right here on the mesh: video files
             natively, platform pages through their embed players, stills as
@@ -3085,6 +3095,15 @@ function ContentLens({
                 {commentCount}
               </span>
             )}
+
+            <button
+              type="button"
+              onClick={() => openMeshi("chat")}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+            >
+              <Sparkles size={14} />
+              Ask Meshi
+            </button>
 
             {isExternal && node.href && (
               // Secondary by design: everything plays here; the source link is
