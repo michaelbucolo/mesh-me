@@ -209,6 +209,15 @@ export function proxy(request: NextRequest) {
     return hardenResponse(NextResponse.redirect(secureUrl, 308));
   }
 
+  // Canonical host: strip "www." so there is exactly one origin. The session
+  // cookie is __Host--scoped, so a visitor on www.meshs.me has no session and
+  // Server Actions abort on the host/origin mismatch (seen in production logs).
+  if (host.toLowerCase().startsWith("www.")) {
+    const apexUrl = new URL(request.url);
+    apexUrl.host = host.slice(4);
+    return hardenResponse(NextResponse.redirect(apexUrl, 308));
+  }
+
   if (pathname === "/" && hasSessionCookie(request)) {
     return hardenResponse(NextResponse.redirect(new URL("/mesh", request.url), 307), { sensitive: true });
   }
