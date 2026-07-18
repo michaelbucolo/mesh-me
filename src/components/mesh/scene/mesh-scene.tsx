@@ -54,7 +54,19 @@ type RemotePresence = {
   position?: { x: number; y: number };
   viewingMesh: string;
   surface?: string;
+  /** Encoded tiny world action ("heart|targetId|atMs") to replay in the room. */
+  lastAction?: string | null;
   isOnline: boolean;
+};
+
+/** A heart mid-flight from a Meshi to the post it just liked. */
+type FlyingHeart = {
+  id: number;
+  fromX: number;
+  fromY: number;
+  targetId: string;
+  born: number;
+  dur: number;
 };
 
 function generateStars(width: number, height: number) {
@@ -173,6 +185,33 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   useEffect(() => {
     tourIdsRef.current = tourIds;
   }, [tourIds]);
+  const rewindAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    rewindAtRef.current = rewindAt;
+  }, [rewindAt]);
+  // Live weave toast: shown when polling brings something new into the world.
+  const [weaveToast, setWeaveToast] = useState<{ count: number; key: number } | null>(null);
+  useEffect(() => {
+    if (!weaveToast) return;
+    const t = setTimeout(() => setWeaveToast(null), 4200);
+    return () => clearTimeout(t);
+  }, [weaveToast]);
+  // Hearts in flight (yours and the room's), stepped imperatively each frame.
+  const heartsRef = useRef<FlyingHeart[]>([]);
+  const heartSeqRef = useRef(0);
+  const heartsElRef = useRef<HTMLDivElement | null>(null);
+  // Dedupe of replayed room actions, keyed by userId → action timestamp.
+  const seenActionsRef = useRef<Map<string, number>>(new Map());
+  const presenceActionBaselineRef = useRef(false);
+  const pendingActionRef = useRef<{ targetId: string; at: number } | null>(null);
+  const heartbeatNowRef = useRef<(() => void) | null>(null);
+  // Travel dive into a friend's mesh.
+  const [traveling, setTraveling] = useState<{ label: string } | null>(null);
+  const travelingRef = useRef(false);
+  useEffect(() => {
+    setTraveling(null);
+    travelingRef.current = false;
+  }, [viewUserId]);
   const [searchQuery, setSearchQuery] = useState("");
   const [discoverUsers, setDiscoverUsers] = useState<
     { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
@@ -300,6 +339,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           // Carry over animated positions so a refresh doesn't re-form the sky.
           const prev = modelRef.current!;
           const bornStamp = (typeof performance !== "undefined" ? performance.now() : Date.now());
+          let newborn = 0;
           model.nodes.forEach((node) => {
             const old = prev.nodes.get(node.id);
             if (old) {
@@ -307,14 +347,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               node.dy = old.dy;
               node.vx = old.vx;
               node.vy = old.vy;
+              node.bornAt = old.bornAt;
             } else {
-              // New content: land at its place and play the arrival animation,
-              // then its strands draw out to everything it connects to.
-              node.dx = node.x;
-              node.dy = node.y;
+              // New content weaves itself in LIVE: it springs out of whatever
+              // made it, playing the arrival celebration on the way.
+              const parent = node.parentId ? model.nodes.get(node.parentId) : null;
+              node.dx = parent ? parent.dx : node.x;
+              node.dy = parent ? parent.dy : node.y;
               node.bornAt = bornStamp;
+              newborn += 1;
             }
           });
+          if (newborn > 0) setWeaveToast({ count: newborn, key: Date.now() });
         } else {
           physicsRef.current = createPhysicsState();
         }
@@ -355,6 +399,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const controller = new AbortController();
     void loadScene({ signal: controller.signal });
     return () => controller.abort();
+  }, [loadScene]);
+
+  // The mesh is ALIVE: poll quietly so new content weaves itself in while
+  // you watch. Paused while the tab is hidden and while rewinding — the past
+  // doesn't change.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      if (rewindAtRef.current != null) return;
+      void loadScene({ quiet: true });
+    }, 25000);
+    return () => clearInterval(id);
   }, [loadScene]);
 
   // --- Rewind: rebuild the world as it existed at a past moment ---
@@ -584,11 +640,48 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     panTargetRef.current = { nodeId: node.id };
   }, []);
 
+  // Entering a friend's mesh is a TRIP, not a page change: the camera dives
+  // into their node while a veil rises, then their world forms in.
   const enterFriendMesh = useCallback(
     (node: SceneNode) => {
-      if (node.userId) router.push(`/mesh?user=${encodeURIComponent(node.userId)}`);
+      if (!node.userId || travelingRef.current) return;
+      travelingRef.current = true;
+      setTraveling({ label: node.label });
+      setSelectedNode(null);
+      panTargetRef.current = { nodeId: node.id };
+      zoomTargetRef.current = {
+        zoom: Math.min(MAX_ZOOM, Math.max(cameraRef.current.zoom * 2.6, 1.6)),
+        ax: 0,
+        ay: 0,
+      };
+      const dest = `/mesh?user=${encodeURIComponent(node.userId)}`;
+      setTimeout(() => router.push(dest), 720);
     },
     [router],
+  );
+
+  // Your Meshi throws a heart at the post you just liked — visible to you AND
+  // to everyone else in the room, where it lands and ticks the count up.
+  const spawnHeart = useCallback((fromX: number, fromY: number, targetId: string) => {
+    heartsRef.current.push({
+      id: ++heartSeqRef.current,
+      fromX,
+      fromY,
+      targetId,
+      born: typeof performance !== "undefined" ? performance.now() : Date.now(),
+      dur: 950,
+    });
+  }, []);
+
+  const emitHeart = useCallback(
+    (node: SceneNode) => {
+      const from = viewUserId ? cursorWorldPosRef.current : ownerWorldPosRef.current;
+      spawnHeart(from.x, from.y, node.id);
+      pendingActionRef.current = { targetId: node.id, at: Date.now() };
+      // Broadcast immediately so the room sees the throw with minimal lag.
+      heartbeatNowRef.current?.();
+    },
+    [spawnHeart, viewUserId],
   );
 
   const activateNode = useCallback(
@@ -943,12 +1036,19 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             viewingMesh: meshOwner,
             surface: "mesh",
             ghostMode: typeof localStorage !== "undefined" && localStorage.getItem("meshGhostMode") === "true",
+            // A recent heart-throw rides along until the room has had a
+            // chance to see it (receivers dedupe by its timestamp).
+            action:
+              pendingActionRef.current && Date.now() - pendingActionRef.current.at < 8000
+                ? { type: "heart", targetId: pendingActionRef.current.targetId, at: pendingActionRef.current.at }
+                : null,
           }),
         });
       } catch {
         // Presence is best-effort.
       }
     };
+    heartbeatNowRef.current = () => void heartbeat();
 
     const poll = async () => {
       const meshOwner = meshOwnerIdRef.current;
@@ -963,6 +1063,44 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // connections online elsewhere perch on their own node in the web.
         const visible = list.filter((p) => p.isOnline);
         const visibleIds = new Set(visible.map((p) => p.userId));
+
+        // Replay room actions: someone's Meshi threw a heart — show it fly
+        // from their Meshi to the post and tick the count when it lands.
+        // The first poll only records a baseline so stale hearts never replay.
+        for (const p of visible) {
+          if (!p.lastAction) continue;
+          const [type, targetId, atRaw] = p.lastAction.split("|");
+          const at = Number(atRaw);
+          if (type !== "heart" || !targetId || !Number.isFinite(at)) continue;
+          const prevAt = seenActionsRef.current.get(p.userId) ?? 0;
+          if (at <= prevAt) continue;
+          seenActionsRef.current.set(p.userId, at);
+          if (!presenceActionBaselineRef.current) continue;
+          if (Date.now() - at > 12000) continue;
+          const model = modelRef.current;
+          const target = model?.nodes.get(targetId);
+          if (!target) continue;
+          const world =
+            presenceWorldPosRef.current.get(p.userId) ?? presenceWorldRef.current.get(p.userId);
+          if (world) {
+            spawnHeart(world.x, world.y, targetId);
+          } else {
+            // Perched or viewport-anchored: unproject their current screen spot.
+            const perch = perchPosRef.current.get(p.userId);
+            const c = containerRef.current;
+            const cam = cameraRef.current;
+            if (perch && c) {
+              spawnHeart(
+                (perch.x - c.clientWidth / 2 - cam.panX) / cam.zoom,
+                (perch.y - c.clientHeight / 2 - cam.panY) / cam.zoom,
+                targetId,
+              );
+            } else {
+              spawnHeart(target.dx, target.dy - 220, targetId);
+            }
+          }
+        }
+        presenceActionBaselineRef.current = true;
         for (const p of visible) {
           // Only presence FROM the mesh surface drives a live cursor — the
           // app-wide heartbeat (MeChat, Flow, anywhere) keeps people online
@@ -1024,11 +1162,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
     return () => {
       stopped = true;
+      heartbeatNowRef.current = null;
       clearInterval(hb);
       clearInterval(pl);
       clearTimeout(kick);
     };
-  }, [viewUserId, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face]);
+  }, [viewUserId, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart]);
 
   useEffect(() => {
     return () => {
@@ -1074,9 +1213,57 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
     let raf = 0;
     let last = 0;
+    // Hearts in flight: each rises out of a Meshi, arcs across the world, and
+    // pops on the post it was thrown at — nudging the count up as it lands.
+    const stepHearts = (now: number) => {
+      const host = heartsElRef.current;
+      if (!host) return;
+      heartsRef.current = heartsRef.current.filter((h) => {
+        const model = modelRef.current;
+        const target = model?.nodes.get(h.targetId);
+        let el = host.querySelector<HTMLElement>(`[data-heart-id="${h.id}"]`);
+        if (!target) {
+          el?.remove();
+          return false;
+        }
+        const t = (now - h.born) / h.dur;
+        if (t >= 1) {
+          const meta = target.meta?.find((m) => m.label === "Likes");
+          if (meta) {
+            const n = parseInt(meta.value, 10);
+            if (Number.isFinite(n)) meta.value = String(n + 1);
+          }
+          if (el) {
+            el.style.animation = "meshHeartLand .34s ease-out forwards";
+            const gone = el;
+            setTimeout(() => gone.remove(), 360);
+          }
+          return false;
+        }
+        if (!el) {
+          el = document.createElement("div");
+          el.dataset.heartId = String(h.id);
+          el.dataset.meshHeart = "1";
+          el.textContent = "❤";
+          el.style.cssText =
+            "position:absolute;left:0;top:0;font-size:20px;line-height:1;color:#fb7185;filter:drop-shadow(0 2px 8px rgba(244,63,94,0.65));will-change:transform;transform:translate(-50%,-50%);";
+          host.appendChild(el);
+        }
+        const cx0 = (h.fromX + target.dx) / 2;
+        const cy0 = (h.fromY + target.dy) / 2 - 130;
+        const mt = 1 - t;
+        const wx = mt * mt * h.fromX + 2 * mt * t * cx0 + t * t * target.dx;
+        const wy = mt * mt * h.fromY + 2 * mt * t * cy0 + t * t * target.dy;
+        const s = project(wx, wy);
+        const scale = 0.7 + 0.55 * Math.sin(t * Math.PI);
+        el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px) translate(-50%,-50%) scale(${scale.toFixed(3)}) rotate(${(Math.sin(t * 9) * 10).toFixed(1)}deg)`;
+        return true;
+      });
+    };
     const step = (time: number) => {
       const dt = last ? Math.min(time - last, 50) : 16;
       last = time;
+      stepHearts(time);
       // Casual, unhurried easing — Meshis drift toward where their user is
       // looking rather than mirroring a mouse at full speed.
       const k = 1 - Math.exp(-dt / 650);
@@ -1346,6 +1533,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         }}
       />
 
+      {/* Hearts mid-flight from Meshis to the posts they just liked. */}
+      <div ref={heartsElRef} aria-hidden className="pointer-events-none absolute inset-0 z-[15]" />
+
       {/* Meshi — you, wandering the mesh. On desktop it ambles after your
           pointer; on touch it stays centered while the world moves beneath it.
           Shown when visiting another mesh (on your own mesh the owner Meshi
@@ -1593,11 +1783,35 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         <div aria-hidden className="pointer-events-none absolute inset-0 z-[4] bg-amber-400/[0.05]" />
       )}
 
+      {/* Something just wove itself into the mesh, live. */}
+      {weaveToast && (
+        <div
+          key={weaveToast.key}
+          className="pointer-events-none absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-100 backdrop-blur"
+          style={{ animation: "meshWeaveToast 4s ease forwards" }}
+        >
+          <Sparkles size={13} />
+          {weaveToast.count === 1
+            ? "Something new just wove into the mesh"
+            : `${weaveToast.count} new things just wove into the mesh`}
+        </div>
+      )}
+
+      {/* Travel dive — the veil rises as the camera plunges into their node. */}
+      {traveling && (
+        <div className="pointer-events-none absolute inset-0 z-[70] flex items-center justify-center">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(110,139,255,0.32),rgba(4,5,12,0.97)_72%)]" style={{ animation: "meshTravelVeil .72s ease-in forwards" }} />
+          <p className="relative text-sm font-semibold tracking-wide text-white" style={{ animation: "meshTravelText .72s ease-in forwards" }}>
+            Entering {traveling.label}&apos;s mesh…
+          </p>
+        </div>
+      )}
+
       {/* Rewind — drag through time and watch this world re-assemble. */}
       {showRewind && oldestMoment != null && status === "ready" && (
         <div className="absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
           <div
-            className="w-full max-w-xl rounded-2xl border border-white/12 bg-black/60 px-4 py-3 backdrop-blur"
+            className="w-full max-w-xl animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-black/60 px-4 py-3 backdrop-blur"
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -1612,7 +1826,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                   <button
                     type="button"
                     onClick={backToNow}
-                    className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-white/15"
+                    className="mesh-bubble-btn rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-white/15"
                   >
                     Back to now
                   </button>
@@ -1651,7 +1865,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           type="button"
           onClick={startCatchUp}
           onPointerDown={(e) => e.stopPropagation()}
-          className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur transition-colors hover:bg-cyan-400/20"
+          className="absolute left-1/2 top-20 z-30 flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur transition-colors hover:bg-cyan-400/20"
+          style={{ animation: "chipBob 3.4s ease-in-out infinite" }}
         >
           <Sparkles size={13} />
           Catch up: {newCount === 1 ? "1 new thing" : `${newCount} new things`} since your last visit
@@ -1701,13 +1916,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           <div className="flex items-center gap-2">
             <Link
               href={`/profile/${meshData?.user.username}`}
-              className="rounded-full bg-white px-5 py-2 text-sm font-bold text-black transition hover:bg-white/90"
+              className="mesh-bubble-btn rounded-full bg-white px-5 py-2 text-sm font-bold text-black hover:bg-white/90"
             >
               View profile
             </Link>
             <Link
               href="/mesh"
-              className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+              className="mesh-bubble-btn rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white hover:bg-white/15"
             >
               Back to my mesh
             </Link>
@@ -1727,13 +1942,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 <button
                   type="button"
                   onClick={() => setShowCompose(true)}
-                  className="rounded-full bg-[var(--mesh-blue)] px-4 py-1.5 text-xs font-medium text-white"
+                  className="mesh-bubble-btn rounded-full bg-[var(--mesh-blue)] px-4 py-1.5 text-xs font-medium text-white"
                 >
                   Create your first post
                 </button>
                 <Link
                   href="/connected-accounts"
-                  className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium text-white/85"
+                  className="mesh-bubble-btn rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium text-white/85"
                 >
                   Connect accounts
                 </Link>
@@ -1753,7 +1968,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           }}
         >
           <div
-            className="w-full max-w-sm animate-[slideUp_.24s_ease-out] rounded-2xl border border-white/12 bg-[#0b1020] p-5 shadow-2xl"
+            className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-5 shadow-2xl"
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-start justify-between">
@@ -1803,7 +2018,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <button
               type="button"
               onClick={dismissTips}
-              className="mt-4 w-full rounded-full bg-[var(--mesh-blue)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              className="mesh-bubble-btn mt-4 w-full rounded-full bg-[var(--mesh-blue)] py-2 text-xs font-semibold text-white"
             >
               Start exploring
             </button>
@@ -1820,7 +2035,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             if (e.target === e.currentTarget) setShowSearch(false);
           }}
         >
-          <div className="w-full max-w-md animate-[slideUp_.22s_ease-out] rounded-2xl border border-white/12 bg-[#0b1020] p-2 shadow-2xl">
+          <div className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-2 shadow-2xl">
             <div className="flex items-center gap-2 px-2">
               <Search size={15} className="shrink-0 text-white/45" />
               <input
@@ -1910,6 +2125,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           node={selectedNode}
           list={contentList()}
           streamLabel={tourIds ? "new since your last visit" : "on your mesh"}
+          onHearted={emitHeart}
           onClose={() => {
             // Closing the lens un-dims the whole world — never leave the mesh
             // stuck spotlighting one branch after you're done reading.
@@ -1960,7 +2176,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             if (e.target === e.currentTarget) setShowCompose(false);
           }}
         >
-          <div className="w-full max-w-xl animate-[slideUp_.28s_ease-out] rounded-2xl border border-white/12 bg-[#0b1020] p-3 shadow-2xl">
+          <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-3 shadow-2xl">
             <div className="mb-2 flex items-start justify-between px-1">
               <div className="flex items-center gap-2">
                 <Sparkles size={15} className="text-[var(--mesh-blue)]" />
@@ -2001,7 +2217,7 @@ function RailButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
-      className="group relative flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white/85 backdrop-blur transition-colors hover:bg-black/65 hover:text-white"
+      className="mesh-rail-btn group relative flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white/85 backdrop-blur hover:bg-black/65 hover:text-white"
     >
       {children}
       <span className="pointer-events-none absolute right-full mr-2 hidden w-max rounded-lg border border-white/12 bg-black/80 px-2 py-1 text-[11px] font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 sm:block">
@@ -2079,7 +2295,7 @@ function MeshListView({
       <div
         role="dialog"
         aria-label="Your mesh as a list"
-        className="flex h-full w-full max-w-md flex-col border-l border-white/10 bg-[#0b1020] pt-16 shadow-2xl"
+        className="flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col border-l border-white/10 bg-[#0b1020] pt-16 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-white/8 px-4 py-3.5">
@@ -2201,7 +2417,7 @@ function NodeDetail({
 }) {
   return (
     <div
-      className="absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md rounded-2xl border border-white/12 bg-[#0b1020]/95 p-4 shadow-2xl backdrop-blur sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
+      className="absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020]/95 p-4 shadow-2xl backdrop-blur sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-start gap-3">
@@ -2255,7 +2471,7 @@ function NodeDetail({
           <button
             type="button"
             onClick={() => onEnterMesh(node)}
-            className="flex-1 rounded-full bg-[var(--mesh-blue)] py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            className="mesh-bubble-btn flex-1 rounded-full bg-[var(--mesh-blue)] py-2 text-xs font-semibold text-white"
           >
             Enter their mesh
           </button>
@@ -2264,7 +2480,7 @@ function NodeDetail({
           <Link
             href={node.href}
             target={node.href.startsWith("http") ? "_blank" : undefined}
-            className="flex-1 rounded-full border border-white/15 bg-white/5 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-white/10"
+            className="mesh-bubble-btn flex-1 rounded-full border border-white/15 bg-white/5 py-2 text-center text-xs font-semibold text-white hover:bg-white/10"
           >
             {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
           </Link>
@@ -2301,12 +2517,15 @@ function ContentLens({
   node,
   list,
   streamLabel = "on your mesh",
+  onHearted,
   onClose,
   onNavigate,
 }: {
   node: SceneNode;
   list: SceneNode[];
   streamLabel?: string;
+  /** Called on a like so the scene can throw a visible heart at the node. */
+  onHearted?: (node: SceneNode) => void;
   onClose: () => void;
   onNavigate: (dir: 1 | -1) => void;
 }) {
@@ -2338,6 +2557,8 @@ function ContentLens({
     const next = !liked;
     setLiked(next);
     setLikeCount((c) => c + (next ? 1 : -1));
+    // Liking is a physical act in the world: your Meshi throws the heart.
+    if (next) onHearted?.(node);
     startLike(async () => {
       const res = await toggleReaction(postId);
       if (res && "error" in res) {
@@ -2358,7 +2579,7 @@ function ContentLens({
       }}
     >
       <div
-        className="relative flex w-full max-w-lg animate-[slideUp_.3s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0b1020]/95 shadow-2xl"
+        className="relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0b1020]/95 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Media stage — everything plays right here on the mesh: video files
@@ -2436,13 +2657,20 @@ function ContentLens({
           <div className="flex items-center gap-2 border-t border-white/8 pt-3">
             <button
               type="button"
+              aria-label={liked ? "Unlike" : "Like"}
               onClick={handleLike}
               disabled={!postId || likePending}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`mesh-bubble-btn inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 liked ? "bg-rose-500/15 text-rose-300" : "bg-white/6 text-white/75 hover:bg-white/10"
               } ${!postId ? "cursor-default opacity-70" : ""}`}
             >
-              <Heart size={14} fill={liked ? "currentColor" : "none"} />
+              <span
+                key={likeCount}
+                className="inline-flex"
+                style={liked ? { animation: "meshHeartPop .45s ease" } : undefined}
+              >
+                <Heart size={14} fill={liked ? "currentColor" : "none"} />
+              </span>
               {likeCount}
             </button>
 

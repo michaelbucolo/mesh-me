@@ -9248,3 +9248,66 @@ body > * { position: relative; z-index: 1; }
   .mesh-gate-shake { animation: none; }
   .mesh-gate-signup-meshi { transition: none; }
 }
+
+/* ── Living mesh: bubbly premium motion ─────────────────────────────── */
+/* Overlays bloom in with a soft overshoot — bubbly, never abrupt. */
+@keyframes bubbleIn {
+  0% { opacity: 0; transform: scale(0.92) translateY(16px); }
+  62% { opacity: 1; transform: scale(1.015) translateY(-3px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+/* Right-hand sheets (the list view) spring in from the edge. */
+@keyframes sheetIn {
+  0% { opacity: 0; transform: translateX(36px); }
+  65% { opacity: 1; transform: translateX(-4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+/* The catch-up chip bobs gently so the eye finds it. */
+@keyframes chipBob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -4px); }
+}
+/* Lens like button: a joyful pop when you heart something. */
+@keyframes meshHeartPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.45) rotate(-8deg); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+/* A thrown heart pops when it lands on its post. */
+@keyframes meshHeartLand {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.1); opacity: 0; }
+}
+/* Toast for content weaving itself in live. */
+@keyframes meshWeaveToast {
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(0.94); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  88% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -8px) scale(0.96); }
+}
+/* Travel dive: the world rushes past as you enter a friend's mesh. */
+@keyframes meshTravelVeil {
+  0% { opacity: 0; }
+  55% { opacity: 0.65; }
+  100% { opacity: 1; }
+}
+@keyframes meshTravelText {
+  0% { opacity: 0; transform: scale(0.9); letter-spacing: 0.02em; }
+  40% { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.06); letter-spacing: 0.08em; }
+}
+.mesh-rail-btn {
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
+}
+.mesh-rail-btn:hover { transform: scale(1.12); }
+.mesh-rail-btn:active { transform: scale(0.88); }
+.mesh-bubble-btn {
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, opacity 0.2s ease;
+}
+.mesh-bubble-btn:hover { transform: scale(1.045); }
+.mesh-bubble-btn:active { transform: scale(0.94); }
+@media (prefers-reduced-motion: reduce) {
+  .mesh-rail-btn, .mesh-rail-btn:hover, .mesh-rail-btn:active { transition: none; transform: none; }
+  .mesh-bubble-btn, .mesh-bubble-btn:hover, .mesh-bubble-btn:active { transition: none; transform: none; }
+}

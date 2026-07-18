@@ -1269,6 +1269,7 @@ model MeshPresence {
   velocity       Float    @default(0)
   activity       String   @default("idle")
   ghostMode      Boolean  @default(false)
+  lastAction     String?
   lastSeen       DateTime
 
   @@index([lastSeen])

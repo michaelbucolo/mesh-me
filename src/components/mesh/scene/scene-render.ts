@@ -840,18 +840,48 @@ export function drawScene(o: RenderOptions): void {
     const cull = node.kind === "post" ? 170 : 80;
     if (p.x < -cull || p.x > width + cull || p.y < -cull || p.y > height + cull) return;
 
-    // Arrival: new content pops into its place with a grow + expanding burst
-    // ring before its strands draw out to everything it connects to.
+    // Arrival: something new joining the mesh is a small celebration — two
+    // staggered ripple rings, a brief four-point sparkle with a warm flash,
+    // and a springy grow-in that settles exactly at full size.
     const born = birthProgress(node, time);
     if (born < 1 && node.kind !== "self") {
-      const burstR = r * (1.2 + born * 3.2);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, burstR, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(node.color, 0.5 * (1 - born));
-      ctx.lineWidth = 2 * (1 - born) + 0.5;
-      ctx.stroke();
-      // Overshoot grow-in.
-      r *= 0.35 + 0.75 * born - 0.1 * Math.sin(born * Math.PI);
+      for (let ri = 0; ri < 2; ri += 1) {
+        const rp = Math.min(1, Math.max(0, born * 1.35 - ri * 0.28));
+        if (rp > 0 && rp < 1) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r * (1.1 + rp * 3.6), 0, Math.PI * 2);
+          ctx.strokeStyle = withAlpha(ri === 0 ? node.color : "#ffffff", 0.5 * (1 - rp));
+          ctx.lineWidth = (ri === 0 ? 2.2 : 1.2) * (1 - rp) + 0.4;
+          ctx.stroke();
+        }
+      }
+      if (born < 0.45) {
+        const sp = born / 0.45;
+        const rayLen = r * (1.6 + sp * 2.8);
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(sp * 0.9);
+        ctx.strokeStyle = withAlpha("#fff7d6", 0.75 * (1 - sp));
+        ctx.lineWidth = 1.4;
+        for (let k = 0; k < 4; k += 1) {
+          const a = (Math.PI / 2) * k + Math.PI / 4;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9);
+          ctx.lineTo(Math.cos(a) * rayLen, Math.sin(a) * rayLen);
+          ctx.stroke();
+        }
+        ctx.restore();
+        const flash = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 2.4);
+        flash.addColorStop(0, withAlpha("#fff2c4", 0.5 * (1 - sp)));
+        flash.addColorStop(1, withAlpha("#fff2c4", 0));
+        ctx.fillStyle = flash;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Ease-out-back: overshoots ~9% mid-flight and lands exactly at 1.
+      const t1 = born - 1;
+      r *= Math.max(0.12, 1 + 2.70158 * t1 * t1 * t1 + 1.70158 * t1 * t1);
     }
 
     const emph = emphasisFor(node);

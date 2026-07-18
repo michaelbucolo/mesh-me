@@ -25,6 +25,12 @@ export type PresenceEntry = {
   velocity: number;
   activity: "idle" | "traveling" | "exploring";
   ghostMode: boolean;
+  /**
+   * Most recent tiny world action, encoded "type|targetId|atMs" (e.g. a Meshi
+   * throwing a heart at a post: "heart|post:abc|1784..."). Room viewers replay
+   * it once, deduped by the timestamp.
+   */
+  lastAction: string | null;
   lastSeen: number;
 };
 
@@ -91,6 +97,7 @@ type PresenceRow = {
   velocity: number;
   activity: string;
   ghostMode: boolean;
+  lastAction: string | null;
   lastSeen: Date;
 };
 
@@ -121,6 +128,7 @@ function rowToEntry(row: PresenceRow): PresenceEntry {
         ? row.activity
         : "idle",
     ghostMode: row.ghostMode,
+    lastAction: row.lastAction,
     lastSeen: row.lastSeen.getTime(),
   };
 }
@@ -150,6 +158,7 @@ function entryToRow(entry: PresenceEntry) {
     velocity: entry.velocity,
     activity: entry.activity,
     ghostMode: entry.ghostMode,
+    lastAction: entry.lastAction,
     lastSeen: new Date(entry.lastSeen),
   };
 }
@@ -328,6 +337,7 @@ export function buildPresencePayload(
       velocity: entry.velocity,
       activity: entry.activity,
       ghostMode: entry.ghostMode,
+      lastAction: entry.lastAction,
       isOnline,
     });
   }
