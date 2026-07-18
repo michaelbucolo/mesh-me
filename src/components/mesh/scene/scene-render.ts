@@ -659,7 +659,7 @@ function drawPostCard(
   const gap = 5 * scale;
   let mx = x + pad;
   if (likes != null) {
-    drawGlyphHeart(ctx, mx, footY, gsz, withAlpha("#f472b6", 0.95));
+    drawGlyphHeart(ctx, mx, footY, gsz, withAlpha("#fb7185", 0.95));
     mx += gsz + gap * 0.7;
     ctx.fillStyle = metaColor;
     const s = String(likes);
@@ -1124,7 +1124,7 @@ export function drawScene(o: RenderOptions): void {
       if ((node.kind === "person" || node.kind === "persona" || node.kind === "community") && r >= 11) {
         const initial = (node.label || "?").trim().charAt(0).toUpperCase();
         ctx.fillStyle = withAlpha("#ffffff", 0.96 * emph + 0.08);
-        ctx.font = `600 ${Math.round(r)}px ui-sans-serif, system-ui, sans-serif`;
+        ctx.font = `600 ${Math.round(r * 0.85)}px ui-sans-serif, system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(initial, p.x, p.y + r * 0.04);

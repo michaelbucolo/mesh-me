@@ -151,7 +151,7 @@ function platformLabel(value: string | null | undefined) {
 
 function ResultEmpty({ query }: { query: string }) {
   return (
-    <div className="mesh-surface rounded-lg p-8 text-center">
+    <div className="mesh-surface rounded-2xl p-8 text-center">
       <Search className="mx-auto h-7 w-7 text-[var(--accent)]" aria-hidden="true" />
       <h2 className="mt-3 text-xl font-bold text-[var(--text-primary)]">
         {query.length > 1 ? "No results yet" : "Search your connected internet"}
@@ -515,7 +515,7 @@ function ResultSection({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="mesh-surface overflow-hidden rounded-lg"
+      className="mesh-surface overflow-hidden rounded-2xl"
     >
       <header className="flex items-center gap-2 border-b border-[var(--border-primary)] px-4 py-3">
         <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />

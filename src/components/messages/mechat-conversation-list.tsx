@@ -366,7 +366,7 @@ export function MeChatConversationList({
                 setNoteSong(myNote?.songTitle ?? "");
                 setShowNoteComposer(true);
               }}
-              className="flex w-16 shrink-0 flex-col items-center gap-1.5"
+              className="mesh-pressable flex w-16 shrink-0 flex-col items-center gap-1.5 transition active:scale-95"
             >
               <div className="relative">
                 <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-16 w-16 ring-2 ring-[var(--mesh-blue)]/20" />
@@ -391,7 +391,7 @@ export function MeChatConversationList({
                 key={note.id}
                 type="button"
                 onClick={() => setActiveNote(note)}
-                className="flex w-16 shrink-0 flex-col items-center gap-1.5"
+                className="mesh-pressable flex w-16 shrink-0 flex-col items-center gap-1.5 transition active:scale-95"
               >
                 <div className="relative">
                   <span className="absolute -top-2 left-1/2 z-10 max-w-[90px] -translate-x-1/2 truncate rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-0.5 text-[9px] text-[var(--mesh-text)] shadow-sm">

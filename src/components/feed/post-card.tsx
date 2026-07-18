@@ -168,6 +168,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const [copied, setCopied] = useState(false);
   const [platformActionMessage, setPlatformActionMessage] = useState("");
   const [likeAnimating, setLikeAnimating] = useState(false);
+  const [bursts, setBursts] = useState<number[]>([]);
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -264,7 +265,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     setPlatformActionMessage(message);
   };
 
-  const handleLike = () => {
+  const handleLike = (viaDoubleTap = false) => {
     if (!currentUserId) return;
     if (!requireSourceAccount("like")) return;
     if (!canRunSourceAction(liked ? "unlike" : "like")) return;
@@ -278,6 +279,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       setLikeAnimating(true);
       playSound("heart");
       setTimeout(() => setLikeAnimating(false), 400);
+      if (viaDoubleTap) {
+        const now = Date.now();
+        setBursts((current) => [...current.slice(-3), now]);
+        window.setTimeout(() => setBursts((current) => current.filter((t) => t !== now)), 800);
+      }
     }
     startTransition(async () => {
       const result = requiresSourceAccount ? await runPlatformAction(newLiked ? "like" : "unlike") : await toggleReaction(post.id);
@@ -361,12 +367,12 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       data-meshi-content-rating={post.contentRating || (post.isNsfw ? "adult" : "general")}
       data-meshi-content-media-signals={mediaSignals.join("|")}
       className={cn(
-        "insta-post-card group overflow-hidden",
+        "insta-post-card group relative overflow-hidden",
         post.isPinned && "ring-1 ring-[var(--accent-muted)]",
         isOptimistic && "feed-post-pending",
       )}
       onDoubleClick={() => {
-        if (!liked && !isOptimistic) handleLike();
+        if (!liked && !isOptimistic) handleLike(true);
       }}
     >
       <div className={cn("px-3 pt-3 pb-2 sm:px-4", compact && "p-3")}>
@@ -661,7 +667,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           <div className="flex items-center gap-0.5">
             <button
               type="button"
-              onClick={handleLike}
+              onClick={() => handleLike()}
               disabled={isPending || isOptimistic}
               aria-label={liked ? "Unlike post" : "Like post"}
               className={cn("insta-post-action relative", liked ? "text-rose-400" : "text-[var(--text-primary)] hover:text-rose-400")}
@@ -762,6 +768,13 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
         )}
       </div>
+
+      {/* Double-tap hearts bloom from the middle of the card — same burst The Flow uses */}
+      {bursts.map((t) => (
+        <span key={t} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <Heart size={104} fill="currentColor" className="flow-heart-burst text-rose-500" />
+        </span>
+      ))}
     </article>
   );
 });

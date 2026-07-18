@@ -2116,7 +2116,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <div className="meshi-world-scale">
             {meshData?.user.isMeshPro && ownerOnline && <span className="meshi-pro-aura" aria-hidden />}
             <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
-              {!ownerOnline && <span className="mesh-owner-zzz">z</span>}
+              {!ownerOnline && (
+                <>
+                  <span className="mesh-owner-zzz">z</span>
+                  <span className="mesh-owner-zzz">z</span>
+                  <span className="mesh-owner-zzz">z</span>
+                </>
+              )}
               <div className={!viewUserId && isGhosting ? "mesh-ghosted" : undefined}>
               <MeshiMascot
                 size={54}
@@ -2292,7 +2298,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {presenceToast && (
         <div
           key={presenceToast.key}
-          className="pointer-events-none absolute left-1/2 top-[8.25rem] z-30 flex items-center gap-1.5 rounded-full border border-violet-300/25 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-100 backdrop-blur"
+          className="pointer-events-none absolute left-1/2 top-44 z-30 flex items-center gap-1.5 rounded-full border border-violet-300/25 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-100 backdrop-blur"
           style={{ animation: "meshWeaveToast 3.5s ease forwards" }}
         >
           {presenceToast.text}
@@ -2478,7 +2484,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {/* How to explore — shown on first visit, reopenable from the rail */}
       {showTips && status === "ready" && (
         <div
-          className="absolute inset-0 z-50 flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
+          className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
           onPointerDown={(e) => {
             e.stopPropagation();
             if (e.target === e.currentTarget) dismissTips();
@@ -2519,7 +2525,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {/* Search: jump to any star in your constellation */}
       {showSearch && (
         <div
-          className="absolute inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-24 backdrop-blur-sm"
+          className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-start justify-center bg-black/50 p-4 pt-24 backdrop-blur-sm"
           onPointerDown={(e) => {
             e.stopPropagation();
             if (e.target === e.currentTarget) setShowSearch(false);
@@ -2660,7 +2666,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       {/* Compose: post straight onto your constellation */}
       {showCompose && meshUser && (
         <div
-          className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center"
+          className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center"
           onPointerDown={(e) => {
             e.stopPropagation();
             if (e.target === e.currentTarget) setShowCompose(false);
@@ -2776,7 +2782,7 @@ function MeshListView({
 
   return (
     <div
-      className="absolute inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"
+      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] justify-end bg-black/50 backdrop-blur-sm"
       onPointerDown={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
@@ -3066,7 +3072,7 @@ function ContentLens({
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-end justify-center bg-black/65 p-3 backdrop-blur-md sm:items-center"
+      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/65 p-3 backdrop-blur-md sm:items-center"
       onPointerDown={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget) onClose();

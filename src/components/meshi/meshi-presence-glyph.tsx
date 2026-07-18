@@ -23,6 +23,10 @@ export function MeshiPresenceGlyph({
       aria-label={label}
       role="img"
     >
+      {/* Canonical Meshi face at small scale — mirrors meshi-mascot.tsx
+          proportions (face-space scaled 1.25x into this 64-unit viewBox):
+          rounded-square body (rx 40%), tall ellipse eyes (ry ~1.5x rx) with
+          up-left glints, and the mascot smile "M -4.6 7 Q 0 11 4.6 7". */}
       <svg
         viewBox="0 0 64 64"
         width="100%"
@@ -31,9 +35,18 @@ export function MeshiPresenceGlyph({
         aria-hidden="true"
         className="meshi-presence-glyph-face"
       >
-        <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="4" />
-        <circle cx="25" cy="32" r="4.4" fill="currentColor" />
-        <circle cx="39" cy="32" r="4.4" fill="currentColor" />
+        <rect x="12" y="12" width="40" height="40" rx="16" stroke="currentColor" strokeWidth="4" />
+        <ellipse cx="25.8" cy="32" rx="3" ry="4.6" fill="currentColor" />
+        <ellipse cx="38.2" cy="32" rx="3" ry="4.6" fill="currentColor" />
+        <circle cx="24.8" cy="30.4" r="1" fill="white" />
+        <circle cx="37.2" cy="30.4" r="1" fill="white" />
+        <path
+          d="M 26.3 40.8 Q 32 45.8 37.7 40.8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
       </svg>
     </span>
   );

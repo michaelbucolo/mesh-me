@@ -17,6 +17,7 @@ import {
   KeyRound,
   Link as LinkIcon,
   Loader2,
+  Lock,
   LockKeyhole,
   LogOut,
   Mail,
@@ -187,6 +188,22 @@ const themePresets = [
   { id: "mono", label: "Mono" },
 ] as const;
 const meshConnectionColors = ["#3b82f6", "#22c55e", "#f97316", "#ec4899", "#8b5cf6", "#f59e0b"];
+const meshConnectionColorNames: Record<string, string> = {
+  "#3b82f6": "Blue",
+  "#22c55e": "Green",
+  "#f97316": "Orange",
+  "#ec4899": "Pink",
+  "#8b5cf6": "Violet",
+  "#f59e0b": "Amber",
+};
+const themeColorLabels: Record<string, string> = {
+  accent: "Accent",
+  bgPrimary: "Background",
+  bgSecondary: "Elevated background",
+  textPrimary: "Primary text",
+  textSecondary: "Secondary text",
+  borderPrimary: "Border",
+};
 const meshNodeStyles = ["clean", "soft", "glass", "bold"] as const;
 const meshMotionStyles = ["calm", "lively", "minimal"] as const;
 // Sky palettes for the mesh canvas — ids must match ATMOSPHERES in the scene
@@ -1112,7 +1129,7 @@ function NotificationsSection({
           <Toggle label="Follows" description="New followers and friend requests" value={notifications.follows} onChange={(value) => applyNotifications({ ...notifications, follows: value })} />
           <Toggle label="Platform alerts" description="Connected platform activity" value={notifications.platformAlerts} onChange={(value) => applyNotifications({ ...notifications, platformAlerts: value })} />
           <Toggle label="Product updates" description="News and feature announcements" value={notifications.productUpdates} onChange={(value) => applyNotifications({ ...notifications, productUpdates: value })} />
-          <Toggle label="Security alerts" description="Always on to keep your account safe" value={notifications.securityAlerts} disabled onChange={() => undefined} />
+          <Toggle label="Security alerts" description="Always on to keep your account safe" value={notifications.securityAlerts} disabled locked onChange={() => undefined} />
         </div>
       </SettingsCard>
     </div>
@@ -1642,7 +1659,7 @@ function MeshSection({
               aria-pressed={meshVisuals.connectionColor === color}
             >
               <span className="h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
-              {color}
+              {meshConnectionColorNames[color]}
             </button>
           ))}
         </PickerGroup>
@@ -1835,8 +1852,8 @@ function AppearanceSection({
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(themeDraft).map(([key, value]) => (
-              <label key={key} className="grid gap-2 text-xs font-bold capitalize text-[var(--text-secondary)]">
-                {key.replace(/[A-Z]/g, " $&")}
+              <label key={key} className="grid gap-2 text-xs font-bold text-[var(--text-secondary)]">
+                {themeColorLabels[key] ?? key}
                 <input
                   type="color"
                   value={value}
@@ -2039,12 +2056,14 @@ function Toggle({
   value,
   onChange,
   disabled = false,
+  locked = false,
 }: {
   label: string;
   description?: string;
   value: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
+  locked?: boolean;
 }) {
   return (
     <button
@@ -2056,7 +2075,10 @@ function Toggle({
       aria-checked={value}
     >
       <span className="min-w-0">
-        <span className="block truncate text-sm font-bold">{label}</span>
+        <span className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-bold">{label}</span>
+          {locked && <Lock size={12} className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />}
+        </span>
         <span className="block text-xs text-[var(--text-muted)]">{description ?? (value ? "On" : "Off")}</span>
       </span>
       <span className={`settings-switch ${value ? "settings-switch-on" : ""}`} aria-hidden="true">

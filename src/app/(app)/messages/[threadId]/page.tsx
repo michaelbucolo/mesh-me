@@ -344,7 +344,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     conversationSubtitle = isExternalThread
       ? `Synced from ${sourceLabel(threadPlatform)}`
       : isGroupThread
-        ? `${memberCount} members - Mesh.me group chat`
+        ? `${memberCount} members · Mesh.me group chat`
         : recipient
           ? `@${recipient.username}`
           : "Private conversation";

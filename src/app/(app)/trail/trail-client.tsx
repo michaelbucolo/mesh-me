@@ -53,6 +53,9 @@ const TYPE_LABELS: Record<TrailStep["type"], string> = {
   message: "Messages",
 };
 
+// Stable gradient id per node color, safe for SVG url() references.
+const haloId = (color: string) => `trailHalo-${color.replace(/[^a-zA-Z0-9]/g, "")}`;
+
 // Serpentine layout: the trail winds down the page like a footpath, each
 // moment a node along the thread, labels alternating sides.
 function layoutTrail(steps: TrailStep[], width: number) {
@@ -96,6 +99,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
   const yearParam = searchParams.get("year");
   const [data, setData] = useState<TrailData | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   const loadTrail = useCallback(async (signal: AbortSignal) => {
     setStatus("loading");
@@ -307,13 +311,62 @@ function TrailInner({ isPro }: { isPro: boolean }) {
                       <stop offset="0" stopColor="#8aa1ff" stopOpacity="0.85" />
                       <stop offset="1" stopColor="#34d399" stopOpacity="0.6" />
                     </linearGradient>
+                    {/* One soft orb halo per node color — the mesh's radial glow. */}
+                    {Array.from(new Set(data.steps.map((s) => s.color))).map((color) => (
+                      <radialGradient key={color} id={haloId(color)}>
+                        <stop offset="0" stopColor={color} stopOpacity="0.35" />
+                        <stop offset="0.55" stopColor={color} stopOpacity="0.16" />
+                        <stop offset="1" stopColor={color} stopOpacity="0" />
+                      </radialGradient>
+                    ))}
                   </defs>
                   {trail.points.map((pt, i) => {
                     const step = data.steps[i];
+                    const hovered = hoveredNode === step.id;
                     return (
-                      <g key={step.id} style={{ animation: `trailNodeIn .5s ease-out ${0.25 + (i / Math.max(trail.points.length, 1)) * 2.2}s backwards` }}>
-                        <circle cx={pt.x} cy={pt.y} r={10} fill={step.color} opacity={0.14} />
-                        <circle cx={pt.x} cy={pt.y} r={4.5} fill={step.color} />
+                      <g
+                        key={step.id}
+                        onMouseEnter={() => setHoveredNode(step.id)}
+                        onMouseLeave={() => setHoveredNode(null)}
+                        style={{ animation: `trailNodeIn .5s ease-out ${0.25 + (i / Math.max(trail.points.length, 1)) * 2.2}s backwards` }}
+                      >
+                        {/* Inner group carries the hover scale so it never fights the entrance animation. */}
+                        <g
+                          style={{
+                            transform: hovered ? "scale(1.18)" : "scale(1)",
+                            transformOrigin: `${pt.x}px ${pt.y}px`,
+                            transition: "transform .25s ease",
+                          }}
+                        >
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={16}
+                            fill={`url(#${haloId(step.color)})`}
+                            opacity={hovered ? 1 : 0.7}
+                            style={{ transition: "opacity .25s ease" }}
+                          />
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={4.5}
+                            fill={step.color}
+                            stroke="#fff"
+                            strokeOpacity={0.4}
+                            strokeWidth={1}
+                          />
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={4.5}
+                            fill="none"
+                            stroke="#fff"
+                            strokeOpacity={0.75}
+                            strokeWidth={1}
+                            opacity={hovered ? 1 : 0}
+                            style={{ transition: "opacity .25s ease" }}
+                          />
+                        </g>
                       </g>
                     );
                   })}

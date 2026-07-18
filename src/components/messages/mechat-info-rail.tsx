@@ -112,7 +112,7 @@ export function MeChatInfoRail({
               { icon: Users, label: "Members", value: members.length },
               { icon: ImageIcon, label: "Media", value: mediaCount },
               { icon: FileText, label: "Files", value: fileCount },
-              { icon: Settings2, label: "Settings", value: "—" },
+              { icon: Settings2, label: "Settings", value: null },
             ].map((item) => (
               <button
                 key={item.label}
@@ -121,7 +121,13 @@ export function MeChatInfoRail({
               >
                 <item.icon size={15} className="text-[var(--mesh-text-secondary)]" />
                 <span className="text-[11px] font-semibold text-[var(--mesh-text-secondary)]">{item.label}</span>
-                <span className="text-xs font-bold text-[var(--mesh-text)]">{item.value}</span>
+                {item.value === null ? (
+                  <span className="flex h-4 items-center text-[var(--mesh-text)]" aria-hidden="true">
+                    <Settings2 size={14} />
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-[var(--mesh-text)]">{item.value}</span>
+                )}
               </button>
             ))}
           </div>
