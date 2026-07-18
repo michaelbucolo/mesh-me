@@ -7,7 +7,7 @@ import { prisma } from "./prisma";
 // The viewer's follow/community graph is stable within a request, but the feed
 // builds several candidate passes (all + discover + per-platform) that each
 // need it. Request-level cache() collapses those into one 3-query batch.
-export const getViewerSocialGraph = cache(async (userId: string) => {
+const getViewerSocialGraph = cache(async (userId: string) => {
   const [following, communityMemberships, followers] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: userId },

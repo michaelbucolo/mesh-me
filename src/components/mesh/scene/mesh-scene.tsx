@@ -24,6 +24,7 @@ import { PlatformLogo } from "@/components/platform/platform-logo";
 import type { MeshApiResponse } from "../mesh-data";
 import { PostComposer } from "@/components/feed/post-composer";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
+import { MeshFormingLoader } from "./mesh-forming-loader";
 import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from "./scene-model";
 import { layoutScene, sceneBounds } from "./scene-layout";
 import { drawScene, type Camera } from "./scene-render";
@@ -2261,11 +2262,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       {/* Loading / states */}
       {status === "loading" && (
-        <div className="absolute inset-0 z-40 bg-[#04050c]">
+        <div className="absolute inset-0 z-40 overflow-hidden bg-[#04050c]">
+          {/* The constellation weaves itself into being behind Meshi, so the
+              loader dissolves straight into the real scene it precedes. */}
+          <MeshFormingLoader backdrop className="opacity-80" />
           <MeshiLoader
             title={viewUserId ? "Opening their mesh" : "Weaving your mesh"}
             subtitle="Meshi is arranging your world into view."
             mode="mesh-building"
+            transparent
           />
         </div>
       )}

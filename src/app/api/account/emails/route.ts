@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
+import { rateLimit } from "@/lib/security";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
+
+const MAX_EMAILS_PER_ACCOUNT = 10;
 
 export async function GET() {
   const session = await getSession();
@@ -23,6 +27,13 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  // Unverified additions reserve the global UserEmail.email namespace, so cap
+  // the rate and count to blunt namespace-squatting from a single account.
+  const limit = rateLimit(`account-email-add:${session.userId}`, 5, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many email additions. Please try again later." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
@@ -34,6 +45,11 @@ export async function POST(req: NextRequest) {
 
   const normalized = email.toLowerCase().trim();
 
+  const emailCount = await prisma.userEmail.count({ where: { userId: session.userId } });
+  if (emailCount >= MAX_EMAILS_PER_ACCOUNT) {
+    return NextResponse.json({ error: "You've reached the maximum number of emails on this account." }, { status: 409 });
+  }
+
   // Check if email already exists in UserEmail table or as a primary User email
   const existing = await prisma.userEmail.findUnique({ where: { email: normalized } });
   if (existing) {
@@ -44,14 +60,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email already in use" }, { status: 409 });
   }
 
-  const userEmail = await prisma.userEmail.create({
-    data: {
-      userId: session.userId,
-      email: normalized,
-      isPrimary: false,
-      isVerified: false,
-    },
-  });
+  let userEmail;
+  try {
+    userEmail = await prisma.userEmail.create({
+      data: {
+        userId: session.userId,
+        email: normalized,
+        isPrimary: false,
+        isVerified: false,
+      },
+    });
+  } catch (error) {
+    // Lost the race between the pre-check and the insert: return a clean 409
+    // instead of letting the raw unique-constraint error escape as a 500.
+    if (isUniqueConstraintError(error)) {
+      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+    }
+    throw error;
+  }
 
   return NextResponse.json({ email: userEmail });
 }

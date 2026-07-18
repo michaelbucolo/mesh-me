@@ -11,8 +11,10 @@ const proxyRateLimitStore = new Map<string, { count: number; resetAt: number }>(
 // browse content surfaces. The (app) layout decides per-path whether an
 // anonymous visitor gets the guest shell or a login redirect.
 const protectedPagePrefixes = [
+  "/account",
   "/admin",
   "/analytics",
+  "/billing",
   "/communities",
   "/connected-accounts",
   "/content-hub",
@@ -26,6 +28,7 @@ const protectedPagePrefixes = [
   "/messages",
   "/notifications",
   "/onboarding",
+  "/privacy-controls",
   "/profile",
   "/search",
   "/settings",
@@ -61,6 +64,7 @@ const protectedApiPrefixes = [
   "/api/super-app",
   "/api/sync",
   "/api/users",
+  "/api/vault",
 ];
 
 function isLocalHost(host: string): boolean {
@@ -176,7 +180,7 @@ function isCrossSiteRequest(request: NextRequest) {
   return false;
 }
 
-function hardenResponse(response: NextResponse, options: { sensitive?: boolean } = {}) {
+function hardenResponse(response: NextResponse, options: { sensitive?: boolean; noRobots?: boolean } = {}) {
   response.headers.set("X-Mesh-Trust", "privacy-first; transparency-on; security-hardened");
   response.headers.set("X-Mesh-Compliance", "terms-and-api-usage-required");
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -192,6 +196,12 @@ function hardenResponse(response: NextResponse, options: { sensitive?: boolean }
   if (options.sensitive) {
     response.headers.set("Cache-Control", "no-store, max-age=0, must-revalidate, private");
     response.headers.set("Pragma", "no-cache");
+  }
+  // Robots suppression is separate from cache sensitivity: some pages must not
+  // be cached yet should still be indexed (e.g. /signup, which the sitemap
+  // submits). Defaults to the sensitive flag so existing callers are unchanged.
+  const noRobots = options.noRobots ?? options.sensitive;
+  if (noRobots) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
   }
   return response;
@@ -260,7 +270,11 @@ export function proxy(request: NextRequest) {
       headers: requestHeaders,
     },
   });
-  return hardenResponse(response, { sensitive: isProtectedApi || isProtectedPage || pathname === "/login" || pathname === "/signup" || pathname === "/reset-password" || pathname === "/verify-email" });
+  const sensitive = isProtectedApi || isProtectedPage || pathname === "/login" || pathname === "/signup" || pathname === "/reset-password" || pathname === "/verify-email";
+  // /signup is a public marketing landing page listed in the sitemap, so keep it
+  // out of no-store-only robots suppression while every other auth/app surface
+  // stays noindexed.
+  return hardenResponse(response, { sensitive, noRobots: sensitive && pathname !== "/signup" });
 }
 
 export const config = {

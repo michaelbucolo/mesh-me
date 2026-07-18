@@ -72,8 +72,8 @@ export default function AboutPage() {
 
       <section className="mt-12">
         <SiteRouteMap
-          title="The public story now has a clearer sequence"
-          description="About now sits in the middle of the journey: users can start on the promise, validate the principles here, then move directly into the route that answers their next question."
+          title="Explore the rest of Mesh"
+          description="Start with the promise, see how the principles hold up here, then jump straight to whatever answers your next question."
         />
       </section>
     </PublicSiteShell>

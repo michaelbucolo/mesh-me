@@ -752,6 +752,26 @@ select:focus-visible {
 /* ─── Shimmer Loading ─── */
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
+/* ── Mesh-forming loader caption ── */
+.mesh-forming-caption {
+  background: linear-gradient(90deg, #7f93c9 0%, #cfe0ff 50%, #7f93c9 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: meshFormingShimmer 2.6s linear infinite;
+}
+@keyframes meshFormingShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes meshFormingDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+  40% { transform: scale(1); opacity: 1; }
+}
+.mesh-forming-dot { animation: meshFormingDot 1.3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mesh-forming-caption { animation: none; color: #cfe0ff; }
+  .mesh-forming-dot { animation: none; opacity: 0.7; }
+}
+
 /* ─── Success Check Animation ─── */
 
 /* ─── Notification Dot ─── */
