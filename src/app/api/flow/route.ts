@@ -57,45 +57,55 @@ export async function GET(request: Request) {
     .filter((post): post is (typeof candidates)[number] => Boolean(post))
     .reverse();
 
-  const fresh = candidates.filter((post) => !exclude.has(post.id));
-  let ranked = rankFlowPosts(fresh, profile, { seen, limit, mode, studio, recent: recentPosts });
+  let ranked: typeof candidates;
   let recycled = false;
 
-  // The Flow never ends. When fresh supply runs out, re-rank what's already
-  // been handed over and keep going — seen-fatigue plus dither reshuffles the
-  // order so the loop never replays identically. The most recently scrolled
-  // ids are held back from the refill so a post never reappears right after
-  // it was on screen.
-  if (ranked.length < limit && candidates.length > 0) {
-    recycled = true;
-    const already = new Set(ranked.map((post) => post.id));
-    const need = limit - ranked.length;
-    // Hold back as many recently-scrolled ids as the pool can afford — shrink
-    // the hold-back window rather than abandon it, so even a tiny library
-    // keeps repeats spaced apart instead of showing the same post twice in a
-    // row. The pool must be big enough (double the need, so the ranker has
-    // slack) AND span multiple voices: when one author dominates the library,
-    // their posts are the only "not recently seen" ones and a size-only pool
-    // collapses to a single author — a shorter repeat gap on the scarce
-    // authors beats sixteen reels in a row from the same person.
+  if (mode === "chronological") {
+    // Chronological is a strict timeline: page through unseen posts newest
+    // first, and only loop back to the top once the timeline is exhausted.
+    const fresh = candidates.filter((post) => !exclude.has(post.id));
+    ranked = rankFlowPosts(fresh, profile, { seen, limit, mode, studio });
+    if (ranked.length < limit && candidates.length > 0) {
+      recycled = true;
+      const already = new Set(ranked.map((post) => post.id));
+      const refill = rankFlowPosts(
+        candidates.filter((post) => !already.has(post.id)),
+        profile,
+        { seen, limit: limit - ranked.length, mode, studio },
+      );
+      ranked = [...ranked, ...refill];
+    }
+  } else {
+    // Scored modes rank one blended pool: unseen posts score ~17x higher than
+    // seen ones, so fresh material always surfaces first — but when the only
+    // unseen posts left are a wall from one dominant author, the diversity
+    // pass can reach past them to an already-seen post from another voice
+    // instead of serving sixteen reels in a row from the same person. The
+    // Flow never ends: once everything's been seen, seen-fatigue plus dither
+    // reshuffle the loop so it never replays identically.
+    //
+    // The most recently scrolled ids are held out of the pool entirely so a
+    // post never reappears right after it was on screen — shrinking the
+    // hold-back window rather than abandoning it when the library is small,
+    // and requiring the pool to span multiple voices, not just be big enough.
+    const seenAll = new Set([...seen, ...excludeIds]);
     const distinctAuthors = new Set(candidates.map(authorKey)).size;
     const wantedAuthors = Math.min(distinctAuthors, 3);
     const poolFits = (pool: typeof candidates) =>
-      pool.length >= need * 2 && new Set(pool.map(authorKey)).size >= wantedAuthors;
+      pool.length >= limit * 2 && new Set(pool.map(authorKey)).size >= wantedAuthors;
     let pool: typeof candidates = [];
     let fallback: typeof candidates | null = null;
     for (let tail = recent.length; tail >= 0; tail = tail > 0 ? Math.floor(tail / 2) : -1) {
       const held = new Set(recent.slice(0, tail));
-      pool = candidates.filter((post) => !already.has(post.id) && !held.has(post.id));
+      pool = candidates.filter((post) => !held.has(post.id));
       if (poolFits(pool)) break;
-      if (!fallback && pool.length >= need) fallback = pool;
+      if (!fallback && pool.length >= limit) fallback = pool;
     }
     if (!poolFits(pool) && fallback && new Set(fallback.map(authorKey)).size >= new Set(pool.map(authorKey)).size) {
       pool = fallback;
     }
-    const seamRecent = [...recentPosts, ...ranked].slice(-8);
-    const refill = rankFlowPosts(pool, profile, { seen, limit: need, mode, studio, recent: seamRecent });
-    ranked = [...ranked, ...refill];
+    ranked = rankFlowPosts(pool, profile, { seen: seenAll, limit, mode, studio, recent: recentPosts });
+    recycled = ranked.some((post) => exclude.has(post.id));
   }
 
   return NextResponse.json({
