@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const viewUserId = searchParams.get("user");
 
   if (viewUserId && viewUserId !== user.id) {
-    return getPublicMesh(viewUserId, user.id);
+    return getPublicMesh(viewUserId, user);
   }
 
   const cachedPayload = getMeshCache(user.id);
@@ -694,7 +694,13 @@ export async function GET(req: Request) {
   }
 }
 
-async function getPublicMesh(targetUserId: string, viewerId: string) {
+async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<typeof getCurrentUser>>) {
+  const viewerId = viewer!.id;
+  // Apply the viewer's own NSFW policy when reading someone else's mesh, exactly
+  // as the owner branch does — a viewer with NSFW disabled must not receive
+  // another user's public-but-NSFW-flagged posts here when they're hidden
+  // everywhere else.
+  const safetyWhere = nsfwHiddenWhere(viewer);
   // Meshes are reached by id (presence, node clicks) AND by username (profile
   // "View Public Mesh" links, shared URLs) — resolve either.
   const targetUser = await prisma.user.findFirst({
@@ -765,7 +771,7 @@ async function getPublicMesh(targetUserId: string, viewerId: string) {
     prisma.post.findMany({
       // Mutual friends also see friends-visibility posts; everyone else
       // strictly public.
-      where: { authorId: targetUserId, visibility: { in: isFriend ? ["public", "friends"] : ["public"] } },
+      where: { ...safetyWhere, authorId: targetUserId, visibility: { in: isFriend ? ["public", "friends"] : ["public"] } },
       select: {
         id: true,
         content: true,

@@ -3,7 +3,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { meshiQuery } from "@/lib/meshi-engine";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
+import { rateLimit } from "@/lib/security";
 import { createMeshiResponse, normalizeMeshiMood, type MeshiAction, type MeshiContext, type MeshiHistoryMessage } from "@/lib/meshi-shared";
+
+// Cap the per-request prompt so a single caller can't drive unbounded
+// upstream (OpenAI) input-token spend on the shared API key.
+const MAX_MESHI_MESSAGE_LENGTH = 2000;
 
 interface ChatRequest {
   message: string;
@@ -513,11 +518,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Bound how fast a single user can hit the (billed) reasoning backend.
+    const rl = rateLimit(`meshi-chat:${user.id}`, 30, 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "You're chatting with Meshi too fast. Give it a moment." }, { status: 429 });
+    }
+
     const body = (await readJsonObject(req)) as Partial<ChatRequest>;
-    const { message, context, history } = body;
+    const { message, context } = body;
+    // Cap conversation history (count + per-item size) so attacker-controlled
+    // history can't inflate the upstream prompt beyond the message bound above.
+    const history = Array.isArray(body.history)
+      ? body.history
+          .slice(-8)
+          .filter((item): item is MeshiHistoryMessage => Boolean(item) && typeof item.content === "string")
+          .map((item) => ({ role: item.role, content: item.content.slice(0, MAX_MESHI_MESSAGE_LENGTH) }))
+      : undefined;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    }
+
+    if (message.length > MAX_MESHI_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message is too long. Keep it under ${MAX_MESHI_MESSAGE_LENGTH} characters.` },
+        { status: 413 },
+      );
     }
 
     let databaseAnswer: { content: string; mood: string; action?: MeshiAction } | undefined;

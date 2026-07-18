@@ -13,6 +13,21 @@ function activeSessionCookieName() {
   return process.env.NODE_ENV === "production" ? SESSION_COOKIE : LEGACY_SESSION_COOKIE;
 }
 
+// Read the session id from cookies. The unprefixed legacy cookie is only
+// trusted outside production: the `__Host-` prefix is the browser's guarantee
+// that the cookie was set Secure, Path=/, and host-only (no Domain), so an HTTP
+// MITM or a sibling subdomain can't write it. Accepting the unprefixed fallback
+// in production would void that guarantee and enable session fixation, so in
+// production we read the prefixed cookie only.
+function readSessionId(cookieStore: Awaited<ReturnType<typeof cookies>>): string | undefined {
+  const primary = cookieStore.get(SESSION_COOKIE)?.value;
+  if (primary) return primary;
+  if (process.env.NODE_ENV !== "production") {
+    return cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
+  }
+  return undefined;
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
@@ -51,7 +66,7 @@ export async function createSession(userId: string): Promise<string> {
 
 export async function getSession() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
+  const sessionId = readSessionId(cookieStore);
 
   if (!sessionId) return null;
   if (!SESSION_ID_REGEX.test(sessionId)) {
@@ -83,7 +98,7 @@ export const getCurrentUser = cache(async () => {
   // One round trip for session + user — this runs on every request, and each
   // extra query is a full network hop to the remote database in production.
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
+  const sessionId = readSessionId(cookieStore);
   if (!sessionId) return null;
   if (!SESSION_ID_REGEX.test(sessionId)) {
     await clearSessionCookiesBestEffort();
@@ -128,13 +143,13 @@ export async function hasSessionCookieHint() {
   // routes where a stale cookie just bounces through the protected page's own
   // auth check.
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
+  const sessionId = readSessionId(cookieStore);
   return Boolean(sessionId && SESSION_ID_REGEX.test(sessionId));
 }
 
 export async function destroySession() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value || cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
+  const sessionId = readSessionId(cookieStore);
 
   if (sessionId) {
     await prisma.session.delete({ where: { id: sessionId } }).catch(() => {});

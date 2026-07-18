@@ -3,6 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { nsfwHiddenWhere } from "./content-safety";
+import { areMutualFollowers } from "./privacy-policy";
 import { rateLimit } from "./security";
 
 /**
@@ -246,6 +247,48 @@ interface MeshiAnswer {
   action?: { type: string; recipient?: string; message?: string };
 }
 
+// Cross-user lookup gate. Meshi must never surface another member's private
+// profile, posts, or connected channels to someone who could not already see
+// them in the app. A viewer may see another person's aggregated content only
+// when that person's profile is public or the two are mutual followers — the
+// same rule the rest of the app enforces (see privacy-policy.ts).
+async function resolvePersonForViewer(name: string, viewerId: string) {
+  const searchTerm = name.toLowerCase().replace(/^@/, "");
+  if (!searchTerm) return null;
+
+  const person = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: { contains: searchTerm } },
+        { displayName: { contains: searchTerm } },
+      ],
+      isSuspended: false,
+    },
+    select: { id: true, username: true, displayName: true, isPublic: true },
+  });
+  if (!person) return null;
+
+  const isSelf = person.id === viewerId;
+  const isMutual = isSelf ? true : await areMutualFollowers(viewerId, person.id);
+  const canSeeContent = isSelf || person.isPublic || isMutual;
+  return { ...person, isSelf, isMutual, canSeeContent };
+}
+
+function privateProfileAnswer(): MeshiAnswer {
+  return {
+    content:
+      "I can only share posts and channels for public profiles or people you're mutually connected with on your mesh.",
+    mood: "thinking",
+  };
+}
+
+// Which of an author's posts may the viewer see? Own posts: all. Otherwise only
+// public posts, plus friends-only posts when the two are mutual followers.
+function visibleAuthorPostWhere(isSelf: boolean, isMutual: boolean) {
+  if (isSelf) return {};
+  return { visibility: { in: isMutual ? ["public", "friends"] : ["public"] } };
+}
+
 async function lookupPerson(name: string): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in to search your mesh!", mood: "thinking" };
@@ -297,7 +340,9 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
     return { content: parts.join(" "), mood: "excited" };
   }
 
-  // Search all users (not just followed)
+  // Search all users (not just followed) — but only surface accounts that are
+  // publicly discoverable, mirroring the directory search (search/users). This
+  // prevents Meshi from being an oracle for private accounts and their stats.
   const globalSearch = await prisma.user.findFirst({
     where: {
       OR: [
@@ -305,6 +350,8 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
         { displayName: { contains: searchTerm } },
       ],
       isSuspended: false,
+      isPublic: true,
+      showInDiscovery: true,
     },
     select: { id: true, username: true, displayName: true, isVerified: true, _count: { select: { followers: true } } },
   });
@@ -327,18 +374,10 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
   const safetyWhere = nsfwHiddenWhere(user);
 
-  const searchTerm = name.toLowerCase().replace(/^@/, "");
-
-  // Find the other user
-  const otherUser = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: { contains: searchTerm } },
-        { displayName: { contains: searchTerm } },
-      ],
-    },
-    select: { id: true, username: true, displayName: true },
-  });
+  // Resolve the other user. This report only ever counts interactions the
+  // viewer is themselves a party to (their own posts, or posts they commented
+  // on), so it's safe regardless of the target's profile visibility.
+  const otherUser = await resolvePersonForViewer(name, user.id);
 
   if (!otherUser) {
     return { content: `I can't find "${name}" on mesh.me. Make sure you have the right name!`, mood: "thinking" };
@@ -398,41 +437,33 @@ async function getPersonPosts(name: string): Promise<MeshiAnswer> {
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
   const safetyWhere = nsfwHiddenWhere(user);
 
-  const searchTerm = name.toLowerCase().replace(/^@/, "");
-
-  const person = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: { contains: searchTerm } },
-        { displayName: { contains: searchTerm } },
-      ],
-    },
-    select: {
-      id: true, username: true, displayName: true,
-      _count: { select: { posts: true, comments: true } },
-    },
-  });
-
+  const person = await resolvePersonForViewer(name, user.id);
   if (!person) {
     return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
   }
+  if (!person.canSeeContent) return privateProfileAnswer();
 
-  // Get their recent posts
+  // Get their recent posts the viewer is actually allowed to see.
   const recentPosts = await prisma.post.findMany({
-    where: { ...safetyWhere, authorId: person.id },
+    where: { ...safetyWhere, authorId: person.id, ...visibleAuthorPostWhere(person.isSelf, person.isMutual) },
     select: { content: true, createdAt: true, _count: { select: { reactions: true, comments: true } } },
     orderBy: { createdAt: "desc" },
     take: 5,
   });
 
-  const parts = [`${person.displayName} (@${person.username}) has ${person._count.posts} posts and ${person._count.comments} comments on mesh.me.`];
-  if (recentPosts.length > 0) {
-    const latest = recentPosts[0];
-    const preview = latest.content.length > 60 ? latest.content.slice(0, 60) + "..." : latest.content;
-    parts.push(`Latest post: "${preview}" (${getTimeAgo(latest.createdAt)}, ${latest._count.reactions} reactions)`);
+  if (recentPosts.length === 0) {
+    return {
+      content: `I don't see any posts from ${person.displayName} (@${person.username}) that you can view.`,
+      mood: "thinking",
+    };
   }
 
-  return { content: parts.join(" "), mood: "excited" };
+  const latest = recentPosts[0];
+  const preview = latest.content.length > 60 ? latest.content.slice(0, 60) + "..." : latest.content;
+  return {
+    content: `${person.displayName} (@${person.username})'s most recent post you can see: "${preview}" (${getTimeAgo(latest.createdAt)}, ${latest._count.reactions} reactions).`,
+    mood: "excited",
+  };
 }
 
 async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
@@ -440,24 +471,15 @@ async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
   const safetyWhere = nsfwHiddenWhere(user);
 
-  const searchTerm = name.toLowerCase().replace(/^@/, "");
-  const person = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: { contains: searchTerm } },
-        { displayName: { contains: searchTerm } },
-      ],
-    },
-    select: { id: true, username: true, displayName: true },
-  });
-
+  const person = await resolvePersonForViewer(name, user.id);
   if (!person) {
     return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
   }
+  if (!person.canSeeContent) return privateProfileAnswer();
 
   const [meshPosts, platformPosts] = await Promise.all([
     prisma.post.findMany({
-      where: { ...safetyWhere, authorId: person.id },
+      where: { ...safetyWhere, authorId: person.id, ...visibleAuthorPostWhere(person.isSelf, person.isMutual) },
       select: {
         content: true,
         tags: { select: { tag: true } },
@@ -515,20 +537,11 @@ async function getPersonChannels(name: string): Promise<MeshiAnswer> {
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
 
-  const searchTerm = name.toLowerCase().replace(/^@/, "");
-  const person = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: { contains: searchTerm } },
-        { displayName: { contains: searchTerm } },
-      ],
-    },
-    select: { id: true, username: true, displayName: true },
-  });
-
+  const person = await resolvePersonForViewer(name, user.id);
   if (!person) {
     return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
   }
+  if (!person.canSeeContent) return privateProfileAnswer();
 
   const accounts = await prisma.connectedAccount.findMany({
     where: { userId: person.id, isActive: true },
@@ -551,7 +564,10 @@ async function getPersonChannels(name: string): Promise<MeshiAnswer> {
   const lines = accounts.map((a) => {
     const username = a.platformUsername ? `@${a.platformUsername}` : "username hidden";
     const label = a.accountLabel ? ` (${a.accountLabel})` : "";
-    const persona = a.alterEgo?.username
+    // A persona/alter-ego is the mechanism for keeping a channel separated from
+    // the main identity — never reveal that linkage for anyone but the owner,
+    // or it deanonymizes their alternate accounts.
+    const persona = person.isSelf && a.alterEgo?.username
       ? ` via persona ${a.alterEgo.displayName || a.alterEgo.username} (@${a.alterEgo.username})`
       : "";
     return `- ${a.platform}: ${username}${label}${persona}`;
@@ -567,21 +583,12 @@ async function getPersonPlatformCreated(name: string, platform: string): Promise
   const user = await getCurrentUser();
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
 
-  const searchTerm = name.toLowerCase().replace(/^@/, "");
   const normalizedPlatform = platform === "x" ? "twitter" : platform.toLowerCase();
-  const person = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: { contains: searchTerm } },
-        { displayName: { contains: searchTerm } },
-      ],
-    },
-    select: { id: true, username: true, displayName: true },
-  });
-
+  const person = await resolvePersonForViewer(name, user.id);
   if (!person) {
     return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
   }
+  if (!person.canSeeContent) return privateProfileAnswer();
 
   const account = await prisma.connectedAccount.findFirst({
     where: {
@@ -1024,27 +1031,21 @@ async function sendMeshiMessage(recipient: string, message: string): Promise<Mes
     return { content: "You're sending messages too quickly! Give me a moment before the next delivery.", mood: "thinking" };
   }
 
-  // Find the recipient — prefer exact username match, fall back to displayName
+  // Deliver only on an exact username match. A fuzzy `contains` fallback would
+  // silently send the user's private message to the first account that merely
+  // contains the term (e.g. "ana" → "banana_joe") — a real misdelivery of
+  // private content, so we require the exact @username instead of guessing.
   const searchTerm = recipient.toLowerCase().replace(/^@/, "");
-  let recipientUser = await prisma.user.findFirst({
-    where: { username: searchTerm },
+  const recipientUser = await prisma.user.findFirst({
+    where: { username: searchTerm, isSuspended: false },
     select: { id: true, username: true, displayName: true },
   });
 
   if (!recipientUser) {
-    recipientUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { username: { contains: searchTerm } },
-          { displayName: { contains: searchTerm } },
-        ],
-      },
-      select: { id: true, username: true, displayName: true },
-    });
-  }
-
-  if (!recipientUser) {
-    return { content: `I can't find "${recipient}" on mesh.me. Make sure the name is right!`, mood: "thinking" };
+    return {
+      content: `I couldn't find an exact match for "${recipient}". So I never send a message to the wrong person, tell me their exact @username.`,
+      mood: "thinking",
+    };
   }
 
   // Prevent self-messaging
