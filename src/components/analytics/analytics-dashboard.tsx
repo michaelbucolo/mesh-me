@@ -9,6 +9,7 @@ import {
   Gauge,
   Heart,
   LockKeyhole,
+  MessageCircle,
   PlugZap,
   ShieldCheck,
   TrendingUp,
@@ -202,9 +203,9 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-3 text-[11px] text-[var(--text-secondary)]">
-        {post.views > 0 && <span>👁 {compact(post.views)}</span>}
-        <span>❤️ {compact(post.likes)}</span>
-        <span>💬 {compact(post.comments)}</span>
+        {post.views > 0 && <span className="inline-flex items-center gap-1"><Eye size={12} /> {compact(post.views)}</span>}
+        <span className="inline-flex items-center gap-1"><Heart size={12} className="text-[var(--accent)]" /> {compact(post.likes)}</span>
+        <span className="inline-flex items-center gap-1"><MessageCircle size={12} /> {compact(post.comments)}</span>
       </div>
     </div>
   );

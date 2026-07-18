@@ -804,8 +804,8 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
                 {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
                 <p className="truncate text-[11px] font-semibold text-white/85">{authorName}</p>
                 <p className="mt-0.5 flex items-center gap-2 text-[10px] text-white/60">
-                  <span>❤️ {formatCount(post._count.reactions)}</span>
-                  <span>💬 {formatCount(post._count.comments)}</span>
+                  <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent)]" /> {formatCount(post._count.reactions)}</span>
+                  <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
                   {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
                     <span className="uppercase tracking-wide">{post.platform}</span>
                   )}

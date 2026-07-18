@@ -176,6 +176,44 @@ function tint(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
+// Custom-drawn meta glyphs (never emoji) so like/comment counts read as ours
+// on every device. Drawn at (x, y) = left edge / vertical middle, size s.
+function drawGlyphHeart(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, color: string) {
+  const t = y - s / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x + s / 2, t + s);
+  ctx.bezierCurveTo(x - s * 0.15, t + s * 0.62, x + s * 0.02, t, x + s / 2, t + s * 0.28);
+  ctx.bezierCurveTo(x + s * 0.98, t, x + s * 1.15, t + s * 0.62, x + s / 2, t + s);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGlyphBubble(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, color: string) {
+  const t = y - s / 2;
+  const r = s * 0.28;
+  const w = s;
+  const h = s * 0.82;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x + r, t);
+  ctx.arcTo(x + w, t, x + w, t + h, r);
+  ctx.arcTo(x + w, t + h, x, t + h, r);
+  ctx.lineTo(x + s * 0.42, t + h);
+  ctx.lineTo(x + s * 0.24, t + h + s * 0.22);
+  ctx.lineTo(x + s * 0.3, t + h);
+  ctx.arcTo(x, t + h, x, t, r);
+  ctx.arcTo(x, t, x + w, t, r);
+  ctx.closePath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, s * 0.13);
+  ctx.lineJoin = "round";
+  ctx.stroke();
+  ctx.restore();
+}
+
 function baseRadius(node: SceneNode): number {
   switch (node.kind) {
     case "self":
@@ -608,11 +646,24 @@ function drawPostCard(
   ctx.textBaseline = "middle";
   const likes = metaValue(node, "Likes");
   const comments = metaValue(node, "Comments");
-  ctx.fillStyle = withAlpha("#9aa3bc", 0.95);
-  const parts: string[] = [];
-  if (likes != null) parts.push(`♥ ${likes}`);
-  if (comments != null) parts.push(`💬 ${comments}`);
-  if (parts.length) ctx.fillText(parts.join("   "), x + pad, footY);
+  const metaColor = withAlpha("#9aa3bc", 0.95);
+  const gsz = Math.max(6, 7.5 * scale);
+  const gap = 5 * scale;
+  let mx = x + pad;
+  if (likes != null) {
+    drawGlyphHeart(ctx, mx, footY, gsz, withAlpha("#f472b6", 0.95));
+    mx += gsz + gap * 0.7;
+    ctx.fillStyle = metaColor;
+    const s = String(likes);
+    ctx.fillText(s, mx, footY);
+    mx += ctx.measureText(s).width + gap * 2.2;
+  }
+  if (comments != null) {
+    drawGlyphBubble(ctx, mx, footY, gsz, metaColor);
+    mx += gsz + gap * 0.7;
+    ctx.fillStyle = metaColor;
+    ctx.fillText(String(comments), mx, footY);
+  }
 
   // Source chip (pill) on the right.
   const chipText = "Source";
