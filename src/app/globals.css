@@ -6839,3 +6839,19 @@ body > * { position: relative; z-index: 1; }
   font-size: 0.85rem;
   font-weight: 700;
 }
+
+/* ── Reduced motion, everywhere ─────────────────────────────────────────
+   When the OS asks for less motion, every CSS animation and transition
+   collapses to an instant (forwards-filled animations land on their final
+   frame). Canvas physics stays — it IS the content — but the decorative
+   choreography steps aside. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
