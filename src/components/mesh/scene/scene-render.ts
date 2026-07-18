@@ -36,6 +36,9 @@ export interface RenderOptions {
   isOwnMesh?: boolean;
   /** Live strand control points from physics, keyed "parent>child". */
   strands?: Map<string, { mx: number; my: number }>;
+  /** Interaction pulses riding strands (edge key → start time): a liked post
+   * sends a bright wave down its strand to its maker. */
+  strandPulses?: Map<string, number>;
 }
 
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
@@ -47,11 +50,17 @@ function project(node: { dx: number; dy: number }, o: RenderOptions) {
 
 const BIRTH_MS = 1150;
 
-/** 0→1 arrival progress (easeOutCubic) for a freshly joined node; 1 if settled. */
+/**
+ * 0→1 arrival progress (easeOutCubic) for a freshly joined node; 1 if
+ * settled. Nodes whose birth moment hasn't arrived yet return 0 and are not
+ * drawn at all — this is what lets the world FORM in choreographed waves
+ * instead of appearing all at once.
+ */
 function birthProgress(node: SceneNode, time: number): number {
   if (node.bornAt == null) return 1;
   const age = time - node.bornAt;
-  if (age < 0 || age >= BIRTH_MS) return 1;
+  if (age < 0) return 0;
+  if (age >= BIRTH_MS) return 1;
   return 1 - Math.pow(1 - age / BIRTH_MS, 3);
 }
 
@@ -593,10 +602,12 @@ function roundedImage(
   ctx.restore();
 }
 
+// Kept deliberately quiet: the world should read clean and professional,
+// with content in front — not a light show behind it.
 const NEBULAE = [
-  { hue: "#3b62c9", ax: 0.24, ay: 0.28, rad: 0.55, sp: 0.00007, a: 0.1 },
-  { hue: "#7c3aed", ax: 0.78, ay: 0.34, rad: 0.5, sp: -0.00005, a: 0.09 },
-  { hue: "#d6438f", ax: 0.6, ay: 0.82, rad: 0.6, sp: 0.00006, a: 0.07 },
+  { hue: "#3b62c9", ax: 0.24, ay: 0.28, rad: 0.55, sp: 0.00007, a: 0.06 },
+  { hue: "#7c3aed", ax: 0.78, ay: 0.34, rad: 0.5, sp: -0.00005, a: 0.05 },
+  { hue: "#d6438f", ax: 0.6, ay: 0.82, rad: 0.6, sp: 0.00006, a: 0.04 },
 ];
 
 export function drawScene(o: RenderOptions): void {
@@ -634,7 +645,7 @@ export function drawScene(o: RenderOptions): void {
     const tw = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(time * 0.0012 + s.tw));
     ctx.beginPath();
     ctx.arc(sx < 0 ? sx + width : sx, sy < 0 ? sy + height : sy, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha("#aab4e8", 0.18 * tw);
+    ctx.fillStyle = withAlpha("#aab4e8", 0.12 * tw);
     ctx.fill();
   }
 
@@ -744,8 +755,10 @@ export function drawScene(o: RenderOptions): void {
     ctx.lineWidth = (onHoverPath ? 2.4 : node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);
 
     // When the child just joined the mesh, the strand draws itself out from the
-    // parent to the new node, with a bright tip leading the way.
+    // parent to the new node, with a bright tip leading the way. Not yet born
+    // means not yet drawn.
     const strandGrow = birthProgress(node, time);
+    if (strandGrow <= 0 || birthProgress(parent, time) <= 0) return;
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     if (strandGrow < 1) {
@@ -792,6 +805,32 @@ export function drawScene(o: RenderOptions): void {
       );
     }
 
+    // Interaction pulse: when someone hearts this node, a bright wave rides
+    // the strand from the work back to its maker — the relationship visibly
+    // carrying the interaction.
+    const pulseStart = o.strandPulses?.get(`${parent.id}>${node.id}`);
+    if (pulseStart != null) {
+      const pt = (time - pulseStart) / 900;
+      if (pt >= 0 && pt < 1) {
+        const t = 1 - pt; // travels child → parent
+        const mt = 1 - t;
+        const px2 = mt * mt * a.x + 2 * mt * t * c.x + t * t * b.x;
+        const py2 = mt * mt * a.y + 2 * mt * t * c.y + t * t * b.y;
+        const glowR = 5 * Math.max(0.8, o.camera.zoom) * (1 - pt * 0.5);
+        const glow = ctx.createRadialGradient(px2, py2, 0, px2, py2, glowR * 3);
+        glow.addColorStop(0, withAlpha("#fda4af", 0.85 * (1 - pt)));
+        glow.addColorStop(1, withAlpha("#fda4af", 0));
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(px2, py2, glowR * 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px2, py2, glowR, 0, Math.PI * 2);
+        ctx.fillStyle = withAlpha("#fecdd3", 0.95 * (1 - pt * 0.6));
+        ctx.fill();
+      }
+    }
+
     // A travelling spark that rides along the curved strand.
     if (emph > 0.7 && node.depth <= 2) {
       const t = (Math.sin(time * 0.0009 + node.x * 0.01 + node.y * 0.01) + 1) / 2;
@@ -810,6 +849,11 @@ export function drawScene(o: RenderOptions): void {
   const selfQueue: { node: SceneNode; x: number; y: number; emph: number; isHover: boolean; isSelected: boolean }[] = [];
 
   nodes.forEach((node) => {
+    const bornNow = birthProgress(node, time);
+    if (bornNow <= 0 && node.kind !== "self") {
+      o.hitboxes.delete(node.id);
+      return;
+    }
     const p = project(node, o);
     let r = Math.max(2.5, baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)));
     o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(r, 14) });

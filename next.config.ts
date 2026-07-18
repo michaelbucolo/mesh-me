@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://api.stripe.com https://checkout.stripe.com",
-      "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube-nocookie.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv",
+      "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube-nocookie.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com",
       "media-src 'self' blob: https:",
       "worker-src 'self' blob:",
       "manifest-src 'self'",

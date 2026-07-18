@@ -9374,3 +9374,20 @@ body > * { position: relative; z-index: 1; }
   transform-origin: center;
   will-change: transform;
 }
+
+/* ── Precise cursor marker on the mesh (fine pointers) ────────────────── */
+.mesh-cursor-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 2.5px rgba(122, 143, 255, 0.5), 0 0 12px rgba(160, 180, 255, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  will-change: transform;
+}

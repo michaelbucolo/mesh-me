@@ -114,12 +114,14 @@ function targetFor(node: SceneNode, time: number): { x: number; y: number } {
 export function stepScenePhysics(model: SceneModel, state: PhysicsState, time: number, dtMs: number): void {
   const dt = Math.min(dtMs, 50) / 1000;
 
-  // Seed display positions on first frame: everything starts gathered at the
-  // center and springs outward, so the constellation forms in.
+  // Seed display positions on first frame: every node starts AT ITS MAKER
+  // (people/platforms at you, content at its source) and springs outward to
+  // its place — the world visibly grows out of its real relationships.
   if (!state.seeded) {
     model.nodes.forEach((n) => {
-      n.dx = n.x * 0.1;
-      n.dy = n.y * 0.1;
+      const parent = n.parentId ? model.nodes.get(n.parentId) : null;
+      n.dx = parent ? parent.x * 0.85 : 0;
+      n.dy = parent ? parent.y * 0.85 : 0;
       n.vx = 0;
       n.vy = 0;
     });

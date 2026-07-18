@@ -53,6 +53,8 @@ type RemotePresence = {
   position?: { x: number; y: number };
   viewingMesh: string;
   surface?: string;
+  /** The node this person is reading right now — their Meshi stands at it. */
+  activeNodeId?: string | null;
   /** Encoded tiny world action ("heart|targetId|atMs") to replay in the room. */
   lastAction?: string | null;
   isOnline: boolean;
@@ -77,6 +79,23 @@ type FlyingHeart = {
   born: number;
   dur: number;
 };
+
+/**
+ * Choreograph the world forming: you ignite first, then your sources spring
+ * out of you in a wave sweeping down from the top, then everything they made
+ * blooms out of them — each node's birth moment staged for the renderer.
+ */
+function stageWorldFormation(model: SceneModel): void {
+  const stamp = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const TAU = Math.PI * 2;
+  model.nodes.forEach((n) => {
+    if (n.id === model.selfId) return;
+    const d = (((n.angle + Math.PI / 2) % TAU) + TAU) % TAU;
+    const sweep = Math.min(d, TAU - d) / Math.PI; // 0 at the top arc, 1 at the bottom
+    const wiggle = (n.id.charCodeAt(n.id.length - 1) % 7) * 22;
+    n.bornAt = stamp + (n.depth <= 1 ? 280 + sweep * 420 : 820 + sweep * 540) + wiggle;
+  });
+}
 
 function generateStars(width: number, height: number) {
   const stars: { x: number; y: number; r: number; tw: number }[] = [];
@@ -211,6 +230,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const presenceActionBaselineRef = useRef(false);
   const pendingActionRef = useRef<{ targetId: string; at: number } | null>(null);
   const heartbeatNowRef = useRef<(() => void) | null>(null);
+  // Where each visitor's Meshi perches (their own node, or the post they're
+  // watching right now), and the last screen spot each Meshi was drawn at —
+  // used to hand positions across mode changes so Meshis NEVER teleport.
+  const perchNodeRef = useRef<Map<string, string>>(new Map());
+  const lastScreenPosRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // Interaction pulses riding strands (edge key → start time).
+  const strandPulsesRef = useRef<Map<string, number>>(new Map());
+  // Precise pointer marker for fine pointers.
+  const cursorDotRef = useRef<HTMLDivElement | null>(null);
   // Join/leave moments: who just materialized, who's fading out.
   const [leavingMeshis, setLeavingMeshis] = useState<LeavingMeshi[]>([]);
   const [presenceToast, setPresenceToast] = useState<{ text: string; key: number } | null>(null);
@@ -399,6 +427,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           if (newborn > 0) setWeaveToast({ count: newborn, key: Date.now() });
         } else {
           physicsRef.current = createPhysicsState();
+          stageWorldFormation(model);
         }
         modelRef.current = model;
         loadImages(model);
@@ -413,6 +442,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           setActiveBranch(null);
           setSelectedNode(null);
           fitToContent();
+          // Arrive INTO the world: the camera starts pushed in and eases out
+          // while the mesh forms around you.
+          zoomTargetRef.current = { zoom: cameraRef.current.zoom, ax: 0, ay: 0 };
+          cameraRef.current = { ...cameraRef.current, zoom: cameraRef.current.zoom * 1.5 };
         }
         // An empty mesh is still the mesh: render the canvas (you + your
         // Meshi) and let compose/search work — just surface a gentle hint.
@@ -643,6 +676,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           avoidCenter: coarseRef.current,
           isOwnMesh: !viewUserId,
           strands: physicsRef.current.strands,
+          strandPulses: strandPulsesRef.current,
         });
 
         // Focus = item nearest screen center (the Meshi cursor's target).
@@ -911,6 +945,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     }
     const cursor = meshiCursorRef.current;
     if (cursor) cursor.style.opacity = "1";
+    if (!coarseRef.current && cursorDotRef.current) {
+      cursorDotRef.current.style.opacity = "1";
+      cursorDotRef.current.style.transform = "translate(" + sx + "px, " + sy + "px) translate(-50%, -50%)";
+    }
     if (e.pointerType === "mouse") {
       if (!dragRef.current.active) {
         const node = hitTest(sx, sy);
@@ -1068,7 +1106,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             meshiOutfit: prefs.outfit,
             // Broadcast what you're DOING, not just your default face — this
             // is how others see you being alive on the internet.
-            meshiMood: composingRef.current ? "thinking" : hoverIdRef.current ? "excited" : prefs.face,
+            meshiMood:
+              pendingActionRef.current && Date.now() - pendingActionRef.current.at < 4000
+                ? "happy"
+                : composingRef.current
+                  ? "thinking"
+                  : hoverIdRef.current
+                    ? "excited"
+                    : prefs.face,
             viewportPosition: coarseRef.current ? { vx: 0.5, vy: 0.5 } : vp,
             position: {
               x: coarseRef.current ? -cameraRef.current.panX / cameraRef.current.zoom : cursorWorldTargetRef.current.x,
@@ -1076,6 +1121,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             },
             viewingMesh: meshOwner,
             surface: "mesh",
+            activeNodeId: selectedIdRef.current,
             ghostMode: typeof localStorage !== "undefined" && localStorage.getItem("meshGhostMode") === "true",
             // A recent heart-throw rides along until the room has had a
             // chance to see it (receivers dedupe by its timestamp).
@@ -1149,8 +1195,41 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             presenceWorldRef.current.delete(p.userId);
             continue;
           }
-          if (p.viewingMesh === meshOwner && p.surface === "mesh") {
-            presenceModeRef.current.set(p.userId, "room");
+          // What is this person DOING? Reading a specific post pins their
+          // Meshi to that post (visibly watching it); exploring this mesh
+          // makes them a live cursor; online elsewhere perches them on their
+          // own node. Mode changes hand off the last drawn position so a
+          // Meshi always TRAVELS to its next spot — never teleports.
+          const watching =
+            p.activeNodeId && p.viewingMesh === meshOwner && modelRef.current?.nodes.has(p.activeNodeId)
+              ? p.activeNodeId
+              : null;
+          const inRoom = p.viewingMesh === meshOwner && p.surface === "mesh" && !watching;
+          const nextMode: "room" | "perch" = inRoom ? "room" : "perch";
+          const nextPerch = watching ?? `person:${p.userId}`;
+          const prevMode = presenceModeRef.current.get(p.userId);
+          const prevPerch = perchNodeRef.current.get(p.userId);
+          if (
+            prevMode !== undefined &&
+            (prevMode !== nextMode || (nextMode === "perch" && prevPerch !== nextPerch))
+          ) {
+            const last = lastScreenPosRef.current.get(p.userId);
+            const c = containerRef.current;
+            const cam = cameraRef.current;
+            if (last && c) {
+              if (nextMode === "room") {
+                presenceWorldPosRef.current.set(p.userId, {
+                  x: (last.x - c.clientWidth / 2 - cam.panX) / cam.zoom,
+                  y: (last.y - c.clientHeight / 2 - cam.panY) / cam.zoom,
+                });
+              } else {
+                perchPosRef.current.set(p.userId, { x: last.x, y: last.y });
+              }
+            }
+          }
+          presenceModeRef.current.set(p.userId, nextMode);
+          perchNodeRef.current.set(p.userId, nextPerch);
+          if (inRoom) {
             // World coordinates anchor their Meshi to the actual mesh, so it
             // stays put on the web while you pan. Viewport fractions remain a
             // fallback for stale clients that haven't sent a position yet.
@@ -1165,7 +1244,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               });
             }
           } else {
-            presenceModeRef.current.set(p.userId, "perch");
             presenceTargetsRef.current.delete(p.userId);
             presenceWorldRef.current.delete(p.userId);
           }
@@ -1352,6 +1430,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const stepHearts = (now: number) => {
       const host = heartsElRef.current;
       if (!host) return;
+      strandPulsesRef.current.forEach((start, key) => {
+        if (now - start > 1400) strandPulsesRef.current.delete(key);
+      });
       heartsRef.current = heartsRef.current.filter((h) => {
         const model = modelRef.current;
         const target = model?.nodes.get(h.targetId);
@@ -1367,6 +1448,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             const n = parseInt(meta.value, 10);
             if (Number.isFinite(n)) meta.value = String(n + 1);
           }
+          // The interaction rides the strand home to the maker.
+          if (target.parentId) strandPulsesRef.current.set(`${target.parentId}>${target.id}`, now);
           if (el) {
             el.style.animation = "meshHeartLand .34s ease-out forwards";
             const gone = el;
@@ -1414,7 +1497,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // Connections online elsewhere perch above their own node in the web,
         // tracking it as the mesh pans and drifts.
         if (presenceModeRef.current.get(userId) === "perch") {
-          const hb = hitboxesRef.current.get(`person:${userId}`);
+          const hb = hitboxesRef.current.get(perchNodeRef.current.get(userId) ?? `person:${userId}`);
           if (!hb) {
             el.style.opacity = "0";
             return;
@@ -1425,6 +1508,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           pos.x += (tx - pos.x) * kLive;
           pos.y += (ty - pos.y) * kLive;
           perchPosRef.current.set(userId, pos);
+          lastScreenPosRef.current.set(userId, { x: pos.x, y: pos.y });
           el.style.opacity = "1";
           el.style.left = `${pos.x}px`;
           el.style.top = `${pos.y}px`;
@@ -1440,6 +1524,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           presenceWorldPosRef.current.set(userId, pos);
           const s = project(pos.x, pos.y);
           const clear = avoidNodes(s.x, s.y);
+          lastScreenPosRef.current.set(userId, { x: clear.x, y: clear.y });
           el.style.opacity = "1";
           el.style.left = `${clear.x}px`;
           el.style.top = `${clear.y}px`;
@@ -1452,6 +1537,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         pos.vx += (target.vx - pos.vx) * kLive;
         pos.vy += (target.vy - pos.vy) * kLive;
         presencePosRef.current.set(userId, pos);
+        const cEl = containerRef.current;
+        if (cEl) lastScreenPosRef.current.set(userId, { x: pos.vx * cEl.clientWidth, y: pos.vy * cEl.clientHeight });
         el.style.left = `${pos.vx * 100}%`;
         el.style.top = `${pos.vy * 100}%`;
       });
@@ -1671,8 +1758,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           hoverIdRef.current = null;
           setHoverNode(null);
           if (meshiCursorRef.current) meshiCursorRef.current.style.opacity = "0";
+          if (cursorDotRef.current) cursorDotRef.current.style.opacity = "0";
         }}
       />
+
+      {/* Precise pointer marker — your exact cursor spot, instant, while your
+          Meshi keeps its personality nearby. */}
+      {!isCoarsePointer && <div ref={cursorDotRef} className="mesh-cursor-dot" aria-hidden />}
 
       {/* Hearts mid-flight from Meshis to the posts they just liked. */}
       <div ref={heartsElRef} aria-hidden className="pointer-events-none absolute inset-0 z-[15]" />
