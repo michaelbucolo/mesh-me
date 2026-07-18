@@ -7,6 +7,7 @@ import {
   AtSign,
   BellRing,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   CreditCard,
   Crown,
@@ -675,7 +676,7 @@ export function SettingsControlCenter({
                 onClick={showMobileSectionList}
                 className="mb-3 inline-flex items-center gap-1 text-sm font-bold text-[var(--accent)] lg:hidden"
               >
-                <span aria-hidden="true" className="text-lg leading-none">‹</span>
+                <ChevronLeft size={16} aria-hidden="true" />
                 Settings
               </button>
               <h2 className="text-xl font-bold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>

@@ -2,17 +2,21 @@
 
 import type { CSSProperties } from "react";
 import { useSyncExternalStore } from "react";
+import { useReducedMotion } from "framer-motion";
 import {
   getMeshiPrefsStatic,
+  MESHI_PREFERENCE_DEFAULTS,
   MESHI_PREFERENCES_EVENT,
+  type MeshiPreferences,
 } from "@/hooks/use-meshi-preferences";
+import { MeshiMascot, type MeshiMood } from "@/components/meshi/meshi-mascot";
 
 // ── The loader: a tiny moment of joy, painted instantly ─────────────────────
 //
-// Everything here is plain CSS animation — no framer-motion, no lazy chunks,
-// no simulated progress. The moment a route starts loading you get a bouncing
-// Meshi with real squash-and-stretch, and around it a MOTIF that mirrors what
-// is actually loading: the mesh weaves a constellation, MeChat sorts letters,
+// The moment a route starts loading you get YOUR Meshi — the real, canonical
+// mascot in your own colour and cosmetics (hat, hair, accessory, …) — doing a
+// CSS squash-and-stretch bounce, with a MOTIF around it that mirrors what is
+// actually loading: the mesh weaves a constellation, MeChat sorts letters,
 // search sweeps a magnifying glass, and so on. Reduced-motion users get a calm,
 // static Meshi (the global reduced-motion rules collapse the keyframes).
 
@@ -36,6 +40,17 @@ const MODE_PALETTE: Record<MeshiLoaderMode, string[]> = {
   creator: ["#a855f7", "#ec4899", "#22d3ee", "#fbbf24", "#f472b6"],
 };
 
+/** Meshi's expression per loader context. */
+const MODE_MOOD: Record<MeshiLoaderMode, MeshiMood> = {
+  default: "happy",
+  "mesh-building": "thinking",
+  "message-writing": "love",
+  secure: "cool",
+  search: "searching",
+  social: "excited",
+  creator: "celebrating",
+};
+
 // Matches the mascot's COLOR_THEMES primaries so the loading Meshi is *your*
 // Meshi, in your colour, without importing the full mascot.
 const MESHI_COLOR: Record<string, string> = {
@@ -55,12 +70,12 @@ const MESHI_COLOR: Record<string, string> = {
   obsidian: "#94a3b8",
 };
 
-let cachedColor: string | null = null;
+let cachedPrefs: MeshiPreferences | null = null;
 
 function subscribeToPrefs(onChange: () => void) {
   if (typeof window === "undefined") return () => {};
   const handler = () => {
-    cachedColor = null;
+    cachedPrefs = null;
     onChange();
   };
   window.addEventListener("storage", handler);
@@ -71,15 +86,19 @@ function subscribeToPrefs(onChange: () => void) {
   };
 }
 
-function getMeshiColor(): string {
-  if (!cachedColor) {
-    cachedColor = MESHI_COLOR[getMeshiPrefsStatic().color] ?? MESHI_COLOR.blue;
-  }
-  return cachedColor;
+// getSnapshot must return a STABLE reference or useSyncExternalStore loops
+// ("The result of getSnapshot should be cached"). getMeshiPrefsStatic() builds a
+// fresh object each call, so cache it and rebuild only when the prefs event fires.
+function getPrefsSnapshot(): MeshiPreferences {
+  if (!cachedPrefs) cachedPrefs = getMeshiPrefsStatic();
+  return cachedPrefs;
 }
 
-function getServerMeshiColor(): string {
-  return MESHI_COLOR.blue;
+// Server + first-hydration snapshot: a stable constant matching what the server
+// renders (storage is unreadable there). useSyncExternalStore re-renders with the
+// real prefs immediately after hydration, so there is no mismatch.
+function getServerPrefsSnapshot(): MeshiPreferences {
+  return MESHI_PREFERENCE_DEFAULTS;
 }
 
 type MotifStyle = CSSProperties & Record<string, string | number>;
@@ -253,8 +272,11 @@ export function MeshiLoader({
   fullHeight = false,
   transparent = false,
 }: MeshiLoaderProps) {
-  const color = useSyncExternalStore(subscribeToPrefs, getMeshiColor, getServerMeshiColor);
+  const prefs = useSyncExternalStore(subscribeToPrefs, getPrefsSnapshot, getServerPrefsSnapshot);
+  const color = MESHI_COLOR[prefs.color] ?? MESHI_COLOR.blue;
   const palette = MODE_PALETTE[mode] ?? MODE_PALETTE.default;
+  const mascotMood = MODE_MOOD[mode] ?? "happy";
+  const reducedMotion = useReducedMotion();
 
   return (
     <div
@@ -268,31 +290,50 @@ export function MeshiLoader({
       <span className="sr-only">{title}</span>
 
       <div className="meshi-load-stage" data-mode={mode} aria-hidden>
+        {/* Ambient depth: parallax stars + a soft aura in the mode's palette */}
+        <div className="meshi-load-starfield">
+          <span className="meshi-load-stars" />
+          <span className="meshi-load-stars-near" />
+        </div>
+        <span
+          className="meshi-load-aura"
+          style={{ ["--aura-1" as string]: palette[0], ["--aura-2" as string]: palette[2] } as MotifStyle}
+        />
+
         {/* The motif — mirrors what's actually loading. */}
         <Motif mode={mode} palette={palette} />
 
         {/* Soft ground shadow that breathes with the bounce */}
         <span className="meshi-load-shadow" style={{ background: `${color}33` }} />
 
-        {/* Meshi — squash-and-stretch bounce, blinking, in your colour */}
-        <div className="meshi-load-bounce">
-          <svg viewBox="-24 -24 48 48" className="meshi-load-body" style={{ filter: `drop-shadow(0 6px 18px ${color}55)` }}>
-            <rect x="-19" y="-19" width="38" height="38" rx="15" fill={color} />
-            <rect x="-19" y="-19" width="38" height="19" rx="15" fill="#ffffff" opacity="0.12" />
-            <g className="meshi-load-eyes">
-              <ellipse cx="-6.5" cy="-1" rx="3" ry="4.6" fill="#0b0d1a" />
-              <ellipse cx="6.5" cy="-1" rx="3" ry="4.6" fill="#0b0d1a" />
-              <circle cx="-5.6" cy="-2.6" r="1.1" fill="#ffffff" />
-              <circle cx="7.4" cy="-2.6" r="1.1" fill="#ffffff" />
-            </g>
-            <path d="M -4.6 7 Q 0 11 4.6 7" fill="none" stroke="#0b0d1a" strokeWidth="2" strokeLinecap="round" />
-          </svg>
+        {/* Meshi — the real high-fidelity mascot, in your colour + cosmetics.
+            The .meshi-load-bounce wrapper still drives the squash-and-stretch
+            bounce; the mascot supplies the canonical face, blink and wearables. */}
+        <div className="meshi-load-bounce" style={{ filter: `drop-shadow(0 6px 18px ${color}55)` }}>
+          <MeshiMascot
+            size={74}
+            mood={mascotMood}
+            color={prefs.color}
+            hat={prefs.hat}
+            hair={prefs.hair}
+            accessory={prefs.accessory}
+            eyeStyle={prefs.eye}
+            badge={prefs.badge}
+            outfit={prefs.outfit}
+            animate={!reducedMotion}
+          />
         </div>
       </div>
 
       <h2 className="meshi-load-title mt-4 text-center text-base font-semibold text-[var(--text-primary)]">
         {title}
       </h2>
+
+      <span
+        className="meshi-load-progress"
+        style={{ ["--pf" as string]: color } as MotifStyle}
+        aria-hidden
+      />
     </div>
   );
 }

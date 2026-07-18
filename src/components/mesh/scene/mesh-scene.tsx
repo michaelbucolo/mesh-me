@@ -30,7 +30,7 @@ import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from
 import { layoutScene, sceneBounds } from "./scene-layout";
 import { drawScene, type Camera } from "./scene-render";
 import { createPhysicsState, driftScaleFor, stepScenePhysics, type PhysicsState } from "./scene-physics";
-import { reactionGlyphSvg } from "./reaction-glyphs";
+import { reactionGlyphSvg, type ReactionGlyph } from "./reaction-glyphs";
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -79,7 +79,8 @@ type LeavingMeshi = {
   p: RemotePresence;
 };
 
-/** A heart mid-flight from a Meshi to the post it just liked. */
+/** A reaction glyph in flight — a heart arcing to a post it liked, or (when
+ *  `burst` is set) a targetless flourish that rises out of a point and fades. */
 type FlyingHeart = {
   id: number;
   fromX: number;
@@ -87,6 +88,9 @@ type FlyingHeart = {
   targetId: string;
   born: number;
   dur: number;
+  glyph?: ReactionGlyph;
+  /** Free-flight: fly out along `angle` by `dist` world units, no node, no count bump. */
+  burst?: { angle: number; dist: number };
 };
 
 /**
@@ -809,6 +813,32 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     });
   }, []);
 
+  // A targetless flourish: a small fan of glyphs bursting out of a world point
+  // and fading — reuses the heart host + hand-drawn SVGs, never an emoji. Total
+  // in-flight particles are capped so a rapid sequence never floods the host.
+  const spawnBurst = useCallback(
+    (originX: number, originY: number, glyph: ReactionGlyph, count: number) => {
+      if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+      if (heartsRef.current.length > 36) return;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const n = Math.min(count, 6);
+      for (let i = 0; i < n; i++) {
+        const angle = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5 + (Math.random() - 0.5) * 0.22;
+        heartsRef.current.push({
+          id: ++heartSeqRef.current,
+          fromX: originX,
+          fromY: originY,
+          targetId: "",
+          born: now + i * 45,
+          dur: 760,
+          glyph,
+          burst: { angle, dist: 66 + Math.random() * 46 },
+        });
+      }
+    },
+    [],
+  );
+
   const emitHeart = useCallback(
     (node: SceneNode) => {
       const from = viewUserId ? cursorWorldPosRef.current : ownerWorldPosRef.current;
@@ -826,6 +856,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       if (node.kind === "self") {
         setActiveBranch(null);
         setSelectedNode(null);
+        // A quiet indigo twinkle blooms out of you as the world reframes.
+        spawnBurst(node.dx, node.dy, "spark", 6);
         fitToContent();
         return;
       }
@@ -845,9 +877,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       setActiveBranch(node.branch);
       setSelectedNode(node);
       playSound("pop");
+      // Opening a piece of content pops a little star burst off the node.
+      if (node.kind === "post" || node.kind === "activity") spawnBurst(node.dx, node.dy, "star", 5);
       flyToNode(node);
     },
-    [fitToContent, flyToNode, enterFriendMesh],
+    [fitToContent, flyToNode, enterFriendMesh, spawnBurst],
   );
 
   // Every readable piece of content on the mesh, newest first — so the
@@ -1361,6 +1395,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             if (!viewUserId && p.viewingMesh === meshOwner && p.surface === "mesh") {
               setPresenceToast({ text: `@${p.username} entered your mesh`, key: Date.now() });
               playSound("chime");
+              // Your Meshi visibly delights at the new arrival.
+              const o = ownerWorldPosRef.current;
+              spawnBurst(o.x, o.y - 22, "wow", 4);
             }
           }
           const departed = prevPresencesRef.current.filter((q) => !effectiveIds.has(q.userId));
@@ -1515,7 +1552,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       clearTimeout(kick);
       es?.close();
     };
-  }, [viewUserId, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart]);
+  }, [viewUserId, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart, spawnBurst]);
 
   useEffect(() => {
     return () => {
@@ -1570,6 +1607,32 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         if (now - start > 1400) strandPulsesRef.current.delete(key);
       });
       heartsRef.current = heartsRef.current.filter((h) => {
+        const t = (now - h.born) / h.dur;
+        // Free-flight flourish: no target node, no count bump — rises out of a
+        // point along its vector and fades. (node open / visitor / recenter)
+        if (h.burst) {
+          let bel = host.querySelector<HTMLElement>(`[data-heart-id="${h.id}"]`);
+          if (t >= 1) { bel?.remove(); return false; }
+          if (t < 0) return true; // staggered spawn not yet due
+          if (!bel) {
+            bel = document.createElement("div");
+            bel.dataset.heartId = String(h.id);
+            bel.dataset.meshHeart = "1";
+            bel.innerHTML = reactionGlyphSvg(h.glyph ?? "spark");
+            bel.style.cssText =
+              "position:absolute;left:0;top:0;line-height:0;filter:drop-shadow(0 2px 7px rgba(129,140,248,0.55));will-change:transform,opacity;transform:translate(-50%,-50%);";
+            host.appendChild(bel);
+          }
+          const ease = 1 - (1 - t) * (1 - t); // easeOutQuad
+          const wx = h.fromX + Math.cos(h.burst.angle) * h.burst.dist * ease;
+          const wy = h.fromY + Math.sin(h.burst.angle) * h.burst.dist * ease - 20 * ease;
+          const s = project(wx, wy);
+          const scale = 0.4 + 0.85 * Math.sin(t * Math.PI);
+          bel.style.opacity = (1 - t * t).toFixed(3);
+          bel.style.transform =
+            `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px) translate(-50%,-50%) scale(${scale.toFixed(3)}) rotate(${(t * 38).toFixed(1)}deg)`;
+          return true;
+        }
         const model = modelRef.current;
         const target = model?.nodes.get(h.targetId);
         let el = host.querySelector<HTMLElement>(`[data-heart-id="${h.id}"]`);
@@ -1577,7 +1640,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           el?.remove();
           return false;
         }
-        const t = (now - h.born) / h.dur;
         if (t >= 1) {
           const meta = target.meta?.find((m) => m.label === "Likes");
           if (meta) {

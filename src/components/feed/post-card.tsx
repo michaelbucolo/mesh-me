@@ -12,6 +12,7 @@ import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/action
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { Play } from "lucide-react";
+import { playSound } from "@/lib/sound";
 
 // Platform colors for origin badges
 const PLATFORM_BADGE: Record<string, { label: string; color: string; abbr: string }> = {
@@ -275,6 +276,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     setLikeCount((prev) => (newLiked ? prev + 1 : prev - 1));
     if (newLiked) {
       setLikeAnimating(true);
+      playSound("heart");
       setTimeout(() => setLikeAnimating(false), 400);
     }
     startTransition(async () => {

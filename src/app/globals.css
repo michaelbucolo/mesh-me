@@ -1947,14 +1947,9 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 /* ─── Soft Bounce Entry ─── */
 
-/* ─── Reduced Motion ─── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* ─── Reduced Motion ───
+   The universal reduced-motion reset lives in the fuller block further down
+   (which also disables smooth scroll + shimmer pseudo-elements) — kept once. */
 
 /* ─── iOS Native Feel ─── */
 
@@ -4083,6 +4078,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: meshiLoadStageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .meshi-load-orbit {
@@ -4214,6 +4210,140 @@ body,
   .meshi-load-mote {
     transform: scale(1);
     animation: none !important;
+  }
+}
+
+/* ── Ambient loader detail: entrance, parallax stars, aura, shimmer ───────── */
+
+@keyframes meshiLoadStageIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Parallax star field — one element per layer, stars painted with box-shadow,
+   so it stays cheap. Two layers drift opposite ways for depth; each twinkles
+   on its own beat so they never read as synced. */
+.meshi-load-starfield {
+  position: absolute;
+  inset: -8px;
+  overflow: hidden;
+  border-radius: 26px;
+  pointer-events: none;
+}
+.meshi-load-stars,
+.meshi-load-stars-near {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  border-radius: 9999px;
+  background: transparent;
+  will-change: transform, opacity;
+}
+.meshi-load-stars {
+  box-shadow:
+    14px 16px 0 0 rgba(148, 163, 184, 0.45),
+    42px 9px 0 0 rgba(103, 232, 249, 0.35),
+    71px 34px 0 0 rgba(148, 163, 184, 0.4),
+    99px 14px 0 0 rgba(148, 163, 184, 0.32),
+    126px 28px 0 0 rgba(129, 140, 248, 0.38),
+    152px 19px 0 0 rgba(148, 163, 184, 0.34),
+    168px 52px 0 0 rgba(148, 163, 184, 0.4),
+    28px 58px 0 0 rgba(148, 163, 184, 0.3),
+    58px 72px 0 0 rgba(103, 232, 249, 0.32),
+    132px 64px 0 0 rgba(148, 163, 184, 0.38),
+    22px 104px 0 0 rgba(148, 163, 184, 0.34),
+    86px 96px 0 0 rgba(129, 140, 248, 0.3),
+    118px 118px 0 0 rgba(148, 163, 184, 0.4),
+    158px 104px 0 0 rgba(148, 163, 184, 0.3),
+    38px 138px 0 0 rgba(103, 232, 249, 0.34),
+    104px 150px 0 0 rgba(148, 163, 184, 0.36),
+    146px 144px 0 0 rgba(148, 163, 184, 0.3);
+  animation:
+    meshiLoadDriftFar 16s ease-in-out infinite alternate,
+    meshiLoadTwinkleFar 5s ease-in-out infinite;
+}
+.meshi-load-stars-near {
+  box-shadow:
+    30px 30px 0 0.5px rgba(224, 231, 255, 0.85),
+    82px 20px 0 0.5px rgba(165, 243, 252, 0.8),
+    140px 44px 0 0.5px rgba(224, 231, 255, 0.8),
+    50px 96px 0 0.5px rgba(224, 231, 255, 0.75),
+    110px 78px 0 0.5px rgba(199, 210, 254, 0.85),
+    24px 132px 0 0.5px rgba(224, 231, 255, 0.7),
+    156px 120px 0 0.5px rgba(165, 243, 252, 0.8),
+    96px 142px 0 0.5px rgba(224, 231, 255, 0.75);
+  animation:
+    meshiLoadDriftNear 11s ease-in-out infinite alternate,
+    meshiLoadTwinkleNear 5s ease-in-out infinite;
+}
+@keyframes meshiLoadDriftFar { to { transform: translate3d(-6px, -7px, 0); } }
+@keyframes meshiLoadDriftNear { to { transform: translate3d(9px, 6px, 0); } }
+@keyframes meshiLoadTwinkleFar { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.95; } }
+@keyframes meshiLoadTwinkleNear { 0%, 100% { opacity: 0.95; } 50% { opacity: 0.6; } }
+
+/* Soft aura in the mode's palette — additive glow that breathes with Meshi.
+   Sits behind the motif and Meshi; --aura-1/-2 come from the mode palette. */
+.meshi-load-aura {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 152px;
+  height: 152px;
+  margin: -76px 0 0 -76px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 46%, var(--aura-1) 0%, transparent 60%),
+    radial-gradient(circle at 50% 62%, var(--aura-2) 0%, transparent 72%);
+  opacity: 0.42;
+  filter: blur(9px);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  animation: meshiLoadAura 3.4s ease-in-out infinite;
+}
+@keyframes meshiLoadAura {
+  0%, 100% { transform: scale(0.9); opacity: 0.34; }
+  50% { transform: scale(1.06); opacity: 0.52; }
+}
+
+/* Thin progress shimmer under the title — a moving highlight, not fake %. */
+.meshi-load-progress {
+  position: relative;
+  margin-top: 13px;
+  width: 116px;
+  height: 3px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.16);
+}
+.meshi-load-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 42%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, var(--pf), transparent);
+  animation: meshiLoadShimmer 1.5s ease-in-out infinite;
+}
+@keyframes meshiLoadShimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meshi-load-stage { animation: none !important; opacity: 1; transform: none; }
+  .meshi-load-stars,
+  .meshi-load-stars-near { animation: none !important; opacity: 0.7; }
+  .meshi-load-aura { animation: none !important; transform: scale(1); opacity: 0.4; }
+  .meshi-load-progress::after {
+    animation: none !important;
+    transform: none;
+    width: 34%;
+    opacity: 0.6;
   }
 }
 
