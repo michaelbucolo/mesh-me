@@ -51,11 +51,11 @@ const platformBrands: Record<string, { glyph: string; bg: string; fg?: string }>
   discord: { glyph: "DC", bg: "#5865f2" },
   twitch: { glyph: "Tw", bg: "#9146ff" },
   facebook: { glyph: "fb", bg: "#1877f2" },
-  snapchat: { glyph: "👻", bg: "#fffc00", fg: "#0f1419" },
+  snapchat: { glyph: "S", bg: "#fffc00", fg: "#0f1419" },
   reddit: { glyph: "r/", bg: "#ff4500" },
   pinterest: { glyph: "P", bg: "#e60023" },
   soundcloud: { glyph: "☁", bg: "#ff5500" },
-  bluesky: { glyph: "🦋", bg: "#0085ff" },
+  bluesky: { glyph: "b", bg: "#0085ff" },
   threads: { glyph: "@", bg: "#101010" },
 };
 

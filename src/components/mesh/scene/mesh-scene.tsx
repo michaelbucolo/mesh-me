@@ -30,6 +30,7 @@ import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from
 import { layoutScene, sceneBounds } from "./scene-layout";
 import { drawScene, type Camera } from "./scene-render";
 import { createPhysicsState, driftScaleFor, stepScenePhysics, type PhysicsState } from "./scene-physics";
+import { reactionGlyphSvg } from "./reaction-glyphs";
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -209,6 +210,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const [hoverNode, setHoverNode] = useState<SceneNode | null>(null);
   const [viewedUser, setViewedUser] = useState<{ username: string; displayName: string | null } | null>(null);
   const [remotePresences, setRemotePresences] = useState<RemotePresence[]>([]);
+  // Presence hysteresis: when a Meshi was last seen in a payload, and its last
+  // known object — so a single dropped payload can't unmount it (removal waits
+  // for a grace window). Plus a signature of who's visible and how they LOOK,
+  // so a bare position update never re-renders every Meshi SVG.
+  const presenceSeenAtRef = useRef<Map<string, number>>(new Map());
+  const presenceObjRef = useRef<Map<string, RemotePresence>>(new Map());
+  const remoteSigRef = useRef<string>("");
   // Whether the viewed mesh's owner is live anywhere on mesh.me — their
   // pinned Meshi wakes/sleeps on this, independent of who's in the room.
   const [ownerLive, setOwnerLive] = useState(false);
@@ -1169,15 +1177,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             meshiBadge: prefs.badge,
             meshiOutfit: prefs.outfit,
             // Broadcast what you're DOING, not just your default face — this
-            // is how others see you being alive on the internet.
-            meshiMood:
-              pendingActionRef.current && Date.now() - pendingActionRef.current.at < 4000
-                ? "happy"
-                : composingRef.current
-                  ? "thinking"
-                  : hoverIdRef.current
-                    ? "excited"
-                    : prefs.face,
+            // is how others see you being alive on the internet. The richer the
+            // read (smitten after a like, sleepy once you go quiet, focused
+            // while you write), the more your Meshi feels like you.
+            meshiMood: (() => {
+              const nowM = Date.now();
+              if (pendingActionRef.current && nowM - pendingActionRef.current.at < 4000) return "love";
+              if (composingRef.current) return "thinking";
+              if (hoverIdRef.current) return "excited";
+              if (selectedIdRef.current) return "learning";
+              if (lastInputAtRef.current && performance.now() - lastInputAtRef.current > 15000) return "sleepy";
+              return prefs.face;
+            })(),
             viewportPosition: coarseRef.current ? { vx: 0.5, vy: 0.5 } : vp,
             position: {
               x: coarseRef.current ? -cameraRef.current.panX / cameraRef.current.zoom : cursorWorldTargetRef.current.x,
@@ -1212,6 +1223,31 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // online ring plus a small chip naming the mesh they're exploring.
         const visible = online.filter((p) => p.viewingMesh === meshOwner && p.surface === "mesh");
         const visibleIds = new Set(visible.map((p) => p.userId));
+
+        // Presence hysteresis. A Meshi only LEAVES once it's been absent for a
+        // grace window — so a single dropped payload (the 2s poll and the SSE
+        // stream landing on different serverless instances, or an SSE reconnect
+        // onto a cold instance) can't make the whole room blink out and back.
+        // Sightings register instantly; only sustained absence removes anyone.
+        const nowSeen = Date.now();
+        const PRESENCE_GRACE_MS = 4500;
+        for (const p of visible) {
+          presenceSeenAtRef.current.set(p.userId, nowSeen);
+          presenceObjRef.current.set(p.userId, p);
+        }
+        const effectiveVisible: RemotePresence[] = [];
+        for (const [id, seenAt] of presenceSeenAtRef.current) {
+          if (nowSeen - seenAt > PRESENCE_GRACE_MS) {
+            presenceSeenAtRef.current.delete(id);
+            presenceObjRef.current.delete(id);
+            continue;
+          }
+          const obj = visibleIds.has(id) ? null : presenceObjRef.current.get(id);
+          if (obj) effectiveVisible.push(obj);
+        }
+        // Fresh sightings first (live data), then the still-in-grace stragglers.
+        effectiveVisible.unshift(...visible);
+        const effectiveIds = new Set(effectiveVisible.map((p) => p.userId));
         setOwnerLive(online.some((p) => p.userId === meshOwner));
         presenceInfoRef.current.clear();
         for (const p of online) {
@@ -1319,7 +1355,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // before the cleanup below forgets them.)
         const prevIds = prevPresenceIdsRef.current;
         if (prevIds) {
-          for (const p of visible) {
+          for (const p of effectiveVisible) {
             if (prevIds.has(p.userId)) continue;
             joinStampRef.current.set(p.userId, Date.now());
             if (!viewUserId && p.viewingMesh === meshOwner && p.surface === "mesh") {
@@ -1327,7 +1363,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               playSound("chime");
             }
           }
-          const departed = prevPresencesRef.current.filter((q) => !visibleIds.has(q.userId));
+          const departed = prevPresencesRef.current.filter((q) => !effectiveIds.has(q.userId));
           if (departed.length) {
             const c = containerRef.current;
             const cam = cameraRef.current;
@@ -1371,17 +1407,17 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             }
           }
         }
-        prevPresenceIdsRef.current = visibleIds;
-        prevPresencesRef.current = visible;
+        prevPresenceIdsRef.current = effectiveIds;
+        prevPresencesRef.current = effectiveVisible;
 
         presenceTargetsRef.current.forEach((_, id) => {
-          if (!visibleIds.has(id)) {
+          if (!effectiveIds.has(id)) {
             presenceTargetsRef.current.delete(id);
             presencePosRef.current.delete(id);
           }
         });
         presenceModeRef.current.forEach((_, id) => {
-          if (!visibleIds.has(id)) {
+          if (!effectiveIds.has(id)) {
             presenceModeRef.current.delete(id);
             perchPosRef.current.delete(id);
             perchWorldPosRef.current.delete(id);
@@ -1390,7 +1426,21 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             avoidOffsetRef.current.delete(id);
           }
         });
-        setRemotePresences(visible);
+
+        // Re-render the Meshi layer only when the roster or someone's
+        // appearance/mood changes — never for a bare position update (those
+        // ride the imperative glide loop), so live movement stays smooth.
+        const sig = effectiveVisible
+          .map(
+            (p) =>
+              `${p.userId}:${p.meshiColor}:${p.meshiHat}:${p.meshiHair}:${p.meshiAccessory}:${p.meshiEyeStyle}:${p.meshiBadge}:${p.meshiOutfit}:${p.meshiMood}:${p.isPro ? 1 : 0}:${p.username}`,
+          )
+          .sort()
+          .join("|");
+        if (sig !== remoteSigRef.current) {
+          remoteSigRef.current = sig;
+          setRemotePresences(effectiveVisible);
+        }
       }
     };
 
@@ -1548,9 +1598,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           el = document.createElement("div");
           el.dataset.heartId = String(h.id);
           el.dataset.meshHeart = "1";
-          el.textContent = "❤";
+          // Original hand-drawn heart (never an emoji) — a soft rose body with
+          // a glossy highlight, so a thrown like reads as ours, not the OS font's.
+          el.innerHTML = reactionGlyphSvg("heart");
           el.style.cssText =
-            "position:absolute;left:0;top:0;font-size:20px;line-height:1;color:#fb7185;filter:drop-shadow(0 2px 8px rgba(244,63,94,0.65));will-change:transform;transform:translate(-50%,-50%);";
+            "position:absolute;left:0;top:0;line-height:0;filter:drop-shadow(0 2px 8px rgba(244,63,94,0.6));will-change:transform;transform:translate(-50%,-50%);";
           host.appendChild(el);
         }
         const cx0 = (h.fromX + target.dx) / 2;
@@ -1920,7 +1972,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             size={54}
             color={prefs.color}
             hat={prefs.hat}
-            mood={hoverNode ? "excited" : prefs.face}
+            mood={showCompose ? "thinking" : hoverNode ? "excited" : prefs.face}
             hair={prefs.hair}
             accessory={prefs.accessory}
             eyeStyle={prefs.eye}

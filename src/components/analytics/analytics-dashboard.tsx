@@ -9,6 +9,7 @@ import {
   Gauge,
   Heart,
   LockKeyhole,
+  MessageCircle,
   PlugZap,
   ShieldCheck,
   TrendingUp,
@@ -183,7 +184,7 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
   const tone = toneFor(post.platform);
   const inner = (
     <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 transition hover:border-[var(--accent)]/40">
-      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${rank === 1 ? "bg-gradient-to-br from-amber-400 to-rose-500 text-white" : "bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"}`}>
+      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${rank === 1 ? "bg-gradient-to-br from-amber-300 to-amber-500 text-white" : "bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"}`}>
         {rank}
       </span>
       {post.thumbnailUrl ? (
@@ -202,9 +203,9 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-3 text-[11px] text-[var(--text-secondary)]">
-        {post.views > 0 && <span>👁 {compact(post.views)}</span>}
-        <span>❤️ {compact(post.likes)}</span>
-        <span>💬 {compact(post.comments)}</span>
+        {post.views > 0 && <span className="inline-flex items-center gap-1"><Eye size={12} /> {compact(post.views)}</span>}
+        <span className="inline-flex items-center gap-1"><Heart size={12} className="text-[var(--accent)]" /> {compact(post.likes)}</span>
+        <span className="inline-flex items-center gap-1"><MessageCircle size={12} /> {compact(post.comments)}</span>
       </div>
     </div>
   );

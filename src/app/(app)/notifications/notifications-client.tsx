@@ -280,7 +280,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                     key={category}
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className={`mesh-choice shrink-0 rounded-full px-3 py-2 text-xs font-bold ${active ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]" : "text-[var(--text-secondary)]"}`}
+                    className={`mesh-choice shrink-0 rounded-full px-3 py-2 text-xs font-bold ${active ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "text-[var(--text-secondary)]"}`}
                     aria-pressed={active}
                   >
                     <Icon size={14} aria-hidden="true" />

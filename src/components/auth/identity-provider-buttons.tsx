@@ -54,7 +54,7 @@ export function IdentityProviderButtons({ providers, next, className }: Identity
             <a
               key={provider}
               href={`/api/auth/identity/${provider}${suffix}`}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--glass-card-border)] bg-[var(--surface-1)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--glass-card-border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               <Glyph />
               {PROVIDER_LABEL[provider]}

@@ -186,16 +186,16 @@ export default function FeaturesPage() {
         </article>
       </section>
 
-      <section className="mt-12 rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6">
+      <section className="mt-12 rounded-3xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
         <div className="mb-4 flex items-center gap-2">
-          <Crown className="h-5 w-5 text-amber-400" />
+          <Crown className="h-5 w-5 text-[var(--accent)]" />
           <h2 className="text-lg font-bold text-[var(--text-primary)]">Mesh Pro</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {meshProItems.map((item) => (
             <div
               key={item}
-              className="rounded-2xl border border-amber-500/15 bg-black/20 px-4 py-3 text-sm text-[var(--text-secondary)]"
+              className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--bg-secondary)] px-4 py-3 text-sm text-[var(--text-secondary)]"
             >
               {item}
             </div>

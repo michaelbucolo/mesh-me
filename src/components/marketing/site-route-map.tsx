@@ -23,28 +23,28 @@ const routes = [
     icon: ShieldCheck,
     title: "Trust center",
     description: "Review security posture, privacy choices, tokens, permissions, and compliance references.",
-    accent: "text-emerald-300",
+    accent: "text-cyan-300",
   },
   {
     href: "/about",
     icon: Sparkles,
     title: "Product vision",
     description: "Understand why Mesh.me exists, how Meshi fits, and how the product adapts to the user.",
-    accent: "text-amber-300",
+    accent: "text-violet-300",
   },
   {
     href: "/privacy",
     icon: Lock,
     title: "Privacy policy",
     description: "Read the user-facing explanation of data collection, storage, export, deletion, and rights.",
-    accent: "text-sky-300",
+    accent: "text-[var(--accent)]",
   },
   {
     href: "/terms",
     icon: BarChart3,
     title: "Terms and platform use",
     description: "Review user obligations, third-party platform boundaries, subscriptions, and legal terms.",
-    accent: "text-fuchsia-300",
+    accent: "text-cyan-300",
   },
 ];
 

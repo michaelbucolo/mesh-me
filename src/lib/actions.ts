@@ -1770,7 +1770,7 @@ async function sharePostViaMeChatLegacy(formData: FormData) {
   if (!post) return { error: "Post not found" };
 
   const note = ((formData.get("note") as string | null) || "").trim();
-  const sharedMessage = `${note ? `${note}\n\n` : ""}🔗 Shared a post by ${post.author.displayName} (@${post.author.username})\n${post.content.slice(0, 260)}${post.content.length > 260 ? "…" : ""}\n/feed/${post.id}`;
+  const sharedMessage = `${note ? `${note}\n\n` : ""}Shared a post by ${post.author.displayName} (@${post.author.username})\n${post.content.slice(0, 260)}${post.content.length > 260 ? "…" : ""}\n/feed/${post.id}`;
 
   const nextData = new FormData();
   nextData.set("content", sharedMessage);

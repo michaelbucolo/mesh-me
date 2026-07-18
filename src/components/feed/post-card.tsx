@@ -3,7 +3,7 @@
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users, BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
@@ -404,9 +404,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   </Link>
                 )}
                 {post.author.isVerified && (
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent)" }}>
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <BadgeCheck className="h-4 w-4" style={{ color: "var(--accent)" }} />
                 )}
               </div>
               <div className="flex items-center gap-1 text-[0.8rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
@@ -468,7 +466,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {post.isNsfw && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-bold text-amber-300 bg-amber-400/10">
+                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-bold text-rose-300 bg-rose-500/10">
                       NSFW
                     </span>
                   </>
@@ -744,7 +742,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             View {formatCount(post._count.comments)} comments
           </Link>
           {repostCount > 0 && (
-            <button type="button" onClick={handleRepost} disabled={isPending || isOptimistic} className="hover:text-emerald-400">
+            <button type="button" onClick={handleRepost} disabled={isPending || isOptimistic} className="hover:text-[var(--accent)]">
               {formatCount(repostCount)} reposts
             </button>
           )}
