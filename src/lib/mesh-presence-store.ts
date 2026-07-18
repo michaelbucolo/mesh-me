@@ -206,25 +206,57 @@ export async function removePresence(userId: string): Promise<void> {
   }
 }
 
-// Return every fresh presence entry, merging the shared DB (cross-instance) with
-// the in-memory cache (same-instance, always fresh). Memory wins on ties so an
-// in-flight heartbeat is never dropped. Stale entries are pruned best-effort.
+// Cross-instance presence lives in the DB, but every open SSE stream polls it
+// several times a second (the stream ticks each 400ms). Cache the DB read
+// per-instance for a short window and de-dupe concurrent reads into one query,
+// so N viewers cost ~2.5 queries/sec TOTAL instead of 2.5×N. The in-memory
+// store (same-instance, always fresh) is merged on top after the cache, so a
+// viewer's own heartbeats are never delayed by it.
+const DB_CACHE_TTL_MS = 250;
+const PRUNE_INTERVAL_MS = 10000;
+let dbCache: { at: number; entries: PresenceEntry[] } | null = null;
+let dbInFlight: Promise<PresenceEntry[]> | null = null;
+let lastPruneAt = 0;
+
+async function fetchDbPresences(): Promise<PresenceEntry[]> {
+  if (dbCache && Date.now() - dbCache.at < DB_CACHE_TTL_MS) return dbCache.entries;
+  if (dbInFlight) return dbInFlight;
+  dbInFlight = (async () => {
+    const cutoff = Date.now() - STALE_MS;
+    try {
+      const rows = (await prisma.meshPresence.findMany({
+        where: { lastSeen: { gte: new Date(cutoff) } },
+      })) as PresenceRow[];
+      const entries = rows.map(rowToEntry);
+      dbCache = { at: Date.now(), entries };
+      // Prune stale rows on a slow cadence rather than on every read.
+      if (Date.now() - lastPruneAt > PRUNE_INTERVAL_MS) {
+        lastPruneAt = Date.now();
+        prisma.meshPresence
+          .deleteMany({ where: { lastSeen: { lt: new Date(cutoff) } } })
+          .catch(() => {});
+      }
+      return entries;
+    } catch {
+      // DB unavailable — reuse the last snapshot (or nothing) and keep serving.
+      return dbCache?.entries ?? [];
+    } finally {
+      dbInFlight = null;
+    }
+  })();
+  return dbInFlight;
+}
+
+// Return every fresh presence entry, merging the shared DB (cross-instance,
+// short-cached) with the in-memory cache (same-instance, always fresh). Memory
+// wins on ties so an in-flight heartbeat is never dropped.
 export async function listPresences(): Promise<PresenceEntry[]> {
   const now = Date.now();
   const cutoff = now - STALE_MS;
   const merged = new Map<string, PresenceEntry>();
 
-  try {
-    const rows = (await prisma.meshPresence.findMany({
-      where: { lastSeen: { gte: new Date(cutoff) } },
-    })) as PresenceRow[];
-    for (const row of rows) merged.set(row.userId, rowToEntry(row));
-    prisma.meshPresence
-      .deleteMany({ where: { lastSeen: { lt: new Date(cutoff) } } })
-      .catch(() => {});
-  } catch {
-    // DB unavailable — fall back to memory only.
-  }
+  const dbEntries = await fetchDbPresences();
+  for (const entry of dbEntries) merged.set(entry.userId, entry);
 
   for (const [userId, entry] of presence.store) {
     if (entry.lastSeen < cutoff) {

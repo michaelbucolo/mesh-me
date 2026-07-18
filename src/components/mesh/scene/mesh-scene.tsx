@@ -1461,7 +1461,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             presenceWorldRef.current.delete(id);
             presenceWorldPosRef.current.delete(id);
             avoidOffsetRef.current.delete(id);
+            // Pure position/animation bookkeeping — safe to forget on departure
+            // (long sessions would otherwise accumulate every visitor ever).
+            perchNodeRef.current.delete(id);
+            lastScreenPosRef.current.delete(id);
+            joinStampRef.current.delete(id);
           }
+        });
+        // Action-dedupe entries must OUTLIVE a brief departure (a flickering
+        // visitor's heart would replay on rejoin), so prune by age instead:
+        // anything older than 60s is far beyond the 12s replay gate.
+        seenActionsRef.current.forEach((at, id) => {
+          if (nowSeen - at > 60000) seenActionsRef.current.delete(id);
         });
 
         // Re-render the Meshi layer only when the roster or someone's
@@ -1512,6 +1523,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             // Malformed frame — the next push or poll corrects it.
           }
         });
+        // EventSource retries transient drops itself, but a FATAL close (auth
+        // expiry, proxy giving up) parks it at CLOSED forever — and with `es`
+        // still truthy, openStream would never reopen. Release the slot so the
+        // esKick interval can establish a fresh stream.
+        es.onerror = () => {
+          if (es && es.readyState === EventSource.CLOSED) {
+            es.close();
+            es = null;
+          }
+        };
       } catch {
         es = null;
       }
