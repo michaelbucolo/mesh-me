@@ -107,7 +107,12 @@ export const getCurrentUser = cache(async () => {
 
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
-    include: { user: true },
+    // This runs on every authenticated request. bannerUrl holds a base64 data
+    // URL up to ~4MB and is only ever read on the profile/community pages from
+    // their own queries — never off the session user — so omit it here to keep
+    // multi-megabyte payloads off the auth hot path. (If a caller ever needs the
+    // current user's banner, tsc will flag the missing field.)
+    include: { user: { omit: { bannerUrl: true } } },
   });
 
   if (!session) {
