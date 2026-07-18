@@ -4217,6 +4217,128 @@ body,
   }
 }
 
+/* ── Per-mode loader motifs — each mirrors what's being loaded ───────────── */
+@keyframes meshiLoadSpin { to { transform: rotate(360deg); } }
+@keyframes meshiLoadSpinRev { to { transform: rotate(-360deg); } }
+
+/* Mesh — a constellation weaving itself: strands draw out from the centre to
+   nodes that pop in, the whole web turning slowly. */
+.meshi-load-constellation { position: absolute; inset: 0; animation: meshiLoadSpin 16s linear infinite; }
+.meshi-load-carm { position: absolute; inset: 0; }
+.meshi-load-strand {
+  position: absolute; left: 50%; top: 14px; width: 2px; height: 76px; margin-left: -1px;
+  border-radius: 2px; transform-origin: 50% 100%; transform: scaleY(0); opacity: 0;
+  animation: meshiLoadStrand 2.6s ease-in-out infinite;
+}
+@keyframes meshiLoadStrand {
+  0%, 100% { transform: scaleY(0); opacity: 0; }
+  22% { opacity: 0.55; }
+  42%, 72% { transform: scaleY(1); opacity: 0.55; }
+  92% { transform: scaleY(1); opacity: 0; }
+}
+.meshi-load-cnode {
+  position: absolute; left: 50%; top: 8px; width: 8px; height: 8px; margin-left: -4px;
+  border-radius: 9999px; transform: scale(0);
+  animation: meshiLoadCnode 2.6s ease-in-out infinite;
+}
+@keyframes meshiLoadCnode {
+  0%, 100% { transform: scale(0); }
+  20% { transform: scale(1.35); }
+  40%, 74% { transform: scale(1); }
+  93% { transform: scale(0); }
+}
+
+/* MeChat — envelopes rise past Meshi and settle: your letters being sorted. */
+.meshi-load-letters { position: absolute; inset: 0; }
+.meshi-load-letter {
+  position: absolute; left: 50%; bottom: 40px; width: 34px; height: 23px; margin-left: -17px;
+  border-radius: 4px; opacity: 0; animation: meshiLoadLetter 2.4s ease-in-out infinite;
+}
+.meshi-load-letter::before {
+  content: ""; position: absolute; inset: 0; border-radius: 4px;
+  background: linear-gradient(130deg, rgba(255, 255, 255, 0.28) 0 46%, rgba(0, 0, 0, 0.22) 46% 54%, rgba(255, 255, 255, 0.14) 54%);
+}
+@keyframes meshiLoadLetter {
+  0% { transform: translate(var(--dx), 34px) rotate(var(--r)) scale(0.85); opacity: 0; }
+  20% { opacity: 1; }
+  55% { transform: translate(var(--dx), -10px) rotate(var(--r)) scale(1); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--dx), -40px) rotate(var(--r)) scale(0.92); opacity: 0; }
+}
+
+/* Search — a magnifying glass sweeps around Meshi while a scan pulse rings out. */
+.meshi-load-search { position: absolute; inset: 0; }
+.meshi-load-scan {
+  position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px;
+  border: 2px solid; border-radius: 9999px; opacity: 0; animation: meshiLoadScan 2s ease-out infinite;
+}
+@keyframes meshiLoadScan {
+  0% { transform: scale(0.4); opacity: 0.7; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+.meshi-load-glass-arm { position: absolute; inset: 0; animation: meshiLoadSpin 3s linear infinite; }
+.meshi-load-glass {
+  position: absolute; left: 50%; top: 8px; width: 20px; height: 20px; margin-left: -10px;
+  border: 3px solid; border-radius: 9999px; animation: meshiLoadSpinRev 3s linear infinite;
+}
+.meshi-load-glass::after {
+  content: ""; position: absolute; right: -5px; bottom: -5px; width: 9px; height: 3px;
+  background: currentColor; border-radius: 2px; transform: rotate(45deg);
+}
+
+/* Social — little companions slide in from the edges and gather round Meshi. */
+.meshi-load-social { position: absolute; inset: 0; }
+.meshi-load-buddy {
+  position: absolute; left: 50%; top: 50%; width: 15px; height: 15px; margin: -7.5px 0 0 -7.5px;
+  border-radius: 9999px; opacity: 0; animation: meshiLoadGather 2.4s ease-in-out infinite;
+}
+@keyframes meshiLoadGather {
+  0% { transform: translate(var(--fx), var(--fy)) scale(0.5); opacity: 0; }
+  25% { opacity: 1; }
+  55% { transform: translate(calc(var(--fx) * 0.28), calc(var(--fy) * 0.28)) scale(1); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+}
+
+/* Secure — a shield settles behind Meshi and breathes: safe and sound. */
+.meshi-load-secure { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.meshi-load-shield {
+  position: absolute; width: 122px; height: 136px;
+  clip-path: polygon(50% 0, 100% 15%, 100% 54%, 50% 100%, 0 54%, 0 15%);
+  background: linear-gradient(160deg, var(--shield), transparent 78%);
+  opacity: 0.2; animation: meshiLoadShield 2.6s ease-in-out infinite;
+}
+@keyframes meshiLoadShield {
+  0%, 100% { transform: scale(0.9); opacity: 0.14; }
+  50% { transform: scale(1.02); opacity: 0.32; }
+}
+
+/* Creator — sparkles twinkle around Meshi: a little polish and shine. */
+.meshi-load-creator { position: absolute; inset: 0; }
+.meshi-load-spark {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+  clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
+  transform: scale(0); opacity: 0; animation: meshiLoadSpark 2.2s ease-in-out infinite;
+}
+@keyframes meshiLoadSpark {
+  0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+  45% { transform: scale(var(--s)) rotate(35deg); opacity: 1; }
+  70% { transform: scale(calc(var(--s) * 0.7)) rotate(55deg); opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meshi-load-constellation,
+  .meshi-load-glass-arm,
+  .meshi-load-glass { animation: none !important; }
+  .meshi-load-strand { transform: scaleY(1); opacity: 0.4; animation: none !important; }
+  .meshi-load-cnode { transform: scale(1); animation: none !important; }
+  .meshi-load-letter { transform: translate(var(--dx), -6px) rotate(var(--r)); opacity: 1; animation: none !important; }
+  .meshi-load-scan { display: none; }
+  .meshi-load-buddy { transform: translate(calc(var(--fx) * 0.28), calc(var(--fy) * 0.28)); opacity: 1; animation: none !important; }
+  .meshi-load-shield { transform: scale(1); opacity: 0.28; animation: none !important; }
+  .meshi-load-spark { transform: scale(var(--s)); opacity: 0.9; animation: none !important; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-page-enter,
   .mesh-shell-mesh:not(.mesh-shell-flow) .mesh-route-slot.animate-page-enter {
