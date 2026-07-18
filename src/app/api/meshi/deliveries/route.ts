@@ -3,6 +3,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 
+// The notification row stores a truncated summary ("Meshi delivered a
+// message: \"…\"") for the notifications feed. The arrival card hands over the
+// sender's actual words, so unwrap the summary as a fallback when the real
+// message body can't be found.
+function unwrapDeliverySummary(summary: string): string {
+  const match = summary.match(/^Meshi delivered a message: "([\s\S]*)"$/);
+  return match ? match[1] : summary;
+}
+
 // GET: Fetch unread Meshi deliveries for the current user
 export async function GET() {
   const user = await getCurrentUser();
@@ -41,11 +50,32 @@ export async function GET() {
       take: 5,
     });
 
+    // Recover each delivery's full message body: the message row is created
+    // immediately before its notification, so the sender's newest message in a
+    // shared thread at (or just after) the notification time is the one Meshi
+    // carried. The stored summary is only a truncated fallback.
+    const fullBodies = new Map<string, string>();
+    await Promise.all(
+      deliveryNotifs.map(async (n) => {
+        if (!n.actorId) return;
+        const carried = await prisma.message.findFirst({
+          where: {
+            senderId: n.actorId,
+            createdAt: { lte: new Date(n.createdAt.getTime() + 5000) },
+            thread: { members: { some: { userId: user.id } } },
+          },
+          orderBy: { createdAt: "desc" },
+          select: { content: true },
+        });
+        if (carried?.content) fullBodies.set(n.id, carried.content);
+      }),
+    );
+
     const deliveries = deliveryNotifs.map((n) => ({
       id: n.id,
       fromUser: n.actor?.displayName || "Someone",
       fromUsername: n.actor?.username || "unknown",
-      message: n.message || "",
+      message: fullBodies.get(n.id) || unwrapDeliverySummary(n.message || ""),
       meshiColor: n.actor?.meshiPreference?.colorTheme || "blue",
       meshiHat: n.actor?.meshiPreference?.hatStyle || "none",
       meshiHair: n.actor?.meshiPreference?.hairStyle || "none",

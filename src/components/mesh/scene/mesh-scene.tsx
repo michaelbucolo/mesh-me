@@ -2939,6 +2939,10 @@ function ContentLens({
   // Keyboard: arrows browse, Escape closes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Typing elsewhere — like the Meshi chat opened from this lens — must
+      // not browse the lens or close it under the caret.
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if (e.key === "ArrowRight") onNavigate(1);
       else if (e.key === "ArrowLeft") onNavigate(-1);
       else if (e.key === "Escape") onClose();
