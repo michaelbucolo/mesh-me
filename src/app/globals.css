@@ -4074,6 +4074,149 @@ body,
   z-index: 1;
 }
 
+/* ── Meshi loader: bouncing Meshi + orbiting motes, pure CSS ─────────────── */
+
+.meshi-load-stage {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meshi-load-orbit {
+  position: absolute;
+  inset: 0;
+  animation: meshiLoadOrbit 7s linear infinite;
+}
+
+@keyframes meshiLoadOrbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.meshi-load-mote-arm {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.meshi-load-mote {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 9999px;
+  transform: scale(0);
+  animation: meshiLoadMotePop 0.5s cubic-bezier(0.34, 1.6, 0.64, 1) forwards;
+}
+
+@keyframes meshiLoadMotePop {
+  to {
+    transform: scale(1);
+  }
+}
+
+.meshi-load-bounce {
+  position: relative;
+  animation: meshiLoadBounce 1.15s cubic-bezier(0.35, 0, 0.65, 1) infinite;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+
+/* Real squash-and-stretch: stretch tall on the way up, squash wide on landing. */
+@keyframes meshiLoadBounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.12, 0.88);
+  }
+  18% {
+    transform: translateY(-4px) scale(0.94, 1.08);
+  }
+  50% {
+    transform: translateY(-26px) scale(0.98, 1.04);
+  }
+  82% {
+    transform: translateY(-4px) scale(0.99, 1.01);
+  }
+}
+
+.meshi-load-body {
+  width: 74px;
+  height: 74px;
+  display: block;
+}
+
+.meshi-load-eyes {
+  animation: meshiLoadBlink 3.4s infinite;
+  transform-origin: 0 -1px;
+}
+
+@keyframes meshiLoadBlink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  95.5% {
+    transform: scaleY(0.08);
+  }
+}
+
+.meshi-load-shadow {
+  position: absolute;
+  bottom: 30px;
+  width: 58px;
+  height: 12px;
+  border-radius: 9999px;
+  filter: blur(5px);
+  animation: meshiLoadShadow 1.15s cubic-bezier(0.35, 0, 0.65, 1) infinite;
+}
+
+@keyframes meshiLoadShadow {
+  0%,
+  100% {
+    transform: scaleX(1.15);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scaleX(0.62);
+    opacity: 0.45;
+  }
+}
+
+.meshi-load-title {
+  animation: meshiLoadTitleIn 0.4s ease-out both;
+}
+
+@keyframes meshiLoadTitleIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meshi-load-orbit,
+  .meshi-load-bounce,
+  .meshi-load-shadow,
+  .meshi-load-eyes {
+    animation: none !important;
+  }
+  .meshi-load-mote {
+    transform: scale(1);
+    animation: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-page-enter,
   .mesh-shell-mesh:not(.mesh-shell-flow) .mesh-route-slot.animate-page-enter {

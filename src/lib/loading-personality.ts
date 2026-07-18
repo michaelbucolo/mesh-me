@@ -8,121 +8,66 @@ type LoadingPersonalityMode =
   | "creator";
 
 export interface LoadingPersonality {
+  /** One short, playful line — the only text a loading screen shows. */
   title: string;
-  subtitle: string;
   mode: LoadingPersonalityMode;
-  progressLabel: string;
-  steps: readonly string[];
   ariaLabel?: string;
 }
 
 const loadingPersonalities = {
   public: {
-    title: "Opening Mesh.me",
-    subtitle: "Meshi is preparing a calm way into your world.",
+    title: "Opening Mesh.me…",
     mode: "default",
-    progressLabel: "Signal ready",
-    steps: ["Starting the interface", "Warming the Mesh", "Preparing secure entry", "Bringing the page into view"],
     ariaLabel: "Loading Mesh.me",
   },
   app: {
-    title: "Opening your world",
-    subtitle: "Meshi is connecting the next part of your Mesh.",
+    title: "One sec…",
     mode: "default",
-    progressLabel: "Workspace ready",
-    steps: ["Checking your session", "Loading your workspace", "Preparing live signals", "Finishing the handoff"],
     ariaLabel: "Loading your Mesh.me workspace",
   },
   communities: {
-    title: "Communities",
-    subtitle: "Meshi is preparing your shared spaces.",
+    title: "Gathering your people…",
     mode: "social",
-    progressLabel: "Spaces loaded",
-    steps: ["Fetching joined communities", "Loading active spaces", "Syncing membership state", "Preparing discussions"],
   },
   "connected-accounts": {
-    title: "Connections",
-    subtitle: "Meshi is checking your linked platforms safely.",
+    title: "Checking your connections…",
     mode: "secure",
-    progressLabel: "Accounts checked",
-    steps: ["Loading linked platforms", "Verifying token health", "Reading sync status", "Preparing controls"],
-  },
-  "content-hub": {
-    title: "Content Hub",
-    subtitle: "Meshi is assembling your publishing workspace.",
-    mode: "creator",
-    progressLabel: "Assets staged",
-    steps: ["Fetching drafts and assets", "Loading publishing tools", "Syncing scheduled posts", "Preparing analytics"],
   },
   explore: {
-    title: "Explore",
-    subtitle: "Meshi is finding fresh people, posts, and communities.",
+    title: "Scouting for gems…",
     mode: "search",
-    progressLabel: "Discoveries ready",
-    steps: ["Collecting discovery signals", "Ranking creators", "Loading conversations", "Assembling modules"],
   },
   feed: {
-    title: "Feed",
-    subtitle: "Meshi is preparing the next posts for smooth scrolling.",
+    title: "Rolling out the Flow…",
     mode: "social",
-    progressLabel: "Posts loaded",
-    steps: ["Fetching latest posts", "Loading media previews", "Syncing reactions", "Keeping your place"],
-  },
-  innovation: {
-    title: "Innovation",
-    subtitle: "Meshi is staging the build workspace.",
-    mode: "creator",
-    progressLabel: "Workspace ready",
-    steps: ["Loading briefs", "Fetching updates", "Syncing collaborator notes", "Preparing launch checks"],
   },
   mesh: {
-    title: "Your Mesh",
-    subtitle: "Meshi is arranging your digital footprint into view.",
+    title: "Weaving your world…",
     mode: "mesh-building",
-    progressLabel: "Nodes linked",
-    steps: ["Loading core nodes", "Calculating connections", "Applying filters", "Rendering the network"],
   },
   meshpro: {
-    title: "Mesh Pro",
-    subtitle: "Meshi is activating your Pro tools.",
+    title: "Polishing the good stuff…",
     mode: "creator",
-    progressLabel: "Tools ready",
-    steps: ["Checking Pro access", "Loading Pro dashboards", "Syncing custom visuals", "Preparing advanced insights"],
   },
   messages: {
-    title: "MeChat",
-    subtitle: "Meshi is organizing your conversations.",
+    title: "Fetching your chats…",
     mode: "message-writing",
-    progressLabel: "Threads synced",
-    steps: ["Authenticating inbox", "Loading threads", "Hydrating drafts", "Syncing unread counts"],
   },
   notifications: {
-    title: "Alerts",
-    subtitle: "Meshi is grouping what needs your attention.",
+    title: "Rounding up what's new…",
     mode: "secure",
-    progressLabel: "Alerts updated",
-    steps: ["Fetching recent alerts", "Grouping by priority", "Syncing read state", "Preparing the alert feed"],
   },
   profile: {
-    title: "Profile",
-    subtitle: "Meshi is preparing identity details.",
+    title: "Setting the stage…",
     mode: "social",
-    progressLabel: "Profile loaded",
-    steps: ["Fetching the header", "Loading activity", "Syncing connections", "Preparing profile modules"],
   },
   search: {
-    title: "Search",
-    subtitle: "Meshi is searching people, posts, chats, and connected content.",
+    title: "On the hunt…",
     mode: "search",
-    progressLabel: "Results prepared",
-    steps: ["Reading your query", "Searching indexes", "Ranking relevance", "Preparing result cards"],
   },
   settings: {
-    title: "Settings",
-    subtitle: "Meshi is loading privacy, security, and account controls.",
+    title: "Unlocking the controls…",
     mode: "secure",
-    progressLabel: "Controls loaded",
-    steps: ["Fetching preferences", "Loading privacy controls", "Syncing notification rules", "Preparing customization"],
   },
 } as const satisfies Record<string, LoadingPersonality>;
 

@@ -131,7 +131,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
   if (status === "loading") {
     return (
       <div className="min-h-[70vh]">
-        <MeshiLoader title="Tracing your trail" subtitle="Meshi is retracing everywhere you went this month." mode="mesh-building" />
+        <MeshiLoader title="Retracing your month…" mode="mesh-building" />
       </div>
     );
   }
@@ -378,7 +378,7 @@ export function TrailClient({ isPro = false }: { isPro?: boolean }) {
     <Suspense
       fallback={
         <div className="min-h-[70vh]">
-          <MeshiLoader title="Tracing your trail" subtitle="Meshi is retracing everywhere you went this month." mode="mesh-building" />
+          <MeshiLoader title="Retracing your month…" mode="mesh-building" />
         </div>
       }
     >

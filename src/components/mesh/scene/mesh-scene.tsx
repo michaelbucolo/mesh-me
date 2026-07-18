@@ -2271,8 +2271,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               loader dissolves straight into the real scene it precedes. */}
           <MeshFormingLoader backdrop className="opacity-80" />
           <MeshiLoader
-            title={viewUserId ? "Opening their mesh" : "Weaving your mesh"}
-            subtitle="Meshi is arranging your world into view."
+            title={viewUserId ? "Opening their world…" : "Weaving your world…"}
             mode="mesh-building"
             transparent
           />
