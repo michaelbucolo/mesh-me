@@ -141,6 +141,9 @@ function detectIntent(query: string): QueryIntent {
     }
     // "tell me about my followers" is a stats question about the user, never a
     // person named "my followers" — reroute self-phrases to the right intent.
+    // Self-topics without a matching intent ("my privacy settings", "my
+    // profile") fall through to the later detectors and the local knowledge
+    // base instead of being answered as a person or a mesh summary.
     const selfTopicMatch = name.toLowerCase().match(/^(?:my|our)\s+(.+)$/);
     if (selfTopicMatch) {
       const topic = selfTopicMatch[1];
@@ -152,11 +155,11 @@ function detectIntent(query: string): QueryIntent {
       if (topic.includes("interest") || topic.includes("hobby")) return { type: "interest_list" };
       if (topic.includes("platform") || topic.includes("account") || topic.includes("channel")) return { type: "platform_summary" };
       if (topic.includes("activity") || topic.includes("notification")) return { type: "recent_activity" };
-      return { type: "mesh_summary" };
-    }
-    const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "meshi", "privacy", "security", "meshpro"];
-    if (name && !featureWords.some(fw => name.toLowerCase().includes(fw))) {
-      return { type: "person_lookup", name };
+    } else {
+      const featureWords = ["mesh", "feed", "mechat", "settings", "profile", "meshi", "privacy", "security", "meshpro"];
+      if (name && !featureWords.some(fw => name.toLowerCase().includes(fw))) {
+        return { type: "person_lookup", name };
+      }
     }
   }
 
