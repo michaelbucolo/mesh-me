@@ -4,15 +4,16 @@
 //
 //   CLOSENESS IS DISTANCE. People are placed at a radius set by the real
 //   strength of the tie — mutuals you talk to daily sit right beside you,
-//   acquaintances drift toward the rim. One glance shows who your people are.
+//   acquaintances drift toward the rim.
 //
-//   TIME FLOWS OUTWARD. Everything anyone made fans out from its maker with
-//   the newest work nearest — your latest post sits closest to you, a
-//   platform's latest video sits closest to that platform. Walking outward is
-//   walking back in time.
+//   EVERY SOURCE OWNS A SECTOR. The circle is divided into exclusive wedges:
+//   your own posts fan the top, each platform owns a wedge at the bottom,
+//   each person owns a wedge on the sides — and everything a source made
+//   lives strictly inside its wedge. Nothing from two sources ever mixes,
+//   so provenance is readable from position alone.
 //
-//   PROVENANCE IS GEOMETRY. Every strand is a real relationship: you→person,
-//   you→platform, maker→work. No abstract hubs, nothing arbitrary.
+//   TIME FLOWS OUTWARD. Within a wedge the newest work sits nearest its
+//   maker; older rings are older work.
 //
 // Angles are deterministic per node id, so everyone keeps their place between
 // visits and spatial memory works. A final relaxation pass guarantees nothing
@@ -20,21 +21,19 @@
 
 import type { SceneModel, SceneNode, SceneNodeKind } from "./scene-model";
 
-const TOP_ANGLE = -Math.PI / 2;
-// People: closeness maps onto this radial band. closeness 1 → right beside
-// you; closeness 0 → the rim of your social world.
+const TOP = -Math.PI / 2;
+const BOTTOM = Math.PI / 2;
+// People: closeness maps onto this radial band.
 const PERSON_NEAR = 240;
 const PERSON_SPREAD = 290;
-// Platforms: your bridge to the wider internet, grounded at the bottom.
-const PLATFORM_RADIUS = 400;
-// Content ring: post cards are wide, so they live well beyond the sources.
-const CONTENT_RADIUS = 680;
-const CONTENT_RING_GAP = 240;
-// Native posts fan across the top arc reserved for "made by you".
-const NATIVE_ARC_HALF = (72 * Math.PI) / 180;
-const NATIVE_PER_RING = 5;
-// Content clustered beyond a source spreads inside this half-angle.
-const CLUSTER_HALF = (26 * Math.PI) / 180;
+const PLATFORM_RADIUS = 380;
+// Content rings: post cards are wide, so they live well beyond the sources.
+const CONTENT_RADIUS = 620;
+const RING_GAP = 210;
+// World-units of arc one content card needs before cards start crowding.
+const CARD_SPACING = 300;
+// Breathing room between zones so wedges never visually touch.
+const ZONE_MARGIN = 0.12;
 
 // Faint labeled rings the renderer draws so the closeness geometry is
 // self-explaining: radii in world units, matched to the person band above.
@@ -58,6 +57,32 @@ function jitter(id: string): number {
   return ((h >>> 0) / 0xffffffff) * 2 - 1;
 }
 
+const byNewest = (a: SceneNode, b: SceneNode) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0);
+
+// Fan `items` inside the wedge [center-half, center+half], newest first,
+// nearest ring first. Cards per ring grows with the ring's circumference so
+// outer rings hold more without crowding.
+function placeCluster(items: SceneNode[], center: number, half: number, startRadius: number): void {
+  let index = 0;
+  let ring = 0;
+  while (index < items.length) {
+    const radius = startRadius + ring * RING_GAP;
+    const perRing = Math.max(1, Math.floor((2 * half * radius) / CARD_SPACING));
+    const rowCount = Math.min(perRing, items.length - index);
+    for (let pos = 0; pos < rowCount; pos += 1) {
+      const item = items[index + pos];
+      const frac = rowCount <= 1 ? 0.5 : pos / (rowCount - 1);
+      const angle = center + (frac - 0.5) * 2 * half * 0.86 + jitter(item.id) * 0.02;
+      item.angle = normalizeAngle(angle);
+      item.depth = 2;
+      item.x = Math.cos(angle) * radius;
+      item.y = Math.sin(angle) * radius;
+    }
+    index += rowCount;
+    ring += 1;
+  }
+}
+
 export function layoutScene(model: SceneModel): void {
   const { nodes, selfId } = model;
 
@@ -74,80 +99,77 @@ export function layoutScene(model: SceneModel): void {
   const platforms = all.filter((n) => n.kind === "platform");
   const nativePosts = all
     .filter((n) => n.kind === "post" && n.parentId === selfId)
-    .sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
+    .sort(byNewest);
+  const childrenOf = (source: SceneNode) =>
+    source.childIds
+      .map((id) => nodes.get(id))
+      .filter((n): n is SceneNode => Boolean(n))
+      .sort(byNewest);
 
-  // ── People: spread across the two sides in a stable, id-deterministic
-  // order (so everyone keeps their place between visits), at a radius set by
-  // closeness. The top arc stays clear for your own content, the bottom arc
-  // for platforms.
-  const peopleOrdered = [...people].sort((a, b) => jitter(a.id) - jitter(b.id));
-  const peopleStart = TOP_ANGLE + NATIVE_ARC_HALF + 0.18;
-  const peopleSweep = Math.PI * 2 - NATIVE_ARC_HALF * 2 - 0.36 - (platforms.length > 0 ? 0.9 : 0);
-  peopleOrdered.forEach((p, i) => {
-    const frac = peopleOrdered.length <= 1 ? 0.5 : i / (peopleOrdered.length - 1);
-    const angle = normalizeAngle(peopleStart + frac * peopleSweep + jitter(p.id) * 0.05);
-    const closeness = p.closeness ?? 0.35;
-    const radius = PERSON_NEAR + (1 - closeness) * PERSON_SPREAD + jitter(p.id + "r") * 14;
-    p.angle = angle;
-    p.depth = 1;
-    p.x = Math.cos(angle) * radius;
-    p.y = Math.sin(angle) * radius;
-  });
+  // ── Zone widths (half-angles). The top belongs to what YOU made; the
+  // bottom to your platforms; the sides to your people.
+  const nativeHalf = nativePosts.length ? Math.min(1.02, 0.52 + nativePosts.length * 0.05) : 0.2;
+  const platformHalf = platforms.length ? Math.min(1.02, 0.3 + 0.28 * platforms.length) : 0;
 
-  // ── Platforms: centered on the bottom.
+  // ── Your content: fans across the top wedge, newest nearest.
+  placeCluster(nativePosts, TOP, nativeHalf, CONTENT_RADIUS - 60);
+
+  // ── Platforms: each owns a sub-wedge of the bottom zone, sized by how
+  // much it holds; its content lives strictly inside that sub-wedge.
   if (platforms.length) {
-    const platformSweep = Math.min(1.5, 0.5 * Math.max(platforms.length - 1, 0) + 0.001);
-    platforms.forEach((p, i) => {
-      const frac = platforms.length <= 1 ? 0.5 : i / (platforms.length - 1);
-      const angle = normalizeAngle(Math.PI / 2 + (frac - 0.5) * platformSweep + jitter(p.id) * 0.04);
-      p.angle = angle;
-      p.depth = 1;
-      p.x = Math.cos(angle) * PLATFORM_RADIUS;
-      p.y = Math.sin(angle) * PLATFORM_RADIUS;
+    const ordered = [...platforms].sort((a, b) => jitter(a.id) - jitter(b.id));
+    const weights = ordered.map((p) => 1 + childrenOf(p).length);
+    const totalW = weights.reduce((s, w) => s + w, 0);
+    let cursor = BOTTOM - platformHalf;
+    ordered.forEach((platform, i) => {
+      const w = (2 * platformHalf * weights[i]) / totalW;
+      const center = cursor + w / 2;
+      platform.angle = normalizeAngle(center);
+      platform.depth = 1;
+      platform.x = Math.cos(center) * PLATFORM_RADIUS;
+      platform.y = Math.sin(center) * PLATFORM_RADIUS;
+      placeCluster(childrenOf(platform), center, Math.min(w / 2, 0.55), CONTENT_RADIUS);
+      cursor += w;
     });
   }
 
-  // ── Your content: fans across the top, newest nearest to you, each older
-  // ring a step further back in time.
-  nativePosts.forEach((post, i) => {
-    const ring = Math.floor(i / NATIVE_PER_RING);
-    const onRing = Math.min(NATIVE_PER_RING, nativePosts.length - ring * NATIVE_PER_RING);
-    const pos = i % NATIVE_PER_RING;
-    const frac = onRing <= 1 ? 0.5 : pos / (onRing - 1);
-    const angle = TOP_ANGLE + (frac - 0.5) * 2 * NATIVE_ARC_HALF + jitter(post.id) * 0.04;
-    const radius = CONTENT_RADIUS - 80 + ring * CONTENT_RING_GAP;
-    post.angle = normalizeAngle(angle);
-    post.depth = 2;
-    post.x = Math.cos(angle) * radius;
-    post.y = Math.sin(angle) * radius;
-  });
+  // ── People: the two side arcs, each person owning a wedge sized by how
+  // much they share. Stable hash order keeps everyone's spot between visits;
+  // closeness still sets their distance from you.
+  if (people.length) {
+    const rightArc: [number, number] = [TOP + nativeHalf + ZONE_MARGIN, BOTTOM - platformHalf - ZONE_MARGIN];
+    const leftArc: [number, number] = [BOTTOM + platformHalf + ZONE_MARGIN, TOP + Math.PI * 2 - nativeHalf - ZONE_MARGIN];
+    const arcs = [rightArc, leftArc].filter(([a, b]) => b - a > 0.2);
+    const arcLengths = arcs.map(([a, b]) => b - a);
+    const totalArc = arcLengths.reduce((s, l) => s + l, 0);
 
-  // ── Source content: each maker's work clusters just beyond them in their
-  // own radial direction, newest closest to its maker — short strands, obvious
-  // provenance, and time flowing outward everywhere on the mesh.
-  const sources = [...people, ...platforms];
-  sources.forEach((source) => {
-    const children = source.childIds
-      .map((id) => nodes.get(id)!)
-      .filter(Boolean)
-      .sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
-    children.forEach((child, i) => {
-      const ring = Math.floor(i / 3);
-      const onRing = Math.min(3, children.length - ring * 3);
-      const pos = i % 3;
-      const frac = onRing <= 1 ? 0.5 : pos / (onRing - 1);
-      const angle = source.angle + (frac - 0.5) * 2 * CLUSTER_HALF + jitter(child.id) * 0.03;
-      const radius = CONTENT_RADIUS + ring * CONTENT_RING_GAP + jitter(child.id + "r") * 30;
-      child.angle = normalizeAngle(angle);
-      child.depth = 2;
-      child.x = Math.cos(angle) * radius;
-      child.y = Math.sin(angle) * radius;
+    const ordered = [...people].sort((a, b) => jitter(a.id) - jitter(b.id));
+    const weights = ordered.map((p) => Math.max(1, 1 + childrenOf(p).length * 1.4));
+    const totalW = weights.reduce((s, w) => s + w, 0);
+
+    let arcIndex = 0;
+    let cursor = arcs.length ? arcs[0][0] : 0;
+    ordered.forEach((person, i) => {
+      const w = (totalArc * weights[i]) / totalW;
+      // If this wedge would spill past the current arc, continue on the next.
+      if (arcIndex < arcs.length - 1 && cursor + w > arcs[arcIndex][1] + 0.01) {
+        arcIndex += 1;
+        cursor = arcs[arcIndex][0];
+      }
+      const center = cursor + w / 2;
+      const closeness = person.closeness ?? 0.35;
+      const radius = PERSON_NEAR + (1 - closeness) * PERSON_SPREAD + jitter(person.id + "r") * 10;
+      person.angle = normalizeAngle(center);
+      person.depth = 1;
+      person.x = Math.cos(center) * radius;
+      person.y = Math.sin(center) * radius;
+      placeCluster(childrenOf(person), center, Math.min(w / 2, 0.5), CONTENT_RADIUS);
+      cursor += w;
     });
-  });
+  }
 
-  // Final pass: guarantee nothing overlaps. Radial placement spaces nodes by
-  // angle, which ignores real footprints — a post card is ~172px across, an
-  // avatar ~40px. Relax colliding pairs apart; self stays pinned.
+  // Final pass: guarantee nothing overlaps. The sector system prevents
+  // cross-source mixing; this only settles rare in-sector collisions.
   resolveOverlaps(model);
 }
 
@@ -169,7 +191,7 @@ function resolveOverlaps(model: SceneModel): void {
   const list = Array.from(model.nodes.values());
   const radiusOf = (n: SceneNode) => FOOTPRINT[n.kind] ?? 34;
 
-  for (let iter = 0; iter < 120; iter += 1) {
+  for (let iter = 0; iter < 90; iter += 1) {
     let moved = false;
     for (let i = 0; i < list.length; i += 1) {
       for (let j = i + 1; j < list.length; j += 1) {
@@ -181,7 +203,6 @@ function resolveOverlaps(model: SceneModel): void {
         let dist = Math.hypot(dx, dy);
         if (dist >= minDist) continue;
         if (dist < 0.001) {
-          // Perfectly coincident — nudge along a deterministic direction.
           const theta = i * 2.399963;
           dx = Math.cos(theta);
           dy = Math.sin(theta);

@@ -7,6 +7,7 @@ import {
   Bell,
   BookOpen,
   Bug,
+  Combine,
   Command,
   CreditCard,
   Database,
@@ -164,6 +165,15 @@ function createCommands(username: string): CommandItem[] {
       href: "/connected-accounts",
       icon: PlugZap,
       keywords: ["youtube", "x", "instagram", "discord", "oauth", "sync"],
+    },
+    {
+      id: "go-one-account",
+      title: "Open One Account",
+      description: "Merge every platform and account into one mesh.me identity.",
+      category: "Go",
+      href: "/one-account",
+      icon: Combine,
+      keywords: ["merge", "consolidate", "unify", "identity", "accounts", "personas"],
     },
     {
       id: "go-privacy",

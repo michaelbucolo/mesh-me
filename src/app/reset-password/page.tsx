@@ -133,7 +133,7 @@ export default function ResetPasswordPage() {
   return (
     <AuthShell
       title="Reset your password"
-      description="Password recovery now lives in the same account entry system as login and signup, so users are not dropped into an isolated screen."
+      description="Choose a new password and you'll be back in your Mesh in seconds."
     >
       <Suspense
         fallback={

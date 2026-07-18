@@ -11,6 +11,7 @@ import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, checkAccountLockout, recordFailedLogin, clearFailedLogins, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
 import { communityThreadTitle } from "./community-constants";
+import { isUniqueConstraintError } from "./prisma-errors";
 
 async function hashAuthTokenValue(token: string) {
   const crypto = await import("crypto");
@@ -309,6 +310,24 @@ export async function signUp(formData: FormData) {
     return { error: existing.email === email ? "Email already in use" : "Username already taken" };
   }
 
+  // Also guard the UserEmail table: an email can belong to another account as a
+  // secondary address without being anyone's primary User.email, and it carries
+  // its own global unique constraint. Without this pre-check the collision only
+  // surfaces from the nested create below — which on production's remote libSQL
+  // throws a raw DriverAdapterError (no P2002 code), escaping as a 500.
+  let existingEmailRecord;
+  try {
+    existingEmailRecord = await prisma.userEmail.findUnique({ where: { email }, select: { id: true } });
+  } catch (error) {
+    if (isAccountStorageUnavailable(error)) {
+      return { error: accountStorageUnavailableMessage() };
+    }
+    throw error;
+  }
+  if (existingEmailRecord) {
+    return { error: "Email already in use" };
+  }
+
   if (phone) {
     let existingPhone;
     try {
@@ -368,7 +387,7 @@ export async function signUp(formData: FormData) {
     });
     userId = user.id;
   } catch (e: unknown) {
-    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
+    if (isUniqueConstraintError(e)) {
       return { error: "Email, username, or phone already taken" };
     }
     if (isAccountStorageUnavailable(e)) {
@@ -898,8 +917,9 @@ export async function completeOnboarding(formData: FormData) {
           },
         });
       } catch (e) {
-        // Skip if phone already claimed by another user (P2002 unique constraint)
-        if (!(e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2002")) throw e;
+        // Skip if the phone is already claimed by another user. Match both the
+        // local P2002 shape and production's raw libSQL unique-constraint error.
+        if (!isUniqueConstraintError(e)) throw e;
       }
     }
   }

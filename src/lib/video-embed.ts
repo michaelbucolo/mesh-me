@@ -10,6 +10,7 @@ const YT_PATTERNS = [
   /(?:youtu\.be\/)([\w-]{6,})/i,
   /(?:youtube\.com\/shorts\/)([\w-]{6,})/i,
   /(?:youtube\.com\/embed\/)([\w-]{6,})/i,
+  /(?:youtube\.com\/live\/)([\w-]{6,})/i,
 ];
 
 export function getVideoEmbedUrl(
@@ -52,6 +53,19 @@ export function getVideoEmbedUrl(
   const twitchClip = /clips\.twitch\.tv\/([\w-]+)/i.exec(url);
   if (twitchClip && typeof window !== "undefined") {
     return `https://clips.twitch.tv/embed?clip=${twitchClip[1]}&parent=${window.location.hostname}&autoplay=${autoplay}&muted=${muted}`;
+  }
+
+  const tiktok = /tiktok\.com\/@[\w.-]+\/video\/(\d+)/i.exec(url);
+  if (tiktok) {
+    return `https://www.tiktok.com/embed/v2/${tiktok[1]}?autoplay=${autoplay ? 1 : 0}`;
+  }
+
+  // Instagram's embed endpoint renders the post in place (it controls its own
+  // playback; autoplay isn't offered) — still the post itself, not a link out.
+  const instagram = /instagram\.com\/(p|reel|reels|tv)\/([\w-]+)/i.exec(url);
+  if (instagram) {
+    const kind = instagram[1] === "reels" ? "reel" : instagram[1];
+    return `https://www.instagram.com/${kind}/${instagram[2]}/embed/`;
   }
 
   return null;

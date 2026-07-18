@@ -7,6 +7,9 @@ import { getBrandTitle, meshBrand } from "@/lib/brand";
 export const metadata: Metadata = {
   title: { absolute: getBrandTitle() },
   description: meshBrand.description,
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default async function HomePage() {

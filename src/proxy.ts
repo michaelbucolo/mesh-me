@@ -7,15 +7,18 @@ const SESSION_ID_REGEX = /^(?:[0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const proxyRateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
+// NOTE: /explore, /flow, and /feed are intentionally absent — guests may
+// browse content surfaces. The (app) layout decides per-path whether an
+// anonymous visitor gets the guest shell or a login redirect.
 const protectedPagePrefixes = [
+  "/account",
   "/admin",
   "/analytics",
+  "/billing",
   "/communities",
   "/connected-accounts",
   "/content-hub",
-  "/explore",
   "/feature-requests",
-  "/feed",
   "/feedback",
   "/innovation",
   "/marketplace",
@@ -25,6 +28,7 @@ const protectedPagePrefixes = [
   "/messages",
   "/notifications",
   "/onboarding",
+  "/privacy-controls",
   "/profile",
   "/search",
   "/settings",
@@ -60,6 +64,7 @@ const protectedApiPrefixes = [
   "/api/super-app",
   "/api/sync",
   "/api/users",
+  "/api/vault",
 ];
 
 function isLocalHost(host: string): boolean {
@@ -175,7 +180,7 @@ function isCrossSiteRequest(request: NextRequest) {
   return false;
 }
 
-function hardenResponse(response: NextResponse, options: { sensitive?: boolean } = {}) {
+function hardenResponse(response: NextResponse, options: { sensitive?: boolean; noRobots?: boolean } = {}) {
   response.headers.set("X-Mesh-Trust", "privacy-first; transparency-on; security-hardened");
   response.headers.set("X-Mesh-Compliance", "terms-and-api-usage-required");
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -184,13 +189,19 @@ function hardenResponse(response: NextResponse, options: { sensitive?: boolean }
   response.headers.set("Referrer-Policy", "no-referrer");
   // Autoplay + encrypted-media are granted to the video embed players the
   // Flow and mesh hover previews rely on — everything else stays locked down.
-  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\" \"https://clips.twitch.tv\" \"https://player.twitch.tv\"), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\"), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
+  response.headers.set("Permissions-Policy", "accelerometer=(), autoplay=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\" \"https://clips.twitch.tv\" \"https://player.twitch.tv\" \"https://www.tiktok.com\"), browsing-topics=(), camera=(), clipboard-read=(), display-capture=(), encrypted-media=(self \"https://www.youtube-nocookie.com\" \"https://player.vimeo.com\"), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), xr-spatial-tracking=()");
   response.headers.set("X-DNS-Prefetch-Control", "off");
   response.headers.set("X-Download-Options", "noopen");
   response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
   if (options.sensitive) {
     response.headers.set("Cache-Control", "no-store, max-age=0, must-revalidate, private");
     response.headers.set("Pragma", "no-cache");
+  }
+  // Robots suppression is separate from cache sensitivity: some pages must not
+  // be cached yet should still be indexed (e.g. /signup, which the sitemap
+  // submits). Defaults to the sensitive flag so existing callers are unchanged.
+  const noRobots = options.noRobots ?? options.sensitive;
+  if (noRobots) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
   }
   return response;
@@ -248,7 +259,9 @@ export function proxy(request: NextRequest) {
   }
 
   const requestHeaders = new Headers(request.headers);
-  if (isProtectedPage) {
+  // Every page render gets its true path (guest shells and login redirects
+  // both key off it); always overwritten here so it can't be spoofed.
+  if (!pathname.startsWith("/api/")) {
     requestHeaders.set("x-mesh-current-path", returnPath);
   }
 
@@ -257,7 +270,11 @@ export function proxy(request: NextRequest) {
       headers: requestHeaders,
     },
   });
-  return hardenResponse(response, { sensitive: isProtectedApi || isProtectedPage || pathname === "/login" || pathname === "/signup" || pathname === "/reset-password" || pathname === "/verify-email" });
+  const sensitive = isProtectedApi || isProtectedPage || pathname === "/login" || pathname === "/signup" || pathname === "/reset-password" || pathname === "/verify-email";
+  // /signup is a public marketing landing page listed in the sitemap, so keep it
+  // out of no-store-only robots suppression while every other auth/app surface
+  // stays noindexed.
+  return hardenResponse(response, { sensitive, noRobots: sensitive && pathname !== "/signup" });
 }
 
 export const config = {

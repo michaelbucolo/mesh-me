@@ -79,9 +79,6 @@ export const metadata: Metadata = {
   authors: [{ name: meshBrand.name }],
   creator: meshBrand.name,
   publisher: meshBrand.name,
-  alternates: {
-    canonical: "/",
-  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -102,7 +99,6 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   openGraph: {
-    url: siteUrl,
     title: getBrandTitle(),
     description: meshBrand.openGraphDescription,
     siteName: meshBrand.name,
@@ -129,14 +125,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
   colorScheme: "light dark",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: meshBrand.colors.white },
-    { media: "(prefers-color-scheme: dark)", color: meshBrand.colors.ink },
-  ],
+  // A single media-less value (matching the forced-dark first-visit default)
+  // rather than a prefers-color-scheme array, so the theme provider can update
+  // the browser chrome color on in-app theme switches.
+  themeColor: meshBrand.colors.ink,
 };
 
 export default function RootLayout({

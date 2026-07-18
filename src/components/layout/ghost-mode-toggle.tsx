@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Ghost } from "lucide-react";
+import { playSound } from "@/lib/sound";
 
 const STORAGE_KEY = "meshGhostMode";
 
@@ -24,10 +25,17 @@ export function GhostModeToggle({ compact = false }: { compact?: boolean }) {
   const toggle = () => {
     const next = !ghost;
     setGhost(next);
+    playSound(next ? "ghost" : "pop");
     try {
       localStorage.setItem(STORAGE_KEY, String(next));
     } catch {
       // best-effort persistence
+    }
+    // Same-tab listeners (the mesh turns your Meshi into a ghost) react now.
+    try {
+      window.dispatchEvent(new Event("meshGhostModeChanged"));
+    } catch {
+      // best-effort broadcast
     }
     // Take effect immediately instead of waiting for the next heartbeat.
     void fetch("/api/mesh/presence", {

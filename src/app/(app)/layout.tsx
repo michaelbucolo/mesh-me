@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -32,6 +33,16 @@ function getSafeNextPath(value: string | null) {
   }
 }
 
+// Surfaces guests may browse without an account. Watching and reading are
+// open; anything that ACTS (like, follow, comment, post) asks to sign in.
+function isGuestViewablePath(path: string): boolean {
+  if (path === "/flow" || path.startsWith("/flow/") || path.startsWith("/flow?")) return true;
+  if (path === "/explore" || path.startsWith("/explore/") || path.startsWith("/explore?")) return true;
+  // Post details only — the personal home feed stays yours alone.
+  if (path.startsWith("/feed/")) return true;
+  return false;
+}
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // One parallel round: getMeshiPreference resolves the (request-cached) user
   // internally, so starting it alongside saves a serial DB stage on EVERY
@@ -40,6 +51,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const nextPath = getSafeNextPath(headerStore.get("x-mesh-current-path"));
 
   if (!user) {
+    if (nextPath && isGuestViewablePath(nextPath)) {
+      return (
+        <ToastProvider>
+          <NativeInit />
+          <div className="flex h-dvh min-h-0 flex-col bg-[#05070f]">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur">
+              <Link href="/" className="text-sm font-extrabold tracking-tight text-white">
+                mesh.me
+              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/login?next=${encodeURIComponent(nextPath)}`}
+                  className="rounded-full border border-white/20 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-white/10"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-black transition hover:bg-white/90"
+                >
+                  Create account
+                </Link>
+              </div>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+          </div>
+        </ToastProvider>
+      );
+    }
     redirect(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login");
   }
 

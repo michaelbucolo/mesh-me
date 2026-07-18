@@ -188,7 +188,7 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
       </span>
       {post.thumbnailUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={post.thumbnailUrl} alt="" className="h-12 w-16 shrink-0 rounded-lg object-cover" />
+        <img src={post.thumbnailUrl} alt="" loading="lazy" decoding="async" className="h-12 w-16 shrink-0 rounded-lg object-cover" />
       ) : (
         <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-primary)]/70">
           <FileText size={16} className="text-[var(--text-muted)]" />

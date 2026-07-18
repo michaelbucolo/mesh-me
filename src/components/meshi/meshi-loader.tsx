@@ -105,6 +105,8 @@ interface MeshiLoaderProps {
   className?: string;
   /** Fill the viewport height (public/entry surfaces). */
   fullHeight?: boolean;
+  /** Drop the opaque background so the loader can layer over a custom backdrop. */
+  transparent?: boolean;
 }
 
 // Fixed mote layout — deterministic so SSR and client agree.
@@ -123,6 +125,7 @@ export function MeshiLoader({
   mode = "default",
   className = "",
   fullHeight = false,
+  transparent = false,
 }: MeshiLoaderProps) {
   const prefs = useSyncExternalStore(subscribeToPrefs, getClientPrefs, () => DEFAULT_PREFS);
   const cfg = MODE[mode] ?? MODE.default;
@@ -177,9 +180,9 @@ export function MeshiLoader({
 
   return (
     <div
-      className={`relative flex min-h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden bg-[var(--bg-primary)] px-6 ${
-        fullHeight ? "h-dvh" : ""
-      } ${className}`}
+      className={`relative flex min-h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-6 ${
+        transparent ? "" : "bg-[var(--bg-primary)]"
+      } ${fullHeight ? "h-dvh" : ""} ${className}`}
       role="status"
       aria-live="polite"
       aria-busy="true"

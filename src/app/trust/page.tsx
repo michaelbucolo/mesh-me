@@ -156,8 +156,8 @@ export default function TrustCenterPage() {
 
       <section className="mt-12">
         <SiteRouteMap
-          title="Trust routes are now part of the main navigation path"
-          description="The trust surface is no longer isolated from the rest of the site. It now reinforces the public promise and makes it easier to move into Privacy, Terms, and product entry routes."
+          title="Keep exploring how Mesh protects you"
+          description="From here you can move straight into Privacy, Terms, and the rest of the product to see the promise in practice."
         />
       </section>
     </PublicSiteShell>

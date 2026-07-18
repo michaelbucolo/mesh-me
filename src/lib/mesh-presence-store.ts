@@ -25,6 +25,14 @@ export type PresenceEntry = {
   velocity: number;
   activity: "idle" | "traveling" | "exploring";
   ghostMode: boolean;
+  /**
+   * Most recent tiny world action, encoded "type|targetId|atMs" (e.g. a Meshi
+   * throwing a heart at a post: "heart|post:abc|1784..."). Room viewers replay
+   * it once, deduped by the timestamp.
+   */
+  lastAction: string | null;
+  /** Mesh Pro member — their Meshi carries a gold aura in the room. */
+  isPro: boolean;
   lastSeen: number;
 };
 
@@ -91,6 +99,8 @@ type PresenceRow = {
   velocity: number;
   activity: string;
   ghostMode: boolean;
+  lastAction: string | null;
+  isPro: boolean;
   lastSeen: Date;
 };
 
@@ -121,6 +131,8 @@ function rowToEntry(row: PresenceRow): PresenceEntry {
         ? row.activity
         : "idle",
     ghostMode: row.ghostMode,
+    lastAction: row.lastAction,
+    isPro: row.isPro,
     lastSeen: row.lastSeen.getTime(),
   };
 }
@@ -150,6 +162,8 @@ function entryToRow(entry: PresenceEntry) {
     velocity: entry.velocity,
     activity: entry.activity,
     ghostMode: entry.ghostMode,
+    lastAction: entry.lastAction,
+    isPro: entry.isPro,
     lastSeen: new Date(entry.lastSeen),
   };
 }
@@ -328,6 +342,8 @@ export function buildPresencePayload(
       velocity: entry.velocity,
       activity: entry.activity,
       ghostMode: entry.ghostMode,
+      lastAction: entry.lastAction,
+      isPro: entry.isPro,
       isOnline,
     });
   }
@@ -341,11 +357,25 @@ export function buildPresencePayload(
 // Is this user visibly live on mesh.me right now? (Fresh heartbeat, not
 // ghosting.) Powers profile badges and any other "live" affordance.
 export async function isUserLiveNow(userId: string): Promise<boolean> {
-  const entries = await listPresences().catch(() => [] as PresenceEntry[]);
   const now = Date.now();
-  return entries.some(
-    (entry) => entry.userId === userId && !entry.ghostMode && now - entry.lastSeen < ONLINE_WINDOW_MS,
-  );
+
+  // Single-row lookup instead of listing every online user platform-wide.
+  // Same merge rule as listPresences: the fresher entry wins, memory on ties.
+  let dbEntry: PresenceEntry | null = null;
+  try {
+    const row = (await prisma.meshPresence.findUnique({
+      where: { userId },
+    })) as PresenceRow | null;
+    if (row) dbEntry = rowToEntry(row);
+  } catch {
+    // DB unavailable — fall back to memory only.
+  }
+
+  const memEntry = presence.store.get(userId) ?? null;
+  const entry =
+    memEntry && (!dbEntry || memEntry.lastSeen >= dbEntry.lastSeen) ? memEntry : dbEntry;
+
+  return Boolean(entry && !entry.ghostMode && now - entry.lastSeen < ONLINE_WINDOW_MS);
 }
 
 export async function getMutualConnectionIds(userId: string): Promise<Set<string>> {

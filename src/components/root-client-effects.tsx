@@ -9,6 +9,9 @@ const DynamicFavicon = dynamic(() => import("@/components/dynamic-favicon").then
 const SpatialInit = dynamic(() => import("@/components/spatial-init").then((mod) => mod.SpatialInit), {
   ssr: false,
 });
+const PwaRegister = dynamic(() => import("@/components/pwa-register").then((mod) => mod.PwaRegister), {
+  ssr: false,
+});
 const MeshiFloat = dynamic(() => import("@/components/meshi/meshi-float").then((mod) => mod.MeshiFloat), {
   ssr: false,
 });
@@ -47,6 +50,7 @@ export function RootClientEffects() {
     <>
       {lightEffectsReady ? <DynamicFavicon /> : null}
       {lightEffectsReady ? <SpatialInit /> : null}
+      {lightEffectsReady ? <PwaRegister /> : null}
       {companionReady ? <MeshiFloat /> : null}
       {companionReady ? <MeshiDelivery /> : null}
       {companionReady ? <BugReportWidget /> : null}

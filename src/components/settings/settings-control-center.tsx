@@ -32,10 +32,12 @@ import {
   Smartphone,
   Trash2,
   UserRound,
+  Volume2,
   WandSparkles,
   Waypoints,
   type LucideIcon,
 } from "lucide-react";
+import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import {
   MeshiMascot,
@@ -186,6 +188,15 @@ const themePresets = [
 const meshConnectionColors = ["#3b82f6", "#22c55e", "#f97316", "#ec4899", "#8b5cf6", "#f59e0b"];
 const meshNodeStyles = ["clean", "soft", "glass", "bold"] as const;
 const meshMotionStyles = ["calm", "lively", "minimal"] as const;
+// Sky palettes for the mesh canvas — ids must match ATMOSPHERES in the scene
+// renderer. Swatch pairs preview each sky (deep base → nebula hue).
+const meshAtmospheres = [
+  { id: "midnight", label: "Midnight", swatch: ["#0c1226", "#7c3aed"] },
+  { id: "aurora", label: "Aurora", swatch: ["#081726", "#22c55e"] },
+  { id: "ember", label: "Ember", swatch: ["#1a0f12", "#f97316"] },
+  { id: "ocean", label: "Ocean", swatch: ["#071224", "#06b6d4"] },
+  { id: "dawn", label: "Dawn", swatch: ["#160f22", "#f59e0b"] },
+] as const;
 const visibilityOptions = ["private", "friends", "public", "partial"];
 const branchKeys = ["people", "communities", "interests", "platforms", "content"] as const;
 type BranchKey = (typeof branchKeys)[number];
@@ -208,9 +219,9 @@ const sectionOrder: Array<{
   { id: "privacy", label: "Privacy", description: "Visibility and content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "nsfw", "sensitive", "adult"] },
   { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing, keywords: ["push", "email digest", "messages", "mentions", "comments", "follows", "alerts"] },
   { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
-  { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints, keywords: ["graph", "nodes", "connections", "branches", "visibility", "motion"] },
+  { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints, keywords: ["graph", "nodes", "connections", "branches", "visibility", "motion", "atmosphere", "sky", "pro"] },
   { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
-  { id: "appearance", label: "Appearance", description: "Theme and mode", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom"] },
+  { id: "appearance", label: "Appearance", description: "Theme, mode, and sound", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom", "sound", "sounds", "audio", "mute"] },
   { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
   { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
 ];
@@ -301,6 +312,7 @@ export function SettingsControlCenter({
     connectionColor: meshCosmetics.find((cosmetic) => cosmetic.type === "connectionColor")?.value ?? "#3b82f6",
     nodeStyle: meshCosmetics.find((cosmetic) => cosmetic.type === "nodeStyle")?.value ?? "clean",
     motionStyle: meshCosmetics.find((cosmetic) => cosmetic.type === "motionStyle")?.value ?? "calm",
+    atmosphere: meshCosmetics.find((cosmetic) => cosmetic.type === "atmosphere")?.value ?? "midnight",
   });
   const [themeDraft, setThemeDraft] = useState({
     accent: customTheme?.accent ?? "#3b82f6",
@@ -454,6 +466,7 @@ export function SettingsControlCenter({
       { type: "connectionColor", value: next.connectionColor, isActive: true },
       { type: "nodeStyle", value: next.nodeStyle, isActive: true },
       { type: "motionStyle", value: next.motionStyle, isActive: true },
+      { type: "atmosphere", value: next.atmosphere, isActive: true },
     ]));
   }
 
@@ -1549,8 +1562,8 @@ function MeshSection({
 }: {
   mesh: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> };
   applyMeshPrivacy: (next: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> }) => void;
-  meshVisuals: { connectionColor: string; nodeStyle: string; motionStyle: string };
-  applyMeshVisuals: (next: { connectionColor: string; nodeStyle: string; motionStyle: string }) => void;
+  meshVisuals: { connectionColor: string; nodeStyle: string; motionStyle: string; atmosphere: string };
+  applyMeshVisuals: (next: { connectionColor: string; nodeStyle: string; motionStyle: string; atmosphere: string }) => void;
   isMeshPro: boolean;
 }) {
   return (
@@ -1599,7 +1612,25 @@ function MeshSection({
             <Link href="/meshpro" className="text-xs font-bold text-[var(--accent)]">Upgrade</Link>
           </div>
         )}
-        <PickerGroup label="Connection color">
+        <PickerGroup label="Atmosphere — your mesh's sky">
+          {meshAtmospheres.map((sky) => (
+            <button
+              key={sky.id}
+              type="button"
+              disabled={!isMeshPro}
+              onClick={() => applyMeshVisuals({ ...meshVisuals, atmosphere: sky.id })}
+              className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold ${meshVisuals.atmosphere === sky.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
+              aria-pressed={meshVisuals.atmosphere === sky.id}
+            >
+              <span
+                className="h-4 w-4 rounded-full border border-white/20"
+                style={{ background: `linear-gradient(135deg, ${sky.swatch[0]} 45%, ${sky.swatch[1]})` }}
+              />
+              {sky.label}
+            </button>
+          ))}
+        </PickerGroup>
+        <PickerGroup label="Connection color" className="mt-4">
           {meshConnectionColors.map((color) => (
             <button
               key={color}
@@ -1758,6 +1789,7 @@ function AppearanceSection({
   hasCustomTheme: boolean;
   isMeshPro: boolean;
 }) {
+  const [soundsOn, setSoundsOn] = useState(() => isSoundEnabled());
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Appearance" icon={Palette}>
@@ -1777,6 +1809,19 @@ function AppearanceSection({
             ))}
           </PickerGroup>
         </div>
+      </SettingsCard>
+
+      <SettingsCard title="Sound" icon={Volume2}>
+        <Toggle
+          label="Interface sounds"
+          description="Soft pops and chimes for likes, arrivals, messages, and travel"
+          value={soundsOn}
+          onChange={(value) => {
+            setSoundsOn(value);
+            setSoundEnabled(value);
+            if (value) playSound("chime");
+          }}
+        />
       </SettingsCard>
 
       <form onSubmit={applyCustomTheme}>
@@ -2020,9 +2065,9 @@ function Toggle({
   );
 }
 
-function PickerGroup({ label, children }: { label: string; children: ReactNode }) {
+function PickerGroup({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className="grid gap-2">
+    <div className={className ? `grid gap-2 ${className}` : "grid gap-2"}>
       <p className="text-sm font-bold">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>

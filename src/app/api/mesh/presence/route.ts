@@ -30,7 +30,23 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
-    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity, ghostMode } = body;
+    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity, ghostMode, action } = body;
+
+    // Tiny world actions broadcast to the room — currently just a Meshi
+    // throwing a heart at a post. Strictly validated and size-capped.
+    let lastAction: string | null = null;
+    if (action && typeof action === "object") {
+      const a = action as Record<string, unknown>;
+      if (
+        a.type === "heart" &&
+        typeof a.targetId === "string" &&
+        a.targetId.length > 0 &&
+        typeof a.at === "number" &&
+        Number.isFinite(a.at)
+      ) {
+        lastAction = `heart|${a.targetId.slice(0, 160)}|${Math.round(a.at)}`;
+      }
+    }
 
     await setPresence({
       userId: user.id,
@@ -56,6 +72,9 @@ export async function POST(request: Request) {
       velocity: clampNumber(velocity, 0, 0, 1000),
       activity: activity === "traveling" || activity === "exploring" ? activity : "idle",
       ghostMode: ghostMode === true,
+      lastAction,
+      // Server-authoritative: the gold Pro aura can't be spoofed by clients.
+      isPro: Boolean(user.isMeshPro),
       lastSeen: Date.now(),
     });
 
