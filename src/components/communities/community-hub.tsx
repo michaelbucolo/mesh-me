@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Lock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShieldCheck } from "lucide-react";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 
@@ -125,7 +125,10 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-[var(--mesh-text)]">Featured communities</h2>
             <div className="flex items-center gap-2">
-              <Link href="/communities?view=featured" className="text-xs text-[var(--mesh-blue)] hover:underline">View all →</Link>
+              <Link href="/communities?view=featured" className="inline-flex items-center gap-1 text-xs text-[var(--mesh-blue)] hover:underline">
+                View all
+                <ArrowRight size={12} />
+              </Link>
               <button
                 type="button"
                 onClick={() => setScrollOffset(Math.max(0, scrollOffset - 1))}
@@ -169,9 +172,10 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
           ))}
           <button
             type="button"
-            className="rounded-full border border-[var(--mesh-border)] px-4 py-1.5 text-sm font-medium text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)] transition-colors"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--mesh-border)] px-4 py-1.5 text-sm font-medium text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)] transition-colors"
           >
-            More ↓
+            More
+            <ChevronDown size={14} />
           </button>
         </div>
 
@@ -292,8 +296,9 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                     <li>3. No spam or self-promotion.</li>
                     <li>4. Protect privacy and data.</li>
                   </ol>
-                  <Link href={`/communities/${selectedCommunity.slug}`} className="mt-2 inline-block text-xs text-[var(--mesh-blue)] hover:underline">
-                    View all rules →
+                  <Link href={`/communities/${selectedCommunity.slug}`} className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--mesh-blue)] hover:underline">
+                    View all rules
+                    <ArrowRight size={12} />
                   </Link>
                 </div>
               </div>

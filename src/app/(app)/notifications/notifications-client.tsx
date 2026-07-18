@@ -243,7 +243,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
         <section className="grid gap-4">
           <div className="mesh-surface rounded-lg p-3 md:p-4">
             <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-              <label className="flex h-11 items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 text-sm">
+              <label className="flex h-11 items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 text-sm transition focus-within:border-[var(--mesh-blue)]/50">
                 <Search size={15} className="text-[var(--text-muted)]" aria-hidden="true" />
                 <input
                   data-testid="notification-search"
@@ -433,8 +433,8 @@ function NotificationGroupCard({
             </div>
             <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">{group.summary}</p>
             <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
-              {getNotificationCategoryLabel(group.category)} - {formatRelativeTime(group.latestAt)}
-              {group.count > 1 ? ` - ${group.count} related` : ""}
+              {getNotificationCategoryLabel(group.category)} · {formatRelativeTime(group.latestAt)}
+              {group.count > 1 ? ` · ${group.count} related` : ""}
             </p>
           </div>
         </Link>

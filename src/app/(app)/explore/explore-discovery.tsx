@@ -718,9 +718,9 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       aria-label={`Open post by ${authorName} in the Flow`}
     >
       {media ? (
-        <div className="relative">
+        <div className="relative aspect-[4/5]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={media.url} alt="" loading="lazy" className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          <img src={media.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
           {isVideo && (
             <span className="absolute right-2 top-2 rounded-full bg-black/55 p-1.5 backdrop-blur">
               <Play className="h-3.5 w-3.5 fill-white text-white" aria-hidden />
