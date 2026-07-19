@@ -18,6 +18,7 @@ const footerLinks = [
   { href: "/status", label: "Status" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
+  { href: "/data-deletion", label: "Data Deletion" },
 ];
 
 export function PublicSiteShell({
