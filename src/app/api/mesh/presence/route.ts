@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import {
   buildPresencePayload,
   canViewMeshRoom,
@@ -14,6 +14,12 @@ import {
   removePresence,
   setPresence,
 } from "@/lib/mesh-presence-store";
+
+// Meshi cosmetic values are short style keys; anything longer is clamped so a
+// heartbeat can't persist arbitrarily large strings into the presence store.
+function cleanStyleValue(value: unknown, fallback: string) {
+  return typeof value === "string" && value.length > 0 ? value.slice(0, 40) : fallback;
+}
 
 // POST: Update my presence (heartbeat)
 export async function POST(request: Request) {
@@ -29,11 +35,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body !== "object") {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    }
+    const body = await readJsonObject(request);
     const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity, ghostMode, action } = body;
+
+    // Ghost Mode is server-authoritative: the persisted account setting wins, so
+    // a ghosting user stays hidden even from a fresh device whose local heartbeat
+    // hasn't set the flag yet. The client body can only ADD ghosting for the
+    // current session (e.g. the instant toggle before the account write lands).
+    const ghosting = ghostMode === true || user.ghostMode === true;
 
     // Tiny world actions broadcast to the room: a Meshi throwing a heart at a
     // post, a reaction burst (star/spark/wow), or a wave hello on arrival.
@@ -62,25 +71,25 @@ export async function POST(request: Request) {
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl ?? null,
-      meshiColor: meshiColor || "blue",
-      meshiHat: meshiHat || "none",
-      meshiHair: meshiHair || "none",
-      meshiAccessory: meshiAccessory || "none",
-      meshiEyeStyle: meshiEyeStyle || "regular",
-      meshiBadge: meshiBadge || "none",
-      meshiOutfit: meshiOutfit || "none",
-      meshiMood: meshiMood || "happy",
+      meshiColor: cleanStyleValue(meshiColor, "blue"),
+      meshiHat: cleanStyleValue(meshiHat, "none"),
+      meshiHair: cleanStyleValue(meshiHair, "none"),
+      meshiAccessory: cleanStyleValue(meshiAccessory, "none"),
+      meshiEyeStyle: cleanStyleValue(meshiEyeStyle, "regular"),
+      meshiBadge: cleanStyleValue(meshiBadge, "none"),
+      meshiOutfit: cleanStyleValue(meshiOutfit, "none"),
+      meshiMood: cleanStyleValue(meshiMood, "happy"),
       position: normalizePosition(position),
       viewportPosition: normalizeViewportPosition(viewportPosition),
       // Normalize own-mesh views to the current user id so all viewers of the same mesh match.
-      viewingMesh: (typeof viewingMesh === "string" && viewingMesh.length > 0) ? viewingMesh : user.id,
+      viewingMesh: (typeof viewingMesh === "string" && viewingMesh.length > 0) ? viewingMesh.slice(0, 160) : user.id,
       surface: surface === "feed" ? "feed" : "mesh",
       activePostId: typeof activePostId === "string" && activePostId.length > 0 ? activePostId.slice(0, 160) : null,
       activeNodeId: typeof activeNodeId === "string" && activeNodeId.length > 0 ? activeNodeId.slice(0, 160) : null,
       activeRoute: typeof activeRoute === "string" && activeRoute.length > 0 ? activeRoute.slice(0, 160) : null,
       velocity: clampNumber(velocity, 0, 0, 1000),
       activity: activity === "traveling" || activity === "exploring" ? activity : "idle",
-      ghostMode: ghostMode === true,
+      ghostMode: ghosting,
       lastAction,
       // Server-authoritative: the gold Pro aura can't be spoofed by clients.
       isPro: Boolean(user.isMeshPro),
@@ -92,7 +101,7 @@ export async function POST(request: Request) {
     // WHERE-clause throttle is stateless (correct across serverless instances)
     // and a no-op on all but ~one heartbeat per minute. Skipped while ghosting;
     // hidden-activity users already early-returned above, so theirs stays frozen.
-    if (ghostMode !== true) {
+    if (!ghosting) {
       await prisma.user
         .updateMany({
           where: {
@@ -123,7 +132,7 @@ export async function GET(request: Request) {
   const [connectedSet, blockedSet, roomAllowed] = await Promise.all([
     getMutualConnectionIds(user.id),
     getBlockedUserIds(user.id),
-    canViewMeshRoom(user.id, meshOwner),
+    canViewMeshRoom(user.id, meshOwner, user.isAdmin),
   ]);
   // Only honor the requested room if the viewer could actually open that mesh —
   // otherwise it collapses to their own room, so presence can't be used to spy.

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
+
+const MAX_DELIVERY_IDS = 100;
 
 // The notification row stores a truncated summary ("Meshi delivered a
 // message: \"…\"") for the notifications feed. The arrival card hands over the
@@ -103,19 +105,22 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const deliveryBody = await req.json().catch(() => null);
-    if (!deliveryBody || typeof deliveryBody !== "object") {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    }
+    const deliveryBody = await readJsonObject(req);
     const { ids } = deliveryBody;
     if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: "ids array required" }, { status: 400 });
+    }
+    const idList = ids
+      .filter((id): id is string => typeof id === "string")
+      .slice(0, MAX_DELIVERY_IDS);
+    if (idList.length === 0) {
       return NextResponse.json({ error: "ids array required" }, { status: 400 });
     }
 
     // Only mark notifications that belong to this user
     await prisma.notification.updateMany({
       where: {
-        id: { in: ids },
+        id: { in: idList },
         recipientId: user.id,
         type: "meshi_delivery",
       },

@@ -30,12 +30,23 @@ export function ReactiveSurfaces() {
     let frame = 0;
     let pending: { el: HTMLElement; x: number; y: number } | null = null;
 
+    // How far the surface leans toward the cursor, in degrees. Kept small so
+    // the tilt reads as depth, not a novelty flip.
+    const MAX_TILT = 4;
+
     const apply = () => {
       frame = 0;
       if (!pending) return;
       const { el, x, y } = pending;
       el.style.setProperty("--mx", `${x}%`);
       el.style.setProperty("--my", `${y}%`);
+      // Cursor offset from centre (−1…1) → a gentle 3D tilt. rotateY follows
+      // the horizontal offset; rotateX is inverted so the near edge dips toward
+      // the pointer, which is what "leaning toward you" looks like.
+      const tiltY = ((x - 50) / 50) * MAX_TILT;
+      const tiltX = ((50 - y) / 50) * MAX_TILT;
+      el.style.setProperty("--tiltY", `${tiltY.toFixed(2)}deg`);
+      el.style.setProperty("--tiltX", `${tiltX.toFixed(2)}deg`);
     };
 
     const clear = (el: HTMLElement | null) => {
@@ -43,6 +54,8 @@ export function ReactiveSurfaces() {
       el.removeAttribute("data-hot");
       el.style.removeProperty("--mx");
       el.style.removeProperty("--my");
+      el.style.removeProperty("--tiltX");
+      el.style.removeProperty("--tiltY");
     };
 
     const onMove = (event: PointerEvent) => {

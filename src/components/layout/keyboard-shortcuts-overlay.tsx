@@ -2,16 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { Accessibility, Keyboard, Navigation, PenSquare, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { openCommandPalette } from "@/components/layout/command-palette";
 import { Modal } from "@/components/ui/modal";
 import { openMeshi } from "@/lib/meshi-events";
-import { cn } from "@/lib/utils";
 
 const SHORTCUTS_EVENT = "mesh:open-keyboard-shortcuts";
 const SEQUENCE_TIMEOUT_MS = 1200;
+const OVERLAY_SPRING = { type: "spring" as const, stiffness: 420, damping: 30 };
 
 type Shortcut = {
   keys: string[];
@@ -128,25 +129,38 @@ function ShortcutRow({ shortcut, onAction }: { shortcut: Shortcut; onAction: (ac
   }
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={() => onAction(shortcut.action as ShortcutAction)}
+      whileHover={{ x: 2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={OVERLAY_SPRING}
       className="keyboard-shortcut-row keyboard-shortcut-row-action"
     >
       {content}
-    </button>
+    </motion.button>
   );
 }
 
-function ShortcutGroupCard({ group, onAction }: { group: ShortcutGroup; onAction: (action: ShortcutAction) => void }) {
+function ShortcutGroupCard({ group, onAction, index }: { group: ShortcutGroup; onAction: (action: ShortcutAction) => void; index: number }) {
   const Icon = group.icon;
 
   return (
-    <section className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-4">
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...OVERLAY_SPRING, delay: 0.05 * index }}
+      className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-4"
+    >
       <div className="mb-3 flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent)]">
+        <motion.span
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 480, damping: 20, delay: 0.05 * index + 0.05 }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent)]"
+        >
           <Icon className="h-4 w-4" aria-hidden />
-        </span>
+        </motion.span>
         <span className="min-w-0">
           <h3 className="text-sm font-bold text-[var(--text-primary)]">{group.title}</h3>
           <p className="mt-0.5 text-xs leading-5 text-[var(--text-muted)]">{group.description}</p>
@@ -157,7 +171,7 @@ function ShortcutGroupCard({ group, onAction }: { group: ShortcutGroup; onAction
           <ShortcutRow key={`${group.title}-${shortcut.label}`} shortcut={shortcut} onAction={onAction} />
         ))}
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -343,8 +357,8 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            {shortcutGroups.map((group) => (
-              <ShortcutGroupCard key={group.title} group={group} onAction={runAction} />
+            {shortcutGroups.map((group, index) => (
+              <ShortcutGroupCard key={group.title} group={group} onAction={runAction} index={index} />
             ))}
           </div>
 
@@ -356,17 +370,18 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
         </div>
       </Modal>
 
-      <div
-        className={cn(
-          "pointer-events-none fixed left-1/2 top-4 z-[90] -translate-x-1/2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/95 px-3 py-2 text-xs font-bold text-[var(--text-primary)] shadow-[var(--shadow-md)] backdrop-blur transition-all",
-          sequenceActive ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0",
-        )}
+      <motion.div
+        className="pointer-events-none fixed left-1/2 top-4 z-[90] rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/95 px-3 py-2 text-xs font-bold text-[var(--text-primary)] shadow-[var(--shadow-md)] backdrop-blur"
+        style={{ x: "-50%" }}
+        initial={false}
+        animate={sequenceActive ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -12, scale: 0.96 }}
+        transition={OVERLAY_SPRING}
         role="status"
         aria-live="polite"
       >
         <span className="mr-2 text-[var(--accent)]">G</span>
         <span className="text-[var(--text-muted)]">then H, M, S, I, N, P, or ,</span>
-      </div>
+      </motion.div>
     </>
   );
 }

@@ -66,6 +66,7 @@ export default async function SettingsPage() {
         showInDiscovery: settings.showInDiscovery,
         hideActivityStatus: settings.hideActivityStatus,
         readReceipts: settings.readReceipts,
+        ghostMode: settings.ghostMode,
         nsfwEnabled: settings.nsfwEnabled,
         adultVerificationStatus: settings.adultVerificationStatus,
         adultVerifiedAt: settings.adultVerifiedAt,

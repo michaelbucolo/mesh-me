@@ -20,7 +20,7 @@ export default async function ExplorePage() {
   const [nativePosts, platformPosts, trendingTags, suggestedUsers, communities] = await Promise.all([
     // getExplorePosts has its own anonymous filter (public, discoverable,
     // never NSFW) — hand it the real user or nothing at all.
-    getExplorePosts(1, 30, user ?? null),
+    getExplorePosts(1, 30),
     getMergedForYouFeedPosts(viewer, 30),
     getTrendingTags(),
     user ? getDiscoverUsers(user) : Promise.resolve([]),

@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Modal } from "@/components/ui/modal";
 import { useContactPresence } from "./use-contact-presence";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -74,6 +75,8 @@ const FILTERS = [
 ] as const;
 
 type FilterKey = (typeof FILTERS)[number]["key"];
+
+// Shared overlay physics: mobile sheets ride up on it, desktop panels scale-fade.
 
 function platformLabel(platform: string) {
   if (platform.toLowerCase() === "twitter") return "X";
@@ -145,20 +148,6 @@ export function MeChatConversationList({
   const [activeNote, setActiveNote] = useState<MeChatNoteEntry | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [isPending, startTransition] = useTransition();
-
-  // Escape dismisses whichever full-screen overlay is open (New message, Share a
-  // note, Note viewer) — two hold autofocused inputs with no keyboard exit.
-  useEffect(() => {
-    if (!showCompose && !showNoteComposer && !activeNote) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (showCompose) setShowCompose(false);
-      else if (showNoteComposer) setShowNoteComposer(false);
-      else if (activeNote) setActiveNote(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showCompose, showNoteComposer, activeNote]);
 
   const shareQuery = useMemo(() => buildShareQuery(searchParams), [searchParams]);
   const shouldOpenCompose = searchParams.get("compose") === "true" || shareQuery.length > 0;
@@ -412,7 +401,7 @@ export function MeChatConversationList({
                     {note.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
                     {note.text || note.songTitle}
                   </span>
-                  <span className="block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px] shadow-[0_0_24px_rgba(47,124,255,0.18)]">
+                  <span className="mesh-aurora-ring block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px] shadow-[0_0_24px_rgba(47,124,255,0.18)]">
                     <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16 border-2 border-[var(--mesh-bg)]" />
                   </span>
                 </div>
@@ -439,7 +428,7 @@ export function MeChatConversationList({
                     key={thread.id}
                     href={`/messages/${thread.id}`}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex min-h-[4.25rem] items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
+                    className={`group relative flex min-h-[4.25rem] min-w-0 items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
                       active
                         ? "bg-[var(--mesh-blue)]/12"
                         : "hover:bg-[var(--mesh-panel-hover)]"
@@ -476,10 +465,9 @@ export function MeChatConversationList({
                         />
                       )}
                       {!isGroup && thread.otherUser && onlineContacts.has(thread.otherUser.id) && (
-                        <span
-                          className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400"
-                          aria-label="Active now"
-                        />
+                        <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5" aria-label="Active now">
+                          <span className="mesh-presence-ping block h-full w-full rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400 text-emerald-400" />
+                        </span>
                       )}
                       {unread && thread.unread > 1 && (
                         <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--mesh-blue)] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
@@ -530,32 +518,20 @@ export function MeChatConversationList({
       </div>
 
       {showCompose && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4"
-          onClick={() => setShowCompose(false)}
+        <Modal
+          open={showCompose}
+          onClose={() => setShowCompose(false)}
+          title={shareQuery ? "Send to" : "New message"}
+          className="max-w-md"
         >
-          <div
-            className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] shadow-xl sm:rounded-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[var(--mesh-border)] px-4 py-3">
-              <h3 className="text-sm font-bold text-[var(--mesh-text)]">{shareQuery ? "Send to" : "New message"}</h3>
-              <button
-                type="button"
-                onClick={() => setShowCompose(false)}
-                className="rounded-lg p-1 text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)]"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
             {status?.type === "error" && (
-              <div className="mx-4 mt-2 rounded-lg bg-[var(--mesh-danger)]/10 px-3 py-2 text-xs text-[var(--mesh-danger)]">
+              <div className="rounded-lg bg-[var(--mesh-danger)]/10 px-3 py-2 text-xs text-[var(--mesh-danger)]">
                 {status.message}
               </div>
             )}
 
-            <div className="flex items-center gap-2 border-b border-[var(--mesh-border)] px-4 py-2">
+            <div className="-mx-5 flex items-center gap-2 border-b border-[var(--mesh-border)] px-5 py-2">
               <span className="text-sm font-medium text-[var(--mesh-text-secondary)]">To:</span>
               <input
                 value={recipientQuery}
@@ -582,7 +558,7 @@ export function MeChatConversationList({
             </div>
 
             {selectedMembers.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 border-b border-[var(--mesh-border)] px-4 py-2">
+              <div className="-mx-5 flex flex-wrap gap-1.5 border-b border-[var(--mesh-border)] px-5 py-2">
                 {selectedMembers.map((member) => (
                   <span
                     key={member.id}
@@ -623,7 +599,7 @@ export function MeChatConversationList({
             </div>
 
             {selectedMembers.length > 1 && (
-              <div className="border-t border-[var(--mesh-border)] px-4 py-2">
+              <div className="-mx-5 border-t border-[var(--mesh-border)] px-5 py-2">
                 <input
                   value={groupTitle}
                   onChange={(event) => setGroupTitle(event.target.value)}
@@ -633,7 +609,7 @@ export function MeChatConversationList({
               </div>
             )}
 
-            <div className="border-t border-[var(--mesh-border)] p-3">
+            <div className="-mx-5 border-t border-[var(--mesh-border)] px-5 pt-3">
               <button
                 type="button"
                 onClick={startConversation}
@@ -643,88 +619,79 @@ export function MeChatConversationList({
                 {isPending ? "Starting..." : "Chat"}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {showNoteComposer && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setShowNoteComposer(false)}
+        <Modal
+          open={showNoteComposer}
+          onClose={() => setShowNoteComposer(false)}
+          title="Share a note"
+          description="Disappears after 24 hours"
+          className="max-w-sm"
         >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center gap-3">
-              <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-12 w-12" />
-              <div>
-                <p className="text-sm font-bold text-[var(--mesh-text)]">Share a note</p>
-                <p className="text-xs text-[var(--mesh-text-secondary)]">Disappears after 24 hours</p>
-              </div>
-            </div>
+          <div className="mb-3 flex items-center gap-3">
+            <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-12 w-12" />
+            <p className="text-sm font-bold text-[var(--mesh-text)]">{currentUser.displayName}</p>
+          </div>
+          <input
+            value={noteText}
+            onChange={(event) => setNoteText(event.target.value)}
+            maxLength={60}
+            autoFocus
+            placeholder="Share a thought..."
+            className="h-10 w-full rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3 text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+          />
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3">
+            <Music size={14} className="shrink-0 text-[var(--mesh-text-muted)]" />
             <input
-              value={noteText}
-              onChange={(event) => setNoteText(event.target.value)}
-              maxLength={60}
-              autoFocus
-              placeholder="Share a thought..."
-              className="h-10 w-full rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3 text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+              value={noteSong}
+              onChange={(event) => setNoteSong(event.target.value)}
+              maxLength={120}
+              placeholder="Add a song (optional)"
+              className="h-10 w-full bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
             />
-            <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3">
-              <Music size={14} className="shrink-0 text-[var(--mesh-text-muted)]" />
-              <input
-                value={noteSong}
-                onChange={(event) => setNoteSong(event.target.value)}
-                maxLength={120}
-                placeholder="Add a song (optional)"
-                className="h-10 w-full bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
-              />
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              {myNote && (
-                <button
-                  type="button"
-                  onClick={clearNote}
-                  disabled={isPending}
-                  className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-red-400 disabled:opacity-50"
-                >
-                  Clear note
-                </button>
-              )}
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            {myNote && (
               <button
                 type="button"
-                onClick={saveNote}
+                onClick={clearNote}
                 disabled={isPending}
-                className="ml-auto rounded-xl bg-[var(--mesh-blue)] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+                className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-red-400 disabled:opacity-50"
               >
-                {isPending ? "Sharing..." : "Share"}
+                Clear note
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={saveNote}
+              disabled={isPending}
+              className="ml-auto rounded-xl bg-[var(--mesh-blue)] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {isPending ? "Sharing..." : "Share"}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {activeNote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setActiveNote(null)}>
-          <button
-            type="button"
-            onClick={() => setActiveNote(null)}
-            className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 text-left shadow-xl"
-          >
-            <div className="mb-3 flex items-center gap-3">
-              <Avatar src={activeNote.user.avatarUrl} alt={activeNote.user.displayName} size="md" className="h-12 w-12" />
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-[var(--mesh-text)]">{activeNote.user.displayName}</p>
-                <p className="text-xs text-[var(--mesh-text-secondary)]">@{activeNote.user.username}</p>
-              </div>
-            </div>
-            <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{activeNote.text || "No note text"}</p>
-            {activeNote.songTitle && (
-              <p className="mt-3 text-xs font-medium text-[var(--mesh-blue)]">{activeNote.songTitle}</p>
-            )}
-          </button>
-        </div>
+        <Modal
+          open={Boolean(activeNote)}
+          onClose={() => setActiveNote(null)}
+          title={activeNote.user.displayName}
+          description={`@${activeNote.user.username}`}
+          className="max-w-sm"
+        >
+          <div className="mb-3 flex items-center gap-3">
+            <Avatar src={activeNote.user.avatarUrl} alt={activeNote.user.displayName} size="md" className="h-12 w-12" />
+            <p className="text-sm font-bold text-[var(--mesh-text)]">{activeNote.user.displayName}</p>
+          </div>
+          <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{activeNote.text || "No note text"}</p>
+          {activeNote.songTitle && (
+            <p className="mt-3 text-xs font-medium text-[var(--mesh-blue)]">{activeNote.songTitle}</p>
+          )}
+        </Modal>
       )}
     </div>
   );

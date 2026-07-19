@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "showInDiscovery" BOOLEAN NOT NULL DEFAULT false,
     "hideActivityStatus" BOOLEAN NOT NULL DEFAULT false,
     "readReceipts" BOOLEAN NOT NULL DEFAULT false,
+    "ghostMode" BOOLEAN NOT NULL DEFAULT false,
     "nsfwEnabled" BOOLEAN NOT NULL DEFAULT false,
     "adultVerificationStatus" TEXT NOT NULL DEFAULT 'unverified',
     "adultVerifiedAt" DATETIME,

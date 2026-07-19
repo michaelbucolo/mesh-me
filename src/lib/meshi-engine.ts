@@ -3,7 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { nsfwHiddenWhere } from "./content-safety";
-import { areMutualFollowers } from "./privacy-policy";
+import { areMutualFollowers, getBlockedUserIdSet } from "./privacy-policy";
 import { rateLimit } from "./security";
 
 /**
@@ -494,7 +494,13 @@ async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
       take: 80,
     }),
     prisma.platformPost.findMany({
-      where: { ...safetyWhere, connectedAccount: { userId: person.id } },
+      where: {
+        ...safetyWhere,
+        connectedAccount: { userId: person.id },
+        // Aggregate topic counts must not include a target's non-public synced
+        // posts for anyone but the owner.
+        ...(person.isSelf ? {} : { visibility: "public" }),
+      },
       select: { postType: true, content: true, title: true, connectedAccount: { select: { platform: true } } },
       orderBy: { publishedAt: "desc" },
       take: 80,
@@ -632,16 +638,33 @@ async function searchPosts(topic: string): Promise<MeshiAnswer> {
   const posts = await prisma.post.findMany({
     where: {
       ...safetyWhere,
-      OR: [
-        { content: { contains: topic } },
-        { tags: { some: { tag: { contains: topic } } } },
+      AND: [
+        {
+          OR: [
+            { content: { contains: topic } },
+            { tags: { some: { tag: { contains: topic } } } },
+          ],
+        },
+        // Only surface posts the viewer is actually allowed to see: their own
+        // (any visibility), public posts from people they follow, and
+        // friends-only posts from mutual followers. Never leak private posts.
+        {
+          OR: [
+            { authorId: user.id },
+            {
+              visibility: "public",
+              author: { followers: { some: { followerId: user.id } } },
+            },
+            {
+              visibility: "friends",
+              author: {
+                followers: { some: { followerId: user.id } },
+                following: { some: { followingId: user.id } },
+              },
+            },
+          ],
+        },
       ],
-      author: {
-        OR: [
-          { id: user.id },
-          { followers: { some: { followerId: user.id } } },
-        ],
-      },
     },
     include: {
       author: { select: { username: true, displayName: true } },
@@ -965,11 +988,17 @@ async function getWhoActive(): Promise<MeshiAnswer> {
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
 
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const blockedIds = await getBlockedUserIdSet(user.id);
 
-  // Find followed users who are online or recently active
+  // Find followed users who are online or recently active. Presence must honor
+  // the target's "Hide activity status" (mirrors lookupPerson / getProfileByUsername),
+  // never surface suspended accounts, and never cross a block in either direction.
   const activeUsers = await prisma.user.findMany({
     where: {
       followers: { some: { followerId: user.id } },
+      isSuspended: false,
+      hideActivityStatus: false,
+      id: { notIn: Array.from(blockedIds) },
       OR: [
         { status: "online" },
         { lastSeenAt: { gte: fiveMinAgo } },

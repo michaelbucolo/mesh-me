@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
-import { validateUrl } from "@/lib/security";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
+import { rateLimit, validateUrl } from "@/lib/security";
+
+const MAX_ALTER_EGOS = 10;
 
 export async function GET() {
   const session = await getSession();
@@ -24,8 +27,13 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") {
+  const rl = rateLimit(`alter-ego-create:${session.userId}`, 10, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many alter ego requests. Please try again later." }, { status: 429 });
+  }
+
+  const body = await readJsonObject(req);
+  if (Object.keys(body).length === 0) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
   const { username, displayName, bio, avatarUrl } = body;
@@ -60,6 +68,13 @@ export async function POST(req: NextRequest) {
   if (normalizedUsername.length < 3) {
     return NextResponse.json({ error: "Username must contain at least 3 alphanumeric characters" }, { status: 400 });
   }
+  // Cap the namespace footprint per account: unlimited alter egos would allow
+  // squatting arbitrary usernames and unbounded storage growth.
+  const alterEgoCount = await prisma.alterEgo.count({ where: { userId: session.userId } });
+  if (alterEgoCount >= MAX_ALTER_EGOS) {
+    return NextResponse.json({ error: `You can have at most ${MAX_ALTER_EGOS} alter egos.` }, { status: 400 });
+  }
+
   const existingUser = await prisma.user.findUnique({ where: { username: normalizedUsername } });
   if (existingUser) {
     return NextResponse.json({ error: "Username already taken" }, { status: 409 });
@@ -69,18 +84,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Username already taken" }, { status: 409 });
   }
 
-  const alterEgo = await prisma.alterEgo.create({
-    data: {
-      userId: session.userId,
-      username: normalizedUsername,
-      displayName,
-      bio: bio || null,
-      avatarUrl: avatarUrl || null,
-      updatedAt: new Date(),
-    },
-  });
+  try {
+    const alterEgo = await prisma.alterEgo.create({
+      data: {
+        userId: session.userId,
+        username: normalizedUsername,
+        displayName,
+        bio: bio || null,
+        avatarUrl: avatarUrl || null,
+        updatedAt: new Date(),
+      },
+    });
 
-  return NextResponse.json({ alterEgo });
+    return NextResponse.json({ alterEgo });
+  } catch (e) {
+    if (isUniqueConstraintError(e)) {
+      return NextResponse.json({ error: "Username already taken" }, { status: 409 });
+    }
+    throw e;
+  }
 }
 
 export async function DELETE(req: NextRequest) {

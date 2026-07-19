@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { cn, formatCount } from "@/lib/utils";
 import type {
@@ -217,7 +218,6 @@ function AccountCard({
           </div>
           <p className="truncate text-sm text-[var(--text-secondary)]">
             {account.platformUsername ? `@${account.platformUsername}` : account.accountLabel || "Connected"}
-            <span className="text-[var(--text-muted)]"> · synced {formatDate(account.lastSyncAt)}</span>
           </p>
         </div>
         {needsReconnect && account.adapter?.connectHref ? (
@@ -258,11 +258,16 @@ function AccountCard({
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">
           <span className="inline-flex items-center gap-1.5">
             <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-            {grantedCount} permission{grantedCount === 1 ? "" : "s"} · activity details
+            Details
           </span>
           <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
         </summary>
         <div className="grid gap-3 border-t border-[var(--ds-border)] px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+            <span>{grantedCount} permission{grantedCount === 1 ? "" : "s"} granted</span>
+            <span>Last synced {formatDate(account.lastSyncAt)}</span>
+          </div>
+
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {countItems.map(([label, value]) => (
               <div key={label} className="rounded-[var(--ds-radius-sm)] bg-[var(--bg-primary)]/55 px-3 py-2">
@@ -462,6 +467,7 @@ export function ConnectedAccountsClient({
   const [actionState, setActionState] = useState<ActionState>(null);
   const dismissToast = useCallback(() => setActionState(null), []);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<ConnectedAccountView | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<PlatformAdapterCategory | "all">("all");
   const refreshAttemptedRef = useRef(false);
@@ -597,9 +603,6 @@ export function ConnectedAccountsClient({
   }
 
   async function disconnectAccount(account: ConnectedAccountView) {
-    const confirmed = window.confirm(`Disconnect ${account.platformName}? Mesh.me will remove the saved connection and local permission records.`);
-    if (!confirmed) return;
-
     setBusyKey(`delete-${account.id}`);
     try {
       await requestDashboard(`/api/connected-accounts/${account.id}`, { method: "DELETE" });
@@ -751,7 +754,7 @@ export function ConnectedAccountsClient({
                   busyKey={busyKey}
                   onSync={syncAccount}
                   onToggleActive={toggleActive}
-                  onDisconnect={disconnectAccount}
+                  onDisconnect={setDisconnecting}
                 />
               </motion.div>
             ))}
@@ -824,6 +827,18 @@ export function ConnectedAccountsClient({
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        open={disconnecting !== null}
+        onClose={() => setDisconnecting(null)}
+        onConfirm={() => {
+          if (disconnecting) void disconnectAccount(disconnecting);
+        }}
+        title={`Disconnect ${disconnecting?.platformName ?? "account"}?`}
+        description="Mesh.me will remove the saved connection and local permission records. Nothing changes on the platform itself."
+        confirmLabel="Disconnect"
+        destructive
+      />
 
       <Toast state={actionState} onDismiss={dismissToast} />
     </main>

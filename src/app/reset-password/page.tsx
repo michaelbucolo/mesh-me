@@ -1,13 +1,29 @@
 "use client";
 
-import { useState, useTransition, Suspense } from "react";
+import { useState, useTransition, Suspense, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { resetPassword } from "@/lib/actions";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+
+const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+// Brand-tinted sparkle particles flung outward when the reset succeeds.
+// Uses the shared `.mesh-burst-particle` primitive (self-guarded for reduced
+// motion) — each needs an --angle, --dist, and a background color.
+const SPARKLES = [
+  { angle: "0deg", dist: "34px", color: "#34e4ea" },
+  { angle: "45deg", dist: "28px", color: "#6e8bff" },
+  { angle: "90deg", dist: "32px", color: "#8b5cf6" },
+  { angle: "135deg", dist: "26px", color: "#ec4899" },
+  { angle: "180deg", dist: "34px", color: "#34e4ea" },
+  { angle: "225deg", dist: "28px", color: "#6e8bff" },
+  { angle: "270deg", dist: "30px", color: "#10b981" },
+  { angle: "315deg", dist: "26px", color: "#ec4899" },
+];
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -18,6 +34,7 @@ function ResetPasswordForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const reduce = useReducedMotion();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -56,16 +73,73 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="w-full max-w-sm mx-auto text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
-          <Check className="h-8 w-8 text-emerald-500" />
+      <motion.div
+        className="w-full max-w-sm mx-auto text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Happy Meshi reaction bounding in to celebrate. */}
+        <motion.div
+          initial={reduce ? false : { scale: 0, y: 8 }}
+          animate={{ scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.05 }}
+        >
+          <MeshiMascot size={72} mood="celebrating" animate />
+        </motion.div>
+
+        {/* The green Check springs/draws in, with an expanding ring and a
+            brand sparkle burst. */}
+        <div className="relative mx-auto mt-3 flex h-16 w-16 items-center justify-center">
+          <motion.span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-full bg-emerald-500/15"
+            initial={reduce ? false : { scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.12 }}
+          />
+          {!reduce && (
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full border-2 border-emerald-400"
+              initial={{ opacity: 0.8, scale: 0.4 }}
+              animate={{ opacity: 0, scale: 1.9 }}
+              transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.2 }}
+            />
+          )}
+          {!reduce && SPARKLES.map((sparkle, index) => (
+            <span
+              key={index}
+              aria-hidden="true"
+              className="mesh-burst-particle"
+              style={{ "--angle": sparkle.angle, "--dist": sparkle.dist, background: sparkle.color } as CSSProperties}
+            />
+          ))}
+          <motion.svg
+            viewBox="0 0 24 24"
+            className="relative h-8 w-8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ color: "rgb(16,185,129)" }}
+            aria-hidden="true"
+          >
+            <motion.path
+              d="M5 13l4 4L19 7"
+              initial={reduce ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.45, ease: EASE_OUT, delay: 0.22 }}
+            />
+          </motion.svg>
         </div>
         <h1 className="mt-4 text-2xl font-bold text-[var(--text-primary)]">Password updated</h1>
         <p className="mt-2 text-sm text-[var(--text-tertiary)]">Your password has been reset. Sign in with the new one.</p>
         <Link href="/login" className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white">
           Sign in <ArrowRight className="h-4 w-4" />
         </Link>
-      </div>
+      </motion.div>
     );
   }
 

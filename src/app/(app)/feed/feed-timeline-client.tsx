@@ -29,6 +29,7 @@ import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
 import { UserMeshiBadge } from "@/components/meshi/meshi-identity";
 import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
+import { readGhostMode } from "@/lib/ghost-mode";
 import { getPostPresenceKey } from "@/lib/presence-keys";
 import type { FeedContentFilter, FeedSource } from "@/lib/feed-data";
 
@@ -382,7 +383,7 @@ export function FeedTimelineClient({
           activity: "exploring",
           // Must send ghostMode so the server's last-seen touch stays frozen
           // while ghosting — every other heartbeat caller sends it too.
-          ghostMode: localStorage.getItem("meshGhostMode") === "true",
+          ghostMode: readGhostMode(),
         }),
       }).catch(() => {});
     };

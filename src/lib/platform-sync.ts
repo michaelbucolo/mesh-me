@@ -9,6 +9,7 @@ import { refreshConnectedAccountToken } from "./oauth-token-refresh";
 import { getPlatformActionCapability, getPlatformImportCapability, getPlatformMessagingCapability } from "./platform-capabilities";
 import { serializeMeChatMetadata } from "./mechat-metadata";
 import { classifyContentSafety, nsfwHiddenWhere } from "./content-safety";
+import { rateLimit } from "./security";
 
 // ─── Platform Adapter Interface ─────────────────────────────
 
@@ -1839,11 +1840,26 @@ async function migratePlatformCommentsIntoMeChat(account: {
 
   if (usernames.length === 0) return 0;
 
-  const users = await prisma.user.findMany({
-    where: { username: { in: usernames } },
-    select: { id: true, username: true, displayName: true },
+  // Attribute imported comments only to members who have verifiably connected
+  // the same external account (matched on the OAuth-verified platform
+  // username), never on a raw mesh.me username match: usernames on the two
+  // systems are independent namespaces, and a name-only match would let an
+  // external commenter inject messages under an unrelated member's identity.
+  const linkedAccounts = await prisma.connectedAccount.findMany({
+    where: {
+      platform: account.platform,
+      platformUsername: { in: usernames },
+    },
+    select: {
+      platformUsername: true,
+      user: { select: { id: true, username: true, displayName: true } },
+    },
   });
-  const userByUsername = new Map(users.map((u) => [u.username.toLowerCase(), u]));
+  const userByUsername = new Map(
+    linkedAccounts
+      .filter((linked) => linked.platformUsername)
+      .map((linked) => [linked.platformUsername!.toLowerCase(), linked.user] as const),
+  );
   let imported = 0;
 
   for (const comment of comments) {
@@ -2118,6 +2134,32 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
     where: { id: connectedAccountId },
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
+
+  // Every sync fans out into many external API calls and database writes, so
+  // throttle per user and refuse to start while a run is still in flight.
+  const syncRl = rateLimit(`platform-sync:${user.id}`, 10, 10 * 60 * 1000);
+  if (!syncRl.allowed) return { error: "Too many sync requests. Please try again later." };
+
+  // A run killed mid-flight (crash, deploy, serverless timeout) never reaches
+  // the completion or catch paths, so a "running" state older than the
+  // staleness window is treated as dead: mark it failed and let this run start.
+  const SYNC_STALE_AFTER_MS = 15 * 60 * 1000;
+  const staleBefore = new Date(Date.now() - SYNC_STALE_AFTER_MS);
+  const runningJob = await prisma.syncJob.findFirst({
+    where: { connectedAccountId: account.id, status: "running" },
+    orderBy: { startedAt: "desc" },
+    select: { id: true, startedAt: true },
+  });
+  const runningJobIsFresh = !!runningJob && !!runningJob.startedAt && runningJob.startedAt > staleBefore;
+  if (runningJobIsFresh) {
+    return { error: "A sync is already in progress for this account." };
+  }
+  if (runningJob) {
+    await prisma.syncJob.updateMany({
+      where: { connectedAccountId: account.id, status: "running", startedAt: { lt: staleBefore } },
+      data: { status: "failed", error: "Sync interrupted", completedAt: new Date() },
+    });
+  }
 
   const importCapability = getPlatformImportCapability(account.platform);
   if (!importCapability.supported) return { error: importCapability.reason };
@@ -2677,6 +2719,8 @@ export async function likePlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post) return { error: "Post not found" };
+  const isPostOwner = post.connectedAccount.userId === user.id;
+  if (!isPostOwner && post.visibility !== "public") return { error: "Post not found" };
 
   const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
   if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to like this post from Mesh.me.` };
@@ -2694,10 +2738,14 @@ export async function likePlatformPost(postId: string) {
   const ok = await adapter.likePost(accessToken, post.platformPostId);
   if (!ok) return { error: "Platform does not support liking or the request failed" };
 
-  await prisma.platformPost.update({
-    where: { id: postId },
-    data: { likeCount: { increment: 1 } },
-  });
+  // Stored counters belong to the account owner; for anyone else the source
+  // platform is authoritative and the count refreshes on the owner's next sync.
+  if (isPostOwner) {
+    await prisma.platformPost.update({
+      where: { id: postId },
+      data: { likeCount: { increment: 1 } },
+    });
+  }
   return { success: true };
 }
 
@@ -2711,6 +2759,8 @@ export async function unlikePlatformPost(postId: string) {
     include: { connectedAccount: true },
   });
   if (!post) return { error: "Post not found" };
+  const isPostOwner = post.connectedAccount.userId === user.id;
+  if (!isPostOwner && post.visibility !== "public") return { error: "Post not found" };
 
   const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
   if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to unlike this post from Mesh.me.` };
@@ -2728,16 +2778,18 @@ export async function unlikePlatformPost(postId: string) {
   const ok = await adapter.unlikePost(accessToken, post.platformPostId);
   if (!ok) return { error: "Platform does not support unliking or the request failed" };
 
-  // Use atomic decrement, then clamp
-  await prisma.platformPost.update({
-    where: { id: postId },
-    data: { likeCount: { decrement: 1 } },
-  });
-  // Clamp to 0 if it went negative
-  await prisma.platformPost.updateMany({
-    where: { id: postId, likeCount: { lt: 0 } },
-    data: { likeCount: 0 },
-  });
+  if (isPostOwner) {
+    // Use atomic decrement, then clamp
+    await prisma.platformPost.update({
+      where: { id: postId },
+      data: { likeCount: { decrement: 1 } },
+    });
+    // Clamp to 0 if it went negative
+    await prisma.platformPost.updateMany({
+      where: { id: postId, likeCount: { lt: 0 } },
+      data: { likeCount: 0 },
+    });
+  }
   return { success: true };
 }
 
@@ -2808,6 +2860,8 @@ export async function sharePlatformPost(postId: string, comment?: string) {
     include: { connectedAccount: true },
   });
   if (!post) return { error: "Post not found" };
+  const isPostOwner = post.connectedAccount.userId === user.id;
+  if (!isPostOwner && post.visibility !== "public") return { error: "Post not found" };
 
   const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
   if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to share this post from Mesh.me.` };
@@ -2823,10 +2877,12 @@ export async function sharePlatformPost(postId: string, comment?: string) {
   const ok = await adapter.sharePost(accessToken, post.platformPostId, comment);
   if (!ok) return { error: "Share failed — platform may not support this action" };
 
-  await prisma.platformPost.update({
-    where: { id: postId },
-    data: { shareCount: { increment: 1 } },
-  });
+  if (isPostOwner) {
+    await prisma.platformPost.update({
+      where: { id: postId },
+      data: { shareCount: { increment: 1 } },
+    });
+  }
   return { success: true };
 }
 
@@ -3010,5 +3066,9 @@ export async function getConnectedAccountDetails(accountId: string) {
   });
   if (!account || account.userId !== user.id) return { error: "Account not found" };
 
-  return { account };
+  // Token columns must never be serialized into a response, even encrypted.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { accessToken: _accessToken, refreshToken: _refreshToken, ...safeAccount } = account;
+
+  return { account: safeAccount };
 }

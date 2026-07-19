@@ -158,6 +158,11 @@ export async function getCommunitySpaceData(slug: string) {
       where: {
         communityId: community.id,
         ...nsfwHiddenWhere(user),
+        // Posts written inside a private community are stamped visibility
+        // "private". If the community is later flipped to public, those posts
+        // must not retroactively leak to non-members — so a non-member only
+        // ever sees posts explicitly published as public. Members see all.
+        ...(membership ? {} : { visibility: "public" }),
       },
       include: {
         author: {

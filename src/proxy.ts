@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getTrustedClientIp } from "@/lib/client-ip";
 
 const SESSION_COOKIE = "__Host-mesh_session";
 const LEGACY_SESSION_COOKIE = "mesh_session";
@@ -73,8 +74,7 @@ function hasSessionCookie(request: NextRequest) {
 }
 
 function getClientIp(request: NextRequest) {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwardedFor || request.headers.get("x-real-ip") || "unknown";
+  return getTrustedClientIp(request.headers);
 }
 
 function checkProxyRateLimit(
@@ -199,6 +199,37 @@ function hardenResponse(response: NextResponse, options: { sensitive?: boolean; 
   return response;
 }
 
+// Production CSP is owned entirely by this proxy (next.config.ts only emits a
+// CSP in development) so exactly one deterministic policy ships per response.
+// Pages get a per-request nonce-based script-src: Next.js reads the nonce from
+// the forwarded Content-Security-Policy request header and stamps it onto its
+// own inline scripts and every <Script>. 'strict-dynamic' lets those trusted
+// scripts load their dependencies; the 'unsafe-inline' and host entries remain
+// only as fallbacks for pre-CSP3 browsers, which ignore nonces.
+function buildPageCsp(nonce: string, httpsOnly: boolean) {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' https://js.stripe.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://api.stripe.com https://checkout.stripe.com",
+    "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube-nocookie.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com",
+    "media-src 'self' blob: https:",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    httpsOnly ? "upgrade-insecure-requests" : "",
+  ].filter(Boolean).join("; ");
+}
+
+// API responses never execute scripts or render markup, so they get a
+// locked-down policy rather than the page one.
+const API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
+
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const proto = request.headers.get("x-forwarded-proto") || request.nextUrl.protocol.replace(":", "");
@@ -253,8 +284,17 @@ export function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   // Every page render gets its true path (guest shells and login redirects
   // both key off it); always overwritten here so it can't be spoofed.
+  let cspOverride: string | null = null;
   if (!pathname.startsWith("/api/")) {
     requestHeaders.set("x-mesh-current-path", returnPath);
+    if (process.env.NODE_ENV === "production") {
+      const nonce = crypto.randomUUID().replace(/-/g, "");
+      cspOverride = buildPageCsp(nonce, !isLocalHost(host));
+      requestHeaders.set("x-nonce", nonce);
+      requestHeaders.set("content-security-policy", cspOverride);
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    cspOverride = API_CSP;
   }
 
   const response = NextResponse.next({
@@ -262,6 +302,9 @@ export function proxy(request: NextRequest) {
       headers: requestHeaders,
     },
   });
+  if (cspOverride) {
+    response.headers.set("Content-Security-Policy", cspOverride);
+  }
   const sensitive = isProtectedApi || isProtectedPage || pathname === "/login" || pathname === "/signup" || pathname === "/reset-password" || pathname === "/verify-email";
   // /signup is a public marketing landing page listed in the sitemap, so keep it
   // out of no-store-only robots suppression while every other auth/app surface

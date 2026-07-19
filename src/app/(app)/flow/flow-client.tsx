@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2 } from "lucide-react";
@@ -48,6 +49,65 @@ function textStageFor(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) | 0;
   return TEXT_STAGES[Math.abs(hash) % TEXT_STAGES.length];
+}
+
+// A double-tap heart bloom: a small cluster of hearts (rose → magenta →
+// periwinkle) plus a couple of cyan sparks, each flung outward on its own
+// angle from the actual tap point. Reduced motion skips the cluster.
+type BurstParticle = { angle: string; dist: string; color: string; size: number; kind: "heart" | "spark" };
+type HeartBurst = { id: number; x: number; y: number; particles: BurstParticle[] };
+
+const HEART_BURST_COLORS = ["#f43f5e", "#ec4899", "#6e8bff"];
+function makeHeartBurst(): BurstParticle[] {
+  const parts: BurstParticle[] = [];
+  const hearts = 5;
+  for (let i = 0; i < hearts; i += 1) {
+    const spread = -58 + (116 / (hearts - 1)) * i + (Math.random() * 20 - 10);
+    parts.push({
+      angle: `${spread}deg`,
+      dist: `${46 + Math.random() * 34}px`,
+      color: HEART_BURST_COLORS[i % HEART_BURST_COLORS.length],
+      size: 9,
+      kind: "heart",
+    });
+  }
+  for (let i = 0; i < 2; i += 1) {
+    const base = i === 0 ? -30 : 30;
+    parts.push({ angle: `${base + (Math.random() * 14 - 7)}deg`, dist: `${58 + Math.random() * 26}px`, color: "#34e4ea", size: 5, kind: "spark" });
+  }
+  return parts;
+}
+
+// Both reels move on a sideways lane swap: the incoming slides in from the
+// swipe side starting fully hidden, the outgoing dims and blurs to a soft
+// trail. Keyed to the lane step so repeated swipes re-trigger. Framer degrades
+// the transforms under reduced motion, leaving a plain crossfade.
+const laneStageVariants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir < 0 ? "-15%" : "15%", scale: 0.99, filter: "blur(3px)" }),
+  center: { opacity: 1, x: "0%", scale: 1, filter: "blur(0px)" },
+  exit: (dir: number) => ({
+    opacity: 0,
+    x: dir < 0 ? "17%" : "-17%",
+    scale: 0.96,
+    filter: "blur(3px)",
+    transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  }),
+};
+const laneStageTransition = { type: "spring" as const, stiffness: 360, damping: 34, mass: 0.85 };
+
+// The platform's loading motif: a sparkle with a brand mote orbiting it —
+// on-brand where a spinner or pulse used to be. Framer degrades it to a calm
+// static sparkle under reduced motion.
+function OrbitSparkle({ size = 12 }: { size?: number }) {
+  const box = size + 8;
+  return (
+    <span className="relative inline-flex items-center justify-center" style={{ width: box, height: box }} aria-hidden>
+      <motion.span className="absolute inset-0" animate={{ rotate: 360 }} transition={{ duration: 2.2, ease: "linear", repeat: Infinity }}>
+        <span className="absolute left-1/2 top-0 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: "var(--mesh-cyan)", boxShadow: "0 0 6px var(--mesh-cyan)" }} />
+      </motion.span>
+      <Sparkles size={size} className="text-[var(--accent)]" style={{ filter: "drop-shadow(0 0 3px var(--accent))" }} />
+    </span>
+  );
 }
 
 // One full-screen reel: video autoplays in view, images fill the frame, and
@@ -117,9 +177,18 @@ function ReelMedia({
         >
           {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
-        {/* Playback progress — a quiet hairline, not a control */}
+        {/* Playback progress — a quiet periwinkle→cyan hairline with a soft
+            leading glow, easing between frames instead of snapping. */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/15">
-          <div ref={progressRef} className="h-full w-0 bg-white/85" />
+          <div
+            ref={progressRef}
+            className="h-full w-0"
+            style={{
+              background: "linear-gradient(90deg, var(--accent), var(--mesh-cyan))",
+              boxShadow: "2px 0 8px 0 rgba(52, 228, 234, 0.7)",
+              transition: "width 0.15s linear",
+            }}
+          />
         </div>
       </div>
     );
@@ -215,7 +284,12 @@ function RailButton({
       >
         {children}
       </span>
-      {count !== undefined && <span className="text-xs font-semibold text-white">{count}</span>}
+      {count !== undefined && (
+        <span className="text-xs font-semibold text-white">
+          {/* The value rolls up on change instead of snapping. */}
+          <span key={String(count)} className="mesh-roll-in inline-block">{count}</span>
+        </span>
+      )}
     </>
   );
   const cls = "flex flex-col items-center gap-0.5 drop-shadow";
@@ -233,6 +307,9 @@ function RailButton({
   );
 }
 
+// The slot shell: the scroll-snap target, the observer's stable identity, and
+// the horizontal-swipe gesture. It stays mounted across lane swaps so the
+// observer never loses this slot; the content within animates on each swap.
 function Reel({
   post,
   slotIndex,
@@ -260,6 +337,84 @@ function Reel({
   onLaneSwipe: (dir: 1 | -1) => void;
   signedOut?: boolean;
 }) {
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  // Shared with the tapped stage: a horizontal fling sets this so the trailing
+  // click doesn't also pause/like. Lives here so it survives the content swap.
+  const suppressTapRef = useRef(false);
+
+  return (
+    <section
+      className="relative h-full w-full snap-start snap-always"
+      data-flow-reel={String(slotIndex)}
+      onTouchStart={(e) => {
+        swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }}
+      onTouchEnd={(e) => {
+        const start = swipeStartRef.current;
+        swipeStartRef.current = null;
+        if (!start) return;
+        const dx = e.changedTouches[0].clientX - start.x;
+        const dy = e.changedTouches[0].clientY - start.y;
+        // A clearly horizontal fling steps through the "more like this" lane.
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+          suppressTapRef.current = true;
+          window.setTimeout(() => { suppressTapRef.current = false; }, 350);
+          onLaneSwipe(dx < 0 ? 1 : -1);
+        }
+      }}
+    >
+      {/* Stage — centered 9:16 column on wide screens, full-bleed on phones.
+          A single grid cell stacks the outgoing + incoming reels so both can
+          animate the lane swap without shifting layout. */}
+      <div className="absolute inset-0 grid place-items-center overflow-hidden">
+        <AnimatePresence initial={false} custom={slideDir}>
+          <ReelContent
+            key={`${laneIndex}:${post.id}`}
+            post={post}
+            active={active}
+            muted={muted}
+            onToggleMute={onToggleMute}
+            laneIndex={laneIndex}
+            laneTotal={laneTotal}
+            laneLoading={laneLoading}
+            dir={slideDir}
+            onLaneSwipe={onLaneSwipe}
+            signedOut={signedOut}
+            suppressTapRef={suppressTapRef}
+          />
+        </AnimatePresence>
+      </div>
+    </section>
+  );
+}
+
+// One rendered reel's content — remounts per lane step (so like/caption state
+// is always fresh for the shown post) and slides in/out via framer.
+function ReelContent({
+  post,
+  active,
+  muted,
+  onToggleMute,
+  laneIndex,
+  laneTotal,
+  laneLoading,
+  dir,
+  onLaneSwipe,
+  signedOut,
+  suppressTapRef,
+}: {
+  post: FlowPost;
+  active: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
+  laneIndex: number;
+  laneTotal: number;
+  laneLoading: boolean;
+  dir: 1 | -1 | 0;
+  onLaneSwipe: (dir: 1 | -1) => void;
+  signedOut: boolean;
+  suppressTapRef: React.MutableRefObject<boolean>;
+}) {
   const router = useRouter();
   const native = !post.platform || post.platform === "mesh" || post.platform === "meshme";
   const hasVideo = post.media.some((m) => m.type === "video");
@@ -269,12 +424,12 @@ function Reel({
   const [expanded, setExpanded] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [bursts, setBursts] = useState<number[]>([]);
+  const [bursts, setBursts] = useState<HeartBurst[]>([]);
+  // Bumps on every like so the rail heart flashes a radial glow ring.
+  const [likePulse, setLikePulse] = useState(0);
   const [, startLike] = useTransition();
   const lastTapRef = useRef(0);
   const singleTapTimerRef = useRef<number | null>(null);
-  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
-  const suppressTapRef = useRef(false);
 
   const handleLike = (viaDoubleTap = false) => {
     // Guests can watch everything; interacting is the moment that asks for
@@ -286,7 +441,10 @@ function Reel({
     const next = viaDoubleTap ? true : !liked;
     if (next === liked && viaDoubleTap) return;
     setLiked(next);
-    if (next) playSound("heart");
+    if (next) {
+      playSound("heart");
+      setLikePulse((n) => n + 1);
+    }
     // External content shows the source platform's own like count — never move
     // it. Only a native mesh like changes our own count.
     if (native) setLikeCount((c) => c + (next ? 1 : -1));
@@ -299,10 +457,10 @@ function Reel({
     });
   };
 
-  // Tap = pause/play (videos). Double-tap = like, with a heart that blooms
-  // where everyone expects it. The single-tap waits a beat so a second tap
-  // can cancel it — no pause flicker while you're double-tapping.
-  const handleStageTap = () => {
+  // Tap = pause/play (videos). Double-tap = like, with a heart cluster that
+  // blooms from the exact tap point. The single-tap waits a beat so a second
+  // tap can cancel it — no pause flicker while you're double-tapping.
+  const handleStageTap = (e: React.MouseEvent<HTMLDivElement>) => {
     if (suppressTapRef.current) return;
     const now = performance.now();
     if (now - lastTapRef.current < 300) {
@@ -311,11 +469,19 @@ function Reel({
         window.clearTimeout(singleTapTimerRef.current);
         singleTapTimerRef.current = null;
       }
-      // Double-tap likes native AND external content, with the heart bloom
-      // everyone expects.
+      // Double-tap likes native AND external content, blooming a heart cluster
+      // from wherever the finger landed.
       handleLike(true);
-      setBursts((current) => [...current.slice(-3), now]);
-      window.setTimeout(() => setBursts((current) => current.filter((t) => t !== now)), 800);
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const reduce =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const id = now;
+      setBursts((current) => [...current.slice(-3), { id, x, y, particles: reduce ? [] : makeHeartBurst() }]);
+      window.setTimeout(() => setBursts((current) => current.filter((b) => b.id !== id)), 850);
       return;
     }
     lastTapRef.current = now;
@@ -346,40 +512,43 @@ function Reel({
   const postSourceUrl = sourceUrl(post);
 
   return (
-    <section
-      className="relative h-full w-full snap-start snap-always"
-      data-flow-reel={String(slotIndex)}
-      onTouchStart={(e) => {
-        swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }}
-      onTouchEnd={(e) => {
-        const start = swipeStartRef.current;
-        swipeStartRef.current = null;
-        if (!start) return;
-        const dx = e.changedTouches[0].clientX - start.x;
-        const dy = e.changedTouches[0].clientY - start.y;
-        // A clearly horizontal fling steps through the "more like this" lane.
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-          suppressTapRef.current = true;
-          window.setTimeout(() => { suppressTapRef.current = false; }, 350);
-          onLaneSwipe(dx < 0 ? 1 : -1);
-        }
-      }}
+    <motion.div
+      className="relative h-full w-full cursor-pointer overflow-hidden bg-black sm:h-[calc(100%-1.5rem)] sm:w-auto sm:aspect-[9/16] sm:rounded-2xl"
+      style={{ gridArea: "1 / 1" }}
+      custom={dir}
+      variants={laneStageVariants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={laneStageTransition}
+      onClick={handleStageTap}
     >
-      {/* Stage — centered 9:16 column on wide screens, full-bleed on phones */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div
-          className={`relative h-full w-full cursor-pointer overflow-hidden bg-black sm:h-[calc(100%-1.5rem)] sm:w-auto sm:aspect-[9/16] sm:rounded-2xl ${
-            slideDir === 1 ? "flow-lane-in-left" : slideDir === -1 ? "flow-lane-in-right" : ""
-          }`}
-          onClick={handleStageTap}
-        >
           <ReelMedia post={post} active={active} paused={paused} muted={muted} onToggleMute={onToggleMute} />
 
-          {/* Double-tap hearts bloom from the middle of the stage */}
-          {bursts.map((t) => (
-            <span key={t} className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <Heart size={104} fill="currentColor" className="flow-heart-burst text-rose-500" />
+          {/* Double-tap hearts bloom from the exact tap point — a cluster of
+              hearts and a couple of cyan sparks flung outward, plus a ring. */}
+          {bursts.map((b) => (
+            <span key={b.id} className="pointer-events-none absolute z-20" style={{ left: b.x, top: b.y }}>
+              <span className="absolute -translate-x-1/2 -translate-y-1/2">
+                <Heart size={92} fill="currentColor" className="flow-heart-burst text-rose-500" />
+              </span>
+              <span className="mesh-burst-ring" style={{ borderColor: "rgba(244, 63, 94, 0.8)" }} aria-hidden />
+              {b.particles.map((p, idx) => (
+                <span
+                  key={idx}
+                  className="mesh-burst-particle"
+                  style={{
+                    ["--angle"]: p.angle,
+                    ["--dist"]: p.dist,
+                    width: p.size,
+                    height: p.size,
+                    margin: `${-p.size / 2}px 0 0 ${-p.size / 2}px`,
+                    background: p.color,
+                    boxShadow: p.kind === "spark" ? "0 0 6px #34e4ea" : "0 0 5px rgba(244, 63, 94, 0.55)",
+                  } as React.CSSProperties}
+                  aria-hidden
+                />
+              ))}
             </span>
           ))}
 
@@ -400,7 +569,7 @@ function Reel({
           {/* Related-lane state: finding, or how deep into "similar" you are */}
           {laneLoading && (
             <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
-              <Sparkles size={12} className="animate-pulse" /> Finding similar…
+              <OrbitSparkle size={12} /> Finding similar…
             </span>
           )}
           {!laneLoading && laneIndex > 0 && (
@@ -486,8 +655,28 @@ function Reel({
           {/* Right action rail */}
           <div className="absolute bottom-16 right-2 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
             <RailButton label="Like" count={formatCount(likeCount)} onClick={() => handleLike()} active={liked}>
-              <span key={liked ? "liked" : "unliked"} className={liked ? "flow-like-pop inline-flex" : "inline-flex"}>
-                <Heart size={28} fill={liked ? "currentColor" : "none"} className={liked ? "text-rose-500" : undefined} />
+              <span className="relative inline-flex items-center justify-center">
+                {/* A radial glow ring flares out on every like. */}
+                {likePulse > 0 && (
+                  <span
+                    key={likePulse}
+                    className="mesh-burst-ring"
+                    style={{ width: 26, height: 26, borderColor: "rgba(244, 63, 94, 0.7)" }}
+                    aria-hidden
+                  />
+                )}
+                {/* Springy overshoot with a quick hue flash toward magenta,
+                    replayed only on an actual like (keyed to likePulse) so
+                    unrelated re-renders don't retrigger it. */}
+                <motion.span
+                  key={likePulse}
+                  className="inline-flex"
+                  initial={likePulse === 0 ? false : { scale: 1.5, filter: "hue-rotate(-26deg) brightness(1.5)" }}
+                  animate={{ scale: 1, filter: "hue-rotate(0deg) brightness(1)" }}
+                  transition={{ type: "spring", stiffness: 360, damping: 12, mass: 0.7 }}
+                >
+                  <Heart size={28} fill={liked ? "currentColor" : "none"} className={liked ? "text-rose-500" : undefined} />
+                </motion.span>
               </span>
             </RailButton>
             <RailButton label="Comments" count={formatCount(post._count.comments)} href={`/feed/${post.id}`}>
@@ -507,9 +696,7 @@ function Reel({
               </RailButton>
             )}
           </div>
-        </div>
-      </div>
-    </section>
+    </motion.div>
   );
 }
 
@@ -1033,27 +1220,38 @@ export function FlowClient({
         <SlidersHorizontal size={14} aria-hidden="true" />
         {studioActive ? "Studio" : FLOW_MODES.find((m) => m.id === mode)?.name}
       </button>
-      {showModes && (
-        <div
+      <AnimatePresence>
+        {showModes && (
+        <motion.div
+          key="flow-modes"
           className="absolute inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center"
           onClick={() => setShowModes(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div
+          <motion.div
             role="dialog"
             aria-label="Flow ranking modes"
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md rounded-t-3xl border border-white/12 bg-[#0b0c14] p-5 pb-8 sm:rounded-3xl sm:pb-5"
+            initial={{ y: 48, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 30, opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.9 }}
           >
             <p className="text-base font-bold text-white">How should your Flow rank?</p>
             <p className="mt-0.5 text-xs text-white/50">
               You steer the algorithm. No ads, no paid reach — ever.
             </p>
-            <div className="mt-4 grid gap-1.5">
-              {FLOW_MODES.map((m) => (
+            <div className="mt-4 grid gap-1.5 mesh-cascade">
+              {FLOW_MODES.map((m, idx) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => selectMode(m.id)}
+                  style={{ ["--i"]: idx } as React.CSSProperties}
                   className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                     mode === m.id && !studioActive
                       ? "border-white/25 bg-white/10"
@@ -1136,9 +1334,10 @@ export function FlowClient({
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
       {refreshing && (
         <div className="absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur">
           Refreshing your Flow…
@@ -1180,7 +1379,9 @@ export function FlowClient({
           const displayed = lane && lane.index > 0 ? lane.posts[lane.index - 1] ?? post : post;
           return (
             <Reel
-              key={`${i}:${post.id}:${displayed.id}`}
+              // Slot-stable so the shell (observer target, scroll-snap slot)
+              // persists across lane swaps; the content inside re-keys instead.
+              key={`${i}:${post.id}`}
               post={displayed}
               slotIndex={i}
               active={i === activeIndex}

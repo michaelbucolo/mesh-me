@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { motion, useInView, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
@@ -66,8 +69,41 @@ function labelFor(platform: string) {
   return platform.charAt(0).toUpperCase() + platform.slice(1);
 }
 
-/** Tiny area sparkline — trend at a glance, no axes, no chrome. */
+/**
+ * A number that springs up from 0 the first time it scrolls into view.
+ * Falls back to the final formatted string under reduced motion.
+ */
+function AnimatedNumber({ value, target, format }: { value: string; target: number; format: (n: number) => string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+  const reduce = useReducedMotion();
+  const mv = useMotionValue(0);
+  const spring = useSpring(mv, { stiffness: 70, damping: 18, restDelta: 0.4 });
+  const [display, setDisplay] = useState(format(0));
+
+  useEffect(() => {
+    // Reduced motion: skip the spring entirely — the final value is rendered
+    // directly below, so no setState is needed in this effect.
+    if (!reduce && inView) mv.set(target);
+  }, [inView, target, reduce, mv]);
+
+  useEffect(() => {
+    if (reduce) return;
+    const unsubscribe = spring.on("change", (v) => {
+      // Snap to the canonical formatted string once it has essentially arrived.
+      setDisplay(Math.abs(target - v) < 0.5 ? value : format(v));
+    });
+    return () => unsubscribe();
+  }, [spring, format, target, value, reduce]);
+
+  return <span ref={ref}>{reduce ? value : display}</span>;
+}
+
+/** Tiny area sparkline — trend at a glance, no axes, no chrome. Strokes itself in on view. */
 function Sparkline({ points, tone = "#2f7cff" }: { points: ChartPoint[]; tone?: string }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-30px" });
+  const reduce = useReducedMotion();
   if (!points.length) return null;
   const w = 120;
   const h = 34;
@@ -76,10 +112,27 @@ function Sparkline({ points, tone = "#2f7cff" }: { points: ChartPoint[]; tone?: 
   const y = (v: number) => h - 3 - (Math.max(0, v) / max) * (h - 8);
   const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
   const area = `${line} L${w},${h} L0,${h} Z`;
+  const show = inView || reduce;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-9 w-full" preserveAspectRatio="none" aria-hidden="true">
-      <path d={area} fill={tone} opacity="0.14" />
-      <path d={line} fill="none" stroke={tone} strokeWidth="1.8" strokeLinecap="round" />
+    <svg ref={ref} viewBox={`0 0 ${w} ${h}`} className="h-9 w-full" preserveAspectRatio="none" aria-hidden="true">
+      <motion.path
+        d={area}
+        fill={tone}
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: show ? 0.14 : 0 }}
+        transition={{ duration: 0.5, delay: reduce ? 0 : 0.35, ease: "easeOut" }}
+      />
+      <motion.path
+        d={line}
+        fill="none"
+        stroke={tone}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        pathLength={1}
+        initial={reduce ? false : { pathLength: 0, opacity: 0 }}
+        animate={show ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+        transition={{ duration: reduce ? 0 : 0.95, ease: [0.16, 1, 0.3, 1] }}
+      />
     </svg>
   );
 }
@@ -91,6 +144,9 @@ function Stat({
   sub,
   points,
   tone,
+  rawValue,
+  format,
+  index,
 }: {
   icon: LucideIcon;
   label: string;
@@ -98,14 +154,22 @@ function Stat({
   sub?: string;
   points?: ChartPoint[];
   tone?: string;
+  rawValue?: number;
+  format?: (n: number) => string;
+  index?: number;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4">
+    <div
+      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
+      style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
+    >
       <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         {label}
       </p>
-      <p className="mt-1.5 text-2xl font-bold leading-none text-[var(--text-primary)]">{value}</p>
+      <p className="mt-1.5 text-2xl font-bold leading-none text-[var(--text-primary)]">
+        {rawValue !== undefined && format ? <AnimatedNumber value={value} target={rawValue} format={format} /> : value}
+      </p>
       {sub && <p className="mt-1 text-[11px] text-[var(--text-muted)]">{sub}</p>}
       {points && points.length > 1 && (
         <div className="mt-2">
@@ -132,7 +196,7 @@ function SectionTitle({ icon: Icon, title, sub, action }: { icon: LucideIcon; ti
 }
 
 /** One platform, every number it reports — as a scannable row. */
-function PlatformRow({ account }: { account: AnalyticsDashboardData["platformComparison"][number] }) {
+function PlatformRow({ account, index }: { account: AnalyticsDashboardData["platformComparison"][number]; index?: number }) {
   const tone = toneFor(account.platform);
   const cells: Array<[string, string]> = [
     ["Followers", compact(account.followerCount)],
@@ -145,7 +209,10 @@ function PlatformRow({ account }: { account: AnalyticsDashboardData["platformCom
     ["Eng. rate", pct(account.engagementRate)],
   ];
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4">
+    <div
+      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
+      style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tone }} />
         <p className="text-sm font-bold text-[var(--text-primary)]">{labelFor(account.platform)}</p>
@@ -222,10 +289,13 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
   );
 }
 
-function TrendCard({ title, points, tone }: { title: string; points: ChartPoint[]; tone: string }) {
+function TrendCard({ title, points, tone, index }: { title: string; points: ChartPoint[]; tone: string; index?: number }) {
   const total = points.reduce((t, p) => t + p.value, 0);
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4">
+    <div
+      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
+      style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
+    >
       <div className="flex items-baseline justify-between">
         <p className="text-xs font-semibold text-[var(--text-secondary)]">{title}</p>
         <p className="text-sm font-bold text-[var(--text-primary)]">{compact(total)}</p>
@@ -264,13 +334,13 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
       </div>
 
       {/* The numbers that matter, with their 14-day pulse */}
-      <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Overview">
-        <Stat icon={Users} label="Audience" value={compact(data.overview.totalFollowers)} sub={`${data.overview.connectedAccounts} platforms connected`} points={data.charts.followerGrowth} tone="#34d399" />
-        <Stat icon={Eye} label="Views" value={compact(data.overview.totalViews)} sub="across synced content" />
-        <Stat icon={Heart} label="Engagement" value={compact(data.overview.totalEngagement)} sub="likes · comments · shares" points={data.charts.engagement} tone="#2f7cff" />
-        <Stat icon={Gauge} label="Eng. rate" value={pct(data.overview.engagementRate)} sub="of your audience responds" />
-        <Stat icon={Clock3} label="Watch time" value={duration(data.overview.watchTimeSeconds)} sub="synced video content" />
-        <Stat icon={FileText} label="Content" value={compact(data.overview.totalContent)} sub={`${fmt(data.overview.nativePosts)} on mesh.me`} points={data.charts.content} tone="#a78bfa" />
+      <section className="mesh-cascade mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Overview">
+        <Stat index={0} icon={Users} label="Audience" value={compact(data.overview.totalFollowers)} rawValue={data.overview.totalFollowers} format={compact} sub={`${data.overview.connectedAccounts} platforms connected`} points={data.charts.followerGrowth} tone="#34d399" />
+        <Stat index={1} icon={Eye} label="Views" value={compact(data.overview.totalViews)} rawValue={data.overview.totalViews} format={compact} sub="across synced content" />
+        <Stat index={2} icon={Heart} label="Engagement" value={compact(data.overview.totalEngagement)} rawValue={data.overview.totalEngagement} format={compact} sub="likes · comments · shares" points={data.charts.engagement} tone="#2f7cff" />
+        <Stat index={3} icon={Gauge} label="Eng. rate" value={pct(data.overview.engagementRate)} rawValue={data.overview.engagementRate} format={pct} sub="of your audience responds" />
+        <Stat index={4} icon={Clock3} label="Watch time" value={duration(data.overview.watchTimeSeconds)} rawValue={data.overview.watchTimeSeconds} format={duration} sub="synced video content" />
+        <Stat index={5} icon={FileText} label="Content" value={compact(data.overview.totalContent)} rawValue={data.overview.totalContent} format={compact} sub={`${fmt(data.overview.nativePosts)} on mesh.me`} points={data.charts.content} tone="#a78bfa" />
       </section>
 
       {/* The reason this page exists: everything side by side */}
@@ -286,9 +356,9 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           sub="Every number each platform reports, one row per account."
         />
         {data.platformComparison.length > 0 ? (
-          <div className="grid gap-3">
-            {data.platformComparison.map((account) => (
-              <PlatformRow key={account.id} account={account} />
+          <div className="mesh-cascade grid gap-3">
+            {data.platformComparison.map((account, i) => (
+              <PlatformRow key={account.id} account={account} index={i} />
             ))}
           </div>
         ) : (
@@ -324,11 +394,11 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
       {/* Trends */}
       <section className="mt-8" aria-label="Trends">
         <SectionTitle icon={TrendingUp} title="14-day trends" />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <TrendCard title="Engagement received" points={data.charts.engagement} tone="#2f7cff" />
-          <TrendCard title="Audience growth" points={data.charts.followerGrowth} tone="#34d399" />
-          <TrendCard title="Content published" points={data.charts.content} tone="#a78bfa" />
-          <TrendCard title="Your activity" points={data.charts.activity} tone="#f59e0b" />
+        <div className="mesh-cascade grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <TrendCard index={0} title="Engagement received" points={data.charts.engagement} tone="#2f7cff" />
+          <TrendCard index={1} title="Audience growth" points={data.charts.followerGrowth} tone="#34d399" />
+          <TrendCard index={2} title="Content published" points={data.charts.content} tone="#a78bfa" />
+          <TrendCard index={3} title="Your activity" points={data.charts.activity} tone="#f59e0b" />
         </div>
       </section>
 

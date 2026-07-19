@@ -26,6 +26,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { updateMeshPrivacy, updatePrivacy } from "@/lib/actions";
@@ -118,6 +119,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
   });
   const [notice, setNotice] = useState<Notice>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [confirmingImportDelete, setConfirmingImportDelete] = useState<{ account: Account | null } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const policyByType = useMemo(() => {
@@ -233,11 +235,6 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
 
   function deleteImportedData(account?: Account) {
     const scopeLabel = account ? accountLabel(account) : "all connected platforms";
-    const confirmed = window.confirm(
-      `Delete imported Mesh.me copies from ${scopeLabel}? This does not delete anything from the original platform.`,
-    );
-    if (!confirmed) return;
-
     void runMutation(
       account ? `delete-import-${account.id}` : "delete-import-all",
       account ? `Imported data removed for ${scopeLabel}.` : "All imported platform data removed from Mesh.me.",
@@ -450,7 +447,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
                     pendingKey={pendingKey}
                     onToggleSync={() => toggleSync(account)}
                     onSyncNow={() => syncNow(account)}
-                    onDeleteImportedData={() => deleteImportedData(account)}
+                    onDeleteImportedData={() => setConfirmingImportDelete({ account })}
                   />
                 ))
               )}
@@ -522,7 +519,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
 
           <Panel icon={Trash2} title="Imported data" description="Remove synced platform copies stored by Mesh.me. Source platforms are not changed.">
             <div className="mt-4 grid gap-2">
-              <Button type="button" variant="danger" className="w-full justify-start" onClick={() => deleteImportedData()} disabled={isBusy || accounts.length === 0}>
+              <Button type="button" variant="danger" className="w-full justify-start" onClick={() => setConfirmingImportDelete({ account: null })} disabled={isBusy || accounts.length === 0}>
                 {pendingKey === "delete-import-all" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
                 Delete all imported data
               </Button>
@@ -557,6 +554,17 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
           </Panel>
         </aside>
       </section>
+      <ConfirmDialog
+        open={confirmingImportDelete !== null}
+        onClose={() => setConfirmingImportDelete(null)}
+        onConfirm={() => deleteImportedData(confirmingImportDelete?.account ?? undefined)}
+        title="Delete imported copies?"
+        description={`Imported Mesh.me copies from ${
+          confirmingImportDelete?.account ? accountLabel(confirmingImportDelete.account) : "all connected platforms"
+        } will be removed. Nothing is deleted from the original platform.`}
+        confirmLabel="Delete imported data"
+        destructive
+      />
     </main>
   );
 }

@@ -3,6 +3,8 @@
 import { prisma } from "./prisma";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { getTrustedClientIp } from "./client-ip";
 import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
@@ -195,8 +197,13 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
   const isPhone = normalizedPhone.length >= 7 && !lowered.includes("@");
   const identifierKey = isPhone ? normalizedPhone : lowered;
 
+  // Per-identifier keying alone would let a caller rotate identifiers freely,
+  // so a per-client ceiling backstops bulk probing across many identifiers
+  // without a shared counter that could lock every user out at once.
+  const clientIp = getTrustedClientIp(await headers());
   const rl = await durableRateLimit(`entry-identity:${identifierKey}`, 12, 15 * 60 * 1000);
-  if (!rl.allowed) {
+  const ipRl = await durableRateLimit(`entry-identity:ip:${clientIp}`, 60, 15 * 60 * 1000);
+  if (!rl.allowed || !ipRl.allowed) {
     return { error: "Too many attempts. Please try again later." };
   }
 
@@ -212,24 +219,21 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
     });
 
     if (!user && isEmail) {
+      // Verified and unverified contacts resolve identically to the sign-in
+      // step; a distinct pre-auth "not verified" message would tell an
+      // unauthenticated caller which contacts are registered but unconfirmed.
       const emailRecord = await prisma.userEmail.findUnique({
         where: { email: lowered },
-        select: { userId: true, isVerified: true },
+        select: { userId: true },
       });
-      if (emailRecord && !emailRecord.isVerified) {
-        return { error: "This email isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
-      }
       user = emailRecord ? { id: emailRecord.userId } : null;
     }
 
     if (!user && isPhone) {
       const phoneRecord = await prisma.userPhone.findFirst({
         where: { phone: { in: Array.from(new Set([normalizedPhone, identifier])) } },
-        select: { userId: true, isVerified: true },
+        select: { userId: true },
       });
-      if (phoneRecord && !phoneRecord.isVerified) {
-        return { error: "This phone number isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
-      }
       user = phoneRecord ? { id: phoneRecord.userId } : null;
     }
 
@@ -1806,6 +1810,7 @@ async function sharePostViaMeChatLegacy(formData: FormData) {
     },
   });
   if (!post) return { error: "Post not found" };
+  if (!(await canUserInteractWithPost(user.id, post))) return { error: "Post not found" };
 
   const note = ((formData.get("note") as string | null) || "").trim();
   const sharedMessage = `${note ? `${note}\n\n` : ""}Shared a post by ${post.author.displayName} (@${post.author.username})\n${post.content.slice(0, 260)}${post.content.length > 260 ? "…" : ""}\n/feed/${post.id}`;
@@ -1845,6 +1850,12 @@ export async function toggleSavePost(postId: string) {
   if (existing) {
     await prisma.savedPost.delete({ where: { id: existing.id } });
   } else {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true, visibility: true, communityId: true },
+    });
+    if (!post) return { error: "Post not found" };
+    if (!(await canUserInteractWithPost(user.id, post))) return { error: "Post not found" };
     await prisma.savedPost.create({
       data: { userId: user.id, postId },
     });
@@ -1884,6 +1895,51 @@ export async function adminSuspendUser(targetUserId: string) {
       action: newSuspendedState ? "suspend_user" : "unsuspend_user",
       details: `User: ${target.username}`,
       adminId: user.id,
+    },
+  });
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+// Create a report for a post. The post "Report" button used to only show a fake
+// "Report noted" toast with no persistence — this is the real write path that
+// feeds the admin "Pending reports" queue and community moderation. Native posts
+// link via reportedPostId; external/platform posts (synthetic ids with no Post
+// row) capture the reference in the reason so the foreign key stays valid.
+export async function reportPost(postId: string, reason?: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to report a post." };
+
+  const rl = rateLimit(`report:${user.id}`, 20, 60 * 60 * 1000);
+  if (!rl.allowed) return { error: "You've reported a lot recently. Try again later." };
+
+  const id = typeof postId === "string" ? postId.trim().slice(0, 200) : "";
+  if (!id) return { error: "Invalid post." };
+
+  const cleanReason = (typeof reason === "string" ? reason : "").trim().slice(0, 500);
+
+  const nativePost = await prisma.post.findUnique({
+    where: { id },
+    select: { id: true, authorId: true },
+  });
+
+  if (nativePost?.authorId === user.id) return { error: "You can't report your own post." };
+
+  // De-dupe: at most one open report per user per native post.
+  if (nativePost) {
+    const existing = await prisma.report.findFirst({
+      where: { reporterId: user.id, reportedPostId: id, status: "pending" },
+      select: { id: true },
+    });
+    if (existing) return { success: true };
+  }
+
+  await prisma.report.create({
+    data: {
+      reason: cleanReason || (nativePost ? "Reported from feed" : `Reported external post (${id})`),
+      reporterId: user.id,
+      reportedPostId: nativePost ? id : null,
     },
   });
 
@@ -2026,12 +2082,15 @@ export async function repost(postId: string) {
     return { success: true, reposted: false };
   }
 
+  if (!(await canUserInteractWithPost(user.id, original))) return { error: "Post not found" };
+
   await prisma.post.create({
     data: {
       content: original.content,
       authorId: user.id,
       isRepost: true,
       repostId: postId,
+      visibility: original.visibility,
     },
   });
 
@@ -2171,6 +2230,23 @@ export async function updatePrivacy(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/privacy-controls");
+  return { success: true };
+}
+
+// Persist Ghost Mode on the account so it follows the user across devices
+// instead of living only in per-device localStorage. The presence route reads
+// this as the authoritative signal, so a ghosting user stays hidden even from a
+// fresh device whose local heartbeat hasn't set the flag yet.
+export async function setGhostMode(ghostMode: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { ghostMode: Boolean(ghostMode) },
+  });
+
+  revalidatePath("/settings");
   return { success: true };
 }
 

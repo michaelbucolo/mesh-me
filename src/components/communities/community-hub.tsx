@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShieldCheck } from "lucide-react";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
+
+const HUB_SPRING = { type: "spring" as const, stiffness: 380, damping: 32 };
 
 type CommunitiesHubData = NonNullable<Awaited<ReturnType<typeof getCommunitiesHubData>>>;
 type Community = CommunitiesHubData["communities"][number];
@@ -62,40 +65,52 @@ function FeaturedCard({ community }: { community: Community }) {
   );
 }
 
-function CommunityRow({ community, selected, onSelect }: { community: Community; selected: boolean; onSelect: () => void }) {
+function CommunityRow({ community, selected, onSelect, index }: { community: Community; selected: boolean; onSelect: () => void; index: number }) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onSelect}
-      className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition-colors ${
-        selected ? "bg-[var(--mesh-panel-hover)] border border-[var(--mesh-border-active)]" : "border border-transparent hover:bg-[var(--mesh-panel)]"
+      whileTap={{ scale: 0.99 }}
+      style={{ "--i": index } as CSSProperties}
+      className={`relative block w-full rounded-xl px-4 py-3 text-left transition-colors ${
+        selected ? "border border-[var(--mesh-border-active)]" : "border border-transparent hover:bg-[var(--mesh-panel)]"
       }`}
     >
-      <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="sm" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</span>
-          <ShieldCheck className="h-3 w-3 shrink-0 text-[var(--mesh-blue)]" />
-        </div>
-        <p className="text-xs text-[var(--mesh-text-muted)]">
-          {community.isPublic ? "Public" : "Private"} · {community.category || "General"}
-        </p>
-      </div>
-      <div className="shrink-0 text-right">
-        <p className="text-sm font-bold text-[var(--mesh-text)]">{formatCount(community._count.members)}</p>
-        <p className="text-[10px] text-[var(--mesh-text-muted)]">members</p>
-      </div>
-      <div className="hidden shrink-0 text-right sm:block">
-        <p className="text-xs text-[var(--mesh-text-secondary)]">Updated {formatRelativeTime(community.updatedAt)}</p>
-      </div>
-      <div className="shrink-0">
-        {!community.isPublic ? (
-          <Lock className="h-4 w-4 text-[var(--mesh-text-muted)]" />
-        ) : (
-          <span className="h-2 w-2 rounded-full bg-[var(--mesh-blue)] inline-block" />
-        )}
-      </div>
-    </button>
+      {selected && (
+        <motion.span
+          layoutId="community-row-highlight"
+          transition={HUB_SPRING}
+          className="pointer-events-none absolute inset-0 rounded-xl bg-[var(--mesh-panel-hover)]"
+          aria-hidden="true"
+        />
+      )}
+      <span className="relative z-[1] flex items-center gap-4">
+        <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</span>
+            <ShieldCheck className="h-3 w-3 shrink-0 text-[var(--mesh-blue)]" />
+          </span>
+          <span className="block text-xs text-[var(--mesh-text-muted)]">
+            {community.isPublic ? "Public" : "Private"} · {community.category || "General"}
+          </span>
+        </span>
+        <span className="shrink-0 text-right">
+          <span className="block text-sm font-bold text-[var(--mesh-text)]">{formatCount(community._count.members)}</span>
+          <span className="block text-[10px] text-[var(--mesh-text-muted)]">members</span>
+        </span>
+        <span className="hidden shrink-0 text-right sm:block">
+          <span className="block text-xs text-[var(--mesh-text-secondary)]">Updated {formatRelativeTime(community.updatedAt)}</span>
+        </span>
+        <span className="shrink-0">
+          {!community.isPublic ? (
+            <Lock className="h-4 w-4 text-[var(--mesh-text-muted)]" />
+          ) : (
+            <span className="h-2 w-2 rounded-full bg-[var(--mesh-blue)] inline-block" />
+          )}
+        </span>
+      </span>
+    </motion.button>
   );
 }
 
@@ -108,7 +123,15 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
   const featured = data.publicCommunities.slice(0, 6);
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedId, setSelectedId] = useState<string | null>(featured[0]?.id ?? null);
-  const [scrollOffset, setScrollOffset] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  const scrollCarousel = (dir: -1 | 1) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const amount = Math.min(el.clientWidth * 0.85, 320);
+    el.scrollBy({ left: dir * amount, behavior: prefersReducedMotion ? "auto" : "smooth" });
+  };
 
   const filteredCommunities = activeCategory === "All"
     ? dedupedCommunities
@@ -129,25 +152,31 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 View all
                 <ArrowRight size={12} />
               </Link>
-              <button
+              <motion.button
                 type="button"
-                onClick={() => setScrollOffset(Math.max(0, scrollOffset - 1))}
-                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] transition-colors"
+                onClick={() => scrollCarousel(-1)}
+                whileTap={{ scale: 0.88 }}
+                whileHover={{ x: -1 }}
+                transition={HUB_SPRING}
+                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Previous"
               >
                 <ArrowLeft size={14} />
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
-                onClick={() => setScrollOffset(Math.min(featured.length - 1, scrollOffset + 1))}
-                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] transition-colors"
+                onClick={() => scrollCarousel(1)}
+                whileTap={{ scale: 0.88 }}
+                whileHover={{ x: 1 }}
+                transition={HUB_SPRING}
+                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Next"
               >
                 <ArrowRight size={14} />
-              </button>
+              </motion.button>
             </div>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          <div ref={carouselRef} className="flex gap-4 overflow-x-auto scroll-smooth pb-2 scrollbar-hide">
             {featured.map((community) => (
               <FeaturedCard key={community.id} community={community} />
             ))}
@@ -156,20 +185,32 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
 
         {/* Category tabs */}
         <div className="flex flex-wrap items-center gap-2">
-          {CATEGORY_TABS.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActiveCategory(cat)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                activeCategory === cat
-                  ? "bg-[var(--mesh-blue)] text-white"
-                  : "border border-[var(--mesh-border)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)]"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {CATEGORY_TABS.map((cat) => {
+            const active = activeCategory === cat;
+            return (
+              <motion.button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                whileTap={{ scale: 0.95 }}
+                className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "border border-transparent text-white"
+                    : "border border-[var(--mesh-border)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)]"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="community-category-pill"
+                    transition={HUB_SPRING}
+                    className="absolute inset-0 rounded-full bg-[var(--mesh-blue)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="relative z-[1]">{cat}</span>
+              </motion.button>
+            );
+          })}
           <button
             type="button"
             className="inline-flex items-center gap-1 rounded-full border border-[var(--mesh-border)] px-4 py-1.5 text-sm font-medium text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)] transition-colors"
@@ -188,14 +229,15 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               <span>Activity</span>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="mesh-cascade-soft space-y-1">
             {filteredCommunities.length > 0 ? (
-              filteredCommunities.map((community) => (
+              filteredCommunities.map((community, index) => (
                 <CommunityRow
                   key={community.id}
                   community={community}
                   selected={selectedId === community.id}
                   onSelect={() => setSelectedId(community.id)}
+                  index={index}
                 />
               ))
             ) : (

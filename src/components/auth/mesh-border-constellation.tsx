@@ -14,6 +14,7 @@ export type ConstellationState = {
   energy: number; // 0..1, bumped on keystroke, decays over time
   stage: EntryStage;
   phase: EntryPhase;
+  sparks?: number; // monotonic keystroke counter; each bump flings a caret spark
 };
 
 type Node = {
@@ -25,17 +26,36 @@ type Node = {
   r: number;
   x: number;
   y: number;
+  par: number; // parallax reach (px) — two depth layers offset opposite the pointer
+  depth: number; // 0 far, 1 near
 };
 
+// A spark born at the caret that races outward to a perimeter node.
+type Spark = { idx: number; t: number };
+
 const COLORS = {
-  strand: [130, 150, 255],
-  strandHot: [168, 120, 250],
+  strand: [130, 150, 255], // periwinkle-blue (calm)
+  strandHot: [168, 120, 250], // violet (warming)
+  strandAurora: [52, 228, 234], // Aurora cyan #34e4ea (hot)
   node: [200, 214, 255],
   success: [236, 130, 200],
 };
 
 function rgba(c: number[], a: number) {
   return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
+}
+
+function mixColor(c1: number[], c2: number[], t: number) {
+  const u = t < 0 ? 0 : t > 1 ? 1 : t;
+  return [c1[0] + (c2[0] - c1[0]) * u, c1[1] + (c2[1] - c1[1]) * u, c1[2] + (c2[2] - c1[2]) * u];
+}
+
+// Hot strands interpolate blue → periwinkle → cyan as energy rises.
+function strandColor(heat: number) {
+  const u = heat < 0 ? 0 : heat > 1 ? 1 : heat;
+  return u < 0.5
+    ? mixColor(COLORS.strand, COLORS.strandHot, u / 0.5)
+    : mixColor(COLORS.strandHot, COLORS.strandAurora, (u - 0.5) / 0.5);
 }
 
 /**
@@ -66,8 +86,22 @@ export function MeshBorderConstellation({
     let height = 0;
     let nodes: Node[] = [];
     let edges: Array<[number, number, number]> = []; // [i, j, baseAlpha]
+    let sparks: Spark[] = [];
+    let lastSparkCount = 0;
+    // Normalized pointer offset [-1..1]; nodes parallax a few px opposite it.
+    let pointerX = 0;
+    let pointerY = 0;
     let raf = 0;
     let running = true;
+
+    const onPointer = (event: PointerEvent) => {
+      const cr = canvas.getBoundingClientRect();
+      if (cr.width <= 0 || cr.height <= 0) return;
+      pointerX = ((event.clientX - cr.left) / cr.width - 0.5) * 2;
+      pointerY = ((event.clientY - cr.top) / cr.height - 0.5) * 2;
+    };
+    // Skip pointer tracking under reduced motion so the static frame never redraws.
+    if (!reducedMotion) window.addEventListener("pointermove", onPointer, { passive: true });
 
     // Distribute nodes with a strong bias toward the border band, leaving the
     // center (where the form sits) sparse and open.
@@ -89,6 +123,7 @@ export function MeshBorderConstellation({
       const clearRy = Math.min(height * 0.34, 300);
 
       nodes = [];
+      sparks = [];
       let guard = 0;
       while (nodes.length < count && guard < count * 40) {
         guard += 1;
@@ -103,6 +138,8 @@ export function MeshBorderConstellation({
         const nx = (x - cx) / clearRx;
         const ny = (y - cy) / clearRy;
         if (nx * nx + ny * ny < 1) continue;
+        // Two subtle depth layers: near nodes parallax more, far nodes less.
+        const depth = Math.random() < 0.5 ? 1 : 0;
         nodes.push({
           bx: x,
           by: y,
@@ -112,6 +149,8 @@ export function MeshBorderConstellation({
           r: 0.8 + Math.random() * 1.8,
           x,
           y,
+          par: reducedMotion ? 0 : depth === 1 ? 6 : 2.6,
+          depth,
         });
       }
 
@@ -166,12 +205,32 @@ export function MeshBorderConstellation({
         ay = r.top + r.height / 2 - cr.top;
       }
 
-      // Update node positions (gentle drift).
+      // Update node positions (gentle drift + parallax opposite the pointer).
       for (const n of nodes) {
+        let wx = 0;
+        let wy = 0;
         if (n.amp > 0) {
-          n.x = n.bx + Math.sin(time * n.speed + n.phase) * n.amp;
-          n.y = n.by + Math.cos(time * n.speed * 0.9 + n.phase) * n.amp;
+          wx = Math.sin(time * n.speed + n.phase) * n.amp;
+          wy = Math.cos(time * n.speed * 0.9 + n.phase) * n.amp;
         }
+        n.x = n.bx + wx - pointerX * n.par;
+        n.y = n.by + wy - pointerY * n.par;
+      }
+
+      // Each keystroke bumps `sparks`: fling one from the caret out to a nearby
+      // perimeter node so the anchor visibly "throws" light along a reach-strand.
+      const sparkCount = s.sparks ?? 0;
+      if (sparkCount > lastSparkCount) {
+        const toSpawn = Math.min(sparkCount - lastSparkCount, 3);
+        for (let k = 0; k < toSpawn; k += 1) {
+          const near = nodes
+            .map((n, i) => ({ i, d: (n.x - ax) * (n.x - ax) + (n.y - ay) * (n.y - ay) }))
+            .sort((p, q) => p.d - q.d)
+            .slice(0, 6);
+          if (near.length) sparks.push({ idx: near[Math.floor(Math.random() * near.length)].i, t: 0 });
+        }
+        lastSparkCount = sparkCount;
+        if (sparks.length > 14) sparks = sparks.slice(sparks.length - 14);
       }
 
       // Perimeter web.
@@ -179,11 +238,7 @@ export function MeshBorderConstellation({
       const hot = success ? 1 : energy;
       for (const [i, j, w] of edges) {
         const a = webBase * (0.4 + w * 0.9);
-        const col = success
-          ? COLORS.success
-          : hot > 0.4
-            ? COLORS.strandHot
-            : COLORS.strand;
+        const col = success ? COLORS.success : strandColor(hot);
         ctx.strokeStyle = rgba(col, a * (success ? 2.4 : 1));
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -203,10 +258,11 @@ export function MeshBorderConstellation({
           .sort((p, q) => p.d - q.d)
           .slice(0, converge ? nodes.length : 10);
         const dash = (time * 0.06) % 24;
+        const reachCol = success ? COLORS.success : strandColor(converge ? 0.5 : energy);
         for (const { idx } of near) {
           const n = nodes[idx];
           const a = converge ? 0.5 : reachStrength * 0.55;
-          ctx.strokeStyle = rgba(success ? COLORS.success : COLORS.strandHot, a);
+          ctx.strokeStyle = rgba(reachCol, a);
           ctx.lineWidth = converge ? 1.4 : 1.1;
           ctx.setLineDash(converge ? [] : [3, 6]);
           ctx.lineDashOffset = -dash;
@@ -221,11 +277,38 @@ export function MeshBorderConstellation({
         ctx.setLineDash([]);
       }
 
+      // Caret sparks racing anchor → node along the reach curve.
+      if (sparks.length > 0) {
+        for (const sp of sparks) sp.t += 0.055;
+        sparks = sparks.filter((sp) => sp.t < 1 && sp.idx < nodes.length);
+        for (const sp of sparks) {
+          const n = nodes[sp.idx];
+          const t = sp.t;
+          // Same quadratic path as the reach strand (P0 = anchor, P1 = node).
+          const cpx = (n.x + ax) / 2 + (n.y - ay) * 0.06;
+          const cpy = (n.y + ay) / 2 + (ax - n.x) * 0.06;
+          const it = 1 - t;
+          const sx = it * it * ax + 2 * it * t * cpx + t * t * n.x;
+          const sy = it * it * ay + 2 * it * t * cpy + t * t * n.y;
+          const fade = Math.sin(Math.PI * t); // rise then settle at the node
+          const rad = (3.1 + fade * 2.1) * 2.2;
+          const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, rad);
+          g.addColorStop(0, rgba([255, 255, 255], 0.9 * fade));
+          g.addColorStop(0.4, rgba(COLORS.strandAurora, 0.8 * fade));
+          g.addColorStop(1, rgba(COLORS.strandAurora, 0));
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(sx, sy, rad, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
       // Nodes.
       for (const n of nodes) {
-        const glow = 0.35 + energy * 0.4 + (success ? 0.5 : 0);
+        const glow = (0.35 + energy * 0.4 + (success ? 0.5 : 0)) * (n.depth === 1 ? 1.12 : 0.9);
+        const core = success ? COLORS.success : mixColor(COLORS.node, COLORS.strandAurora, energy * 0.5);
         const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 4);
-        g.addColorStop(0, rgba(success ? COLORS.success : COLORS.node, glow));
+        g.addColorStop(0, rgba(core, glow));
         g.addColorStop(1, rgba(COLORS.node, 0));
         ctx.fillStyle = g;
         ctx.beginPath();
@@ -249,6 +332,7 @@ export function MeshBorderConstellation({
       running = false;
       cancelAnimationFrame(raf);
       ro.disconnect();
+      if (!reducedMotion) window.removeEventListener("pointermove", onPointer);
     };
   }, [state, anchorRef, reducedMotion]);
 
