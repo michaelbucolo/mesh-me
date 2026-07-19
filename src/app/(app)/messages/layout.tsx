@@ -6,6 +6,7 @@ import { MeChatConversationList } from "@/components/messages/mechat-conversatio
 import { MessagesDataProvider } from "@/components/messages/messages-data-context";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getBlockedUserIdSet } from "@/lib/privacy-policy";
 import { getMessageThreads } from "@/lib/queries";
 
 type MessagesLayoutProps = {
@@ -27,11 +28,18 @@ async function MessagesShell({ children }: MessagesLayoutProps) {
   if (!user) redirect("/login?next=/messages");
   if (!user.onboarded) redirect("/onboarding");
 
-  const threadMemberRows = await prisma.threadMember.findMany({
-    where: { thread: { members: { some: { userId: user.id } } } },
-    select: { userId: true },
-  });
-  const noteAudienceIds = Array.from(new Set([user.id, ...threadMemberRows.map((row) => row.userId)]));
+  const [threadMemberRows, blockedIds] = await Promise.all([
+    prisma.threadMember.findMany({
+      where: { thread: { members: { some: { userId: user.id } } } },
+      select: { userId: true },
+    }),
+    getBlockedUserIdSet(user.id),
+  ]);
+  // Mirror GET /api/mechat/notes: notes must not cross a block in either
+  // direction, and the viewer's own note (never suspended) always stays.
+  const noteAudienceIds = Array.from(
+    new Set([user.id, ...threadMemberRows.map((row) => row.userId).filter((id) => !blockedIds.has(id))]),
+  );
 
   const [threads, activeNotes] = await Promise.all([
     getMessageThreads(),
@@ -40,6 +48,8 @@ async function MessagesShell({ children }: MessagesLayoutProps) {
         where: {
           userId: { in: noteAudienceIds },
           expiresAt: { gt: new Date() },
+          // Suspended accounts are locked to owner + admin.
+          user: { isSuspended: false },
         },
         include: {
           user: {

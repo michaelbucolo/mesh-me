@@ -352,11 +352,15 @@ export async function POST(req: Request) {
         const suggestionType = body.suggestionType || "people";
 
         if (suggestionType === "people") {
-          // Suggest people the user might want to follow
+          // Suggest people the user might want to follow. Discovery only ever
+          // surfaces accounts that opted into being found (showInDiscovery),
+          // mirroring getDiscoverUsers / searchAll / lookupPerson — otherwise
+          // Meshi becomes a back door to users who hid from discovery.
           const suggestions = await prisma.user.findMany({
             where: {
               id: { not: user.id },
               isSuspended: false,
+              showInDiscovery: true,
               NOT: {
                 followers: { some: { followerId: user.id } },
               },
@@ -385,6 +389,11 @@ export async function POST(req: Request) {
         if (suggestionType === "communities") {
           const commSuggestions = await prisma.community.findMany({
             where: {
+              // Only ever suggest PUBLIC communities — a private (invite-only)
+              // community's existence, name, description and size must not leak
+              // to a non-member, matching getTrendingCommunities / searchAll and
+              // the sibling "suggest people" discovery gate above.
+              isPublic: true,
               NOT: {
                 members: { some: { userId: user.id } },
               },
