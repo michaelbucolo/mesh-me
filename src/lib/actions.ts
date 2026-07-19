@@ -3,6 +3,8 @@
 import { prisma } from "./prisma";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { getTrustedClientIp } from "./client-ip";
 import { revalidatePath } from "next/cache";
 import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
@@ -196,10 +198,12 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
   const identifierKey = isPhone ? normalizedPhone : lowered;
 
   // Per-identifier keying alone would let a caller rotate identifiers freely,
-  // so an aggregate ceiling backstops bulk probing across many identifiers.
+  // so a per-client ceiling backstops bulk probing across many identifiers
+  // without a shared counter that could lock every user out at once.
+  const clientIp = getTrustedClientIp(await headers());
   const rl = await durableRateLimit(`entry-identity:${identifierKey}`, 12, 15 * 60 * 1000);
-  const globalRl = await durableRateLimit("entry-identity:global", 600, 15 * 60 * 1000);
-  if (!rl.allowed || !globalRl.allowed) {
+  const ipRl = await durableRateLimit(`entry-identity:ip:${clientIp}`, 60, 15 * 60 * 1000);
+  if (!rl.allowed || !ipRl.allowed) {
     return { error: "Too many attempts. Please try again later." };
   }
 

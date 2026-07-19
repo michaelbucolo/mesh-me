@@ -1081,7 +1081,16 @@ export async function getSavedPosts(page = 1, limit = 20) {
 export async function getSavedPostCount() {
   const user = await getCurrentUser();
   if (!user) return 0;
-  return prisma.savedPost.count({ where: { userId: user.id, post: nsfwHiddenWhere(user) } });
+  // Same audience gate as getSavedPosts so the collections badge matches the
+  // rendered list when a saved post's author later restricts its visibility.
+  const saved = await prisma.savedPost.findMany({
+    where: { userId: user.id, post: nsfwHiddenWhere(user) },
+    select: { post: { select: { authorId: true, visibility: true, communityId: true } } },
+  });
+  const visible = await Promise.all(
+    saved.map((s) => canUserInteractWithPost(user.id, s.post)),
+  );
+  return visible.filter(Boolean).length;
 }
 
 export async function getBlockedUsers() {
