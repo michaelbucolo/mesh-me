@@ -69,7 +69,7 @@ const shortcutGroups: ShortcutGroup[] = [
       { keys: ["G", "M"], label: "The Mesh", description: "Open the full-screen Mesh dashboard.", action: "mesh" },
       { keys: ["G", "S"], label: "Search", description: "Find people, posts, and connected content.", action: "search" },
       { keys: ["G", "I"], label: "MeChat", description: "Open conversations and shared sessions.", action: "messages" },
-      { keys: ["G", "N"], label: "Alerts", description: "Open notifications.", action: "notifications" },
+      { keys: ["G", "N"], label: "Notifications", description: "Open the Notification Center.", action: "notifications" },
       { keys: ["G", "P"], label: "Profile", description: "Open your public identity page.", action: "profile" },
       { keys: ["G", ","], label: "Settings", description: "Open account, privacy, and Meshi controls.", action: "settings" },
     ],
@@ -90,7 +90,7 @@ const shortcutGroups: ShortcutGroup[] = [
     icon: PenSquare,
     shortcuts: [
       { keys: ["C"], label: "New post", description: "Open the feed composer.", action: "compose" },
-      { keys: ["Shift", "C"], label: "Content Hub", description: "Open drafts, assets, and publishing tools.", action: "contentHub" },
+      { keys: ["Shift", "C"], label: "Connected accounts", description: "Manage every platform threading into your mesh.me account.", action: "contentHub" },
       { keys: ["A"], label: "Ask Meshi", description: "Open the single Meshi companion.", action: "meshi" },
     ],
   },

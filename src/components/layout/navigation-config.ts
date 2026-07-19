@@ -1,4 +1,4 @@
-import { ExploreIcon, FlowIcon, MeChatIcon, MeshIcon, ProfileIcon, type BrandIcon } from "@/components/brand/nav-icons";
+import { FlowIcon, MeChatIcon, MeshIcon, NotificationsIcon, ProfileIcon, type BrandIcon } from "@/components/brand/nav-icons";
 
 export type BadgeKey = "messages" | "notifications";
 
@@ -10,12 +10,15 @@ export interface NavItem {
 }
 
 
+// The five persistent rail/tab surfaces — all within the nine core surfaces.
+// Notifications replaces Explore here so the Notification Center has a home on
+// mobile (not just the top-bar bell); /explore stays reachable via Flow + search.
 export const sidebarNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },
   { href: "/flow", icon: FlowIcon, label: "Flow" },
   { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
+  { href: "/notifications", icon: NotificationsIcon, label: "Notifications", badgeKey: "notifications" },
   { href: "/profile", icon: ProfileIcon, label: "Profile" },
-  { href: "/explore", icon: ExploreIcon, label: "Explore" },
 ];
 
 
@@ -24,8 +27,8 @@ export const mobileNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },
   { href: "/flow", icon: FlowIcon, label: "Flow" },
   { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
+  { href: "/notifications", icon: NotificationsIcon, label: "Notifications", badgeKey: "notifications" },
   { href: "/profile", icon: ProfileIcon, label: "Profile" },
-  { href: "/explore", icon: ExploreIcon, label: "Explore" },
 ];
 
 export function resolveNavHref(href: string, username?: string): string {

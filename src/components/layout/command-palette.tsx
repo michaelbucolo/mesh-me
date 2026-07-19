@@ -102,12 +102,12 @@ function createCommands(username: string): CommandItem[] {
     },
     {
       id: "go-notifications",
-      title: "Open Alerts",
+      title: "Open Notifications",
       description: "Review notifications, security alerts, and privacy updates.",
       category: "Go",
       href: "/notifications",
       icon: Bell,
-      keywords: ["notifications", "mentions", "likes", "comments"],
+      keywords: ["notifications", "alerts", "mentions", "likes", "comments"],
     },
     {
       id: "go-profile",
@@ -150,12 +150,12 @@ function createCommands(username: string): CommandItem[] {
     },
     {
       id: "go-privacy",
-      title: "Open Privacy Controls",
-      description: "Manage data access, visibility, export, and deletion.",
+      title: "Open Privacy settings",
+      description: "Control who sees you, your activity, and read receipts.",
       category: "Go",
-      href: "/privacy-controls",
+      href: "/settings#privacy",
       icon: ShieldCheck,
-      keywords: ["security", "data", "delete", "export"],
+      keywords: ["security", "data", "privacy", "visibility", "activity", "delete", "export"],
     },
     {
       id: "create-post",
