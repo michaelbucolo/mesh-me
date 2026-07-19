@@ -179,9 +179,6 @@ function ShellTopBar({
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
         </button>
-        <Link href="/trust" className="mesh-topbar-icon hidden lg:inline-flex" aria-label="Trust and verification" title="Verify">
-          <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-        </Link>
         <Link href="/notifications" className="mesh-topbar-icon relative" aria-label="Notifications" title="Notifications">
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCounts.unreadNotifications > 0 && (
@@ -213,8 +210,6 @@ function ShellTopBar({
               <Link href="/connected-accounts" className="mesh-dropdown-item">Connected accounts</Link>
               <Link href="/settings" className="mesh-dropdown-item">Settings</Link>
               <Link href="/search" className="mesh-dropdown-item lg:hidden">Search</Link>
-              <Link href="/trust" className="mesh-dropdown-item lg:hidden">Verify</Link>
-              <Link href="/privacy-controls" className="mesh-dropdown-item">Privacy Controls</Link>
               <Link href="/meshpro" className="mesh-dropdown-item">Mesh Pro</Link>
               <button
                 type="button"
@@ -400,7 +395,7 @@ export function AppShell({ children, user }: AppShellProps) {
         {/* Privacy First (discreet) */}
         <div className="mesh-privacy-card mx-3 mb-2">
           <Link
-            href="/privacy-controls"
+            href="/settings#privacy"
             className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text-secondary)]"
           >
             <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--mesh-blue)]" aria-hidden="true" />
