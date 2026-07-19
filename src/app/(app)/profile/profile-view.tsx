@@ -611,9 +611,6 @@ export async function InstagramProfileView({ username, tab }: { username: string
   );
 }
 
-
-
-
 function ProfileTab({ label, count, href, active = false }: { label: string; count: number; href: string; active?: boolean }) {
   return (
     <Link
