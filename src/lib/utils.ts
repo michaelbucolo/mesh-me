@@ -41,6 +41,25 @@ export function formatRelativeTime(date: Date | string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Human "last online" label for an offline user. "Active now" is reserved for
+// the live-presence path, so this starts at "Active recently" for the sub-2-min
+// gap and never claims someone is online.
+export function formatLastActive(date: Date | string): string {
+  const d = new Date(date);
+  const diff = Date.now() - d.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const weeks = Math.floor(days / 7);
+
+  if (minutes < 2) return "Active recently";
+  if (minutes < 60) return `Active ${minutes}m ago`;
+  if (hours < 24) return `Active ${hours}h ago`;
+  if (days < 7) return `Active ${days}d ago`;
+  if (days < 28) return `Active ${weeks}w ago`;
+  return `Active on ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+}
+
 export function formatCount(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;

@@ -380,6 +380,9 @@ export function FeedTimelineClient({
           position: { x: vx * 1000, y: vy * 1000 },
           viewportPosition: { vx, vy },
           activity: "exploring",
+          // Must send ghostMode so the server's last-seen touch stays frozen
+          // while ghosting — every other heartbeat caller sends it too.
+          ghostMode: localStorage.getItem("meshGhostMode") === "true",
         }),
       }).catch(() => {});
     };

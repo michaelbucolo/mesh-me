@@ -278,6 +278,8 @@ export async function getUserProfile(username: string) {
       isMeshPro: true,
       isSuspended: true,
       createdAt: true,
+      lastSeenAt: true,
+      hideActivityStatus: true,
       interests: {
         select: { id: true, tag: true },
         orderBy: { tag: "asc" },
@@ -412,6 +414,12 @@ export async function getUserProfile(username: string) {
 
   return {
     ...user,
+    // Last-online is privacy-gated on BOTH conditions: never expose the timestamp
+    // (or the raw hide flag) when the user hides their activity OR their profile
+    // isn't visible to the viewer. `profileVisible` is already true for your own
+    // profile, so you always see your own last-seen.
+    lastSeenAt: user.hideActivityStatus || !profileVisible ? null : user.lastSeenAt,
+    hideActivityStatus: undefined,
     bio: profileVisible ? user.bio : null,
     location: profileVisible ? user.location : null,
     website: profileVisible ? user.website : null,

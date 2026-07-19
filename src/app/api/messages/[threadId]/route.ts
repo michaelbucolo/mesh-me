@@ -37,6 +37,7 @@ type ThreadWithMembers = {
       username: string;
       displayName: string;
       avatarUrl: string | null;
+      readReceipts: boolean;
     };
   }>;
 };
@@ -66,6 +67,7 @@ async function getAuthorizedThread(threadId: string, userId: string) {
               username: true,
               displayName: true,
               avatarUrl: true,
+              readReceipts: true,
             },
           },
         },
@@ -101,7 +103,11 @@ function serializeMessage(
   const metadata = parseMeChatMetadata(message.metadata);
   const replyTo = metadata.replyToMessageId ? messagesById.get(metadata.replyToMessageId) : null;
   const readBy = thread.members
-    .filter((member) => member.lastRead.getTime() >= message.createdAt.getTime())
+    // Honor the per-user "Read receipts" toggle (default off): a member who
+    // hasn't opted in never appears as having read a message, so the sender
+    // sees "Delivered" instead of "Read". Unread counts are unaffected (they
+    // key off the viewer's own lastRead).
+    .filter((member) => member.user.readReceipts && member.lastRead.getTime() >= message.createdAt.getTime())
     .map((member) => ({
       userId: member.userId,
       displayName: member.user.displayName,

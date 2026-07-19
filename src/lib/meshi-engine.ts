@@ -312,6 +312,7 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
         select: {
           id: true, username: true, displayName: true, bio: true,
           avatarUrl: true, isVerified: true, status: true, lastSeenAt: true,
+          hideActivityStatus: true,
           _count: { select: { followers: true, following: true, posts: true } },
         },
       },
@@ -331,10 +332,15 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
     if (u.bio) parts.push(`Bio: "${u.bio}"`);
     parts.push(`${u._count.followers} followers, ${u._count.following} following, ${u._count.posts} posts.`);
     if (u.isVerified) parts.push("They're verified!");
-    if (u.status === "online") parts.push("They're online right now!");
-    else if (u.lastSeenAt) {
-      const ago = getTimeAgo(u.lastSeenAt);
-      parts.push(`Last seen ${ago}.`);
+    // Respect the target's "Hide activity status" — Meshi must not leak online
+    // state or a last-seen timestamp for someone who's hidden their activity,
+    // matching the gate on profiles.
+    if (!u.hideActivityStatus) {
+      if (u.status === "online") parts.push("They're online right now!");
+      else if (u.lastSeenAt) {
+        const ago = getTimeAgo(u.lastSeenAt);
+        parts.push(`Last seen ${ago}.`);
+      }
     }
 
     return { content: parts.join(" "), mood: "excited" };
