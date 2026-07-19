@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Modal } from "@/components/ui/modal";
 import { useContactPresence } from "./use-contact-presence";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -145,20 +146,6 @@ export function MeChatConversationList({
   const [activeNote, setActiveNote] = useState<MeChatNoteEntry | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [isPending, startTransition] = useTransition();
-
-  // Escape dismisses whichever full-screen overlay is open (New message, Share a
-  // note, Note viewer) — two hold autofocused inputs with no keyboard exit.
-  useEffect(() => {
-    if (!showCompose && !showNoteComposer && !activeNote) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (showCompose) setShowCompose(false);
-      else if (showNoteComposer) setShowNoteComposer(false);
-      else if (activeNote) setActiveNote(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showCompose, showNoteComposer, activeNote]);
 
   const shareQuery = useMemo(() => buildShareQuery(searchParams), [searchParams]);
   const shouldOpenCompose = searchParams.get("compose") === "true" || shareQuery.length > 0;
@@ -530,24 +517,12 @@ export function MeChatConversationList({
       </div>
 
       {showCompose && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4"
-          onClick={() => setShowCompose(false)}
+        <Modal
+          open={showCompose}
+          onClose={() => setShowCompose(false)}
+          title={shareQuery ? "Send to" : "New message"}
+          className="max-w-md"
         >
-          <div
-            className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] shadow-xl sm:rounded-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[var(--mesh-border)] px-4 py-3">
-              <h3 className="text-sm font-bold text-[var(--mesh-text)]">{shareQuery ? "Send to" : "New message"}</h3>
-              <button
-                type="button"
-                onClick={() => setShowCompose(false)}
-                className="rounded-lg p-1 text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)]"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
             {status?.type === "error" && (
               <div className="mx-4 mt-2 rounded-lg bg-[var(--mesh-danger)]/10 px-3 py-2 text-xs text-[var(--mesh-danger)]">
@@ -643,88 +618,79 @@ export function MeChatConversationList({
                 {isPending ? "Starting..." : "Chat"}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {showNoteComposer && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setShowNoteComposer(false)}
+        <Modal
+          open={showNoteComposer}
+          onClose={() => setShowNoteComposer(false)}
+          title="Share a note"
+          description="Disappears after 24 hours"
+          className="max-w-sm"
         >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center gap-3">
-              <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-12 w-12" />
-              <div>
-                <p className="text-sm font-bold text-[var(--mesh-text)]">Share a note</p>
-                <p className="text-xs text-[var(--mesh-text-secondary)]">Disappears after 24 hours</p>
-              </div>
-            </div>
+          <div className="mb-3 flex items-center gap-3">
+            <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-12 w-12" />
+            <p className="text-sm font-bold text-[var(--mesh-text)]">{currentUser.displayName}</p>
+          </div>
+          <input
+            value={noteText}
+            onChange={(event) => setNoteText(event.target.value)}
+            maxLength={60}
+            autoFocus
+            placeholder="Share a thought..."
+            className="h-10 w-full rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3 text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+          />
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3">
+            <Music size={14} className="shrink-0 text-[var(--mesh-text-muted)]" />
             <input
-              value={noteText}
-              onChange={(event) => setNoteText(event.target.value)}
-              maxLength={60}
-              autoFocus
-              placeholder="Share a thought..."
-              className="h-10 w-full rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3 text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
+              value={noteSong}
+              onChange={(event) => setNoteSong(event.target.value)}
+              maxLength={120}
+              placeholder="Add a song (optional)"
+              className="h-10 w-full bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
             />
-            <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)] px-3">
-              <Music size={14} className="shrink-0 text-[var(--mesh-text-muted)]" />
-              <input
-                value={noteSong}
-                onChange={(event) => setNoteSong(event.target.value)}
-                maxLength={120}
-                placeholder="Add a song (optional)"
-                className="h-10 w-full bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
-              />
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              {myNote && (
-                <button
-                  type="button"
-                  onClick={clearNote}
-                  disabled={isPending}
-                  className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-red-400 disabled:opacity-50"
-                >
-                  Clear note
-                </button>
-              )}
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            {myNote && (
               <button
                 type="button"
-                onClick={saveNote}
+                onClick={clearNote}
                 disabled={isPending}
-                className="ml-auto rounded-xl bg-[var(--mesh-blue)] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+                className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-red-400 disabled:opacity-50"
               >
-                {isPending ? "Sharing..." : "Share"}
+                Clear note
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={saveNote}
+              disabled={isPending}
+              className="ml-auto rounded-xl bg-[var(--mesh-blue)] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {isPending ? "Sharing..." : "Share"}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {activeNote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setActiveNote(null)}>
-          <button
-            type="button"
-            onClick={() => setActiveNote(null)}
-            className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 text-left shadow-xl"
-          >
-            <div className="mb-3 flex items-center gap-3">
-              <Avatar src={activeNote.user.avatarUrl} alt={activeNote.user.displayName} size="md" className="h-12 w-12" />
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-[var(--mesh-text)]">{activeNote.user.displayName}</p>
-                <p className="text-xs text-[var(--mesh-text-secondary)]">@{activeNote.user.username}</p>
-              </div>
-            </div>
-            <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{activeNote.text || "No note text"}</p>
-            {activeNote.songTitle && (
-              <p className="mt-3 text-xs font-medium text-[var(--mesh-blue)]">{activeNote.songTitle}</p>
-            )}
-          </button>
-        </div>
+        <Modal
+          open={Boolean(activeNote)}
+          onClose={() => setActiveNote(null)}
+          title={activeNote.user.displayName}
+          description={`@${activeNote.user.username}`}
+          className="max-w-sm"
+        >
+          <div className="mb-3 flex items-center gap-3">
+            <Avatar src={activeNote.user.avatarUrl} alt={activeNote.user.displayName} size="md" className="h-12 w-12" />
+            <p className="text-sm font-bold text-[var(--mesh-text)]">{activeNote.user.displayName}</p>
+          </div>
+          <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{activeNote.text || "No note text"}</p>
+          {activeNote.songTitle && (
+            <p className="mt-3 text-xs font-medium text-[var(--mesh-blue)]">{activeNote.songTitle}</p>
+          )}
+        </Modal>
       )}
     </div>
   );
