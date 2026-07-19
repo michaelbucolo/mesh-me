@@ -352,11 +352,15 @@ export async function POST(req: Request) {
         const suggestionType = body.suggestionType || "people";
 
         if (suggestionType === "people") {
-          // Suggest people the user might want to follow
+          // Suggest people the user might want to follow. Discovery only ever
+          // surfaces accounts that opted into being found (showInDiscovery),
+          // mirroring getDiscoverUsers / searchAll / lookupPerson — otherwise
+          // Meshi becomes a back door to users who hid from discovery.
           const suggestions = await prisma.user.findMany({
             where: {
               id: { not: user.id },
               isSuspended: false,
+              showInDiscovery: true,
               NOT: {
                 followers: { some: { followerId: user.id } },
               },

@@ -42,6 +42,23 @@ export async function areMutualFollowers(viewerId: string, targetUserId: string)
   return !!viewerFollowsTarget && !!targetFollowsViewer;
 }
 
+// Every user id the viewer has blocked, unioned with everyone who has blocked
+// the viewer. Presence, discovery, and social reads must never cross a block in
+// either direction, so callers subtract this set (or add `id: { notIn }`) before
+// surfacing other users.
+export async function getBlockedUserIdSet(viewerId: string): Promise<Set<string>> {
+  const rows = await prisma.block.findMany({
+    where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
+    select: { blockerId: true, blockedId: true },
+  });
+  const ids = new Set<string>();
+  for (const row of rows) {
+    if (row.blockerId !== viewerId) ids.add(row.blockerId);
+    if (row.blockedId !== viewerId) ids.add(row.blockedId);
+  }
+  return ids;
+}
+
 /**
  * Can this user see — and therefore interact with (react/comment) — the given
  * post? Mirrors the feed's read-side audience clause so a user who only knows
