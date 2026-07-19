@@ -439,7 +439,7 @@ export function MeChatConversationList({
                     key={thread.id}
                     href={`/messages/${thread.id}`}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex min-h-[4.25rem] items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
+                    className={`group relative flex min-h-[4.25rem] min-w-0 items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
                       active
                         ? "bg-[var(--mesh-blue)]/12"
                         : "hover:bg-[var(--mesh-panel-hover)]"
