@@ -104,7 +104,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
           {/* Banner */}
           <div className="profile-banner relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[#0a1628] to-[var(--mesh-bg)]">
             {profile.bannerUrl ? (
-              <Image src={profile.bannerUrl} alt="" fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
+              <Image src={profile.bannerUrl} alt={profile.bio?.trim() || `${profile.displayName}'s profile banner`} fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
             ) : (
               <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
                 {/* A quiet slice of their mesh: woven strands + constellation nodes */}
@@ -463,7 +463,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                       <div className="mt-3 overflow-hidden rounded-xl">
                         <Image
                           src={post.media[0].url}
-                          alt=""
+                          alt={post.content.trim() ? `${profile.displayName}: ${post.content.trim().slice(0, 120)}` : `${profile.displayName}'s post media`}
                           width={600}
                           height={400}
                           className="w-full object-cover"
@@ -628,4 +628,3 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
     </Link>
   );
 }
-

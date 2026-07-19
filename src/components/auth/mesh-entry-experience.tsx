@@ -402,9 +402,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="mesh-gate-peek"
+                className="mesh-gate-peek focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7d9bff]"
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
