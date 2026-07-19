@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { decryptSecret } from "./secret-store";
 import { resolveEnvValue, usesLongLivedTokenExchange, MESH_API_USER_AGENT } from "./oauth";
+import { selectPrunablePostIds } from "./platform-sync-reconcile";
 import { refreshConnectedAccountToken } from "./oauth-token-refresh";
 import { getPlatformActionCapability, getPlatformImportCapability, getPlatformMessagingCapability } from "./platform-capabilities";
 import { serializeMeChatMetadata } from "./mechat-metadata";
@@ -2212,13 +2213,18 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
       // least one dated post, so a transient empty response prunes nothing.
       const seenPostIds = new Set(syncedPostRefs.map((ref) => ref.platformPostId));
       if (seenPostIds.size > 0 && oldestSeenPublishedAt) {
-        await prisma.platformPost.deleteMany({
-          where: {
-            connectedAccountId: account.id,
-            platformPostId: { notIn: [...seenPostIds] },
-            publishedAt: { gte: oldestSeenPublishedAt },
-          },
+        // Only fetch cached posts within the observed window (indexed on
+        // connectedAccountId); the pure helper decides which were deleted.
+        const windowPosts = await prisma.platformPost.findMany({
+          where: { connectedAccountId: account.id, publishedAt: { gte: oldestSeenPublishedAt } },
+          select: { platformPostId: true, publishedAt: true },
         });
+        const toPrune = selectPrunablePostIds(windowPosts, seenPostIds, oldestSeenPublishedAt);
+        if (toPrune.length > 0) {
+          await prisma.platformPost.deleteMany({
+            where: { connectedAccountId: account.id, platformPostId: { in: toPrune } },
+          });
+        }
       }
     }
 
