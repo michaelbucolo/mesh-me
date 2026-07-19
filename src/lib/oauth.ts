@@ -38,6 +38,16 @@ function normalizeBaseUrl(url: string): string {
 
 export const PRODUCTION_APP_URL = "https://www.meshs.me";
 
+// Descriptive User-Agent for outbound calls to platform APIs. Reddit's API
+// Terms require a unique, descriptive User-Agent (generic ones are aggressively
+// rate-limited), and GitHub requires a User-Agent identifying the app. The
+// default is descriptive and contactable; set MESH_API_USER_AGENT to Reddit's
+// preferred `platform:appID:version (by /u/username)` form once you have a
+// Reddit developer username.
+export const MESH_API_USER_AGENT =
+  process.env.MESH_API_USER_AGENT?.trim() ||
+  "web:app.meshs.me:v1.0 (+https://www.meshs.me)";
+
 export function getBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_APP_URL) return normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
   if (process.env.NEXTAUTH_URL) return normalizeBaseUrl(process.env.NEXTAUTH_URL);

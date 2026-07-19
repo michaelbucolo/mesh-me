@@ -12,6 +12,7 @@ import {
   exchangeLongLivedToken,
   resolveNestedPath,
   isPlatformOAuth,
+  MESH_API_USER_AGENT,
 } from "@/lib/oauth";
 import { serializeScopes, syncConnectedAccountPermissions } from "@/lib/platform-permissions";
 import { encryptSecret, hasSecretEncryptionKey } from "@/lib/secret-store";
@@ -172,9 +173,9 @@ export async function GET(
       profileHeaders["Client-ID"] = clientId;
     }
 
-    // Reddit needs a custom User-Agent
+    // Reddit needs a unique, descriptive User-Agent per its API Terms
     if (platform === "reddit") {
-      profileHeaders["User-Agent"] = "mesh.me/1.0";
+      profileHeaders["User-Agent"] = MESH_API_USER_AGENT;
     }
 
     const profileResponse = await fetch(config.profileUrl, {

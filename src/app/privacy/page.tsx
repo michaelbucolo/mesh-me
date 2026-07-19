@@ -11,52 +11,61 @@ export default function PrivacyPage() {
   const sections = [
     {
       id: "collection",
-      title: "Information we collect",
+      title: "1. Information we collect",
       content: (
         <>
-          <p>When you create a Mesh.me account, we collect the account data needed to operate the product, such as your email address, username, display name, and password hash. Phone number verification may be required for account security.</p>
-          <p>You may also provide optional profile information such as a bio, location, website, avatar, banner image, accent color, and interest tags.</p>
-          <p>When you connect third-party platform accounts (including GitHub, Discord, Spotify, X/Twitter, Twitch, YouTube, Instagram, Facebook, LinkedIn, Reddit, TikTok, Pinterest, Snapchat, Threads, SoundCloud, Patreon, and Dribbble), we store the platform name, your platform username, and encrypted OAuth tokens required to access that service on your behalf. We only access scopes you explicitly authorize through each provider&apos;s consent flow.</p>
-          <p>We also collect product usage and technical data for service operation, security, debugging, and analytics. That can include pages visited, features used, device type, browser, operating system, and IP address.</p>
+          <p><strong>Account data.</strong> When you create a Mesh.me account we collect what is needed to operate it — your email address, username, display name, and a hashed (never plaintext) password. We may use email or phone-number verification to help prevent abuse and secure your account.</p>
+          <p><strong>Profile and content.</strong> Optional profile details you provide (bio, location, website, avatar, banner image, accent color, interest tags) and the content you create — posts, comments, messages in MeChat, community activity, and your Meshi customization.</p>
+          <p><strong>Connected accounts.</strong> When you connect a third-party platform (including GitHub, Discord, Spotify, X/Twitter, Twitch, YouTube, Instagram, Facebook, LinkedIn, Reddit, TikTok, Pinterest, Snapchat, Threads, SoundCloud, Patreon, and Dribbble), we store the platform name, your platform username/ID, and encrypted OAuth tokens for the scopes you explicitly authorize, plus the specific content those scopes let you view or manage inside Mesh.me.</p>
+          <p><strong>Payment data.</strong> Mesh Pro payments are processed by Stripe. We receive limited billing metadata (such as subscription status and the last four digits/card brand) but we do not receive or store your full card number.</p>
+          <p><strong>Age-verification status.</strong> If you opt into age-restricted content, identity/age verification is performed by a third-party verifier. We receive only a pass/fail verification status — we do not receive or store your ID document.</p>
+          <p><strong>Usage and technical data.</strong> For operating, securing, and debugging the Service we collect data such as pages visited, features used, device type, browser, operating system, approximate location derived from IP, and IP address.</p>
         </>
       ),
     },
     {
       id: "use",
-      title: "How we use your information",
+      title: "2. How we use your information",
       content: (
         <>
-          <p>We use account and content data to operate Mesh.me, personalize the product, support connected-platform features, process MeshPro subscriptions through Stripe, and improve the service.</p>
-          <p>We also use data to detect abuse, prevent fraud, maintain security, satisfy legal obligations, enforce age verification requirements, and power the Mesh, Feed, MeChat, Communities, Analytics, and Meshi experiences.</p>
-          <p>Mesh.me does not use your data to sell ads, build third-party advertising profiles, or participate in data-broker style monetization. We will never sell your data to third parties. This is a permanent, foundational commitment.</p>
+          <p>We use your information to operate and personalize Mesh.me; power the Mesh, Feed, MeChat, Communities, Analytics, and Meshi experiences; support connected-platform features you enable; process Mesh Pro subscriptions through Stripe; communicate with you about your account and security; and improve the Service.</p>
+          <p>We also use data to detect and prevent abuse and fraud, maintain security, enforce our <a href="/terms">Terms</a> and age-verification requirements, and comply with legal obligations.</p>
+          <p>Mesh.me does not use your data to sell advertising, build third-party advertising profiles, or engage in data-broker monetization, and we will never sell your personal data. This is a permanent, foundational commitment.</p>
+        </>
+      ),
+    },
+    {
+      id: "legal-bases",
+      title: "3. Legal bases for processing (EEA/UK)",
+      content: (
+        <>
+          <p>If you are in the European Economic Area or the United Kingdom, we process your personal data on these legal bases: <strong>performance of a contract</strong> (to provide the Service you request); <strong>legitimate interests</strong> (to secure, improve, and protect the Service, balanced against your rights); <strong>consent</strong> (for optional features such as connecting a third-party account or opting into age-restricted content, which you may withdraw at any time); and <strong>legal obligation</strong> (to comply with applicable law).</p>
+        </>
+      ),
+    },
+    {
+      id: "cookies",
+      title: "4. Cookies and similar technologies",
+      content: (
+        <>
+          <p>We use strictly necessary cookies to keep you signed in and to secure authentication and OAuth flows (for example, session and CSRF/OAuth-state cookies). We use limited first-party, operational analytics to understand and improve how the Service is used.</p>
+          <p>We do not use third-party advertising cookies or cross-site ad trackers. You can control cookies through your browser settings, though disabling strictly necessary cookies will break sign-in and security features.</p>
         </>
       ),
     },
     {
       id: "sharing",
-      title: "Sharing and disclosure",
+      title: "5. How we share information",
       content: (
         <>
-          <p>We do not sell personal information. Public content you intentionally publish may be visible to other users and discoverable by search engines.</p>
-          <p>When you trigger cross-platform actions through Mesh.me, those actions are sent through your authorized connection to the source platform, and that platform&apos;s privacy rules also apply.</p>
-          <p>We share data only with essential service providers: Vercel (hosting), Stripe (payment processing), and transactional email providers. All providers operate under confidentiality agreements and data processing addendums. We share data with law enforcement only when required by valid legal process.</p>
-        </>
-      ),
-    },
-    {
-      id: "retention",
-      title: "Retention, deletion, and portability",
-      content: (
-        <>
-          <p>We retain information while your account is active and as needed to provide the service. If you delete your account, we will delete or anonymize personal data within 30 days, except where legal retention is required.</p>
-          <p>Connected platform tokens are deleted immediately when you disconnect an account. Users can request full data export or deletion through product settings. Backup and cached copies may persist for up to 90 days while normal purge cycles complete.</p>
-          <p>For step-by-step instructions on deleting your account, removing a single connected platform, or how platform-initiated deletion works, see our <a href="/data-deletion">Data Deletion</a> page.</p>
+          <p>We do not sell personal information. Public content you intentionally publish may be visible to other users and discoverable by search engines. When you trigger cross-platform actions through Mesh.me, those actions are carried out through your authorized connection, and the destination platform&apos;s own privacy rules also apply.</p>
+          <p>We share data only with service providers (subprocessors) that help us operate the Service under confidentiality and data-processing terms: <strong>Vercel</strong> (application hosting), <strong>Turso</strong> (database hosting), <strong>Stripe</strong> (payment processing), and <strong>Resend</strong> (transactional email). We may also disclose information to comply with valid legal process, enforce our Terms, or protect the rights, safety, and security of our users, the public, or Mesh.me. If Mesh.me is involved in a merger, acquisition, or asset sale, we will continue to protect your information and notify you of any change in control.</p>
         </>
       ),
     },
     {
       id: "platform-api-compliance",
-      title: "Connected platforms and third-party API compliance",
+      title: "6. Connected platforms and third-party API compliance",
       content: (
         <>
           <p>When you connect a third-party account, Mesh.me uses that platform&apos;s official API only for the scopes you authorize, and only to power the features you use inside Mesh.me. We do not use connected-platform data for advertising, and we do not transfer or sell it.</p>
@@ -66,24 +75,51 @@ export default function PrivacyPage() {
       ),
     },
     {
-      id: "rights",
-      title: "Privacy controls and legal rights",
+      id: "retention",
+      title: "7. Data retention and deletion",
       content: (
         <>
-          <p>You can review or update profile information, visibility settings, connected accounts, message permissions, notifications, and data controls from product settings.</p>
-          <p>Depending on your jurisdiction, you may also have rights to access, correct, delete, restrict, or export your information, and to object to certain processing.</p>
-          <p>California and European privacy rights are supported through the same general user request channels. Mesh.me does not discriminate against users for exercising those rights.</p>
+          <p>We retain information while your account is active and as needed to provide the Service. If you delete your account, we delete or anonymize personal data within 30 days, except where longer retention is required by law. Connected-platform tokens are deleted immediately when you disconnect an account, and backup or cached copies are purged within 90 days.</p>
+          <p>For step-by-step instructions on deleting your account, removing a single connected platform, or how platform-initiated deletion works, see our <a href="/data-deletion">Data Deletion</a> page. You can also request a copy (export) of your data through product settings.</p>
+        </>
+      ),
+    },
+    {
+      id: "rights",
+      title: "8. Your privacy rights and choices",
+      content: (
+        <>
+          <p>You can review and update your profile, visibility settings, connected accounts, message permissions, notifications, and data controls from product settings at any time.</p>
+          <p>Depending on where you live, you may have rights to access, correct, delete, restrict, or export your personal data, to object to certain processing, and to withdraw consent. <strong>EEA/UK</strong> residents have these rights under the GDPR and may lodge a complaint with their local supervisory authority. <strong>California</strong> residents have rights under the CCPA/CPRA to know, access, delete, and correct personal information and to opt out of &quot;sale&quot; or &quot;sharing&quot; — Mesh.me does not sell or share personal information as those terms are defined, and we do not discriminate against you for exercising your rights.</p>
+          <p>To exercise any right, use the controls in settings or contact <a href="mailto:security@meshs.me">security@meshs.me</a>. We will verify your request and respond within the timeframe required by applicable law.</p>
+        </>
+      ),
+    },
+    {
+      id: "children",
+      title: "9. Children's privacy",
+      content: (
+        <>
+          <p>Mesh.me is not directed to children under 13, and you must be at least 13 to use the Service. We do not knowingly collect personal information from children under 13; if we learn we have, we will delete it. Age-restricted (NSFW) content is limited to verified users who are at least 18. If you believe a child under 13 has provided us information, contact <a href="mailto:security@meshs.me">security@meshs.me</a>.</p>
+        </>
+      ),
+    },
+    {
+      id: "transfers",
+      title: "10. International data transfers",
+      content: (
+        <>
+          <p>Mesh.me is operated from the United States, and our subprocessors may process data in the United States and other countries. If you access the Service from outside the United States, you understand your information will be transferred to and processed in the United States, where data-protection laws may differ from those in your country. Where required, we rely on appropriate safeguards (such as the European Commission&apos;s Standard Contractual Clauses) for international transfers.</p>
         </>
       ),
     },
     {
       id: "security",
-      title: "Security and contact",
+      title: "11. Security, changes, and contact",
       content: (
         <>
-          <p>Mesh.me applies industry-standard safeguards including bcrypt password hashing, encrypted OAuth token storage, HTTPS transport security, secure HTTP headers, CSRF protection, rate limiting, and input validation across all endpoints.</p>
-          <p>MeChat conversations are restricted to their members and protected in transit with HTTPS. Connected platform tokens are encrypted at rest. Payment details are handled by Stripe and are not stored by Mesh.me.</p>
-          <p>No internet service can promise absolute security. If you have privacy questions or need to exercise your rights, contact support@meshs.me.</p>
+          <p>We apply industry-standard safeguards including password hashing, encrypted OAuth-token storage, HTTPS transport security, secure HTTP headers, CSRF protection, rate limiting, and input validation across endpoints. MeChat conversations are restricted to their members, connected-platform tokens are encrypted at rest, and payment details are handled by Stripe rather than stored by Mesh.me. No internet service can guarantee absolute security.</p>
+          <p>We may update this Privacy Policy from time to time. When we make material changes we will update the &quot;Last updated&quot; date below and, where appropriate, provide additional notice. If you have privacy questions or want to exercise your rights, contact <a href="mailto:security@meshs.me">security@meshs.me</a>.</p>
         </>
       ),
     },
@@ -93,8 +129,8 @@ export default function PrivacyPage() {
     <LegalDocumentPage
       eyebrow="mesh.me Privacy Policy"
       title="Your data should stay legible to you."
-      summary="This page explains the launch version of how Mesh.me collects, uses, retains, protects, exports, and deletes user data. The product goal is privacy-first operation with user-visible controls, not hidden exploitation."
-      updatedLabel="Last updated: June 23, 2026"
+      summary="This policy explains how Mesh.me collects, uses, shares, retains, protects, exports, and deletes your data — and the rights and controls you have over it. The product goal is privacy-first operation with user-visible controls, not hidden exploitation."
+      updatedLabel="Last updated: July 19, 2026"
       sections={sections}
     />
   );
