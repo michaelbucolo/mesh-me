@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   const [initialConnected, initialBlocked, roomAllowed] = await Promise.all([
     getMutualConnectionIds(viewerId),
     getBlockedUserIds(viewerId),
-    canViewMeshRoom(viewerId, meshOwner),
+    canViewMeshRoom(viewerId, meshOwner, user.isAdmin),
   ]);
   // Reassigned by the periodic refresh below, so these stay `let`.
   let connectedSet = initialConnected;

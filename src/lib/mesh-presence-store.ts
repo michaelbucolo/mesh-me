@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import { prisma } from "@/lib/prisma";
 import {
   areMutualFollowers,
-  canViewProfile,
+  canViewMesh,
   normalizeMeshVisibility,
 } from "@/lib/privacy-policy";
 
@@ -462,12 +462,14 @@ export async function getBlockedUserIds(userId: string): Promise<Set<string>> {
 }
 
 // Is `viewerId` allowed to see the presence room for `meshOwnerId`? This mirrors
-// the exact gate the mesh data API applies (canViewProfile with the owner's mesh
-// visibility), so presence can't be used to watch who is inside a mesh the viewer
-// could never open — the room param must pass through here before it's trusted.
+// the exact gate the mesh data API applies (canViewMesh with the owner's mesh
+// visibility, defaulting to the canonical "private"), so presence can't be used
+// to watch who is inside a mesh the viewer could never open — the room param
+// must pass through here before it's trusted.
 export async function canViewMeshRoom(
   viewerId: string,
   meshOwnerId: string | null,
+  viewerIsAdmin = false,
 ): Promise<boolean> {
   if (!meshOwnerId || meshOwnerId === viewerId) return true;
   const [target, isFriend] = await Promise.all([
@@ -475,7 +477,6 @@ export async function canViewMeshRoom(
       where: { id: meshOwnerId },
       select: {
         id: true,
-        isPublic: true,
         isSuspended: true,
         meshPrivacy: { select: { meshVisibility: true } },
       },
@@ -483,11 +484,18 @@ export async function canViewMeshRoom(
     areMutualFollowers(viewerId, meshOwnerId),
   ]);
   if (!target) return false;
+  // Suspended accounts' presence rooms stay locked to everyone but admins (the
+  // owner already returned true above).
+  if (target.isSuspended && !viewerIsAdmin) return false;
+  // Canonical mesh-visibility default is "private" (matching getMeshPrivacy,
+  // getFriendMeshData, and the /api/mesh gate) — NOT `isPublic`. A public
+  // account with a private mesh must not expose its live presence room, so gate
+  // with canViewMesh, whose "private" case has no isPublic short-circuit.
   const visibility = normalizeMeshVisibility(
     target.meshPrivacy?.meshVisibility,
-    target.isPublic ? "public" : "private",
+    "private",
   );
-  return canViewProfile({ id: viewerId }, target, visibility, isFriend);
+  return canViewMesh({ id: viewerId, isAdmin: viewerIsAdmin }, meshOwnerId, visibility, isFriend);
 }
 
 export function clampNumber(
