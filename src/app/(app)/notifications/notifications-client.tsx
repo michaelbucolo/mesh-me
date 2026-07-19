@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   AtSign,
@@ -62,6 +62,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [notice, setNotice] = useState<NoticeState>(null);
   const [isPending, startTransition] = useTransition();
+  const reduceMotion = useReducedMotion();
 
   const filteredGroups = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -307,13 +308,13 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           {filteredGroups.length > 0 ? (
             <div className="grid gap-3" data-testid="notification-group-list">
               <AnimatePresence mode="popLayout">
-              {filteredGroups.map((group, idx) => (
+              {filteredGroups.map((group) => (
                 <motion.div
                   key={group.key}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.28, delay: Math.min(idx * 0.04, 0.4), ease: [0.16, 1, 0.3, 1] }}
+                  initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.14, ease: [0.16, 1, 0.3, 1] }}
                 >
                 <NotificationGroupCard
                   key={group.key}

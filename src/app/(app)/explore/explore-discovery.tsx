@@ -422,8 +422,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             <section className="mt-6" aria-label="People to follow">
               <SectionHeader title="Meshes to explore" action={{ label: "See all", onClick: () => setTab("people") }} />
               <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-                {suggestedUsers.slice(0, 8).map((user, index) => (
-                  <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} signedOut={signedOut} />
+                {suggestedUsers.slice(0, 8).map((user) => (
+                  <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} signedOut={signedOut} />
                 ))}
               </div>
             </section>
@@ -474,8 +474,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             />
           ) : (
             <div className="columns-2 gap-3 sm:columns-3 lg:columns-4 [&>*]:mb-3">
-              {filteredPosts.map((post, index) => (
-                <ExploreTile key={post.id} post={post} index={index} />
+              {filteredPosts.map((post) => (
+                <ExploreTile key={post.id} post={post} />
               ))}
             </div>
           )}
@@ -494,8 +494,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             <EmptyState message="No meshes match your search." />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {filteredUsers.map((user, index) => (
-                <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} fullWidth signedOut={signedOut} />
+              {filteredUsers.map((user) => (
+                <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} fullWidth signedOut={signedOut} />
               ))}
             </div>
           )}
@@ -616,13 +616,11 @@ function CommunityCard({ community, index, compact }: { community: SuggestedComm
 function ExplorePersonCard({
   user,
   currentUserId,
-  index,
   fullWidth,
   signedOut = false,
 }: {
   user: SuggestedUser;
   currentUserId: string;
-  index: number;
   fullWidth?: boolean;
   signedOut?: boolean;
 }) {
@@ -648,11 +646,8 @@ function ExplorePersonCard({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring, delay: 0.04 * Math.min(index, 12) }}
-      className={`glass-card group rounded-2xl p-4 text-center transition-all hover:border-[var(--border-primary)] ${
+    <div
+      className={`glass-card group rounded-2xl p-4 text-center transition-colors hover:border-[var(--border-primary)] ${
         fullWidth ? "w-full" : "w-44 shrink-0"
       }`}
     >
@@ -693,11 +688,11 @@ function ExplorePersonCard({
           )}
         </Button>
       )}
-    </motion.div>
+    </div>
   );
 }
 
-function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
+function ExploreTile({ post }: { post: FeedCardPost }) {
   const router = useRouter();
   const media = post.media[0];
   const isVideo = media && VIDEO_TYPES.includes(media.type.toLowerCase());
@@ -706,21 +701,16 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
   const authorName = post.externalAuthor?.name || post.author.displayName;
 
   return (
-    <motion.button
+    <button
       type="button"
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ ...spring, delay: 0.02 * Math.min(index, 16) }}
-      whileHover={{ scale: 1.015 }}
-      whileTap={{ scale: 0.985 }}
       onClick={() => router.push(`/feed?flow=${encodeURIComponent(post.id)}`)}
-      className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-all hover:border-[var(--border-primary)]"
+      className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-colors hover:border-[var(--border-primary)] active:border-[var(--border-primary)]"
       aria-label={`Open post by ${authorName} in the Flow`}
     >
       {media ? (
         <div className="relative aspect-[4/5]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={media.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          <img src={media.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
           {isVideo && (
             <span className="absolute right-2 top-2 rounded-full bg-black/55 p-1.5 backdrop-blur">
               <Play className="h-3.5 w-3.5 fill-white text-white" aria-hidden />
@@ -738,7 +728,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
           </div>
         </div>
       )}
-    </motion.button>
+    </button>
   );
 }
 
