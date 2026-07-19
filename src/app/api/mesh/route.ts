@@ -343,7 +343,11 @@ export async function GET(req: Request) {
           posts: {
             // Mutual friends see public + friends-visibility posts — never
             // anything scoped tighter than that.
-            where: { ...safetyWhere, visibility: { in: ["public", "friends"] } },
+            where: {
+              ...safetyWhere,
+              visibility: { in: ["public", "friends"] },
+              OR: [{ communityId: null }, { community: { isPublic: true } }],
+            },
             select: {
               id: true,
               content: true,
@@ -771,7 +775,12 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     prisma.post.findMany({
       // Mutual friends also see friends-visibility posts; everyone else
       // strictly public.
-      where: { ...safetyWhere, authorId: targetUserId, visibility: { in: isFriend ? ["public", "friends"] : ["public"] } },
+      where: {
+        ...safetyWhere,
+        authorId: targetUserId,
+        visibility: { in: isFriend ? ["public", "friends"] : ["public"] },
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      },
       select: {
         id: true,
         content: true,
@@ -802,7 +811,13 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     }),
     prisma.follow.count({ where: { followerId: targetUserId } }),
     prisma.follow.count({ where: { followingId: targetUserId } }),
-    prisma.post.count({ where: { authorId: targetUserId, visibility: "public" } }),
+    prisma.post.count({
+      where: {
+        authorId: targetUserId,
+        visibility: "public",
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      },
+    }),
     prisma.dataVisibilityPolicy.findMany({
       where: { userId: targetUserId, entityType: "connected_account" },
       select: { entityId: true, visibility: true },
