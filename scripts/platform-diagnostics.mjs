@@ -347,6 +347,12 @@ const checks = [
       const mutatingMethods = /export\s+async\s+function\s+(POST|PUT|PATCH|DELETE)\b/;
       const missingGuard = [];
       const webhookRoute = "src/app/api/stripe/webhook/route.ts";
+      // The Meta signed_request exemption below only holds while the shared
+      // helper still performs real HMAC + timing-safe verification — otherwise a
+      // stubbed helper would silently pass this P0 gate. Verify it once here so a
+      // weakened helper re-flags the routes that rely on it.
+      const metaHelperSource = read("src/lib/meta-signed-request.ts");
+      const metaHelperVerified = metaHelperSource.includes("createHmac") && metaHelperSource.includes("timingSafeEqual");
 
       for (const file of routeFiles) {
         const source = fs.readFileSync(file, "utf8");
@@ -360,9 +366,13 @@ const checks = [
         if (signedWebhook) continue;
         // Meta (Facebook/Instagram/Threads) Deauthorize + Data Deletion callbacks
         // are server-to-server POSTs from Meta, so they cannot demand same-origin.
-        // They verify Meta's `signed_request` via verifyMetaSignedRequest, which
-        // does HMAC-SHA256 + timingSafeEqual in src/lib/meta-signed-request.ts.
-        if (source.includes("verifyMetaSignedRequest")) continue;
+        // They verify Meta's `signed_request` via verifyMetaSignedRequest — trust
+        // that exemption only while the helper itself still does HMAC-SHA256 +
+        // timingSafeEqual (src/lib/meta-signed-request.ts).
+        if (source.includes("verifyMetaSignedRequest")) {
+          assert(metaHelperVerified, `${rel} relies on verifyMetaSignedRequest, but src/lib/meta-signed-request.ts no longer does HMAC + timing-safe verification`);
+          continue;
+        }
         // OAuth callbacks are cross-site by design (Apple returns via form_post),
         // so they cannot demand same-origin proof. Their CSRF protection is
         // validating the returned state against the flow cookie we issued.
