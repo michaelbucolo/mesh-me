@@ -219,7 +219,6 @@ const meshAtmospheres = [
 ] as const;
 const visibilityOptions = ["private", "friends", "public", "partial"];
 const branchKeys = ["people", "communities", "interests", "platforms", "content"] as const;
-type BranchKey = (typeof branchKeys)[number];
 const usStates = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS",
   "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY",
@@ -309,14 +308,11 @@ export function SettingsControlCenter({
     meshVisibility: meshPrivacy.meshVisibility,
     showConnections: meshPrivacy.showConnections,
     showStats: meshPrivacy.showStats,
-    branches: {
-      people: "private",
-      communities: "private",
-      interests: "private",
-      platforms: "private",
-      content: "private",
-      ...parseBranchOverrides(meshPrivacy.branchOverrides),
-    } as Record<BranchKey, string>,
+    // Only real, stored per-branch overrides. Unset branches are ABSENT so they
+    // inherit meshVisibility (queries.ts). Hardcoding 'private' here used to be
+    // persisted verbatim on any mesh-settings save, silently hiding every branch
+    // of an otherwise-public mesh.
+    branches: parseBranchOverrides(meshPrivacy.branchOverrides) as Record<string, string>,
   });
   const [meshiState, setMeshiState] = useState({
     colorTheme: meshi.colorTheme,
@@ -1630,12 +1626,16 @@ function MeshSection({
   applyMeshVisuals,
   isMeshPro,
 }: {
-  mesh: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> };
-  applyMeshPrivacy: (next: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> }) => void;
+  mesh: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<string, string> };
+  applyMeshPrivacy: (next: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<string, string> }) => void;
   meshVisuals: { connectionColor: string; nodeStyle: string; motionStyle: string; atmosphere: string };
   applyMeshVisuals: (next: { connectionColor: string; nodeStyle: string; motionStyle: string; atmosphere: string }) => void;
   isMeshPro: boolean;
 }) {
+  // A branch with no explicit override inherits the overall mesh visibility.
+  // Show that inherited value in the picker (public/partial -> public) instead of
+  // a misleading hardcoded default.
+  const branchInherit = mesh.meshVisibility === "private" ? "private" : mesh.meshVisibility === "friends" ? "friends" : "public";
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Mesh visibility" icon={Waypoints}>
@@ -1651,7 +1651,7 @@ function MeshSection({
             <label key={key} className="settings-muted-box grid gap-2 text-xs font-bold capitalize">
               {key}
               <select
-                value={mesh.branches[key] ?? "friends"}
+                value={mesh.branches[key] ?? branchInherit}
                 onChange={(event) => applyMeshPrivacy({
                   ...mesh,
                   branches: { ...mesh.branches, [key]: event.target.value },
