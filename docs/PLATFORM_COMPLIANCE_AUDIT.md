@@ -40,17 +40,25 @@ rate-limit generic ones. The code sent `mesh.me/1.0`. Now centralized into
 `platform:appID:version (by /u/<your-reddit-username>)` once you have a Reddit
 developer username — this maximizes Reddit rate limits and goodwill.
 
-### 2. Cached platform content vs. source deletions — REVIEW ⚠️
+### 2. Cached platform content vs. source deletions — POSTS FIXED ✅ / REST REVIEW ⚠️
 Mesh.me caches synced platform content (`PlatformPost`, `PlatformComment`,
 `PlatformMedia`, `PlatformFollower`). Several platforms — notably **X/Twitter**
 and **Meta** — require that content deleted or made private at the source be
-removed from your copy within a defined window, and cap how long/what you may
-cache. There is no reconciliation job that removes cached items when the source
-deletes them.
-**Action (product):** add a periodic re-sync that drops cached items no longer
-returned by the source, and cap cache lifetime (e.g. refresh at least every 24h
-for X). Until then, keep cached datasets small and short-lived. Disconnect
-already purges a platform's cached rows via cascade delete.
+removed from your copy, and cap how long/what you may cache.
+
+**Fixed for posts:** `syncPlatform` now reconciles cached posts against the
+source. When it fetches an account's *complete* post listing (pagination
+exhausted, not stopped by the page cap) it deletes any cached `PlatformPost` the
+source no longer returns — which cascades to that post's comments. The prune is
+guarded to require a non-empty fresh listing, so a transient empty API response
+can never wipe the whole cache. Post visibility was already updated on every sync
+(a post made private at the source is reflected here), and disconnect purges all
+cached rows via cascade.
+
+**Still to review (product):** apply the same reconciliation to cached
+comments and followers, and ensure the auto-sync cadence refreshes active
+accounts frequently enough to satisfy per-platform windows (e.g. X's ~24h). These
+are follow-ups, not blockers.
 
 ### 3. Scope breadth for write/follow permissions — OK, keep justified
 Some providers are granted write scopes (GitHub `public_repo`/`user:follow`,
@@ -87,10 +95,11 @@ verifier satisfies each state's specific ID-verification law where you operate.
 
 ## Bottom line
 
-The code-level compliance posture is solid, and the one clear violation (Reddit's
-generic User-Agent) is fixed in this change. The remaining items are either
-console/verification steps only you can complete (submissions, business
-verification, brand review) or a product decision (Finding 2: reconcile cached
-content with source deletions), which I can implement on request. None of the
-open items is a hidden or egregious ToS breach — they are the normal
-"tighten before launch" list.
+The code-level compliance posture is solid. The one clear violation (Reddit's
+generic User-Agent) is fixed, and the highest-value data-handling gap —
+honoring source-side post deletions (Finding 2) — is now implemented for posts.
+The remaining items are either console/verification steps only you can complete
+(submissions, business verification, brand review) or bounded follow-ups
+(extending reconciliation to comments/followers, sync cadence). None of the open
+items is a hidden or egregious ToS breach — they are the normal "tighten before
+launch" list.

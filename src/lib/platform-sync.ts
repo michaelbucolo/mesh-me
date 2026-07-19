@@ -2193,6 +2193,26 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
           data: { itemsSynced, progress: Math.min(90, page * 30) },
         });
       } while (cursor && page < 10);
+
+      // Honor source-side deletions. Several platforms (notably X/Twitter and
+      // Meta) require that content deleted or removed at the source be dropped
+      // from our copy. When we fetched the account's COMPLETE post listing —
+      // pagination exhausted (falsy cursor), not stopped by the page cap — any
+      // cached post the source no longer returns has been deleted there, so we
+      // remove our copy (cascade deletes its comments). We require that the
+      // fresh listing returned at least one post, so a transient empty API
+      // response can never wipe the entire cache; a legitimate "all deleted"
+      // state is still resolved on disconnect or a later successful sync.
+      const postsSyncComplete = !cursor;
+      const seenPostIds = new Set(syncedPostRefs.map((ref) => ref.platformPostId));
+      if (postsSyncComplete && seenPostIds.size > 0) {
+        await prisma.platformPost.deleteMany({
+          where: {
+            connectedAccountId: account.id,
+            platformPostId: { notIn: [...seenPostIds] },
+          },
+        });
+      }
     }
 
     // Sync the platform's personalized home / for-you feed
