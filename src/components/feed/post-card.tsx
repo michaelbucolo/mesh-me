@@ -9,7 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
-import { toggleReaction, toggleSavePost, repost, deletePost } from "@/lib/actions";
+import { toggleReaction, toggleSavePost, repost, deletePost, reportPost } from "@/lib/actions";
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { Play } from "lucide-react";
@@ -356,6 +356,18 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     setShowMenu(false);
   };
 
+  const handleReport = () => {
+    setShowMenu(false);
+    startTransition(async () => {
+      const result = await reportPost(post.id);
+      if (result?.success) {
+        addToast("Report received — our team will review it.", "success");
+      } else {
+        addToast(result?.error || "Couldn't send your report. Please try again.", "error");
+      }
+    });
+  };
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(post.externalUrl || `${window.location.origin}/feed/${post.id}`);
     setCopied(true);
@@ -538,11 +550,9 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {!isOwner && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      setPlatformActionMessage("Report noted — thanks for flagging.");
-                    }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors"
+                    onClick={handleReport}
+                    disabled={isPending}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors disabled:opacity-50"
                     style={{ color: "var(--text-secondary)" }}
                   >
                     <Flag className="h-4 w-4" /> Report post

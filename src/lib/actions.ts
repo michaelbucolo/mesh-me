@@ -1891,6 +1891,51 @@ export async function adminSuspendUser(targetUserId: string) {
   return { success: true };
 }
 
+// Create a report for a post. The post "Report" button used to only show a fake
+// "Report noted" toast with no persistence — this is the real write path that
+// feeds the admin "Pending reports" queue and community moderation. Native posts
+// link via reportedPostId; external/platform posts (synthetic ids with no Post
+// row) capture the reference in the reason so the foreign key stays valid.
+export async function reportPost(postId: string, reason?: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to report a post." };
+
+  const rl = rateLimit(`report:${user.id}`, 20, 60 * 60 * 1000);
+  if (!rl.allowed) return { error: "You've reported a lot recently. Try again later." };
+
+  const id = typeof postId === "string" ? postId.trim().slice(0, 200) : "";
+  if (!id) return { error: "Invalid post." };
+
+  const cleanReason = (typeof reason === "string" ? reason : "").trim().slice(0, 500);
+
+  const nativePost = await prisma.post.findUnique({
+    where: { id },
+    select: { id: true, authorId: true },
+  });
+
+  if (nativePost?.authorId === user.id) return { error: "You can't report your own post." };
+
+  // De-dupe: at most one open report per user per native post.
+  if (nativePost) {
+    const existing = await prisma.report.findFirst({
+      where: { reporterId: user.id, reportedPostId: id, status: "pending" },
+      select: { id: true },
+    });
+    if (existing) return { success: true };
+  }
+
+  await prisma.report.create({
+    data: {
+      reason: cleanReason || (nativePost ? "Reported from feed" : `Reported external post (${id})`),
+      reporterId: user.id,
+      reportedPostId: nativePost ? id : null,
+    },
+  });
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
 export async function adminResolveReport(reportId: string, status: string) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) return { error: "Unauthorized" };
