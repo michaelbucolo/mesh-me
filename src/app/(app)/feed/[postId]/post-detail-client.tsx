@@ -3,7 +3,7 @@
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn, formatRelativeTime, formatCount } from "@/lib/utils";
+import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
 import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Send, Copy, Link2, ExternalLink, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -245,7 +245,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
         {linkMedia.length > 0 && (
           <div className="mb-4 grid gap-2">
             {linkMedia.map((media) => (
-              <a key={media.id} href={media.url} target="_blank" rel="noopener noreferrer" className="feed-link-preview">
+              <a key={media.id} href={safeHref(media.url)} target="_blank" rel="noopener noreferrer" className="feed-link-preview">
                 <span className="feed-link-preview-icon">
                   <ExternalLink className="h-4 w-4" />
                 </span>

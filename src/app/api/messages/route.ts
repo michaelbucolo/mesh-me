@@ -4,7 +4,7 @@ import { buildLinkPreview, normalizeAttachments, serializeMeChatMetadata } from 
 import { prisma } from "@/lib/prisma";
 import { getMessageThreads } from "@/lib/queries";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
-import { rateLimit, sanitizeForDisplay } from "@/lib/security";
+import { rateLimit, sanitizeForDisplay, validateUrl } from "@/lib/security";
 
 function cleanText(value: unknown, maxLength: number) {
   if (typeof value !== "string") return "";
@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
   const title = cleanText((body as Record<string, unknown>).title, 80);
   const openingMessage = cleanText((body as Record<string, unknown>).openingMessage, 2000);
   const openingAttachments = normalizeAttachments((body as Record<string, unknown>).attachments);
-  const openingSourceUrl = cleanText((body as Record<string, unknown>).sourceUrl, 500);
+  const rawOpeningSourceUrl = cleanText((body as Record<string, unknown>).sourceUrl, 500);
+  // Persist only http(s) links so a javascript:/data: scheme can't reach the
+  // rendered "Open source" anchor href (render sink also guards with safeHref).
+  const openingSourceUrl = rawOpeningSourceUrl && validateUrl(rawOpeningSourceUrl) ? rawOpeningSourceUrl : "";
   const openingSourcePlatform = cleanText((body as Record<string, unknown>).sourcePlatform, 40) || "mesh";
   const openingMessageType = cleanText((body as Record<string, unknown>).messageType, 40)
     || (openingAttachments.length > 0 ? "media" : openingSourceUrl ? "platform_share" : "text");

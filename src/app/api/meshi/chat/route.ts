@@ -4,6 +4,7 @@ import { meshiQuery } from "@/lib/meshi-engine";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { createMeshiResponse, normalizeMeshiMood, type MeshiAction, type MeshiContext, type MeshiHistoryMessage } from "@/lib/meshi-shared";
 
 // Cap the per-request prompt so a single caller can't drive unbounded
@@ -519,8 +520,16 @@ export async function POST(req: Request) {
     }
 
     // Bound how fast a single user can hit the (billed) reasoning backend.
+    // The in-memory limiter is a per-instance fast-path that resets on cold
+    // starts, so it can't bound a paid endpoint on serverless by itself; the
+    // durable limiter enforces the cap per-user across all instances (and fails
+    // open if the counter store is unreachable). The proxy adds a per-IP cap.
     const rl = rateLimit(`meshi-chat:${user.id}`, 30, 60 * 1000);
     if (!rl.allowed) {
+      return NextResponse.json({ error: "You're chatting with Meshi too fast. Give it a moment." }, { status: 429 });
+    }
+    const durableRl = await durableRateLimit(`meshi-chat:${user.id}`, 30, 60 * 1000);
+    if (!durableRl.allowed) {
       return NextResponse.json({ error: "You're chatting with Meshi too fast. Give it a moment." }, { status: 429 });
     }
 

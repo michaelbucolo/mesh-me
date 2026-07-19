@@ -270,8 +270,15 @@ export async function signUp(formData: FormData) {
   }
 
   // Rate limit signups — durable so the limit holds across serverless instances.
+  // The per-email key alone is trivially rotated with fresh addresses, so a
+  // per-client ceiling backstops mass account creation and arbitrary-recipient
+  // verification-email abuse (mirrors resolveEntryIdentity). Server actions post
+  // to the page path, not /api/*, so the proxy's per-IP API limiter never sees
+  // this call — this is the only per-client gate on signup.
+  const clientIp = getTrustedClientIp(await headers());
   const rl = await durableRateLimit(`signup:${rawEmail.trim().toLowerCase()}`, 5, 60 * 60 * 1000);
-  if (!rl.allowed) {
+  const ipRl = await durableRateLimit(`signup:ip:${clientIp}`, 10, 60 * 60 * 1000);
+  if (!rl.allowed || !ipRl.allowed) {
     return { error: "Too many signup attempts. Please try again later." };
   }
 

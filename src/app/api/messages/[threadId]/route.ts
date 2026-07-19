@@ -13,7 +13,7 @@ import { getPlatformMessagingCapability } from "@/lib/platform-capabilities";
 import { deliverMeChatMessageToPlatform } from "@/lib/platform-sync";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
-import { rateLimit, sanitizeForDisplay } from "@/lib/security";
+import { rateLimit, sanitizeForDisplay, validateUrl } from "@/lib/security";
 
 type RouteContext = {
   params: Promise<{ threadId: string }>;
@@ -260,7 +260,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const body = await readJsonObject(request);
   const content = cleanText(body.content, 4000);
   const attachments = normalizeAttachments(body.attachments);
-  const sourceUrl = optionalCleanText(body.sourceUrl, 500);
+  // Only persist http(s) source links. A `javascript:`/`data:` sourceUrl would
+  // otherwise reach an anchor href on render; reject non-web schemes at the
+  // write boundary (the render sink also guards with safeHref).
+  const rawSourceUrl = optionalCleanText(body.sourceUrl, 500);
+  const sourceUrl = rawSourceUrl && validateUrl(rawSourceUrl) ? rawSourceUrl : undefined;
   if (!content && attachments.length === 0 && !sourceUrl) {
     return NextResponse.json({ error: "Message, media, or link is required." }, { status: 400 });
   }

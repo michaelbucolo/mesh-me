@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { getAppBaseUrl, getMeshProPaymentLink, getMeshProPriceId, getStripeClient, parseMeshProPlan } from "@/lib/stripe";
+import { rateLimit } from "@/lib/security";
 import Stripe from "stripe";
 
 export async function POST(req: Request) {
@@ -13,6 +14,13 @@ export async function POST(req: Request) {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Per-user cap on outbound Stripe session creation, complementing the
+    // proxy's per-IP limit, so one account can't spin up orphan sessions.
+    const rl = rateLimit(`stripe-checkout:${user.id}`, 8, 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many checkout attempts. Please slow down." }, { status: 429 });
     }
 
     const payload = await req.json().catch(() => ({}));

@@ -3,7 +3,7 @@ import { ArrowLeft, BadgeCheck, Bookmark, ExternalLink, Heart, MessageCircle, Re
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { Avatar } from "@/components/ui/avatar";
 import type { FeedCardPost } from "@/lib/feed-data";
-import { formatCount, formatRelativeTime } from "@/lib/utils";
+import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -136,7 +136,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
             </Link>
             {post.externalUrl && (
               <a
-                href={post.externalUrl}
+                href={safeHref(post.externalUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-[var(--mesh-text-muted)] transition hover:text-[var(--mesh-text)]"
