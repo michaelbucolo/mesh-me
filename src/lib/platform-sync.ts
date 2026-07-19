@@ -2149,6 +2149,9 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
     if (syncType === "full" || syncType === "posts") {
       let cursor: string | undefined;
       let page = 0;
+      // Oldest publish time among posts actually returned this sync — the lower
+      // bound of the window we can observe. Used to safely reconcile deletions.
+      let oldestSeenPublishedAt: Date | null = null;
       do {
         const result = await adapter.fetchPosts(accessToken, cursor);
         for (const post of result.posts) {
@@ -2183,6 +2186,9 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
             },
           });
           syncedPostRefs.push({ id: syncedPost.id, platformPostId: syncedPost.platformPostId });
+          if (post.publishedAt && (!oldestSeenPublishedAt || post.publishedAt < oldestSeenPublishedAt)) {
+            oldestSeenPublishedAt = post.publishedAt;
+          }
           itemsSynced++;
         }
         cursor = result.nextCursor;
@@ -2194,22 +2200,23 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
         });
       } while (cursor && page < 10);
 
-      // Honor source-side deletions. Several platforms (notably X/Twitter and
-      // Meta) require that content deleted or removed at the source be dropped
-      // from our copy. When we fetched the account's COMPLETE post listing —
-      // pagination exhausted (falsy cursor), not stopped by the page cap — any
-      // cached post the source no longer returns has been deleted there, so we
-      // remove our copy (cascade deletes its comments). We require that the
-      // fresh listing returned at least one post, so a transient empty API
-      // response can never wipe the entire cache; a legitimate "all deleted"
-      // state is still resolved on disconnect or a later successful sync.
-      const postsSyncComplete = !cursor;
+      // Honor source-side deletions, safely for feeds that only return a capped
+      // window of recent posts (most post adapters return a single page and do
+      // not paginate). Among the posts we actually saw this sync, take the oldest
+      // publish time as the lower bound of the observed window. Any cached post
+      // at or after that boundary that the source did NOT return has been deleted
+      // there — it fell inside the window yet is gone — so we remove it (cascade
+      // deletes its comments). Cached posts OLDER than the window are outside what
+      // this fetch can observe and are left untouched, so accounts with more
+      // history than the fetch window never lose valid posts. Requires seeing at
+      // least one dated post, so a transient empty response prunes nothing.
       const seenPostIds = new Set(syncedPostRefs.map((ref) => ref.platformPostId));
-      if (postsSyncComplete && seenPostIds.size > 0) {
+      if (seenPostIds.size > 0 && oldestSeenPublishedAt) {
         await prisma.platformPost.deleteMany({
           where: {
             connectedAccountId: account.id,
             platformPostId: { notIn: [...seenPostIds] },
+            publishedAt: { gte: oldestSeenPublishedAt },
           },
         });
       }
@@ -2328,6 +2335,12 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
         });
         itemsSynced++;
       }
+      // Note: we intentionally do NOT prune "removed" followers here. Most
+      // follower adapters return only a single capped page and do not paginate,
+      // and follower lists have no reliable ordering key, so there is no safe
+      // completeness signal — pruning could delete valid followers beyond the
+      // cap. Safe follower reconciliation requires adapter-level pagination
+      // first (tracked in docs/PLATFORM_COMPLIANCE_AUDIT.md).
     }
 
     // Sync analytics
