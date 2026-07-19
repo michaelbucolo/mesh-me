@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   AtSign,
   BadgeCheck,
   BellRing,
@@ -235,14 +236,16 @@ const sectionOrder: Array<{
 }> = [
   { id: "account", label: "Account", description: "Email, sign out, delete", icon: Settings2, keywords: ["email", "username", "sign out", "logout", "delete account", "verification"] },
   { id: "profile", label: "Profile", description: "Name, bio, links", icon: UserRound, keywords: ["display name", "bio", "location", "website", "interests", "tags", "accent color"] },
-  { id: "privacy", label: "Privacy", description: "Visibility and content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "nsfw", "sensitive", "adult"] },
-  { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing, keywords: ["push", "email digest", "messages", "mentions", "comments", "follows", "alerts"] },
-  { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
+  // Privacy + The Mesh are the two "who can see you" sections — keep them adjacent.
+  { id: "privacy", label: "Privacy", description: "Who can see you, and sensitive content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "nsfw", "sensitive", "adult"] },
   { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints, keywords: ["graph", "nodes", "connections", "branches", "visibility", "motion", "atmosphere", "sky", "pro"] },
-  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
+  { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing, keywords: ["push", "email digest", "messages", "comments", "follows", "alerts"] },
+  { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
+  // Appearance + Meshi are the two "make it yours" sections — keep them adjacent.
   { id: "appearance", label: "Appearance", description: "Theme, mode, and sound", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom", "sound", "sounds", "audio", "mute"] },
-  { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
+  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
   { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
+  { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
 ];
 
 function parseBranchOverrides(raw: string) {
@@ -291,11 +294,9 @@ export function SettingsControlCenter({
     pushEnabled: settings.notificationPreference.pushEnabled,
     emailDigest: settings.notificationPreference.emailDigest,
     messages: settings.notificationPreference.messages,
-    mentions: settings.notificationPreference.mentions,
     comments: settings.notificationPreference.comments,
     follows: settings.notificationPreference.follows,
     platformAlerts: settings.notificationPreference.platformAlerts,
-    securityAlerts: settings.notificationPreference.securityAlerts,
     productUpdates: settings.notificationPreference.productUpdates,
   });
   const [sensitive, setSensitive] = useState({
@@ -450,7 +451,6 @@ export function SettingsControlCenter({
     formData.set("pushEnabled", String(next.pushEnabled));
     formData.set("emailDigest", next.emailDigest);
     formData.set("messages", String(next.messages));
-    formData.set("mentions", String(next.mentions));
     formData.set("comments", String(next.comments));
     formData.set("follows", String(next.follows));
     formData.set("platformAlerts", String(next.platformAlerts));
@@ -765,7 +765,6 @@ export function SettingsControlCenter({
               <SecuritySection
                 settings={settings}
                 privacySummary={privacySummary}
-                sendEmailVerification={sendEmailVerification}
                 runSave={runSave}
                 isPending={isPending}
               />
@@ -1047,7 +1046,7 @@ function PrivacySection({
 }) {
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Profile privacy" icon={LockKeyhole}>
+      <SettingsCard title="Profile & discovery" icon={LockKeyhole}>
         <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
         <div className="mb-4 grid gap-2">
           <PickerGroup label="Who can see your profile">
@@ -1057,22 +1056,27 @@ function PrivacySection({
           </PickerGroup>
           <p className="text-xs text-[var(--text-muted)]">
             {profileVisibilityLevel === "public"
-              ? "Anyone on mesh.me can see your profile and Mesh."
+              ? "Everyone on mesh.me can open your profile and Mesh."
               : profileVisibilityLevel === "friends"
-                ? "Only people you're connected with can see your profile and Mesh."
-                : "Only you can see your profile and Mesh."}
+                ? "Only people you're connected with can open your profile and Mesh."
+                : "Only you can open your profile and Mesh."}
           </p>
         </div>
         <div className="settings-toggle-grid">
-          <Toggle label="Show in discovery" description="Appear in search and suggestions" value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
-          <Toggle label="Hide activity status" description="Others can't see when you're online" value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
-          <Toggle label="Read receipts" description="Let people know you've seen messages" value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
+          <Toggle label="Show me in discovery" description="When on, people can find you in search, suggestions, and the public feed." value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
+        </div>
+      </SettingsCard>
+
+      <SettingsCard title="Activity" icon={Activity}>
+        <div className="settings-toggle-grid">
+          <Toggle label="Hide when you're online" description="Others won't see your online status or when you were last active." value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
+          <Toggle label="Read receipts" description="Let people see when you've read their messages." value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
         </div>
       </SettingsCard>
 
       <SettingsCard title="Sensitive content" icon={ShieldAlert}>
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-          <Field label="U.S. state for policy">
+          <Field label="Your U.S. state">
             <select
               value={sensitive.adultVerificationRegion}
               onChange={(event) => {
@@ -1096,22 +1100,22 @@ function PrivacySection({
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <Toggle
-            label="Show NSFW content"
-            description={adultVerified ? "Show sensitive content in feeds" : "Requires adult verification first"}
+            label="Show sensitive content"
+            description={adultVerified ? "Show 18+ content in your feeds." : "Verify your age first to turn this on."}
             value={sensitive.nsfwEnabled && adultVerified}
             disabled={!adultVerified}
             onChange={(value) => applySensitive({ ...sensitive, nsfwEnabled: adultVerified ? value : false })}
           />
           <button type="button" onClick={startAdultVerification} disabled={isPending} className="settings-action-row text-left">
             <span>
-              <span className="block text-sm font-bold">Verify adult access</span>
-              <span className="mt-1 block text-xs text-[var(--text-muted)]">Third-party ID check. Mesh.me stores status only.</span>
+              <span className="block text-sm font-bold">Verify your age</span>
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">A third-party ID check. Mesh.me only stores whether you passed.</span>
             </span>
             {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <IdCard size={16} aria-hidden="true" />}
           </button>
         </div>
         <div className="settings-muted-box mt-3 text-xs leading-5 text-[var(--text-secondary)]">
-          {nsfwPolicy.reason} Minimum age: {nsfwPolicy.minAge}. NSFW stays hidden until this account is verified and the setting is explicitly turned on.
+          {nsfwPolicy.reason} Minimum age: {nsfwPolicy.minAge}. Sensitive content stays hidden until you verify your age and turn this on.
         </div>
       </SettingsCard>
     </div>
@@ -1122,11 +1126,9 @@ type NotificationsState = {
   pushEnabled: boolean;
   emailDigest: string;
   messages: boolean;
-  mentions: boolean;
   comments: boolean;
   follows: boolean;
   platformAlerts: boolean;
-  securityAlerts: boolean;
   productUpdates: boolean;
 };
 
@@ -1165,13 +1167,12 @@ function NotificationsSection({
       <SettingsCard title="What reaches you" icon={BellRing}>
         <div className="settings-toggle-grid">
           <Toggle label="Messages" description="New direct messages" value={notifications.messages} onChange={(value) => applyNotifications({ ...notifications, messages: value })} />
-          <Toggle label="Mentions" description="When someone mentions you" value={notifications.mentions} onChange={(value) => applyNotifications({ ...notifications, mentions: value })} />
           <Toggle label="Comments" description="Replies to your posts" value={notifications.comments} onChange={(value) => applyNotifications({ ...notifications, comments: value })} />
           <Toggle label="Follows" description="New followers and friend requests" value={notifications.follows} onChange={(value) => applyNotifications({ ...notifications, follows: value })} />
           <Toggle label="Platform alerts" description="Connected platform activity" value={notifications.platformAlerts} onChange={(value) => applyNotifications({ ...notifications, platformAlerts: value })} />
           <Toggle label="Product updates" description="News and feature announcements" value={notifications.productUpdates} onChange={(value) => applyNotifications({ ...notifications, productUpdates: value })} />
-          <Toggle label="Security alerts" description="Always on to keep your account safe" value={notifications.securityAlerts} disabled locked onChange={() => undefined} />
         </div>
+        <p className="settings-muted-box mt-3 text-xs text-[var(--text-secondary)]">Security alerts are always on to protect your account.</p>
       </SettingsCard>
     </div>
   );
@@ -1180,13 +1181,11 @@ function NotificationsSection({
 function SecuritySection({
   settings,
   privacySummary,
-  sendEmailVerification,
   runSave,
   isPending,
 }: {
   settings: SettingsSnapshot;
   privacySummary: PrivacySummary;
-  sendEmailVerification: () => void;
   runSave: (label: string, task: () => Promise<unknown>) => void;
   isPending: boolean;
 }) {
@@ -1221,15 +1220,9 @@ function SecuritySection({
           <SettingsRow label="Sensitive content" value={settings.nsfwEnabled ? "Allowed after verification" : "Off"} />
         </div>
         {!settings.emailVerified && (
-          <button
-            type="button"
-            onClick={sendEmailVerification}
-            disabled={isPending || !settings.email}
-            className="mesh-action mesh-action-primary mt-4 px-4 text-sm disabled:opacity-50"
-          >
-            {isPending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <MailCheck size={15} aria-hidden="true" />}
-            Send verification email
-          </button>
+          <p className="settings-muted-box mt-3 text-xs text-[var(--text-secondary)]">
+            Not verified yet — send a verification email from Account settings.
+          </p>
         )}
       </SettingsCard>
 
@@ -1288,22 +1281,6 @@ function SecuritySection({
             </span>
             <ChevronRight size={15} aria-hidden="true" />
           </Link>
-          <Link href="/connected-accounts" className="settings-action-row">
-            <span className="inline-flex items-center gap-2">
-              <PlugZap size={16} aria-hidden="true" />
-              Connected apps
-            </span>
-            <ChevronRight size={15} aria-hidden="true" />
-          </Link>
-          <form action={signOut}>
-            <button type="submit" className="settings-action-row w-full">
-              <span className="inline-flex items-center gap-2">
-                <LogOut size={16} aria-hidden="true" />
-                Sign out
-              </span>
-              <ChevronRight size={15} aria-hidden="true" />
-            </button>
-          </form>
         </div>
       </SettingsCard>
     </div>
