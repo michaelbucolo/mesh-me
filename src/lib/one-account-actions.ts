@@ -41,24 +41,3 @@ export async function foldPersonaIntoMainIdentity(alterEgoId: string) {
   clearMeshCache(user.id);
   return { success: true as const, personaName: persona.displayName };
 }
-
-export async function detachAccountFromPersona(connectedAccountId: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not authenticated" };
-
-  const account = await prisma.connectedAccount.findFirst({
-    where: { id: connectedAccountId, userId: user.id },
-    select: { id: true, alterEgoId: true },
-  });
-  if (!account) return { error: "Account not found" };
-  if (!account.alterEgoId) return { success: true as const };
-
-  await prisma.connectedAccount.update({
-    where: { id: account.id },
-    data: { alterEgoId: null },
-  });
-
-  revalidateIdentitySurfaces(user.username);
-  clearMeshCache(user.id);
-  return { success: true as const };
-}

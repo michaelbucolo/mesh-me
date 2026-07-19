@@ -218,7 +218,7 @@ function ShellTopBar({
               onClick={() => accountMenuRef.current?.removeAttribute("open")}
             >
               <Link href={`/profile/${user.username}`} className="mesh-dropdown-item">Profile</Link>
-              <Link href="/one-account" className="mesh-dropdown-item">One Account</Link>
+              <Link href="/connected-accounts" className="mesh-dropdown-item">Connected accounts</Link>
               <Link href="/settings" className="mesh-dropdown-item">Settings</Link>
               <Link href="/search" className="mesh-dropdown-item lg:hidden">Search</Link>
               <Link href="/trust" className="mesh-dropdown-item lg:hidden">Verify</Link>
