@@ -430,7 +430,7 @@ be updated as work lands. Legend: **Live** (shipped to production) · **Partial*
 | Browse without an account; connect-on-interact (§17, §18) | **Partial** | Guest browse exists; ensure connect/create prompt fires on first interaction for every platform. |
 | Private third-party account creation (iCloud-Relay-style) (§19) | **Gap** | Hidden email + encrypted password creation flow; leak-resistant. |
 | Flow — vertical IG-grade algorithm, zero repeats (§20) | **Live** | FlowImpression zero-repeat + external-content taste; ranking upgraded. |
-| Flow — horizontal related-context lane (§21) | **Gap** | Flagship differentiator: left/right = same subject/event from other angles/sources, then vertical resumes. Needs relationship/clustering logic. |
+| Flow — horizontal related-context lane (§21) | **Partial** | Built: `/api/flow/related` + `scoreRelatedPosts` rank the sideways "more like this" lane by author, shared tags, format, and platform, with horizontal-fling navigation and a "Similar N/M" indicator; vertical resumes normal discovery. **Deepen toward true same-subject/event relatedness** (topic/entity clustering, title/keyword overlap) so it matches §21's "same play from another angle / a news report on it", not just generic similarity. |
 | Meshi present while using Flow (§22) | **Partial** | Presence follows flow posts; keep it visible + interactive to others. |
 | Profiles = whole digital footprint + Meshi shown (§23) | **Partial** | Profile + last-online + Meshi; broaden to aggregate all connected-account content. |
 | Mesh as shareable representation of the user (§24) | **Partial** | Make a user's mesh a first-class shareable object. |
@@ -449,7 +449,9 @@ be updated as work lands. Legend: **Live** (shipped to production) · **Partial*
 single highest-leverage advance toward a **Gap** or **Partial** row, implement it
 fully to the vision, verify it end-to-end (typecheck, lint, dead-code, build, and
 a real runtime check), adversarially verify any privacy/gating change, ship it,
-and update this table. Current highest-leverage gaps: **Flow horizontal
-related-context lane (§21)**, **server-persisted Ghost Mode (§13)**, **MeChat
-cross-platform inbound sync depth (§14)**, and **private third-party account
-creation (§19)**.
+and update this table. **Always verify current build state before classifying a
+row** — don't assume something is a Gap without checking the code. Current
+highest-leverage work: **server-persisted Ghost Mode (§13)**, **MeChat
+cross-platform inbound sync depth (§14)**, **private third-party account creation
+(§19)**, and **deepening Flow's existing horizontal lane toward true
+same-subject/event relatedness (§21)**.
