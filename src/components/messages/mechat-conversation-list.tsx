@@ -525,12 +525,12 @@ export function MeChatConversationList({
         >
 
             {status?.type === "error" && (
-              <div className="mx-4 mt-2 rounded-lg bg-[var(--mesh-danger)]/10 px-3 py-2 text-xs text-[var(--mesh-danger)]">
+              <div className="rounded-lg bg-[var(--mesh-danger)]/10 px-3 py-2 text-xs text-[var(--mesh-danger)]">
                 {status.message}
               </div>
             )}
 
-            <div className="flex items-center gap-2 border-b border-[var(--mesh-border)] px-4 py-2">
+            <div className="-mx-5 flex items-center gap-2 border-b border-[var(--mesh-border)] px-5 py-2">
               <span className="text-sm font-medium text-[var(--mesh-text-secondary)]">To:</span>
               <input
                 value={recipientQuery}
@@ -557,7 +557,7 @@ export function MeChatConversationList({
             </div>
 
             {selectedMembers.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 border-b border-[var(--mesh-border)] px-4 py-2">
+              <div className="-mx-5 flex flex-wrap gap-1.5 border-b border-[var(--mesh-border)] px-5 py-2">
                 {selectedMembers.map((member) => (
                   <span
                     key={member.id}
@@ -598,7 +598,7 @@ export function MeChatConversationList({
             </div>
 
             {selectedMembers.length > 1 && (
-              <div className="border-t border-[var(--mesh-border)] px-4 py-2">
+              <div className="-mx-5 border-t border-[var(--mesh-border)] px-5 py-2">
                 <input
                   value={groupTitle}
                   onChange={(event) => setGroupTitle(event.target.value)}
@@ -608,7 +608,7 @@ export function MeChatConversationList({
               </div>
             )}
 
-            <div className="border-t border-[var(--mesh-border)] p-3">
+            <div className="-mx-5 border-t border-[var(--mesh-border)] px-5 pt-3">
               <button
                 type="button"
                 onClick={startConversation}
