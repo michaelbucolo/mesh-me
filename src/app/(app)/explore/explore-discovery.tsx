@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toggleFollow } from "@/lib/actions";
 import type { FeedCardPost } from "@/lib/feed-data";
 import { formatCount } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionTemplate, useReducedMotion, useSpring } from "framer-motion";
 import {
   ArrowUpRight,
   BadgeCheck,
@@ -48,6 +48,9 @@ const PLATFORM_CHIP: Record<string, { label: string; color: string }> = {
 };
 
 const spring = { type: "spring" as const, stiffness: 320, damping: 30, mass: 0.7 };
+
+// The Mesh "decisive glide" easing as a framer cubic-bezier tuple.
+const MESH_EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 const VIDEO_TYPES = ["video", "reel", "short", "stream"];
 
@@ -204,6 +207,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
 
   const hasActiveFilters = Boolean(activeTag || activePlatform || mediaFilter !== "all");
   const isPostTab = tab === "foryou" || tab === "trending" || tab === "media";
+  const contentFilters = MEDIA_FILTERS.filter((filter) => tab !== "media" || filter.id !== "text");
 
   const clearFilters = () => {
     setActiveTag(null);
@@ -320,39 +324,45 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{
+              height: { duration: 0.26, ease: MESH_EASE_OUT },
+              opacity: { duration: 0.2, ease: MESH_EASE_OUT },
+            }}
             className="overflow-hidden"
           >
             <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Content</span>
-                {MEDIA_FILTERS.filter((filter) => tab !== "media" || filter.id !== "text").map((filter) => (
+              <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
+                {contentFilters.map((filter, filterIndex) => (
                   <FilterChip
                     key={filter.id}
                     label={filter.label}
                     selected={mediaFilter === filter.id}
                     onClick={() => setMediaFilter(filter.id)}
+                    style={{ "--i": filterIndex + 1 } as React.CSSProperties}
                   />
                 ))}
-                <span className="mx-1 h-4 w-px bg-[var(--border-secondary)]" aria-hidden />
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Sort</span>
+                <span className="mx-1 h-4 w-px bg-[var(--border-secondary)]" aria-hidden style={{ "--i": contentFilters.length + 1 } as React.CSSProperties} />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]" style={{ "--i": contentFilters.length + 2 } as React.CSSProperties}>Sort</span>
                 <FilterChip
                   label="Top"
                   icon={<TrendingUp className="h-3 w-3" aria-hidden />}
                   selected={sortMode === "top"}
                   onClick={() => setSortMode("top")}
+                  style={{ "--i": contentFilters.length + 3 } as React.CSSProperties}
                 />
                 <FilterChip
                   label="Latest"
                   icon={<Clock className="h-3 w-3" aria-hidden />}
                   selected={sortMode === "latest"}
                   onClick={() => setSortMode("latest")}
+                  style={{ "--i": contentFilters.length + 4 } as React.CSSProperties}
                 />
               </div>
               {availablePlatforms.length > 1 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Platform</span>
-                  {availablePlatforms.map((platform) => {
+                <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
+                  {availablePlatforms.map((platform, platformIndex) => {
                     const chip = PLATFORM_CHIP[platform];
                     const selected = activePlatform === platform;
                     return (
@@ -363,7 +373,10 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                         className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
                           selected ? "" : "border-[var(--border-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                         }`}
-                        style={selected ? { borderColor: chip.color, backgroundColor: `${chip.color}22`, color: chip.color } : undefined}
+                        style={{
+                          "--i": platformIndex + 1,
+                          ...(selected ? { borderColor: chip.color, backgroundColor: `${chip.color}22`, color: chip.color } : {}),
+                        } as React.CSSProperties}
                       >
                         {chip.label}
                       </button>
@@ -375,7 +388,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="flex items-center gap-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                  className="animate-mesh-rise-soft flex items-center gap-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
                 >
                   <X className="h-3 w-3" aria-hidden /> Clear all filters
                 </button>
@@ -542,11 +555,12 @@ function SectionHeader({ title, action }: { title: string; action?: { label: str
   );
 }
 
-function FilterChip({ label, selected, onClick, icon }: { label: string; selected: boolean; onClick: () => void; icon?: React.ReactNode }) {
+function FilterChip({ label, selected, onClick, icon, style }: { label: string; selected: boolean; onClick: () => void; icon?: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      style={style}
       className={`flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
         selected
           ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
@@ -699,20 +713,50 @@ function ExplorePersonCard({
 
 function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const media = post.media[0];
   const isVideo = media && VIDEO_TYPES.includes(media.type.toLowerCase());
   const platform = (post.platform || "meshme").toLowerCase();
   const chip = PLATFORM_CHIP[platform];
   const authorName = post.externalAuthor?.name || post.author.displayName;
 
+  // Pointer-driven 3D tilt + moving specular sheen. Springs keep it physical;
+  // reduced motion skips every update so the tile stays flat and static.
+  const rotateX = useSpring(0, { stiffness: 300, damping: 22, mass: 0.6 });
+  const rotateY = useSpring(0, { stiffness: 300, damping: 22, mass: 0.6 });
+  const sheenX = useSpring(50, { stiffness: 220, damping: 26 });
+  const sheenY = useSpring(50, { stiffness: 220, damping: 26 });
+  const sheen = useMotionTemplate`radial-gradient(150px circle at ${sheenX}% ${sheenY}%, rgba(255,255,255,0.3), rgba(110,139,255,0.14) 34%, transparent 62%)`;
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (reduce) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width;
+    const py = (event.clientY - rect.top) / rect.height;
+    rotateY.set((px - 0.5) * 12); // horizontal → yaw, capped ±6deg
+    rotateX.set((0.5 - py) * 12); // vertical → pitch, capped ±6deg
+    sheenX.set(px * 100);
+    sheenY.set(py * 100);
+  };
+
+  const resetTilt = () => {
+    rotateX.set(0);
+    rotateY.set(0);
+    sheenX.set(50);
+    sheenY.set(50);
+  };
+
   return (
     <motion.button
       type="button"
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.96, filter: "blur(8px)" }}
+      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
       transition={{ ...spring, delay: 0.02 * Math.min(index, 16) }}
+      style={{ rotateX, rotateY, transformPerspective: 900 }}
       whileHover={{ scale: 1.015 }}
       whileTap={{ scale: 0.985 }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={resetTilt}
       onClick={() => router.push(`/feed?flow=${encodeURIComponent(post.id)}`)}
       className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-all hover:border-[var(--border-primary)]"
       aria-label={`Open post by ${authorName} in the Flow`}
@@ -738,6 +782,11 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
           </div>
         </div>
       )}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-10 rounded-2xl opacity-0 mix-blend-plus-lighter transition-opacity duration-300 group-hover:opacity-100"
+        style={{ background: sheen }}
+      />
     </motion.button>
   );
 }
@@ -781,37 +830,51 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
           const still = media?.type.toLowerCase() === "video" ? media.posterUrl : media?.url;
           const authorName = post.externalAuthor?.name || post.author.displayName;
           return (
-            <Link
+            <motion.div
               key={post.id}
-              href={post.externalUrl || `/feed/${post.id}`}
-              className="group relative h-44 w-[min(16rem,75vw)] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
+              initial={{ opacity: 0, y: 16, scale: 0.96, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              transition={{ ...spring, delay: 0.06 * index }}
+              className="shrink-0 snap-start"
             >
-              {still ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={still} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-              ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(47,124,255,0.35),transparent_60%),radial-gradient(circle_at_75%_80%,rgba(168,85,247,0.28),transparent_55%)]" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-              <span
-                className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-black text-white shadow-lg ${
-                  index === 0 ? "bg-gradient-to-br from-[var(--accent)] to-violet-500" : "bg-black/60 backdrop-blur"
-                }`}
+              <Link
+                href={post.externalUrl || `/feed/${post.id}`}
+                className="group relative block h-44 w-[min(16rem,75vw)] overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
               >
-                #{index + 1}
-              </span>
-              <div className="absolute inset-x-0 bottom-0 p-3">
-                {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
-                <p className="truncate text-[11px] font-semibold text-white/85">{authorName}</p>
-                <p className="mt-0.5 flex items-center gap-2 text-[10px] text-white/60">
-                  <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent)]" /> {formatCount(post._count.reactions)}</span>
-                  <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
-                  {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
-                    <span className="uppercase tracking-wide">{post.platform}</span>
-                  )}
-                </p>
-              </div>
-            </Link>
+                {still ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={still} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                ) : (
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(47,124,255,0.35),transparent_60%),radial-gradient(circle_at_75%_80%,rgba(168,85,247,0.28),transparent_55%)]" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+                <motion.span
+                  initial={{ scale: 0, rotate: index === 0 ? -14 : 0 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={
+                    index === 0
+                      ? { type: "spring", stiffness: 520, damping: 13, delay: 0.06 * index + 0.16 }
+                      : { type: "spring", stiffness: 380, damping: 22, delay: 0.06 * index + 0.12 }
+                  }
+                  className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-black text-white shadow-lg ${
+                    index === 0 ? "bg-gradient-to-br from-[var(--accent)] to-violet-500" : "bg-black/60 backdrop-blur"
+                  }`}
+                >
+                  #{index + 1}
+                </motion.span>
+                <div className="absolute inset-x-0 bottom-0 p-3">
+                  {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
+                  <p className="truncate text-[11px] font-semibold text-white/85">{authorName}</p>
+                  <p className="mt-0.5 flex items-center gap-2 text-[10px] text-white/60">
+                    <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent)]" /> {formatCount(post._count.reactions)}</span>
+                    <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
+                    {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
+                      <span className="uppercase tracking-wide">{post.platform}</span>
+                    )}
+                  </p>
+                </div>
+              </Link>
+            </motion.div>
           );
         })}
       </div>

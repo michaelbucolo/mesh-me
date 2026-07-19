@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
 import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
@@ -29,9 +29,15 @@ export function AuthShell({
           </p>
           <h1 className="mt-4 text-3xl font-bold leading-[1.04] tracking-[0] sm:mt-7 sm:text-4xl lg:text-5xl xl:text-6xl">{title}</h1>
           <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)] sm:mt-3 lg:text-base lg:leading-7">{description}</p>
-          <div className="mt-4 hidden max-w-md flex-wrap gap-2 text-xs font-bold text-[var(--text-secondary)] sm:flex">
-            {trustChips.map((item) => (
-              <span key={item} className="mesh-step rounded-md px-3 py-2">{item}</span>
+          <div className="mesh-cascade mt-4 hidden max-w-md flex-wrap gap-2 text-xs font-bold text-[var(--text-secondary)] sm:flex">
+            {trustChips.map((item, index) => (
+              <span
+                key={item}
+                className="mesh-step rounded-md px-3 py-2"
+                style={{ "--i": index + 3 } as CSSProperties}
+              >
+                {item}
+              </span>
             ))}
           </div>
         </section>

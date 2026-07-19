@@ -1,7 +1,8 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
-import { ArrowLeft, ArrowRight, Bell, Check, Eye, LayoutGrid, Loader2, Palette, Shield, Sparkles, UserRound } from "lucide-react";
+import { Children, type CSSProperties, type FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
+import { ArrowLeft, ArrowRight, Bell, Check, LayoutGrid, Loader2, Palette, Shield, Sparkles, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,6 +85,28 @@ const interfaceStyles = [
   { id: "classic", title: "Classic", body: "A family-friendly layout that feels closer to older social apps." },
 ];
 
+// Shared Mesh Motion easings (typed as bezier tuples for framer).
+const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const SPRING_LUSH: [number, number, number, number] = [0.34, 1.56, 0.64, 1];
+
+// Directional step choreography: forward springs in from the right while the
+// outgoing panel slides left; back reverses. `custom` carries the direction.
+const panelVariants: Variants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir >= 0 ? 44 : -44, scale: 0.985 }),
+  center: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: { type: "spring", stiffness: 360, damping: 30, mass: 0.8 },
+  },
+  exit: (dir: number) => ({
+    opacity: 0,
+    x: dir >= 0 ? -44 : 44,
+    scale: 0.985,
+    transition: { duration: 0.2, ease: EASE_OUT },
+  }),
+};
+
 export function OnboardingFlow({
   user,
   meshi,
@@ -93,6 +116,8 @@ export function OnboardingFlow({
   platformOptions,
 }: OnboardingFlowProps) {
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const reduce = useReducedMotion();
   const [account, setAccount] = useState({
     username: user.username,
     displayName: user.displayName,
@@ -171,11 +196,13 @@ export function OnboardingFlow({
       return;
     }
     setStatus(null);
+    setDirection(1);
     setStep((current) => Math.min(current + 1, steps.length - 1));
   }
 
   function back() {
     setStatus(null);
+    setDirection(-1);
     setStep((current) => Math.max(current - 1, 0));
   }
 
@@ -238,27 +265,51 @@ export function OnboardingFlow({
       <form onSubmit={submit} className="onboarding-grid mx-auto grid h-full min-h-0 w-full max-w-6xl gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:px-8">
         <aside className="mesh-surface h-fit rounded-lg p-4 lg:sticky lg:top-4">
           <div className="flex items-center gap-3">
-            <MeshiMascot
-              size={54}
-              color={meshiState.colorTheme as MeshiColor}
-              hat={meshiState.hatStyle as MeshiHat}
-              mood={meshiState.faceStyle as MeshiMood}
-              hair={meshiState.hairStyle as MeshiHair}
-              accessory={meshiState.accessoryStyle as MeshiAccessory}
-              eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
-              badge={meshiState.badgeStyle as MeshiBadge}
-              outfit={meshiState.outfitStyle as MeshiOutfit}
-              prop={currentStep.id === "notifications" ? "bell" : currentStep.id === "privacy" ? "shield" : currentStep.id === "apps" ? "compass" : "none"}
-              animate
-              showGlow={false}
-            />
+            <motion.div
+              key={step}
+              initial={{ y: 0 }}
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 0.5, ease: SPRING_LUSH, times: [0, 0.42, 1] }}
+              className="shrink-0"
+            >
+              <MeshiMascot
+                size={54}
+                color={meshiState.colorTheme as MeshiColor}
+                hat={meshiState.hatStyle as MeshiHat}
+                mood={meshiState.faceStyle as MeshiMood}
+                hair={meshiState.hairStyle as MeshiHair}
+                accessory={meshiState.accessoryStyle as MeshiAccessory}
+                eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
+                badge={meshiState.badgeStyle as MeshiBadge}
+                outfit={meshiState.outfitStyle as MeshiOutfit}
+                prop={currentStep.id === "notifications" ? "bell" : currentStep.id === "privacy" ? "shield" : currentStep.id === "apps" ? "compass" : "none"}
+                animate
+                showGlow={false}
+              />
+            </motion.div>
             <div>
               <p className="text-sm font-bold">Mesh.me setup</p>
               <p className="text-xs text-[var(--text-muted)]">{progress}% complete</p>
             </div>
           </div>
-          <div className="mt-4 h-1.5 rounded-full bg-[var(--bg-tertiary)]">
-            <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="relative mt-4 h-1.5 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+            <motion.div
+              className="relative h-full overflow-hidden rounded-full bg-[var(--accent)]"
+              animate={{ width: `${progress}%` }}
+              transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 220, damping: 26, mass: 0.7 }}
+            >
+              {!reduce && (
+                <motion.span
+                  key={step}
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 w-16"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)" }}
+                  initial={{ x: "-110%" }}
+                  animate={{ x: "280%" }}
+                  transition={{ duration: 0.75, ease: EASE_OUT, delay: 0.08 }}
+                />
+              )}
+            </motion.div>
           </div>
           <nav className="mt-4 grid gap-1" aria-label="Onboarding steps">
             {steps.map((item, index) => {
@@ -267,7 +318,10 @@ export function OnboardingFlow({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setStep(index)}
+                  onClick={() => {
+                    setDirection(index >= step ? 1 : -1);
+                    setStep(index);
+                  }}
                   className={cn(
                     "flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-sm font-bold transition",
                     index === step ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
@@ -302,7 +356,16 @@ export function OnboardingFlow({
             </div>
           )}
 
-          <div className="onboarding-step-panel mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="onboarding-step-panel mt-4 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+            <AnimatePresence mode="wait" custom={direction} initial={false}>
+              <motion.div
+                key={currentStep.id}
+                custom={direction}
+                variants={panelVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
             {currentStep.id === "account" && (
               <StepShell title="Start with the basics" body="Pick the public identity people will recognize. You can change this later.">
                 <div className="grid gap-4 md:grid-cols-2">
@@ -509,15 +572,16 @@ export function OnboardingFlow({
                     { id: "friends", title: "Friends", body: "Mutual connections can see selected branches." },
                     { id: "public", title: "Public", body: "Your profile and public Mesh can be discovered." },
                   ].map((option) => (
-                    <button
+                    <motion.button
                       key={option.id}
                       type="button"
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => setPrivacy((current) => ({ ...current, meshVisibility: option.id }))}
                       className={cn("mesh-choice rounded-md p-4 text-left", privacy.meshVisibility === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
                     >
                       <span className="block text-base font-bold">{option.title}</span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -560,15 +624,16 @@ export function OnboardingFlow({
               <StepShell title="Pick your starting layout" body="This controls the first Feed experience. The Mesh stays available from the main dashboard.">
                 <div className="grid gap-3 md:grid-cols-2">
                   {interfaceStyles.map((option) => (
-                    <button
+                    <motion.button
                       key={option.id}
                       type="button"
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => setInterfaceStyle(option.id)}
                       className={cn("mesh-choice rounded-md p-4 text-left", interfaceStyle === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
                     >
                       <span className="block text-base font-bold">{option.title}</span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </StepShell>
@@ -580,9 +645,10 @@ export function OnboardingFlow({
                   {platformOptions.map((platform) => {
                     const active = selectedApps.includes(platform.id);
                     return (
-                      <button
+                      <motion.button
                         key={platform.id}
                         type="button"
+                        whileTap={{ scale: 0.97 }}
                         onClick={() => toggleApp(platform.id)}
                         aria-pressed={active}
                         className={cn("mesh-choice min-h-20 rounded-md px-4 py-3 text-left transition", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
@@ -590,12 +656,12 @@ export function OnboardingFlow({
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span className="block text-sm font-bold">{platform.name}</span>
-                          {active && <Check size={15} className="text-[var(--accent)]" aria-hidden="true" />}
+                          {active && <Check size={15} className="animate-mesh-pop text-[var(--accent)]" aria-hidden="true" />}
                         </span>
                         <span className="mt-1 block text-xs text-[var(--text-muted)]">
                           {platform.connected ? "Already connected" : platform.authType === "oauth" ? "One-tap connect" : "Add manually"}
                         </span>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
@@ -607,6 +673,8 @@ export function OnboardingFlow({
                 </div>
               </StepShell>
             )}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           <footer className="mt-4 flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--border-primary)] pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -633,13 +701,20 @@ export function OnboardingFlow({
 }
 
 function StepShell({ title, body, children }: { title: string; body: string; children: ReactNode }) {
+  // Stagger the incoming panel's fields via the shared aurora cascade — each
+  // block rises on its own delayed beat (self-guarded for reduced motion).
+  const blocks = Children.toArray(children);
   return (
-    <div className="grid gap-5">
-      <div>
+    <div className="mesh-cascade-soft grid gap-5">
+      <div style={{ "--i": 0 } as CSSProperties}>
         <h2 className="text-xl font-bold">{title}</h2>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
       </div>
-      {children}
+      {blocks.map((block, index) => (
+        <div key={index} style={{ "--i": index + 1 } as CSSProperties}>
+          {block}
+        </div>
+      ))}
     </div>
   );
 }
@@ -655,27 +730,53 @@ function PickerGroup({ label, children }: { label: string; children: ReactNode }
 
 function ChoiceButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      whileTap={{ scale: 0.94 }}
+      animate={active ? { scale: [1, 1.09, 1] } : { scale: 1 }}
+      transition={{ duration: 0.34, ease: SPRING_LUSH }}
       className={cn("mesh-choice rounded-full px-3 py-2 text-sm font-bold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
     >
       {children}
-    </button>
+    </motion.button>
   );
 }
 
 function GraphicChoice({ active, label, onClick, children }: { active: boolean; label: string; onClick: () => void; children: ReactNode }) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
-      className={cn("mesh-choice grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-bold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+      whileTap={{ scale: 0.92 }}
+      className={cn("mesh-choice relative grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-bold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
       aria-pressed={active}
     >
-      {children}
+      {/* Selected-pop: the preview springs with an overshoot and a brand ring
+          bursts outward. The swatch preview itself stays animate={false}. */}
+      <motion.span
+        className="relative grid place-items-center"
+        animate={active ? { scale: [1, 1.18, 0.94, 1] } : { scale: 1 }}
+        transition={{ duration: 0.42, ease: SPRING_LUSH }}
+      >
+        {children}
+        <AnimatePresence>
+          {active && (
+            <motion.span
+              key="selected-ring"
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-[-7px] rounded-full"
+              style={{ border: "2px solid var(--accent)" }}
+              initial={{ opacity: 0.85, scale: 0.45 }}
+              animate={{ opacity: 0, scale: 1.6 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.55, ease: EASE_OUT }}
+            />
+          )}
+        </AnimatePresence>
+      </motion.span>
       <span>{label}</span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -691,7 +792,23 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
         <span className="block text-sm font-bold">{label}</span>
         <span className="block text-xs text-[var(--text-muted)]">{value ? "On" : "Off"}</span>
       </span>
-      <Eye size={16} aria-hidden="true" />
+      {/* Real sliding knob: track fills accent-green with a glow when on, knob
+          springs left↔right. */}
+      <motion.span
+        aria-hidden="true"
+        className="relative flex h-6 w-11 shrink-0 items-center rounded-full px-0.5"
+        animate={{
+          backgroundColor: value ? "rgba(16,185,129,0.95)" : "rgba(148,163,184,0.32)",
+          boxShadow: value ? "0 0 12px 1px rgba(16,185,129,0.5)" : "0 0 0 0 rgba(16,185,129,0)",
+        }}
+        transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+      >
+        <motion.span
+          className="h-5 w-5 rounded-full bg-white shadow-md"
+          animate={{ x: value ? 20 : 0 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        />
+      </motion.span>
     </button>
   );
 }

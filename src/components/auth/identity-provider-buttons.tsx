@@ -54,9 +54,23 @@ export function IdentityProviderButtons({ providers, next, className }: Identity
             <a
               key={provider}
               href={`/api/auth/identity/${provider}${suffix}`}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--glass-card-border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="group relative flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--glass-card-border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
-              <Glyph />
+              {/* Periwinkle → cyan gradient edge that lights up on hover. */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                  padding: 1,
+                  background: "linear-gradient(120deg, var(--accent), var(--mesh-cyan))",
+                  WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                } as React.CSSProperties}
+              />
+              <span className="inline-flex transition-transform duration-300 ease-out motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:scale-110">
+                <Glyph />
+              </span>
               {PROVIDER_LABEL[provider]}
             </a>
           );

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { motion } from "framer-motion";
 import {
   CheckCheck,
   Image as ImageIcon,
@@ -266,6 +267,9 @@ export function MeChatThread({
   const bottomRef = useRef<HTMLDivElement>(null);
   const draftRef = useRef<HTMLTextAreaElement>(null);
   const typingTimerRef = useRef<number | null>(null);
+  // Track which message ids have already been shown so only genuinely new
+  // arrivals spring in — initial history and search re-filters stay calm.
+  const seenIdsRef = useRef<Set<string>>(new Set(initialMessages.map((message) => message.id)));
 
   const visibleMessages = useMemo(
     () => messages.filter((message) => messageMatchesSearch(message, searchQuery)),
@@ -328,6 +332,12 @@ export function MeChatThread({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length, typingUsers.length]);
+
+  // Once a message has rendered it counts as "seen" — later re-mounts (search
+  // filtering, reordering) then skip the entrance instead of replaying it.
+  useEffect(() => {
+    for (const message of messages) seenIdsRef.current.add(message.id);
+  }, [messages]);
 
   useEffect(() => {
     if (!activeThreadId) return;
@@ -435,6 +445,9 @@ export function MeChatThread({
         setPendingSource(undefined);
         setAttachments([]);
         setShowMediaTools(false);
+        // The real message takes the optimistic bubble's place — mark it seen so
+        // swapping the React key doesn't replay the send-in animation.
+        seenIdsRef.current.add(data.message.id);
         setMessages((current) => current.map((message) => (message.id === optimistic.id ? data.message! : message)));
         await loadThread(threadId);
         if (!initialThreadId) router.replace(`/messages/${threadId}`);
@@ -590,7 +603,12 @@ export function MeChatThread({
                         className="mb-4 shrink-0"
                       />
                     ))}
-                  <div className={`relative max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}>
+                  <motion.div
+                    initial={seenIdsRef.current.has(message.id) ? false : { opacity: 0, x: isMine ? 12 : -26, y: 6, scale: 0.965 }}
+                    animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.7 }}
+                    className={`relative max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}
+                  >
                     {!isMine && !groupedWithPrev && (
                       <p className="px-2 text-[11px] font-semibold text-[var(--text-muted)]">
                         {externalSender?.name || message.sender.displayName}
@@ -667,15 +685,17 @@ export function MeChatThread({
                       isMine
                         ? "mechat-bubble-mine text-white"
                         : "mechat-bubble-theirs"
-                    } ${!groupedWithNext ? `mechat-tail ${isMine ? "mechat-tail-mine" : "mechat-tail-theirs"}` : ""} ${
-                      message.id.startsWith("optimistic-") ? "mechat-send-in" : ""
-                    }`}>
+                    } ${!groupedWithNext ? `mechat-tail ${isMine ? "mechat-tail-mine" : "mechat-tail-theirs"}` : ""}`}>
                       {groupedReactions.length > 0 && (
                         <span className={`mechat-tapbacks ${isMine ? "mechat-tapbacks-mine" : "mechat-tapbacks-theirs"}`}>
                           {groupedReactions.map((reaction) => (
-                            <button
+                            <motion.button
                               key={reaction.emoji}
                               type="button"
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              whileTap={{ scale: 0.9 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 18, mass: 0.6 }}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 toggleReaction(message.id, reaction.emoji);
@@ -684,8 +704,12 @@ export function MeChatThread({
                               aria-pressed={reaction.mine}
                             >
                               {reaction.emoji}
-                              {reaction.count > 1 ? <span className="text-[10px] font-bold">{reaction.count}</span> : null}
-                            </button>
+                              {reaction.count > 1 ? (
+                                <span key={reaction.count} className="mesh-roll-in text-[10px] font-bold">
+                                  {reaction.count}
+                                </span>
+                              ) : null}
+                            </motion.button>
                           ))}
                         </span>
                       )}
@@ -797,7 +821,7 @@ export function MeChatThread({
                         )}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 </article>
                 </div>
               );
@@ -819,9 +843,13 @@ export function MeChatThread({
         {typingUsers.length > 0 && (
           <div className="mt-3 flex items-end gap-2">
             <div className="flex -space-x-1.5">
-              {typingUsers.slice(0, 3).map((user) =>
+              {typingUsers.slice(0, 3).map((user, index) =>
                 user.meshi ? (
-                  <span key={user.userId} className="mechat-typing-meshi inline-flex h-8 w-8 items-center justify-center">
+                  <span
+                    key={user.userId}
+                    className="mechat-typing-meshi inline-flex h-8 w-8 items-center justify-center"
+                    style={{ animationDelay: `${index * 160}ms` }}
+                  >
                     <MeshiMascot
                       size={30}
                       prop="keyboard"
@@ -844,10 +872,10 @@ export function MeChatThread({
               className="rounded-[1.3rem] rounded-bl-[0.5rem] border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 px-4 py-3 shadow-sm"
               aria-label={`${typingUsers.map((user) => user.displayName).join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing`}
             >
-              <span className="inline-flex gap-1">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--text-muted)]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--text-muted)] [animation-delay:140ms]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--text-muted)] [animation-delay:280ms]" />
+              <span className="mesh-typing-wave" aria-hidden="true">
+                <span />
+                <span />
+                <span />
               </span>
             </div>
           </div>

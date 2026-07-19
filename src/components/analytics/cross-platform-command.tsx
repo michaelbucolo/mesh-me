@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useRef, type CSSProperties } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { Crown, Flame, Gauge, Layers, Rocket, Scale, Trophy, Zap } from "lucide-react";
 import type { AnalyticsDashboardData } from "@/lib/analytics-dashboard";
@@ -50,22 +54,31 @@ type MixRow = {
 
 function ShareBar({ row }: { row: MixRow }) {
   const visible = row.parts.filter((part) => part.value > 0);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+  const reduce = useReducedMotion();
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-xs font-semibold text-[var(--text-secondary)]">{row.title}</p>
         <p className="text-xs font-bold text-[var(--text-primary)]">{fmt(row.total)}</p>
       </div>
-      <div className="mt-1.5 flex h-3 w-full overflow-hidden rounded-full bg-[var(--bg-primary)]/70">
+      <div ref={ref} className="mt-1.5 flex h-3 w-full overflow-hidden rounded-full bg-[var(--bg-primary)]/70">
         {visible.length > 0 ? (
-          visible.map((part) => (
-            <span
-              key={part.platform}
-              title={`${label(part.platform)} · ${fmt(part.value)} (${Math.round((part.value / row.total) * 100)}%)`}
-              style={{ width: `${Math.max(2, (part.value / row.total) * 100)}%`, backgroundColor: tone(part.platform) }}
-              className="h-full first:rounded-l-full last:rounded-r-full"
-            />
-          ))
+          visible.map((part, i) => {
+            const w = Math.max(2, (part.value / row.total) * 100);
+            return (
+              <motion.span
+                key={part.platform}
+                title={`${label(part.platform)} · ${fmt(part.value)} (${Math.round((part.value / row.total) * 100)}%)`}
+                style={{ backgroundColor: tone(part.platform) }}
+                className="h-full first:rounded-l-full last:rounded-r-full"
+                initial={reduce ? false : { width: "0%" }}
+                animate={inView || reduce ? { width: `${w}%` } : { width: "0%" }}
+                transition={{ duration: reduce ? 0 : 0.7, delay: reduce ? 0 : i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+              />
+            );
+          })
         ) : (
           <span className="h-full w-full" />
         )}
@@ -83,9 +96,12 @@ function ShareBar({ row }: { row: MixRow }) {
   );
 }
 
-function LeaderCard({ icon: Icon, title, platform, stat, detail }: { icon: LucideIcon; title: string; platform: string | null; stat: string; detail: string }) {
+function LeaderCard({ icon: Icon, title, platform, stat, detail, index }: { icon: LucideIcon; title: string; platform: string | null; stat: string; detail: string; index?: number }) {
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3.5">
+    <div
+      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3.5"
+      style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
+    >
       <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         {title}
@@ -103,6 +119,29 @@ function LeaderCard({ icon: Icon, title, platform, stat, detail }: { icon: Lucid
       ) : (
         <p className="mt-1.5 text-xs text-[var(--text-muted)]">Connect platforms to unlock</p>
       )}
+    </div>
+  );
+}
+
+/** One "engagement per post" bar that grows into place when scrolled into view. */
+function PerPostBar({ platform, epp, maxEpp, index }: { platform: string; epp: number; maxEpp: number; index: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-30px" });
+  const reduce = useReducedMotion();
+  const w = Math.max(3, (epp / maxEpp) * 100);
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-20 shrink-0 truncate text-xs font-semibold text-[var(--text-primary)]">{label(platform)}</span>
+      <div ref={ref} className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--bg-secondary)]">
+        <motion.span
+          className="block h-full rounded-full"
+          style={{ backgroundColor: tone(platform) }}
+          initial={reduce ? false : { width: "0%" }}
+          animate={inView || reduce ? { width: `${w}%` } : { width: "0%" }}
+          transition={{ duration: reduce ? 0 : 0.75, delay: reduce ? 0 : index * 0.07, ease: [0.16, 1, 0.3, 1] }}
+        />
+      </div>
+      <span className="w-14 shrink-0 text-right text-xs font-bold text-[var(--text-primary)]">{fmt(epp)}</span>
     </div>
   );
 }
@@ -180,12 +219,12 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
       </div>
 
       {/* Leaders — which platform wins each crown */}
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-        <LeaderCard icon={Crown} title="Biggest audience" platform={byReach?.platform ?? null} stat={fmt(byReach?.followerCount)} detail="followers" />
-        <LeaderCard icon={Trophy} title="Most reach" platform={byViews?.platform ?? null} stat={fmt(byViews?.totalViews)} detail="views" />
-        <LeaderCard icon={Flame} title="Best engagement rate" platform={byRate?.platform ?? null} stat={`${((byRate?.engagementRate || 0) * 100).toFixed(1)}%`} detail="of audience responds" />
-        <LeaderCard icon={Rocket} title="Fastest growing" platform={byGrowth && byGrowth.followerGrowth > 0 ? byGrowth.platform : null} stat={`+${fmt(byGrowth?.followerGrowth)}`} detail="followers this month" />
-        <LeaderCard icon={Zap} title="Hardest working" platform={hardestWorking?.platform ?? null} stat={fmt(hardestWorking?.epp)} detail="engagements per post" />
+      <div className="mesh-cascade mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <LeaderCard index={0} icon={Crown} title="Biggest audience" platform={byReach?.platform ?? null} stat={fmt(byReach?.followerCount)} detail="followers" />
+        <LeaderCard index={1} icon={Trophy} title="Most reach" platform={byViews?.platform ?? null} stat={fmt(byViews?.totalViews)} detail="views" />
+        <LeaderCard index={2} icon={Flame} title="Best engagement rate" platform={byRate?.platform ?? null} stat={`${((byRate?.engagementRate || 0) * 100).toFixed(1)}%`} detail="of audience responds" />
+        <LeaderCard index={3} icon={Rocket} title="Fastest growing" platform={byGrowth && byGrowth.followerGrowth > 0 ? byGrowth.platform : null} stat={`+${fmt(byGrowth?.followerGrowth)}`} detail="followers this month" />
+        <LeaderCard index={4} icon={Zap} title="Hardest working" platform={hardestWorking?.platform ?? null} stat={fmt(hardestWorking?.epp)} detail="engagements per post" />
       </div>
 
       {/* The mix — stacked share bars */}
@@ -203,17 +242,8 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
             Engagement earned per post
           </p>
           <div className="mt-3 grid gap-2.5">
-            {perPost.map((p) => (
-              <div key={p.id} className="flex items-center gap-3">
-                <span className="w-20 shrink-0 truncate text-xs font-semibold text-[var(--text-primary)]">{label(p.platform)}</span>
-                <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--bg-secondary)]">
-                  <span
-                    className="block h-full rounded-full"
-                    style={{ width: `${Math.max(3, (p.epp / maxEpp) * 100)}%`, backgroundColor: tone(p.platform) }}
-                  />
-                </div>
-                <span className="w-14 shrink-0 text-right text-xs font-bold text-[var(--text-primary)]">{fmt(p.epp)}</span>
-              </div>
+            {perPost.map((p, i) => (
+              <PerPostBar key={p.id} platform={p.platform} epp={p.epp} maxEpp={maxEpp} index={i} />
             ))}
           </div>
           <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">

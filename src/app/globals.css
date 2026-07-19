@@ -77,13 +77,22 @@
   --glass-surface: rgba(14, 18, 28, 0.72);
   --glass-input: rgba(10, 13, 22, 0.78);
 
-  --mesh-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --mesh-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --mesh-ease-press: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* ─── Mesh Motion — the platform's signature easing curves ─── */
+  --mesh-ease-out: cubic-bezier(0.16, 1, 0.3, 1);          /* decisive glide, the workhorse */
+  --mesh-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);    /* springy overshoot */
+  --mesh-ease-press: cubic-bezier(0.2, 0.8, 0.2, 1);        /* crisp tactile give */
+  --mesh-spring: cubic-bezier(0.34, 1.56, 0.64, 1);         /* alias for spring */
+  --mesh-spring-lush: cubic-bezier(0.22, 1.61, 0.36, 1);    /* deeper, playful overshoot */
+  --mesh-spring-soft: cubic-bezier(0.4, 1.32, 0.5, 1);      /* gentle settle, no jerk */
+  --mesh-ease-swift: cubic-bezier(0.45, 0, 0.1, 1);         /* fast anticipation-in */
+  --mesh-ease-glide: cubic-bezier(0.16, 1, 0.3, 1);         /* = ease-out */
   --mesh-transition-fast: 160ms var(--mesh-ease-out);
   --mesh-transition-medium: 260ms var(--mesh-ease-out);
-  --mesh-hover-y: -2px;
-  --mesh-press-scale: 0.985;
+  --mesh-hover-y: -3px;                 /* a touch more lift than before */
+  --mesh-press-scale: 0.97;             /* crisper press than the old 0.985 */
+  --mesh-stagger: 46ms;                 /* base cascade step for lists/grids */
+  /* Living aurora ribbon used by motion surfaces (progress, loaders, reveals) */
+  --mesh-aurora-line: linear-gradient(90deg, transparent, #5b8def 22%, #8b5cf6 46%, #34e4ea 72%, transparent);
 
   /* ─── Mesh spatial tokens (aligned to Aurora) ─── */
   --mesh-bg-deep: #04060e;
@@ -316,10 +325,250 @@ select:focus-visible {
 
 /* ─── Base Animations ─── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(14px) scale(0.98); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.004); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
 
-.animate-fade-in { animation: fadeIn 0.3s ease-out; }
-.animate-slide-up { animation: slideUp 0.4s ease-out; }
+.animate-fade-in { animation: fadeIn 0.32s var(--mesh-ease-out) both; }
+.animate-slide-up { animation: slideUp 0.42s var(--mesh-spring) both; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MESH MOTION SYSTEM — one cohesive vocabulary of springy, alive motion
+   reused across the whole platform. Everything here resolves to its own
+   100% frame at rest, so the global reduced-motion cap (which only
+   shrinks duration) lands cleanly with no frozen mid-transform.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* The signature content reveal: rise + settle with a hair of overshoot. */
+@keyframes meshRise {
+  0% { opacity: 0; transform: translateY(18px) scale(0.985); }
+  70% { opacity: 1; transform: translateY(-3px) scale(1.004); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* A lighter, faster variant for dense lists / secondary content. */
+@keyframes meshRiseSoft {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Directional slides for route / step choreography. */
+@keyframes meshInFromRight { from { opacity: 0; transform: translateX(3%) scale(0.99); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes meshInFromLeft { from { opacity: 0; transform: translateX(-3%) scale(0.99); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes meshInFromBottom { from { opacity: 0; transform: translateY(4%); } to { opacity: 1; transform: translateY(0); } }
+
+.animate-mesh-rise { animation: meshRise 0.5s var(--mesh-spring) both; }
+.animate-mesh-rise-soft { animation: meshRiseSoft 0.4s var(--mesh-ease-out) both; }
+
+/* Data-driven stagger: give children an inline `--i` (0,1,2,…) and any
+   `.mesh-cascade` container animates each on its own delayed beat — no more
+   hard-capped nth-child ladders. Falls back to nth-child for markup that
+   can't set --i. */
+.mesh-cascade > * {
+  animation: meshRise 0.52s var(--mesh-spring) both;
+  animation-delay: calc(var(--i, 0) * var(--mesh-stagger));
+}
+.mesh-cascade-soft > * {
+  animation: meshRiseSoft 0.42s var(--mesh-ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--mesh-stagger));
+}
+
+/* Spring pop — badges, icons, selected chips landing into place. */
+@keyframes meshPop {
+  0% { transform: scale(0); }
+  55% { transform: scale(1.18); }
+  78% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+.animate-mesh-pop { animation: meshPop 0.42s var(--mesh-spring) both; }
+
+/* Elastic press — the universal "give" with a real spring settle. */
+@keyframes meshPressGive {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.93); }
+  100% { transform: scale(1); }
+}
+
+/* Aurora sweep — a one-pass periwinkle→cyan sheen wiped across freshly
+   revealed content (routes, cards, submittable forms). */
+@keyframes meshAuroraSweep {
+  0% { opacity: 0; transform: translateX(-120%) skewX(-12deg); }
+  30% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateX(120%) skewX(-12deg); }
+}
+/* Living aurora drift — background-position motion for gradient surfaces. */
+@keyframes meshAuroraDrift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+
+/* Particle burst — one glyph flung outward on a per-particle angle/distance.
+   Consumers set --angle and --dist inline; used by reaction/tap bursts. */
+@keyframes meshBurstParticle {
+  0% { opacity: 1; transform: rotate(var(--angle, 0deg)) translateY(0) scale(0.4); }
+  60% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(calc(-1 * var(--dist, 40px))) scale(1); }
+}
+/* Expanding ring shockwave, brand-tinted. */
+@keyframes meshRing {
+  0% { opacity: 0.85; transform: translate(-50%, -50%) scale(0.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.6); }
+}
+
+/* Reusable particle + ring primitives (position them with a wrapper). */
+.mesh-burst-particle {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 999px;
+  pointer-events: none;
+  animation: meshBurstParticle 0.7s var(--mesh-ease-out) both;
+}
+.mesh-burst-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 20px; height: 20px;
+  border-radius: 999px;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+  animation: meshRing 0.6s var(--mesh-ease-out) both;
+}
+
+/* Number roll — old digit lifts out, new one springs up in. */
+@keyframes meshRollOut { to { opacity: 0; transform: translateY(-90%); } }
+@keyframes meshRollIn { from { opacity: 0; transform: translateY(90%); } to { opacity: 1; transform: translateY(0); } }
+.mesh-roll-in { animation: meshRollIn 0.34s var(--mesh-spring) both; display: inline-block; }
+
+/* Infinite ambient loops MUST be explicitly stilled under reduced motion —
+   the global duration cap only clamps one-shots, not perpetual motion. */
+@media (prefers-reduced-motion: reduce) {
+  .mesh-cascade > *,
+  .mesh-cascade-soft > *,
+  .animate-mesh-rise,
+  .animate-mesh-rise-soft,
+  .animate-mesh-pop,
+  .mesh-roll-in { animation: none !important; }
+  .mesh-burst-particle,
+  .mesh-burst-ring { display: none !important; }
+}
+
+/* ─── Aurora typing wave — one cohesive "thinking" motif for every chat ─── */
+.mesh-typing-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mesh-typing-wave > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: meshTypingWave 1.1s var(--mesh-ease-out) infinite;
+}
+.mesh-typing-wave > span:nth-child(1) { animation-delay: 0s; }
+.mesh-typing-wave > span:nth-child(2) { animation-delay: 0.14s; background: color-mix(in srgb, var(--accent) 60%, var(--mesh-cyan)); }
+.mesh-typing-wave > span:nth-child(3) { animation-delay: 0.28s; background: var(--mesh-cyan); }
+@keyframes meshTypingWave {
+  0%, 60%, 100% { transform: translateY(0) scale(1); opacity: 0.55; }
+  30% { transform: translateY(-5px) scale(1.15); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-typing-wave > span { animation: none; opacity: 0.7; }
+}
+
+/* ─── Toast lifecycle — spring in, drain, animated exit ─── */
+@keyframes meshToastIn {
+  0% { opacity: 0; transform: translateY(16px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes meshToastOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(24px) scale(0.94); }
+}
+@keyframes meshToastTimer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.mesh-toast-in { animation: meshToastIn 0.42s var(--mesh-spring) both; }
+.mesh-toast-out { animation: meshToastOut 0.24s var(--mesh-ease-press) both; }
+.mesh-toast-timer {
+  transform-origin: left center;
+  animation: meshToastTimer linear forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-toast-in, .mesh-toast-out { animation: none !important; }
+  .mesh-toast-timer { animation: none; transform: scaleX(0.4); }
+}
+
+/* ─── Invalid shake — draws the eye without alarming ─── */
+@keyframes meshShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+.mesh-shake { animation: meshShake 0.4s var(--mesh-ease-out); }
+@media (prefers-reduced-motion: reduce) { .mesh-shake { animation: none; } }
+
+/* ─── Presence you can feel — a radar ping behind an online dot ─── */
+.mesh-presence-ping { position: relative; }
+.mesh-presence-ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0.6;
+  animation: meshPresencePing 1.9s var(--mesh-ease-out) infinite;
+}
+@keyframes meshPresencePing {
+  0% { transform: scale(1); opacity: 0.5; }
+  70%, 100% { transform: scale(2.6); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .mesh-presence-ping::after { animation: none; opacity: 0; } }
+
+/* ─── Aurora ring — a slow conic shimmer for "new"/live avatars & notes ─── */
+@keyframes meshAuroraRingSpin { to { transform: rotate(360deg); } }
+.mesh-aurora-ring { position: relative; isolation: isolate; }
+.mesh-aurora-ring::before {
+  content: "";
+  position: absolute;
+  inset: -2.5px;
+  border-radius: inherit;
+  padding: 2.5px;
+  background: conic-gradient(from 0deg, var(--accent), var(--mesh-cyan), #ec4899, var(--accent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: meshAuroraRingSpin 4s linear infinite;
+  z-index: -1;
+}
+@media (prefers-reduced-motion: reduce) { .mesh-aurora-ring::before { animation: none; } }
+
+/* ─── Gentle float + breathing glow — for mascots, empty-state icons, chips ─── */
+@keyframes meshFloatBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.mesh-float { animation: meshFloatBob 3.4s ease-in-out infinite; }
+@keyframes meshGlowPulse {
+  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.9); }
+  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.08); }
+}
+.mesh-soft-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12rem;
+  height: 12rem;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--accent-glow), transparent 68%);
+  animation: meshGlowPulse 4.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-float { animation: none; }
+  .mesh-soft-glow { animation: none; opacity: 0.4; }
+}
 
 /* ─── Mesh Shell ─── */
 .mesh-shell {
@@ -556,49 +805,62 @@ select:focus-visible {
 }
 
 @keyframes meshPageEnter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateY(12px) scale(0.992); }
+  70% { opacity: 1; transform: translateY(-2px) scale(1.002); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .animate-page-enter {
   /* Every navigation lands with a springy rise — one connected world, not
-     separate pages loading. */
-  animation: pageEnter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+     separate pages loading. Positioned so the aurora sheen can ride over it. */
+  position: relative;
+  animation: pageEnter 380ms var(--mesh-spring) both;
 }
 
 .mesh-shell-mesh:not(.mesh-shell-flow) .mesh-route-slot.animate-page-enter {
   animation: meshPageEnter 280ms var(--mesh-ease-out) both;
 }
 
-/* ─── Heart Bounce ─── */
+/* ─── Heart Bounce — elastic, joyful, with a little anticipation twist ─── */
 @keyframes heartBounce {
-  0% { transform: scale(1); }
-  25% { transform: scale(1.3); }
-  50% { transform: scale(0.9); }
-  75% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% { transform: scale(1) rotate(0deg); }
+  18% { transform: scale(0.82) rotate(-9deg); }
+  45% { transform: scale(1.34) rotate(6deg); }
+  68% { transform: scale(0.92) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 .animate-heart-bounce {
-  animation: heartBounce 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: heartBounce 0.52s var(--mesh-spring-lush);
 }
 
-/* ─── Bookmark Pop ─── */
+/* ─── Bookmark Tuck — dips, springs, and the fill sweeps up from the base ─── */
 @keyframes bookmarkPop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.25); }
-  100% { transform: scale(1); }
+  0% { transform: scale(1) translateY(0); }
+  22% { transform: scale(0.86) translateY(1px); }
+  55% { transform: scale(1.22) translateY(-2px); }
+  78% { transform: scale(0.96) translateY(0); }
+  100% { transform: scale(1) translateY(0); }
 }
 .animate-bookmark-pop {
-  animation: bookmarkPop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: bookmarkPop 0.42s var(--mesh-spring-lush);
 }
 
-/* ─── Smooth Reveal ─── */
+/* ─── Smooth Reveal — confident spring pop, shared by modals & menus ─── */
 @keyframes smoothReveal {
-  from { opacity: 0; transform: translateY(4px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  0% { opacity: 0; transform: translateY(8px) scale(0.94); }
+  62% { opacity: 1; transform: translateY(-2px) scale(1.012); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes smoothRevealOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(4px) scale(0.97); }
 }
 .animate-smooth-reveal {
-  animation: smoothReveal 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: smoothReveal 0.34s var(--mesh-spring) both;
+  transform-origin: var(--reveal-origin, center);
+}
+.animate-smooth-reveal-out {
+  animation: smoothRevealOut 0.16s var(--mesh-ease-press) both;
 }
 
 /* ─── Tooltip fade ─── */
@@ -660,11 +922,38 @@ select:focus-visible {
 
 /* ─── Floating Orbs ─── */
 
-/* ─── Page Enter ─── */
+/* ─── Page Enter — springy rise, one connected world ─── */
 @keyframes pageEnter {
-  0% { opacity: 0; transform: translateY(14px) scale(0.988); }
-  70% { opacity: 1; transform: translateY(-2px) scale(1.002); }
+  0% { opacity: 0; transform: translateY(18px) scale(0.984); }
+  68% { opacity: 1; transform: translateY(-3px) scale(1.004); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Directional route motion — app-shell stamps data-nav-dir on the slot so
+   going deeper enters from the right, back from the left, giving navigation
+   spatial logic instead of one uniform nudge. */
+@keyframes pageEnterForward {
+  0% { opacity: 0; transform: translateX(2.2%) scale(0.99); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes pageEnterBack {
+  0% { opacity: 0; transform: translateX(-2.2%) scale(0.99); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+.mesh-route-slot[data-nav-dir="forward"].animate-page-enter { animation: pageEnterForward 0.36s var(--mesh-ease-out) both; }
+.mesh-route-slot[data-nav-dir="back"].animate-page-enter { animation: pageEnterBack 0.36s var(--mesh-ease-out) both; }
+/* A one-pass aurora sheen threads across freshly committed content. */
+.mesh-route-slot.animate-page-enter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(100deg, transparent 30%, rgba(110, 139, 255, 0.10) 48%, rgba(52, 228, 234, 0.08) 56%, transparent 72%);
+  mix-blend-mode: screen;
+  animation: meshAuroraSweep 0.7s var(--mesh-ease-out) 0.05s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-route-slot.animate-page-enter::after { display: none; }
 }
 
 @keyframes meshChildEnter {
@@ -722,22 +1011,30 @@ select:focus-visible {
 
 /* ─── Card Shine ─── */
 
-/* ─── Feed Post Stagger ─── */
+/* ─── Feed Post Stagger — springy cascade, uncapped ─── */
 @keyframes feedPostReveal {
-  from { opacity: 0; transform: translateY(16px) scale(0.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  0% { opacity: 0; transform: translateY(20px) scale(0.985); }
+  72% { opacity: 1; transform: translateY(-2px) scale(1.003); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .feed-posts-stagger > [data-feed-post-id] {
-  animation: feedPostReveal 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: feedPostReveal 0.5s var(--mesh-spring) both;
+  /* Prefer the inline --i index the timeline stamps; fall back to source order. */
+  animation-delay: calc(min(var(--i, 0), 12) * 42ms);
 }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(1) { animation-delay: 0s; }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(2) { animation-delay: 0.04s; }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(3) { animation-delay: 0.08s; }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(4) { animation-delay: 0.12s; }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(5) { animation-delay: 0.16s; }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(6) { animation-delay: 0.2s; }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(7) { animation-delay: 0.24s; }
-.feed-posts-stagger > [data-feed-post-id]:nth-child(8) { animation-delay: 0.28s; }
+/* Fallback ladder for any card without an inline --i (older markup). The
+   modulo-style wrap keeps late/infinite-scroll pages lively instead of
+   snapping in like the old nth-child(8) cap did. */
+.feed-posts-stagger > [data-feed-post-id]:nth-child(1) { --i: 0; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(2) { --i: 1; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(3) { --i: 2; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(4) { --i: 3; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(5) { --i: 4; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(6) { --i: 5; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(7) { --i: 6; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(8) { --i: 7; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(9) { --i: 8; }
+.feed-posts-stagger > [data-feed-post-id]:nth-child(10) { --i: 9; }
 
 /* ─── Interactive Press Scale ─── */
 @media (hover: hover) and (pointer: fine) {
@@ -749,8 +1046,34 @@ select:focus-visible {
   }
 }
 
-/* ─── Shimmer Loading ─── */
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+/* ─── Shimmer Loading — an aurora sweep, not a grey wipe ─── */
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Reusable brand-tinted skeleton: a diagonal periwinkle→cyan highlight drifts
+   across the surface so loading reads as "the mesh is forming". */
+.mesh-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--shimmer-1);
+  border-radius: var(--radius-md, 0.875rem);
+}
+.mesh-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 42%,
+    color-mix(in srgb, var(--mesh-cyan) 20%, transparent) 54%,
+    transparent 78%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.6s var(--mesh-ease-out) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-skeleton::after { animation: none; opacity: 0.4; }
+}
 
 /* ── Mesh-forming loader caption ── */
 .mesh-forming-caption {
@@ -1502,9 +1825,10 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 /* Mesh.me motion system */
 @keyframes meshAuroraShift {
-  0% { background-position: 0% 50%, 100% 50%, 50% 0%; }
-  50% { background-position: 100% 50%, 0% 50%, 50% 100%; }
-  100% { background-position: 0% 50%, 100% 50%, 50% 0%; }
+  0% { background-position: 0% 50%, 100% 50%, 50% 0%; background-size: 140% 140%, 150% 150%, 130% 130%, 100% 100%; }
+  33% { background-position: 62% 38%, 42% 62%, 44% 82%; background-size: 168% 168%, 132% 132%, 152% 152%, 100% 100%; }
+  66% { background-position: 100% 56%, 0% 44%, 56% 100%; background-size: 132% 132%, 172% 172%, 128% 128%, 100% 100%; }
+  100% { background-position: 0% 50%, 100% 50%, 50% 0%; background-size: 140% 140%, 150% 150%, 130% 130%, 100% 100%; }
 }
 
 @keyframes meshFloat {
@@ -1535,12 +1859,12 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 .mesh-aurora {
   background-image:
-    radial-gradient(circle at 14% 12%, rgba(91, 141, 239, 0.18), transparent 34%),
-    radial-gradient(circle at 86% 18%, rgba(139, 92, 246, 0.15), transparent 32%),
-    radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.1), transparent 34%),
+    radial-gradient(circle at 14% 12%, rgba(91, 141, 239, 0.22), transparent 36%),
+    radial-gradient(circle at 86% 18%, rgba(139, 92, 246, 0.18), transparent 34%),
+    radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.14), transparent 36%),
     linear-gradient(180deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary) 88%, #101827 12%) 100%);
   background-size: 140% 140%, 150% 150%, 130% 130%, 100% 100%;
-  animation: meshAuroraShift 18s ease-in-out infinite;
+  animation: meshAuroraShift 16s ease-in-out infinite;
 }
 
 .mesh-soft-grid {
@@ -6161,19 +6485,48 @@ body > * { position: relative; z-index: 1; }
   color: transparent;
 }
 
-/* Buttons that carry the accent become gradient + glow. */
+/* Buttons that carry the accent become a LIVING aurora + glow — the hero CTA.
+   An explicit multi-stop gradient (independent of the flattened --brand-gradient
+   token) slowly drifts, and a diagonal sheen wipes across on hover. */
 .btn-gradient,
 [data-variant="gradient"] {
-  background: var(--brand-gradient) !important;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(115deg, #5b8def 0%, #8b5cf6 38%, #ec4899 66%, #34e4ea 100%) !important;
+  background-size: 220% 100% !important;
   color: #fff !important;
   border: none !important;
   box-shadow: 0 8px 24px -8px rgba(110, 139, 255, 0.55) !important;
   transition: filter 160ms var(--mesh-ease-out), transform 160ms var(--mesh-ease-out), box-shadow 160ms var(--mesh-ease-out) !important;
+  animation: meshAuroraDrift 9s linear infinite alternate;
+}
+.btn-gradient > *,
+[data-variant="gradient"] > * { position: relative; z-index: 1; }
+.btn-gradient::after,
+[data-variant="gradient"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.42) 50%, transparent 68%);
+  transform: translateX(-120%) skewX(-14deg);
 }
 .btn-gradient:hover,
 [data-variant="gradient"]:hover {
-  filter: brightness(1.08) saturate(1.06);
-  box-shadow: 0 12px 32px -8px rgba(139, 92, 246, 0.6) !important;
+  filter: brightness(1.1) saturate(1.08);
+  box-shadow: 0 14px 36px -8px rgba(139, 92, 246, 0.62) !important;
+}
+.btn-gradient:hover::after,
+[data-variant="gradient"]:hover::after {
+  animation: meshAuroraSweep 0.62s var(--mesh-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-gradient,
+  [data-variant="gradient"] { animation: none; }
+  .btn-gradient::after,
+  [data-variant="gradient"]::after { display: none; }
 }
 
 /* Focus ring — luminous, on-brand, accessible. */
@@ -6386,25 +6739,59 @@ body > * { position: relative; z-index: 1; }
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 200;
-  height: 2px;
+  height: 2.5px;
   overflow: hidden;
   pointer-events: none;
   animation: navSweepFade 240ms ease;
+  /* Per-route personality tint (navigation-progress stamps --sweep-a/--sweep-b). */
+  --sweep-a: var(--accent);
+  --sweep-b: var(--mesh-cyan);
 }
+/* Lead ribbon — bright, with a glowing comet head. */
 .nav-sweep-line {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
-  width: 42%;
+  width: 40%;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, #5b8def 30%, #8b5cf6 60%, #22d3ee 82%, transparent);
-  box-shadow: 0 0 14px rgba(125, 155, 255, 0.7);
-  animation: navSweep 0.9s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+  background: linear-gradient(90deg, transparent, var(--sweep-a) 34%, #8b5cf6 58%, var(--sweep-b) 82%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--sweep-a) 70%, transparent);
+  animation: navSweep 0.95s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+}
+/* The comet head — a soft spark riding the leading edge. */
+.nav-sweep-line::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 4%;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--sweep-b) 85%, #fff);
+}
+/* Trailing parallax ribbon — a fainter echo at a different phase for depth. */
+.nav-sweep::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 28%;
+  border-radius: 999px;
+  opacity: 0.5;
+  background: linear-gradient(90deg, transparent, var(--sweep-b) 50%, transparent);
+  animation: navSweepTrail 1.25s cubic-bezier(0.5, 0, 0.2, 1) infinite;
 }
 @keyframes navSweep {
   0% { transform: translateX(-120%); }
-  100% { transform: translateX(320%); }
+  100% { transform: translateX(340%); }
+}
+@keyframes navSweepTrail {
+  0% { transform: translateX(-160%); }
+  100% { transform: translateX(420%); }
 }
 @keyframes navSweepFade {
   from { opacity: 0; }
@@ -6412,9 +6799,11 @@ body > * { position: relative; z-index: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .nav-sweep-line { animation: none; width: 100%; opacity: 0.6; }
+  .nav-sweep-line::after,
+  .nav-sweep::after { display: none; }
 }
 
-/* Satisfying like: a ring bursts outward from the heart on tap. */
+/* Satisfying like: twin rings burst outward from the heart on tap. */
 .like-burst {
   position: absolute;
   left: 50%;
@@ -6427,13 +6816,25 @@ body > * { position: relative; z-index: 1; }
   opacity: 0;
   pointer-events: none;
 }
+/* A second, faster periwinkle ring for a layered aurora pop. */
+.like-burst::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(110, 139, 255, 0.8);
+  opacity: 0;
+}
 .like-burst-active {
-  animation: likeBurst 0.45s var(--mesh-ease-out);
+  animation: likeBurst 0.5s var(--mesh-ease-out);
+}
+.like-burst-active::after {
+  animation: likeBurst 0.62s var(--mesh-ease-out) 0.04s;
 }
 @keyframes likeBurst {
-  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.2); border-width: 3px; }
+  0% { opacity: 0.95; transform: translate(-50%, -50%) scale(0.2); border-width: 3px; }
   70% { opacity: 0.35; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); border-width: 0.5px; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.6); border-width: 0.5px; }
 }
 
 /* Universal tactile press: every interactive control gives a subtle,
@@ -6791,11 +7192,14 @@ body > * { position: relative; z-index: 1; }
   .ds-glass-panel,
   [data-reactive] {
     position: relative;
+    transform-style: preserve-3d;
     transition:
-      transform 320ms var(--mesh-ease-out),
+      transform 180ms var(--mesh-ease-out),
       box-shadow 320ms var(--mesh-ease-out),
       border-color 320ms ease;
   }
+  /* Two-stop aurora spotlight: a periwinkle core with a cyan fringe that
+     tracks the cursor, so surfaces feel dimensional rather than flat-lit. */
   .ds-interactive::after,
   .glass-card::after,
   .simple-card::after,
@@ -6810,11 +7214,9 @@ body > * { position: relative; z-index: 1; }
     opacity: 0;
     pointer-events: none;
     transition: opacity 300ms ease;
-    background: radial-gradient(
-      22rem 22rem at var(--mx, 50%) var(--my, 50%),
-      rgba(125, 155, 255, 0.14),
-      transparent 60%
-    );
+    background:
+      radial-gradient(16rem 16rem at var(--mx, 50%) var(--my, 50%), rgba(110, 139, 255, 0.16), transparent 62%),
+      radial-gradient(26rem 26rem at var(--mx, 50%) var(--my, 50%), rgba(52, 228, 234, 0.07), transparent 70%);
     z-index: 0;
   }
   .ds-interactive[data-hot]::after,
@@ -6826,6 +7228,8 @@ body > * { position: relative; z-index: 1; }
   [data-reactive][data-hot]::after {
     opacity: 1;
   }
+  /* Magnetic 3D tilt — ReactiveSurfaces emits --tiltX/--tiltY (deg) from the
+     cursor offset; cards lean toward the pointer for real depth. */
   .ds-interactive[data-hot],
   .glass-card[data-hot],
   .simple-card[data-hot],
@@ -6833,8 +7237,14 @@ body > * { position: relative; z-index: 1; }
   .premium-surface[data-hot],
   .ds-glass-panel[data-hot],
   [data-reactive][data-hot] {
-    transform: translateY(-2px);
-    border-color: rgba(125, 155, 255, 0.28);
+    transform: perspective(1100px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg)) translateY(-3px);
+    border-color: rgba(125, 155, 255, 0.30);
+  }
+  /* Dialogs, sheets and full-width panels keep the spotlight but skip the 3D
+     tilt — leaning a focused surface reads as jitter, not depth. */
+  .ds-glass-panel[data-hot],
+  [data-reactive="flat"][data-hot] {
+    transform: translateY(-3px);
   }
   /* Keep real content above the glow overlay. */
   .ds-interactive > *,
@@ -6881,8 +7291,8 @@ body > * { position: relative; z-index: 1; }
   animation: meshOwnerFloat 5s ease-in-out infinite;
 }
 @keyframes meshOwnerFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-8px) rotate(1.5deg); }
 }
 .mesh-owner-meshi.is-asleep {
   transform: rotate(8deg);
@@ -6948,17 +7358,18 @@ body > * { position: relative; z-index: 1; }
   100% { transform: scale(1); }
 }
 .flow-like-pop { animation: flowLikePop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
-/* Sideways "similar content" lane — new reel slides in from the swipe side */
+/* Sideways "similar content" lane — new reel slides in from the swipe side,
+   starting fully hidden (not half-visible) with a hint of depth. */
 @keyframes flowLaneInLeft {
-  from { opacity: 0.35; transform: translateX(48px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(56px) scale(0.97); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 @keyframes flowLaneInRight {
-  from { opacity: 0.35; transform: translateX(-48px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-56px) scale(0.97); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
-.flow-lane-in-left { animation: flowLaneInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
-.flow-lane-in-right { animation: flowLaneInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+.flow-lane-in-left { animation: flowLaneInLeft 0.34s var(--mesh-ease-out); }
+.flow-lane-in-right { animation: flowLaneInRight 0.34s var(--mesh-ease-out); }
 @media (prefers-reduced-motion: reduce) {
   .flow-heart-burst, .flow-like-pop, .flow-lane-in-left, .flow-lane-in-right { animation: none; }
 }
@@ -7020,16 +7431,16 @@ body > * { position: relative; z-index: 1; }
   88% { opacity: 1; transform: translate(-50%, 0) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -8px) scale(0.96); }
 }
-/* Travel dive: the world rushes past as you enter a friend's mesh. */
+/* Travel dive: a tunnel of light rushes in as you plunge into a friend's mesh. */
 @keyframes meshTravelVeil {
-  0% { opacity: 0; }
-  55% { opacity: 0.65; }
-  100% { opacity: 1; }
+  0% { opacity: 0; transform: scale(1.6); filter: blur(6px); }
+  55% { opacity: 0.7; transform: scale(1.1); filter: blur(2px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 @keyframes meshTravelText {
-  0% { opacity: 0; transform: scale(0.9); letter-spacing: 0.02em; }
+  0% { opacity: 0; transform: scale(0.86); letter-spacing: 0.02em; }
   40% { opacity: 1; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1.06); letter-spacing: 0.08em; }
+  100% { opacity: 1; transform: scale(1.08); letter-spacing: 0.1em; }
 }
 .mesh-rail-btn {
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;

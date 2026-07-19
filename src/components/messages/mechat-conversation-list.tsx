@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeCheck,
   Check,
@@ -75,6 +76,9 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]["key"];
 
+// Shared overlay physics: mobile sheets ride up on it, desktop panels scale-fade.
+const overlaySpring = { type: "spring" as const, stiffness: 320, damping: 30, mass: 0.7 };
+
 function platformLabel(platform: string) {
   if (platform.toLowerCase() === "twitter") return "X";
   if (platform.toLowerCase() === "meshme") return "Mesh.me";
@@ -145,6 +149,15 @@ export function MeChatConversationList({
   const [activeNote, setActiveNote] = useState<MeChatNoteEntry | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [isPending, startTransition] = useTransition();
+  // Overlays ride up as a sheet on phones and scale-fade as a panel on desktop.
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 640px)");
+    const sync = () => setIsDesktopViewport(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
 
   // Escape dismisses whichever full-screen overlay is open (New message, Share a
   // note, Note viewer) — two hold autofocused inputs with no keyboard exit.
@@ -412,7 +425,7 @@ export function MeChatConversationList({
                     {note.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
                     {note.text || note.songTitle}
                   </span>
-                  <span className="block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px] shadow-[0_0_24px_rgba(47,124,255,0.18)]">
+                  <span className="mesh-aurora-ring block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px] shadow-[0_0_24px_rgba(47,124,255,0.18)]">
                     <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16 border-2 border-[var(--mesh-bg)]" />
                   </span>
                 </div>
@@ -476,10 +489,9 @@ export function MeChatConversationList({
                         />
                       )}
                       {!isGroup && thread.otherUser && onlineContacts.has(thread.otherUser.id) && (
-                        <span
-                          className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400"
-                          aria-label="Active now"
-                        />
+                        <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5" aria-label="Active now">
+                          <span className="mesh-presence-ping block h-full w-full rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400 text-emerald-400" />
+                        </span>
                       )}
                       {unread && thread.unread > 1 && (
                         <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--mesh-blue)] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
@@ -529,12 +541,22 @@ export function MeChatConversationList({
         </div>
       </div>
 
-      {showCompose && (
-        <div
+      <AnimatePresence>
+        {showCompose && (
+        <motion.div
+          key="mechat-compose-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4"
           onClick={() => setShowCompose(false)}
         >
-          <div
+          <motion.div
+            initial={isDesktopViewport ? { opacity: 0, scale: 0.94, y: 8 } : { y: "100%" }}
+            animate={isDesktopViewport ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
+            exit={isDesktopViewport ? { opacity: 0, scale: 0.96, y: 8 } : { y: "100%" }}
+            transition={overlaySpring}
             className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] shadow-xl sm:rounded-2xl"
             onClick={(event) => event.stopPropagation()}
           >
@@ -643,16 +665,27 @@ export function MeChatConversationList({
                 {isPending ? "Starting..." : "Chat"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
 
-      {showNoteComposer && (
-        <div
+      <AnimatePresence>
+        {showNoteComposer && (
+        <motion.div
+          key="mechat-note-composer-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={() => setShowNoteComposer(false)}
         >
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 12 }}
+            transition={overlaySpring}
             className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
@@ -701,15 +734,29 @@ export function MeChatConversationList({
                 {isPending ? "Sharing..." : "Share"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
 
-      {activeNote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setActiveNote(null)}>
-          <button
+      <AnimatePresence>
+        {activeNote && (
+        <motion.div
+          key="mechat-note-viewer-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setActiveNote(null)}
+        >
+          <motion.button
             type="button"
             onClick={() => setActiveNote(null)}
+            initial={{ opacity: 0, scale: 0.9, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 12 }}
+            transition={overlaySpring}
             className="w-full max-w-sm rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 text-left shadow-xl"
           >
             <div className="mb-3 flex items-center gap-3">
@@ -723,9 +770,10 @@ export function MeChatConversationList({
             {activeNote.songTitle && (
               <p className="mt-3 text-xs font-medium text-[var(--mesh-blue)]">{activeNote.songTitle}</p>
             )}
-          </button>
-        </div>
-      )}
+          </motion.button>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

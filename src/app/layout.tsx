@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type React from "react";
 import { Suspense } from "react";
 import Script from "next/script";
+import { MotionConfig } from "framer-motion";
 import { NavigationProgress } from "@/components/ui/navigation-progress";
 import { RootClientEffects } from "@/components/root-client-effects";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -143,11 +144,16 @@ export default function RootLayout({
       <body className="mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <Script id="mesh-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <ThemeProvider>
-          <Suspense fallback={null}>
-            <NavigationProgress />
-          </Suspense>
-          {children}
-          <RootClientEffects />
+          {/* Every framer-motion component inherits the user's OS reduced-motion
+              preference — springs and transforms collapse to instant, opacity
+              still fades, so the redesign never regresses accessibility. */}
+          <MotionConfig reducedMotion="user">
+            <Suspense fallback={null}>
+              <NavigationProgress />
+            </Suspense>
+            {children}
+            <RootClientEffects />
+          </MotionConfig>
         </ThemeProvider>
       </body>
     </html>
