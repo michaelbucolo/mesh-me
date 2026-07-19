@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getBlockedUserIdSet } from "@/lib/privacy-policy";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 
@@ -31,11 +32,18 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const memberships = await prisma.threadMember.findMany({
-      where: { thread: { members: { some: { userId: user.id } } } },
-      select: { userId: true },
-    });
-    const relevantIds = new Set<string>(memberships.map((m) => m.userId));
+    const [memberships, blockedIds] = await Promise.all([
+      prisma.threadMember.findMany({
+        where: { thread: { members: { some: { userId: user.id } } } },
+        select: { userId: true },
+      }),
+      getBlockedUserIdSet(user.id),
+    ]);
+    // Thread membership persists across a block (the send path relies on a
+    // runtime block check), so drop anyone blocked in either direction here.
+    const relevantIds = new Set<string>(
+      memberships.map((m) => m.userId).filter((id) => !blockedIds.has(id)),
+    );
     relevantIds.add(user.id);
 
     const now = new Date();
@@ -43,6 +51,9 @@ export async function GET() {
       where: {
         userId: { in: Array.from(relevantIds) },
         expiresAt: { gt: now },
+        // Suspended accounts are locked to owner + admin — but the viewer's own
+        // note (userId === user.id) is never suspended, so this is safe.
+        user: { isSuspended: false },
       },
       include: {
         user: {
