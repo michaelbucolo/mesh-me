@@ -1,5 +1,10 @@
 import { EventEmitter } from "events";
 import { prisma } from "@/lib/prisma";
+import {
+  areMutualFollowers,
+  canViewProfile,
+  normalizeMeshVisibility,
+} from "@/lib/privacy-policy";
 
 export type PresenceEntry = {
   userId: string;
@@ -275,6 +280,17 @@ export async function listPresences(): Promise<PresenceEntry[]> {
 export type ViewerContext = {
   viewerId: string;
   connectedSet: Set<string>;
+  /**
+   * Users the viewer has blocked, plus users who blocked the viewer. Their
+   * presence is never reported to this viewer in either direction. Callers
+   * populate this from {@link getBlockedUserIds}.
+   */
+  blockedSet?: Set<string>;
+  /**
+   * The mesh room to report on — MUST already be authorized by the caller
+   * (see {@link canViewMeshRoom}). A `meshOwner` the viewer can't actually
+   * open must be passed as `null`, or this leaks who is inside a private mesh.
+   */
   meshOwner: string | null;
   surface: string | null;
   activePostId: string | null;
@@ -295,9 +311,10 @@ export function buildPresencePayload(
   all: PresenceEntry[],
   ctx: ViewerContext,
 ): PresencePayload {
-  const { viewerId, connectedSet, meshOwner, surface, activePostId } = ctx;
-  // Access to view a mesh is enforced by the mesh page itself; presence just
-  // reports who's in the same room. Trust the requested mesh owner.
+  const { viewerId, connectedSet, blockedSet, meshOwner, surface, activePostId } = ctx;
+  // `meshOwner` is authorized by the caller (canViewMeshRoom) before it reaches
+  // here — an unauthorized room arrives as null and collapses to the viewer's
+  // own room, so no one can spy on a mesh they can't open.
   const allowedMeshOwner = meshOwner || viewerId;
 
   const now = Date.now();
@@ -308,6 +325,9 @@ export function buildPresencePayload(
 
   for (const entry of all) {
     if (entry.userId === viewerId) continue;
+    // A block is mutually invisible — never surface a blocked party's Meshi,
+    // whichever direction the block runs.
+    if (blockedSet?.has(entry.userId)) continue;
 
     const isViewingOurMesh = entry.viewingMesh === viewerId;
     // Everyone looking at the same mesh sees each other — being in the same
@@ -425,6 +445,49 @@ export async function getMutualConnectionIds(userId: string): Promise<Set<string
   return new Set(
     following.map((f) => f.followingId).filter((id) => followerIds.has(id)),
   );
+}
+
+// Everyone the viewer has blocked, unioned with everyone who has blocked the
+// viewer. Presence must never cross a block in either direction, so callers pass
+// this to buildPresencePayload to hard-filter those Meshis out.
+export async function getBlockedUserIds(userId: string): Promise<Set<string>> {
+  const [blocking, blockedBy] = await Promise.all([
+    prisma.block.findMany({ where: { blockerId: userId }, select: { blockedId: true } }),
+    prisma.block.findMany({ where: { blockedId: userId }, select: { blockerId: true } }),
+  ]);
+  const ids = new Set<string>();
+  for (const b of blocking) ids.add(b.blockedId);
+  for (const b of blockedBy) ids.add(b.blockerId);
+  return ids;
+}
+
+// Is `viewerId` allowed to see the presence room for `meshOwnerId`? This mirrors
+// the exact gate the mesh data API applies (canViewProfile with the owner's mesh
+// visibility), so presence can't be used to watch who is inside a mesh the viewer
+// could never open — the room param must pass through here before it's trusted.
+export async function canViewMeshRoom(
+  viewerId: string,
+  meshOwnerId: string | null,
+): Promise<boolean> {
+  if (!meshOwnerId || meshOwnerId === viewerId) return true;
+  const [target, isFriend] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: meshOwnerId },
+      select: {
+        id: true,
+        isPublic: true,
+        isSuspended: true,
+        meshPrivacy: { select: { meshVisibility: true } },
+      },
+    }),
+    areMutualFollowers(viewerId, meshOwnerId),
+  ]);
+  if (!target) return false;
+  const visibility = normalizeMeshVisibility(
+    target.meshPrivacy?.meshVisibility,
+    target.isPublic ? "public" : "private",
+  );
+  return canViewProfile({ id: viewerId }, target, visibility, isFriend);
 }
 
 export function clampNumber(

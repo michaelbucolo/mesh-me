@@ -3,7 +3,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import {
   buildPresencePayload,
+  canViewMeshRoom,
   clampNumber,
+  getBlockedUserIds,
   getMutualConnectionIds,
   listPresences,
   normalizePosition,
@@ -93,13 +95,22 @@ export async function GET(request: Request) {
   const meshOwner = searchParams.get("meshOwner"); // filter to users viewing a specific mesh owner id
   const surface = searchParams.get("surface");
   const activePostId = searchParams.get("activePostId");
-  const connectedSet = await getMutualConnectionIds(user.id);
+
+  const [connectedSet, blockedSet, roomAllowed] = await Promise.all([
+    getMutualConnectionIds(user.id),
+    getBlockedUserIds(user.id),
+    canViewMeshRoom(user.id, meshOwner),
+  ]);
+  // Only honor the requested room if the viewer could actually open that mesh —
+  // otherwise it collapses to their own room, so presence can't be used to spy.
+  const allowedMeshOwner = roomAllowed ? meshOwner : null;
 
   const all = await listPresences();
   const payload = buildPresencePayload(all, {
     viewerId: user.id,
     connectedSet,
-    meshOwner,
+    blockedSet,
+    meshOwner: allowedMeshOwner,
     surface,
     activePostId,
   });

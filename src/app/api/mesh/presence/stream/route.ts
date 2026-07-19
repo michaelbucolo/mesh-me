@@ -1,6 +1,8 @@
 import { getCurrentUser } from "@/lib/auth";
 import {
   buildPresencePayload,
+  canViewMeshRoom,
+  getBlockedUserIds,
   getMutualConnectionIds,
   listPresences,
   subscribePresence,
@@ -26,10 +28,23 @@ export async function GET(request: Request) {
   const activePostId = searchParams.get("activePostId");
 
   const viewerId = user.id;
-  let connectedSet = await getMutualConnectionIds(viewerId);
+  const [initialConnected, initialBlocked, roomAllowed] = await Promise.all([
+    getMutualConnectionIds(viewerId),
+    getBlockedUserIds(viewerId),
+    canViewMeshRoom(viewerId, meshOwner),
+  ]);
+  // Reassigned by the periodic refresh below, so these stay `let`.
+  let connectedSet = initialConnected;
+  let blockedSet = initialBlocked;
+  // Only report the requested room if the viewer could actually open that mesh —
+  // otherwise it collapses to their own room, so the stream can't spy either.
+  const allowedMeshOwner = roomAllowed ? meshOwner : null;
 
   const encoder = new TextEncoder();
   let closed = false;
+  // Hoisted so the ReadableStream's cancel() (client disconnect / GC) can tear
+  // down the timers and listener even when no abort event fires.
+  let cleanup = () => {};
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -58,7 +73,8 @@ export async function GET(request: Request) {
           const payload = buildPresencePayload(all, {
             viewerId,
             connectedSet,
-            meshOwner,
+            blockedSet,
+            meshOwner: allowedMeshOwner,
             surface,
             activePostId,
           });
@@ -95,12 +111,14 @@ export async function GET(request: Request) {
       // real movement is pushed, and it crosses instances in <1s.
       const tickTimer = setInterval(schedulePush, 400);
 
-      // Refresh the viewer's mutual-connection set periodically so newly added
-      // connections become visible without reopening the stream.
+      // Refresh the viewer's mutual-connection and block sets periodically so
+      // newly added connections appear — and a fresh block takes effect — without
+      // reopening the stream.
       const connectionsTimer = setInterval(() => {
-        getMutualConnectionIds(viewerId)
-          .then((set) => {
-            connectedSet = set;
+        Promise.all([getMutualConnectionIds(viewerId), getBlockedUserIds(viewerId)])
+          .then(([connections, blocks]) => {
+            connectedSet = connections;
+            blockedSet = blocks;
           })
           .catch(() => {});
       }, 20000);
@@ -115,7 +133,7 @@ export async function GET(request: Request) {
         }
       }, 15000);
 
-      const cleanup = () => {
+      cleanup = () => {
         if (closed) return;
         closed = true;
         unsubscribe();
@@ -131,10 +149,22 @@ export async function GET(request: Request) {
       };
 
       request.signal.addEventListener("abort", cleanup);
+      // If the request was already aborted before start() ran, tear down now —
+      // the abort event has already fired and won't fire again.
+      if (request.signal.aborted) {
+        cleanup();
+        return;
+      }
 
       // Prime the client with the current state immediately on connect.
       send("ready", { ok: true });
       await pushPayload();
+    },
+    // The client disconnecting (tab close, navigation) surfaces here rather than
+    // as an abort on some runtimes — tear down the timers and listener so they
+    // don't leak for the life of the process.
+    cancel() {
+      cleanup();
     },
   });
 
