@@ -46,19 +46,25 @@ Mesh.me caches synced platform content (`PlatformPost`, `PlatformComment`,
 and **Meta** — require that content deleted or made private at the source be
 removed from your copy, and cap how long/what you may cache.
 
-**Fixed for posts:** `syncPlatform` now reconciles cached posts against the
-source. When it fetches an account's *complete* post listing (pagination
-exhausted, not stopped by the page cap) it deletes any cached `PlatformPost` the
-source no longer returns — which cascades to that post's comments. The prune is
-guarded to require a non-empty fresh listing, so a transient empty API response
-can never wipe the whole cache. Post visibility was already updated on every sync
-(a post made private at the source is reflected here), and disconnect purges all
-cached rows via cascade.
+**Fixed for posts (window-bounded):** `syncPlatform` reconciles cached posts
+against the source on each posts sync. Because most post adapters return only a
+capped window of recent posts (they do not paginate to completion), the prune is
+bounded to that observed window: it takes the oldest publish time among posts
+actually returned, and deletes any cached `PlatformPost` at or after that
+boundary that the source did not return (a deletion inside the observed window),
+cascading to that post's comments. Cached posts older than the window are left
+untouched, so accounts with more history than the fetch window never lose valid
+posts, and a transient empty response prunes nothing. Post visibility was already
+refreshed each sync (a post made private at the source is reflected here), and
+disconnect purges all cached rows via cascade.
 
-**Still to review (product):** apply the same reconciliation to cached
-comments and followers, and ensure the auto-sync cadence refreshes active
-accounts frequently enough to satisfy per-platform windows (e.g. X's ~24h). These
-are follow-ups, not blockers.
+**Still to review (product):** cached comments and followers are **not** pruned,
+because their adapters return a single capped page without paginating and (for
+followers) have no reliable ordering key to bound a safe window — pruning off an
+incomplete list could delete valid rows. Safe reconciliation there requires
+adding adapter-level pagination first. Also ensure the auto-sync cadence refreshes
+active accounts frequently enough to satisfy per-platform windows (e.g. X's ~24h).
+These are follow-ups, not blockers.
 
 ### 3. Scope breadth for write/follow permissions — OK, keep justified
 Some providers are granted write scopes (GitHub `public_repo`/`user:follow`,
