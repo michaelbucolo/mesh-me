@@ -173,8 +173,15 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
     OR: [
       { authorId: user.id },
       { communityId: { in: communityIds } },
-      { visibility: "public" },
-      { visibility: "friends", authorId: { in: friendIds } },
+      {
+        visibility: "public",
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      },
+      {
+        visibility: "friends",
+        authorId: { in: friendIds },
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      },
     ],
   };
 
@@ -209,8 +216,8 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
         ...safetyWhere,
         visibility: "public",
         authorId: { notIn: [...followingIds, user.id] },
-        // Public posts circulate when their author opted into discovery;
-        // isPublic only gates the profile page itself.
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+        // Public posts circulate when their author opted into discovery.
         author: { isSuspended: false, showInDiscovery: true },
       },
       include: baseInclude,
@@ -715,8 +722,15 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
       OR: [
         { authorId: user.id },
         { communityId: { in: communityIds } },
-        { visibility: "public" },
-        { visibility: "friends", authorId: { in: friendIds } },
+        {
+          visibility: "public",
+          OR: [{ communityId: null }, { community: { isPublic: true } }],
+        },
+        {
+          visibility: "friends",
+          authorId: { in: friendIds },
+          OR: [{ communityId: null }, { community: { isPublic: true } }],
+        },
       ],
     },
     include: {

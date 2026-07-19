@@ -65,7 +65,20 @@ function sourceSearchUrl(platform: string, query: string) {
 }
 
 
-async function canCurrentUserViewNativePost(post: { authorId: string; visibility: string }, currentUser: CurrentUser | null) {
+async function canCurrentUserViewNativePost(
+  post: { authorId: string; visibility: string; community: { id: string; isPublic: boolean } | null },
+  currentUser: CurrentUser | null,
+) {
+  if (post.community && !post.community.isPublic) {
+    if (!currentUser || post.authorId !== currentUser.id) {
+      if (!currentUser) return false;
+      const membership = await prisma.communityMember.findUnique({
+        where: { userId_communityId: { userId: currentUser.id, communityId: post.community.id } },
+        select: { userId: true },
+      });
+      if (!membership) return false;
+    }
+  }
   if (post.visibility === "public") return true;
   if (!currentUser) return false;
   if (post.authorId === currentUser.id) return true;
@@ -132,12 +145,19 @@ export async function getExplorePosts(page = 1, limit = 20, currentUser?: Curren
         visibility: "public",
         OR: [
           { authorId: user.id },
-          // A post published as "public" circulates when its author opted into
-          // discovery — isPublic only restricts the profile page itself.
-          { author: { isSuspended: false, showInDiscovery: true } },
+          // Public posts circulate when their author opted into discovery.
+          {
+            author: { isSuspended: false, showInDiscovery: true },
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
         ],
       }
-    : { isNsfw: false, visibility: "public", author: { isSuspended: false, showInDiscovery: true } };
+    : {
+        isNsfw: false,
+        visibility: "public",
+        author: { isSuspended: false, showInDiscovery: true },
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      };
 
   // Ordering the whole table by reaction count forces SQLite to run a
   // correlated count for every public post before it can return a single row
@@ -159,7 +179,7 @@ export async function getExplorePosts(page = 1, limit = 20, currentUser?: Curren
         },
       },
       community: {
-        select: { id: true, name: true, slug: true },
+        select: { id: true, name: true, slug: true, isPublic: true },
       },
       media: true,
       tags: true,
@@ -206,7 +226,7 @@ export async function getPostById(postId: string) {
         },
       },
       community: {
-        select: { id: true, name: true, slug: true },
+        select: { id: true, name: true, slug: true, isPublic: true },
       },
       media: true,
       tags: true,
@@ -498,7 +518,20 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
 
   const postVisibilityWhere = isOwnProfile
     ? {}
-    : { OR: [{ visibility: "public" }, ...(isFriend ? [{ visibility: "friends" }] : [])] };
+    : {
+        OR: [
+          {
+            visibility: "public",
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
+          ...(isFriend
+            ? [{
+                visibility: "friends",
+                OR: [{ communityId: null }, { community: { isPublic: true } }],
+              }]
+            : []),
+        ],
+      };
 
   const posts = await prisma.post.findMany({
     where: {
@@ -722,7 +755,11 @@ export async function searchAll(query: string) {
         OR: [
           { authorId: user.id },
           // Strangers only ever match posts published as public.
-          { visibility: "public", author: { isSuspended: false, showInDiscovery: true } },
+          {
+            visibility: "public",
+            author: { isSuspended: false, showInDiscovery: true },
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
         ],
       },
       include: {
