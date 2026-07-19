@@ -34,19 +34,25 @@ export async function POST(request: Request) {
     }
     const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity, ghostMode, action } = body;
 
-    // Tiny world actions broadcast to the room — currently just a Meshi
-    // throwing a heart at a post. Strictly validated and size-capped.
+    // Tiny world actions broadcast to the room: a Meshi throwing a heart at a
+    // post, a reaction burst (star/spark/wow), or a wave hello on arrival.
+    // Strictly validated against a fixed kind set and size-capped. `heart`
+    // flies at a target node so it requires a targetId; the others are
+    // targetless flourishes that spawn at the sender's Meshi.
+    const ACTION_KINDS = new Set(["heart", "star", "spark", "wow", "wave"]);
     let lastAction: string | null = null;
     if (action && typeof action === "object") {
       const a = action as Record<string, unknown>;
       if (
-        a.type === "heart" &&
-        typeof a.targetId === "string" &&
-        a.targetId.length > 0 &&
+        typeof a.type === "string" &&
+        ACTION_KINDS.has(a.type) &&
         typeof a.at === "number" &&
         Number.isFinite(a.at)
       ) {
-        lastAction = `heart|${a.targetId.slice(0, 160)}|${Math.round(a.at)}`;
+        const targetId = typeof a.targetId === "string" ? a.targetId.slice(0, 160) : "";
+        if (a.type !== "heart" || targetId.length > 0) {
+          lastAction = `${a.type}|${targetId}|${Math.round(a.at)}`;
+        }
       }
     }
 

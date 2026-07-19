@@ -5,7 +5,7 @@
 // carries the brand's soft, glossy style. Add new interactions by adding a
 // glyph here and spawning it from the scene.
 
-export type ReactionGlyph = "heart" | "star" | "spark" | "wow";
+export type ReactionGlyph = "heart" | "star" | "spark" | "wow" | "wave";
 
 const GLYPHS: Record<ReactionGlyph, string> = {
   // A soft rose heart with a glossy highlight.
@@ -20,6 +20,10 @@ const GLYPHS: Record<ReactionGlyph, string> = {
   // A soft violet burst, for surprise/delight.
   wow:
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 1 14 8 21 6.5 16.5 12 21 17.5 14 16 12 23 10 16 3 17.5 7.5 12 3 6.5 10 8Z" fill="#c084fc"/><circle cx="12" cy="12" r="2.4" fill="#ffffff" fill-opacity="0.35"/></svg>',
+  // A cyan "hello" — a ripple radiating from a bright dot, the greeting a
+  // Meshi sends when it arrives in a room.
+  wave:
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="7" cy="17" r="2.6" fill="#38bdf8"/><path d="M11 15.5A6.5 6.5 0 0 0 8.5 8" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/><path d="M15 16A11 11 0 0 0 8 6" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/></svg>',
 };
 
 export function reactionGlyphSvg(glyph: ReactionGlyph): string {
