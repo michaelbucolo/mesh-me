@@ -112,6 +112,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           avatarUrl: user.avatarUrl,
           isAdmin: user.isAdmin,
           onboarded: user.onboarded,
+          ghostMode: user.ghostMode,
         }}
       >
         {children}

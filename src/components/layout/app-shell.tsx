@@ -45,6 +45,7 @@ interface AppShellProps {
     avatarUrl: string | null;
     isAdmin: boolean;
     onboarded: boolean;
+    ghostMode: boolean;
   };
 }
 
@@ -174,7 +175,7 @@ function ShellTopBar({
       </form>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
-        <GhostModeToggle compact />
+        <GhostModeToggle compact initialGhost={user.ghostMode} />
         <button type="button" onClick={shareCurrent} className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
