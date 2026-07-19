@@ -261,8 +261,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // Dedupe of replayed room actions, keyed by userId → action timestamp.
   const seenActionsRef = useRef<Map<string, number>>(new Map());
   const presenceActionBaselineRef = useRef(false);
-  const pendingActionRef = useRef<{ targetId: string; at: number } | null>(null);
+  const pendingActionRef = useRef<{ kind: ReactionGlyph; targetId: string; at: number } | null>(null);
   const heartbeatNowRef = useRef<(() => void) | null>(null);
+  // The mesh room we've already waved hello into, so a cosmetic change that
+  // re-runs the presence effect can't re-greet — but arriving at a new room does.
+  const greetedRoomRef = useRef<string | null>(null);
   // Where each visitor's Meshi perches (their own node, or the post they're
   // watching right now), and the last screen spot each Meshi was drawn at —
   // used to hand positions across mode changes so Meshis NEVER teleport.
@@ -844,7 +847,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const from = viewUserId ? cursorWorldPosRef.current : ownerWorldPosRef.current;
       spawnHeart(from.x, from.y, node.id);
       playSound("heart");
-      pendingActionRef.current = { targetId: node.id, at: Date.now() };
+      pendingActionRef.current = { kind: "heart", targetId: node.id, at: Date.now() };
       // Broadcast immediately so the room sees the throw with minimal lag.
       heartbeatNowRef.current?.();
     },
@@ -877,8 +880,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       setActiveBranch(node.branch);
       setSelectedNode(node);
       playSound("pop");
-      // Opening a piece of content pops a little star burst off the node.
-      if (node.kind === "post" || node.kind === "activity") spawnBurst(node.dx, node.dy, "star", 5);
+      // Opening a piece of content pops a little star burst off the node — and
+      // the room sees your star too, so reactions aren't only heart-throws.
+      if (node.kind === "post" || node.kind === "activity") {
+        spawnBurst(node.dx, node.dy, "star", 5);
+        pendingActionRef.current = { kind: "star", targetId: "", at: Date.now() };
+        heartbeatNowRef.current?.();
+      }
       flyToNode(node);
     },
     [fitToContent, flyToNode, enterFriendMesh, spawnBurst],
@@ -1216,7 +1224,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             // while you write), the more your Meshi feels like you.
             meshiMood: (() => {
               const nowM = Date.now();
-              if (pendingActionRef.current && nowM - pendingActionRef.current.at < 4000) return "love";
+              if (pendingActionRef.current && nowM - pendingActionRef.current.at < 4000) {
+                // A heart-throw beams love; a wave or reaction burst reads as excited.
+                return pendingActionRef.current.kind === "heart" ? "love" : "excited";
+              }
               if (composingRef.current) return "thinking";
               if (hoverIdRef.current) return "excited";
               if (selectedIdRef.current) return "learning";
@@ -1232,11 +1243,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             surface: "mesh",
             activeNodeId: selectedIdRef.current,
             ghostMode: typeof localStorage !== "undefined" && localStorage.getItem("meshGhostMode") === "true",
-            // A recent heart-throw rides along until the room has had a
-            // chance to see it (receivers dedupe by its timestamp).
+            // A recent world action (heart-throw, reaction burst, or wave)
+            // rides along until the room has had a chance to see it (receivers
+            // dedupe by its timestamp).
             action:
               pendingActionRef.current && Date.now() - pendingActionRef.current.at < 8000
-                ? { type: "heart", targetId: pendingActionRef.current.targetId, at: pendingActionRef.current.at }
+                ? {
+                    type: pendingActionRef.current.kind,
+                    targetId: pendingActionRef.current.targetId,
+                    at: pendingActionRef.current.at,
+                  }
                 : null,
           }),
         });
@@ -1292,40 +1308,62 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           });
         }
 
-        // Replay room actions: someone's Meshi threw a heart — show it fly
-        // from their Meshi to the post and tick the count when it lands.
-        // The first poll only records a baseline so stale hearts never replay.
+        // Replay room actions: someone's Meshi threw a heart at a post (it
+        // flies from their Meshi and ticks the count on landing), reacted with
+        // a star/spark/wow burst, or waved hello on arrival (a flourish that
+        // blooms at their Meshi). The first poll only records a baseline so
+        // stale actions never replay.
         for (const p of visible) {
           if (!p.lastAction) continue;
-          const [type, targetId, atRaw] = p.lastAction.split("|");
+          const [kind, targetId, atRaw] = p.lastAction.split("|");
           const at = Number(atRaw);
-          if (type !== "heart" || !targetId || !Number.isFinite(at)) continue;
+          if (!kind || !Number.isFinite(at)) continue;
           const prevAt = seenActionsRef.current.get(p.userId) ?? 0;
           if (at <= prevAt) continue;
           seenActionsRef.current.set(p.userId, at);
           if (!presenceActionBaselineRef.current) continue;
           if (Date.now() - at > 12000) continue;
-          const model = modelRef.current;
-          const target = model?.nodes.get(targetId);
-          if (!target) continue;
+
+          // Where the sender's Meshi sits in world units — a heart launches
+          // from here, a burst blooms here.
+          let sx: number | null = null;
+          let sy: number | null = null;
           const world =
             presenceWorldPosRef.current.get(p.userId) ?? presenceWorldRef.current.get(p.userId);
+          const c = containerRef.current;
+          const cam = cameraRef.current;
           if (world) {
-            spawnHeart(world.x, world.y, targetId);
+            sx = world.x;
+            sy = world.y;
           } else {
             // Perched or viewport-anchored: unproject their current screen spot.
             const perch = perchPosRef.current.get(p.userId);
-            const c = containerRef.current;
-            const cam = cameraRef.current;
             if (perch && c) {
-              spawnHeart(
-                (perch.x - c.clientWidth / 2 - cam.panX) / cam.zoom,
-                (perch.y - c.clientHeight / 2 - cam.panY) / cam.zoom,
-                targetId,
-              );
+              sx = (perch.x - c.clientWidth / 2 - cam.panX) / cam.zoom;
+              sy = (perch.y - c.clientHeight / 2 - cam.panY) / cam.zoom;
+            } else {
+              const vp =
+                presencePosRef.current.get(p.userId) ?? presenceTargetsRef.current.get(p.userId);
+              if (vp && c) {
+                sx = (vp.vx * c.clientWidth - c.clientWidth / 2 - cam.panX) / cam.zoom;
+                sy = (vp.vy * c.clientHeight - c.clientHeight / 2 - cam.panY) / cam.zoom;
+              }
+            }
+          }
+
+          if (kind === "heart") {
+            if (!targetId) continue;
+            const target = modelRef.current?.nodes.get(targetId);
+            if (!target) continue;
+            if (sx != null && sy != null) {
+              spawnHeart(sx, sy, targetId);
             } else {
               spawnHeart(target.dx, target.dy - 220, targetId);
             }
+          } else if (kind === "star" || kind === "spark" || kind === "wow" || kind === "wave") {
+            // Targetless flourish — only replay when we know where they are, so
+            // it never blooms at a wrong spot.
+            if (sx != null && sy != null) spawnBurst(sx, sy - 12, kind, 5);
           }
         }
         presenceActionBaselineRef.current = true;
@@ -1461,7 +1499,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             presenceWorldRef.current.delete(id);
             presenceWorldPosRef.current.delete(id);
             avoidOffsetRef.current.delete(id);
+            // Pure position/animation bookkeeping — safe to forget on departure
+            // (long sessions would otherwise accumulate every visitor ever).
+            perchNodeRef.current.delete(id);
+            lastScreenPosRef.current.delete(id);
+            joinStampRef.current.delete(id);
           }
+        });
+        // Action-dedupe entries must OUTLIVE a brief departure (a flickering
+        // visitor's heart would replay on rejoin), so prune by age instead:
+        // anything older than 60s is far beyond the 12s replay gate.
+        seenActionsRef.current.forEach((at, id) => {
+          if (nowSeen - at > 60000) seenActionsRef.current.delete(id);
         });
 
         // Re-render the Meshi layer only when the roster or someone's
@@ -1512,6 +1561,16 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             // Malformed frame — the next push or poll corrects it.
           }
         });
+        // EventSource retries transient drops itself, but a FATAL close (auth
+        // expiry, proxy giving up) parks it at CLOSED forever — and with `es`
+        // still truthy, openStream would never reopen. Release the slot so the
+        // esKick interval can establish a fresh stream.
+        es.onerror = () => {
+          if (es && es.readyState === EventSource.CLOSED) {
+            es.close();
+            es = null;
+          }
+        };
       } catch {
         es = null;
       }
@@ -1543,16 +1602,31 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       openStream();
     }, 400);
 
+    // Wave hello on arrival. The mesh data loads asynchronously, so poll until
+    // the room id is known, then greet ONCE per room: your Meshi waves and the
+    // action rides the heartbeat so anyone already here sees you walk in.
+    const greet = setInterval(() => {
+      const meshOwner = meshOwnerIdRef.current;
+      if (!meshOwner || greetedRoomRef.current === meshOwner) return;
+      if (!prefs.enabled || document.visibilityState !== "visible") return;
+      greetedRoomRef.current = meshOwner;
+      const o = viewUserId ? cursorWorldPosRef.current : ownerWorldPosRef.current;
+      spawnBurst(o.x, o.y - 20, "wave", 5);
+      pendingActionRef.current = { kind: "wave", targetId: "", at: Date.now() };
+      heartbeatNowRef.current?.();
+    }, 500);
+
     return () => {
       stopped = true;
       heartbeatNowRef.current = null;
       clearInterval(hb);
       clearInterval(pl);
       clearInterval(esKick);
+      clearInterval(greet);
       clearTimeout(kick);
       es?.close();
     };
-  }, [viewUserId, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart, spawnBurst]);
+  }, [viewUserId, prefs.enabled, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart, spawnBurst]);
 
   useEffect(() => {
     return () => {
