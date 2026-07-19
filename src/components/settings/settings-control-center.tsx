@@ -4,7 +4,9 @@ import Link from "next/link";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   AtSign,
+  BadgeCheck,
   BellRing,
   CheckCircle2,
   ChevronLeft,
@@ -66,6 +68,7 @@ import {
   updateNotificationPreferences,
   updatePrivacy,
   updateProfile,
+  updateProfileVisibility,
 } from "@/lib/actions";
 import { getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "@/lib/content-safety";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
@@ -217,7 +220,6 @@ const meshAtmospheres = [
 ] as const;
 const visibilityOptions = ["private", "friends", "public", "partial"];
 const branchKeys = ["people", "communities", "interests", "platforms", "content"] as const;
-type BranchKey = (typeof branchKeys)[number];
 const usStates = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS",
   "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY",
@@ -234,14 +236,16 @@ const sectionOrder: Array<{
 }> = [
   { id: "account", label: "Account", description: "Email, sign out, delete", icon: Settings2, keywords: ["email", "username", "sign out", "logout", "delete account", "verification"] },
   { id: "profile", label: "Profile", description: "Name, bio, links", icon: UserRound, keywords: ["display name", "bio", "location", "website", "interests", "tags", "accent color"] },
-  { id: "privacy", label: "Privacy", description: "Visibility and content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "nsfw", "sensitive", "adult"] },
-  { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing, keywords: ["push", "email digest", "messages", "mentions", "comments", "follows", "alerts"] },
-  { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
+  // Privacy + The Mesh are the two "who can see you" sections — keep them adjacent.
+  { id: "privacy", label: "Privacy", description: "Who can see you, and sensitive content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "nsfw", "sensitive", "adult"] },
   { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints, keywords: ["graph", "nodes", "connections", "branches", "visibility", "motion", "atmosphere", "sky", "pro"] },
-  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
+  { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing, keywords: ["push", "email digest", "messages", "comments", "follows", "alerts"] },
+  { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
+  // Appearance + Meshi are the two "make it yours" sections — keep them adjacent.
   { id: "appearance", label: "Appearance", description: "Theme, mode, and sound", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom", "sound", "sounds", "audio", "mute"] },
-  { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
+  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
   { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
+  { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
 ];
 
 function parseBranchOverrides(raw: string) {
@@ -290,11 +294,9 @@ export function SettingsControlCenter({
     pushEnabled: settings.notificationPreference.pushEnabled,
     emailDigest: settings.notificationPreference.emailDigest,
     messages: settings.notificationPreference.messages,
-    mentions: settings.notificationPreference.mentions,
     comments: settings.notificationPreference.comments,
     follows: settings.notificationPreference.follows,
     platformAlerts: settings.notificationPreference.platformAlerts,
-    securityAlerts: settings.notificationPreference.securityAlerts,
     productUpdates: settings.notificationPreference.productUpdates,
   });
   const [sensitive, setSensitive] = useState({
@@ -307,14 +309,11 @@ export function SettingsControlCenter({
     meshVisibility: meshPrivacy.meshVisibility,
     showConnections: meshPrivacy.showConnections,
     showStats: meshPrivacy.showStats,
-    branches: {
-      people: "private",
-      communities: "private",
-      interests: "private",
-      platforms: "private",
-      content: "private",
-      ...parseBranchOverrides(meshPrivacy.branchOverrides),
-    } as Record<BranchKey, string>,
+    // Only real, stored per-branch overrides. Unset branches are ABSENT so they
+    // inherit meshVisibility (queries.ts). Hardcoding 'private' here used to be
+    // persisted verbatim on any mesh-settings save, silently hiding every branch
+    // of an otherwise-public mesh.
+    branches: parseBranchOverrides(meshPrivacy.branchOverrides) as Record<string, string>,
   });
   const [meshiState, setMeshiState] = useState({
     colorTheme: meshi.colorTheme,
@@ -452,7 +451,6 @@ export function SettingsControlCenter({
     formData.set("pushEnabled", String(next.pushEnabled));
     formData.set("emailDigest", next.emailDigest);
     formData.set("messages", String(next.messages));
-    formData.set("mentions", String(next.mentions));
     formData.set("comments", String(next.comments));
     formData.set("follows", String(next.follows));
     formData.set("platformAlerts", String(next.platformAlerts));
@@ -477,6 +475,30 @@ export function SettingsControlCenter({
       showStats: next.showStats,
     }));
   }
+
+  // One control owns "who can see your profile". isPublic (profile gate) and
+  // meshVisibility (mesh + branch gate) used to be edited separately and could
+  // drift — a Private mesh still leaked because isPublic=true overrode it. This
+  // persists BOTH atomically via a single server action (updateProfileVisibility),
+  // so a partial failure can't strand the profile public. It never touches
+  // branchOverrides, so existing per-branch choices survive and unset branches
+  // keep inheriting meshVisibility.
+  function applyProfileVisibility(level: "private" | "friends" | "public") {
+    setPrivacy({ ...privacy, isPublic: level === "public" });
+    setMesh({ ...mesh, meshVisibility: level });
+    runSave("Profile visibility", () => updateProfileVisibility(level));
+  }
+
+  // Reflect the ACTUAL effective gate (mirrors canViewProfile, privacy-policy.ts):
+  // access is public when isPublic !== false OR meshVisibility === "public".
+  // Otherwise friends vs private comes from meshVisibility ("partial" with
+  // isPublic=false is hidden by canViewProfile, so it reads as private here).
+  const profileVisibilityLevel: "private" | "friends" | "public" =
+    privacy.isPublic !== false || mesh.meshVisibility === "public"
+      ? "public"
+      : mesh.meshVisibility === "friends"
+        ? "friends"
+        : "private";
 
   function applyMeshVisuals(next: typeof meshVisuals) {
     setMeshVisuals(next);
@@ -723,6 +745,8 @@ export function SettingsControlCenter({
               <PrivacySection
                 privacy={privacy}
                 applyPrivacy={applyPrivacy}
+                profileVisibilityLevel={profileVisibilityLevel}
+                applyProfileVisibility={applyProfileVisibility}
                 sensitive={sensitive}
                 applySensitive={applySensitive}
                 adultVerified={adultVerified}
@@ -741,7 +765,6 @@ export function SettingsControlCenter({
               <SecuritySection
                 settings={settings}
                 privacySummary={privacySummary}
-                sendEmailVerification={sendEmailVerification}
                 runSave={runSave}
                 isPending={isPending}
               />
@@ -1001,6 +1024,8 @@ function ProfileSection({
 function PrivacySection({
   privacy,
   applyPrivacy,
+  profileVisibilityLevel,
+  applyProfileVisibility,
   sensitive,
   applySensitive,
   adultVerified,
@@ -1010,6 +1035,8 @@ function PrivacySection({
 }: {
   privacy: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean };
   applyPrivacy: (next: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean }) => void;
+  profileVisibilityLevel: "private" | "friends" | "public";
+  applyProfileVisibility: (level: "private" | "friends" | "public") => void;
   sensitive: { nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null };
   applySensitive: (next: { nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null }) => void;
   adultVerified: boolean;
@@ -1019,19 +1046,37 @@ function PrivacySection({
 }) {
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Profile privacy" icon={LockKeyhole}>
+      <SettingsCard title="Profile & discovery" icon={LockKeyhole}>
         <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
+        <div className="mb-4 grid gap-2">
+          <PickerGroup label="Who can see your profile">
+            <ChoiceButton active={profileVisibilityLevel === "public"} onClick={() => applyProfileVisibility("public")}>Public</ChoiceButton>
+            <ChoiceButton active={profileVisibilityLevel === "friends"} onClick={() => applyProfileVisibility("friends")}>Friends</ChoiceButton>
+            <ChoiceButton active={profileVisibilityLevel === "private"} onClick={() => applyProfileVisibility("private")}>Private</ChoiceButton>
+          </PickerGroup>
+          <p className="text-xs text-[var(--text-muted)]">
+            {profileVisibilityLevel === "public"
+              ? "Everyone on mesh.me can open your profile and Mesh."
+              : profileVisibilityLevel === "friends"
+                ? "Only people you're connected with can open your profile and Mesh."
+                : "Only you can open your profile and Mesh."}
+          </p>
+        </div>
         <div className="settings-toggle-grid">
-          <Toggle label="Public profile" description="Anyone can view your profile" value={privacy.isPublic} onChange={(value) => applyPrivacy({ ...privacy, isPublic: value })} />
-          <Toggle label="Show in discovery" description="Appear in search and suggestions" value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
-          <Toggle label="Hide activity status" description="Others can't see when you're online" value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
-          <Toggle label="Read receipts" description="Let people know you've seen messages" value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
+          <Toggle label="Show me in discovery" description="When on, people can find you in search, suggestions, and the public feed." value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
+        </div>
+      </SettingsCard>
+
+      <SettingsCard title="Activity" icon={Activity}>
+        <div className="settings-toggle-grid">
+          <Toggle label="Hide when you're online" description="Others won't see your online status or when you were last active." value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
+          <Toggle label="Read receipts" description="Let people see when you've read their messages." value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
         </div>
       </SettingsCard>
 
       <SettingsCard title="Sensitive content" icon={ShieldAlert}>
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-          <Field label="U.S. state for policy">
+          <Field label="Your U.S. state">
             <select
               value={sensitive.adultVerificationRegion}
               onChange={(event) => {
@@ -1055,22 +1100,22 @@ function PrivacySection({
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <Toggle
-            label="Show NSFW content"
-            description={adultVerified ? "Show sensitive content in feeds" : "Requires adult verification first"}
+            label="Show sensitive content"
+            description={adultVerified ? "Show 18+ content in your feeds." : "Verify your age first to turn this on."}
             value={sensitive.nsfwEnabled && adultVerified}
             disabled={!adultVerified}
             onChange={(value) => applySensitive({ ...sensitive, nsfwEnabled: adultVerified ? value : false })}
           />
           <button type="button" onClick={startAdultVerification} disabled={isPending} className="settings-action-row text-left">
             <span>
-              <span className="block text-sm font-bold">Verify adult access</span>
-              <span className="mt-1 block text-xs text-[var(--text-muted)]">Third-party ID check. Mesh.me stores status only.</span>
+              <span className="block text-sm font-bold">Verify your age</span>
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">A third-party ID check. Mesh.me only stores whether you passed.</span>
             </span>
             {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <IdCard size={16} aria-hidden="true" />}
           </button>
         </div>
         <div className="settings-muted-box mt-3 text-xs leading-5 text-[var(--text-secondary)]">
-          {nsfwPolicy.reason} Minimum age: {nsfwPolicy.minAge}. NSFW stays hidden until this account is verified and the setting is explicitly turned on.
+          {nsfwPolicy.reason} Minimum age: {nsfwPolicy.minAge}. Sensitive content stays hidden until you verify your age and turn this on.
         </div>
       </SettingsCard>
     </div>
@@ -1081,11 +1126,9 @@ type NotificationsState = {
   pushEnabled: boolean;
   emailDigest: string;
   messages: boolean;
-  mentions: boolean;
   comments: boolean;
   follows: boolean;
   platformAlerts: boolean;
-  securityAlerts: boolean;
   productUpdates: boolean;
 };
 
@@ -1124,13 +1167,12 @@ function NotificationsSection({
       <SettingsCard title="What reaches you" icon={BellRing}>
         <div className="settings-toggle-grid">
           <Toggle label="Messages" description="New direct messages" value={notifications.messages} onChange={(value) => applyNotifications({ ...notifications, messages: value })} />
-          <Toggle label="Mentions" description="When someone mentions you" value={notifications.mentions} onChange={(value) => applyNotifications({ ...notifications, mentions: value })} />
           <Toggle label="Comments" description="Replies to your posts" value={notifications.comments} onChange={(value) => applyNotifications({ ...notifications, comments: value })} />
           <Toggle label="Follows" description="New followers and friend requests" value={notifications.follows} onChange={(value) => applyNotifications({ ...notifications, follows: value })} />
           <Toggle label="Platform alerts" description="Connected platform activity" value={notifications.platformAlerts} onChange={(value) => applyNotifications({ ...notifications, platformAlerts: value })} />
           <Toggle label="Product updates" description="News and feature announcements" value={notifications.productUpdates} onChange={(value) => applyNotifications({ ...notifications, productUpdates: value })} />
-          <Toggle label="Security alerts" description="Always on to keep your account safe" value={notifications.securityAlerts} disabled locked onChange={() => undefined} />
         </div>
+        <p className="settings-muted-box mt-3 text-xs text-[var(--text-secondary)]">Security alerts are always on to protect your account.</p>
       </SettingsCard>
     </div>
   );
@@ -1139,13 +1181,11 @@ function NotificationsSection({
 function SecuritySection({
   settings,
   privacySummary,
-  sendEmailVerification,
   runSave,
   isPending,
 }: {
   settings: SettingsSnapshot;
   privacySummary: PrivacySummary;
-  sendEmailVerification: () => void;
   runSave: (label: string, task: () => Promise<unknown>) => void;
   isPending: boolean;
 }) {
@@ -1180,15 +1220,9 @@ function SecuritySection({
           <SettingsRow label="Sensitive content" value={settings.nsfwEnabled ? "Allowed after verification" : "Off"} />
         </div>
         {!settings.emailVerified && (
-          <button
-            type="button"
-            onClick={sendEmailVerification}
-            disabled={isPending || !settings.email}
-            className="mesh-action mesh-action-primary mt-4 px-4 text-sm disabled:opacity-50"
-          >
-            {isPending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <MailCheck size={15} aria-hidden="true" />}
-            Send verification email
-          </button>
+          <p className="settings-muted-box mt-3 text-xs text-[var(--text-secondary)]">
+            Not verified yet — send a verification email from Account settings.
+          </p>
         )}
       </SettingsCard>
 
@@ -1232,7 +1266,14 @@ function SecuritySection({
       <TwoFactorMethods />
 
       <SettingsCard title="Security shortcuts" icon={LockKeyhole}>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Link href="/trust" className="settings-action-row">
+            <span className="inline-flex items-center gap-2">
+              <BadgeCheck size={16} aria-hidden="true" />
+              Verify your identity
+            </span>
+            <ChevronRight size={15} aria-hidden="true" />
+          </Link>
           <Link href="/privacy-controls" className="settings-action-row">
             <span className="inline-flex items-center gap-2">
               <ShieldCheck size={16} aria-hidden="true" />
@@ -1240,22 +1281,6 @@ function SecuritySection({
             </span>
             <ChevronRight size={15} aria-hidden="true" />
           </Link>
-          <Link href="/connected-accounts" className="settings-action-row">
-            <span className="inline-flex items-center gap-2">
-              <PlugZap size={16} aria-hidden="true" />
-              Connected apps
-            </span>
-            <ChevronRight size={15} aria-hidden="true" />
-          </Link>
-          <form action={signOut}>
-            <button type="submit" className="settings-action-row w-full">
-              <span className="inline-flex items-center gap-2">
-                <LogOut size={16} aria-hidden="true" />
-                Sign out
-              </span>
-              <ChevronRight size={15} aria-hidden="true" />
-            </button>
-          </form>
         </div>
       </SettingsCard>
     </div>
@@ -1578,26 +1603,23 @@ function MeshSection({
   applyMeshVisuals,
   isMeshPro,
 }: {
-  mesh: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> };
-  applyMeshPrivacy: (next: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<BranchKey, string> }) => void;
+  mesh: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<string, string> };
+  applyMeshPrivacy: (next: { meshVisibility: string; showConnections: boolean; showStats: boolean; branches: Record<string, string> }) => void;
   meshVisuals: { connectionColor: string; nodeStyle: string; motionStyle: string; atmosphere: string };
   applyMeshVisuals: (next: { connectionColor: string; nodeStyle: string; motionStyle: string; atmosphere: string }) => void;
   isMeshPro: boolean;
 }) {
+  // A branch with no explicit override inherits the overall mesh visibility.
+  // Show that inherited value in the picker (public/partial -> public) instead of
+  // a misleading hardcoded default.
+  const branchInherit = mesh.meshVisibility === "private" ? "private" : mesh.meshVisibility === "friends" ? "friends" : "public";
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Mesh visibility" icon={Waypoints}>
-        <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
-        <div className="grid gap-3 md:grid-cols-3">
-          <Field label="Overall visibility">
-            <select
-              value={mesh.meshVisibility}
-              onChange={(event) => applyMeshPrivacy({ ...mesh, meshVisibility: event.target.value })}
-              className="simple-input h-11 px-3 text-sm capitalize"
-            >
-              {visibilityOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
-          </Field>
+        <p className="mb-3 text-sm text-[var(--text-secondary)]">
+          Overall visibility is set by <span className="font-bold text-[var(--text-secondary)]">Who can see your profile</span> in Privacy. Fine-tune what shows on your Mesh below — changes save automatically.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2">
           <Toggle label="Show connections" description="Display who you're connected to" value={mesh.showConnections} onChange={(value) => applyMeshPrivacy({ ...mesh, showConnections: value })} />
           <Toggle label="Show stats" description="Display counts on your mesh" value={mesh.showStats} onChange={(value) => applyMeshPrivacy({ ...mesh, showStats: value })} />
         </div>
@@ -1606,7 +1628,7 @@ function MeshSection({
             <label key={key} className="settings-muted-box grid gap-2 text-xs font-bold capitalize">
               {key}
               <select
-                value={mesh.branches[key] ?? "friends"}
+                value={mesh.branches[key] ?? branchInherit}
                 onChange={(event) => applyMeshPrivacy({
                   ...mesh,
                   branches: { ...mesh.branches, [key]: event.target.value },

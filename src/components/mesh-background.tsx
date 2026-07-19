@@ -156,7 +156,7 @@ export function MeshBackground({
 
     const draw = (now: number) => {
       if (document.hidden) {
-        animFrameRef.current = requestAnimationFrame(draw);
+        animFrameRef.current = 0;
         return;
       }
 
@@ -458,6 +458,12 @@ export function MeshBackground({
       animFrameRef.current = requestAnimationFrame(draw);
     };
 
+    const handleVisibility = () => {
+      if (!document.hidden && !animFrameRef.current) {
+        animFrameRef.current = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
     animFrameRef.current = requestAnimationFrame(draw);
 
     return () => {
@@ -468,6 +474,7 @@ export function MeshBackground({
       reducedMotionQuery.removeEventListener("change", updateReducedMotion);
       document.removeEventListener("mousemove", handleMouse);
       document.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("visibilitychange", handleVisibility);
       cancelAnimationFrame(animFrameRef.current);
     };
   }, [density, initStars, interactive, mouseInfluence]);

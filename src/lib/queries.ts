@@ -66,7 +66,20 @@ function sourceSearchUrl(platform: string, query: string) {
 }
 
 
-async function canCurrentUserViewNativePost(post: { authorId: string; visibility: string }, currentUser: CurrentUser | null) {
+async function canCurrentUserViewNativePost(
+  post: { authorId: string; visibility: string; community: { id: string; isPublic: boolean } | null },
+  currentUser: CurrentUser | null,
+) {
+  if (post.community && !post.community.isPublic) {
+    if (!currentUser || post.authorId !== currentUser.id) {
+      if (!currentUser) return false;
+      const membership = await prisma.communityMember.findUnique({
+        where: { userId_communityId: { userId: currentUser.id, communityId: post.community.id } },
+        select: { userId: true },
+      });
+      if (!membership) return false;
+    }
+  }
   if (post.visibility === "public") return true;
   if (!currentUser) return false;
   if (post.authorId === currentUser.id) return true;
@@ -133,12 +146,19 @@ export async function getExplorePosts(page = 1, limit = 20) {
         visibility: "public",
         OR: [
           { authorId: user.id },
-          // A post published as "public" circulates when its author opted into
-          // discovery — isPublic only restricts the profile page itself.
-          { author: { isSuspended: false, showInDiscovery: true } },
+          // Public posts circulate when their author opted into discovery.
+          {
+            author: { isSuspended: false, showInDiscovery: true },
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
         ],
       }
-    : { isNsfw: false, visibility: "public", author: { isSuspended: false, showInDiscovery: true } };
+    : {
+        isNsfw: false,
+        visibility: "public",
+        author: { isSuspended: false, showInDiscovery: true },
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      };
 
   // Ordering the whole table by reaction count forces SQLite to run a
   // correlated count for every public post before it can return a single row
@@ -160,7 +180,7 @@ export async function getExplorePosts(page = 1, limit = 20) {
         },
       },
       community: {
-        select: { id: true, name: true, slug: true },
+        select: { id: true, name: true, slug: true, isPublic: true },
       },
       media: true,
       tags: true,
@@ -203,11 +223,12 @@ export async function getPostById(postId: string) {
           displayName: true,
           avatarUrl: true,
           isVerified: true,
+          isSuspended: true,
           bio: true,
         },
       },
       community: {
-        select: { id: true, name: true, slug: true },
+        select: { id: true, name: true, slug: true, isPublic: true },
       },
       media: true,
       tags: true,
@@ -254,6 +275,10 @@ export async function getPostById(postId: string) {
 
   if (!post) return null;
   if (post.isNsfw && !canViewNsfw(user)) return null;
+  // A suspended author's post is locked to admins — matching getFeedPostById and
+  // the feed audience clause, so a direct /feed/[postId] link can't surface it.
+  // (A suspended user can't be the viewer, since getCurrentUser rejects them.)
+  if (post.author.isSuspended && !user?.isAdmin) return null;
   if (!(await canCurrentUserViewNativePost(post, user))) return null;
 
   return post;
@@ -447,6 +472,7 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
     select: {
       id: true,
       isPublic: true,
+      isSuspended: true,
       meshPrivacy: {
         select: {
           meshVisibility: true,
@@ -485,6 +511,12 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
     user.meshPrivacy?.meshVisibility,
     user.isPublic ? "public" : "private"
   );
+  // Gate on overall profile visibility FIRST — mirrors getUserProfile's
+  // `if (!profileVisible) return false` guard. Without this, a stale per-branch
+  // content:"public" override could serve a private profile's posts to strangers
+  // (the content override would otherwise outrank an overall-private mesh).
+  if (!canViewProfile(currentUser, user, meshVisibility, isFriend)) return [];
+
   const branchOverrides = parseBranchOverrides(user.meshPrivacy?.branchOverrides);
   const fallback: BranchVisibility = meshVisibility === "partial"
     ? (user.isPublic ? "public" : "private")
@@ -500,7 +532,20 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
 
   const postVisibilityWhere = isOwnProfile
     ? {}
-    : { OR: [{ visibility: "public" }, ...(isFriend ? [{ visibility: "friends" }] : [])] };
+    : {
+        OR: [
+          {
+            visibility: "public",
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
+          ...(isFriend
+            ? [{
+                visibility: "friends",
+                OR: [{ communityId: null }, { community: { isPublic: true } }],
+              }]
+            : []),
+        ],
+      };
 
   const posts = await prisma.post.findMany({
     where: {
@@ -719,7 +764,11 @@ export async function searchAll(query: string) {
         OR: [
           { authorId: user.id },
           // Strangers only ever match posts published as public.
-          { visibility: "public", author: { isSuspended: false, showInDiscovery: true } },
+          {
+            visibility: "public",
+            author: { isSuspended: false, showInDiscovery: true },
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
         ],
       },
       include: {
@@ -1017,8 +1066,24 @@ export async function getUserCommunities(username: string) {
     if (!canSee) return [];
   }
 
+  // A private (invite-only) community must not leak its existence, name, size,
+  // or this user's membership to outsiders. The owner and admins see all of
+  // their memberships; everyone else sees only public communities plus any
+  // private community they themselves belong to (which they already know of).
+  const isPrivileged = currentUser?.id === user.id || Boolean(currentUser?.isAdmin);
+  const communityScope = isPrivileged
+    ? {}
+    : {
+        community: {
+          OR: [
+            { isPublic: true },
+            ...(currentUser ? [{ members: { some: { userId: currentUser.id } } }] : []),
+          ],
+        },
+      };
+
   return prisma.communityMember.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, ...communityScope },
     include: {
       community: {
         include: {
@@ -1081,16 +1146,33 @@ export async function getSavedPosts(page = 1, limit = 20) {
 export async function getSavedPostCount() {
   const user = await getCurrentUser();
   if (!user) return 0;
-  // Same audience gate as getSavedPosts so the collections badge matches the
-  // rendered list when a saved post's author later restricts its visibility.
-  const saved = await prisma.savedPost.findMany({
-    where: { userId: user.id, post: nsfwHiddenWhere(user) },
-    select: { post: { select: { authorId: true, visibility: true, communityId: true } } },
+  // Same audience gate as getSavedPosts (canUserInteractWithPost), expressed
+  // as a single COUNT so the collections badge matches the rendered list
+  // without loading the whole collection.
+  return prisma.savedPost.count({
+    where: {
+      userId: user.id,
+      post: {
+        AND: [
+          nsfwHiddenWhere(user),
+          {
+            OR: [
+              { authorId: user.id },
+              { visibility: "public" },
+              { community: { members: { some: { userId: user.id } } } },
+              {
+                visibility: "friends",
+                author: {
+                  followers: { some: { followerId: user.id } },
+                  following: { some: { followingId: user.id } },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
   });
-  const visible = await Promise.all(
-    saved.map((s) => canUserInteractWithPost(user.id, s.post)),
-  );
-  return visible.filter(Boolean).length;
 }
 
 export async function getBlockedUsers() {

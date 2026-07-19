@@ -4,15 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
-import {
-  areMutualFollowers,
-  canSeeMeshBranch,
-  canSeeMeshStats,
-  canViewMesh,
-  normalizeMeshVisibility,
-  parseBranchOverrides,
-  type BranchVisibility,
-} from "@/lib/privacy-policy";
+import { areMutualFollowers, canViewMesh, canSeeMeshBranch, canSeeMeshStats, normalizeMeshVisibility, parseBranchOverrides, type BranchVisibility } from "@/lib/privacy-policy";
 
 export async function GET(req: Request) {
   try {
@@ -351,7 +343,11 @@ export async function GET(req: Request) {
           posts: {
             // Mutual friends see public + friends-visibility posts — never
             // anything scoped tighter than that.
-            where: { ...safetyWhere, visibility: { in: ["public", "friends"] } },
+            where: {
+              ...safetyWhere,
+              visibility: { in: ["public", "friends"] },
+              OR: [{ communityId: null }, { community: { isPublic: true } }],
+            },
             select: {
               id: true,
               content: true,
@@ -723,14 +719,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
       isPublic: true,
       isSuspended: true,
       isMeshPro: true,
-      meshPrivacy: {
-        select: {
-          meshVisibility: true,
-          branchOverrides: true,
-          showConnections: true,
-          showStats: true,
-        },
-      },
+      meshPrivacy: { select: { meshVisibility: true, branchOverrides: true, showConnections: true, showStats: true } },
     },
   });
 
@@ -740,21 +729,20 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
   // Every query below keys on the real id, whichever form the URL used.
   targetUserId = targetUser.id;
 
-  // Same privacy model as everywhere else: the owner's meshVisibility setting
-  // decides, defaulting from account privacy; "friends" means mutual follows.
+  // The owner's meshVisibility setting decides. The canonical default
+  // (getMeshPrivacy, getFriendMeshData) is "private" — enforcement must match
+  // what Settings displays, so a public account with an explicit "private" mesh
+  // (or no MeshPrivacy row) stays locked to strangers instead of leaking the
+  // whole graph via isPublic. Gate with canViewMesh, not canViewProfile.
+  const viewerIsAdmin = Boolean(viewer?.isAdmin);
+  const viewerIsOwner = viewerId === targetUserId;
   const isFriend = await areMutualFollowers(viewerId, targetUserId);
   const meshVisibility = normalizeMeshVisibility(
     targetUser.meshPrivacy?.meshVisibility,
-    targetUser.isPublic ? "public" : "private",
+    "private",
   );
-  const viewerRef = { id: viewerId };
-  const isSuspendedForViewer = targetUser.isSuspended && targetUser.id !== viewerId;
-  // Gate on the mesh's own visibility (not the account's isPublic flag) so a
-  // public account with a private/friends-only mesh stays locked.
-  if (isSuspendedForViewer || !canViewMesh(viewerRef, targetUserId, meshVisibility, isFriend)) {
-    // A graceful state, not an error: the client renders a locked mesh with
-    // the owner's identity and a path to their profile.
-    return NextResponse.json({
+  const lockedMeshResponse = () =>
+    NextResponse.json({
       privateMesh: true,
       user: {
         id: targetUser.id,
@@ -764,7 +752,37 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
         isVerified: targetUser.isVerified,
       },
     });
+  // Suspended accounts stay locked to everyone but the owner and admins.
+  if (targetUser.isSuspended && !viewerIsOwner && !viewerIsAdmin) {
+    return lockedMeshResponse();
   }
+  if (!canViewMesh({ id: viewerId, isAdmin: viewerIsAdmin }, targetUserId, meshVisibility, isFriend)) {
+    // A graceful state, not an error: the client renders a locked mesh with
+    // the owner's identity and a path to their profile.
+    return lockedMeshResponse();
+  }
+
+  // Per-branch enforcement, mirroring getFriendMeshData: the owner's branch
+  // overrides, showConnections, and showStats decide what a viewer can see even
+  // after mesh access is granted.
+  const viewerRef = { id: viewerId, isAdmin: viewerIsAdmin };
+  const branchOverrides = parseBranchOverrides(targetUser.meshPrivacy?.branchOverrides);
+  const defaultBranchVisibility: BranchVisibility = meshVisibility === "partial" ? "private" : meshVisibility;
+  const canSeeBranch = (branchKey: string) =>
+    canSeeMeshBranch({
+      viewer: viewerRef,
+      targetUserId,
+      branchKey,
+      branchOverrides,
+      isFriend,
+      showConnections: targetUser.meshPrivacy?.showConnections ?? false,
+      defaultVisibility: defaultBranchVisibility,
+    });
+  const showPeople = canSeeBranch("people");
+  const showContent = canSeeBranch("content");
+  const showInterests = canSeeBranch("interests");
+  const showPlatforms = canSeeBranch("platforms");
+  const showStats = canSeeMeshStats(viewerRef, targetUserId, targetUser.meshPrivacy ?? null);
 
   const [followingData, followersData, postsData, interestsData, connectedAccountsData, meshiPrefData, meshCosmeticsData, followingCount, followerCount, postCount, visibilityPolicies] = await Promise.all([
     prisma.follow.findMany({
@@ -790,7 +808,12 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     prisma.post.findMany({
       // Mutual friends also see friends-visibility posts; everyone else
       // strictly public.
-      where: { ...safetyWhere, authorId: targetUserId, visibility: { in: isFriend ? ["public", "friends"] : ["public"] } },
+      where: {
+        ...safetyWhere,
+        authorId: targetUserId,
+        visibility: { in: isFriend ? ["public", "friends"] : ["public"] },
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      },
       select: {
         id: true,
         content: true,
@@ -821,43 +844,23 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     }),
     prisma.follow.count({ where: { followerId: targetUserId } }),
     prisma.follow.count({ where: { followingId: targetUserId } }),
-    prisma.post.count({ where: { authorId: targetUserId, visibility: "public" } }),
+    prisma.post.count({
+      where: {
+        authorId: targetUserId,
+        visibility: "public",
+        OR: [{ communityId: null }, { community: { isPublic: true } }],
+      },
+    }),
     prisma.dataVisibilityPolicy.findMany({
       where: { userId: targetUserId, entityType: "connected_account" },
       select: { entityId: true, visibility: true },
     }),
   ]);
 
-  // Per-branch privacy: connections (people), interests, and platforms are each
-  // only returned when their branch is visible to this viewer, and stats only
-  // when the owner shares them — mirroring getFriendMeshData.
-  const branchOverrides = parseBranchOverrides(targetUser.meshPrivacy?.branchOverrides);
-  const branchDefault: BranchVisibility = meshVisibility === "partial"
-    ? (targetUser.isPublic ? "public" : "private")
-    : (meshVisibility as BranchVisibility);
-  const canSeeBranch = (branchKey: string) =>
-    canSeeMeshBranch({
-      viewer: viewerRef,
-      targetUserId,
-      branchKey,
-      branchOverrides,
-      isFriend,
-      showConnections: targetUser.meshPrivacy?.showConnections,
-      defaultVisibility: branchDefault,
-    });
-  const canSeePeople = canSeeBranch("people");
-  const canSeeInterestsBranch = canSeeBranch("interests");
-  const canSeePlatforms = canSeeBranch("platforms");
-  const canSeeStats = canSeeMeshStats(viewerRef, targetUserId, targetUser.meshPrivacy);
-
-  const following = canSeePeople
-    ? followingData.map((f) => ({ ...f.following, joinedAt: f.createdAt }))
-    : [];
-  const followers = canSeePeople
-    ? followersData.map((f) => ({ ...f.follower, joinedAt: f.createdAt }))
-    : [];
-  const interests = canSeeInterestsBranch ? interestsData.map((i) => i.tag) : [];
-  const visibleConnectedAccounts = canSeePlatforms
+  const following = showPeople ? followingData.map((f) => ({ ...f.following, joinedAt: f.createdAt })) : [];
+  const followers = showPeople ? followersData.map((f) => ({ ...f.follower, joinedAt: f.createdAt })) : [];
+  const interests = showInterests ? interestsData.map((i) => i.tag) : [];
+  const visibleConnectedAccounts = showPlatforms
     ? connectedAccountsData.filter((ca) => {
         const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
         return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
@@ -877,7 +880,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     followers,
     communities: [],
     interests,
-    posts: postsData.map((p) => ({
+    posts: (showContent ? postsData : []).map((p) => ({
       id: p.id,
       content: p.content.slice(0, 200),
       createdAt: p.createdAt,
@@ -890,29 +893,17 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     alterEgos: [],
     meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
     meshCosmetics: meshCosmeticsData,
-    stats: canSeeStats
-      ? {
-          followingCount,
-          followerCount,
-          mutualCount: 0,
-          communityCount: 0,
-          postCount,
-          interestCount: interestsData.length,
-          connectedPlatformCount: visibleConnectedAccounts.length,
-          alterEgoCount: 0,
-          activityCount: 0,
-        }
-      : {
-          followingCount: 0,
-          followerCount: 0,
-          mutualCount: 0,
-          communityCount: 0,
-          postCount: 0,
-          interestCount: 0,
-          connectedPlatformCount: 0,
-          alterEgoCount: 0,
-          activityCount: 0,
-        },
+    stats: {
+      followingCount: showStats ? followingCount : 0,
+      followerCount: showStats ? followerCount : 0,
+      mutualCount: 0,
+      communityCount: 0,
+      postCount: showStats ? postCount : 0,
+      interestCount: showStats && showInterests ? interestsData.length : 0,
+      connectedPlatformCount: showStats ? visibleConnectedAccounts.length : 0,
+      alterEgoCount: 0,
+      activityCount: 0,
+    },
     isViewingOtherUser: true,
   });
 }

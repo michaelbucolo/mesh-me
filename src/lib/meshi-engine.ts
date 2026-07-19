@@ -3,7 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { nsfwHiddenWhere } from "./content-safety";
-import { areMutualFollowers } from "./privacy-policy";
+import { areMutualFollowers, getBlockedUserIdSet } from "./privacy-policy";
 import { rateLimit } from "./security";
 
 /**
@@ -988,11 +988,17 @@ async function getWhoActive(): Promise<MeshiAnswer> {
   if (!user) return { content: "I need you to be logged in!", mood: "thinking" };
 
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const blockedIds = await getBlockedUserIdSet(user.id);
 
-  // Find followed users who are online or recently active
+  // Find followed users who are online or recently active. Presence must honor
+  // the target's "Hide activity status" (mirrors lookupPerson / getProfileByUsername),
+  // never surface suspended accounts, and never cross a block in either direction.
   const activeUsers = await prisma.user.findMany({
     where: {
       followers: { some: { followerId: user.id } },
+      isSuspended: false,
+      hideActivityStatus: false,
+      id: { notIn: Array.from(blockedIds) },
       OR: [
         { status: "online" },
         { lastSeenAt: { gte: fiveMinAgo } },

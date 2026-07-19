@@ -2800,6 +2800,46 @@ export async function updateMeshPrivacy(data: {
   return { success: true };
 }
 
+// Set overall "who can see your profile" in ONE atomic write. The profile gate
+// (User.isPublic) and the mesh gate (MeshPrivacy.meshVisibility) must move
+// together — a partial failure could strand the profile fully public while the
+// UI shows a tighter level (the exact isPublic/meshVisibility drift this control
+// exists to eliminate). branchOverrides is deliberately NOT written on update,
+// so a user's existing per-branch choices survive and unset branches keep
+// inheriting meshVisibility (writing the client-materialized set would pin every
+// branch to its default and hide a "public" mesh).
+export async function updateProfileVisibility(level: "private" | "friends" | "public") {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  if (!["private", "friends", "public"].includes(level)) {
+    return { error: "Invalid visibility setting" };
+  }
+
+  const isPublic = level === "public";
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: user.id }, data: { isPublic } }),
+    prisma.meshPrivacy.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        meshVisibility: level,
+        branchOverrides: "{}",
+        showConnections: false,
+        showStats: false,
+      },
+      update: { meshVisibility: level },
+    }),
+  ]);
+
+  revalidatePath("/settings");
+  revalidatePath("/privacy-controls");
+  revalidatePath("/mesh");
+  clearMeshCache(user.id);
+  return { success: true };
+}
+
 // ─── Global Mesh Actions ────────────────────────────────────
 
 

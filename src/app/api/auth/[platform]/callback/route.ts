@@ -247,7 +247,7 @@ export async function GET(
             where: { id: existingAccount.id },
             data: {
               accessToken: encryptedAccessToken,
-              refreshToken: encryptedRefreshToken,
+              ...(encryptedRefreshToken ? { refreshToken: encryptedRefreshToken } : {}),
               expiresAt,
               platformUsername,
               platformId,
