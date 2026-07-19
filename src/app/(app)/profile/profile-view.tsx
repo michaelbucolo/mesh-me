@@ -463,7 +463,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                       <div className="mt-3 overflow-hidden rounded-xl">
                         <Image
                           src={post.media[0].url}
-                          alt={post.content.trim() ? `${profile.displayName}: ${post.content.trim().slice(0, 120)}` : `${profile.displayName}'s post media`}
+                          alt=""
                           width={600}
                           height={400}
                           className="w-full object-cover"
