@@ -428,6 +428,9 @@ export function MeChatThread({
         const data = await safeFetchJson<{ message?: MeChatSerializedMessage; error?: string }>(response);
         if (!response.ok || !data.message) throw new Error(data.error || "Message failed");
         setDraft("");
+        // Reset the auto-grown height, or the composer stays tall and empty
+        // after sending a multi-line message.
+        if (draftRef.current) draftRef.current.style.height = "auto";
         setReplyTo(null);
         setPendingSource(undefined);
         setAttachments([]);

@@ -26,7 +26,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const addToast = useCallback(
     (message: string, type: "success" | "error" | "info" = "success") => {
       const id = Math.random().toString(36).slice(2);
-      setToasts((prev) => [...prev, { id, message, type }]);
+      // Cap the queue so a burst of toasts can't stack up the corner and cover
+      // tap targets — keep the three most recent.
+      setToasts((prev) => [...prev, { id, message, type }].slice(-3));
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, 4000);
@@ -59,10 +61,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed bottom-20 right-4 z-[60] flex flex-col gap-2 lg:bottom-4">
+      <div
+        className="fixed bottom-20 right-4 z-[60] flex flex-col gap-2 lg:bottom-4"
+        role="status"
+        aria-live="polite"
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}
+            role={toast.type === "error" ? "alert" : "status"}
             className={cn(
               "flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-md animate-slide-up",
               styles[toast.type]
@@ -71,6 +78,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             {icons[toast.type]}
             <span className="flex-1">{toast.message}</span>
             <button
+              type="button"
+              aria-label="Dismiss"
               onClick={() => removeToast(toast.id)}
               className={cn(
                 "ml-1 transition-colors",

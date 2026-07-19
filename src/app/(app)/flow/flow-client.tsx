@@ -7,6 +7,7 @@ import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, Messag
 import { toggleFollow, toggleReaction, setFlowLike } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { playSound } from "@/lib/sound";
+import { useToast } from "@/components/ui/toast";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 
 export type FlowPost = {
@@ -262,6 +263,7 @@ function Reel({
   const router = useRouter();
   const native = !post.platform || post.platform === "mesh" || post.platform === "meshme";
   const hasVideo = post.media.some((m) => m.type === "video");
+  const { addToast } = useToast();
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [expanded, setExpanded] = useState(false);
@@ -328,8 +330,13 @@ function Reel({
   const handleShare = async () => {
     const url = `${window.location.origin}/feed/${post.id}`;
     try {
-      if (navigator.share) await navigator.share({ url, title: `@${post.author.username} on mesh.me` });
-      else await navigator.clipboard.writeText(url);
+      if (navigator.share) {
+        await navigator.share({ url, title: `@${post.author.username} on mesh.me` });
+      } else {
+        // No Web Share API (most desktops): copy + confirm, so Share isn't inert.
+        await navigator.clipboard.writeText(url);
+        addToast("Link copied", "success");
+      }
     } catch {
       // cancelled
     }
@@ -989,6 +996,17 @@ export function FlowClient({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [swipeLane]);
+
+  // Escape closes the modes dialog — it's an explicit role="dialog", so a
+  // keyboard user expects it to dismiss.
+  useEffect(() => {
+    if (!showModes) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowModes(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showModes]);
 
   if (posts.length === 0) {
     return <FlowColdStart people={suggestedPeople} refreshing={refreshing} onLoadFlow={() => void refresh()} />;

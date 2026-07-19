@@ -18,9 +18,18 @@ export function AutoplayVideo({ src, poster, className }: { src: string; poster?
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
+        // Honor reduced-motion: don't autoplay for motion-sensitive users (the
+        // <video> has no autoPlay attr, so this JS path is the only gate). Tap
+        // to play still works below.
+        const reduce =
+          typeof window !== "undefined" &&
+          window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
         for (const entry of entries) {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) void el.play().catch(() => {});
-          else el.pause();
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !reduce) {
+            void el.play().catch(() => {});
+          } else {
+            el.pause();
+          }
         }
       },
       { threshold: [0, 0.5] },
