@@ -170,18 +170,27 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
   const { followingIds, communityIds, friendIds } = await getViewerSocialGraph(user.id);
   const safetyWhere = nsfwHiddenWhere(user);
   const audienceWhere = {
-    OR: [
-      { authorId: user.id },
-      { communityId: { in: communityIds } },
+    AND: [
       {
-        visibility: "public",
-        OR: [{ communityId: null }, { community: { isPublic: true } }],
+        OR: [
+          { authorId: user.id },
+          { communityId: { in: communityIds } },
+          {
+            visibility: "public",
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
+          {
+            visibility: "friends",
+            authorId: { in: friendIds },
+            OR: [{ communityId: null }, { community: { isPublic: true } }],
+          },
+        ],
       },
-      {
-        visibility: "friends",
-        authorId: { in: friendIds },
-        OR: [{ communityId: null }, { community: { isPublic: true } }],
-      },
+      // Suspended authors are locked to owner + admin: their posts stop
+      // circulating to followers and community co-members. The owner still sees
+      // their own posts via the first clause. (The discover branch already
+      // filters author.isSuspended in its own where.)
+      { OR: [{ authorId: user.id }, { author: { isSuspended: false } }] },
     ],
   };
 
@@ -719,18 +728,24 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
     where: {
       id,
       ...nsfwHiddenWhere(user),
-      OR: [
-        { authorId: user.id },
-        { communityId: { in: communityIds } },
+      AND: [
         {
-          visibility: "public",
-          OR: [{ communityId: null }, { community: { isPublic: true } }],
+          OR: [
+            { authorId: user.id },
+            { communityId: { in: communityIds } },
+            {
+              visibility: "public",
+              OR: [{ communityId: null }, { community: { isPublic: true } }],
+            },
+            {
+              visibility: "friends",
+              authorId: { in: friendIds },
+              OR: [{ communityId: null }, { community: { isPublic: true } }],
+            },
+          ],
         },
-        {
-          visibility: "friends",
-          authorId: { in: friendIds },
-          OR: [{ communityId: null }, { community: { isPublic: true } }],
-        },
+        // A suspended author's post is locked to owner + admin.
+        { OR: [{ authorId: user.id }, { author: { isSuspended: false } }] },
       ],
     },
     include: {
