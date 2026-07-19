@@ -237,7 +237,11 @@ const checks = [
       const expectedAuthTokens = [
         "hashPassword",
         "verifyPassword",
-        "checkAccountLockout",
+        // Account lockout is enforced by the durable, DB-backed
+        // checkDurableLockout (durable-rate-limit.ts), called from the login
+        // flow in actions.ts — the earlier in-memory checkAccountLockout was
+        // replaced by it.
+        "checkDurableLockout",
         "requestPasswordReset",
         "resetPassword",
         "requestEmailVerification",
@@ -354,6 +358,11 @@ const checks = [
         }
         const signedWebhook = source.includes("verifySignature") && source.includes("timingSafeEqual") && source.includes("createHmac");
         if (signedWebhook) continue;
+        // Meta (Facebook/Instagram/Threads) Deauthorize + Data Deletion callbacks
+        // are server-to-server POSTs from Meta, so they cannot demand same-origin.
+        // They verify Meta's `signed_request` via verifyMetaSignedRequest, which
+        // does HMAC-SHA256 + timingSafeEqual in src/lib/meta-signed-request.ts.
+        if (source.includes("verifyMetaSignedRequest")) continue;
         // OAuth callbacks are cross-site by design (Apple returns via form_post),
         // so they cannot demand same-origin proof. Their CSRF protection is
         // validating the returned state against the flow cookie we issued.
