@@ -6,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { toggleFollow } from "@/lib/actions";
 import type { FeedCardPost } from "@/lib/feed-data";
 import { formatCount } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
   BadgeCheck,
   Clock,
   Compass,
-  Flame,
   Hash,
   Heart,
   ImageIcon,
@@ -21,7 +20,6 @@ import {
   Play,
   Search,
   SlidersHorizontal,
-  Sparkles,
   TrendingUp,
   UserCheck,
   UserPlus,
@@ -73,16 +71,21 @@ type SuggestedCommunity = {
 
 type TrendingTag = { tag: string; count: number };
 
-type ExploreTab = "foryou" | "trending" | "media" | "people" | "communities";
+type ExploreTab = "feed" | "people" | "communities";
+type FeedMode = "foryou" | "trending" | "media";
 type MediaFilter = "all" | "photos" | "videos" | "text";
 type SortMode = "top" | "latest";
 
 const TABS: { id: ExploreTab; label: string; icon: typeof Compass }[] = [
-  { id: "foryou", label: "For you", icon: Sparkles },
-  { id: "trending", label: "Trending", icon: Flame },
-  { id: "media", label: "Media", icon: ImageIcon },
+  { id: "feed", label: "Discover", icon: Compass },
   { id: "people", label: "People", icon: UsersRound },
   { id: "communities", label: "Communities", icon: MessagesSquare },
+];
+
+const FEED_MODES: { id: FeedMode; label: string }[] = [
+  { id: "foryou", label: "For you" },
+  { id: "trending", label: "Trending" },
+  { id: "media", label: "Media" },
 ];
 
 const MEDIA_FILTERS: { id: MediaFilter; label: string }[] = [
@@ -116,8 +119,10 @@ function isPhotoPost(post: FeedCardPost) {
 
 export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggestedUsers, communities, signedOut = false }: ExploreDiscoveryProps) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<ExploreTab>("foryou");
+  const [tab, setTab] = useState<ExploreTab>("feed");
+  const [feedMode, setFeedMode] = useState<FeedMode>("foryou");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<string | null>(null);
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("all");
@@ -141,7 +146,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   const filteredPosts = useMemo(() => {
     let result = posts;
 
-    if (tab === "media") {
+    if (feedMode === "media") {
       result = result.filter((post) => post.media.length > 0);
     }
 
@@ -174,14 +179,14 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       });
     }
 
-    if (tab === "trending" || sortMode === "top") {
+    if (feedMode === "trending" || sortMode === "top") {
       result = [...result].sort((a, b) => postScore(b) - postScore(a));
     } else {
       result = [...result].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
     return result;
-  }, [posts, tab, activeTag, activePlatform, mediaFilter, sortMode, trimmedQuery]);
+  }, [posts, feedMode, activeTag, activePlatform, mediaFilter, sortMode, trimmedQuery]);
 
   const filteredUsers = useMemo(() => {
     if (!trimmedQuery) return suggestedUsers;
@@ -203,7 +208,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   }, [communities, trimmedQuery]);
 
   const hasActiveFilters = Boolean(activeTag || activePlatform || mediaFilter !== "all");
-  const isPostTab = tab === "foryou" || tab === "trending" || tab === "media";
+  const isPostTab = tab === "feed";
 
   const clearFilters = () => {
     setActiveTag(null);
@@ -273,10 +278,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                onClick={() => {
-                  setTab(item.id);
-                  if (item.id === "media" && mediaFilter === "text") setMediaFilter("all");
-                }}
+                onClick={() => setTab(item.id)}
                 className={`relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
                   selected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
@@ -294,6 +296,38 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               </button>
             );
           })}
+          {isPostTab && (
+            <div className="ml-2 flex shrink-0 items-center gap-0.5 rounded-xl bg-[var(--bg-primary)]/35 p-0.5" role="tablist" aria-label="Discover feed">
+              {FEED_MODES.map((mode) => {
+                const selected = feedMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => {
+                      setFeedMode(mode.id);
+                      if (mode.id === "media" && mediaFilter === "text") setMediaFilter("all");
+                    }}
+                    className={`relative rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                      selected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                    }`}
+                  >
+                    {selected && (
+                      <motion.span
+                        layoutId="explore-feed-mode-pill"
+                        transition={spring}
+                        className="absolute inset-0 rounded-lg border border-[var(--accent)]/35 bg-[var(--accent)]/10"
+                        aria-hidden
+                      />
+                    )}
+                    <span className="relative">{mode.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {isPostTab && (
             <button
               type="button"
@@ -326,7 +360,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Content</span>
-                {MEDIA_FILTERS.filter((filter) => tab !== "media" || filter.id !== "text").map((filter) => (
+                {MEDIA_FILTERS.filter((filter) => feedMode !== "media" || filter.id !== "text").map((filter) => (
                   <FilterChip
                     key={filter.id}
                     label={filter.label}
@@ -387,16 +421,12 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
 
       {isPostTab && trendingTags.length > 0 && (
         <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1">
-          {trendingTags.map((tag, index) => {
+          {trendingTags.map((tag) => {
             const selected = activeTag === tag.tag;
             return (
-              <motion.button
+              <button
                 key={tag.tag}
                 type="button"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...spring, delay: 0.03 * index }}
-                whileTap={{ scale: 0.94 }}
                 onClick={() => setActiveTag(selected ? null : tag.tag)}
                 className={`flex shrink-0 items-center gap-1 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                   selected
@@ -407,49 +437,21 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 <Hash className="h-3 w-3" aria-hidden />
                 {tag.tag}
                 <span className="text-[10px] text-[var(--text-muted)]">{formatCount(tag.count)}</span>
-              </motion.button>
+              </button>
             );
           })}
         </div>
-      )}
-
-      {tab === "foryou" && (
-        <>
-          {!trimmedQuery && !hasActiveFilters && (
-            <TrendingHero posts={posts} onSeeAll={() => setTab("trending")} />
-          )}
-          {!trimmedQuery && suggestedUsers.length > 0 && (
-            <section className="mt-6" aria-label="People to follow">
-              <SectionHeader title="Meshes to explore" action={{ label: "See all", onClick: () => setTab("people") }} />
-              <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-                {suggestedUsers.slice(0, 8).map((user, index) => (
-                  <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} signedOut={signedOut} />
-                ))}
-              </div>
-            </section>
-          )}
-          {!trimmedQuery && communities.length > 0 && (
-            <section className="mt-6" aria-label="Communities">
-              <SectionHeader title="Communities" action={{ label: "See all", onClick: () => setTab("communities") }} />
-              <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-                {communities.slice(0, 6).map((community, index) => (
-                  <CommunityCard key={community.id} community={community} index={index} compact />
-                ))}
-              </div>
-            </section>
-          )}
-        </>
       )}
 
       {isPostTab && (
         <section className="mt-6" aria-label="Discover content">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-              {tab === "trending" ? (
+              {feedMode === "trending" ? (
                 <>
-                  <Flame className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden /> Trending now
+                  <TrendingUp className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden /> Trending now
                 </>
-              ) : tab === "media" ? (
+              ) : feedMode === "media" ? (
                 <>
                   <ImageIcon className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden /> Media
                 </>
@@ -473,11 +475,17 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               onClear={hasActiveFilters ? clearFilters : undefined}
             />
           ) : (
-            <div className="columns-2 gap-3 sm:columns-3 lg:columns-4 [&>*]:mb-3">
-              {filteredPosts.map((post, index) => (
-                <ExploreTile key={post.id} post={post} index={index} />
+            <motion.div
+              key={`${feedMode}-${activeTag ?? ""}-${activePlatform ?? ""}-${mediaFilter}-${sortMode}-${trimmedQuery}`}
+              initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.14, ease: [0.16, 1, 0.3, 1] }}
+              className="columns-2 gap-3 sm:columns-3 lg:columns-4 [&>*]:mb-3"
+            >
+              {filteredPosts.map((post) => (
+                <ExploreTile key={post.id} post={post} />
               ))}
-            </div>
+            </motion.div>
           )}
         </section>
       )}
@@ -494,8 +502,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             <EmptyState message="No meshes match your search." />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {filteredUsers.map((user, index) => (
-                <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} fullWidth signedOut={signedOut} />
+              {filteredUsers.map((user) => (
+                <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} fullWidth signedOut={signedOut} />
               ))}
             </div>
           )}
@@ -514,29 +522,12 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             <EmptyState message="No communities match your search." />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredCommunities.map((community, index) => (
-                <CommunityCard key={community.id} community={community} index={index} />
+              {filteredCommunities.map((community) => (
+                <CommunityCard key={community.id} community={community} />
               ))}
             </div>
           )}
         </section>
-      )}
-    </div>
-  );
-}
-
-function SectionHeader({ title, action }: { title: string; action?: { label: string; onClick: () => void } }) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between">
-      <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
-      {action && (
-        <button
-          type="button"
-          onClick={action.onClick}
-          className="text-xs font-medium text-[var(--accent)] transition hover:opacity-80"
-        >
-          {action.label}
-        </button>
       )}
     </div>
   );
@@ -573,14 +564,9 @@ function EmptyState({ message, onClear }: { message: string; onClear?: () => voi
   );
 }
 
-function CommunityCard({ community, index, compact }: { community: SuggestedCommunity; index: number; compact?: boolean }) {
+function CommunityCard({ community, compact }: { community: SuggestedCommunity; compact?: boolean }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring, delay: 0.04 * index }}
-      className={compact ? "shrink-0" : ""}
-    >
+    <div className={compact ? "shrink-0" : ""}>
       <Link
         href={`/communities/${community.slug}`}
         className={`glass-card group flex flex-col gap-2 rounded-2xl p-4 transition-all hover:border-[var(--border-primary)] ${
@@ -609,20 +595,18 @@ function CommunityCard({ community, index, compact }: { community: SuggestedComm
           <p className="line-clamp-2 text-xs text-[var(--text-secondary)]">{community.description}</p>
         )}
       </Link>
-    </motion.div>
+    </div>
   );
 }
 
 function ExplorePersonCard({
   user,
   currentUserId,
-  index,
   fullWidth,
   signedOut = false,
 }: {
   user: SuggestedUser;
   currentUserId: string;
-  index: number;
   fullWidth?: boolean;
   signedOut?: boolean;
 }) {
@@ -648,10 +632,7 @@ function ExplorePersonCard({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring, delay: 0.04 * Math.min(index, 12) }}
+    <div
       className={`glass-card group rounded-2xl p-4 text-center transition-all hover:border-[var(--border-primary)] ${
         fullWidth ? "w-full" : "w-44 shrink-0"
       }`}
@@ -693,11 +674,11 @@ function ExplorePersonCard({
           )}
         </Button>
       )}
-    </motion.div>
+    </div>
   );
 }
 
-function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
+function ExploreTile({ post }: { post: FeedCardPost }) {
   const router = useRouter();
   const media = post.media[0];
   const isVideo = media && VIDEO_TYPES.includes(media.type.toLowerCase());
@@ -706,13 +687,8 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
   const authorName = post.externalAuthor?.name || post.author.displayName;
 
   return (
-    <motion.button
+    <button
       type="button"
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ ...spring, delay: 0.02 * Math.min(index, 16) }}
-      whileHover={{ scale: 1.015 }}
-      whileTap={{ scale: 0.985 }}
       onClick={() => router.push(`/feed?flow=${encodeURIComponent(post.id)}`)}
       className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-all hover:border-[var(--border-primary)]"
       aria-label={`Open post by ${authorName} in the Flow`}
@@ -720,7 +696,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       {media ? (
         <div className="relative aspect-[4/5]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={media.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          <img src={media.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
           {isVideo && (
             <span className="absolute right-2 top-2 rounded-full bg-black/55 p-1.5 backdrop-blur">
               <Play className="h-3.5 w-3.5 fill-white text-white" aria-hidden />
@@ -738,7 +714,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
           </div>
         </div>
       )}
-    </motion.button>
+    </button>
   );
 }
 
@@ -760,61 +736,5 @@ function TileMeta({ post, authorName, chip, overlay }: { post: FeedCardPost; aut
         </span>
       </span>
     </div>
-  );
-}
-
-// The front door of discovery: the hottest posts right now as big swipeable
-// cards with rank badges — a reason to open Explore every day.
-function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: () => void }) {
-  const top = [...posts]
-    .filter((post) => post.media.length > 0 || post.content.trim().length > 0)
-    .sort((a, b) => postScore(b) - postScore(a))
-    .slice(0, 5);
-  if (top.length === 0) return null;
-
-  return (
-    <section className="mt-5" aria-label="Trending now">
-      <SectionHeader title="Trending now" action={{ label: "See all", onClick: onSeeAll }} />
-      <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
-        {top.map((post, index) => {
-          const media = post.media.find((item) => item.type.toLowerCase() !== "video") || post.media[0];
-          const still = media?.type.toLowerCase() === "video" ? media.posterUrl : media?.url;
-          const authorName = post.externalAuthor?.name || post.author.displayName;
-          return (
-            <Link
-              key={post.id}
-              href={post.externalUrl || `/feed/${post.id}`}
-              className="group relative h-44 w-[min(16rem,75vw)] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
-            >
-              {still ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={still} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-              ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(47,124,255,0.35),transparent_60%),radial-gradient(circle_at_75%_80%,rgba(168,85,247,0.28),transparent_55%)]" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-              <span
-                className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-black text-white shadow-lg ${
-                  index === 0 ? "bg-gradient-to-br from-[var(--accent)] to-violet-500" : "bg-black/60 backdrop-blur"
-                }`}
-              >
-                #{index + 1}
-              </span>
-              <div className="absolute inset-x-0 bottom-0 p-3">
-                {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
-                <p className="truncate text-[11px] font-semibold text-white/85">{authorName}</p>
-                <p className="mt-0.5 flex items-center gap-2 text-[10px] text-white/60">
-                  <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent)]" /> {formatCount(post._count.reactions)}</span>
-                  <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
-                  {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
-                    <span className="uppercase tracking-wide">{post.platform}</span>
-                  )}
-                </p>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
   );
 }
