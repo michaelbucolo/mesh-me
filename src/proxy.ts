@@ -199,10 +199,11 @@ function hardenResponse(response: NextResponse, options: { sensitive?: boolean; 
   return response;
 }
 
-// Production pages get a per-request nonce-based script-src instead of the
-// blanket 'unsafe-inline' in next.config.ts. Next.js reads the nonce from the
-// forwarded Content-Security-Policy request header and stamps it onto its own
-// inline scripts and every <Script>. 'strict-dynamic' lets those trusted
+// Production CSP is owned entirely by this proxy (next.config.ts only emits a
+// CSP in development) so exactly one deterministic policy ships per response.
+// Pages get a per-request nonce-based script-src: Next.js reads the nonce from
+// the forwarded Content-Security-Policy request header and stamps it onto its
+// own inline scripts and every <Script>. 'strict-dynamic' lets those trusted
 // scripts load their dependencies; the 'unsafe-inline' and host entries remain
 // only as fallbacks for pre-CSP3 browsers, which ignore nonces.
 function buildPageCsp(nonce: string, httpsOnly: boolean) {
@@ -224,6 +225,10 @@ function buildPageCsp(nonce: string, httpsOnly: boolean) {
     httpsOnly ? "upgrade-insecure-requests" : "",
   ].filter(Boolean).join("; ");
 }
+
+// API responses never execute scripts or render markup, so they get a
+// locked-down policy rather than the page one.
+const API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
 
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
@@ -288,6 +293,8 @@ export function proxy(request: NextRequest) {
       requestHeaders.set("x-nonce", nonce);
       requestHeaders.set("content-security-policy", cspOverride);
     }
+  } else if (process.env.NODE_ENV === "production") {
+    cspOverride = API_CSP;
   }
 
   const response = NextResponse.next({

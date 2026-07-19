@@ -72,7 +72,11 @@ const nextConfig: NextConfig = {
     ].filter(Boolean).join("; ");
 
     const headers = [
-      { key: "Content-Security-Policy", value: csp },
+      // In production the proxy owns the Content-Security-Policy end to end
+      // (per-request nonce for pages, a locked-down policy for API routes);
+      // emitting it here too would ship two competing policies. Development
+      // doesn't run the nonce path, so the static policy applies there.
+      ...(isDev ? [{ key: "Content-Security-Policy", value: csp }] : []),
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "X-XSS-Protection", value: "0" },

@@ -1848,7 +1848,7 @@ async function migratePlatformCommentsIntoMeChat(account: {
   const linkedAccounts = await prisma.connectedAccount.findMany({
     where: {
       platform: account.platform,
-      platformUsername: { not: null },
+      platformUsername: { in: usernames },
     },
     select: {
       platformUsername: true,
@@ -2140,12 +2140,25 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
   const syncRl = rateLimit(`platform-sync:${user.id}`, 10, 10 * 60 * 1000);
   if (!syncRl.allowed) return { error: "Too many sync requests. Please try again later." };
 
+  // A run killed mid-flight (crash, deploy, serverless timeout) never reaches
+  // the completion or catch paths, so a "running" state older than the
+  // staleness window is treated as dead: mark it failed and let this run start.
+  const SYNC_STALE_AFTER_MS = 15 * 60 * 1000;
+  const staleBefore = new Date(Date.now() - SYNC_STALE_AFTER_MS);
   const runningJob = await prisma.syncJob.findFirst({
     where: { connectedAccountId: account.id, status: "running" },
-    select: { id: true },
+    orderBy: { startedAt: "desc" },
+    select: { id: true, startedAt: true },
   });
-  if (account.syncStatus === "syncing" || runningJob) {
+  const runningJobIsFresh = !!runningJob && !!runningJob.startedAt && runningJob.startedAt > staleBefore;
+  if (runningJobIsFresh) {
     return { error: "A sync is already in progress for this account." };
+  }
+  if (runningJob) {
+    await prisma.syncJob.updateMany({
+      where: { connectedAccountId: account.id, status: "running", startedAt: { lt: staleBefore } },
+      data: { status: "failed", error: "Sync interrupted", completedAt: new Date() },
+    });
   }
 
   const importCapability = getPlatformImportCapability(account.platform);
