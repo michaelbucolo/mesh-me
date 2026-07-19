@@ -30,6 +30,17 @@ import type {
   SupportedPlatformView,
 } from "@/lib/connected-accounts";
 import type { PlatformAdapterCategory, PlatformAdapterCapabilityKey } from "@/lib/platform-adapters";
+import { OneMeshHub, type HubAccount } from "@/components/accounts/one-mesh-hub";
+import { foldPersonaIntoMainIdentity } from "@/lib/one-account-actions";
+
+/** A separate identity (alter ego) that can be folded into the one account. */
+type PersonaView = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  accountCount: number;
+};
 
 type ActionState = {
   type: "success" | "error" | "info";
@@ -417,14 +428,37 @@ function PlatformCard({
 
 export function ConnectedAccountsClient({
   initialDashboard,
+  initialPersonas = [],
+  identity,
   fromOnboarding = false,
   preselectPlatforms = [],
 }: {
   initialDashboard: ConnectedAccountsDashboard;
+  initialPersonas?: PersonaView[];
+  identity: { username: string; displayName: string; avatarUrl: string | null };
   fromOnboarding?: boolean;
   preselectPlatforms?: string[];
 }) {
   const [dashboard, setDashboard] = useState(initialDashboard);
+  const [personas, setPersonas] = useState(initialPersonas);
+
+  // Each connected account, resolved to its brand monogram, for the One Mesh hub.
+  const hubAccounts = useMemo<HubAccount[]>(
+    () =>
+      dashboard.accounts.map((account) => {
+        const brand = platformBrands[account.platform.toLowerCase()];
+        return {
+          id: account.id,
+          platform: account.platform,
+          name: account.platformName,
+          glyph: brand?.glyph ?? (account.platformName.trim().charAt(0).toUpperCase() || "M"),
+          bg: brand?.bg ?? "var(--accent)",
+          fg: brand?.fg,
+          synced: account.isActive && account.hasCredential && account.health === "ready",
+        };
+      }),
+    [dashboard.accounts],
+  );
   const [actionState, setActionState] = useState<ActionState>(null);
   const dismissToast = useCallback(() => setActionState(null), []);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -579,6 +613,22 @@ export function ConnectedAccountsClient({
     }
   }
 
+  async function foldPersona(persona: PersonaView) {
+    setBusyKey(`fold-${persona.id}`);
+    try {
+      const result = await foldPersonaIntoMainIdentity(persona.id);
+      if (result && "error" in result && result.error) throw new Error(result.error);
+      const refreshed = await requestDashboard("/api/connected-accounts");
+      setDashboard(refreshed as ConnectedAccountsDashboard);
+      setPersonas((current) => current.filter((entry) => entry.id !== persona.id));
+      setActionState({ type: "success", message: `@${persona.username} folded into your account.` });
+    } catch (error) {
+      setActionState({ type: "error", message: error instanceof Error ? error.message : "Could not unify identity" });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
   return (
     <main data-testid="connected-accounts-center" className="ds-page-shell animate-page-enter grid gap-6">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -597,12 +647,61 @@ export function ConnectedAccountsClient({
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Refresh
           </Button>
-          <Link href="/one-account" className={cn(buttonVariants({ variant: "outline" }))}>
-            <Combine className="h-4 w-4" aria-hidden="true" />
-            One Account
-          </Link>
         </div>
       </header>
+
+      {/* The One Mesh — your mesh.me identity at the center, every connected
+          account threading home to it. */}
+      <section className="grid gap-4 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-5 sm:p-6">
+        <OneMeshHub identity={identity} accounts={hubAccounts} />
+        <p className="mx-auto max-w-md text-center text-sm leading-6 text-[var(--text-secondary)]">
+          {hubAccounts.length > 0 ? (
+            <>
+              Every platform you connect threads back to one identity —{" "}
+              <span className="font-semibold text-[var(--text-primary)]">@{identity.username}</span>. Synced
+              accounts stream their content home.
+            </>
+          ) : (
+            "This is your one mesh.me account. Connect a platform below and watch it thread into your mesh."
+          )}
+        </p>
+      </section>
+
+      {personas.length > 0 && (
+        <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/30 bg-[var(--accent-subtle)] p-5">
+          <div>
+            <h2 className="text-lg font-bold">Bring your other identities home</h2>
+            <p className="text-sm leading-6 text-[var(--text-secondary)]">
+              Fold a separate persona’s connections into your one mesh.me account — nothing stays split off.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            {personas.map((persona) => (
+              <div
+                key={persona.id}
+                className="flex items-center gap-3 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3"
+              >
+                <PlatformAvatar platform="mesh" name={persona.displayName || persona.username} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">@{persona.username}</p>
+                  <p className="truncate text-xs text-[var(--text-muted)]">
+                    {persona.accountCount} connection{persona.accountCount === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  loading={busyKey === `fold-${persona.id}`}
+                  onClick={() => foldPersona(persona)}
+                >
+                  <Combine className="h-4 w-4" aria-hidden="true" />
+                  Fold in
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {fromOnboarding && quickMergePlatforms.length > 0 && (
         <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/40 bg-[var(--accent-subtle)] p-5">
