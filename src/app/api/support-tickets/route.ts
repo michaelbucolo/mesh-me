@@ -79,9 +79,9 @@ export async function POST(req: Request) {
     // account email must never mint fresh rate-limit buckets. A global backstop
     // caps aggregate abuse across IPs.
     const clientIp = getTrustedClientIp(req.headers);
+    // Requests already rejected per-IP must not consume the shared budget.
     const rl = rateLimit(`support:${clientIp}`, 5, 10 * 60 * 1000);
-    const globalRl = rateLimit("support:global", 100, 10 * 60 * 1000);
-    if (!rl.allowed || !globalRl.allowed) {
+    if (!rl.allowed || !rateLimit("support:global", 100, 10 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many support requests. Please try again later." }, { status: 429 });
     }
 

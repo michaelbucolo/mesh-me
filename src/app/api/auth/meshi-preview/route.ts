@@ -32,9 +32,9 @@ function normalizeUsername(value: string | null) {
 
 export async function GET(request: Request) {
   const clientIp = getTrustedClientIp(request.headers);
+  // Requests already rejected per-IP must not consume the shared budget.
   const rl = rateLimit(`meshi-preview:${clientIp}`, 30, 60 * 1000);
-  const globalRl = rateLimit("meshi-preview:global", 600, 60 * 1000);
-  if (!rl.allowed || !globalRl.allowed) {
+  if (!rl.allowed || !rateLimit("meshi-preview:global", 600, 60 * 1000).allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
       { status: 429, headers: NO_STORE_HEADERS },

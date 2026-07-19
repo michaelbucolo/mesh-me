@@ -79,9 +79,9 @@ export async function POST(req: Request) {
     // (spoofed forwarded headers, arbitrary page URLs) must never mint fresh
     // rate-limit buckets. A global backstop caps aggregate abuse across IPs.
     const clientIp = getTrustedClientIp(req.headers);
+    // Requests already rejected per-IP must not consume the shared budget.
     const rl = rateLimit(`bug:${clientIp}`, 8, 10 * 60 * 1000);
-    const globalRl = rateLimit("bug:global", 200, 10 * 60 * 1000);
-    if (!rl.allowed || !globalRl.allowed) {
+    if (!rl.allowed || !rateLimit("bug:global", 200, 10 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many bug reports. Please try again later." }, { status: 429 });
     }
 
