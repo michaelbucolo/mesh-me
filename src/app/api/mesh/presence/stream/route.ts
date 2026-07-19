@@ -120,7 +120,7 @@ export async function GET(request: Request) {
         Promise.all([
           getMutualConnectionIds(viewerId),
           getBlockedUserIds(viewerId),
-          canViewMeshRoom(viewerId, meshOwner),
+          canViewMeshRoom(viewerId, meshOwner, user.isAdmin),
         ])
           .then(([connections, blocks, stillAllowed]) => {
             connectedSet = connections;
