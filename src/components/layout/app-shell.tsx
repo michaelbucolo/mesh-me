@@ -104,9 +104,18 @@ function ShellTopBar({
   unreadCounts: UnreadCounts;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { addToast } = useToast();
   const [query, setQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const accountMenuRef = useRef<HTMLDetailsElement>(null);
+
+  // A native <details> stays open through Next's soft navigation, so the
+  // account dropdown would linger after you pick an item. Close it whenever the
+  // route changes.
+  useEffect(() => {
+    accountMenuRef.current?.removeAttribute("open");
+  }, [pathname]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -190,7 +199,7 @@ function ShellTopBar({
           )}
         </Link>
 
-        <details className="relative">
+        <details ref={accountMenuRef} className="relative">
           <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-full border-0 p-0 text-sm font-semibold text-[var(--mesh-text)] transition-colors lg:rounded-xl lg:border lg:border-[var(--mesh-border)] lg:px-3 lg:py-1.5 lg:hover:bg-[var(--mesh-panel-hover)] [&::-webkit-details-marker]:hidden" aria-label="Account menu">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--mesh-blue)]/15 text-xs font-bold text-[var(--mesh-blue)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
             <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
@@ -204,7 +213,10 @@ function ShellTopBar({
                 <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{user.username}</p>
               </div>
             </div>
-            <div className="mt-2 grid gap-0.5">
+            <div
+              className="mt-2 grid gap-0.5"
+              onClick={() => accountMenuRef.current?.removeAttribute("open")}
+            >
               <Link href={`/profile/${user.username}`} className="mesh-dropdown-item">Profile</Link>
               <Link href="/one-account" className="mesh-dropdown-item">One Account</Link>
               <Link href="/settings" className="mesh-dropdown-item">Settings</Link>

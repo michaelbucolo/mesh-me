@@ -57,24 +57,27 @@ const capabilityLabels: Record<PlatformAdapterCapabilityKey, string> = {
   actions: "Actions",
 };
 
+// Clean, consistent brand monograms. Kept to plain text (no OS symbol glyphs
+// like ♫/▶/𝕏, which render inconsistently and can flip to emoji) so every
+// platform avatar reads uniformly on every device.
 const platformBrands: Record<string, { glyph: string; bg: string; fg?: string }> = {
   github: { glyph: "GH", bg: "#24292e" },
   linkedin: { glyph: "in", bg: "#0077b5" },
   medium: { glyph: "M", bg: "#292929" },
-  spotify: { glyph: "♫", bg: "#1db954" },
-  twitter: { glyph: "𝕏", bg: "#0f1419" },
-  x: { glyph: "𝕏", bg: "#0f1419" },
-  youtube: { glyph: "▶", bg: "#ff0000" },
-  tiktok: { glyph: "♪", bg: "#010101" },
+  spotify: { glyph: "SP", bg: "#1db954" },
+  twitter: { glyph: "X", bg: "#0f1419" },
+  x: { glyph: "X", bg: "#0f1419" },
+  youtube: { glyph: "YT", bg: "#ff0000" },
+  tiktok: { glyph: "TT", bg: "#010101" },
   instagram: { glyph: "IG", bg: "#e4405f" },
   discord: { glyph: "DC", bg: "#5865f2" },
-  twitch: { glyph: "Tw", bg: "#9146ff" },
-  facebook: { glyph: "fb", bg: "#1877f2" },
-  snapchat: { glyph: "S", bg: "#fffc00", fg: "#0f1419" },
+  twitch: { glyph: "TW", bg: "#9146ff" },
+  facebook: { glyph: "FB", bg: "#1877f2" },
+  snapchat: { glyph: "SN", bg: "#fffc00", fg: "#0f1419" },
   reddit: { glyph: "r/", bg: "#ff4500" },
-  pinterest: { glyph: "P", bg: "#e60023" },
-  soundcloud: { glyph: "☁", bg: "#ff5500" },
-  bluesky: { glyph: "b", bg: "#0085ff" },
+  pinterest: { glyph: "PI", bg: "#e60023" },
+  soundcloud: { glyph: "SC", bg: "#ff5500" },
+  bluesky: { glyph: "BS", bg: "#0085ff" },
   threads: { glyph: "@", bg: "#101010" },
 };
 
@@ -590,14 +593,14 @@ export function ConnectedAccountsClient({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/one-account" className={cn(buttonVariants({ variant: "default" }))}>
-            <Combine className="h-4 w-4" aria-hidden="true" />
-            One Account
-          </Link>
           <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Refresh
           </Button>
+          <Link href="/one-account" className={cn(buttonVariants({ variant: "outline" }))}>
+            <Combine className="h-4 w-4" aria-hidden="true" />
+            One Account
+          </Link>
         </div>
       </header>
 
