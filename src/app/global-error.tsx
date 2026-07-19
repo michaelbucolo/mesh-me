@@ -4,13 +4,14 @@ import { useEffect } from "react";
 import { ConnectionSnappedError } from "@/components/errors/connection-snapped-error";
 import "./globals.css";
 
-const themeFallbackScript = `
-(function () {
+// Applied from an effect rather than an inline <script>: raw inline tags
+// carry no nonce, so the production script-src policy would block them.
+function applyThemeFallback() {
   try {
-    var root = document.documentElement;
-    var storedMode = localStorage.getItem("mesh-theme");
-    var mode = storedMode === "light" || storedMode === "dark" || storedMode === "system" ? storedMode : "dark";
-    var resolved = mode === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : mode === "light" ? "light" : "dark";
+    const root = document.documentElement;
+    const storedMode = localStorage.getItem("mesh-theme");
+    const mode = storedMode === "light" || storedMode === "dark" || storedMode === "system" ? storedMode : "dark";
+    const resolved = mode === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : mode === "light" ? "light" : "dark";
     root.classList.remove("light", "dark");
     root.classList.add(resolved);
     root.dataset.themeMode = mode;
@@ -20,8 +21,7 @@ const themeFallbackScript = `
     document.documentElement.classList.add("dark");
     document.documentElement.style.colorScheme = "dark";
   }
-})();
-`;
+}
 
 export default function GlobalError({
   error,
@@ -31,13 +31,16 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    applyThemeFallback();
+  }, []);
+
+  useEffect(() => {
     console.error("Global error:", error);
   }, [error]);
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
-        <script dangerouslySetInnerHTML={{ __html: themeFallbackScript }} />
         <ConnectionSnappedError reset={reset} homeHref="/" fullScreen />
       </body>
     </html>
