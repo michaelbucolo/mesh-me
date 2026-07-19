@@ -5,6 +5,7 @@ import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, use
 import { useRouter } from "next/navigation";
 import {
   AtSign,
+  BadgeCheck,
   BellRing,
   CheckCircle2,
   ChevronLeft,
@@ -66,6 +67,7 @@ import {
   updateNotificationPreferences,
   updatePrivacy,
   updateProfile,
+  updateProfileVisibility,
 } from "@/lib/actions";
 import { getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "@/lib/content-safety";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
@@ -478,6 +480,30 @@ export function SettingsControlCenter({
     }));
   }
 
+  // One control owns "who can see your profile". isPublic (profile gate) and
+  // meshVisibility (mesh + branch gate) used to be edited separately and could
+  // drift — a Private mesh still leaked because isPublic=true overrode it. This
+  // persists BOTH atomically via a single server action (updateProfileVisibility),
+  // so a partial failure can't strand the profile public. It never touches
+  // branchOverrides, so existing per-branch choices survive and unset branches
+  // keep inheriting meshVisibility.
+  function applyProfileVisibility(level: "private" | "friends" | "public") {
+    setPrivacy({ ...privacy, isPublic: level === "public" });
+    setMesh({ ...mesh, meshVisibility: level });
+    runSave("Profile visibility", () => updateProfileVisibility(level));
+  }
+
+  // Reflect the ACTUAL effective gate (mirrors canViewProfile, privacy-policy.ts):
+  // access is public when isPublic !== false OR meshVisibility === "public".
+  // Otherwise friends vs private comes from meshVisibility ("partial" with
+  // isPublic=false is hidden by canViewProfile, so it reads as private here).
+  const profileVisibilityLevel: "private" | "friends" | "public" =
+    privacy.isPublic !== false || mesh.meshVisibility === "public"
+      ? "public"
+      : mesh.meshVisibility === "friends"
+        ? "friends"
+        : "private";
+
   function applyMeshVisuals(next: typeof meshVisuals) {
     setMeshVisuals(next);
     runSave("Mesh visuals", () => updateMeshCosmetics([
@@ -723,6 +749,8 @@ export function SettingsControlCenter({
               <PrivacySection
                 privacy={privacy}
                 applyPrivacy={applyPrivacy}
+                profileVisibilityLevel={profileVisibilityLevel}
+                applyProfileVisibility={applyProfileVisibility}
                 sensitive={sensitive}
                 applySensitive={applySensitive}
                 adultVerified={adultVerified}
@@ -1001,6 +1029,8 @@ function ProfileSection({
 function PrivacySection({
   privacy,
   applyPrivacy,
+  profileVisibilityLevel,
+  applyProfileVisibility,
   sensitive,
   applySensitive,
   adultVerified,
@@ -1010,6 +1040,8 @@ function PrivacySection({
 }: {
   privacy: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean };
   applyPrivacy: (next: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean }) => void;
+  profileVisibilityLevel: "private" | "friends" | "public";
+  applyProfileVisibility: (level: "private" | "friends" | "public") => void;
   sensitive: { nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null };
   applySensitive: (next: { nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null }) => void;
   adultVerified: boolean;
@@ -1021,8 +1053,21 @@ function PrivacySection({
     <div className="settings-section-stack">
       <SettingsCard title="Profile privacy" icon={LockKeyhole}>
         <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
+        <div className="mb-4 grid gap-2">
+          <PickerGroup label="Who can see your profile">
+            <ChoiceButton active={profileVisibilityLevel === "public"} onClick={() => applyProfileVisibility("public")}>Public</ChoiceButton>
+            <ChoiceButton active={profileVisibilityLevel === "friends"} onClick={() => applyProfileVisibility("friends")}>Friends</ChoiceButton>
+            <ChoiceButton active={profileVisibilityLevel === "private"} onClick={() => applyProfileVisibility("private")}>Private</ChoiceButton>
+          </PickerGroup>
+          <p className="text-xs text-[var(--text-muted)]">
+            {profileVisibilityLevel === "public"
+              ? "Anyone on mesh.me can see your profile and Mesh."
+              : profileVisibilityLevel === "friends"
+                ? "Only people you're connected with can see your profile and Mesh."
+                : "Only you can see your profile and Mesh."}
+          </p>
+        </div>
         <div className="settings-toggle-grid">
-          <Toggle label="Public profile" description="Anyone can view your profile" value={privacy.isPublic} onChange={(value) => applyPrivacy({ ...privacy, isPublic: value })} />
           <Toggle label="Show in discovery" description="Appear in search and suggestions" value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
           <Toggle label="Hide activity status" description="Others can't see when you're online" value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
           <Toggle label="Read receipts" description="Let people know you've seen messages" value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
@@ -1232,7 +1277,14 @@ function SecuritySection({
       <TwoFactorMethods />
 
       <SettingsCard title="Security shortcuts" icon={LockKeyhole}>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Link href="/trust" className="settings-action-row">
+            <span className="inline-flex items-center gap-2">
+              <BadgeCheck size={16} aria-hidden="true" />
+              Verify your identity
+            </span>
+            <ChevronRight size={15} aria-hidden="true" />
+          </Link>
           <Link href="/privacy-controls" className="settings-action-row">
             <span className="inline-flex items-center gap-2">
               <ShieldCheck size={16} aria-hidden="true" />
@@ -1587,17 +1639,10 @@ function MeshSection({
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Mesh visibility" icon={Waypoints}>
-        <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
-        <div className="grid gap-3 md:grid-cols-3">
-          <Field label="Overall visibility">
-            <select
-              value={mesh.meshVisibility}
-              onChange={(event) => applyMeshPrivacy({ ...mesh, meshVisibility: event.target.value })}
-              className="simple-input h-11 px-3 text-sm capitalize"
-            >
-              {visibilityOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
-          </Field>
+        <p className="mb-3 text-sm text-[var(--text-secondary)]">
+          Overall visibility is set by <span className="font-bold text-[var(--text-secondary)]">Who can see your profile</span> in Privacy. Fine-tune what shows on your Mesh below — changes save automatically.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2">
           <Toggle label="Show connections" description="Display who you're connected to" value={mesh.showConnections} onChange={(value) => applyMeshPrivacy({ ...mesh, showConnections: value })} />
           <Toggle label="Show stats" description="Display counts on your mesh" value={mesh.showStats} onChange={(value) => applyMeshPrivacy({ ...mesh, showStats: value })} />
         </div>
