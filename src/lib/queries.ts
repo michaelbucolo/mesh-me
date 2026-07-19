@@ -1280,6 +1280,7 @@ export async function getUserSettings() {
     showInDiscovery: user.showInDiscovery,
     hideActivityStatus: user.hideActivityStatus,
     readReceipts: user.readReceipts,
+    ghostMode: user.ghostMode,
     nsfwEnabled: user.nsfwEnabled,
     adultVerificationStatus: user.adultVerificationStatus,
     adultVerifiedAt: user.adultVerifiedAt,

@@ -68,6 +68,7 @@ model User {
   showInDiscovery            Boolean                    @default(false)
   hideActivityStatus         Boolean                    @default(false)
   readReceipts               Boolean                    @default(false)
+  ghostMode                  Boolean                    @default(false)
   // Sensitive-content controls. NSFW is always off unless an adult-verification
   // provider confirms the user is eligible; Mesh.me never stores ID images.
   nsfwEnabled                Boolean                    @default(false)

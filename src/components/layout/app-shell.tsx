@@ -18,6 +18,7 @@ import {
   Sun,
 } from "lucide-react";
 import { signOut } from "@/lib/actions";
+import { readGhostMode } from "@/lib/ghost-mode";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
@@ -46,6 +47,7 @@ interface AppShellProps {
     avatarUrl: string | null;
     isAdmin: boolean;
     onboarded: boolean;
+    ghostMode: boolean;
   };
 }
 
@@ -247,7 +249,7 @@ function ShellTopBar({
       </form>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
-        <GhostModeToggle compact />
+        <GhostModeToggle compact initialGhost={user.ghostMode} />
         <button type="button" onClick={shareCurrent} className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
@@ -412,12 +414,7 @@ export function AppShell({ children, user }: AppShellProps) {
       } catch {
         // storage unavailable — defaults are fine
       }
-      let ghostMode = false;
-      try {
-        ghostMode = localStorage.getItem("meshGhostMode") === "true";
-      } catch {
-        // storage unavailable
-      }
+      const ghostMode = readGhostMode();
       void fetch("/api/mesh/presence", {
         method: "POST",
         credentials: "same-origin",

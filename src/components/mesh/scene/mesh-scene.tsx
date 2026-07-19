@@ -19,6 +19,7 @@ import {
   type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
 import { openMeshi } from "@/lib/meshi-events";
 import { playSound } from "@/lib/sound";
 import { PlatformLogo } from "@/components/platform/platform-logo";
@@ -298,18 +299,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // so you can always see that you're browsing unseen.
   const [isGhosting, setIsGhosting] = useState(false);
   useEffect(() => {
-    const read = () => {
-      try {
-        setIsGhosting(localStorage.getItem("meshGhostMode") === "true");
-      } catch {
-        // Storage unavailable — assume visible.
-      }
-    };
+    const read = () => setIsGhosting(readGhostMode());
     read();
-    window.addEventListener("meshGhostModeChanged", read);
+    window.addEventListener(GHOST_EVENT, read);
     window.addEventListener("storage", read);
     return () => {
-      window.removeEventListener("meshGhostModeChanged", read);
+      window.removeEventListener(GHOST_EVENT, read);
       window.removeEventListener("storage", read);
     };
   }, []);
@@ -1242,7 +1237,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             viewingMesh: meshOwner,
             surface: "mesh",
             activeNodeId: selectedIdRef.current,
-            ghostMode: typeof localStorage !== "undefined" && localStorage.getItem("meshGhostMode") === "true",
+            ghostMode: readGhostMode(),
             // A recent world action (heart-throw, reaction burst, or wave)
             // rides along until the room has had a chance to see it (receivers
             // dedupe by its timestamp).
