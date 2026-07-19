@@ -9,8 +9,6 @@ import {
   Globe,
   Heart,
   MessageCircle,
-  MoreHorizontal,
-  Repeat2,
   Settings,
   ShieldCheck,
 } from "lucide-react";
@@ -26,6 +24,7 @@ import {
   type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { Avatar } from "@/components/ui/avatar";
+import { PostCard } from "@/components/feed/post-card";
 import { getCurrentUser } from "@/lib/auth";
 import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
@@ -291,13 +290,6 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 </>
               )}
 
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
-                aria-label="More options"
-              >
-                <MoreHorizontal size={16} />
-              </button>
             </div>
           </div>
         </section>
@@ -430,67 +422,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         ) : posts.length > 0 ? (
           <div className="space-y-4">
             {posts.map((post) => (
-              <article key={post.id} className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 transition-colors hover:border-[var(--mesh-border-active)]">
-                <div className="flex items-start gap-3">
-                  <Avatar src={profile.avatarUrl} alt={profile.displayName} size="md" className="h-10 w-10 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-[var(--mesh-text)]">{profile.displayName}</span>
-                      {profile.isVerified && <ShieldCheck className="h-3.5 w-3.5 text-[var(--mesh-blue)]" />}
-                      <span className="text-xs text-[var(--mesh-text-muted)]">@{profile.username}</span>
-                      <span className="text-xs text-[var(--mesh-text-muted)]">·</span>
-                      <span className="text-xs text-[var(--mesh-text-muted)]">{formatRelativeTime(post.createdAt)}</span>
-                      <button type="button" className="ml-auto text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]" aria-label="More">
-                        <MoreHorizontal size={16} />
-                      </button>
-                    </div>
-
-                    {post.content && (
-                      <p className="mt-2 text-sm leading-relaxed text-[var(--mesh-text)]">{post.content}</p>
-                    )}
-
-                    {post.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {post.tags.map((tag) => (
-                          <span key={tag.id} className="rounded-md bg-[var(--mesh-blue)]/10 px-2 py-0.5 text-xs font-medium text-[var(--mesh-blue)]">
-                            #{tag.tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {post.media.length > 0 && post.media[0] && (
-                      <div className="mt-3 overflow-hidden rounded-xl">
-                        <Image
-                          src={post.media[0].url}
-                          alt=""
-                          width={600}
-                          height={400}
-                          className="w-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    <div className="mt-3 flex items-center gap-5">
-                      <button type="button" className="flex items-center gap-1.5 text-xs text-[var(--mesh-text-muted)] hover:text-[var(--mesh-danger)] transition-colors">
-                        <Heart size={15} />
-                        <span>{formatCount(post._count.reactions)}</span>
-                      </button>
-                      <Link href={`/feed/${post.id}`} className="flex items-center gap-1.5 text-xs text-[var(--mesh-text-muted)] hover:text-[var(--mesh-blue)] transition-colors">
-                        <MessageCircle size={15} />
-                        <span>{formatCount(post._count.comments)}</span>
-                      </Link>
-                      <button type="button" className="flex items-center gap-1.5 text-xs text-[var(--mesh-text-muted)] hover:text-[var(--mesh-green)] transition-colors">
-                        <Repeat2 size={15} />
-                        <span>{formatCount(post._count.reposts)}</span>
-                      </button>
-                      <button type="button" className="ml-auto text-[var(--mesh-text-muted)] hover:text-[var(--mesh-blue)] transition-colors">
-                        <Bookmark size={15} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </article>
+              <PostCard key={post.id} post={post} currentUserId={currentUser.id} />
             ))}
           </div>
         ) : (
@@ -628,4 +560,3 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
     </Link>
   );
 }
-
