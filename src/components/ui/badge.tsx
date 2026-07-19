@@ -4,6 +4,8 @@ interface BadgeProps {
   children: React.ReactNode;
   variant?: "default" | "secondary" | "outline" | "success" | "danger" | "warning" | "accent";
   className?: string;
+  /** Spring-pop the badge into place (for counts / "new" moments). */
+  pop?: boolean;
 }
 
 const variantStyles = {
@@ -16,12 +18,13 @@ const variantStyles = {
   accent: "bg-[var(--accent-subtle)] text-[var(--accent)] border-[var(--accent-muted)]",
 };
 
-export function Badge({ children, variant = "default", className }: BadgeProps) {
+export function Badge({ children, variant = "default", className, pop = false }: BadgeProps) {
   return (
     <span
       className={cn(
         "inline-flex min-h-6 items-center gap-1 rounded-[var(--ds-radius-pill)] border px-2 py-0.5 text-xs font-semibold leading-none transition-colors",
         variantStyles[variant],
+        pop && "animate-mesh-pop",
         className
       )}
     >

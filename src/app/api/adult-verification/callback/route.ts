@@ -5,6 +5,48 @@ import { prisma } from "@/lib/prisma";
 
 const allowedStatuses = new Set<AdultVerificationStatus>(["verified", "rejected", "expired", "pending"]);
 
+// Webhook payloads are tiny JSON documents; bound the raw read (even when
+// Content-Length is absent) so an unauthenticated caller can't stream an
+// arbitrarily large body into memory before signature verification runs.
+const MAX_WEBHOOK_BODY_BYTES = 32 * 1024;
+
+async function readBoundedBody(request: NextRequest): Promise<string | null> {
+  const header = request.headers.get("content-length");
+  if (header) {
+    const length = Number.parseInt(header, 10);
+    if (Number.isFinite(length) && length > MAX_WEBHOOK_BODY_BYTES) return null;
+  }
+
+  const body = request.body;
+  if (!body) {
+    const text = await request.text();
+    return new TextEncoder().encode(text).byteLength > MAX_WEBHOOK_BODY_BYTES ? null : text;
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    received += value.byteLength;
+    if (received > MAX_WEBHOOK_BODY_BYTES) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
+}
+
 function verifySignature(rawBody: string, signature: string | null, secret: string) {
   if (!signature) return false;
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
@@ -29,7 +71,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Adult verification webhook is not configured" }, { status: 503 });
   }
 
-  const rawBody = await request.text();
+  const rawBody = await readBoundedBody(request);
+  if (rawBody === null) {
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+  }
   if (!verifySignature(rawBody, request.headers.get("x-mesh-signature"), secret)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }

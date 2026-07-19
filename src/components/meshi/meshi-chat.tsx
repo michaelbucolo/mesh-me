@@ -197,10 +197,11 @@ export function MeshiChat({
       {isOpen && (
         <motion.div
           data-meshi-owned="true"
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          initial={{ opacity: 0, y: 16, scale: 0.62 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          exit={{ opacity: 0, y: 16, scale: 0.62 }}
+          transition={{ type: "spring", damping: 26, stiffness: 320 }}
+          style={{ transformOrigin: "bottom right" }}
           className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-50 flex h-[calc(100dvh-9rem)] min-h-[22rem] max-h-[520px] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl shadow-2xl glass-dropdown sm:bottom-4 sm:right-4 sm:h-[520px] sm:max-h-[calc(100vh-6rem)] sm:w-[360px]"
         >
           <div className="flex items-center gap-3 border-b border-[var(--border-primary)] px-4 py-3" style={{ background: "var(--bg-secondary)" }}>
@@ -225,11 +226,17 @@ export function MeshiChat({
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto p-4" style={{ background: "var(--bg-primary)" }}>
-            {messages.map((msg) => (
+            {messages.map((msg, index) => {
+              const fromRight = msg.role === "user";
+              // Cascade consecutive same-role bubbles (multi-part replies) on entrance.
+              let runPos = 0;
+              for (let i = index - 1; i >= 0 && messages[i].role === msg.role; i -= 1) runPos += 1;
+              return (
               <motion.div
                 key={msg.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: fromRight ? 24 : -24, y: 6, scale: 0.94 }}
+                animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+                transition={{ type: "spring", stiffness: 360, damping: 26, delay: Math.min(runPos * 0.06, 0.24) }}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
@@ -290,20 +297,21 @@ export function MeshiChat({
                   )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
 
             {isTyping && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+              <motion.div
+                initial={{ opacity: 0, x: -16, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{ type: "spring", stiffness: 340, damping: 24 }}
+                className="flex justify-start"
+              >
                 <div className="rounded-2xl rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-4 py-3">
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <motion.div
-                        key={i}
-                        className="h-2 w-2 rounded-full bg-[var(--accent)]"
-                        animate={{ y: [0, -4, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                      />
-                    ))}
+                  <div className="mesh-typing-wave" role="status" aria-label="Meshi is typing">
+                    <span />
+                    <span />
+                    <span />
                   </div>
                 </div>
               </motion.div>

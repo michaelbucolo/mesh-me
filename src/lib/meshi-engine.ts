@@ -494,7 +494,13 @@ async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
       take: 80,
     }),
     prisma.platformPost.findMany({
-      where: { ...safetyWhere, connectedAccount: { userId: person.id } },
+      where: {
+        ...safetyWhere,
+        connectedAccount: { userId: person.id },
+        // Aggregate topic counts must not include a target's non-public synced
+        // posts for anyone but the owner.
+        ...(person.isSelf ? {} : { visibility: "public" }),
+      },
       select: { postType: true, content: true, title: true, connectedAccount: { select: { platform: true } } },
       orderBy: { publishedAt: "desc" },
       take: 80,
@@ -632,16 +638,33 @@ async function searchPosts(topic: string): Promise<MeshiAnswer> {
   const posts = await prisma.post.findMany({
     where: {
       ...safetyWhere,
-      OR: [
-        { content: { contains: topic } },
-        { tags: { some: { tag: { contains: topic } } } },
+      AND: [
+        {
+          OR: [
+            { content: { contains: topic } },
+            { tags: { some: { tag: { contains: topic } } } },
+          ],
+        },
+        // Only surface posts the viewer is actually allowed to see: their own
+        // (any visibility), public posts from people they follow, and
+        // friends-only posts from mutual followers. Never leak private posts.
+        {
+          OR: [
+            { authorId: user.id },
+            {
+              visibility: "public",
+              author: { followers: { some: { followerId: user.id } } },
+            },
+            {
+              visibility: "friends",
+              author: {
+                followers: { some: { followerId: user.id } },
+                following: { some: { followingId: user.id } },
+              },
+            },
+          ],
+        },
       ],
-      author: {
-        OR: [
-          { id: user.id },
-          { followers: { some: { followerId: user.id } } },
-        ],
-      },
     },
     include: {
       author: { select: { username: true, displayName: true } },

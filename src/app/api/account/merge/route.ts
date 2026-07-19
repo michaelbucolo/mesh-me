@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, invalidateAllUserSessions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { timingSafeEqual, createHash } from "crypto";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
+import { rateLimit } from "@/lib/security";
+
+// Initiation always answers with this exact shape whether or not the target
+// email is registered, so the endpoint can't be used as an account oracle.
+const MERGE_INITIATED_MESSAGE =
+  "If an account with that email exists, a verification request has been created. The account owner must verify to complete the merge.";
 
 // Initiate account merge: primary user requests to merge a secondary account
 export async function POST(req: NextRequest) {
@@ -14,10 +20,12 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  const rl = rateLimit(`account-merge-init:${session.userId}`, 5, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many merge requests. Please try again later." }, { status: 429 });
   }
+
+  const body = await readJsonObject(req);
   const { secondaryEmail } = body;
   if (!secondaryEmail || typeof secondaryEmail !== "string" || !secondaryEmail.includes("@")) {
     return NextResponse.json({ error: "Valid email of the account to merge is required" }, { status: 400 });
@@ -25,50 +33,54 @@ export async function POST(req: NextRequest) {
 
   const normalized = secondaryEmail.toLowerCase().trim();
 
-  // Verify the secondary account exists
   const secondaryUser = await prisma.user.findUnique({ where: { email: normalized } });
-  if (!secondaryUser) {
-    return NextResponse.json({ error: "No account found with that email" }, { status: 404 });
-  }
 
-  // Can't merge with yourself
-  if (secondaryUser.id === session.userId) {
+  // Can't merge with yourself (the caller already knows their own email, so
+  // this specific error leaks nothing).
+  if (secondaryUser && secondaryUser.id === session.userId) {
     return NextResponse.json({ error: "Cannot merge your own account with itself" }, { status: 400 });
   }
 
-  // Check for existing pending merge request
-  const existingRequest = await prisma.accountMergeRequest.findFirst({
-    where: {
-      primaryUserId: session.userId,
-      secondaryEmail: normalized,
-      status: "pending",
-    },
-  });
-  if (existingRequest) {
-    return NextResponse.json({ error: "A merge request is already pending for this account" }, { status: 409 });
+  if (secondaryUser) {
+    const existingRequest = await prisma.accountMergeRequest.findFirst({
+      where: {
+        primaryUserId: session.userId,
+        secondaryEmail: normalized,
+        status: "pending",
+      },
+    });
+
+    if (!existingRequest) {
+      const verifyToken = uuidv4();
+      const mergeRequest = await prisma.accountMergeRequest.create({
+        data: {
+          primaryUserId: session.userId,
+          secondaryEmail: normalized,
+          status: "pending",
+          verifyToken,
+        },
+      });
+
+      // In production: send verification email to secondaryEmail with the token
+      if (process.env.MESHME_DEV_SHOW_VERIFY_LINK === "true") {
+        return NextResponse.json({
+          mergeRequest: {
+            id: mergeRequest.id,
+            secondaryEmail: normalized,
+            status: "pending",
+            message: MERGE_INITIATED_MESSAGE,
+            verifyToken,
+          },
+        });
+      }
+    }
   }
-
-  const verifyToken = uuidv4();
-
-  const mergeRequest = await prisma.accountMergeRequest.create({
-    data: {
-      primaryUserId: session.userId,
-      secondaryEmail: normalized,
-      status: "pending",
-      verifyToken,
-    },
-  });
-
-  // In production: send verification email to secondaryEmail with the token
-  // For now, return the merge request ID (verification will be manual)
 
   return NextResponse.json({
     mergeRequest: {
-      id: mergeRequest.id,
       secondaryEmail: normalized,
       status: "pending",
-      message: "Verification email sent to " + normalized + ". The account owner must verify to complete the merge.",
-      ...(process.env.MESHME_DEV_SHOW_VERIFY_LINK === "true" ? { verifyToken } : {}),
+      message: MERGE_INITIATED_MESSAGE,
     },
   });
 }
@@ -98,13 +110,10 @@ export async function PUT(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const mergeBody = await req.json().catch(() => null);
-  if (!mergeBody || typeof mergeBody !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const mergeBody = await readJsonObject(req);
   const { mergeRequestId, action, verifyToken } = mergeBody;
 
-  if (!mergeRequestId || !action) {
+  if (typeof mergeRequestId !== "string" || !mergeRequestId || typeof action !== "string" || !action) {
     return NextResponse.json({ error: "mergeRequestId and action required" }, { status: 400 });
   }
 
@@ -206,11 +215,14 @@ export async function PUT(req: NextRequest) {
       data: { status: "completed", completedAt: new Date() },
     });
 
-    // Suspend the secondary account (don't delete — preserve data)
+    // Suspend the secondary account (don't delete — preserve data) and revoke
+    // every session it holds so suspension takes effect immediately instead of
+    // leaving already-authenticated sessions alive.
     await prisma.user.update({
       where: { id: secondaryOwner.id },
       data: { isSuspended: true },
     });
+    await invalidateAllUserSessions(secondaryOwner.id);
 
     return NextResponse.json({
       success: true,

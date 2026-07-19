@@ -10,7 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { parseMeChatMetadata } from "@/lib/mechat-metadata";
 import { prisma } from "@/lib/prisma";
-import { getThreadMessages } from "@/lib/queries";
+import { getPostById, getThreadMessages } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "MeChat Thread",
@@ -102,19 +102,10 @@ async function buildSharedContent(
   user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
 ): Promise<SharedMessageSource | null> {
   if (query.sharePostId) {
-    const post = await prisma.post.findUnique({
-      where: { id: query.sharePostId },
-      select: {
-        id: true,
-        content: true,
-        author: {
-          select: {
-            username: true,
-            displayName: true,
-          },
-        },
-      },
-    });
+    // Gate the native-post lookup through getPostById, which enforces NSFW and
+    // audience visibility, so a bare post id can't leak private/friends-only
+    // content into the composer.
+    const post = await getPostById(query.sharePostId);
 
     if (!post) return null;
 
@@ -373,7 +364,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
           where: { userId_threadId: { userId: user.id, threadId: activeThreadId } },
           data: { lastRead: new Date() },
         }).catch(() => {}),
-        getThreadMessages(activeThreadId, { membershipVerified: true }),
+        getThreadMessages(activeThreadId),
       ])
     : [undefined, []];
   const sharedContent = await sharedContentPromise;

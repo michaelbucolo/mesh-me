@@ -8,6 +8,7 @@ import {
   areMutualFollowers,
   canSeeMeshBranch,
   canSeeMeshStats,
+  canUserInteractWithPost,
   canViewMesh,
   canViewProfile,
   normalizeMeshVisibility,
@@ -137,8 +138,8 @@ async function searchWikipedia(query: string) {
 }
 
 
-export async function getExplorePosts(page = 1, limit = 20, currentUser?: CurrentUser | null) {
-  const user = currentUser ?? await getCurrentUser();
+export async function getExplorePosts(page = 1, limit = 20) {
+  const user = await getCurrentUser();
   const visibilityFilter = user
     ? {
         ...nsfwHiddenWhere(user),
@@ -430,6 +431,7 @@ export async function getUserProfile(username: string) {
     profile: profileVisible,
     stats: profileVisible && canSeeMeshStats(currentUser, user.id, user.meshPrivacy),
     people: canSeeBranch("people"),
+    communities: canSeeBranch("communities"),
     interests: canSeeBranch("interests"),
     platforms: canSeeBranch("platforms"),
     content: canSeeBranch("content"),
@@ -651,21 +653,16 @@ export async function getMessageThreads() {
   }));
 }
 
-export async function getThreadMessages(
-  threadId: string,
-  options: { membershipVerified?: boolean } = {},
-) {
+export async function getThreadMessages(threadId: string) {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  // Verify the user is a member of this thread. Callers that already loaded
-  // the thread scoped to the viewer can skip the extra round trip.
-  if (!options.membershipVerified) {
-    const membership = await prisma.threadMember.findFirst({
-      where: { threadId, userId: user.id },
-    });
-    if (!membership) return [];
-  }
+  // Verify the user is a member of this thread. Authorization is always
+  // re-derived from the session here and never trusted from the caller.
+  const membership = await prisma.threadMember.findFirst({
+    where: { threadId, userId: user.id },
+  });
+  if (!membership) return [];
 
   // Latest window only — an unbounded fetch over a long thread multiplies
   // into enormous payloads and render work. The API route uses the same cap.
@@ -1036,11 +1033,38 @@ export const getTrendingCommunities = unstable_cache(
 // ─── Additional Queries ─────────────────────────────────────
 
 export async function getUserCommunities(username: string) {
-  const [currentUser, user] = await Promise.all([
-    getCurrentUser(),
-    prisma.user.findUnique({ where: { username } }),
-  ]);
+  const currentUser = await getCurrentUser();
+  const user = await prisma.user.findUnique({
+    where: { username },
+    include: { meshPrivacy: true },
+  });
   if (!user) return [];
+
+  // Authorization is enforced here (not only in the page) so this "use server"
+  // export cannot be invoked directly to enumerate an arbitrary user's
+  // community memberships past their connections privacy control.
+  const isSelf = !!currentUser && currentUser.id === user.id;
+  if (!isSelf && !currentUser?.isAdmin) {
+    const meshVisibility = normalizeMeshVisibility(
+      user.meshPrivacy?.meshVisibility,
+      user.isPublic ? "public" : "private",
+    );
+    const isFriend = currentUser ? await areMutualFollowers(currentUser.id, user.id) : false;
+    if (!canViewProfile(currentUser, user, meshVisibility, isFriend)) return [];
+    const fallback: BranchVisibility = meshVisibility === "partial"
+      ? (user.isPublic ? "public" : "private")
+      : (meshVisibility as BranchVisibility);
+    const canSee = canSeeMeshBranch({
+      viewer: currentUser,
+      targetUserId: user.id,
+      branchKey: "communities",
+      branchOverrides: parseBranchOverrides(user.meshPrivacy?.branchOverrides),
+      isFriend,
+      showConnections: user.meshPrivacy?.showConnections,
+      defaultVisibility: fallback,
+    });
+    if (!canSee) return [];
+  }
 
   // A private (invite-only) community must not leak its existence, name, size,
   // or this user's membership to outsiders. The owner and admins see all of
@@ -1103,13 +1127,52 @@ export async function getSavedPosts(page = 1, limit = 20) {
     take: limit,
   });
 
-  return saved.map((s) => s.post);
+  // Defense in depth: a saved link that predates the audience gate (or was
+  // forced) must never surface content the viewer is no longer allowed to see.
+  const visible = await Promise.all(
+    saved.map(async (s) =>
+      (await canUserInteractWithPost(user.id, {
+        authorId: s.post.authorId,
+        visibility: s.post.visibility,
+        communityId: s.post.communityId,
+      }))
+        ? s.post
+        : null,
+    ),
+  );
+  return visible.filter((p): p is NonNullable<typeof p> => p !== null);
 }
 
 export async function getSavedPostCount() {
   const user = await getCurrentUser();
   if (!user) return 0;
-  return prisma.savedPost.count({ where: { userId: user.id, post: nsfwHiddenWhere(user) } });
+  // Same audience gate as getSavedPosts (canUserInteractWithPost), expressed
+  // as a single COUNT so the collections badge matches the rendered list
+  // without loading the whole collection.
+  return prisma.savedPost.count({
+    where: {
+      userId: user.id,
+      post: {
+        AND: [
+          nsfwHiddenWhere(user),
+          {
+            OR: [
+              { authorId: user.id },
+              { visibility: "public" },
+              { community: { members: { some: { userId: user.id } } } },
+              {
+                visibility: "friends",
+                author: {
+                  followers: { some: { followerId: user.id } },
+                  following: { some: { followingId: user.id } },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
 }
 
 export async function getBlockedUsers() {
@@ -1217,6 +1280,7 @@ export async function getUserSettings() {
     showInDiscovery: user.showInDiscovery,
     hideActivityStatus: user.hideActivityStatus,
     readReceipts: user.readReceipts,
+    ghostMode: user.ghostMode,
     nsfwEnabled: user.nsfwEnabled,
     adultVerificationStatus: user.adultVerificationStatus,
     adultVerifiedAt: user.adultVerifiedAt,

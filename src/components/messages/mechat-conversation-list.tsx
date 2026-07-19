@@ -76,6 +76,8 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]["key"];
 
+// Shared overlay physics: mobile sheets ride up on it, desktop panels scale-fade.
+
 function platformLabel(platform: string) {
   if (platform.toLowerCase() === "twitter") return "X";
   if (platform.toLowerCase() === "meshme") return "Mesh.me";
@@ -399,7 +401,7 @@ export function MeChatConversationList({
                     {note.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
                     {note.text || note.songTitle}
                   </span>
-                  <span className="block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px] shadow-[0_0_24px_rgba(47,124,255,0.18)]">
+                  <span className="mesh-aurora-ring block rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] to-[#58bfff] p-[2px] shadow-[0_0_24px_rgba(47,124,255,0.18)]">
                     <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16 border-2 border-[var(--mesh-bg)]" />
                   </span>
                 </div>
@@ -426,7 +428,7 @@ export function MeChatConversationList({
                     key={thread.id}
                     href={`/messages/${thread.id}`}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex min-h-[4.25rem] items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
+                    className={`group relative flex min-h-[4.25rem] min-w-0 items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
                       active
                         ? "bg-[var(--mesh-blue)]/12"
                         : "hover:bg-[var(--mesh-panel-hover)]"
@@ -463,10 +465,9 @@ export function MeChatConversationList({
                         />
                       )}
                       {!isGroup && thread.otherUser && onlineContacts.has(thread.otherUser.id) && (
-                        <span
-                          className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400"
-                          aria-label="Active now"
-                        />
+                        <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5" aria-label="Active now">
+                          <span className="mesh-presence-ping block h-full w-full rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400 text-emerald-400" />
+                        </span>
                       )}
                       {unread && thread.unread > 1 && (
                         <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--mesh-blue)] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-lg">

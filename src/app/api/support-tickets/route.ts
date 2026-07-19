@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getTrustedClientIp } from "@/lib/client-ip";
 import { isSameOriginRequest, readFormData } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 import { createSupportTicketRecord, saveSupportTicket } from "@/lib/support-tickets";
@@ -74,9 +75,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Message must be 4000 characters or fewer." }, { status: 400 });
     }
 
-    const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-    const rl = rateLimit(`support:${forwardedFor}:${accountEmail}`, 5, 10 * 60 * 1000);
-    if (!rl.allowed) {
+    // Key only on the proxy-derived client IP: caller-supplied values like the
+    // account email must never mint fresh rate-limit buckets. A global backstop
+    // caps aggregate abuse across IPs.
+    const clientIp = getTrustedClientIp(req.headers);
+    // Requests already rejected per-IP must not consume the shared budget.
+    const rl = rateLimit(`support:${clientIp}`, 5, 10 * 60 * 1000);
+    if (!rl.allowed || !rateLimit("support:global", 100, 10 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many support requests. Please try again later." }, { status: 429 });
     }
 

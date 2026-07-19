@@ -15,6 +15,7 @@ import {
   Crown,
   Database,
   Download,
+  Ghost,
   IdCard,
   KeyRound,
   Link as LinkIcon,
@@ -60,6 +61,7 @@ import {
   changePassword,
   requestAdultVerification,
   requestEmailVerification,
+  setGhostMode,
   signOut,
   updateMeshCosmetics,
   updateMeshPrivacy,
@@ -71,6 +73,7 @@ import {
   updateProfileVisibility,
 } from "@/lib/actions";
 import { getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "@/lib/content-safety";
+import { broadcastGhostMode, GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
 
 type SettingsSnapshot = {
@@ -86,6 +89,7 @@ type SettingsSnapshot = {
   showInDiscovery: boolean;
   hideActivityStatus: boolean;
   readReceipts: boolean;
+  ghostMode: boolean;
   nsfwEnabled: boolean;
   adultVerificationStatus: string;
   adultVerifiedAt: Date | string | null;
@@ -290,6 +294,15 @@ export function SettingsControlCenter({
     hideActivityStatus: settings.hideActivityStatus,
     readReceipts: settings.readReceipts,
   });
+  // Ghost Mode persists via its own action (not the privacy FormData) and is
+  // also flippable from the header pill, so it tracks its own state and stays
+  // in lockstep with that control via the shared same-tab event.
+  const [ghostMode, setGhostModeState] = useState(settings.ghostMode);
+  useEffect(() => {
+    const sync = () => setGhostModeState(readGhostMode());
+    window.addEventListener(GHOST_EVENT, sync);
+    return () => window.removeEventListener(GHOST_EVENT, sync);
+  }, []);
   const [notifications, setNotifications] = useState({
     pushEnabled: settings.notificationPreference.pushEnabled,
     emailDigest: settings.notificationPreference.emailDigest,
@@ -443,6 +456,14 @@ export function SettingsControlCenter({
     formData.set("hideActivityStatus", String(next.hideActivityStatus));
     formData.set("readReceipts", String(next.readReceipts));
     runSave("Privacy", () => updatePrivacy(formData));
+  }
+
+  function applyGhostMode(next: boolean) {
+    setGhostModeState(next);
+    // Mirror the header pill: localStorage + same-tab event + live heartbeat.
+    broadcastGhostMode(next);
+    // Persist to the account (cross-device) with the standard save-status pill.
+    runSave("Ghost Mode", () => setGhostMode(next));
   }
 
   function applyNotifications(next: typeof notifications) {
@@ -745,6 +766,8 @@ export function SettingsControlCenter({
               <PrivacySection
                 privacy={privacy}
                 applyPrivacy={applyPrivacy}
+                ghostMode={ghostMode}
+                applyGhostMode={applyGhostMode}
                 profileVisibilityLevel={profileVisibilityLevel}
                 applyProfileVisibility={applyProfileVisibility}
                 sensitive={sensitive}
@@ -1024,6 +1047,8 @@ function ProfileSection({
 function PrivacySection({
   privacy,
   applyPrivacy,
+  ghostMode,
+  applyGhostMode,
   profileVisibilityLevel,
   applyProfileVisibility,
   sensitive,
@@ -1035,6 +1060,8 @@ function PrivacySection({
 }: {
   privacy: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean };
   applyPrivacy: (next: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean }) => void;
+  ghostMode: boolean;
+  applyGhostMode: (next: boolean) => void;
   profileVisibilityLevel: "private" | "friends" | "public";
   applyProfileVisibility: (level: "private" | "friends" | "public") => void;
   sensitive: { nsfwEnabled: boolean; adultVerificationRegion: string; adultVerificationStatus: string; adultVerificationExpiresAt: Date | string | null };
@@ -1065,6 +1092,20 @@ function PrivacySection({
         <div className="settings-toggle-grid">
           <Toggle label="Show me in discovery" description="When on, people can find you in search, suggestions, and the public feed." value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
         </div>
+      </SettingsCard>
+
+      <SettingsCard title="Ghost Mode" icon={Ghost}>
+        <div className="settings-toggle-grid">
+          <Toggle
+            label="Go invisible on the live Mesh"
+            description="Your Meshi disappears from live rooms and cursors and you stop showing as active — while your own feeds, chats, and Mesh keep working normally."
+            value={ghostMode}
+            onChange={applyGhostMode}
+          />
+        </div>
+        <p className="settings-muted-box mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+          Ghost Mode follows you across devices, and you can flip it anytime from the ghost button in the top bar.
+        </p>
       </SettingsCard>
 
       <SettingsCard title="Activity" icon={Activity}>

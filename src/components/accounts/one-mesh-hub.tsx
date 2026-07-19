@@ -59,6 +59,15 @@ export function OneMeshHub({
 
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[26rem]">
+      {/* The whole satellite ring — strings, pulses and nodes — breathes gently
+          once it has assembled, so the mesh reads as alive rather than static. */}
+      <motion.div
+        className="absolute inset-0"
+        style={{ transformOrigin: "50% 50%" }}
+        initial={false}
+        animate={reduce ? undefined : { scale: [1, 1.035, 1] }}
+        transition={reduce ? undefined : { duration: 7.5, delay: 1.1, repeat: Infinity, ease: "easeInOut" }}
+      >
       {/* Strings + energy live behind the nodes. */}
       <svg
         viewBox="0 0 100 100"
@@ -67,9 +76,10 @@ export function OneMeshHub({
       >
         <defs>
           <radialGradient id="one-mesh-core" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
-            <stop offset="70%" stopColor="var(--accent)" stopOpacity="0.06" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+            {/* Periwinkle core bleeding out into brand cyan. */}
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.32" />
+            <stop offset="55%" stopColor="var(--mesh-cyan)" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="var(--mesh-cyan)" stopOpacity="0" />
           </radialGradient>
         </defs>
         {/* Soft aura behind the center. */}
@@ -90,35 +100,36 @@ export function OneMeshHub({
             />
           );
         })}
+        {/* Light pulses flowing along every string toward the one account. */}
+        {!reduce &&
+          positions.map((pos, i) => {
+            const acct = accounts[i];
+            return (
+              <motion.line
+                key={`pulse-${acct.id}`}
+                x1={pos.x}
+                y1={pos.y}
+                x2="50"
+                y2="50"
+                stroke={acct.synced ? "var(--mesh-cyan)" : "var(--accent)"}
+                strokeWidth={acct.synced ? 1 : 0.7}
+                strokeLinecap="round"
+                pathLength={1}
+                strokeDasharray="0.14 1"
+                style={{ filter: "drop-shadow(0 0 1.4px currentColor)" }}
+                initial={{ strokeDashoffset: 1.14, opacity: acct.synced ? 0.95 : 0.45 }}
+                animate={{ strokeDashoffset: 0 }}
+                transition={{
+                  duration: acct.synced ? 1.9 : 2.8,
+                  delay: 0.9 + i * 0.26,
+                  repeat: Infinity,
+                  repeatDelay: acct.synced ? 0.4 : 1.1,
+                  ease: "linear",
+                }}
+              />
+            );
+          })}
       </svg>
-
-      {/* Energy streaming inward on each synced string. */}
-      {!reduce &&
-        positions.map((pos, i) => {
-          const acct = accounts[i];
-          if (!acct.synced) return null;
-          return (
-            <motion.span
-              key={`spark-${acct.id}`}
-              className="absolute h-1.5 w-1.5 rounded-full"
-              style={{
-                background: "var(--accent)",
-                boxShadow: "0 0 6px var(--accent)",
-                marginLeft: "-3px",
-                marginTop: "-3px",
-              }}
-              initial={{ left: `${pos.x}%`, top: `${pos.y}%`, opacity: 0 }}
-              animate={{ left: "50%", top: "50%", opacity: [0, 1, 1, 0] }}
-              transition={{
-                duration: 2.1,
-                delay: i * 0.28,
-                repeat: Infinity,
-                repeatDelay: 0.6,
-                ease: "easeIn",
-              }}
-            />
-          );
-        })}
 
       {/* Satellite account nodes. */}
       {positions.map((pos, i) => {
@@ -145,6 +156,7 @@ export function OneMeshHub({
           </motion.div>
         );
       })}
+      </motion.div>
 
       {/* The mesh.me identity at the core. */}
       <motion.div
@@ -156,11 +168,12 @@ export function OneMeshHub({
         <motion.div
           className="relative flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--accent)] bg-[var(--ds-surface)] shadow-lg"
           animate={reduce ? undefined : { boxShadow: [
-            "0 0 0 0 rgba(99,102,241,0.0)",
-            "0 0 22px 4px rgba(99,102,241,0.28)",
-            "0 0 0 0 rgba(99,102,241,0.0)",
+            "0 0 0 0 rgba(110,139,255,0.0)",
+            "0 0 22px 4px rgba(110,139,255,0.32)",
+            "0 0 30px 7px rgba(52,228,234,0.26)",
+            "0 0 0 0 rgba(52,228,234,0.0)",
           ] }}
-          transition={reduce ? undefined : { duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+          transition={reduce ? undefined : { duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
         >
           {identity.avatarUrl ? (
             <Avatar src={identity.avatarUrl} alt={identity.username} size="lg" />

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   BarChart3,
   Bell,
@@ -33,6 +34,9 @@ import { cn } from "@/lib/utils";
 const COMMAND_PALETTE_EVENT = "mesh:open-command-palette";
 const BUG_REPORT_EVENT = "mesh:open-bug-report";
 const KEYBOARD_SHORTCUTS_EVENT = "mesh:open-keyboard-shortcuts";
+
+const PALETTE_SPRING = { type: "spring" as const, stiffness: 460, damping: 38, mass: 0.7 };
+const ROW_SPRING = { type: "spring" as const, stiffness: 520, damping: 40 };
 
 type CommandCategory = "Go" | "Action" | "Settings" | "Help";
 type CommandAction = "meshi" | "bugReport" | "shortcuts";
@@ -477,7 +481,13 @@ export function CommandPalette({ username }: { username: string }) {
       description="Jump to pages, start actions, search settings, or open help."
       className="command-palette-modal max-w-2xl"
     >
-      <div className="command-palette-shell">
+      <motion.div
+        className="command-palette-shell"
+        initial={{ opacity: 0, scale: 0.96, y: -6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={PALETTE_SPRING}
+        style={{ transformOrigin: "top center" }}
+      >
         <div className="command-palette-search">
           <Command className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden />
           <label htmlFor="mesh-command-palette-input" className="sr-only">Search commands</label>
@@ -511,7 +521,7 @@ export function CommandPalette({ username }: { username: string }) {
             const active = index === selectedCommandIndex;
 
             return (
-              <button
+              <motion.button
                 key={command.id}
                 id={`mesh-command-${command.id}`}
                 type="button"
@@ -519,19 +529,34 @@ export function CommandPalette({ username }: { username: string }) {
                 aria-selected={active}
                 onMouseEnter={() => setSelectedIndex(index)}
                 onClick={() => runCommand(command)}
-                className={cn("command-palette-item", active && "command-palette-item-active")}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...ROW_SPRING, delay: Math.min(index * 0.022, 0.22) }}
+                className={cn("command-palette-item relative")}
               >
-                <span className="command-palette-icon">
+                {active && (
+                  <motion.span
+                    layoutId="command-active-highlight"
+                    transition={PALETTE_SPRING}
+                    className="pointer-events-none absolute inset-0 rounded-[0.85rem]"
+                    style={{
+                      background: "color-mix(in srgb, var(--bg-primary) 84%, var(--accent-subtle))",
+                      border: "1px solid color-mix(in srgb, var(--accent) 42%, var(--border-primary))",
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="command-palette-icon relative z-[1]">
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
-                <span className="min-w-0 flex-1 text-left">
+                <span className="relative z-[1] min-w-0 flex-1 text-left">
                   <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{command.title}</span>
                   <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--text-muted)]">{command.description}</span>
                 </span>
-                <Badge variant={command.category === "Action" ? "accent" : "secondary"} className="command-palette-badge">
+                <Badge variant={command.category === "Action" ? "accent" : "secondary"} className="command-palette-badge relative z-[1]">
                   {command.category}
                 </Badge>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -541,7 +566,7 @@ export function CommandPalette({ username }: { username: string }) {
           <span><CommandKey>Enter</CommandKey> open</span>
           <span><CommandKey>Esc</CommandKey> close</span>
         </div>
-      </div>
+      </motion.div>
     </Modal>
   );
 }

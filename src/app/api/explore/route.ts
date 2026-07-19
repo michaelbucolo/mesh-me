@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     };
     const t0 = Date.now();
     const [[, postsMs, posts], [, usersMs, users], [, communitiesMs, communities]] = await Promise.all([
-      timed("posts", () => getExplorePosts(1, limit, currentUser)),
+      timed("posts", () => getExplorePosts(1, limit)),
       timed("users", () => getDiscoverUsers(currentUser)),
       timed("communities", () => getTrendingCommunities()),
     ]);
