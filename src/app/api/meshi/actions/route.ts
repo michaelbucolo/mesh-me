@@ -389,6 +389,11 @@ export async function POST(req: Request) {
         if (suggestionType === "communities") {
           const commSuggestions = await prisma.community.findMany({
             where: {
+              // Only ever suggest PUBLIC communities — a private (invite-only)
+              // community's existence, name, description and size must not leak
+              // to a non-member, matching getTrendingCommunities / searchAll and
+              // the sibling "suggest people" discovery gate above.
+              isPublic: true,
               NOT: {
                 members: { some: { userId: user.id } },
               },

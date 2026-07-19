@@ -222,6 +222,7 @@ export async function getPostById(postId: string) {
           displayName: true,
           avatarUrl: true,
           isVerified: true,
+          isSuspended: true,
           bio: true,
         },
       },
@@ -273,6 +274,10 @@ export async function getPostById(postId: string) {
 
   if (!post) return null;
   if (post.isNsfw && !canViewNsfw(user)) return null;
+  // A suspended author's post is locked to admins — matching getFeedPostById and
+  // the feed audience clause, so a direct /feed/[postId] link can't surface it.
+  // (A suspended user can't be the viewer, since getCurrentUser rejects them.)
+  if (post.author.isSuspended && !user?.isAdmin) return null;
   if (!(await canCurrentUserViewNativePost(post, user))) return null;
 
   return post;
