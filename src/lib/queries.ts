@@ -445,6 +445,7 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
     select: {
       id: true,
       isPublic: true,
+      isSuspended: true,
       meshPrivacy: {
         select: {
           meshVisibility: true,
@@ -483,6 +484,12 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
     user.meshPrivacy?.meshVisibility,
     user.isPublic ? "public" : "private"
   );
+  // Gate on overall profile visibility FIRST — mirrors getUserProfile's
+  // `if (!profileVisible) return false` guard. Without this, a stale per-branch
+  // content:"public" override could serve a private profile's posts to strangers
+  // (the content override would otherwise outrank an overall-private mesh).
+  if (!canViewProfile(currentUser, user, meshVisibility, isFriend)) return [];
+
   const branchOverrides = parseBranchOverrides(user.meshPrivacy?.branchOverrides);
   const fallback: BranchVisibility = meshVisibility === "partial"
     ? (user.isPublic ? "public" : "private")
