@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2 } from "lucide-react";
-import { toggleFollow, toggleReaction } from "@/lib/actions";
+import { toggleFollow, toggleReaction, setFlowLike } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { playSound } from "@/lib/sound";
 import { PlatformLogo } from "@/components/platform/platform-logo";
@@ -281,17 +281,18 @@ function Reel({
       router.push("/login?next=/flow");
       return;
     }
-    if (!native) return;
     const next = viaDoubleTap ? true : !liked;
     if (next === liked && viaDoubleTap) return;
     setLiked(next);
     if (next) playSound("heart");
-    setLikeCount((c) => c + (next ? 1 : -1));
+    // External content shows the source platform's own like count — never move
+    // it. Only a native mesh like changes our own count.
+    if (native) setLikeCount((c) => c + (next ? 1 : -1));
     startLike(async () => {
-      const res = await toggleReaction(post.id);
+      const res = native ? await toggleReaction(post.id) : await setFlowLike(post.id, next);
       if (res && "error" in res) {
         setLiked(!next);
-        setLikeCount((c) => c + (next ? -1 : 1));
+        if (native) setLikeCount((c) => c + (next ? -1 : 1));
       }
     });
   };
@@ -308,11 +309,11 @@ function Reel({
         window.clearTimeout(singleTapTimerRef.current);
         singleTapTimerRef.current = null;
       }
-      if (native) {
-        handleLike(true);
-        setBursts((current) => [...current.slice(-3), now]);
-        window.setTimeout(() => setBursts((current) => current.filter((t) => t !== now)), 800);
-      }
+      // Double-tap likes native AND external content, with the heart bloom
+      // everyone expects.
+      handleLike(true);
+      setBursts((current) => [...current.slice(-3), now]);
+      window.setTimeout(() => setBursts((current) => current.filter((t) => t !== now)), 800);
       return;
     }
     lastTapRef.current = now;
@@ -723,6 +724,13 @@ export function FlowClient({
   const pullStartRef = useRef<number | null>(null);
   const pullDeltaRef = useRef(0);
   const seenRef = useRef<Set<string>>(new Set());
+  // Server-persisted "seen" beacon: reels the ranker should suppress on EVERY
+  // device. Batched (every few reels / on tab-hide) and deduped so a reel is
+  // reported at most once. The local `seen` param stays too — it still covers
+  // the same session, the not-yet-flushed reel, and guests.
+  const pendingSeenRef = useRef<Set<string>>(new Set());
+  const reportedRef = useRef<Set<string>>(new Set());
+  const flushTimerRef = useRef<number | null>(null);
 
   // Recently-watched reels persist across visits so the ranker can keep the
   // feed fresh instead of replaying yesterday.
@@ -735,6 +743,28 @@ export function FlowClient({
     }
   }, []);
 
+  // Flush the pending seen-ids to the server. Best-effort: on tab-hide we use
+  // sendBeacon (survives the page going away); otherwise a keepalive fetch.
+  const flushSeen = useCallback((useBeacon = false) => {
+    if (signedOut) return;
+    const pending = [...pendingSeenRef.current].filter((id) => !reportedRef.current.has(id));
+    if (pending.length === 0) return;
+    pendingSeenRef.current = new Set();
+    pending.forEach((id) => reportedRef.current.add(id));
+    const bodyStr = JSON.stringify({ ids: pending });
+    if (useBeacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
+      navigator.sendBeacon("/api/flow/impression", new Blob([bodyStr], { type: "application/json" }));
+      return;
+    }
+    void fetch("/api/flow/impression", {
+      method: "POST",
+      body: bodyStr,
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      keepalive: true,
+    }).catch(() => {});
+  }, [signedOut]);
+
   const markSeen = useCallback((id: string) => {
     if (seenRef.current.has(id)) return;
     seenRef.current.add(id);
@@ -745,7 +775,36 @@ export function FlowClient({
     } catch {
       // best-effort persistence
     }
-  }, []);
+    // Accumulate for the server beacon — the guard above means this only fires
+    // on a reel's first sighting. Flush in small batches, or after a short lull.
+    if (!signedOut) {
+      pendingSeenRef.current.add(id);
+      if (pendingSeenRef.current.size >= 6) {
+        flushSeen();
+      } else {
+        if (flushTimerRef.current) window.clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = window.setTimeout(() => flushSeen(), 4000);
+      }
+    }
+  }, [signedOut, flushSeen]);
+
+  // Make sure the last few watched reels reach the server even if the batch
+  // never fills — flush when the tab is backgrounded or the page is unloading,
+  // and once more on unmount.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) flushSeen(true);
+    };
+    const onPageHide = () => flushSeen(true);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onPageHide);
+      if (flushTimerRef.current) window.clearTimeout(flushTimerRef.current);
+      flushSeen(true);
+    };
+  }, [flushSeen]);
 
   const seenParam = useCallback(() => [...seenRef.current].slice(-200).join(","), []);
 

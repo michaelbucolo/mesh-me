@@ -19,6 +19,8 @@ import {
 } from "./durable-rate-limit";
 import { communityThreadTitle } from "./community-constants";
 import { isUniqueConstraintError } from "./prisma-errors";
+import { getFeedPostById } from "./feed-data";
+import { authorKey, dominantFormat } from "./flow-ranking";
 
 async function hashAuthTokenValue(token: string) {
   const crypto = await import("crypto");
@@ -1286,6 +1288,42 @@ export async function toggleReaction(postId: string) {
     clearMeshCache(post.authorId);
   }
   return { success: true, liked: !existing };
+}
+
+/**
+ * A private Flow "like" on EXTERNAL content (native likes go through
+ * toggleReaction). Server-authoritative: re-resolves the item and derives the
+ * taste triple (authorKey/format/tags) itself, so the client can never inject a
+ * ranking key. `liked` is the DESIRED state (mirrors the client's optimistic
+ * value — no blind-toggle drift). Idempotent upsert. Never notifies (external
+ * content has no mesh recipient) and is never surfaced to anyone but the liker.
+ */
+export async function setFlowLike(feedItemId: string, liked: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (
+    !(
+      feedItemId.startsWith("platform-") ||
+      feedItemId.startsWith("feeditem-") ||
+      feedItemId.startsWith("friend-platform-")
+    )
+  ) {
+    return { error: "Not a platform item" };
+  }
+  const post = await getFeedPostById(user, feedItemId);
+  if (!post) return { error: "Post not found" };
+  const data = {
+    liked,
+    authorKey: authorKey(post),
+    format: dominantFormat(post),
+    tags: JSON.stringify(post.tags.map((t) => t.tag.toLowerCase())),
+  };
+  await prisma.flowImpression.upsert({
+    where: { userId_postId: { userId: user.id, postId: feedItemId } },
+    create: { userId: user.id, postId: feedItemId, seenAt: new Date(), ...data },
+    update: data,
+  });
+  return { success: true, liked };
 }
 
 // ─── Comment Actions ─────────────────────────────────────────

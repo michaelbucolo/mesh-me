@@ -10,7 +10,7 @@
  */
 
 import { prisma } from "./prisma";
-import { ANONYMOUS_VIEWER, getCombinedFeedPosts, type FeedCardPost, type FeedCurrentUser } from "./feed-data";
+import { ANONYMOUS_VIEWER, canonicalFeedKey, getCombinedFeedPosts, type FeedCardPost, type FeedCurrentUser } from "./feed-data";
 
 export type TasteProfile = {
   // authorKey (user id or external author handle) -> interaction weight
@@ -34,12 +34,19 @@ export async function getFlowCandidates(user: FeedCurrentUser): Promise<FeedCard
     getCombinedFeedPosts({ user, source: "all", contentFilter: "all", limit: 240 }),
     getCombinedFeedPosts({ user, source: "discover", contentFilter: "all", limit: 240 }),
   ]);
+  // Dedup by canonical identity, not raw id: the same external item can arrive
+  // as a friend's shared reel AND the anonymous discover copy under different
+  // ids, and keying on post.id would let both into the pool. First wins, so the
+  // in-network (friend-attributed) copy beats the discover one.
   const byId = new Map<string, FeedCardPost>();
-  for (const post of [...inNetwork, ...outOfNetwork]) byId.set(post.id, post);
+  for (const post of [...inNetwork, ...outOfNetwork]) {
+    const key = canonicalFeedKey(post);
+    if (!byId.has(key)) byId.set(key, post);
+  }
   return [...byId.values()];
 }
 
-function dominantFormat(post: FeedCardPost): "video" | "image" | "text" {
+export function dominantFormat(post: FeedCardPost): "video" | "image" | "text" {
   for (const item of post.media) {
     const type = item.type.toLowerCase();
     if (type === "video" || type === "reel" || type === "short") return "video";
@@ -75,7 +82,7 @@ export async function getViewerTasteProfile(userId: string): Promise<TasteProfil
     };
   }
 
-  const [reactions, comments, follows] = await Promise.all([
+  const [reactions, comments, follows, flowInteractions] = await Promise.all([
     prisma.reaction.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -108,6 +115,15 @@ export async function getViewerTasteProfile(userId: string): Promise<TasteProfil
       where: { followerId: userId },
       select: { followingId: true },
     }),
+    // Privately-liked Flow items (native AND external). Keyed by the SAME
+    // authorKey the ranker scores on, so external content finally matches
+    // affinity — the taste triple was denormalized at like-time.
+    prisma.flowImpression.findMany({
+      where: { userId, liked: true },
+      orderBy: { seenAt: "desc" },
+      take: 300,
+      select: { authorKey: true, format: true, tags: true },
+    }),
   ]);
 
   const authorAffinity = new Map<string, number>();
@@ -136,6 +152,24 @@ export async function getViewerTasteProfile(userId: string): Promise<TasteProfil
 
   for (const { post } of reactions) ingest(post, 1);
   for (const { post } of comments) ingest(post, 2);
+
+  // Fold liked Flow items straight in via their stored taste triple (weight 1,
+  // same scale as a native reaction). This is what lets an external author the
+  // viewer likes accrue affinity the ranker can actually read.
+  for (const it of flowInteractions) {
+    if (it.authorKey) authorAffinity.set(it.authorKey, (authorAffinity.get(it.authorKey) ?? 0) + 1);
+    if (it.format) formatCounts.set(it.format, (formatCounts.get(it.format) ?? 0) + 1);
+    if (it.tags) {
+      try {
+        for (const t of JSON.parse(it.tags) as unknown[]) {
+          const key = String(t).toLowerCase();
+          tagAffinity.set(key, (tagAffinity.get(key) ?? 0) + 1);
+        }
+      } catch {
+        // Malformed tag JSON — skip.
+      }
+    }
+  }
 
   const followingIds = new Set<string>();
   for (const { followingId } of follows) {
@@ -286,14 +320,16 @@ function scoreFlowPost(
     tagMatch * w.tagMatch +
     richness;
 
+  // Proportional jitter, applied BEFORE the fatigue crush so it scales with the
+  // score and survives the ×0.06 at the same ratio — a real score gap is never
+  // inverted, only genuine near-ties reshuffle, so two visits to the same pool
+  // never produce the identical march of posts. (Additive dither after the
+  // crush would randomize real gaps among the seen tail.)
+  score *= 1 + (Math.random() - 0.5) * 0.16;
+
   // Seen fatigue: already-watched reels sink hard but stay retrievable once
   // fresh material runs out.
   if (opts.seen?.has(post.id)) score *= 0.06;
-
-  // Dither: a whisper of randomness among near-ties, so two visits to the
-  // same pool never produce the same march of posts. Real signal still wins —
-  // the jitter is smaller than any meaningful score gap.
-  score += Math.random() * 0.22;
 
   return score;
 }
@@ -361,11 +397,20 @@ export function rankFlowPosts(
     const runAuthors = history.slice(Math.max(0, h - weights.maxRun), h).map((p) => authorKey(p));
     const runIsFull = (key: string) =>
       runAuthors.length >= weights.maxRun && runAuthors.every((a) => a === key);
-    // No platform monopolizes the screen either: three of the last three
-    // slots from one platform means the next pick prefers anywhere else.
-    const lastPlatforms = history.slice(Math.max(0, h - 3), h).map((p) => p.platform || "mesh");
-    const platformRunFull = (platform: string) =>
-      lastPlatforms.length >= 3 && lastPlatforms.every((p) => p === platform);
+    // No single EXTERNAL platform monopolizes the screen: three consecutive
+    // slots from one platform means the next pick prefers anywhere else. Native
+    // mesh content is un-bucketed here (its variety is governed by maxRun), so a
+    // run of native posts never force-injects external content every 3rd slot.
+    const platformOf = (p: FeedCardPost): string | null => {
+      const pl = (p.platform || "meshme").toLowerCase();
+      return pl === "meshme" ? null : pl;
+    };
+    const lastPlatforms = history
+      .slice(Math.max(0, h - 3), h)
+      .map(platformOf)
+      .filter((p): p is string => p !== null);
+    const platformRunFull = (platform: string | null) =>
+      platform !== null && lastPlatforms.length >= 3 && lastPlatforms.every((p) => p === platform);
     const explorationSlot =
       weights.explorationEvery > 0 && slot > 0 && slot % weights.explorationEvery === 0;
 
@@ -380,7 +425,7 @@ export function rankFlowPosts(
     }
     if (pickIndex === -1) {
       pickIndex = pool.findIndex(
-        ({ post }) => !runIsFull(authorKey(post)) && !platformRunFull(post.platform || "mesh"),
+        ({ post }) => !runIsFull(authorKey(post)) && !platformRunFull(platformOf(post)),
       );
     }
     if (pickIndex === -1) {
