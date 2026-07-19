@@ -42,14 +42,17 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Invalid status. Must be: online, dnd, busy, offline" }, { status: 400 });
     }
     
+    // Never advance last-seen for someone who hides their activity — otherwise a
+    // status ping would leak a fresh "Active now" timestamp. Their explicit
+    // status choice is still honored; only the durable timestamp is frozen.
     await prisma.user.update({
       where: { id: user.id },
       data: {
         status: newStatus,
-        lastSeenAt: new Date(),
+        ...(user.hideActivityStatus ? {} : { lastSeenAt: new Date() }),
       },
     });
-    
+
     return NextResponse.json({ status: newStatus });
   } catch {
     return NextResponse.json({ error: "Failed to update status" }, { status: 500 });

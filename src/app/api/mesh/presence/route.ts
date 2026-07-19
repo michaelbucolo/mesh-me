@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import {
   buildPresencePayload,
@@ -85,6 +86,23 @@ export async function POST(request: Request) {
       isPro: Boolean(user.isMeshPro),
       lastSeen: Date.now(),
     });
+
+    // Keep the durable User.lastSeenAt fresh so profiles can show an accurate
+    // "last online" for anyone active on the mesh/flow — not just MeChat. The
+    // WHERE-clause throttle is stateless (correct across serverless instances)
+    // and a no-op on all but ~one heartbeat per minute. Skipped while ghosting;
+    // hidden-activity users already early-returned above, so theirs stays frozen.
+    if (ghostMode !== true) {
+      await prisma.user
+        .updateMany({
+          where: {
+            id: user.id,
+            OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: new Date(Date.now() - 60_000) } }],
+          },
+          data: { lastSeenAt: new Date() },
+        })
+        .catch(() => {});
+    }
 
     return NextResponse.json({ ok: true });
   } catch {

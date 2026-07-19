@@ -29,7 +29,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { getCurrentUser } from "@/lib/auth";
 import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
-import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
+import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 
@@ -82,6 +82,15 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const postCount = profile._count.posts;
   const communityCount = memberships.length;
   const collectionCount = savedPostCount;
+
+  // Presence line: live now, else the privacy-gated last-online time, else null.
+  // profile.lastSeenAt is already null for anyone who hides their activity or
+  // whose profile isn't visible to this viewer, so the label self-hides.
+  const presenceLabel = isLiveNow
+    ? "Active now"
+    : profile.lastSeenAt
+      ? formatLastActive(profile.lastSeenAt)
+      : null;
   const basePath = isOwnProfile ? "/profile" : `/profile/${username}`;
   const tabs = ["posts", "communities", ...(isOwnProfile ? ["collections"] : []), "links"];
   const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
@@ -155,6 +164,17 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
                 {/* Username */}
                 <p className="mt-1 text-sm text-[var(--mesh-text-muted)]">@{profile.username}</p>
+
+                {/* Presence — privacy-gated last-online / live status. Self-hides
+                    for hidden-activity or non-visible profiles (presenceLabel null). */}
+                {!isOwnProfile && presenceLabel && (
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 rounded-full ${isLiveNow ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
+                    <span className={`text-xs ${isLiveNow ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
+                      {presenceLabel}
+                    </span>
+                  </div>
+                )}
 
                 {/* Stats — the numbers people actually look for, front and center */}
                 {profile.sectionVisibility.stats && (
@@ -233,9 +253,9 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     {isOwnProfile ? "How the mesh sees you" : "How they roam the mesh"}
                   </p>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 rounded-full ${isLiveNow ? "bg-[var(--mesh-green)]" : "bg-[var(--mesh-text-muted)]/50"}`} />
+                    <span className={`h-1.5 w-1.5 rounded-full ${isLiveNow ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
                     <span className={`text-[10px] ${isLiveNow ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
-                      {isLiveNow ? "Live on mesh.me" : "Away"}
+                      {presenceLabel ?? "Away"}
                     </span>
                   </div>
                 </div>
