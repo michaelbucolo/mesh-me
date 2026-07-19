@@ -117,6 +117,11 @@ function isPhotoPost(post: FeedCardPost) {
   return post.media.some((item) => ["image", "photo"].includes(item.type.toLowerCase()));
 }
 
+function getPostMediaAlt(post: FeedCardPost, authorName: string) {
+  const content = post.content.trim();
+  return content ? `${authorName}: ${content.slice(0, 120)}` : `${authorName}'s post media`;
+}
+
 export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggestedUsers, communities, signedOut = false }: ExploreDiscoveryProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -764,7 +769,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       {media ? (
         <div className="relative aspect-[4/5]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={media.url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          <img src={media.url} alt={getPostMediaAlt(post, authorName)} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
           {isVideo && (
             <span className="absolute right-2 top-2 rounded-full bg-black/55 p-1.5 backdrop-blur">
               <Play className="h-3.5 w-3.5 fill-white text-white" aria-hidden />
@@ -843,7 +848,7 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
               >
                 {still ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={still} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                  <img src={still} alt={getPostMediaAlt(post, authorName)} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 ) : (
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(47,124,255,0.35),transparent_60%),radial-gradient(circle_at_75%_80%,rgba(168,85,247,0.28),transparent_55%)]" />
                 )}

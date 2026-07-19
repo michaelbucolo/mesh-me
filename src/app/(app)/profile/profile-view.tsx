@@ -103,7 +103,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
           {/* Banner */}
           <div className="profile-banner relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[#0a1628] to-[var(--mesh-bg)]">
             {profile.bannerUrl ? (
-              <Image src={profile.bannerUrl} alt="" fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
+              <Image src={profile.bannerUrl} alt={profile.bio?.trim() || `${profile.displayName}'s profile banner`} fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
             ) : (
               <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
                 {/* A quiet slice of their mesh: woven strands + constellation nodes */}

@@ -196,6 +196,9 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const isOptimistic = Boolean(post.optimistic);
   const externalAuthor = post.externalAuthor;
   const isExternalFeedItem = Boolean(externalAuthor);
+  const postMediaAlt = post.content.trim()
+    ? `${post.author.displayName}: ${post.content.trim().slice(0, 120)}`
+    : "";
   const postHref = isOptimistic ? "/feed" : safeHref(post.externalUrl) || `/feed/${post.id}`;
   const mediaTypes = getMediaTypes(post.media);
   const mediaSignals = detectMediaSignals(post);
@@ -659,11 +662,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   <AutoplayVideo src={media.url} poster={media.posterUrl} className="h-full w-full object-cover" />
                 ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={media.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.015]" />
+                  <img src={media.url} alt={postMediaAlt} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.015]" />
                 ) : (
                   <Image
                     src={media.url}
-                    alt=""
+                    alt={postMediaAlt}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 640px, 624px"
                     priority={Boolean(eager && idx === 0)}
