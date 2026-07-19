@@ -3,7 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { decryptSecret } from "./secret-store";
-import { resolveEnvValue, usesLongLivedTokenExchange } from "./oauth";
+import { resolveEnvValue, usesLongLivedTokenExchange, MESH_API_USER_AGENT } from "./oauth";
 import { refreshConnectedAccountToken } from "./oauth-token-refresh";
 import { getPlatformActionCapability, getPlatformImportCapability, getPlatformMessagingCapability } from "./platform-capabilities";
 import { serializeMeChatMetadata } from "./mechat-metadata";
@@ -163,7 +163,7 @@ interface PlatformAdapter {
 
 const COMMENT_SYNC_POST_LIMIT = 25;
 const GITHUB_API_VERSION = "2026-03-10";
-const MESH_USER_AGENT = "mesh.me/1.0";
+const MESH_USER_AGENT = MESH_API_USER_AGENT;
 
 function toInt(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
