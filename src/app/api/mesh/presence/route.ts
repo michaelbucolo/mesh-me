@@ -38,6 +38,12 @@ export async function POST(request: Request) {
     const body = await readJsonObject(request);
     const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity, ghostMode, action } = body;
 
+    // Ghost Mode is server-authoritative: the persisted account setting wins, so
+    // a ghosting user stays hidden even from a fresh device whose local heartbeat
+    // hasn't set the flag yet. The client body can only ADD ghosting for the
+    // current session (e.g. the instant toggle before the account write lands).
+    const ghosting = ghostMode === true || user.ghostMode === true;
+
     // Tiny world actions broadcast to the room: a Meshi throwing a heart at a
     // post, a reaction burst (star/spark/wow), or a wave hello on arrival.
     // Strictly validated against a fixed kind set and size-capped. `heart`
@@ -83,7 +89,7 @@ export async function POST(request: Request) {
       activeRoute: typeof activeRoute === "string" && activeRoute.length > 0 ? activeRoute.slice(0, 160) : null,
       velocity: clampNumber(velocity, 0, 0, 1000),
       activity: activity === "traveling" || activity === "exploring" ? activity : "idle",
-      ghostMode: ghostMode === true,
+      ghostMode: ghosting,
       lastAction,
       // Server-authoritative: the gold Pro aura can't be spoofed by clients.
       isPro: Boolean(user.isMeshPro),
@@ -95,7 +101,7 @@ export async function POST(request: Request) {
     // WHERE-clause throttle is stateless (correct across serverless instances)
     // and a no-op on all but ~one heartbeat per minute. Skipped while ghosting;
     // hidden-activity users already early-returned above, so theirs stays frozen.
-    if (ghostMode !== true) {
+    if (!ghosting) {
       await prisma.user
         .updateMany({
           where: {

@@ -1,26 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Ghost } from "lucide-react";
+import { setGhostMode } from "@/lib/actions";
 import { playSound } from "@/lib/sound";
 
 const STORAGE_KEY = "meshGhostMode";
 
 /**
- * One-tap Ghost Mode. While active, both presence heartbeats carry
- * ghostMode:true, which every consumer (mesh cursors, "Active now",
- * profile live badge, contact presence) already filters out. The control
- * itself is the persistent indicator: it stays visibly lit while ghosting.
+ * One-tap Ghost Mode. While active, presence heartbeats carry ghostMode:true —
+ * which every consumer (mesh cursors, "Active now", profile live badge, contact
+ * presence) already filters out — and the account setting is the authoritative
+ * signal server-side. Ghost Mode is persisted per-account (`initialGhost`), so it
+ * follows the user across devices; the control itself stays visibly lit while on.
  */
-export function GhostModeToggle({ compact = false }: { compact?: boolean }) {
-  const [ghost, setGhost] = useState(() => {
-    if (typeof window === "undefined") return false;
+export function GhostModeToggle({ compact = false, initialGhost = false }: { compact?: boolean; initialGhost?: boolean }) {
+  const [ghost, setGhost] = useState(initialGhost);
+
+  // The account value is the source of truth. Sync the per-device localStorage
+  // (which the mesh scene and heartbeats read) to it on mount, so Ghost Mode
+  // reflects the account state on every device — not just the one you toggled on.
+  useEffect(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) === "true";
+      if ((localStorage.getItem(STORAGE_KEY) === "true") !== initialGhost) {
+        localStorage.setItem(STORAGE_KEY, String(initialGhost));
+        window.dispatchEvent(new Event("meshGhostModeChanged"));
+      }
     } catch {
-      return false;
+      // best-effort sync
     }
-  });
+  }, [initialGhost]);
 
   const toggle = () => {
     const next = !ghost;
@@ -37,7 +46,9 @@ export function GhostModeToggle({ compact = false }: { compact?: boolean }) {
     } catch {
       // best-effort broadcast
     }
-    // Take effect immediately instead of waiting for the next heartbeat.
+    // Persist to the account so Ghost Mode follows the user to other devices.
+    void setGhostMode(next).catch(() => {});
+    // Take effect immediately in the live room instead of waiting for the next heartbeat.
     void fetch("/api/mesh/presence", {
       method: "POST",
       credentials: "same-origin",

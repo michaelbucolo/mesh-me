@@ -2233,6 +2233,23 @@ export async function updatePrivacy(formData: FormData) {
   return { success: true };
 }
 
+// Persist Ghost Mode on the account so it follows the user across devices
+// instead of living only in per-device localStorage. The presence route reads
+// this as the authoritative signal, so a ghosting user stays hidden even from a
+// fresh device whose local heartbeat hasn't set the flag yet.
+export async function setGhostMode(ghostMode: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { ghostMode: Boolean(ghostMode) },
+  });
+
+  revalidatePath("/settings");
+  return { success: true };
+}
+
 export async function updateNotificationPreferences(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
