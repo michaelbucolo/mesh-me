@@ -146,6 +146,20 @@ export function MeChatConversationList({
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [isPending, startTransition] = useTransition();
 
+  // Escape dismisses whichever full-screen overlay is open (New message, Share a
+  // note, Note viewer) — two hold autofocused inputs with no keyboard exit.
+  useEffect(() => {
+    if (!showCompose && !showNoteComposer && !activeNote) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (showCompose) setShowCompose(false);
+      else if (showNoteComposer) setShowNoteComposer(false);
+      else if (activeNote) setActiveNote(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showCompose, showNoteComposer, activeNote]);
+
   const shareQuery = useMemo(() => buildShareQuery(searchParams), [searchParams]);
   const shouldOpenCompose = searchParams.get("compose") === "true" || shareQuery.length > 0;
 

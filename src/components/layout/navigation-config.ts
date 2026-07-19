@@ -38,7 +38,12 @@ export function resolveNavHref(href: string, username?: string): string {
 
 export function isNavItemActive(pathname: string, href: string, username?: string): boolean {
   if (href === "/profile") {
-    return Boolean(username && pathname.includes(`/profile/${username}`));
+    // Exact/segment match — `includes` lit up @sam's tab on @samantha's profile
+    // (wrong active state + a false "current page" for screen readers).
+    return Boolean(
+      username &&
+        (pathname === `/profile/${username}` || pathname.startsWith(`/profile/${username}/`)),
+    );
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);

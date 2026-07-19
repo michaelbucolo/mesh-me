@@ -2,6 +2,7 @@
 
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users, BadgeCheck } from "lucide-react";
 import Link from "next/link";
@@ -167,6 +168,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const [platformActionMessage, setPlatformActionMessage] = useState("");
+  const { addToast } = useToast();
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [bursts, setBursts] = useState<number[]>([]);
   const [saveAnimating, setSaveAnimating] = useState(false);
@@ -217,8 +219,18 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setShowMenu(false);
       if (shareRef.current && !shareRef.current.contains(event.target as Node)) setShowShareMenu(false);
     }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowMenu(false);
+        setShowShareMenu(false);
+      }
+    }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   const requireSourceAccount = (action: string) => {
@@ -348,7 +360,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     navigator.clipboard.writeText(post.externalUrl || `${window.location.origin}/feed/${post.id}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    // Close BOTH menus this can be triggered from, and confirm with a toast —
+    // otherwise a copy from the "…" menu leaves it hanging with no feedback.
+    setShowMenu(false);
     setShowShareMenu(false);
+    addToast("Link copied to clipboard", "success");
   };
 
   const isOwner = currentUserId === post.author.id && !requiresSourceAccount && !isExternalFeedItem;
@@ -520,7 +536,15 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   <ExternalLink className="h-4 w-4" /> Open post
                 </Link>
                 {!isOwner && (
-                  <button className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setPlatformActionMessage("Report noted — thanks for flagging.");
+                    }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     <Flag className="h-4 w-4" /> Report post
                   </button>
                 )}

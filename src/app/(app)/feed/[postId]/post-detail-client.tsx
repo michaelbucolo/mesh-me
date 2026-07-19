@@ -92,6 +92,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
   const [saved, setSaved] = useState(Array.isArray(post.savedBy) && post.savedBy.length > 0);
   const [repostCount, setRepostCount] = useState(post._count.reposts);
   const [commentText, setCommentText] = useState("");
+  const [commentError, setCommentError] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -101,17 +102,28 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
 
   const handleLike = () => {
     if (!currentUserId) return;
-    setLiked((prevLiked) => {
-      setLikeCount((prev) => (prevLiked ? prev - 1 : prev + 1));
-      return !prevLiked;
+    const prevLiked = liked;
+    const prevCount = likeCount;
+    setLiked(!prevLiked);
+    setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
+    startTransition(async () => {
+      const result = await toggleReaction(post.id);
+      // Roll back the optimistic heart if the server rejected it.
+      if (result && "error" in result) {
+        setLiked(prevLiked);
+        setLikeCount(prevCount);
+      }
     });
-    startTransition(async () => { await toggleReaction(post.id); });
   };
 
   const handleSave = () => {
     if (!currentUserId) return;
-    setSaved((prev) => !prev);
-    startTransition(async () => { await toggleSavePost(post.id); });
+    const prevSaved = saved;
+    setSaved(!prevSaved);
+    startTransition(async () => {
+      const result = await toggleSavePost(post.id);
+      if (result && "error" in result) setSaved(prevSaved);
+    });
   };
 
   const handleRepost = () => {
@@ -131,8 +143,15 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
     formData.set("postId", post.id);
     if (replyingTo) formData.set("parentId", replyingTo);
 
+    setCommentError("");
     startTransition(async () => {
-      await createComment(formData);
+      const result = await createComment(formData);
+      // createComment RETURNS { error } (never throws). Keep the typed comment
+      // and surface the error instead of silently wiping it.
+      if (result && "error" in result) {
+        setCommentError(String(result.error));
+        return;
+      }
       setCommentText("");
       setReplyingTo(null);
       router.refresh();
@@ -319,7 +338,10 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
             <textarea
               ref={commentInputRef}
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChange={(e) => {
+                setCommentText(e.target.value);
+                if (commentError) setCommentError("");
+              }}
               placeholder="Write a comment..."
               className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[60px]"
               rows={2}
@@ -337,6 +359,9 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          {commentError && (
+            <p className="mt-2 text-xs text-[var(--ds-danger,#f87171)]">{commentError}</p>
+          )}
         </div>
       )}
       {!currentUserId && (

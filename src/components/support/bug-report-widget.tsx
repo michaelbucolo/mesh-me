@@ -72,6 +72,17 @@ export function BugReportWidget() {
     return () => window.removeEventListener(BUG_REPORT_EVENT, openWidget);
   }, [openWidget]);
 
+  // Escape closes the panel — consistent with every other dialog (don't close
+  // mid-submit so a report in flight isn't lost).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && submitState.status !== "submitting") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, submitState.status]);
+
   async function submitBugReport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const currentDiagnostics = collectDiagnostics();

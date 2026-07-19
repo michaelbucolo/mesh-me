@@ -482,7 +482,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 autoCorrect="off"
                 spellCheck={false}
                 required
-                minLength={2}
+                minLength={3}
                 maxLength={24}
                 className="mesh-gate-input mesh-gate-input-line"
                 data-testid="entry-signup-username"
@@ -508,10 +508,10 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 name="password"
                 type="password"
                 onChange={(e) => { spark(); markFilled("password", e.target.value); }}
-                placeholder="at least 8 characters"
+                placeholder="12+ chars with a number & symbol"
                 autoComplete="new-password"
                 required
-                minLength={8}
+                minLength={12}
                 className="mesh-gate-input mesh-gate-input-line"
                 data-testid="entry-signup-password"
                 suppressHydrationWarning

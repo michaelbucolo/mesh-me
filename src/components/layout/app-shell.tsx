@@ -117,16 +117,9 @@ function ShellTopBar({
     accountMenuRef.current?.removeAttribute("open");
   }, [pathname]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-        event.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  // Note: Cmd/Ctrl+K is owned by the command palette (which autofocuses after
+  // this ran and overrode it) — so no topbar handler here, and no ⌘K badge that
+  // would falsely promise to focus this search box.
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -178,7 +171,6 @@ function ShellTopBar({
           type="search"
           suppressHydrationWarning
         />
-        <kbd className="hidden rounded-md border border-[var(--mesh-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--mesh-text-muted)] sm:inline-flex">⌘ K</kbd>
       </form>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
@@ -302,7 +294,9 @@ export function AppShell({ children, user }: AppShellProps) {
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+    // Re-run on route change too, so the nav badges refresh the instant you
+    // read notifications/messages instead of lagging up to the 60s interval.
+  }, [pathname]);
 
   // Presence heartbeat from every surface: your Meshi represents you across
   // mesh.me, so being active in MeChat, the Flow, or anywhere else keeps you
