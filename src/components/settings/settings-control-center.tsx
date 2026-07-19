@@ -67,6 +67,7 @@ import {
   updateNotificationPreferences,
   updatePrivacy,
   updateProfile,
+  updateProfileVisibility,
 } from "@/lib/actions";
 import { getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "@/lib/content-safety";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
@@ -482,37 +483,22 @@ export function SettingsControlCenter({
   // One control owns "who can see your profile". isPublic (profile gate) and
   // meshVisibility (mesh + branch gate) used to be edited separately and could
   // drift — a Private mesh still leaked because isPublic=true overrode it. This
-  // writes BOTH coherently in a single save. meshVisibility must keep being
-  // written: queries.ts derives every mesh branch's default visibility from it.
+  // persists BOTH atomically via a single server action (updateProfileVisibility),
+  // so a partial failure can't strand the profile public. It never touches
+  // branchOverrides, so existing per-branch choices survive and unset branches
+  // keep inheriting meshVisibility.
   function applyProfileVisibility(level: "private" | "friends" | "public") {
-    const isPublic = level === "public";
-    const nextPrivacy = { ...privacy, isPublic };
-    const nextMesh = { ...mesh, meshVisibility: level };
-    setPrivacy(nextPrivacy);
-    setMesh(nextMesh);
-    const formData = new FormData();
-    formData.set("isPublic", String(isPublic));
-    formData.set("showInDiscovery", String(nextPrivacy.showInDiscovery));
-    formData.set("hideActivityStatus", String(nextPrivacy.hideActivityStatus));
-    formData.set("readReceipts", String(nextPrivacy.readReceipts));
-    runSave("Profile visibility", async () => {
-      const result = await updatePrivacy(formData);
-      if (result && typeof result === "object" && "error" in result) return result;
-      return updateMeshPrivacy({
-        meshVisibility: level,
-        branchOverrides: nextMesh.branches,
-        showConnections: nextMesh.showConnections,
-        showStats: nextMesh.showStats,
-      });
-    });
+    setPrivacy({ ...privacy, isPublic: level === "public" });
+    setMesh({ ...mesh, meshVisibility: level });
+    runSave("Profile visibility", () => updateProfileVisibility(level));
   }
 
-  // Reflect the ACTUAL effective gate (mirrors canViewProfile): isPublic wins for
-  // "public"; a legacy "partial" mesh reads as public too. Otherwise friends vs
-  // private comes from meshVisibility. So a drifted legacy user sees their true
-  // visibility rather than a misleading value, and the first change re-couples both.
+  // Reflect the ACTUAL effective gate (mirrors canViewProfile, privacy-policy.ts):
+  // access is public when isPublic !== false OR meshVisibility === "public".
+  // Otherwise friends vs private comes from meshVisibility ("partial" with
+  // isPublic=false is hidden by canViewProfile, so it reads as private here).
   const profileVisibilityLevel: "private" | "friends" | "public" =
-    privacy.isPublic !== false || mesh.meshVisibility === "public" || mesh.meshVisibility === "partial"
+    privacy.isPublic !== false || mesh.meshVisibility === "public"
       ? "public"
       : mesh.meshVisibility === "friends"
         ? "friends"
