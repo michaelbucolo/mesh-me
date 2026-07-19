@@ -1031,11 +1031,30 @@ export const getTrendingCommunities = unstable_cache(
 // ─── Additional Queries ─────────────────────────────────────
 
 export async function getUserCommunities(username: string) {
-  const user = await prisma.user.findUnique({ where: { username } });
+  const [currentUser, user] = await Promise.all([
+    getCurrentUser(),
+    prisma.user.findUnique({ where: { username } }),
+  ]);
   if (!user) return [];
 
+  // A private (invite-only) community must not leak its existence, name, size,
+  // or this user's membership to outsiders. The owner and admins see all of
+  // their memberships; everyone else sees only public communities plus any
+  // private community they themselves belong to (which they already know of).
+  const isPrivileged = currentUser?.id === user.id || Boolean(currentUser?.isAdmin);
+  const communityScope = isPrivileged
+    ? {}
+    : {
+        community: {
+          OR: [
+            { isPublic: true },
+            ...(currentUser ? [{ members: { some: { userId: currentUser.id } } }] : []),
+          ],
+        },
+      };
+
   return prisma.communityMember.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, ...communityScope },
     include: {
       community: {
         include: {
