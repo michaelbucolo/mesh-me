@@ -76,16 +76,24 @@ type SuggestedCommunity = {
 
 type TrendingTag = { tag: string; count: number };
 
-type ExploreTab = "foryou" | "trending" | "media" | "people" | "communities";
+type ExploreTab = "feed" | "people" | "communities";
+type FeedMode = "foryou" | "trending" | "media";
 type MediaFilter = "all" | "photos" | "videos" | "text";
 type SortMode = "top" | "latest";
 
+// The discovery feed is the primary Explore surface; For you / Trending / Media
+// are modes of that one feed rather than separate top-level destinations, so
+// People and Communities get their own tabs instead of being buried in it.
 const TABS: { id: ExploreTab; label: string; icon: typeof Compass }[] = [
+  { id: "feed", label: "Feed", icon: Sparkles },
+  { id: "people", label: "People", icon: UsersRound },
+  { id: "communities", label: "Communities", icon: MessagesSquare },
+];
+
+const FEED_MODES: { id: FeedMode; label: string; icon: typeof Compass }[] = [
   { id: "foryou", label: "For you", icon: Sparkles },
   { id: "trending", label: "Trending", icon: Flame },
   { id: "media", label: "Media", icon: ImageIcon },
-  { id: "people", label: "People", icon: UsersRound },
-  { id: "communities", label: "Communities", icon: MessagesSquare },
 ];
 
 const MEDIA_FILTERS: { id: MediaFilter; label: string }[] = [
@@ -125,7 +133,8 @@ function getPostMediaAlt(post: FeedCardPost, authorName: string) {
 export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggestedUsers, communities, signedOut = false }: ExploreDiscoveryProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<ExploreTab>("foryou");
+  const [tab, setTab] = useState<ExploreTab>("feed");
+  const [feedMode, setFeedMode] = useState<FeedMode>("foryou");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<string | null>(null);
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("all");
@@ -149,7 +158,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   const filteredPosts = useMemo(() => {
     let result = posts;
 
-    if (tab === "media") {
+    if (feedMode === "media") {
       result = result.filter((post) => post.media.length > 0);
     }
 
@@ -182,14 +191,14 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       });
     }
 
-    if (tab === "trending" || sortMode === "top") {
+    if (feedMode === "trending" || sortMode === "top") {
       result = [...result].sort((a, b) => postScore(b) - postScore(a));
     } else {
       result = [...result].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
     return result;
-  }, [posts, tab, activeTag, activePlatform, mediaFilter, sortMode, trimmedQuery]);
+  }, [posts, feedMode, activeTag, activePlatform, mediaFilter, sortMode, trimmedQuery]);
 
   const filteredUsers = useMemo(() => {
     if (!trimmedQuery) return suggestedUsers;
@@ -211,8 +220,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   }, [communities, trimmedQuery]);
 
   const hasActiveFilters = Boolean(activeTag || activePlatform || mediaFilter !== "all");
-  const isPostTab = tab === "foryou" || tab === "trending" || tab === "media";
-  const contentFilters = MEDIA_FILTERS.filter((filter) => tab !== "media" || filter.id !== "text");
+  const isPostTab = tab === "feed";
+  const contentFilters = MEDIA_FILTERS.filter((filter) => feedMode !== "media" || filter.id !== "text");
 
   const clearFilters = () => {
     setActiveTag(null);
@@ -282,10 +291,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                onClick={() => {
-                  setTab(item.id);
-                  if (item.id === "media" && mediaFilter === "text") setMediaFilter("all");
-                }}
+                onClick={() => setTab(item.id)}
                 className={`relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
                   selected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
@@ -321,6 +327,47 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             </button>
           )}
         </motion.div>
+        {tab === "feed" && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, delay: 0.08 }}
+            className="glass-card flex items-center gap-1 overflow-x-auto rounded-2xl p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="tablist"
+            aria-label="Discover feed mode"
+          >
+            {FEED_MODES.map((mode) => {
+              const selected = feedMode === mode.id;
+              const Icon = mode.icon;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => {
+                    setFeedMode(mode.id);
+                    if (mode.id === "media" && mediaFilter === "text") setMediaFilter("all");
+                  }}
+                  className={`relative flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    selected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  }`}
+                >
+                  {selected && (
+                    <motion.span
+                      layoutId="explore-feed-mode-pill"
+                      transition={spring}
+                      className="absolute inset-0 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/12"
+                      aria-hidden
+                    />
+                  )}
+                  <Icon className={`relative h-3.5 w-3.5 ${selected ? "text-[var(--accent)]" : ""}`} aria-hidden />
+                  <span className="relative">{mode.label}</span>
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
       </div>
 
       <AnimatePresence initial={false}>
@@ -431,10 +478,10 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
         </div>
       )}
 
-      {tab === "foryou" && (
+      {tab === "feed" && feedMode === "foryou" && (
         <>
           {!trimmedQuery && !hasActiveFilters && (
-            <TrendingHero posts={posts} onSeeAll={() => setTab("trending")} />
+            <TrendingHero posts={posts} onSeeAll={() => setFeedMode("trending")} />
           )}
           {!trimmedQuery && suggestedUsers.length > 0 && (
             <section className="mt-6" aria-label="People to follow">
@@ -463,11 +510,11 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
         <section className="mt-6" aria-label="Discover content">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-              {tab === "trending" ? (
+              {feedMode === "trending" ? (
                 <>
                   <Flame className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden /> Trending now
                 </>
-              ) : tab === "media" ? (
+              ) : feedMode === "media" ? (
                 <>
                   <ImageIcon className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden /> Media
                 </>
