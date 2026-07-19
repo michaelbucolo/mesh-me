@@ -1,8 +1,11 @@
 // Platform sound design — every sound is synthesized on-device with the Web
 // Audio API (no assets, CSP-safe, zero network). The palette is deliberately
-// soft and short: little glass pops and warm chimes that CONFIRM an action,
-// never announce the app. All sounds respect the user's "Sounds" setting and
-// the browser's autoplay rules (the context unlocks on the first gesture).
+// soft, short, and WARM: little rounded taps and gentle chimes that CONFIRM an
+// action without ever announcing the app. Everything routes through one master
+// bus (level + soft limiter) and a gentle lowpass, so the whole set sits at a
+// single considered, non-distracting level and can never spike or sound harsh.
+// All sounds respect the user's "Sounds" setting and the browser's autoplay
+// rules (the context unlocks on the first gesture).
 
 export type SoundName =
   | "pop" // selecting something / small positive tap
@@ -35,6 +38,7 @@ export function setSoundEnabled(on: boolean): void {
 }
 
 let audioCtx: AudioContext | null = null;
+let master: GainNode | null = null;
 let unlocked = false;
 
 function getCtx(): AudioContext | null {
@@ -59,7 +63,29 @@ function getCtx(): AudioContext | null {
   return audioCtx;
 }
 
-/** One enveloped oscillator voice. */
+/**
+ * The shared master bus: a low overall gain feeding a gentle soft-knee limiter.
+ * Routing every voice through this is what makes the palette feel *designed* —
+ * one restrained level, glued together, with a ceiling that catches any spike
+ * so nothing is ever harsh or startling.
+ */
+function getMaster(ctx: AudioContext): GainNode {
+  if (master && master.context === ctx) return master;
+  const g = ctx.createGain();
+  g.gain.value = 0.85; // everything sits softly under this — subtle but present
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -20;
+  comp.knee.value = 26;
+  comp.ratio.value = 3.2;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.22;
+  g.connect(comp);
+  comp.connect(ctx.destination);
+  master = g;
+  return g;
+}
+
+/** One enveloped oscillator voice, warmed by a gentle lowpass. */
 function voice(
   ctx: AudioContext,
   opts: {
@@ -69,29 +95,42 @@ function voice(
     at: number;
     dur: number;
     peak: number;
-    curve?: "exp" | "lin";
+    /** Lowpass cutoff (Hz) — lower is warmer/darker. Defaults to a soft 4.2k. */
+    lp?: number;
+    /** Cents of detune, for a touch of body without a second oscillator. */
+    detune?: number;
   },
 ): void {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = opts.type;
+  if (opts.detune) osc.detune.value = opts.detune;
   osc.frequency.setValueAtTime(opts.from, opts.at);
   if (opts.to && opts.to !== opts.from) {
     osc.frequency.exponentialRampToValueAtTime(Math.max(1, opts.to), opts.at + opts.dur);
   }
+  // Soft, click-free attack and a smooth natural release tail.
+  const attack = Math.min(0.014, opts.dur * 0.35);
   gain.gain.setValueAtTime(0.0001, opts.at);
-  gain.gain.exponentialRampToValueAtTime(opts.peak, opts.at + Math.min(0.018, opts.dur * 0.3));
+  gain.gain.exponentialRampToValueAtTime(opts.peak, opts.at + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, opts.at + opts.dur);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
+  // Gentle lowpass rolls off the digital "beep" harshness → a rounded, premium
+  // timbre even from a bare oscillator.
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = opts.lp ?? 4200;
+  lp.Q.value = 0.5;
+  osc.connect(lp);
+  lp.connect(gain);
+  gain.connect(getMaster(ctx));
   osc.start(opts.at);
-  osc.stop(opts.at + opts.dur + 0.02);
+  osc.stop(opts.at + opts.dur + 0.03);
 }
 
 /** A short breath of filtered noise (for whooshes and swishes). */
 function breath(
   ctx: AudioContext,
-  opts: { at: number; dur: number; peak: number; fromHz: number; toHz: number },
+  opts: { at: number; dur: number; peak: number; fromHz: number; toHz: number; q?: number },
 ): void {
   const len = Math.ceil(ctx.sampleRate * opts.dur);
   const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -99,20 +138,27 @@ function breath(
   for (let i = 0; i < len; i += 1) data[i] = Math.random() * 2 - 1;
   const src = ctx.createBufferSource();
   src.buffer = buffer;
+  // A soft bandpass shapes the air, and a lowpass above it tames the top-end
+  // hiss so a swish reads as "breath", never "static".
   const filter = ctx.createBiquadFilter();
   filter.type = "bandpass";
-  filter.Q.value = 1.1;
+  filter.Q.value = opts.q ?? 0.7;
   filter.frequency.setValueAtTime(opts.fromHz, opts.at);
-  filter.frequency.exponentialRampToValueAtTime(opts.toHz, opts.at + opts.dur);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(1, opts.toHz), opts.at + opts.dur);
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = Math.max(opts.fromHz, opts.toHz) + 1400;
   const gain = ctx.createGain();
+  // Ease in and out so there are no edges on the noise burst.
   gain.gain.setValueAtTime(0.0001, opts.at);
-  gain.gain.exponentialRampToValueAtTime(opts.peak, opts.at + opts.dur * 0.25);
+  gain.gain.exponentialRampToValueAtTime(opts.peak, opts.at + opts.dur * 0.3);
   gain.gain.exponentialRampToValueAtTime(0.0001, opts.at + opts.dur);
   src.connect(filter);
-  filter.connect(gain);
-  gain.connect(ctx.destination);
+  filter.connect(lp);
+  lp.connect(gain);
+  gain.connect(getMaster(ctx));
   src.start(opts.at);
-  src.stop(opts.at + opts.dur + 0.02);
+  src.stop(opts.at + opts.dur + 0.03);
 }
 
 /**
@@ -130,36 +176,47 @@ export function playSound(name: SoundName): void {
   const t = ctx.currentTime + 0.005;
   switch (name) {
     case "pop":
-      voice(ctx, { type: "sine", from: 520, to: 780, at: t, dur: 0.09, peak: 0.055 });
+      // A soft, rounded tap — warm body, no click.
+      voice(ctx, { type: "sine", from: 470, to: 700, at: t, dur: 0.085, peak: 0.05, lp: 3400 });
       break;
     case "heart":
-      breath(ctx, { at: t, dur: 0.16, peak: 0.05, fromHz: 900, toHz: 2600 });
-      voice(ctx, { type: "sine", from: 660, to: 1180, at: t, dur: 0.14, peak: 0.035 });
+      // A gentle airy lift — a breath rising under a soft tone.
+      breath(ctx, { at: t, dur: 0.15, peak: 0.03, fromHz: 760, toHz: 2100, q: 0.6 });
+      voice(ctx, { type: "sine", from: 600, to: 1080, at: t, dur: 0.14, peak: 0.03, lp: 3800 });
       break;
     case "land":
-      voice(ctx, { type: "triangle", from: 1320, at: t, dur: 0.07, peak: 0.05 });
-      voice(ctx, { type: "sine", from: 1980, at: t + 0.03, dur: 0.06, peak: 0.03 });
+      // A tiny warm tick where the heart settles.
+      voice(ctx, { type: "triangle", from: 1180, at: t, dur: 0.06, peak: 0.038, lp: 4600 });
+      voice(ctx, { type: "sine", from: 1760, at: t + 0.028, dur: 0.05, peak: 0.02, lp: 5200 });
       break;
     case "chime":
-      voice(ctx, { type: "sine", from: 880, at: t, dur: 0.22, peak: 0.045 });
-      voice(ctx, { type: "sine", from: 1320, at: t + 0.07, dur: 0.24, peak: 0.035 });
+      // Two soft notes a perfect fifth apart — a pleasant, unobtrusive success.
+      voice(ctx, { type: "sine", from: 784, at: t, dur: 0.3, peak: 0.032, lp: 5200, detune: -3 });
+      voice(ctx, { type: "sine", from: 1176, at: t + 0.075, dur: 0.32, peak: 0.024, lp: 5400 });
       break;
     case "leave":
-      voice(ctx, { type: "sine", from: 520, to: 300, at: t, dur: 0.18, peak: 0.04 });
+      // A soft low fall as someone slips away.
+      voice(ctx, { type: "sine", from: 460, to: 290, at: t, dur: 0.2, peak: 0.03, lp: 2600 });
       break;
     case "whoosh":
-      breath(ctx, { at: t, dur: 0.34, peak: 0.06, fromHz: 500, toHz: 2200 });
+      // Smooth moving air for big transitions — no hiss.
+      breath(ctx, { at: t, dur: 0.36, peak: 0.05, fromHz: 380, toHz: 1900, q: 0.5 });
+      voice(ctx, { type: "sine", from: 300, to: 620, at: t, dur: 0.3, peak: 0.016, lp: 1800 });
       break;
     case "send":
-      voice(ctx, { type: "sine", from: 700, to: 1250, at: t, dur: 0.12, peak: 0.05 });
-      breath(ctx, { at: t, dur: 0.12, peak: 0.028, fromHz: 1300, toHz: 3000 });
+      // A light upward swish as a message leaves.
+      voice(ctx, { type: "sine", from: 640, to: 1120, at: t, dur: 0.12, peak: 0.036, lp: 4000 });
+      breath(ctx, { at: t, dur: 0.12, peak: 0.02, fromHz: 1200, toHz: 2600, q: 0.6 });
       break;
     case "ding":
-      voice(ctx, { type: "sine", from: 1046, at: t, dur: 0.18, peak: 0.04 });
+      // A clean, soft bell with a whisper of octave shimmer.
+      voice(ctx, { type: "sine", from: 1046, at: t, dur: 0.22, peak: 0.03, lp: 5600 });
+      voice(ctx, { type: "sine", from: 2092, at: t + 0.005, dur: 0.12, peak: 0.01, lp: 6200 });
       break;
     case "ghost":
-      breath(ctx, { at: t, dur: 0.4, peak: 0.045, fromHz: 1400, toHz: 320 });
-      voice(ctx, { type: "sine", from: 440, to: 220, at: t, dur: 0.32, peak: 0.025 });
+      // A hollow, breathy exhale as the Meshi fades.
+      breath(ctx, { at: t, dur: 0.42, peak: 0.035, fromHz: 1200, toHz: 300, q: 0.5 });
+      voice(ctx, { type: "sine", from: 420, to: 210, at: t, dur: 0.34, peak: 0.02, lp: 1600 });
       break;
   }
 }
