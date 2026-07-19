@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
 import { getDiscoverUsers } from "@/lib/queries";
@@ -25,9 +26,21 @@ export default async function FlowPage() {
     getViewerTasteProfile(viewer.id),
   ]);
 
-  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT }).map((post) => ({
+  // Persisted seen/liked state for the first paint (the Flow's highest-visibility
+  // slot), scoped to this batch's candidates. Guests have none.
+  const impressions = user
+    ? await prisma.flowImpression.findMany({
+        where: { userId: user.id, postId: { in: candidates.map((p) => p.id) } },
+        select: { postId: true, liked: true },
+      })
+    : [];
+  const persistedSeen = new Set(impressions.map((i) => i.postId));
+  const likedSet = new Set(impressions.filter((i) => i.liked).map((i) => i.postId));
+
+  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT, seen: persistedSeen }).map((post) => ({
     ...post,
     createdAt: String(post.createdAt),
+    reactions: likedSet.has(post.id) ? [{ id: "self" }] : post.reactions,
     whyThis: explainFlowPost(post, profile),
   })) as unknown as FlowPost[];
 

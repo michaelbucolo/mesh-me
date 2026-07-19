@@ -110,6 +110,20 @@ export function sortFeedPosts(posts: FeedCardPost[]) {
   return [...posts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+/**
+ * A stable identity for the same underlying item across the different feed-card
+ * ids it can arrive under. The exact same external post surfaces both as a
+ * friend's shared reel (`friend-platform-<id>`) and as the anonymous discover
+ * copy (`platform-<id>`); both share one `platformPostId`, so we collapse them.
+ * Native mesh posts fall through to their own id.
+ */
+export function canonicalFeedKey(post: FeedCardPost): string {
+  if (post.platform && post.platform.toLowerCase() !== "meshme" && post.platformPostId) {
+    return `ext:${post.platform.toLowerCase()}:${post.platformPostId}`;
+  }
+  return post.id;
+}
+
 function filterFeedPostsByContent(posts: FeedCardPost[], filter: FeedContentFilter) {
   if (filter === "all") return posts;
 
@@ -524,18 +538,32 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
     }
   }
 
-  if (id.startsWith("platform-")) {
+  // A mutual friend's shared platform reel. These are in the Flow candidate pool
+  // (getFriendPlatformFeedPosts), so they must be resolvable here too — else a
+  // like on one 404s and its author affinity is silently lost.
+  if (id.startsWith("friend-platform-")) {
     try {
+      const { friendIds } = await getViewerSocialGraph(user.id);
+      if (friendIds.length === 0) return null;
       const post = await prisma.platformPost.findFirst({
         where: {
-          id: id.slice("platform-".length),
+          id: id.slice("friend-platform-".length),
           ...nsfwHiddenWhere(user),
-          // Owner-scoped lookup: the owner can open all of their own imported
-          // content regardless of its source visibility.
-          connectedAccount: { userId: user.id, isActive: true },
+          visibility: { in: ["public", "friends"] },
+          connectedAccount: {
+            userId: { in: friendIds },
+            isActive: true,
+            user: { isSuspended: false },
+          },
         },
         include: {
-          connectedAccount: { select: { platform: true, platformUsername: true } },
+          connectedAccount: {
+            select: {
+              platform: true,
+              platformUsername: true,
+              user: { select: { id: true, username: true, displayName: true, avatarUrl: true, isVerified: true } },
+            },
+          },
           media: true,
         },
       });
@@ -550,22 +578,111 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
               postType: post.postType,
             }),
           )
+        : buildExternalMedia({ id: `${post.id}-thumbnail`, thumbnailUrl: post.thumbnailUrl, postType: post.postType });
+      const friend = post.connectedAccount.user;
+      const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
+      return {
+        id: `friend-platform-${post.id}`,
+        content: content || `${post.connectedAccount.platform} post from ${friend.displayName}`,
+        createdAt: post.publishedAt ?? post.createdAt,
+        author: {
+          id: friend.id,
+          username: friend.username,
+          displayName: friend.displayName,
+          avatarUrl: friend.avatarUrl,
+          isVerified: friend.isVerified,
+        },
+        community: null,
+        media,
+        tags: [],
+        _count: { comments: post.commentCount, reactions: post.likeCount, reposts: post.shareCount },
+        reactions: [],
+        savedBy: [],
+        isPinned: post.isPinned,
+        platform: post.connectedAccount.platform,
+        sourceId: post.id,
+        externalUrl: post.url,
+        platformPostId: post.platformPostId,
+        crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
+        meshFriend: { userId: friend.id, username: friend.username, displayName: friend.displayName },
+        isNsfw: post.isNsfw,
+        contentRating: post.contentRating,
+        visibility: post.visibility,
+      };
+    } catch (error) {
+      console.error("[feed-data] Friend platform post unavailable", error);
+      return null;
+    }
+  }
+
+  if (id.startsWith("platform-")) {
+    try {
+      const rawId = id.slice("platform-".length);
+      const platformInclude = {
+        connectedAccount: {
+          select: {
+            platform: true,
+            platformUsername: true,
+            user: { select: { id: true, username: true, displayName: true, avatarUrl: true, isVerified: true } },
+          },
+        },
+        media: true,
+      } as const;
+      // Owner-scoped first: the owner can open all of their own imported
+      // content regardless of its source visibility.
+      let post = await prisma.platformPost.findFirst({
+        where: {
+          id: rawId,
+          ...nsfwHiddenWhere(user),
+          connectedAccount: { userId: user.id, isActive: true },
+        },
+        include: platformInclude,
+      });
+      // Discover fallback: a PUBLIC post from any discoverable member — the same
+      // gate getDiscoverPlatformPosts applies, so this exposes nothing new, and
+      // it lets a like on a discover reel (or the related lane) resolve.
+      if (!post) {
+        post = await prisma.platformPost.findFirst({
+          where: {
+            id: rawId,
+            ...nsfwHiddenWhere(user),
+            visibility: "public",
+            connectedAccount: {
+              isActive: true,
+              user: { isSuspended: false, showInDiscovery: true },
+            },
+          },
+          include: platformInclude,
+        });
+      }
+      if (!post) return null;
+      const media = post.media.length > 0
+        ? post.media.flatMap((item) =>
+            buildExternalMedia({
+              id: item.id,
+              mediaUrl: item.url,
+              thumbnailUrl: item.thumbnailUrl,
+              mediaType: item.mediaType,
+              postType: post!.postType,
+            }),
+          )
         : buildExternalMedia({
             id: `${post.id}-thumbnail`,
             thumbnailUrl: post.thumbnailUrl,
             postType: post.postType,
           });
+      const owner = post.connectedAccount.user;
       const content = [post.title, post.content].filter(Boolean).join(post.title && post.content ? "\n\n" : "");
       return {
         id: `platform-${post.id}`,
         content: content || `${post.connectedAccount.platform} post`,
         createdAt: post.publishedAt ?? post.createdAt,
         author: {
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          avatarUrl: user.avatarUrl,
-          isVerified: user.isVerified,
+          id: owner.id,
+          username: owner.username,
+          displayName: owner.displayName,
+          avatarUrl: owner.avatarUrl,
+          isVerified: owner.isVerified,
         },
         community: null,
         media,
@@ -644,8 +761,9 @@ export async function getCombinedFeedPosts({
     source === "following" ? Promise.resolve([]) : getDiscoverPlatformPosts(user, providerLimit),
   ]);
 
-  // A friend's shared post and the open-discovery copy are the same item —
-  // keep one of each id.
+  // A friend's shared post and the open-discovery copy are the same underlying
+  // item — collapse them by canonical identity (shared platformPostId), keeping
+  // the first, so friend/own attribution wins over the anonymous discover copy.
   const byId = new Map<string, FeedCardPost>();
   for (const post of [
     ...nativePosts.map(toFeedCardPost),
@@ -654,7 +772,8 @@ export async function getCombinedFeedPosts({
     ...mergedForYouPosts,
     ...discoverPlatformPosts,
   ]) {
-    if (!byId.has(post.id)) byId.set(post.id, post);
+    const key = canonicalFeedKey(post);
+    if (!byId.has(key)) byId.set(key, post);
   }
 
   return filterFeedPostsByContent(sortFeedPosts([...byId.values()]), contentFilter).slice(0, limit);

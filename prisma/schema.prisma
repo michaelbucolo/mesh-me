@@ -30,6 +30,7 @@ model User {
   posts                      Post[]
   comments                   Comment[]
   reactions                  Reaction[]
+  flowImpressions            FlowImpression[]
   followers                  Follow[]                   @relation("following")
   following                  Follow[]                   @relation("follower")
   sentMessages               Message[]                  @relation("sender")
@@ -219,6 +220,30 @@ model Reaction {
 
   @@unique([userId, postId])
   @@index([postId])
+}
+
+/// A viewer's PRIVATE Flow signal: reels actually seen (so the ranker never
+/// replays them across sessions/devices) and reels privately liked (folded into
+/// the viewer's OWN taste — never surfaced to others, never cross-user, never
+/// pay-to-win). postId is the feed-card id namespace ("<cuid>" | "platform-<id>"
+/// | "feeditem-<id>" | "friend-platform-<id>"), NOT a Post FK. authorKey/format/
+/// tags are denormalized at like-time to the exact authorKey(post) the ranker
+/// scores on, so taste survives the source item's own retention purge. Only ever
+/// queried by the row-owner's own id.
+model FlowImpression {
+  userId    String
+  postId    String
+  seenAt    DateTime @default(now())
+  liked     Boolean  @default(false)
+  authorKey String?
+  format    String?
+  tags      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([userId, seenAt])
+  @@index([userId, liked])
 }
 
 model Community {

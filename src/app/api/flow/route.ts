@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts } from "@/lib/flow-ranking";
 
@@ -35,6 +36,20 @@ export async function GET(request: Request) {
     getViewerTasteProfile(user.id),
   ]);
 
+  // Server-persisted seen/liked state, scoped to exactly this batch's candidates
+  // (PK-served `IN` over ≤~480 keys — coverage-complete, not a recency window),
+  // so the ranker never replays a reel the viewer already saw on ANY device.
+  // Guests have no persisted state and issue zero queries here.
+  const isGuest = user.id === ANONYMOUS_VIEWER.id;
+  const impressions = isGuest
+    ? []
+    : await prisma.flowImpression.findMany({
+        where: { userId: user.id, postId: { in: candidates.map((p) => p.id) } },
+        select: { postId: true, liked: true },
+      });
+  const persistedSeen = new Set(impressions.map((i) => i.postId));
+  const likedSet = new Set(impressions.filter((i) => i.liked).map((i) => i.postId));
+
   // Recency by *last* appearance: the client's exclude list is in scroll
   // order and repeats ids once the Flow wraps, so walk it backwards and keep
   // the first (i.e. most recent) sighting of each id.
@@ -63,7 +78,11 @@ export async function GET(request: Request) {
   if (mode === "chronological") {
     // Chronological is a strict timeline: page through unseen posts newest
     // first, and only loop back to the top once the timeline is exhausted.
-    const fresh = candidates.filter((post) => !exclude.has(post.id));
+    // In chronological mode the ranker sorts by createdAt BEFORE reading
+    // opts.seen, so passing `seen` there is a no-op — this filter is what
+    // actually enforces cross-session no-repeat in this mode.
+    const seenUnion = new Set([...seen, ...persistedSeen]);
+    const fresh = candidates.filter((post) => !exclude.has(post.id) && !seenUnion.has(post.id));
     ranked = rankFlowPosts(fresh, profile, { seen, limit, mode, studio });
     if (ranked.length < limit && candidates.length > 0) {
       recycled = true;
@@ -88,7 +107,7 @@ export async function GET(request: Request) {
     // post never reappears right after it was on screen — shrinking the
     // hold-back window rather than abandoning it when the library is small,
     // and requiring the pool to span multiple voices, not just be big enough.
-    const seenAll = new Set([...seen, ...excludeIds]);
+    const seenAll = new Set([...seen, ...excludeIds, ...persistedSeen]);
     const distinctAuthors = new Set(candidates.map(authorKey)).size;
     const wantedAuthors = Math.min(distinctAuthors, 3);
     const poolFits = (pool: typeof candidates) =>
@@ -111,6 +130,9 @@ export async function GET(request: Request) {
   return NextResponse.json({
     posts: ranked.map((post) => ({
       ...post,
+      // Pre-fill the heart for external items the viewer privately liked (native
+      // posts already carry their own viewer reactions and are never in likedSet).
+      reactions: likedSet.has(post.id) ? [{ id: "self" }] : post.reactions,
       whyThis: explainFlowPost(post, profile, mode, studio),
     })),
     hasMore: candidates.length > 0,
