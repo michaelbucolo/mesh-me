@@ -50,6 +50,18 @@ export default function PrivacyPage() {
         <>
           <p>We retain information while your account is active and as needed to provide the service. If you delete your account, we will delete or anonymize personal data within 30 days, except where legal retention is required.</p>
           <p>Connected platform tokens are deleted immediately when you disconnect an account. Users can request full data export or deletion through product settings. Backup and cached copies may persist for up to 90 days while normal purge cycles complete.</p>
+          <p>For step-by-step instructions on deleting your account, removing a single connected platform, or how platform-initiated deletion works, see our <a href="/data-deletion">Data Deletion</a> page.</p>
+        </>
+      ),
+    },
+    {
+      id: "platform-api-compliance",
+      title: "Connected platforms and third-party API compliance",
+      content: (
+        <>
+          <p>When you connect a third-party account, Mesh.me uses that platform&apos;s official API only for the scopes you authorize, and only to power the features you use inside Mesh.me. We do not use connected-platform data for advertising, and we do not transfer or sell it.</p>
+          <p><strong>Google API Services Limited Use.</strong> Mesh.me&apos;s use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener noreferrer" target="_blank">Google API Services User Data Policy</a>, including the Limited Use requirements. Data obtained from Google (including YouTube) is used solely to provide and improve the user-facing features you request, is not transferred to third parties except as necessary to provide those features or as required by law, is not used for advertising, and is not read by humans except with your consent, for security purposes, or to comply with applicable law.</p>
+          <p><strong>Meta platforms.</strong> For Facebook, Instagram, and Threads, removing Mesh.me from your platform account triggers automatic deletion of the associated connected-account data through our data deletion and deauthorize callbacks. You can also request deletion at any time from the <a href="/data-deletion">Data Deletion</a> page.</p>
         </>
       ),
     },
