@@ -8,9 +8,21 @@ const adapter = new PrismaLibSql({ url: process.env.DATABASE_URL || "file:./pris
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // This seed provisions demo accounts (including an admin) with a shared,
+  // well-known password. That is only ever acceptable for local development.
+  // Refuse to run against production unless explicitly opted in.
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PRODUCTION_SEED !== "true") {
+    throw new Error(
+      "Refusing to seed in production. Set ALLOW_PRODUCTION_SEED=true and a strong SEED_USER_PASSWORD to override.",
+    );
+  }
+
   console.log("Seeding database...");
 
-  const passwordHash = await bcrypt.hash("password123", 12);
+  // Dev keeps the documented default; any non-dev seeding must supply a strong
+  // password via SEED_USER_PASSWORD so no shared credential ships to real users.
+  const seedPassword = process.env.SEED_USER_PASSWORD || "password123";
+  const passwordHash = await bcrypt.hash(seedPassword, 12);
 
   // Create users
   const users = await Promise.all([

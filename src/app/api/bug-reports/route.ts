@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createBugReportRecord, saveBugReport } from "@/lib/bug-reports";
 import { meshAppVersion } from "@/lib/app-info";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { getTrustedClientIp } from "@/lib/client-ip";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -47,10 +48,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
     }
 
-    const payload = (await req.json().catch(() => null)) as BugReportPayload | null;
-    if (!payload) {
+    const parsed = await readJsonObject(req);
+    if (Object.keys(parsed).length === 0) {
       return NextResponse.json({ error: "Invalid bug report." }, { status: 400 });
     }
+    const payload = parsed as BugReportPayload;
 
     const message = cleanText(payload.message, MAX_MESSAGE_LENGTH);
     const contactEmail = cleanText(payload.contactEmail, 254).toLowerCase();
@@ -73,9 +75,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Page URL was missing or invalid." }, { status: 400 });
     }
 
-    const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-    const rl = rateLimit(`bug:${forwardedFor}:${pageUrl.slice(0, 160)}`, 8, 10 * 60 * 1000);
-    if (!rl.allowed) {
+    // Key only on the proxy-derived client IP: attacker-controlled values
+    // (spoofed forwarded headers, arbitrary page URLs) must never mint fresh
+    // rate-limit buckets. A global backstop caps aggregate abuse across IPs.
+    const clientIp = getTrustedClientIp(req.headers);
+    // Requests already rejected per-IP must not consume the shared budget.
+    const rl = rateLimit(`bug:${clientIp}`, 8, 10 * 60 * 1000);
+    if (!rl.allowed || !rateLimit("bug:global", 200, 10 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many bug reports. Please try again later." }, { status: 429 });
     }
 

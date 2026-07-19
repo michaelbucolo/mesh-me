@@ -75,7 +75,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
   const isOwnProfile = profile.isOwnProfile;
   const canViewProfile = profile.sectionVisibility.profile;
-  const memberships = canViewProfile ? allMemberships : [];
+  const memberships = profile.sectionVisibility.communities ? allMemberships : [];
   const meshi = profile.meshiPreference ?? DEFAULT_MESHI;
   const connectedAccounts = profile.connectedAccounts ?? [];
   const links = profile.links ?? [];
