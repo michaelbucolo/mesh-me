@@ -2,12 +2,15 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { ArrowRight, Lock, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { COMMUNITY_SPACE_TYPES } from "@/lib/community-constants";
 import { createCommunity } from "@/lib/actions";
 import { cn } from "@/lib/utils";
+
+const CARD_SPRING = { type: "spring" as const, stiffness: 420, damping: 26 };
 
 export function CommunityCreateForm() {
   const router = useRouter();
@@ -59,22 +62,30 @@ export function CommunityCreateForm() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {COMMUNITY_SPACE_TYPES.map((type) => (
-            <button
-              key={type.id}
-              type="button"
-              onClick={() => setSpaceType(type.id)}
-              className={cn(
-                "rounded-[22px] border p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)]",
-                spaceType === type.id
-                  ? "border-[var(--accent)] bg-[var(--accent-subtle)] shadow-[var(--shadow-soft)]"
-                  : "border-[var(--ds-border)] bg-[var(--ds-surface)]"
-              )}
-            >
-              <span className="text-sm font-bold text-[var(--text-primary)]">{type.label}</span>
-              <span className="mt-1 block text-xs leading-5 text-[var(--text-secondary)]">{type.description}</span>
-            </button>
-          ))}
+          {COMMUNITY_SPACE_TYPES.map((type, index) => {
+            const selected = spaceType === type.id;
+            return (
+              <motion.button
+                key={type.id}
+                type="button"
+                onClick={() => setSpaceType(type.id)}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0, scale: selected ? 1.02 : 1 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ ...CARD_SPRING, delay: 0.04 * index }}
+                className={cn(
+                  "rounded-[22px] border p-4 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)]",
+                  selected
+                    ? "border-[var(--accent)] bg-[var(--accent-subtle)] shadow-[var(--shadow-soft)]"
+                    : "border-[var(--ds-border)] bg-[var(--ds-surface)]"
+                )}
+              >
+                <span className="text-sm font-bold text-[var(--text-primary)]">{type.label}</span>
+                <span className="mt-1 block text-xs leading-5 text-[var(--text-secondary)]">{type.description}</span>
+              </motion.button>
+            );
+          })}
         </div>
       </section>
 
@@ -126,11 +137,16 @@ export function CommunityCreateForm() {
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <button
+            <motion.button
               type="button"
               onClick={() => setVisibility("public")}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0, scale: visibility === "public" ? 1.02 : 1 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ ...CARD_SPRING, delay: 0.08 }}
               className={cn(
-                "rounded-[22px] border p-4 text-left transition",
+                "rounded-[22px] border p-4 text-left transition-colors hover:border-[var(--accent)]",
                 visibility === "public"
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
                   : "border-[var(--ds-border)] bg-[var(--ds-surface)]"
@@ -139,12 +155,17 @@ export function CommunityCreateForm() {
               <Users className="mb-3 h-5 w-5 text-[var(--accent)]" />
               <span className="block text-sm font-bold text-[var(--text-primary)]">Public discovery</span>
               <span className="mt-1 block text-xs text-[var(--text-secondary)]">Anyone can find and join.</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => setVisibility("private")}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0, scale: visibility === "private" ? 1.02 : 1 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ ...CARD_SPRING, delay: 0.12 }}
               className={cn(
-                "rounded-[22px] border p-4 text-left transition",
+                "rounded-[22px] border p-4 text-left transition-colors hover:border-[var(--accent)]",
                 visibility === "private"
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
                   : "border-[var(--ds-border)] bg-[var(--ds-surface)]"
@@ -153,7 +174,7 @@ export function CommunityCreateForm() {
               <Lock className="mb-3 h-5 w-5 text-[var(--accent)]" />
               <span className="block text-sm font-bold text-[var(--text-primary)]">Private space</span>
               <span className="mt-1 block text-xs text-[var(--text-secondary)]">Only members can open it.</span>
-            </button>
+            </motion.button>
           </div>
 
           {error ? (

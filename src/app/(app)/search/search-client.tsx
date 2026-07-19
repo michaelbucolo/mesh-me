@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type FormEvent, type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
+import { type CSSProperties, type FormEvent, type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Transition, type Variants } from "framer-motion";
 import {
   CheckCircle2,
   ExternalLink,
@@ -144,6 +144,25 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+// Shared sliding-indicator spring, matching Explore's 'explore-tab-pill'.
+const pillSpring: Transition = { type: "spring", stiffness: 380, damping: 30 };
+
+// Results reveal: the outer container orchestrates a top-to-bottom section
+// cascade; each ResultSection springs in as a variant child.
+const resultsContainer: Variants = {
+  hidden: { opacity: 1 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.03 } },
+  exit: { opacity: 0, transition: { duration: 0.15, ease: [0.16, 1, 0.3, 1] } },
+};
+
+const sectionVariant: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 320, damping: 28 } },
+};
+
+// Per-row cascade beat for `.mesh-cascade-soft` (uncapped, data-driven).
+const rowStyle = (index: number) => ({ ["--i" as string]: index }) as CSSProperties;
+
 function platformLabel(value: string | null | undefined) {
   if (!value) return "Source";
   return value.toLowerCase() === "twitter" ? "X" : value[0]?.toUpperCase() + value.slice(1);
@@ -231,6 +250,33 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
   return (
     <main className="search-index-page mx-auto grid w-full max-w-[62rem] grid-cols-[minmax(0,1fr)] gap-3 animate-page-enter">
+      <style>{`
+        .search-row-magnetic { position: relative; }
+        .search-row-magnetic::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 50%;
+          height: 58%;
+          width: 3px;
+          border-radius: 0 6px 6px 0;
+          background: linear-gradient(180deg, var(--accent), var(--mesh-cyan));
+          transform: translateY(-50%) scaleY(0.3);
+          transform-origin: center;
+          opacity: 0;
+          transition: opacity 200ms var(--mesh-ease-out), transform 260ms var(--mesh-spring);
+          pointer-events: none;
+        }
+        .search-row-magnetic:hover::before,
+        .search-row-magnetic:focus-visible::before { opacity: 1; transform: translateY(-50%) scaleY(1); }
+        .search-result-row.search-row-magnetic:hover,
+        .search-result-row.search-row-magnetic:focus-visible { transform: translateX(3px) !important; }
+        @media (prefers-reduced-motion: reduce) {
+          .search-result-row.search-row-magnetic:hover,
+          .search-result-row.search-row-magnetic:focus-visible { transform: none !important; }
+          .search-row-magnetic::before { transition: none; }
+        }
+      `}</style>
       <header className="sticky top-0 z-20 bg-[var(--bg-primary)]/92 pb-2 pt-1 backdrop-blur md:top-3">
         <form onSubmit={submit} className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4">
           <Search className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
@@ -259,21 +305,31 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         </div>
 
         <nav className="mt-3 flex gap-1 overflow-x-auto border-b border-[var(--border-primary)]" aria-label="Search filters">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`min-w-max border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
-                activeTab === tab.id
-                  ? "border-[var(--accent)] text-[var(--text-primary)]"
-                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              {tab.label}
-              {totals[tab.id] > 0 && <span className="ml-1 text-xs text-[var(--text-muted)]">{totals[tab.id]}</span>}
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                aria-pressed={active}
+                className={`relative min-w-max px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                <span className="relative">{tab.label}</span>
+                {totals[tab.id] > 0 && <span className="relative ml-1 text-xs text-[var(--text-muted)]">{totals[tab.id]}</span>}
+                {active && (
+                  <motion.span
+                    layoutId="search-tab-pill"
+                    transition={pillSpring}
+                    className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--mesh-cyan)] shadow-[0_0_12px_-1px_var(--accent)]"
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            );
+          })}
         </nav>
       </header>
 
@@ -293,18 +349,18 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
       <AnimatePresence mode="wait">
       <motion.section
-        key={activeTab + submittedQuery}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        key={`${activeTab}:${submittedQuery}:${totals.top}`}
+        variants={resultsContainer}
+        initial="hidden"
+        animate="show"
+        exit="exit"
         className="grid gap-3"
       >
         {showConnected && results.sourceIndex.length > 0 && (
           <ResultSection title="Social index sources" icon={Globe2}>
-            <div className="grid gap-0 md:grid-cols-2">
-              {results.sourceIndex.map((source) => (
-                <div key={source.id} className="search-result-row">
+            <div className="mesh-cascade-soft grid gap-0 md:grid-cols-2">
+              {results.sourceIndex.map((source, index) => (
+                <div key={source.id} style={rowStyle(index)} className="search-result-row search-row-magnetic">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-bold text-[var(--accent)]">
                     {source.name.slice(0, 2)}
                   </span>
@@ -349,8 +405,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showPeople && results.users.length > 0 && (
           <ResultSection title="People on Mesh.me" icon={UserRound}>
-            {results.users.map((user) => (
-              <Link key={user.id} href={`/profile/${user.username}`} className="search-result-row">
+            {results.users.map((user, index) => (
+              <Link key={user.id} style={rowStyle(index)} href={`/profile/${user.username}`} className="search-result-row search-row-magnetic">
                 <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{user.displayName}</span>
@@ -364,8 +420,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showNative && results.posts.length > 0 && (
           <ResultSection title="Mesh.me posts" icon={Rss}>
-            {results.posts.map((post) => (
-              <Link key={post.id} href={`/feed/${post.id}`} className="search-result-row">
+            {results.posts.map((post, index) => (
+              <Link key={post.id} style={rowStyle(index)} href={`/feed/${post.id}`} className="search-result-row search-row-magnetic">
                 <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-[var(--text-primary)]">{post.author.displayName}</span>
@@ -382,7 +438,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showConnected && results.platformPosts.length > 0 && (
           <ResultSection title="Connected platform posts" icon={Link2}>
-            {results.platformPosts.map((post) => {
+            {results.platformPosts.map((post, index) => {
               const thumbnail = post.thumbnailUrl || post.media[0]?.thumbnailUrl || post.media[0]?.url || null;
               const content = (
                 <>
@@ -408,11 +464,11 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 </>
               );
               return post.url ? (
-                <a key={post.id} href={post.url} target="_blank" rel="noreferrer" className="search-result-row">
+                <a key={post.id} style={rowStyle(index)} href={post.url} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
                   {content}
                 </a>
               ) : (
-                <div key={post.id} className="search-result-row" aria-disabled="true">
+                <div key={post.id} style={rowStyle(index)} className="search-result-row search-row-magnetic" aria-disabled="true">
                   {content}
                 </div>
               );
@@ -422,7 +478,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showConnected && results.platformPeople.length > 0 && (
           <ResultSection title="Connected platform people" icon={UsersRound}>
-            {results.platformPeople.map((person) => {
+            {results.platformPeople.map((person, index) => {
               const content = (
                 <>
                   <Avatar src={person.avatarUrl} alt={person.displayName || person.username || "Platform user"} size="md" />
@@ -436,11 +492,11 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 </>
               );
               return person.profileUrl ? (
-                <a key={person.id} href={person.profileUrl} target="_blank" rel="noreferrer" className="search-result-row">
+                <a key={person.id} style={rowStyle(index)} href={person.profileUrl} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
                   {content}
                 </a>
               ) : (
-                <div key={person.id} className="search-result-row" aria-disabled="true">
+                <div key={person.id} style={rowStyle(index)} className="search-result-row search-row-magnetic" aria-disabled="true">
                   {content}
                 </div>
               );
@@ -450,8 +506,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showPeople && results.communities.length > 0 && (
           <ResultSection title="Communities" icon={Hash}>
-            {results.communities.map((community) => (
-              <Link key={community.id} href={`/communities/${community.slug}`} className="search-result-row">
+            {results.communities.map((community, index) => (
+              <Link key={community.id} style={rowStyle(index)} href={`/communities/${community.slug}`} className="search-result-row search-row-magnetic">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-subtle)] text-lg font-bold text-[var(--accent)]">#</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{community.name}</span>
@@ -465,8 +521,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showMessages && results.messages.length > 0 && (
           <ResultSection title="Private MeChat matches" icon={MessageCircle}>
-            {results.messages.map((message) => (
-              <Link key={message.id} href={`/messages/${message.threadId}`} className="search-result-row">
+            {results.messages.map((message, index) => (
+              <Link key={message.id} style={rowStyle(index)} href={`/messages/${message.threadId}`} className="search-result-row search-row-magnetic">
                 <Avatar src={message.sender.avatarUrl} alt={message.sender.displayName} size="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{message.sender.displayName}</span>
@@ -480,8 +536,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
         {showWeb && results.wikipedia.length > 0 && (
           <ResultSection title="Public reference" icon={Globe2}>
-            {results.wikipedia.map((page) => (
-              <a key={page.id} href={page.url} target="_blank" rel="noreferrer" className="search-result-row">
+            {results.wikipedia.map((page, index) => (
+              <a key={page.id} style={rowStyle(index)} href={page.url} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
                 <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
                   {page.thumbnailUrl ? <Image src={page.thumbnailUrl} alt="" fill sizes="56px" className="object-cover" /> : <Globe2 className="m-auto mt-4 h-6 w-6 text-[var(--accent)]" aria-hidden="true" />}
                 </span>
@@ -512,16 +568,14 @@ function ResultSection({
 }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      variants={sectionVariant}
       className="mesh-surface overflow-hidden rounded-2xl"
     >
       <header className="flex items-center gap-2 border-b border-[var(--border-primary)] px-4 py-3">
         <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
       </header>
-      <div className="divide-y divide-[var(--border-primary)]">
+      <div className="mesh-cascade-soft divide-y divide-[var(--border-primary)]">
         {children}
       </div>
     </motion.section>

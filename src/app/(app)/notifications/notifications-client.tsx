@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { animate, AnimatePresence, motion, type Transition, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   AtSign,
@@ -53,6 +53,33 @@ const categoryIcons: Record<NotificationCategory, typeof Bell> = {
 };
 
 const visibleCategories = notificationCategories;
+
+// Shared sliding-indicator spring, matching Explore's 'explore-tab-pill'.
+const pillSpring: Transition = { type: "spring", stiffness: 380, damping: 30 };
+
+// Spring/tween counter — numbers roll up from 0 on mount (and animate between
+// values on refresh). Degrades to a static final value under reduced motion.
+function useCountUp(value: number) {
+  const reduce = useReducedMotion();
+  const [display, setDisplay] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    // Reduced motion: no animation — the hook returns `value` directly below,
+    // so there is nothing to set here (keeps setState out of the effect body).
+    if (reduce) {
+      prev.current = value;
+      return;
+    }
+    const controls = animate(prev.current, value, {
+      duration: 0.85,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (latest) => setDisplay(latest),
+    });
+    prev.current = value;
+    return () => controls.stop();
+  }, [value, reduce]);
+  return (reduce ? value : Math.round(display)).toLocaleString();
+}
 
 export function NotificationsClient({ initialPayload }: { initialPayload: NotificationCenterPayload }) {
   const [payload, setPayload] = useState(initialPayload);
@@ -172,6 +199,25 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
 
   return (
     <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5 animate-page-enter">
+      <style>{`
+        .mesh-priority-ring { position: relative; }
+        .mesh-priority-ring::after {
+          content: "";
+          position: absolute;
+          inset: -1px;
+          border-radius: inherit;
+          pointer-events: none;
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+          animation: meshPriorityBreath 3.4s ease-in-out infinite;
+        }
+        @keyframes meshPriorityBreath {
+          0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+          50% { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 66%, transparent), 0 0 16px 1px color-mix(in srgb, var(--accent) 26%, transparent); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .mesh-priority-ring::after { animation: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+        }
+      `}</style>
       <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
@@ -204,9 +250,9 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <Metric label="Unread" value={payload.unreadCount} />
-            <Metric label="Groups" value={payload.unreadGroupCount} />
-            <Metric label="Priority" value={payload.importantCount} />
+            <Metric label="Unread" value={payload.unreadCount} index={0} />
+            <Metric label="Groups" value={payload.unreadGroupCount} index={1} />
+            <Metric label="Priority" value={payload.importantCount} index={2} />
           </div>
         </div>
       </header>
@@ -280,12 +326,22 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                     key={category}
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className={`mesh-choice shrink-0 rounded-full px-3 py-2 text-xs font-bold ${active ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "text-[var(--text-secondary)]"}`}
+                    className={`mesh-choice relative shrink-0 rounded-full px-3 py-2 text-xs font-bold ${active ? "border-[var(--accent)]" : "text-[var(--text-secondary)]"}`}
                     aria-pressed={active}
                   >
-                    <Icon size={14} aria-hidden="true" />
-                    {getNotificationCategoryLabel(category)}
-                    {counts.unread > 0 ? <span className="rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[10px] text-white">{counts.unread}</span> : null}
+                    {active && (
+                      <motion.span
+                        layoutId="notif-category-pill"
+                        transition={pillSpring}
+                        className="absolute inset-0 rounded-full bg-[var(--accent)] shadow-[0_0_18px_-4px_var(--accent)]"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className={`relative flex items-center gap-1.5 ${active ? "text-white" : ""}`}>
+                      <Icon size={14} aria-hidden="true" />
+                      {getNotificationCategoryLabel(category)}
+                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-[10px] text-white ${active ? "bg-white/25" : "bg-[var(--accent)]"}`}>{counts.unread}</span> : null}
+                    </span>
                   </button>
                 );
               })}
@@ -313,10 +369,9 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.28, delay: Math.min(idx * 0.04, 0.4), ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.28, delay: idx * 0.045, ease: [0.16, 1, 0.3, 1] }}
                 >
                 <NotificationGroupCard
-                  key={group.key}
                   group={group}
                   expanded={expandedGroups.includes(group.key)}
                   busy={isPending}
@@ -355,15 +410,16 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value, index = 0 }: { label: string; value: number; index?: number }) {
+  const display = useCountUp(value);
   return (
     <motion.div
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ scale: 0.9, opacity: 0, y: 8 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 400, damping: 24, delay: index * 0.09 }}
       className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3 text-center"
     >
-      <strong className="block text-xl text-[var(--text-primary)]">{value.toLocaleString()}</strong>
+      <strong className="block text-xl tabular-nums text-[var(--text-primary)]">{display}</strong>
       <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
     </motion.div>
   );
@@ -400,7 +456,7 @@ function NotificationGroupCard({
 
   return (
     <article
-      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.unreadCount > 0 ? "ring-1 ring-[var(--accent-muted)]" : ""}`}
+      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.unreadCount > 0 ? "ring-1 ring-[var(--accent-muted)]" : ""} ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
       data-testid="notification-group"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start">

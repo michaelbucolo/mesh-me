@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
 import {
@@ -61,6 +62,26 @@ function usernameCandidate(raw: string): string | null {
   return /^[a-z0-9_]{2,24}$/.test(value) ? value : null;
 }
 
+// A single sheen sweep across the "go" affordance the moment it becomes ready.
+// Mounts with its parent's ready state, so it plays exactly once per readiness.
+function GoSheen() {
+  return (
+    <motion.span
+      aria-hidden="true"
+      initial={{ x: "-130%", opacity: 0 }}
+      animate={{ x: "130%", opacity: [0, 0.85, 0] }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        borderRadius: 999,
+        background: "linear-gradient(105deg, transparent 25%, rgba(255,255,255,0.7) 50%, transparent 75%)",
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
 export function MeshEntryExperience({ nextPath, oauthProviders = [], initialError = null }: MeshEntryExperienceProps) {
   const router = useRouter();
 
@@ -97,7 +118,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     [],
   );
 
-  const fx = useRef<ConstellationState>({ energy: 0, stage: "identity", phase: "idle" });
+  const fx = useRef<ConstellationState>({ energy: 0, stage: "identity", phase: "idle", sparks: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -110,7 +131,15 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
   const spark = useCallback(() => {
     fx.current.energy = 1;
+    // Bump the keystroke counter so the constellation flings a caret spark.
+    fx.current.sparks = (fx.current.sparks ?? 0) + 1;
   }, []);
+
+  // How many signup fields are filled — used to warm the halo as Meshi comes alive.
+  const signupFilledCount = useMemo(
+    () => Object.values(signupFilled).filter(Boolean).length,
+    [signupFilled],
+  );
 
   const identity = useMemo(() => detectIdentity(identifier), [identifier]);
 
@@ -256,6 +285,16 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
   const displayName = preview?.displayName?.trim() || preview?.username || "there";
 
+  // The halo warms — periwinkle deepens, a magenta undertone rises — as the
+  // signup fields fill and Meshi comes to life.
+  const haloStyle: React.CSSProperties | undefined =
+    stage === "signup"
+      ? {
+          background: `radial-gradient(46% 40% at 50% 46%, rgba(110,139,255,${(0.1 + signupFilledCount * 0.045).toFixed(3)}), rgba(236,72,153,${(signupFilledCount * 0.024).toFixed(3)}) 42%, transparent 74%)`,
+          transition: "background 520ms cubic-bezier(0.16,1,0.3,1)",
+        }
+      : undefined;
+
   return (
     <div
       className={`mesh-gate${success ? " mesh-gate-done" : ""}`}
@@ -263,9 +302,44 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       data-stage={stage}
     >
       <MeshBorderConstellation state={fx} anchorRef={anchorRef} reducedMotion={Boolean(reduceMotion)} />
-      <div className="mesh-gate-halo" aria-hidden="true" />
+      <div className="mesh-gate-halo" aria-hidden="true" style={haloStyle} />
 
-      <main className="mesh-gate-core">
+      {/* Success handoff: a radial aurora bloom (periwinkle → cyan → magenta)
+          holds for a beat of anticipation, then expands to cover as we glide
+          into /mesh. Skipped entirely under reduced motion. */}
+      {success && !reduceMotion && (
+        <motion.div
+          aria-hidden="true"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: [0, 0.16, 8], opacity: [0, 0.95, 1] }}
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], times: [0, 0.2, 1] }}
+          style={{
+            position: "fixed",
+            left: "50%",
+            top: "50%",
+            width: "30vmax",
+            height: "30vmax",
+            marginLeft: "-15vmax",
+            marginTop: "-15vmax",
+            borderRadius: "50%",
+            zIndex: 3,
+            pointerEvents: "none",
+            mixBlendMode: "screen",
+            background:
+              "radial-gradient(circle, rgba(110,139,255,0.95) 0%, rgba(52,228,234,0.85) 40%, rgba(236,72,153,0.9) 72%, rgba(236,72,153,0) 100%)",
+          }}
+        />
+      )}
+
+      <motion.main
+        className="mesh-gate-core"
+        animate={
+          success && !reduceMotion
+            ? { scale: [1, 0.955, 1.04], opacity: [1, 1, 0.72] }
+            : undefined
+        }
+        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], times: [0, 0.2, 1] }}
+      >
         {/* IDENTITY — a blank page and a single question */}
         {stage === "identity" && (
           <form
@@ -298,11 +372,12 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               />
               <button
                 type="submit"
-                className={`mesh-gate-go${identifier.trim() ? " is-ready" : ""}`}
+                className={`mesh-gate-go overflow-hidden${identifier.trim() ? " is-ready" : ""}`}
                 disabled={isPending || !hydrated}
                 aria-label="Continue"
                 data-testid="entry-continue-button"
               >
+                {identifier.trim() && !reduceMotion && <GoSheen />}
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
@@ -410,11 +485,12 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               </button>
               <button
                 type="submit"
-                className={`mesh-gate-go${password ? " is-ready" : ""}`}
+                className={`mesh-gate-go overflow-hidden${password ? " is-ready" : ""}`}
                 disabled={isPending || success}
                 aria-label="Enter my world"
                 data-testid="entry-submit-button"
               >
+                {password && !success && !reduceMotion && <GoSheen />}
                 {isPending || success ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
@@ -565,7 +641,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             </button>
           </form>
         )}
-      </main>
+      </motion.main>
 
       <footer className="mesh-gate-foot">
         <div className="mesh-gate-shield">

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion, useAnimationControls } from "framer-motion";
 import {
   Bell,
   ChevronDown,
@@ -25,7 +26,7 @@ import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-ident
 import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ReactiveSurfaces } from "@/components/layout/reactive-surfaces";
-import { sidebarNavItems, resolveNavHref, isNavItemActive } from "@/components/layout/navigation-config";
+import { sidebarNavItems, resolveNavHref, isNavItemActive, type NavItem } from "@/components/layout/navigation-config";
 
 const CommandPalette = dynamic(
   () => import("@/components/layout/command-palette").then((module) => module.CommandPalette),
@@ -94,6 +95,54 @@ function getRouteInfo(pathname: string, username: string): RouteInfo {
   return routeInfoMap[pathname] ?? routeInfoMap[firstSegment] ?? { title: "Mesh.me", description: "" };
 }
 
+// Shared morphing sidebar indicator + a spring pop when an icon lands active.
+const SIDEBAR_INDICATOR_SPRING = { type: "spring" as const, stiffness: 380, damping: 30 };
+const SIDEBAR_ICON_POP = { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] as const, times: [0, 0.4, 0.7, 1] };
+
+function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; active: boolean }) {
+  const Icon = item.icon;
+  const iconControls = useAnimationControls();
+  const wasActive = useRef(active);
+
+  useEffect(() => {
+    if (active && !wasActive.current) {
+      void iconControls.start({ scale: [1, 1.2, 0.94, 1] }, SIDEBAR_ICON_POP);
+    }
+    wasActive.current = active;
+  }, [active, iconControls]);
+
+  return (
+    <Link
+      href={href}
+      className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[15px] font-medium transition-all duration-150 ${
+        active
+          ? "mesh-nav-item-active bg-[var(--mesh-panel-hover)] font-semibold text-[var(--mesh-text)]"
+          : "text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text)]"
+      }`}
+      aria-current={active ? "page" : undefined}
+    >
+      {/* ONE shared indicator (gradient periwinkle→cyan, soft glow) that slides
+          and stretches between items on route change via framer layoutId. */}
+      {active && (
+        <motion.span
+          layoutId="sidebar-nav-indicator"
+          transition={SIDEBAR_INDICATOR_SPRING}
+          className="pointer-events-none absolute bottom-[19%] left-0 top-[19%] w-[3px] rounded-r-full"
+          style={{
+            background: "linear-gradient(180deg, var(--accent), var(--mesh-cyan))",
+            boxShadow: "0 0 12px color-mix(in srgb, var(--accent) 55%, transparent)",
+          }}
+          aria-hidden="true"
+        />
+      )}
+      <motion.span animate={iconControls} className="relative flex shrink-0">
+        <Icon className={`h-[20px] w-[20px] shrink-0 ${active ? "stroke-[2px]" : "stroke-[1.5px]"}`} aria-hidden="true" />
+      </motion.span>
+      <span className="truncate">{item.label}</span>
+    </Link>
+  );
+}
+
 function ShellTopBar({
   user,
   routeInfo,
@@ -149,6 +198,30 @@ function ShellTopBar({
 
   return (
     <header className="mesh-topbar sticky top-0 z-30 flex min-h-[54px] items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:min-h-[72px] lg:gap-4 lg:px-6">
+      {/* Account dropdown: top-right spring reveal + quick top-down item
+          stagger. Bespoke keyframes scoped here; self-guards reduced motion. */}
+      <style>{`
+        @keyframes meshAcctPanelIn {
+          from { opacity: 0; transform: scale(0.9) translateY(-6px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes meshAcctItemIn {
+          from { opacity: 0; transform: translateY(-7px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        details[open] > .mesh-account-panel {
+          transform-origin: top right;
+          animation: meshAcctPanelIn 260ms var(--mesh-spring-lush) both;
+        }
+        details[open] > .mesh-account-panel .mesh-account-item {
+          animation: meshAcctItemIn 300ms var(--mesh-ease-out) both;
+          animation-delay: calc(var(--acc-i, 0) * 38ms + 70ms);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          details[open] > .mesh-account-panel,
+          details[open] > .mesh-account-panel .mesh-account-item { animation: none; }
+        }
+      `}</style>
       <div className="min-w-0 flex-1 lg:flex-none">
         <div className="flex min-w-0 items-center gap-2">
           <h1 className="truncate text-[19px] font-bold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
@@ -194,7 +267,7 @@ function ShellTopBar({
             <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
             <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
           </summary>
-          <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg z-50">
+          <div className="mesh-account-panel absolute right-0 top-[calc(100%+0.5rem)] w-64 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg z-50">
             <div className="flex items-center gap-3 rounded-lg bg-[var(--mesh-bg-elevated)] p-3">
               <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={34} />
               <div className="min-w-0">
@@ -206,14 +279,15 @@ function ShellTopBar({
               className="mt-2 grid gap-0.5"
               onClick={() => accountMenuRef.current?.removeAttribute("open")}
             >
-              <Link href={`/profile/${user.username}`} className="mesh-dropdown-item">Profile</Link>
-              <Link href="/connected-accounts" className="mesh-dropdown-item">Connected accounts</Link>
-              <Link href="/settings" className="mesh-dropdown-item">Settings</Link>
-              <Link href="/search" className="mesh-dropdown-item lg:hidden">Search</Link>
-              <Link href="/meshpro" className="mesh-dropdown-item">Mesh Pro</Link>
+              <Link href={`/profile/${user.username}`} className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 0 }}>Profile</Link>
+              <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 1 }}>Connected accounts</Link>
+              <Link href="/settings" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 2 }}>Settings</Link>
+              <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden" style={{ ["--acc-i" as string]: 3 }}>Search</Link>
+              <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 4 }}>Mesh Pro</Link>
               <button
                 type="button"
-                className="mesh-dropdown-item w-full text-left"
+                className="mesh-dropdown-item mesh-account-item w-full text-left"
+                style={{ ["--acc-i" as string]: 5 }}
                 onClick={(e) => {
                   (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
                   window.dispatchEvent(new CustomEvent("mesh:open-bug-report"));
@@ -221,8 +295,8 @@ function ShellTopBar({
               >
                 Report a bug
               </button>
-              <hr className="my-1 border-[var(--mesh-border)]" />
-              <form action={signOut}>
+              <hr className="mesh-account-item my-1 border-[var(--mesh-border)]" style={{ ["--acc-i" as string]: 6 }} />
+              <form action={signOut} className="mesh-account-item" style={{ ["--acc-i" as string]: 7 }}>
                 <button type="submit" className="mesh-dropdown-item mesh-dropdown-danger w-full text-left">
                   Sign out
                 </button>
@@ -239,6 +313,27 @@ export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const { theme, setMode } = useTheme();
   const routeInfo = useMemo(() => getRouteInfo(pathname, user.username), [pathname, user.username]);
+
+  // Directional route transitions: diff the incoming path against a small
+  // history stack so going deeper enters from the right and returning slides in
+  // from the left. The route slot exposes this as data-nav-dir, which the shared
+  // Mesh Motion CSS reads. Unknown/initial → no direction (neutral rise).
+  // Derived during render via React's "adjust state when a prop changes"
+  // pattern, so the fresh (keyed) slot carries the direction on its first paint.
+  const [navTracker, setNavTracker] = useState<{ path: string; dir: "forward" | "back" | undefined; history: string[] }>(
+    () => ({ path: pathname, dir: undefined, history: [pathname] })
+  );
+  if (navTracker.path !== pathname) {
+    const history = navTracker.history;
+    const goingBack = history.length >= 2 && history[history.length - 2] === pathname;
+    const prev = history[history.length - 1];
+    const prevDepth = prev ? prev.split("/").filter(Boolean).length : 0;
+    const nextDepth = pathname.split("/").filter(Boolean).length;
+    const dir: "forward" | "back" | undefined = goingBack || nextDepth < prevDepth ? "back" : "forward";
+    const nextHistory = goingBack ? history.slice(0, -1) : [...history, pathname].slice(-24);
+    setNavTracker({ path: pathname, dir, history: nextHistory });
+  }
+  const navDir = navTracker.path === pathname ? navTracker.dir : undefined;
   const isFeedSurface = pathname === "/feed" || pathname.startsWith("/feed/");
   const isMeshSurface = pathname === "/mesh" || pathname.startsWith("/mesh/");
   // The Flow is a full-bleed reel stage: no top bar, no ambient background.
@@ -342,6 +437,10 @@ export function AppShell({ children, user }: AppShellProps) {
   return (
     <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""}`}>
 
+      {/* The per-item static active bar is superseded by the shared morphing
+          indicator rendered inside the active SidebarNavItem. */}
+      <style>{`.mesh-sidebar .mesh-nav-item-active::before { display: none !important; }`}</style>
+
       {!isMeshSurface && !isFlowSurface && (
         <DeferredMeshBackground
           fixed
@@ -371,23 +470,8 @@ export function AppShell({ children, user }: AppShellProps) {
             {sidebarNavItems.map((item) => {
               const href = resolveNavHref(item.href, user.username);
               const active = isNavItemActive(pathname, item.href, user.username);
-              const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={href}
-                  className={`mesh-nav-item group flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[15px] font-medium transition-all duration-150 ${
-                    active
-                      ? "mesh-nav-item-active bg-[var(--mesh-panel-hover)] font-semibold text-[var(--mesh-text)]"
-                      : "text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text)]"
-                  }`}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon className={`h-[20px] w-[20px] shrink-0 ${active ? "stroke-[2px]" : "stroke-[1.5px]"}`} aria-hidden="true" />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
+              return <SidebarNavItem key={item.href} item={item} href={href} active={active} />;
             })}
           </div>
         </nav>
@@ -464,7 +548,7 @@ export function AppShell({ children, user }: AppShellProps) {
         {!isFlowSurface && <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />}
 
         <div className="mesh-content flex-1 overflow-y-auto">
-          <div key={pathname} className="mesh-route-slot animate-page-enter">
+          <div key={pathname} className="mesh-route-slot animate-page-enter" data-nav-dir={navDir}>
             {children}
           </div>
         </div>

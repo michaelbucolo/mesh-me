@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useAnimationControls, useReducedMotion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
   Send, Search,
@@ -522,6 +522,36 @@ function getPageArrivalPosition(pathname: string): MeshiPoint {
   return safe;
 }
 
+// Aurora tap-burst — a spring of periwinkle/cyan particles (plus a heart or two)
+// flung radially from Meshi's center when the user taps it.
+type MeshiBurstParticle = { id: string; dx: number; dy: number; color: string; size: number; heart: boolean };
+type MeshiTapBurst = { id: string; particles: MeshiBurstParticle[] };
+
+const MESHI_BURST_COLORS = ["#6e8bff", "#34e4ea", "#8b5cf6"];
+const MESHI_HEART_COLOR = "#ec4899";
+
+function createMeshiBurst(count: number): MeshiTapBurst {
+  const total = Math.max(6, Math.min(10, count));
+  const id = `burst-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const heartCount = total >= 9 ? 2 : 1;
+  const base = Math.random() * Math.PI * 2;
+  const particles: MeshiBurstParticle[] = [];
+  for (let i = 0; i < total; i += 1) {
+    const angle = base + (i / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+    const dist = 28 + Math.random() * 22;
+    const isHeart = i < heartCount;
+    particles.push({
+      id: `${id}-${i}`,
+      dx: Math.cos(angle) * dist,
+      dy: Math.sin(angle) * dist,
+      color: isHeart ? MESHI_HEART_COLOR : MESHI_BURST_COLORS[i % MESHI_BURST_COLORS.length],
+      size: isHeart ? 12 : 6 + Math.random() * 3,
+      heart: isHeart,
+    });
+  }
+  return { id, particles };
+}
+
 export function MeshiFloat() {
   const [initialContinuity] = useState<MeshiContinuityState | null>(() => readMeshiContinuityState());
   const [instanceId] = useState(() => getOrCreateMeshiInstanceId());
@@ -611,6 +641,14 @@ export function MeshiFloat() {
   const springX = useSpring(meshiX, { stiffness: 200, damping: 25, mass: 0.6 });
   const springY = useSpring(meshiY, { stiffness: 200, damping: 25, mass: 0.6 });
 
+  // Magnetic lean: a small capped pull + tilt toward the cursor when it nears Meshi.
+  const magnetX = useMotionValue(0);
+  const magnetY = useMotionValue(0);
+  const magnetRotate = useMotionValue(0);
+  const magnetSpringX = useSpring(magnetX, { stiffness: 220, damping: 18, mass: 0.4 });
+  const magnetSpringY = useSpring(magnetY, { stiffness: 220, damping: 18, mass: 0.4 });
+  const magnetSpringRotate = useSpring(magnetRotate, { stiffness: 220, damping: 18, mass: 0.4 });
+
   const [isDragging, setIsDragging] = useState(false);
   const [isAvoidingUi, setIsAvoidingUi] = useState(false);
   const [wasDragged, setWasDragged] = useState(false);
@@ -630,6 +668,11 @@ export function MeshiFloat() {
   const [isTyping, setIsTyping] = useState(false);
   const [activeProp, setActiveProp] = useState<MeshiProp>("none");
   const [clickBurst, setClickBurst] = useState(false);
+  const [tapBursts, setTapBursts] = useState<MeshiTapBurst[]>([]);
+  const tapBurstTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const tapStreakRef = useRef<{ count: number; at: number }>({ count: 0, at: 0 });
+  const tapSquashControls = useAnimationControls();
+  const prefersReducedMotion = useReducedMotion();
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickBurstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -698,6 +741,7 @@ export function MeshiFloat() {
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setIsMounted(true));
     const bubbleTimers = speechBubbleTimersRef.current;
+    const tapTimers = tapBurstTimersRef.current;
     return () => {
       window.cancelAnimationFrame(frame);
       if (avoidingUiTimerRef.current) window.clearTimeout(avoidingUiTimerRef.current);
@@ -706,6 +750,8 @@ export function MeshiFloat() {
       explorationTimersRef.current = [];
       for (const t of bubbleTimers.values()) clearTimeout(t);
       bubbleTimers.clear();
+      for (const t of tapTimers.values()) clearTimeout(t);
+      tapTimers.clear();
     };
   }, []);
 
@@ -1172,6 +1218,59 @@ export function MeshiFloat() {
     };
   }, [meshiX, meshiY]);
 
+  // Magnetic lean — Meshi leans a few pixels + a slight tilt toward the cursor as
+  // it draws near, then relaxes. Capped small; skipped entirely under reduced motion.
+  useEffect(() => {
+    if (!meshiEnabled || prefersReducedMotion || typeof window === "undefined") return;
+    const RADIUS = 220;
+    const MAX_PULL = 5;
+    const MAX_TILT = 6;
+    let frame: number | null = null;
+    let pending: { x: number; y: number } | null = null;
+
+    const relax = () => {
+      magnetX.set(0);
+      magnetY.set(0);
+      magnetRotate.set(0);
+    };
+
+    const apply = () => {
+      frame = null;
+      if (!pending || isDragging) {
+        relax();
+        return;
+      }
+      const cx = meshiX.get() + MESHI_SIZE / 2;
+      const cy = meshiY.get() + MESHI_SIZE / 2;
+      const dx = pending.x - cx;
+      const dy = pending.y - cy;
+      const dist = Math.hypot(dx, dy);
+      if (dist >= RADIUS || dist < 0.001) {
+        relax();
+        return;
+      }
+      const strength = 1 - dist / RADIUS;
+      const offX = (dx / dist) * MAX_PULL * strength;
+      const offY = (dy / dist) * MAX_PULL * strength;
+      magnetX.set(offX);
+      magnetY.set(offY);
+      magnetRotate.set((offX / MAX_PULL) * MAX_TILT);
+    };
+
+    const handleMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      pending = { x: event.clientX, y: event.clientY };
+      if (frame === null) frame = window.requestAnimationFrame(apply);
+    };
+
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      relax();
+    };
+  }, [meshiEnabled, prefersReducedMotion, isDragging, magnetX, magnetY, magnetRotate, meshiX, meshiY]);
+
   const addSpeechBubble = useCallback((role: "user" | "meshi", text: string) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);
     setSpeechBubbles((prev) => [...prev.slice(-4), { id, text, role, timestamp: Date.now() }]);
@@ -1371,8 +1470,27 @@ export function MeshiFloat() {
     if (view === "speech") setTimeout(() => speechInputRef.current?.focus(), 100);
   }, [view]);
 
+  // Aurora payoff on tap: escalating particle burst + one-shot elastic squash.
+  const emitTapBurst = useCallback(() => {
+    const now = Date.now();
+    const streak = now - tapStreakRef.current.at < 900 ? tapStreakRef.current.count + 1 : 1;
+    tapStreakRef.current = { count: streak, at: now };
+    const burst = createMeshiBurst(5 + streak);
+    setTapBursts((prev) => [...prev.slice(-3), burst]);
+    const timer = setTimeout(() => {
+      setTapBursts((prev) => prev.filter((b) => b.id !== burst.id));
+      tapBurstTimersRef.current.delete(burst.id);
+    }, 760);
+    tapBurstTimersRef.current.set(burst.id, timer);
+    tapSquashControls.start({
+      scale: [0.86, 1.18, 1],
+      transition: { duration: 0.44, ease: [0.22, 1.61, 0.36, 1], times: [0, 0.45, 1] },
+    });
+  }, [tapSquashControls]);
+
   const handleMeshiClick = useCallback(() => {
     if (wasDragged) return;
+    emitTapBurst();
     impactFeedback("MEDIUM");
     // Mark first-time interaction
     if (isFirstTimeMeshi) {
@@ -1383,7 +1501,7 @@ export function MeshiFloat() {
     else if (view === "actions") { setView("closed"); }
     else if (view === "speech") { setView("closed"); setSpeechBubbles([]); }
     else { setView("closed"); }
-  }, [view, wasDragged, isFirstTimeMeshi]);
+  }, [view, wasDragged, isFirstTimeMeshi, emitTapBurst]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     dragStartRef.current = { x: e.clientX, y: e.clientY, px: springX.get(), py: springY.get() };
@@ -1747,6 +1865,16 @@ export function MeshiFloat() {
                 rotate: isPageTransitioning ? [0, 10, -10, 5, 0] : isDragging ? [0, 3, -3, 0] : 0,
               }}
               transition={{ duration: isPageTransitioning ? 0.6 : 0.3, ease: "easeOut" }}>
+              {/* Elastic squash + magnetic lean layer (composes with the bob below) */}
+              <motion.div
+                className="h-full w-full"
+                animate={tapSquashControls}
+                style={{
+                  transformOrigin: "center",
+                  x: magnetSpringX,
+                  y: magnetSpringY,
+                  rotate: magnetSpringRotate,
+                }}>
               <motion.div
                 animate={
                   isDragging
@@ -1796,6 +1924,56 @@ export function MeshiFloat() {
                   bouncy={isIdle}
                 />
               </motion.div>
+              </motion.div>
+
+              {/* Aurora tap burst — particles flung radially from Meshi's center */}
+              {tapBursts.length > 0 && (
+                <span className="pointer-events-none absolute left-1/2 top-1/2 z-20" aria-hidden="true">
+                  {tapBursts.map((burst) => (
+                    <span key={burst.id} className="absolute left-0 top-0">
+                      {burst.particles.map((particle) => (
+                        <motion.span
+                          key={particle.id}
+                          className="absolute left-0 top-0 block"
+                          initial={{ x: 0, y: 0, scale: 0.4, opacity: 1 }}
+                          animate={{ x: particle.dx, y: particle.dy, scale: 1, opacity: 0 }}
+                          transition={{
+                            default: { type: "spring", stiffness: 340, damping: 20, mass: 0.5 },
+                            opacity: { duration: 0.62, ease: "easeOut" },
+                          }}
+                        >
+                          {particle.heart ? (
+                            <span
+                              className="block"
+                              style={{
+                                marginLeft: -particle.size / 2,
+                                marginTop: -particle.size / 2,
+                                fontSize: particle.size,
+                                lineHeight: 1,
+                                color: particle.color,
+                              }}
+                            >
+                              ♥
+                            </span>
+                          ) : (
+                            <span
+                              className="block rounded-full"
+                              style={{
+                                width: particle.size,
+                                height: particle.size,
+                                marginLeft: -particle.size / 2,
+                                marginTop: -particle.size / 2,
+                                background: particle.color,
+                                boxShadow: `0 0 8px ${particle.color}`,
+                              }}
+                            />
+                          )}
+                        </motion.span>
+                      ))}
+                    </span>
+                  ))}
+                </span>
+              )}
 
               {/* Active ring when actions/speech open */}
               {view !== "closed" && view !== "chat" && (

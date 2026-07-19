@@ -5,7 +5,8 @@
 // your world, drawn as a glowing thread through every moment, in order.
 // Built only from your own activity; only you can ever see it.
 
-import { ChevronLeft, ChevronRight, Footprints, Lock } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ChevronLeft, ChevronRight, Footprints, Lock, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -92,6 +93,7 @@ function layoutTrail(steps: TrailStep[], width: number) {
 
 function TrailInner({ isPro }: { isPro: boolean }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const searchParams = useSearchParams();
   const month = searchParams.get("month");
   // "Your Year" — the same thread across twelve months (Mesh Pro).
@@ -302,8 +304,8 @@ function TrailInner({ isPro }: { isPro: boolean }) {
                     pathLength={1}
                     style={{
                       strokeDasharray: 1,
-                      strokeDashoffset: 1,
-                      animation: "trailDraw 2.6s cubic-bezier(0.4,0,0.2,1) .2s forwards",
+                      strokeDashoffset: reduce ? 0 : 1,
+                      animation: reduce ? undefined : "trailDraw 2.6s cubic-bezier(0.4,0,0.2,1) .2s forwards",
                     }}
                   />
                   <defs>
@@ -328,7 +330,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
                         key={step.id}
                         onMouseEnter={() => setHoveredNode(step.id)}
                         onMouseLeave={() => setHoveredNode(null)}
-                        style={{ animation: `trailNodeIn .5s ease-out ${0.25 + (i / Math.max(trail.points.length, 1)) * 2.2}s backwards` }}
+                        style={{ animation: reduce ? undefined : `trailNodeIn .5s ease-out ${0.25 + (i / Math.max(trail.points.length, 1)) * 2.2}s backwards` }}
                       >
                         {/* Inner group carries the hover scale so it never fights the entrance animation. */}
                         <g
@@ -384,7 +386,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
                         [left ? "left" : "right"]: `${((left ? pt.x + 22 : trail.width - pt.x + 22) / trail.width) * 100}%`,
                         transform: "translateY(-50%)",
                         textAlign: left ? "left" : "right",
-                        animation: `trailNodeIn .5s ease-out ${0.35 + (i / Math.max(trail.points.length, 1)) * 2.2}s backwards`,
+                        animation: reduce ? undefined : `trailNodeIn .5s ease-out ${0.35 + (i / Math.max(trail.points.length, 1)) * 2.2}s backwards`,
                       }}
                     >
                       {step.href ? (
@@ -397,6 +399,51 @@ function TrailInner({ isPro }: { isPro: boolean }) {
                     </div>
                   );
                 })}
+                {/* Finale — a little spark lands at the end of the trail once
+                    the thread finishes drawing itself in. */}
+                {trail.points.length > 0 &&
+                  (() => {
+                    const end = trail.points[trail.points.length - 1];
+                    const delay = reduce ? 0 : 2.9;
+                    return (
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute"
+                        style={{
+                          left: `${(end.x / trail.width) * 100}%`,
+                          top: `${(end.y / trail.height) * 100}%`,
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      >
+                        {!reduce && (
+                          <motion.span
+                            className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                            style={{ borderColor: "var(--mesh-cyan)" }}
+                            initial={{ scale: 0.4, opacity: 0.75 }}
+                            animate={{ scale: 2.6, opacity: 0 }}
+                            transition={{ delay, duration: 1, ease: "easeOut", repeat: Infinity, repeatDelay: 1.6 }}
+                          />
+                        )}
+                        {/* Float lives on the wrapper so its transform never
+                            fights the framer pop below. */}
+                        <div className="mesh-float">
+                          <motion.span
+                            className="relative flex h-7 w-7 items-center justify-center rounded-full"
+                            style={{
+                              color: "var(--mesh-cyan)",
+                              background:
+                                "radial-gradient(circle, color-mix(in srgb, var(--accent) 55%, transparent), transparent 70%)",
+                            }}
+                            initial={reduce ? false : { scale: 0, opacity: 0, rotate: -30 }}
+                            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                            transition={{ delay, type: "spring", stiffness: 320, damping: 16 }}
+                          >
+                            <Sparkles size={16} />
+                          </motion.span>
+                        </div>
+                      </div>
+                    );
+                  })()}
               </div>
             )}
           </div>

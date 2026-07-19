@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, ChevronsDown, Loader2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsDown, Sparkles, X } from "lucide-react";
 import { PostCard } from "@/components/feed/post-card";
 
 type ReelPost = {
@@ -56,6 +57,21 @@ function relatedTo(anchor: ReelPost, all: ReelPost[]): ReelPost[] {
   return scored;
 }
 
+// The platform's loading motif: a sparkle with a brand mote orbiting it — on
+// brand where a spinner used to be. Framer degrades it to a calm static
+// sparkle under reduced motion.
+function OrbitSparkle({ size = 16 }: { size?: number }) {
+  const box = size + 8;
+  return (
+    <span className="relative inline-flex items-center justify-center" style={{ width: box, height: box }} aria-hidden>
+      <motion.span className="absolute inset-0" animate={{ rotate: 360 }} transition={{ duration: 2.2, ease: "linear", repeat: Infinity }}>
+        <span className="absolute left-1/2 top-0 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: "var(--mesh-cyan)", boxShadow: "0 0 6px var(--mesh-cyan)" }} />
+      </motion.span>
+      <Sparkles size={size} className="text-[var(--accent)]" style={{ filter: "drop-shadow(0 0 3px var(--accent))" }} />
+    </span>
+  );
+}
+
 export function FlowReels({
   posts,
   startId,
@@ -71,6 +87,7 @@ export function FlowReels({
   const [activeId, setActiveId] = useState<string | null>(startId ?? posts[0]?.id ?? null);
   const [activeHasRelated, setActiveHasRelated] = useState(false);
   const mounted = useSyncExternalStore(subscribeNoop, getTrue, getFalse);
+  const reduce = useReducedMotion();
 
   const relatedByPost = useMemo(() => {
     const map = new Map<string, ReelPost[]>();
@@ -133,10 +150,45 @@ export function FlowReels({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="flow-reels-overlay" role="dialog" aria-label="Immersive Flow">
-      <button type="button" onClick={onClose} className="flow-reels-close" aria-label="Exit immersive Flow">
+    <motion.div
+      className="flow-reels-overlay"
+      role="dialog"
+      aria-label="Immersive Flow"
+      // Override the class's flat opacity fade; framer owns the reveal now.
+      style={{ animation: "none" }}
+      initial={reduce ? { opacity: 0 } : { opacity: 0, clipPath: "circle(0% at 50% 62%)" }}
+      animate={reduce ? { opacity: 1 } : { opacity: 1, clipPath: "circle(150% at 50% 62%)" }}
+      transition={reduce ? { duration: 0.2 } : { duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {/* Brand glows bloom in behind the content (kept below the feed). */}
+      {!reduce && (
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            zIndex: -1,
+            background:
+              "radial-gradient(60% 42% at 50% 0%, rgba(110, 139, 255, 0.22), transparent 60%), radial-gradient(52% 36% at 50% 100%, rgba(139, 92, 246, 0.16), transparent 62%)",
+          }}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+        />
+      )}
+      <motion.button
+        type="button"
+        onClick={onClose}
+        className="flow-reels-close"
+        aria-label="Exit immersive Flow"
+        // Let framer own the transform; keep only the class's background transition.
+        style={{ transition: "background 0.15s ease" }}
+        initial={reduce ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.8 }}
+        animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+        transition={reduce ? { duration: 0.2 } : { type: "spring", stiffness: 380, damping: 22, delay: 0.15 }}
+        whileTap={{ scale: 0.92 }}
+      >
         <X size={20} aria-hidden="true" />
-      </button>
+      </motion.button>
 
       {posts.length === 0 ? (
         <div className="flex min-h-full flex-col items-center justify-center px-6 text-center">
@@ -186,7 +238,7 @@ export function FlowReels({
 
           {loadingMore && (
             <div className="flow-reels-loading" role="status">
-              <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+              <OrbitSparkle size={16} />
             </div>
           )}
         </div>
@@ -204,7 +256,7 @@ export function FlowReels({
           )}
         </div>
       )}
-    </div>,
+    </motion.div>,
     document.body,
   );
 }
