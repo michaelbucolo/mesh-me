@@ -14,17 +14,23 @@ export function EmptyState({ icon: Icon, title, description, children, className
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center",
+        "mesh-cascade relative flex flex-col items-center justify-center text-center",
         compact ? "py-8" : "py-14",
         className
       )}
     >
-      <div className="mb-4 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface-muted)] p-3">
+      {/* A soft aurora glow breathes behind the icon so blank screens feel
+          inviting rather than dead. */}
+      <span className="mesh-soft-glow" aria-hidden="true" style={{ top: compact ? "2.5rem" : "3.75rem" }} />
+      <div
+        className="mesh-float relative mb-4 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface-muted)] p-3"
+        style={{ ["--i" as string]: 0 }}
+      >
         <Icon className={cn("text-[var(--text-muted)]", compact ? "h-5 w-5" : "h-7 w-7")} />
       </div>
-      <h3 className="mb-1 text-base font-semibold text-[var(--text-primary)] ds-text-balance">{title}</h3>
-      {description && <p className="max-w-sm text-sm leading-6 text-[var(--text-secondary)]">{description}</p>}
-      {children && <div className="mt-4">{children}</div>}
+      <h3 className="relative mb-1 text-base font-semibold text-[var(--text-primary)] ds-text-balance" style={{ ["--i" as string]: 1 }}>{title}</h3>
+      {description && <p className="relative max-w-sm text-sm leading-6 text-[var(--text-secondary)]" style={{ ["--i" as string]: 2 }}>{description}</p>}
+      {children && <div className="relative mt-4" style={{ ["--i" as string]: 3 }}>{children}</div>}
     </div>
   );
 }
