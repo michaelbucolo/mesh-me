@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { Ghost } from "lucide-react";
 import { setGhostMode } from "@/lib/actions";
+import { broadcastGhostMode, GHOST_EVENT, GHOST_STORAGE_KEY, readGhostMode } from "@/lib/ghost-mode";
 import { playSound } from "@/lib/sound";
-
-const STORAGE_KEY = "meshGhostMode";
 
 /**
  * One-tap Ghost Mode. While active, presence heartbeats carry ghostMode:true —
@@ -22,39 +21,31 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
   // reflects the account state on every device — not just the one you toggled on.
   useEffect(() => {
     try {
-      if ((localStorage.getItem(STORAGE_KEY) === "true") !== initialGhost) {
-        localStorage.setItem(STORAGE_KEY, String(initialGhost));
-        window.dispatchEvent(new Event("meshGhostModeChanged"));
+      if ((localStorage.getItem(GHOST_STORAGE_KEY) === "true") !== initialGhost) {
+        localStorage.setItem(GHOST_STORAGE_KEY, String(initialGhost));
+        window.dispatchEvent(new Event(GHOST_EVENT));
       }
     } catch {
       // best-effort sync
     }
   }, [initialGhost]);
 
+  // Stay in lockstep with the other Ghost control (the Settings toggle): when
+  // either flips, both reflect it live without a reload.
+  useEffect(() => {
+    const sync = () => setGhost(readGhostMode());
+    window.addEventListener(GHOST_EVENT, sync);
+    return () => window.removeEventListener(GHOST_EVENT, sync);
+  }, []);
+
   const toggle = () => {
     const next = !ghost;
     setGhost(next);
     playSound(next ? "ghost" : "pop");
-    try {
-      localStorage.setItem(STORAGE_KEY, String(next));
-    } catch {
-      // best-effort persistence
-    }
-    // Same-tab listeners (the mesh turns your Meshi into a ghost) react now.
-    try {
-      window.dispatchEvent(new Event("meshGhostModeChanged"));
-    } catch {
-      // best-effort broadcast
-    }
+    // localStorage + same-tab event + an immediate presence heartbeat.
+    broadcastGhostMode(next);
     // Persist to the account so Ghost Mode follows the user to other devices.
     void setGhostMode(next).catch(() => {});
-    // Take effect immediately in the live room instead of waiting for the next heartbeat.
-    void fetch("/api/mesh/presence", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ surface: "feed", ghostMode: next }),
-    }).catch(() => {});
   };
 
   return (

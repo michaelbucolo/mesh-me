@@ -17,6 +17,7 @@ import {
   Sun,
 } from "lucide-react";
 import { signOut } from "@/lib/actions";
+import { readGhostMode } from "@/lib/ghost-mode";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
@@ -318,12 +319,7 @@ export function AppShell({ children, user }: AppShellProps) {
       } catch {
         // storage unavailable — defaults are fine
       }
-      let ghostMode = false;
-      try {
-        ghostMode = localStorage.getItem("meshGhostMode") === "true";
-      } catch {
-        // storage unavailable
-      }
+      const ghostMode = readGhostMode();
       void fetch("/api/mesh/presence", {
         method: "POST",
         credentials: "same-origin",
