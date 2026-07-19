@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { cn, formatCount } from "@/lib/utils";
 import type {
@@ -462,6 +463,7 @@ export function ConnectedAccountsClient({
   const [actionState, setActionState] = useState<ActionState>(null);
   const dismissToast = useCallback(() => setActionState(null), []);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<ConnectedAccountView | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<PlatformAdapterCategory | "all">("all");
   const refreshAttemptedRef = useRef(false);
@@ -597,9 +599,6 @@ export function ConnectedAccountsClient({
   }
 
   async function disconnectAccount(account: ConnectedAccountView) {
-    const confirmed = window.confirm(`Disconnect ${account.platformName}? Mesh.me will remove the saved connection and local permission records.`);
-    if (!confirmed) return;
-
     setBusyKey(`delete-${account.id}`);
     try {
       await requestDashboard(`/api/connected-accounts/${account.id}`, { method: "DELETE" });
@@ -751,7 +750,7 @@ export function ConnectedAccountsClient({
                   busyKey={busyKey}
                   onSync={syncAccount}
                   onToggleActive={toggleActive}
-                  onDisconnect={disconnectAccount}
+                  onDisconnect={setDisconnecting}
                 />
               </motion.div>
             ))}
@@ -824,6 +823,18 @@ export function ConnectedAccountsClient({
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        open={disconnecting !== null}
+        onClose={() => setDisconnecting(null)}
+        onConfirm={() => {
+          if (disconnecting) void disconnectAccount(disconnecting);
+        }}
+        title={`Disconnect ${disconnecting?.platformName ?? "account"}?`}
+        description="Mesh.me will remove the saved connection and local permission records. Nothing changes on the platform itself."
+        confirmLabel="Disconnect"
+        destructive
+      />
 
       <Toast state={actionState} onDismiss={dismissToast} />
     </main>

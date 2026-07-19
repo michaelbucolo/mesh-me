@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { Download, Loader2, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Status = { type: "success" | "error"; message: string } | null;
 
 export function AnalyticsControls() {
   const [status, setStatus] = useState<Status>(null);
   const [busyAction, setBusyAction] = useState<"export" | "delete-synced" | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   async function exportData() {
     setBusyAction("export");
@@ -33,8 +35,6 @@ export function AnalyticsControls() {
   }
 
   async function deleteSyncedData() {
-    if (!window.confirm("Delete imported platform posts, comments, followers, media, analytics, and sync history? Connected accounts stay linked.")) return;
-
     setBusyAction("delete-synced");
     setStatus(null);
     try {
@@ -78,7 +78,7 @@ export function AnalyticsControls() {
         </button>
 
         <button
-          onClick={deleteSyncedData}
+          onClick={() => setConfirmingDelete(true)}
           disabled={busyAction !== null}
           className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-left transition hover:border-red-500/35 disabled:opacity-60"
         >
@@ -93,6 +93,15 @@ export function AnalyticsControls() {
           </span>
         </button>
       </div>
+      <ConfirmDialog
+        open={confirmingDelete}
+        onClose={() => setConfirmingDelete(false)}
+        onConfirm={() => void deleteSyncedData()}
+        title="Delete synced platform data?"
+        description="Imported platform posts, comments, followers, media, analytics, and sync history will be removed. Connected accounts stay linked."
+        confirmLabel="Delete synced data"
+        destructive
+      />
     </div>
   );
 }
