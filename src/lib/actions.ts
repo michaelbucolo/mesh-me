@@ -195,8 +195,11 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
   const isPhone = normalizedPhone.length >= 7 && !lowered.includes("@");
   const identifierKey = isPhone ? normalizedPhone : lowered;
 
+  // Per-identifier keying alone would let a caller rotate identifiers freely,
+  // so an aggregate ceiling backstops bulk probing across many identifiers.
   const rl = await durableRateLimit(`entry-identity:${identifierKey}`, 12, 15 * 60 * 1000);
-  if (!rl.allowed) {
+  const globalRl = await durableRateLimit("entry-identity:global", 600, 15 * 60 * 1000);
+  if (!rl.allowed || !globalRl.allowed) {
     return { error: "Too many attempts. Please try again later." };
   }
 
@@ -212,24 +215,21 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
     });
 
     if (!user && isEmail) {
+      // Verified and unverified contacts resolve identically to the sign-in
+      // step; a distinct pre-auth "not verified" message would tell an
+      // unauthenticated caller which contacts are registered but unconfirmed.
       const emailRecord = await prisma.userEmail.findUnique({
         where: { email: lowered },
-        select: { userId: true, isVerified: true },
+        select: { userId: true },
       });
-      if (emailRecord && !emailRecord.isVerified) {
-        return { error: "This email isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
-      }
       user = emailRecord ? { id: emailRecord.userId } : null;
     }
 
     if (!user && isPhone) {
       const phoneRecord = await prisma.userPhone.findFirst({
         where: { phone: { in: Array.from(new Set([normalizedPhone, identifier])) } },
-        select: { userId: true, isVerified: true },
+        select: { userId: true },
       });
-      if (phoneRecord && !phoneRecord.isVerified) {
-        return { error: "This phone number isn't verified yet. Sign in with your username and password first, then verify it in Settings." };
-      }
       user = phoneRecord ? { id: phoneRecord.userId } : null;
     }
 
@@ -1806,6 +1806,7 @@ async function sharePostViaMeChatLegacy(formData: FormData) {
     },
   });
   if (!post) return { error: "Post not found" };
+  if (!(await canUserInteractWithPost(user.id, post))) return { error: "Post not found" };
 
   const note = ((formData.get("note") as string | null) || "").trim();
   const sharedMessage = `${note ? `${note}\n\n` : ""}Shared a post by ${post.author.displayName} (@${post.author.username})\n${post.content.slice(0, 260)}${post.content.length > 260 ? "…" : ""}\n/feed/${post.id}`;
@@ -1845,6 +1846,12 @@ export async function toggleSavePost(postId: string) {
   if (existing) {
     await prisma.savedPost.delete({ where: { id: existing.id } });
   } else {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true, visibility: true, communityId: true },
+    });
+    if (!post) return { error: "Post not found" };
+    if (!(await canUserInteractWithPost(user.id, post))) return { error: "Post not found" };
     await prisma.savedPost.create({
       data: { userId: user.id, postId },
     });
@@ -2026,12 +2033,15 @@ export async function repost(postId: string) {
     return { success: true, reposted: false };
   }
 
+  if (!(await canUserInteractWithPost(user.id, original))) return { error: "Post not found" };
+
   await prisma.post.create({
     data: {
       content: original.content,
       authorId: user.id,
       isRepost: true,
       repostId: postId,
+      visibility: original.visibility,
     },
   });
 

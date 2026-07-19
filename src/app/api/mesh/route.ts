@@ -4,7 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
-import { areMutualFollowers, canViewProfile, normalizeMeshVisibility } from "@/lib/privacy-policy";
+import {
+  areMutualFollowers,
+  canSeeMeshBranch,
+  canSeeMeshStats,
+  canViewMesh,
+  normalizeMeshVisibility,
+  parseBranchOverrides,
+  type BranchVisibility,
+} from "@/lib/privacy-policy";
 
 export async function GET(req: Request) {
   try {
@@ -715,7 +723,14 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
       isPublic: true,
       isSuspended: true,
       isMeshPro: true,
-      meshPrivacy: { select: { meshVisibility: true } },
+      meshPrivacy: {
+        select: {
+          meshVisibility: true,
+          branchOverrides: true,
+          showConnections: true,
+          showStats: true,
+        },
+      },
     },
   });
 
@@ -732,7 +747,11 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     targetUser.meshPrivacy?.meshVisibility,
     targetUser.isPublic ? "public" : "private",
   );
-  if (!canViewProfile({ id: viewerId }, targetUser, meshVisibility, isFriend)) {
+  const viewerRef = { id: viewerId };
+  const isSuspendedForViewer = targetUser.isSuspended && targetUser.id !== viewerId;
+  // Gate on the mesh's own visibility (not the account's isPublic flag) so a
+  // public account with a private/friends-only mesh stays locked.
+  if (isSuspendedForViewer || !canViewMesh(viewerRef, targetUserId, meshVisibility, isFriend)) {
     // A graceful state, not an error: the client renders a locked mesh with
     // the owner's identity and a path to their profile.
     return NextResponse.json({
@@ -809,13 +828,41 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     }),
   ]);
 
-  const following = followingData.map((f) => ({ ...f.following, joinedAt: f.createdAt }));
-  const followers = followersData.map((f) => ({ ...f.follower, joinedAt: f.createdAt }));
-  const interests = interestsData.map((i) => i.tag);
-  const visibleConnectedAccounts = connectedAccountsData.filter((ca) => {
-    const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
-    return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
-  });
+  // Per-branch privacy: connections (people), interests, and platforms are each
+  // only returned when their branch is visible to this viewer, and stats only
+  // when the owner shares them — mirroring getFriendMeshData.
+  const branchOverrides = parseBranchOverrides(targetUser.meshPrivacy?.branchOverrides);
+  const branchDefault: BranchVisibility = meshVisibility === "partial"
+    ? (targetUser.isPublic ? "public" : "private")
+    : (meshVisibility as BranchVisibility);
+  const canSeeBranch = (branchKey: string) =>
+    canSeeMeshBranch({
+      viewer: viewerRef,
+      targetUserId,
+      branchKey,
+      branchOverrides,
+      isFriend,
+      showConnections: targetUser.meshPrivacy?.showConnections,
+      defaultVisibility: branchDefault,
+    });
+  const canSeePeople = canSeeBranch("people");
+  const canSeeInterestsBranch = canSeeBranch("interests");
+  const canSeePlatforms = canSeeBranch("platforms");
+  const canSeeStats = canSeeMeshStats(viewerRef, targetUserId, targetUser.meshPrivacy);
+
+  const following = canSeePeople
+    ? followingData.map((f) => ({ ...f.following, joinedAt: f.createdAt }))
+    : [];
+  const followers = canSeePeople
+    ? followersData.map((f) => ({ ...f.follower, joinedAt: f.createdAt }))
+    : [];
+  const interests = canSeeInterestsBranch ? interestsData.map((i) => i.tag) : [];
+  const visibleConnectedAccounts = canSeePlatforms
+    ? connectedAccountsData.filter((ca) => {
+        const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
+        return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
+      })
+    : [];
   return NextResponse.json({
     user: {
       id: targetUser.id,
@@ -843,20 +890,29 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     alterEgos: [],
     meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none", outfitStyle: "none" },
     meshCosmetics: meshCosmeticsData,
-    stats: {
-      followingCount,
-      followerCount,
-      mutualCount: 0,
-      communityCount: 0,
-      postCount,
-      interestCount: interestsData.length,
-      connectedPlatformCount: connectedAccountsData.filter((ca) => {
-        const policy = visibilityPolicies.find((p) => p.entityId === ca.id);
-        return !policy || (policy.visibility !== "private" && policy.visibility !== "hidden");
-      }).length,
-      alterEgoCount: 0,
-      activityCount: 0,
-    },
+    stats: canSeeStats
+      ? {
+          followingCount,
+          followerCount,
+          mutualCount: 0,
+          communityCount: 0,
+          postCount,
+          interestCount: interestsData.length,
+          connectedPlatformCount: visibleConnectedAccounts.length,
+          alterEgoCount: 0,
+          activityCount: 0,
+        }
+      : {
+          followingCount: 0,
+          followerCount: 0,
+          mutualCount: 0,
+          communityCount: 0,
+          postCount: 0,
+          interestCount: 0,
+          connectedPlatformCount: 0,
+          alterEgoCount: 0,
+          activityCount: 0,
+        },
     isViewingOtherUser: true,
   });
 }

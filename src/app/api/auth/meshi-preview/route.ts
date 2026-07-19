@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTrustedClientIp } from "@/lib/client-ip";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/security";
 
@@ -30,10 +31,10 @@ function normalizeUsername(value: string | null) {
 }
 
 export async function GET(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const clientIp = forwardedFor || request.headers.get("x-real-ip") || "unknown";
+  const clientIp = getTrustedClientIp(request.headers);
   const rl = rateLimit(`meshi-preview:${clientIp}`, 30, 60 * 1000);
-  if (!rl.allowed) {
+  const globalRl = rateLimit("meshi-preview:global", 600, 60 * 1000);
+  if (!rl.allowed || !globalRl.allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
       { status: 429, headers: NO_STORE_HEADERS },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
+import { rateLimit } from "@/lib/security";
 
 const SESSION_INCLUDE = {
   participants: {
@@ -82,6 +83,13 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Each created session can notify up to 24 invitees, so cap creation per
+  // user to keep the endpoint from becoming a notification-spam vector.
+  const rl = rateLimit(`mechat-session-create:${user.id}`, 10, 10 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many rooms created. Please try again later." }, { status: 429 });
   }
 
   const body = await readJsonObject(req);

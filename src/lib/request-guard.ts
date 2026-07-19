@@ -40,10 +40,48 @@ function exceedsContentLength(req: Request, limit: number): boolean {
   return Number.isFinite(length) && length > limit;
 }
 
+// Read the body as text while enforcing `limit` even when Content-Length is
+// absent (e.g. chunked/streamed requests): we stop and bail the moment the
+// received bytes exceed the ceiling, so an attacker can't omit the header to
+// stream an unbounded body into memory. Returns null when the body is too large.
+async function readBoundedText(req: Request, limit: number): Promise<string | null> {
+  if (exceedsContentLength(req, limit)) return null;
+
+  const body = req.body;
+  if (!body) {
+    const text = await req.text();
+    return new TextEncoder().encode(text).byteLength > limit ? null : text;
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    received += value.byteLength;
+    if (received > limit) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
+}
+
 export async function readJsonObject(req: Request): Promise<Record<string, unknown>> {
-  if (exceedsContentLength(req, MAX_JSON_BODY_BYTES)) return {};
+  const text = await readBoundedText(req, MAX_JSON_BODY_BYTES);
+  if (text === null) return {};
   try {
-    const parsed = await req.json();
+    const parsed = JSON.parse(text);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>;
     }

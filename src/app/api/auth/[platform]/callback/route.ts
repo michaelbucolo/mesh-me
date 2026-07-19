@@ -75,8 +75,15 @@ export async function GET(
   const oauthPkceCookie = `__Host-oauth_pkce_${platform}`;
   const legacyOauthPkceCookie = `oauth_pkce_${platform}`;
 
-  // Verify state for CSRF protection
-  const storedState = cookieStore.get(oauthStateCookie)?.value || cookieStore.get(legacyOauthStateCookie)?.value;
+  // Verify state for CSRF protection. The unprefixed legacy cookies are only
+  // honored outside production: `__Host-` gives browser-enforced integrity
+  // (Secure, host-only, Path=/), and falling back to a cookie a subdomain or
+  // MITM could plant would reopen the injection vector the prefix closes.
+  // Mirrors readSessionId() in auth.ts.
+  const allowLegacyCookies = process.env.NODE_ENV !== "production";
+  const storedState =
+    cookieStore.get(oauthStateCookie)?.value ||
+    (allowLegacyCookies ? cookieStore.get(legacyOauthStateCookie)?.value : undefined);
   if (!storedState || !safeStateEquals(storedState, state)) {
     return NextResponse.redirect(
       `${connectedAccountsUrl}?error=${encodeURIComponent("Invalid state parameter. Please try again.")}&platform=${encodedPlatform}`
@@ -106,7 +113,9 @@ export async function GET(
     };
 
     // Add PKCE verifier if needed
-    const pkceVerifier = cookieStore.get(oauthPkceCookie)?.value || cookieStore.get(legacyOauthPkceCookie)?.value;
+    const pkceVerifier =
+      cookieStore.get(oauthPkceCookie)?.value ||
+      (allowLegacyCookies ? cookieStore.get(legacyOauthPkceCookie)?.value : undefined);
     if (pkceVerifier) {
       tokenParams.code_verifier = pkceVerifier;
       cookieStore.delete(oauthPkceCookie);

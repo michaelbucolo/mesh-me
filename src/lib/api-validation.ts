@@ -33,8 +33,52 @@ export function isVisibilityValue(value: unknown): value is PlatformVisibility {
   return typeof value === "string" && VALID_VISIBILITY_VALUES.includes(value as PlatformVisibility);
 }
 
+// JSON mutation payloads are small; bound the body (including chunked bodies
+// without a Content-Length header) before buffering it into memory.
+const MAX_JSON_BODY_BYTES = 512 * 1024;
+
 export async function readJsonObject(req: Request): Promise<Record<string, unknown> | null> {
-  const payload = await req.json().catch(() => null);
+  const header = req.headers.get("content-length");
+  if (header) {
+    const length = Number.parseInt(header, 10);
+    if (Number.isFinite(length) && length > MAX_JSON_BODY_BYTES) return null;
+  }
+
+  let text: string;
+  const body = req.body;
+  if (!body) {
+    text = await req.text().catch(() => "");
+    if (new TextEncoder().encode(text).byteLength > MAX_JSON_BODY_BYTES) return null;
+  } else {
+    const reader = body.getReader();
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      received += value.byteLength;
+      if (received > MAX_JSON_BODY_BYTES) {
+        await reader.cancel().catch(() => {});
+        return null;
+      }
+      chunks.push(value);
+    }
+    const merged = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    text = new TextDecoder().decode(merged);
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    return null;
+  }
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
   return payload as Record<string, unknown>;
 }

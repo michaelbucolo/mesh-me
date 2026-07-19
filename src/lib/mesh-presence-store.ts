@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import { prisma } from "@/lib/prisma";
 import {
   areMutualFollowers,
-  canViewProfile,
+  canViewMesh,
   normalizeMeshVisibility,
 } from "@/lib/privacy-policy";
 
@@ -462,7 +462,7 @@ export async function getBlockedUserIds(userId: string): Promise<Set<string>> {
 }
 
 // Is `viewerId` allowed to see the presence room for `meshOwnerId`? This mirrors
-// the exact gate the mesh data API applies (canViewProfile with the owner's mesh
+// the exact gate the mesh data API applies (canViewMesh with the owner's mesh
 // visibility), so presence can't be used to watch who is inside a mesh the viewer
 // could never open — the room param must pass through here before it's trusted.
 export async function canViewMeshRoom(
@@ -483,11 +483,12 @@ export async function canViewMeshRoom(
     areMutualFollowers(viewerId, meshOwnerId),
   ]);
   if (!target) return false;
+  if (target.isSuspended && target.id !== viewerId) return false;
   const visibility = normalizeMeshVisibility(
     target.meshPrivacy?.meshVisibility,
     target.isPublic ? "public" : "private",
   );
-  return canViewProfile({ id: viewerId }, target, visibility, isFriend);
+  return canViewMesh({ id: viewerId }, meshOwnerId, visibility, isFriend);
 }
 
 export function clampNumber(

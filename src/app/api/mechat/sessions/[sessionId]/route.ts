@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
+import { rateLimit } from "@/lib/security";
 
 const SESSION_INCLUDE = {
   participants: {
@@ -223,6 +224,13 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   }
 
   if (action === "invite") {
+    // Each invite generates a notification to another user; cap the rate to
+    // keep the action from being usable for notification spam.
+    const rl = rateLimit(`mechat-invite:${user.id}`, 30, 10 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many invites. Please try again later." }, { status: 429 });
+    }
+
     const targetUserId = cleanOptionalText(body.userId, 120);
     if (!targetUserId || targetUserId === user.id) {
       return NextResponse.json({ error: "Choose a valid person to invite." }, { status: 400 });

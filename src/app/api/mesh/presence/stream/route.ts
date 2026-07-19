@@ -38,7 +38,9 @@ export async function GET(request: Request) {
   let blockedSet = initialBlocked;
   // Only report the requested room if the viewer could actually open that mesh —
   // otherwise it collapses to their own room, so the stream can't spy either.
-  const allowedMeshOwner = roomAllowed ? meshOwner : null;
+  // Re-evaluated periodically below so a tightened meshVisibility takes effect
+  // on a long-lived stream without requiring a reconnect.
+  let allowedMeshOwner = roomAllowed ? meshOwner : null;
 
   const encoder = new TextEncoder();
   let closed = false;
@@ -115,10 +117,15 @@ export async function GET(request: Request) {
       // newly added connections appear — and a fresh block takes effect — without
       // reopening the stream.
       const connectionsTimer = setInterval(() => {
-        Promise.all([getMutualConnectionIds(viewerId), getBlockedUserIds(viewerId)])
-          .then(([connections, blocks]) => {
+        Promise.all([
+          getMutualConnectionIds(viewerId),
+          getBlockedUserIds(viewerId),
+          canViewMeshRoom(viewerId, meshOwner),
+        ])
+          .then(([connections, blocks, stillAllowed]) => {
             connectedSet = connections;
             blockedSet = blocks;
+            allowedMeshOwner = stillAllowed ? meshOwner : null;
           })
           .catch(() => {});
       }, 20000);
