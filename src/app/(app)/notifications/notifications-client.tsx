@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   AtSign,
   Bell,
-  BellOff,
   Check,
   Heart,
   Loader2,
@@ -174,11 +173,22 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
     <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5 animate-page-enter">
       <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
-            <Bell size={15} aria-hidden="true" />
-            Unified notification hub
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold md:text-2xl">Notifications</h1>
+              {payload.unreadCount > 0 && (
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-white">{payload.unreadCount} new</span>
+              )}
+            </div>
+            {payload.smartSummary && (
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">{payload.smartSummary}</p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link href="/settings" className="mesh-action mesh-action-secondary px-3 text-sm">
+              <LockKeyhole size={15} aria-hidden="true" />
+              Settings
+            </Link>
             <button type="button" onClick={refresh} disabled={isPending} className="mesh-action mesh-action-secondary px-3 text-sm">
               {isPending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={15} aria-hidden="true" />}
               Refresh
@@ -195,52 +205,9 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
             </button>
           </div>
         </div>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
-          <div>
-            <h1 className="max-w-3xl text-2xl font-bold leading-tight md:text-4xl">One calm place for every alert.</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
-              Likes, comments, follows, messages, mentions, communities, security, and privacy alerts are grouped so the important parts stay visible.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Metric label="Unread" value={payload.unreadCount} />
-            <Metric label="Groups" value={payload.unreadGroupCount} />
-            <Metric label="Priority" value={payload.importantCount} />
-          </div>
-        </div>
       </header>
 
-      <section className="grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside className="grid h-fit gap-4 xl:sticky xl:top-5">
-          <div className="mesh-surface rounded-lg p-4">
-            <h2 className="text-base font-bold">Smart digest</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{payload.smartSummary}</p>
-            <div className="mt-4 grid gap-2">
-              <PreferenceRow label="Push alerts" active={payload.preferences.pushEnabled} />
-              <PreferenceRow label="Messages" active={payload.preferences.messages} />
-              <PreferenceRow label="Mentions" active={payload.preferences.mentions} />
-              <PreferenceRow label="Security" active={payload.preferences.securityAlerts} />
-            </div>
-            <Link href="/settings" className="mesh-action mesh-action-secondary mt-4 w-full justify-center px-4 text-sm">
-              <LockKeyhole size={15} aria-hidden="true" />
-              Notification settings
-            </Link>
-          </div>
-
-          <div className="mesh-surface rounded-lg p-4">
-            <h2 className="text-base font-bold">Duplicate app alerts</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-              Once a platform is connected and syncing reliably, Mesh.me can be the cleaner hub instead of letting every app interrupt you separately.
-            </p>
-            <Link href="/connected-accounts" className="mesh-link-row mt-3 rounded-md px-3 py-3 text-sm">
-              <BellOff size={15} aria-hidden="true" />
-              Review connected platforms
-            </Link>
-          </div>
-        </aside>
-
-        <section className="grid gap-4">
+      <section className="grid gap-4">
           <div className="mesh-surface rounded-lg p-3 md:p-4">
             <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
               <label className="flex h-11 items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 text-sm transition focus-within:border-[var(--mesh-blue)]/50">
@@ -295,9 +262,9 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           {notice && (
             <div className={`rounded-md border px-4 py-3 text-sm ${
               notice.type === "error"
-                ? "border-red-400/25 bg-red-500/10 text-red-100"
+                ? "border-[var(--mesh-danger)]/30 text-[var(--mesh-danger)]"
                 : notice.type === "success"
-                  ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
+                  ? "border-[var(--mesh-green)]/30 text-[var(--mesh-green)]"
                   : "border-[var(--border-primary)] bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"
             }`}>
               {notice.message}
@@ -343,40 +310,14 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
               type="button"
               onClick={() => requestNotificationAction("delete-read")}
               disabled={isPending || !payload.notifications.some((notification) => notification.read)}
-              className="mesh-action border-red-400/25 bg-red-500/10 px-4 text-sm text-red-200"
+              className="mesh-action px-4 text-sm text-[var(--mesh-danger)]"
             >
               <Trash2 size={15} aria-hidden="true" />
               Clear read
             </button>
           </div>
         </section>
-      </section>
     </main>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <motion.div
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3 text-center"
-    >
-      <strong className="block text-xl text-[var(--text-primary)]">{value.toLocaleString()}</strong>
-      <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
-    </motion.div>
-  );
-}
-
-function PreferenceRow({ label, active }: { label: string; active: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 px-3 py-2 text-sm">
-      <span className="font-semibold text-[var(--text-secondary)]">{label}</span>
-      <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${active ? "bg-emerald-300/10 text-emerald-100" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"}`}>
-        {active ? "On" : "Off"}
-      </span>
-    </div>
   );
 }
 
@@ -413,7 +354,7 @@ function NotificationGroupCard({
                 <Bell size={18} aria-hidden="true" />
               </span>
             )}
-            <span className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-primary)] ${group.priority === "high" ? "bg-red-500 text-white" : "bg-[var(--bg-primary)] text-[var(--accent)]"}`}>
+            <span className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-primary)] ${group.priority === "high" ? "bg-[var(--mesh-danger)] text-white" : "bg-[var(--bg-primary)] text-[var(--accent)]"}`}>
               <Icon size={13} aria-hidden="true" />
             </span>
           </div>
@@ -426,7 +367,7 @@ function NotificationGroupCard({
                 </span>
               )}
               {group.priority === "high" && (
-                <span className="rounded-full border border-red-400/25 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-100">
+                <span className="rounded-full border border-[var(--mesh-danger)]/30 px-2 py-0.5 text-[10px] font-bold text-[var(--mesh-danger)]">
                   Priority
                 </span>
               )}
