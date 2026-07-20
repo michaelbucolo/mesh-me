@@ -457,16 +457,16 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                     )}
                   </div>
                 ) : (
-                  <Avatar src={conversationAvatar} alt={conversationTitle || "Conversation"} size="lg" className="h-11 w-11 ring-2 ring-[var(--mesh-blue)]/20 md:h-14 md:w-14" />
+                  <Avatar src={conversationAvatar} alt={conversationTitle || "Conversation"} size="lg" className="h-11 w-11 ring-2 ring-[var(--accent)]/20 md:h-14 md:w-14" />
                 )}
               </div>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 md:gap-2">
                   <h1 className="truncate text-base font-bold text-[var(--mesh-text)] md:text-2xl">{conversationTitle}</h1>
-                  {!isGroupThread && recipient?.isVerified && <BadgeCheck size={16} className="shrink-0 text-[var(--mesh-blue)]" />}
+                  {!isGroupThread && recipient?.isVerified && <BadgeCheck size={16} className="shrink-0 text-[var(--accent)]" />}
                   {(isExternalThread || threadPlatform !== "mesh") && (
-                    <span className="shrink-0 rounded-full bg-[var(--mesh-blue)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--mesh-blue)]">
+                    <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
                       {sourceLabel(threadPlatform)}
                     </span>
                   )}
@@ -485,7 +485,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
 
           <div className="hidden border-b border-[var(--mesh-border)] px-4 py-3 text-sm text-[var(--mesh-text-secondary)] md:block">
             <div className="flex items-center gap-2">
-              <LockKeyhole size={15} aria-hidden="true" className="text-[var(--mesh-blue)]" />
+              <LockKeyhole size={15} aria-hidden="true" className="text-[var(--accent)]" />
               <span>
                 {isExternalThread
                   ? `This conversation lives on ${sourceLabel(threadPlatform)}. Replies you send here deliver there through your connected account.`

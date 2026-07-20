@@ -2452,7 +2452,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           {hoverNode && hoverNode.kind !== "self" && (
             <div
               className="absolute left-1/2 top-full mt-1.5 w-max max-w-[16.5rem] -translate-x-1/2 animate-[fadeIn_.14s_ease] overflow-hidden rounded-xl border border-white/12 bg-[#0a0f1f]/90 text-center shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
-              style={{ boxShadow: `0 12px 40px rgba(0,0,0,0.55), inset 0 2px 0 ${hoverNode.color || "var(--mesh-blue)"}` }}
+              style={{ boxShadow: `0 12px 40px rgba(0,0,0,0.55), inset 0 2px 0 ${hoverNode.color || "var(--accent)"}` }}
             >
               <div className="px-3 py-2">
                 <p className="truncate text-[11.5px] font-semibold text-white">{hoverNode.label}</p>
@@ -2900,7 +2900,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
                 <button
                   type="button"
                   onClick={() => setShowCompose(true)}
-                  className="mesh-bubble-btn rounded-full bg-[var(--mesh-blue)] px-4 py-1.5 text-xs font-medium text-white"
+                  className="mesh-bubble-btn rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white"
                 >
                   Create your first post
                 </button>
@@ -2949,7 +2949,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             <button
               type="button"
               onClick={dismissTips}
-              className="mesh-bubble-btn mt-4 w-full rounded-full bg-[var(--mesh-blue)] py-2 text-xs font-semibold text-white"
+              className="mesh-bubble-btn mt-4 w-full rounded-full bg-[var(--accent)] py-2 text-xs font-semibold text-white"
             >
               Start exploring
             </button>
@@ -3111,7 +3111,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-3 shadow-2xl">
             <div className="mb-2 flex items-start justify-between px-1">
               <div className="flex items-center gap-2">
-                <Sparkles size={15} className="text-[var(--mesh-blue)]" />
+                <Sparkles size={15} className="text-[var(--accent)]" />
                 <div>
                   <p className="text-sm font-semibold text-white">Create on your mesh</p>
                   <p className="text-[11px] text-white/45">Watch it weave itself into your web.</p>
@@ -3403,7 +3403,7 @@ function NodeDetail({
           <button
             type="button"
             onClick={() => onEnterMesh(node)}
-            className="mesh-bubble-btn flex-1 rounded-full bg-[var(--mesh-blue)] py-2 text-xs font-semibold text-white"
+            className="mesh-bubble-btn flex-1 rounded-full bg-[var(--accent)] py-2 text-xs font-semibold text-white"
           >
             Enter their mesh
           </button>

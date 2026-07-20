@@ -28,7 +28,7 @@ export function MessagesIndexPane() {
           </p>
           <Link
             href="/messages?compose=true"
-            className="mesh-pressable mt-6 rounded-full bg-[var(--mesh-blue)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(47,124,255,0.35)] transition hover:brightness-110 active:scale-95"
+            className="mesh-pressable mt-6 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_4px_20px_rgba(47,124,255,0.35)] transition hover:brightness-110 active:scale-95"
           >
             Start a conversation
           </Link>

@@ -84,7 +84,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
               <p className="flex items-center gap-1.5 truncate text-sm font-bold">
                 {author.name}
                 {!post.externalAuthor && post.author.isVerified && (
-                  <BadgeCheck size={14} className="shrink-0 text-[var(--mesh-blue)]" aria-hidden="true" />
+                  <BadgeCheck size={14} className="shrink-0 text-[var(--accent)]" aria-hidden="true" />
                 )}
               </p>
               <p className="truncate text-xs text-[var(--mesh-text-secondary)]">
@@ -92,7 +92,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
                 {formatRelativeTime(String(post.createdAt))}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-[var(--mesh-blue)]/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--mesh-blue)]">
+            <span className="shrink-0 rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
               {source}
             </span>
             {post.visibility && post.visibility !== "public" && (
@@ -125,7 +125,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={shareHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--mesh-blue)] px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
             >
               <Send size={15} aria-hidden="true" />
               Share in MeChat

@@ -21,11 +21,11 @@ function CommunityAvatar({ name, iconUrl, size = "md" }: { name: string; iconUrl
   const textSize = size === "lg" ? "text-2xl" : size === "sm" ? "text-base" : "text-lg";
 
   return (
-    <div className={`relative ${sizeClass} shrink-0 overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-blue)]/10`}>
+    <div className={`relative ${sizeClass} shrink-0 overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--accent)]/10`}>
       {iconUrl ? (
         <Image src={iconUrl} alt="" fill sizes="64px" className="object-cover" />
       ) : (
-        <span className={`grid h-full w-full place-items-center ${textSize} font-bold text-[var(--mesh-blue)]`}>{initial}</span>
+        <span className={`grid h-full w-full place-items-center ${textSize} font-bold text-[var(--accent)]`}>{initial}</span>
       )}
     </div>
   );
@@ -45,14 +45,14 @@ function FeaturedCard({ community }: { community: Community }) {
             <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="lg" />
           </div>
         )}
-        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${community.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-white/10 text-white/70"}`}>
+        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${community.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
           {community.isPublic ? "Public" : "Private"}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center gap-2">
           <h3 className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</h3>
-          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--mesh-blue)]" />
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
         </div>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--mesh-text-muted)]">
           {community.description || "A community on Mesh.me"}
@@ -89,7 +89,7 @@ function CommunityRow({ community, selected, onSelect, index }: { community: Com
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</span>
-            <ShieldCheck className="h-3 w-3 shrink-0 text-[var(--mesh-blue)]" />
+            <ShieldCheck className="h-3 w-3 shrink-0 text-[var(--accent)]" />
           </span>
           <span className="block text-xs text-[var(--mesh-text-muted)]">
             {community.isPublic ? "Public" : "Private"} · {community.category || "General"}
@@ -106,7 +106,7 @@ function CommunityRow({ community, selected, onSelect, index }: { community: Com
           {!community.isPublic ? (
             <Lock className="h-4 w-4 text-[var(--mesh-text-muted)]" />
           ) : (
-            <span className="h-2 w-2 rounded-full bg-[var(--mesh-blue)] inline-block" />
+            <span className="h-2 w-2 rounded-full bg-[var(--accent)] inline-block" />
           )}
         </span>
       </span>
@@ -148,7 +148,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-[var(--mesh-text)]">Featured communities</h2>
             <div className="flex items-center gap-2">
-              <Link href="/communities?view=featured" className="inline-flex items-center gap-1 text-xs text-[var(--mesh-blue)] hover:underline">
+              <Link href="/communities?view=featured" className="inline-flex items-center gap-1 text-xs text-[var(--accent)] hover:underline">
                 View all
                 <ArrowRight size={12} />
               </Link>
@@ -203,7 +203,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                   <motion.span
                     layoutId="community-category-pill"
                     transition={HUB_SPRING}
-                    className="absolute inset-0 rounded-full bg-[var(--mesh-blue)]"
+                    className="absolute inset-0 rounded-full bg-[var(--accent)]"
                     aria-hidden="true"
                   />
                 )}
@@ -267,7 +267,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 {selectedCommunity.iconUrl && (
                   <Image src={selectedCommunity.iconUrl} alt="" fill sizes="380px" className="object-cover opacity-50" />
                 )}
-                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${selectedCommunity.isPublic ? "bg-[var(--mesh-blue)]/20 text-[var(--mesh-blue)]" : "bg-white/10 text-white/70"}`}>
+                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${selectedCommunity.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
                   {selectedCommunity.isPublic ? "Public" : "Private"}
                 </span>
                 <div className="absolute -bottom-8 left-5">
@@ -278,7 +278,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               <div className="px-5 pt-12 pb-5">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-[var(--mesh-text)]">{selectedCommunity.name}</h2>
-                  <ShieldCheck className="h-4 w-4 text-[var(--mesh-blue)]" />
+                  <ShieldCheck className="h-4 w-4 text-[var(--accent)]" />
                 </div>
                 <p className="mt-0.5 text-xs text-[var(--mesh-text-muted)]">
                   {selectedCommunity.isPublic ? "Public" : "Private"} Community · {formatCount(selectedCommunity._count.members)} members
@@ -290,7 +290,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 <div className="mt-4 flex gap-3">
                   <Link
                     href={`/communities/${selectedCommunity.slug}`}
-                    className="flex-1 rounded-xl bg-[var(--mesh-blue)] px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-[var(--mesh-blue)]/90"
+                    className="flex-1 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-[var(--accent)]/90"
                   >
                     Enter Space
                   </Link>
@@ -311,7 +311,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                     type="button"
                     className={`flex-1 py-2.5 text-center text-xs font-medium transition-colors ${
                       i === 0
-                        ? "border-b-2 border-[var(--mesh-blue)] text-[var(--mesh-text)]"
+                        ? "border-b-2 border-[var(--accent)] text-[var(--mesh-text)]"
                         : "text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
                     }`}
                   >
@@ -338,7 +338,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                     <li>3. No spam or self-promotion.</li>
                     <li>4. Protect privacy and data.</li>
                   </ol>
-                  <Link href={`/communities/${selectedCommunity.slug}`} className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--mesh-blue)] hover:underline">
+                  <Link href={`/communities/${selectedCommunity.slug}`} className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--accent)] hover:underline">
                     View all rules
                     <ArrowRight size={12} />
                   </Link>
