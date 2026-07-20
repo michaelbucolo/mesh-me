@@ -595,12 +595,12 @@ select:focus-visible {
   transition:
     background-color 150ms ease,
     color 150ms ease,
-    transform 260ms cubic-bezier(0.22, 1.4, 0.36, 1);
+    transform 260ms var(--mesh-ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .mesh-nav-item:hover {
-    transform: translateX(3px);
+    transform: translateX(2px);
   }
 
   .mesh-nav-item:hover svg {
@@ -609,7 +609,7 @@ select:focus-visible {
 }
 
 .mesh-nav-item svg {
-  transition: transform 260ms cubic-bezier(0.22, 1.4, 0.36, 1);
+  transition: transform 260ms var(--mesh-ease-out);
 }
 
 .mesh-nav-item:active {
@@ -629,8 +629,8 @@ select:focus-visible {
   width: 3px;
   height: 60%;
   border-radius: 0 4px 4px 0;
-  background: var(--mesh-blue);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--mesh-blue) 65%, transparent);
+  background: var(--accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -642,7 +642,7 @@ select:focus-visible {
 }
 
 .mesh-privacy-card {
-  background: linear-gradient(135deg, var(--mesh-bg-elevated) 0%, rgba(47, 124, 255, 0.06) 100%);
+  background: linear-gradient(135deg, var(--mesh-bg-elevated) 0%, color-mix(in srgb, var(--accent) 6%, var(--mesh-bg-elevated)) 100%);
 }
 
 .mesh-user-dock {
