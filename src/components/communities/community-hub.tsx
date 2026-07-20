@@ -38,7 +38,7 @@ function FeaturedCard({ community }: { community: Community }) {
       href={`/communities/${community.slug}`}
       className="group relative flex min-w-[min(260px,80vw)] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-all duration-200 hover:border-[var(--mesh-border-active)] hover:-translate-y-0.5"
     >
-      <div className="relative h-36 bg-gradient-to-br from-[var(--mesh-bg)] to-[#0a1628]">
+      <div className="relative h-36 bg-gradient-to-br from-[var(--mesh-bg)] to-[var(--mesh-bg-elevated)]">
         {community.iconUrl ? (
           <Image src={community.iconUrl} alt="" fill sizes="300px" className="object-cover opacity-60" />
         ) : (
@@ -260,7 +260,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
           <div className="sticky top-24 space-y-5">
             <section className="overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]">
               {/* Community hero */}
-              <div className="relative h-32 bg-gradient-to-br from-[var(--mesh-bg)] to-[#0a1628]">
+              <div className="relative h-32 bg-gradient-to-br from-[var(--mesh-bg)] to-[var(--mesh-bg-elevated)]">
                 {selectedCommunity.iconUrl && (
                   <Image src={selectedCommunity.iconUrl} alt="" fill sizes="380px" className="object-cover opacity-50" />
                 )}

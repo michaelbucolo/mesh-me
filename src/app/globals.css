@@ -6534,9 +6534,10 @@ body > * { position: relative; z-index: 1; }
 /* MeChat: sent bubbles carry the brand gradient with a soft glow — a
    premium, familiar direct-message feel. */
 .mechat-bubble-mine {
-  /* iMessage blue: a quiet vertical sheen, no rainbow gradients. */
-  background: linear-gradient(180deg, #2f8bff 0%, #0a72f5 100%);
-  box-shadow: 0 4px 14px -8px rgba(10, 114, 245, 0.55);
+  /* Your bubbles carry the account accent (a quiet vertical sheen, no rainbow
+     gradients), so they follow the active theme instead of a fixed blue. */
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%);
+  box-shadow: 0 4px 14px -8px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .mechat-bubble-theirs {
   background: #26262e;
