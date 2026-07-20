@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, Maximize2, MessageCircle, Minimize2, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
 import { toggleFollow, toggleReaction, setFlowLike } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { playSound } from "@/lib/sound";
@@ -120,16 +120,26 @@ function ReelMedia({
   paused,
   muted,
   onToggleMute,
+  nearActive = false,
 }: {
   post: FlowPost;
   active: boolean;
   paused: boolean;
   muted: boolean;
   onToggleMute: () => void;
+  /** This reel is the active one or one of the next couple — fetch its video
+   * ahead of time so it plays instantly the moment you scroll onto it. */
+  nearActive?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Portrait / near-square media fills the reel (object-cover); clearly
+  // landscape media is shown whole (object-contain) over a blurred fill of its
+  // own poster, so the real aspect ratio is preserved instead of hard-cropped.
+  const [videoFit, setVideoFit] = useState<"cover" | "contain">("cover");
   const video = videoFailed ? undefined : post.media.find((m) => m.type === "video");
   const image = post.media.find((m) => m.type !== "video") ?? (videoFailed
     ? post.media.map((m) => (m.posterUrl ? { ...m, url: m.posterUrl, type: "image" } : null)).find(Boolean) ?? undefined
@@ -146,9 +156,30 @@ function ReelMedia({
     else el.pause();
   }, [active, paused, muted]);
 
+  // Fullscreen happens INSIDE mesh.me — we request it on our own wrapper, never
+  // navigate to the source. Keep a local flag in sync so the icon can flip.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    const el = wrapRef.current;
+    if (typeof document === "undefined" || !el) return;
+    if (document.fullscreenElement) void document.exitFullscreen?.();
+    else void el.requestFullscreen?.().catch(() => {});
+  };
+
   if (video) {
+    const contain = videoFit === "contain";
     return (
-      <div className="relative h-full w-full">
+      <div ref={wrapRef} className="relative flex h-full w-full items-center justify-center bg-black">
+        {contain && video.posterUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={video.posterUrl} alt="" aria-hidden loading="lazy" decoding="async" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" />
+        )}
         <video
           ref={videoRef}
           src={video.url}
@@ -156,7 +187,13 @@ function ReelMedia({
           loop
           muted={muted}
           playsInline
-          preload="metadata"
+          preload={nearActive ? "auto" : "metadata"}
+          onLoadedMetadata={(event) => {
+            const el = event.currentTarget;
+            if (el.videoWidth > 0 && el.videoHeight > 0) {
+              setVideoFit(el.videoWidth / el.videoHeight > 1.05 ? "contain" : "cover");
+            }
+          }}
           onError={() => setVideoFailed(true)}
           onTimeUpdate={(event) => {
             const el = event.currentTarget;
@@ -164,24 +201,37 @@ function ReelMedia({
               progressRef.current.style.width = `${(el.currentTime / el.duration) * 100}%`;
             }
           }}
-          className="h-full w-full object-cover"
+          className={`relative h-full w-full ${contain ? "object-contain" : "object-cover"}`}
         />
         {paused && (
-          <span className="absolute inset-0 flex items-center justify-center">
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <Play size={64} className="animate-[fadeIn_.15s_ease] text-white/85 drop-shadow-lg" fill="currentColor" />
           </span>
         )}
-        <button
-          type="button"
-          aria-label={muted ? "Unmute" : "Mute"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleMute();
-          }}
-          className="absolute right-3 top-3 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
-        >
-          {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-        </button>
+        <div className="absolute right-3 top-3 flex flex-col gap-2">
+          <button
+            type="button"
+            aria-label={muted ? "Unmute" : "Mute"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMute();
+            }}
+            className="rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+          >
+            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+          <button
+            type="button"
+            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFullscreen();
+            }}
+            className="rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
+        </div>
         {/* Playback progress — a quiet periwinkle→cyan hairline with a soft
             leading glow, easing between frames instead of snapping. */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/15">
@@ -205,7 +255,9 @@ function ReelMedia({
   const embedUrl = getVideoEmbedUrl(sourceUrl(post), { autoplay: true, muted, loop: true });
   if (embedUrl && active) {
     return (
-      <div className="relative h-full w-full bg-black" onClick={(e) => e.stopPropagation()}>
+      <div ref={wrapRef} className="relative flex h-full w-full items-center justify-center bg-black" onClick={(e) => e.stopPropagation()}>
+        {/* A 16:9 player is centered at its true aspect (letterboxed) rather
+            than stretched to fill the 9:16 reel. */}
         <iframe
           src={embedUrl}
           title="Video player"
@@ -216,8 +268,19 @@ function ReelMedia({
           // "153"-class error as each reel mounts). Override just this frame to
           // send the origin only — enough to authorize, nothing more.
           referrerPolicy="strict-origin-when-cross-origin"
-          className="absolute inset-0 h-full w-full border-0"
+          className="aspect-video max-h-full w-full border-0"
         />
+        <button
+          type="button"
+          aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFullscreen();
+          }}
+          className="absolute right-3 top-3 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+        >
+          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        </button>
       </div>
     );
   }
@@ -324,6 +387,7 @@ function Reel({
   post,
   slotIndex,
   active,
+  nearActive = false,
   muted,
   onToggleMute,
   laneIndex,
@@ -340,6 +404,7 @@ function Reel({
    * stable even when the Flow wraps and a post id appears twice. */
   slotIndex: number;
   active: boolean;
+  nearActive?: boolean;
   muted: boolean;
   onToggleMute: () => void;
   laneIndex: number;
@@ -386,6 +451,7 @@ function Reel({
             key={`${laneIndex}:${post.id}`}
             post={post}
             active={active}
+            nearActive={nearActive}
             muted={muted}
             onToggleMute={onToggleMute}
             laneIndex={laneIndex}
@@ -409,6 +475,7 @@ function Reel({
 function ReelContent({
   post,
   active,
+  nearActive = false,
   muted,
   onToggleMute,
   laneIndex,
@@ -423,6 +490,7 @@ function ReelContent({
 }: {
   post: FlowPost;
   active: boolean;
+  nearActive?: boolean;
   muted: boolean;
   onToggleMute: () => void;
   laneIndex: number;
@@ -561,7 +629,7 @@ function ReelContent({
       transition={laneStageTransition}
       onClick={handleStageTap}
     >
-          <ReelMedia post={post} active={active} paused={paused} muted={muted} onToggleMute={onToggleMute} />
+          <ReelMedia post={post} active={active} nearActive={nearActive} paused={paused} muted={muted} onToggleMute={onToggleMute} />
 
           {/* Double-tap hearts bloom from the exact tap point — a cluster of
               hearts and a couple of cyan sparks flung outward, plus a ring. */}
@@ -590,12 +658,31 @@ function ReelContent({
             </span>
           ))}
 
-          <span className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          <span className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
             {platformChip && (
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
-                <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
-                {post.platform}
-              </span>
+              postSourceUrl ? (
+                // The ONLY way out to the source platform: tapping the source
+                // chip in the top-left. Nothing else (tap, fullscreen) leaves
+                // mesh.me. Opens in a new tab; stops the stage tap underneath.
+                <a
+                  href={postSourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Open on ${post.platform}`}
+                  title={`Open on ${post.platform}`}
+                  className={`pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow transition active:scale-95 ${platformChip}`}
+                >
+                  <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
+                  {post.platform}
+                  <Link2 size={11} className="opacity-80" aria-hidden="true" />
+                </a>
+              ) : (
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
+                  <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
+                  {post.platform}
+                </span>
+              )
             )}
             {post.visibility && post.visibility !== "public" && (
               <span className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white/85 backdrop-blur">
@@ -741,11 +828,6 @@ function ReelContent({
             {(post.whyThis || laneIndex > 0) && (
               <RailButton label="Why this?" onClick={() => setShowWhy((w) => !w)} active={showWhy}>
                 <Info size={24} />
-              </RailButton>
-            )}
-            {post.platform && post.platform !== "mesh" && post.platform !== "meshme" && postSourceUrl && (
-              <RailButton label="Open source" href={postSourceUrl}>
-                <Link2 size={24} />
               </RailButton>
             )}
           </div>
@@ -1490,6 +1572,9 @@ export function FlowClient({
               post={displayed}
               slotIndex={i}
               active={i === activeIndex}
+              // The active reel and the next two preload their video in full so
+              // playback starts instantly the moment you scroll onto them.
+              nearActive={i >= activeIndex && i <= activeIndex + 2}
               muted={muted}
               onToggleMute={() => setMuted((m) => !m)}
               laneIndex={lane?.index ?? 0}
