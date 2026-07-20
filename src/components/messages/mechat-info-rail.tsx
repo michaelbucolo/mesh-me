@@ -46,7 +46,7 @@ function platformColor(platform: string) {
   if (value === "youtube") return "text-red-300";
   if (value === "discord") return "text-indigo-300";
   if (value === "whatsapp") return "text-emerald-300";
-  return "text-[var(--mesh-blue)]";
+  return "text-[var(--accent)]";
 }
 
 export function MeChatInfoRail({
@@ -96,14 +96,14 @@ export function MeChatInfoRail({
                 src={avatarUrl ?? null}
                 alt={title}
                 size="lg"
-                className="relative h-24 w-24 ring-2 ring-[var(--mesh-blue)]/30 shadow-[0_0_36px_rgba(47,124,255,0.18)]"
+                className="relative h-24 w-24 ring-2 ring-[var(--accent)]/30 shadow-[0_0_36px_rgba(47,124,255,0.18)]"
               />
             )}
           </div>
 
           <div className="mt-4 flex items-center gap-1.5">
             <h2 className="truncate text-2xl font-bold text-[var(--mesh-text)]">{title}</h2>
-            {isVerified && <BadgeCheck size={18} className="shrink-0 text-[var(--mesh-blue)]" />}
+            {isVerified && <BadgeCheck size={18} className="shrink-0 text-[var(--accent)]" />}
           </div>
           <p className="mt-1 text-sm text-[var(--mesh-text-secondary)]">{subtitle}</p>
 
@@ -136,7 +136,7 @@ export function MeChatInfoRail({
 
       <section className="mesh-surface rounded-[24px] border border-[var(--mesh-border)] p-5">
         <div className="mb-3 flex items-center gap-2">
-          <ShieldCheck size={16} className="text-[var(--mesh-blue)]" />
+          <ShieldCheck size={16} className="text-[var(--accent)]" />
           <h3 className="text-sm font-bold text-[var(--mesh-text)]">About</h3>
         </div>
         <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{description}</p>
@@ -169,7 +169,7 @@ export function MeChatInfoRail({
 
       <section className="mesh-surface rounded-[24px] border border-[var(--mesh-border)] p-5">
         <div className="mb-3 flex items-center gap-2">
-          <ImageIcon size={16} className="text-[var(--mesh-blue)]" />
+          <ImageIcon size={16} className="text-[var(--accent)]" />
           <h3 className="text-sm font-bold text-[var(--mesh-text)]">Shared Sources</h3>
         </div>
         {sourceSummaries.length > 0 ? (
@@ -177,7 +177,7 @@ export function MeChatInfoRail({
             {sourceSummaries.map((source) => (
               <div key={source.platform} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-2">
                 <span className={`text-sm font-medium ${platformColor(source.platform)}`}>{source.label}</span>
-                <span className="rounded-full bg-[var(--mesh-blue)]/12 px-2.5 py-1 text-xs font-bold text-[var(--mesh-blue)]">
+                <span className="rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-xs font-bold text-[var(--accent)]">
                   {source.count}
                 </span>
               </div>
@@ -192,7 +192,7 @@ export function MeChatInfoRail({
 
       <section className="mesh-surface rounded-[24px] border border-[var(--mesh-border)] p-5">
         <div className="mb-3 flex items-center gap-2">
-          <LockKeyhole size={16} className="text-[var(--mesh-blue)]" />
+          <LockKeyhole size={16} className="text-[var(--accent)]" />
           <h3 className="text-sm font-bold text-[var(--mesh-text)]">Privacy</h3>
         </div>
         <div className="space-y-3 text-sm text-[var(--mesh-text-secondary)]">

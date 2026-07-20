@@ -247,7 +247,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
           </p>
           <Link
             href="/flow"
-            className="mesh-bubble-btn mt-2 rounded-full bg-[var(--mesh-blue)] px-5 py-2 text-xs font-semibold text-white"
+            className="mesh-bubble-btn mt-2 rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white"
           >
             Go make some footprints
           </Link>

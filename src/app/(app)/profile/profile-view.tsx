@@ -114,17 +114,17 @@ export async function InstagramProfileView({ username, tab }: { username: string
             ) : (
               <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
                 {/* A quiet slice of their mesh: woven strands + constellation nodes */}
-                <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-[var(--mesh-blue)] opacity-[0.07] blur-2xl" />
+                <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-[var(--accent)] opacity-[0.07] blur-2xl" />
                 <div className="absolute -bottom-12 -left-12 h-56 w-56 rounded-full bg-[var(--mesh-cyan)] opacity-[0.05] blur-3xl" />
                 <svg className="absolute inset-0 h-full w-full opacity-[0.35]" preserveAspectRatio="none" viewBox="0 0 100 40">
-                  <path d="M8 30 Q 30 12 52 22 T 96 14" fill="none" stroke="var(--mesh-blue)" strokeWidth="0.18" opacity="0.6" />
+                  <path d="M8 30 Q 30 12 52 22 T 96 14" fill="none" stroke="var(--accent)" strokeWidth="0.18" opacity="0.6" />
                   <path d="M2 12 Q 26 26 54 12 T 98 26" fill="none" stroke="var(--mesh-cyan)" strokeWidth="0.14" opacity="0.5" />
-                  <path d="M12 36 Q 40 30 62 33 T 94 30" fill="none" stroke="var(--mesh-blue)" strokeWidth="0.12" opacity="0.4" />
-                  <circle cx="30" cy="17" r="0.7" fill="var(--mesh-blue)" opacity="0.9" />
+                  <path d="M12 36 Q 40 30 62 33 T 94 30" fill="none" stroke="var(--accent)" strokeWidth="0.12" opacity="0.4" />
+                  <circle cx="30" cy="17" r="0.7" fill="var(--accent)" opacity="0.9" />
                   <circle cx="52" cy="22" r="0.9" fill="var(--mesh-cyan)" opacity="0.8" />
-                  <circle cx="78" cy="17" r="0.6" fill="var(--mesh-blue)" opacity="0.7" />
+                  <circle cx="78" cy="17" r="0.6" fill="var(--accent)" opacity="0.7" />
                   <circle cx="16" cy="28" r="0.5" fill="var(--mesh-cyan)" opacity="0.6" />
-                  <circle cx="88" cy="28" r="0.75" fill="var(--mesh-blue)" opacity="0.8" />
+                  <circle cx="88" cy="28" r="0.75" fill="var(--accent)" opacity="0.8" />
                 </svg>
               </div>
             )}
@@ -143,7 +143,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
           <div className="profile-info relative px-6 pb-6">
             {/* Avatar — ringed like a node on the mesh */}
             <div className="-mt-16 mb-4 flex items-end gap-6">
-              <div className="shrink-0 rounded-full bg-gradient-to-tr from-[var(--mesh-blue)] via-[#58bfff] to-[var(--mesh-cyan)] p-[3px] shadow-[0_0_40px_rgba(47,124,255,0.25)]">
+              <div className="shrink-0 rounded-full bg-gradient-to-tr from-[var(--accent)] via-[#58bfff] to-[var(--mesh-cyan)] p-[3px] shadow-[0_0_40px_rgba(47,124,255,0.25)]">
                 <Avatar
                   src={profile.avatarUrl}
                   alt={profile.displayName}
@@ -159,7 +159,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h1 className="profile-name text-2xl font-bold text-[var(--mesh-text)]">{profile.displayName}</h1>
                   {profile.isVerified && (
-                    <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--mesh-blue)]" aria-label="Verified" />
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-label="Verified" />
                   )}
                   {!isOwnProfile && !profile.isPublic && (
                     <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-400">
@@ -286,7 +286,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 <>
                   <Link
                     href="/profile?tab=analytics"
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--mesh-blue)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(47,124,255,0.3)] transition hover:brightness-110"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(47,124,255,0.3)] transition hover:brightness-110"
                   >
                     <BarChart3 size={16} aria-hidden="true" />
                     Analytics
@@ -359,7 +359,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   {isOwnProfile ? "Join communities to see them here." : `${profile.displayName} hasn't joined any communities.`}
                 </p>
                 {isOwnProfile && (
-                  <Link href="/communities" className="mt-2 rounded-xl bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--mesh-blue)]/90">
+                  <Link href="/communities" className="mt-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent)]/90">
                     Browse communities
                   </Link>
                 )}
@@ -390,7 +390,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                       <div className="mt-3 flex items-center gap-5 text-xs text-[var(--mesh-text-muted)]">
                         <span className="flex items-center gap-1.5"><Heart size={14} /> {formatCount(post._count.reactions)}</span>
                         <span className="flex items-center gap-1.5"><MessageCircle size={14} /> {formatCount(post._count.comments)}</span>
-                        <span className="ml-auto flex items-center gap-1.5 text-[var(--mesh-blue)]"><Bookmark size={14} /> Saved</span>
+                        <span className="ml-auto flex items-center gap-1.5 text-[var(--accent)]"><Bookmark size={14} /> Saved</span>
                       </div>
                     </div>
                   </div>
@@ -468,7 +468,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               {isOwnProfile ? "Share your first post from Home." : `${profile.displayName} has not posted yet.`}
             </p>
             {isOwnProfile && (
-              <Link href="/feed?compose=true" className="mt-2 rounded-xl bg-[var(--mesh-blue)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--mesh-blue)]/90">
+              <Link href="/feed?compose=true" className="mt-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent)]/90">
                 Create post
               </Link>
             )}
@@ -482,7 +482,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-[var(--mesh-text)]">Communities</h3>
-            <Link href="/communities" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
+            <Link href="/communities" className="text-xs font-medium text-[var(--accent)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {communityCount > 0 ? (
@@ -508,7 +508,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-[var(--mesh-text)]">Collections</h3>
-            <Link href="?tab=collections" className="text-xs font-medium text-[var(--mesh-blue)] hover:underline">View all</Link>
+            <Link href="?tab=collections" className="text-xs font-medium text-[var(--accent)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {collectionCount > 0 ? (
@@ -585,13 +585,13 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
       href={href}
       className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
         active
-          ? "border-[var(--mesh-blue)] text-[var(--mesh-text)]"
+          ? "border-[var(--accent)] text-[var(--mesh-text)]"
           : "border-transparent text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
       }`}
     >
       {label}
       {count !== undefined && (
-        <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
+        <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
           {count}
         </span>
       )}

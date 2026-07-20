@@ -53,7 +53,7 @@ export default async function ConnectionsPage({
         <div className="min-w-0">
           <h1 className="flex items-center gap-1.5 truncate text-lg font-bold text-[var(--mesh-text)]">
             {profile.displayName}
-            {profile.isVerified && <ShieldCheck size={16} className="shrink-0 text-[var(--mesh-blue)]" aria-label="Verified" />}
+            {profile.isVerified && <ShieldCheck size={16} className="shrink-0 text-[var(--accent)]" aria-label="Verified" />}
           </h1>
           <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{profile.username}</p>
         </div>
@@ -83,7 +83,7 @@ export default async function ConnectionsPage({
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate text-sm font-bold text-[var(--mesh-text)]">
                       {person.displayName}
-                      {person.isVerified && <ShieldCheck size={14} className="shrink-0 text-[var(--mesh-blue)]" aria-label="Verified" />}
+                      {person.isVerified && <ShieldCheck size={14} className="shrink-0 text-[var(--accent)]" aria-label="Verified" />}
                     </p>
                     <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{person.username}</p>
                     {person.bio && <p className="mt-0.5 truncate text-xs text-[var(--mesh-text-secondary)]">{person.bio}</p>}
@@ -120,12 +120,12 @@ function ConnectionTab({ label, count, href, active }: { label: string; count: n
       href={href}
       className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
         active
-          ? "border-[var(--mesh-blue)] text-[var(--mesh-text)]"
+          ? "border-[var(--accent)] text-[var(--mesh-text)]"
           : "border-transparent text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
       }`}
     >
       {label}
-      <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
+      <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
         {count}
       </span>
     </Link>
