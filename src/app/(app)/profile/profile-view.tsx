@@ -182,18 +182,33 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   </div>
                 )}
 
-                {/* Stats — the numbers people actually look for, front and center */}
+                {/* Stats — the numbers people actually look for, front and center.
+                    Followers/Following open the connections list when the viewer
+                    is allowed to see who this person connects with. */}
                 {profile.sectionVisibility.stats && (
                   <div className="mt-3 flex items-center gap-6">
                     <span className="text-sm text-[var(--mesh-text-secondary)]">
                       <span className="font-bold text-[var(--mesh-text)]">{profile._count.posts}</span> posts
                     </span>
-                    <span className="text-sm text-[var(--mesh-text-secondary)]">
-                      <span className="font-bold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
-                    </span>
-                    <span className="text-sm text-[var(--mesh-text-secondary)]">
-                      <span className="font-bold text-[var(--mesh-text)]">{profile._count.following}</span> following
-                    </span>
+                    {profile.sectionVisibility.people ? (
+                      <>
+                        <Link href={`/profile/${profile.username}/connections?tab=followers`} className="text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
+                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
+                        </Link>
+                        <Link href={`/profile/${profile.username}/connections?tab=following`} className="text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
+                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.following}</span> following
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm text-[var(--mesh-text-secondary)]">
+                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
+                        </span>
+                        <span className="text-sm text-[var(--mesh-text-secondary)]">
+                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.following}</span> following
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
 
