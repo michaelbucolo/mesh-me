@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
+import { parseAcceptLanguage } from "@/lib/language";
 import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
 import { getDiscoverUsers } from "@/lib/queries";
 import { FlowClient, type FlowPost, type FlowSuggestedPerson } from "./flow-client";
@@ -21,10 +23,13 @@ export default async function FlowPage() {
   if (user && !user.onboarded) redirect("/onboarding");
   const viewer = user ?? ANONYMOUS_VIEWER;
 
-  const [candidates, profile] = await Promise.all([
+  const [candidates, profile, requestHeaders] = await Promise.all([
     getFlowCandidates(viewer),
     getViewerTasteProfile(viewer.id),
+    headers(),
   ]);
+  // Cater the Flow to the language the viewer's browser actually asks for.
+  const viewerLangs = new Set(parseAcceptLanguage(requestHeaders.get("accept-language")));
 
   // Which source platforms this viewer has connected/merged — the Flow uses this
   // to know when interacting with an external post should offer "connect or merge
@@ -50,7 +55,7 @@ export default async function FlowPage() {
   const persistedSeen = new Set(impressions.map((i) => i.postId));
   const likedSet = new Set(impressions.filter((i) => i.liked).map((i) => i.postId));
 
-  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT, seen: persistedSeen }).map((post) => ({
+  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT, seen: persistedSeen, viewerLangs }).map((post) => ({
     ...post,
     createdAt: String(post.createdAt),
     reactions: likedSet.has(post.id) ? [{ id: "self" }] : post.reactions,

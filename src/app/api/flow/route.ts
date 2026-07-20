@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts } from "@/lib/flow-ranking";
+import { parseAcceptLanguage } from "@/lib/language";
 
 /**
  * Ranked Flow feed. The client sends the ids it already has (`exclude`) plus
@@ -30,6 +31,8 @@ export async function GET(request: Request) {
   // the flag can't be spoofed by the client.
   const isPro = (user as { isMeshPro?: boolean }).isMeshPro === true;
   const studio = isPro ? normalizeStudioWeights(searchParams.get("studio")) : null;
+  // Cater the Flow to the viewer's language on every page, same as first paint.
+  const viewerLangs = new Set(parseAcceptLanguage(request.headers.get("accept-language")));
 
   const [candidates, profile] = await Promise.all([
     getFlowCandidates(user),
@@ -123,7 +126,7 @@ export async function GET(request: Request) {
     if (!poolFits(pool) && fallback && new Set(fallback.map(authorKey)).size >= new Set(pool.map(authorKey)).size) {
       pool = fallback;
     }
-    ranked = rankFlowPosts(pool, profile, { seen: seenAll, limit, mode, studio, recent: recentPosts });
+    ranked = rankFlowPosts(pool, profile, { seen: seenAll, limit, mode, studio, recent: recentPosts, viewerLangs });
     recycled = ranked.some((post) => exclude.has(post.id));
   }
 
