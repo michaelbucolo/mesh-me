@@ -12,8 +12,8 @@ export function ActiveNow({ userId, fallback }: { userId: string; fallback?: str
     return fallback ? <p className="truncate text-xs text-[var(--mesh-text-secondary)] md:text-sm">{fallback}</p> : null;
   }
   return (
-    <p className="flex items-center gap-1.5 truncate text-xs font-medium text-emerald-400 md:text-sm">
-      <span className="mesh-presence-ping inline-flex h-2 w-2 rounded-full bg-emerald-400 text-emerald-400" />
+    <p className="flex items-center gap-1.5 truncate text-xs font-medium text-[var(--mesh-green)] md:text-sm">
+      <span className="mesh-presence-ping inline-flex h-2 w-2 rounded-full bg-[var(--mesh-green)] text-[var(--mesh-green)]" />
       Active now
     </p>
   );

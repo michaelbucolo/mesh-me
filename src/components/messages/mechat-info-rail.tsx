@@ -70,9 +70,9 @@ export function MeChatInfoRail({
       <section className="mesh-surface mesh-pop-in rounded-[28px] border border-[var(--mesh-border)] p-5 shadow-[var(--shadow-lg)]">
         <div className="flex flex-col items-center text-center">
           <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,_rgba(47,124,255,0.28)_0%,_rgba(47,124,255,0.08)_45%,_transparent_72%)] blur-2xl" />
+            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,_color-mix(in_srgb,var(--accent)_28%,transparent)_0%,_color-mix(in_srgb,var(--accent)_8%,transparent)_45%,_transparent_72%)] blur-2xl" />
             {isGroupThread ? (
-              <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] shadow-[0_0_36px_rgba(47,124,255,0.18)]">
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] shadow-[0_0_36px_var(--accent-glow)]">
                 <div className="relative h-12 w-12">
                   {memberPreview.length > 0 ? (
                     memberPreview.slice(0, 4).map((member, index) => (
@@ -96,7 +96,7 @@ export function MeChatInfoRail({
                 src={avatarUrl ?? null}
                 alt={title}
                 size="lg"
-                className="relative h-24 w-24 ring-2 ring-[var(--accent)]/30 shadow-[0_0_36px_rgba(47,124,255,0.18)]"
+                className="relative h-24 w-24 ring-2 ring-[var(--accent)]/30 shadow-[0_0_36px_var(--accent-glow)]"
               />
             )}
           </div>
