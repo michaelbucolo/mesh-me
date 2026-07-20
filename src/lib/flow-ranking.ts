@@ -30,6 +30,40 @@ const HOUR_MS = 3_600_000;
 // actually engage with are never buried by language alone.
 const LANGUAGE_BOOST = 1.6;
 
+// The Flow is a quick, vertical, swipe-through surface — it should showcase
+// short-form (Shorts, Reels, TikToks, clips) over full-length video. Short-form
+// gets a real lift; long-form is nudged DOWN (never filtered, so a strong-match
+// long video still surfaces). Anything we can't classify is neutral.
+const SHORT_FORM_BOOST = 1.5;
+const LONG_FORM_PENALTY = 0.9;
+
+// URL shapes that are unambiguously short-form containers…
+const SHORT_FORM_URL =
+  /\/shorts\/|tiktok\.com\/@[\w.-]+\/video\/|\/reels?\/|clips\.twitch\.tv\/|twitch\.tv\/[\w.-]+\/clip\/|\/clip\//i;
+// …and ones that are unambiguously long-form containers. Deliberately narrow
+// (e.g. youtu.be is left neutral — it fronts both Shorts and long videos) so
+// we never penalize a short by mistake.
+const LONG_FORM_URL = /youtube\.com\/watch|twitch\.tv\/videos\//i;
+
+/**
+ * Classify a candidate as short-form, long-form, or neutral. Reads the
+ * strongest signal available — native media hints, then the source URL's
+ * shape, then the platform — and treats anything unrecognized as neutral so
+ * the Flow never empties out.
+ */
+function flowFormClass(post: FeedCardPost): "short" | "long" | "neutral" {
+  for (const item of post.media) {
+    const type = item.type.toLowerCase();
+    if (type === "short" || type === "reel") return "short";
+  }
+  const url = post.externalUrl || "";
+  if (SHORT_FORM_URL.test(url)) return "short";
+  // TikTok is inherently short-form regardless of URL shape.
+  if ((post.platform || "").toLowerCase() === "tiktok") return "short";
+  if (LONG_FORM_URL.test(url)) return "long";
+  return "neutral";
+}
+
 /**
  * The For You candidate pool: everything in-network (follows, communities,
  * connected platforms) plus public out-of-network content — the exploration
@@ -333,6 +367,13 @@ function scoreFlowPost(
     const lang = guessLanguage(post.content);
     if (lang && opts.viewerLangs.has(lang)) score += LANGUAGE_BOOST;
   }
+
+  // Favor short-form: the Flow showcases quick vertical content over
+  // full-length video. Additive, like the language boost, so it shifts the
+  // ranking without ever hard-filtering long-form out.
+  const formClass = flowFormClass(post);
+  if (formClass === "short") score += SHORT_FORM_BOOST;
+  else if (formClass === "long") score -= LONG_FORM_PENALTY;
 
   // Proportional jitter, applied BEFORE the fatigue crush so it scales with the
   // score and survives the ×0.06 at the same ratio — a real score gap is never

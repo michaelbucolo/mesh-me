@@ -4851,19 +4851,13 @@ body,
   max-width: 42rem;
 }
 
-/* Let settings fill the viewport height so its internal panel scrolls */
-.mesh-content:has(.settings-traditional) {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.mesh-content:has(.settings-traditional) > .mesh-route-slot {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
+/* Settings scrolls as ONE document in the app's normal .mesh-content scroll
+   container on every form factor — no nested fixed-height panes to trap
+   scrolling. On desktop the section sidebar becomes a sticky rail (see the
+   lg: utilities on the aside) while the page scrolls as a whole; if the
+   section list ever outgrows the viewport, only that rail scrolls internally.
+   This single-scroller model is what makes settings scroll correctly on
+   phones, tablets, and desktop alike. */
 .settings-traditional {
   color: var(--text-primary);
 }
@@ -4876,51 +4870,19 @@ body,
   box-shadow: var(--shadow-sm);
 }
 
+/* Top-align the columns so the sticky sidebar isn't stretched to the panel's
+   height (a stretched item can't stick). */
 .settings-traditional-grid {
-  align-items: stretch;
-}
-
-.settings-traditional-nav,
-.settings-panel {
-  min-height: 0;
+  align-items: start;
 }
 
 .settings-nav-scroll,
 .settings-panel-scroll {
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
 }
 
-/* On tablet/mobile — and on ANY touch-first device, including wide tablets
-   that hit the desktop breakpoint in landscape — the settings page flows and
-   scrolls as one document. The desktop split-pane (fixed shell + inner
-   scroll panes) is a pointer-and-wheel layout; on touch it traps scrolling. */
-@media (max-width: 1023px), (pointer: coarse) {
-  .mesh-content:has(.settings-traditional) {
-    display: block;
-    overflow-y: auto;
-  }
-  .mesh-content:has(.settings-traditional) > .mesh-route-slot {
-    display: block;
-    flex: none;
-  }
-  .settings-traditional {
-    height: auto !important;
-    min-height: 0;
-    overflow: visible !important;
-  }
-  .settings-traditional-grid {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .settings-traditional-nav,
-  .settings-panel {
-    overflow: visible !important;
-  }
-  .settings-panel-scroll {
-    overflow: visible !important;
-  }
+.settings-nav-scroll {
+  scrollbar-gutter: stable;
 }
 
 .settings-nav-item {
