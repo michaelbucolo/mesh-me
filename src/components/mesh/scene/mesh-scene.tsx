@@ -2343,8 +2343,20 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         // to the heart. It glides between the two, so an owner arriving or
         // leaving the room slides in/out rather than snapping to center.
         const ownerHere = !isMe ? ownerHereWorldRef.current : null;
+        const selfId = modelRef.current?.selfId;
+        // When the owner is away, their Meshi rests/sleeps at home — but tucked
+        // just BELOW their profile node, never on top of it. The drop is the
+        // node's on-screen radius converted back to world units, so it clears the
+        // node at any zoom and the Meshi eases there smoothly (no snap).
+        const restingHome = !isMe && !ownerHere;
+        let homeY = 0;
+        if (restingHome) {
+          const selfHb = selfId ? hitboxesRef.current.get(selfId) : null;
+          const clearPx = (selfHb?.r ?? 40) + 26 * meshiScale;
+          homeY = clearPx / Math.max(cameraRef.current.zoom, 0.05);
+        }
         const tx = selfDriven ? cursorWorldTargetRef.current.x : ownerHere ? ownerHere.x : 0;
-        const ty = selfDriven ? cursorWorldTargetRef.current.y : ownerHere ? ownerHere.y : 0;
+        const ty = selfDriven ? cursorWorldTargetRef.current.y : ownerHere ? ownerHere.y : homeY;
         const ok = active && !coarseRef.current ? 1 - Math.exp(-dt / 90) : k;
         const pos = ownerWorldPosRef.current;
         pos.x += (tx - pos.x) * ok;
@@ -2353,7 +2365,6 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         // Avoid nodes while wandering — but its own heart node is home, so
         // it's allowed to settle there. Touch users keep the owner Meshi
         // centered, so it must not be pushed aside by the focused node.
-        const selfId = modelRef.current?.selfId;
         let cx = s.x;
         let cy = coarseRef.current ? s.y : s.y - 6;
         if (!coarseRef.current && Math.hypot(pos.x, pos.y) > 30) {
