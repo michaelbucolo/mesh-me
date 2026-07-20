@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, ExternalLink, Heart, History, List, LocateFixed, Maximize2, MessageCircle, Minimize2, PenLine, Search, Share2, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, ExternalLink, Heart, History, List, LocateFixed, Maximize2, MessageCircle, Minimize2, PenLine, Search, Share2, Sparkles, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -2679,6 +2679,15 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white/80 backdrop-blur">
             {viewedUser.displayName || "@" + viewedUser.username}&apos;s mesh
           </span>
+        )}
+        {viewedUser && (
+          <Link
+            href={`/profile/${viewedUser.username}`}
+            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/60"
+          >
+            <UserRound size={14} aria-hidden="true" />
+            View profile
+          </Link>
         )}
       </div>
 
