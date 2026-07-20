@@ -464,6 +464,88 @@ export async function getUserProfile(username: string) {
   };
 }
 
+export type ProfileConnection = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+  bio: string | null;
+  followerCount: number;
+  isFollowingByViewer: boolean;
+  isViewer: boolean;
+};
+
+/**
+ * The followers / following list behind a profile's stat counts. The CALLER
+ * must first confirm the viewer may see this profile's "people" branch
+ * (profile.sectionVisibility.people) — this only fetches the rows. Suspended
+ * accounts and anyone in a block relationship with the viewer (either
+ * direction) are filtered out so the list can never surface a hidden account.
+ */
+export async function getProfileConnections(
+  targetId: string,
+  tab: "followers" | "following",
+  viewerId: string,
+): Promise<ProfileConnection[]> {
+  const userSelect = {
+    id: true,
+    username: true,
+    displayName: true,
+    avatarUrl: true,
+    isVerified: true,
+    bio: true,
+    _count: { select: { followers: true } },
+    // A single row iff the viewer already follows this person.
+    followers: { where: { followerId: viewerId }, select: { id: true }, take: 1 },
+  } as const;
+  const safe = {
+    isSuspended: false,
+    blocks: { none: { blockedId: viewerId } }, // they haven't blocked the viewer
+    blockedBy: { none: { blockerId: viewerId } }, // the viewer hasn't blocked them
+  };
+
+  let people: Array<{
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    isVerified: boolean;
+    bio: string | null;
+    _count: { followers: number };
+    followers: { id: string }[];
+  }>;
+  if (tab === "followers") {
+    const rows = await prisma.follow.findMany({
+      where: { followingId: targetId, follower: safe },
+      select: { follower: { select: userSelect } },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+    people = rows.map((r) => r.follower);
+  } else {
+    const rows = await prisma.follow.findMany({
+      where: { followerId: targetId, following: safe },
+      select: { following: { select: userSelect } },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+    people = rows.map((r) => r.following);
+  }
+
+  return people.map((u) => ({
+    id: u.id,
+    username: u.username,
+    displayName: u.displayName ?? u.username,
+    avatarUrl: u.avatarUrl,
+    isVerified: u.isVerified,
+    bio: u.bio,
+    followerCount: u._count.followers,
+    isFollowingByViewer: u.followers.length > 0,
+    isViewer: u.id === viewerId,
+  }));
+}
+
 export async function getUserPosts(username: string, page = 1, limit = 20) {
   const currentUser = await getCurrentUser();
 
