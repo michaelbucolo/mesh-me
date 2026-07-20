@@ -143,13 +143,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const dragRef = useRef<{
     active: boolean;
     moved: boolean;
+    startX: number;
+    startY: number;
     lastX: number;
     lastY: number;
     lastT: number;
     vx: number;
     vy: number;
     pinchDist: number;
-  }>({ active: false, moved: false, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0 });
+  }>({ active: false, moved: false, startX: 0, startY: 0, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0 });
   const flingRef = useRef({ vx: 0, vy: 0 });
   const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
   const panTargetRef = useRef<{ nodeId: string } | null>(null);
@@ -948,12 +950,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     [contentList, flyToNode],
   );
 
-  const hitTest = useCallback((sx: number, sy: number): SceneNode | null => {
+  // `slop` grows every hit target by a few px — passed on touch so a fingertip
+  // (much larger and less precise than a cursor) reliably lands on a node.
+  const hitTest = useCallback((sx: number, sy: number, slop = 0): SceneNode | null => {
     const model = modelRef.current;
     if (!model) return null;
     // Label pills (branch / self) are clickable too.
     for (const [id, pill] of pillHitboxesRef.current) {
-      if (sx >= pill.x - 4 && sx <= pill.x + pill.w + 4 && sy >= pill.y - 4 && sy <= pill.y + pill.h + 4) {
+      if (sx >= pill.x - 4 - slop && sx <= pill.x + pill.w + 4 + slop && sy >= pill.y - 4 - slop && sy <= pill.y + pill.h + 4 + slop) {
         const node = model.nodes.get(id);
         if (node) return node;
       }
@@ -962,7 +966,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     let bestR = Infinity;
     hitboxesRef.current.forEach((box, id) => {
       const d = Math.hypot(box.x - sx, box.y - sy);
-      if (d <= box.r && box.r < bestR) {
+      if (d <= box.r + slop && box.r < bestR) {
         const node = model.nodes.get(id);
         if (node) {
           found = node;
@@ -1003,6 +1007,8 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     const d = dragRef.current;
     d.active = true;
     d.moved = false;
+    d.startX = e.clientX;
+    d.startY = e.clientY;
     d.lastX = e.clientX;
     d.lastY = e.clientY;
     d.lastT = performance.now();
@@ -1095,9 +1101,26 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
     const dx = e.clientX - d.lastX;
     const dy = e.clientY - d.lastY;
-    if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
-    cameraRef.current.panX += dx;
-    cameraRef.current.panY += dy;
+    // Tap-vs-drag is measured cumulatively from the press point, not per-move,
+    // so a slow deliberate drag still counts while finger jitter during a tap
+    // does not. Touch gets a much larger tolerance than a precise mouse — this
+    // is the main reason taps "didn't select" before (a few px of wobble was
+    // read as a drag).
+    const moveThresh = coarseRef.current ? 12 : 3;
+    const wasMoved = d.moved;
+    if (Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY) > moveThresh) d.moved = true;
+    // Don't pan until the gesture is a confirmed drag, so a tap never nudges the
+    // scene under your finger. On the frame it first becomes a drag, catch up
+    // the full displacement from the press point so panning starts without a jump.
+    if (d.moved) {
+      if (wasMoved) {
+        cameraRef.current.panX += dx;
+        cameraRef.current.panY += dy;
+      } else {
+        cameraRef.current.panX += e.clientX - d.startX;
+        cameraRef.current.panY += e.clientY - d.startY;
+      }
+    }
     const now = performance.now();
     const dtMove = Math.max(now - d.lastT, 1);
     // Blend an instantaneous velocity sample (px/s) for the release fling.
@@ -1124,6 +1147,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         const container = containerRef.current;
         if (!container) return;
         const rect = container.getBoundingClientRect();
+        // A fingertip is far larger and less precise than a cursor, so on touch
+        // every tap hit-test is forgiving by ~16px — a tap that lands near a
+        // node still selects it. A mouse click stays pixel-precise (slop 0).
+        const tapSlop = coarseRef.current ? 16 : 0;
         // Double-tap / double-click on empty space zooms in on that spot.
         const now = performance.now();
         const prevTap = lastTapRef.current;
@@ -1132,7 +1159,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           prevTap &&
           now - prevTap.t < 320 &&
           Math.hypot(e.clientX - prevTap.x, e.clientY - prevTap.y) < 32 &&
-          !hitTest(e.clientX - rect.left, e.clientY - rect.top)
+          !hitTest(e.clientX - rect.left, e.clientY - rect.top, tapSlop)
         ) {
           lastTapRef.current = null;
           const base = zoomTargetRef.current?.zoom ?? cameraRef.current.zoom;
@@ -1153,13 +1180,13 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             return;
           }
         }
-        const node = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+        const node = hitTest(e.clientX - rect.left, e.clientY - rect.top, tapSlop);
         if (node) {
           activateNode(node);
           return;
         }
-        // On touch, Meshi is the cursor: a tap selects whatever it is on,
-        // unless the tap landed directly on another node (handled above).
+        // Only if a direct (slop-forgiven) tap hit nothing does touch fall back
+        // to "Meshi is the cursor" — selecting whatever your Meshi is resting on.
         if (coarseRef.current && focusIdRef.current) {
           const focused = modelRef.current?.nodes.get(focusIdRef.current);
           if (focused) {
