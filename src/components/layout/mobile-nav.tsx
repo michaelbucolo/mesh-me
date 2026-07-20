@@ -136,7 +136,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
         <PlusSquare className="h-[24px] w-[24px]" aria-hidden="true" />
       </Link>
       <nav className={navClass} aria-label="Primary mobile navigation">
-        <div className="grid grid-cols-5 items-center gap-1">
+        <div className="grid grid-cols-6 items-center gap-0.5">
           {mobileNavItems.map((item) => {
             const isActive = isNavItemActive(pathname, item.href, username);
             const badgeCount = getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages);
