@@ -67,8 +67,7 @@ function MobileNavItem({
           transition={PILL_SPRING}
           className="pointer-events-none absolute inset-x-1.5 inset-y-1 rounded-full"
           style={{
-            background:
-              "linear-gradient(120deg, color-mix(in srgb, var(--accent) 26%, transparent), color-mix(in srgb, var(--mesh-cyan) 22%, transparent))",
+            background: "color-mix(in srgb, var(--accent) 22%, transparent)",
             boxShadow: "0 0 16px color-mix(in srgb, var(--accent) 28%, transparent)",
           }}
           aria-hidden="true"
@@ -84,7 +83,7 @@ function MobileNavItem({
           initial={{ scale: 0.4 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 520, damping: 18 }}
-          className="absolute right-2 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white"
+          className="absolute right-2 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[8px] font-bold text-white"
         >
           {badgeCount > 99 ? "99+" : badgeCount}
         </motion.span>

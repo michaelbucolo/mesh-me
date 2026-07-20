@@ -127,15 +127,15 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
       }`}
       aria-current={active ? "page" : undefined}
     >
-      {/* ONE shared indicator (gradient periwinkle→cyan, soft glow) that slides
-          and stretches between items on route change via framer layoutId. */}
+      {/* ONE shared indicator (single accent bar, soft glow) that slides and
+          stretches between items on route change via framer layoutId. */}
       {active && (
         <motion.span
           layoutId="sidebar-nav-indicator"
           transition={SIDEBAR_INDICATOR_SPRING}
           className="pointer-events-none absolute bottom-[19%] left-0 top-[19%] w-[3px] rounded-r-full"
           style={{
-            background: "linear-gradient(180deg, var(--accent), var(--mesh-cyan))",
+            background: "var(--accent)",
             boxShadow: "0 0 12px color-mix(in srgb, var(--accent) 55%, transparent)",
           }}
           aria-hidden="true"
@@ -208,7 +208,7 @@ function ShellTopBar({
           stagger. Bespoke keyframes scoped here; self-guards reduced motion. */}
       <style>{`
         @keyframes meshAcctPanelIn {
-          from { opacity: 0; transform: scale(0.9) translateY(-6px); }
+          from { opacity: 0; transform: scale(0.96) translateY(-6px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes meshAcctItemIn {
@@ -217,7 +217,7 @@ function ShellTopBar({
         }
         details[open] > .mesh-account-panel {
           transform-origin: top right;
-          animation: meshAcctPanelIn 260ms var(--mesh-spring-lush) both;
+          animation: meshAcctPanelIn 260ms var(--mesh-spring) both;
         }
         details[open] > .mesh-account-panel .mesh-account-item {
           animation: meshAcctItemIn 300ms var(--mesh-ease-out) both;
@@ -261,7 +261,7 @@ function ShellTopBar({
         <Link href="/notifications" className="mesh-topbar-icon relative" aria-label="Notifications" title="Notifications">
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCounts.unreadNotifications > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--mesh-blue)] px-1 text-[9px] font-bold text-white">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
               {unreadCounts.unreadNotifications > 99 ? "99+" : unreadCounts.unreadNotifications}
             </span>
           )}
@@ -269,7 +269,7 @@ function ShellTopBar({
 
         <details ref={accountMenuRef} className="relative">
           <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-full border-0 p-0 text-sm font-semibold text-[var(--mesh-text)] transition-colors lg:rounded-xl lg:border lg:border-[var(--mesh-border)] lg:px-3 lg:py-1.5 lg:hover:bg-[var(--mesh-panel-hover)] [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--mesh-blue)]/15 text-xs font-bold text-[var(--mesh-blue)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-bold text-[var(--accent)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
             <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
             <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
           </summary>
@@ -491,7 +491,7 @@ export function AppShell({ children, user }: AppShellProps) {
             href="/settings#privacy"
             className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text-secondary)]"
           >
-            <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--mesh-blue)]" aria-hidden="true" />
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate text-xs font-medium">Privacy first — you own your data</span>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
           </Link>
@@ -515,7 +515,7 @@ export function AppShell({ children, user }: AppShellProps) {
               />
             ) : (
               <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--mesh-blue)]/15 text-xs font-bold text-[var(--mesh-blue)] ring-1 ring-[var(--mesh-border)]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-bold text-[var(--accent)] ring-1 ring-[var(--mesh-border)]"
                 aria-hidden="true"
               >
                 {userInitials}
