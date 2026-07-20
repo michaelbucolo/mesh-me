@@ -422,6 +422,14 @@ function ReelContent({
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [expanded, setExpanded] = useState(false);
+  const captionRef = useRef<HTMLParagraphElement | null>(null);
+  const [captionOverflows, setCaptionOverflows] = useState(false);
+  // Measure once, while the caption is still clamped, whether it actually spills
+  // past 2 lines — so the "more" toggle only appears when there's hidden text.
+  useEffect(() => {
+    const el = captionRef.current;
+    if (el) setCaptionOverflows(el.scrollHeight > el.clientHeight + 2);
+  }, [post.content]);
   const [showWhy, setShowWhy] = useState(false);
   const [paused, setPaused] = useState(false);
   const [bursts, setBursts] = useState<HeartBurst[]>([]);
@@ -635,15 +643,30 @@ function ReelContent({
                 <span className="truncate text-sm font-semibold">@{post.author.username}</span>
               </Link>
               {post.content && post.media.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setExpanded((e) => !e)}
-                  className={`mt-2 block max-w-full text-left text-[13px] leading-snug text-white/90 ${
-                    expanded ? "max-h-[32vh] overflow-y-auto pr-1 [scrollbar-width:thin]" : "line-clamp-2"
-                  }`}
-                >
-                  {post.content}
-                </button>
+                <div className="mt-2 max-w-full text-[13px] leading-snug text-white/90">
+                  {/* Captions default to 2 lines; a `<p>` (not a `block` button)
+                      so the line-clamp's own display isn't overridden. */}
+                  <p
+                    ref={captionRef}
+                    className={
+                      expanded
+                        ? "max-h-[32vh] overflow-y-auto whitespace-pre-wrap pr-1 [scrollbar-width:thin]"
+                        : "line-clamp-2"
+                    }
+                  >
+                    {post.content}
+                  </p>
+                  {captionOverflows && (
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((e) => !e)}
+                      className="mt-0.5 text-[12px] font-semibold text-white/70 transition-colors hover:text-white"
+                      aria-expanded={expanded}
+                    >
+                      {expanded ? "less" : "more"}
+                    </button>
+                  )}
+                </div>
               )}
               <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-white/60">
                 <Music2 size={11} />
