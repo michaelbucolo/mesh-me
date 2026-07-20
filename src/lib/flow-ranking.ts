@@ -11,6 +11,7 @@
 
 import { prisma } from "./prisma";
 import { ANONYMOUS_VIEWER, canonicalFeedKey, getCombinedFeedPosts, type FeedCardPost, type FeedCurrentUser } from "./feed-data";
+import { guessLanguage } from "./language";
 
 export type TasteProfile = {
   // authorKey (user id or external author handle) -> interaction weight
@@ -23,6 +24,11 @@ export type TasteProfile = {
 };
 
 const HOUR_MS = 3_600_000;
+
+// How hard to nudge same-language content up. Strong enough to cater the Flow
+// to the viewer's language, but below author affinity (2.6) so people you
+// actually engage with are never buried by language alone.
+const LANGUAGE_BOOST = 1.6;
 
 /**
  * The For You candidate pool: everything in-network (follows, communities,
@@ -275,7 +281,7 @@ const MODE_WEIGHTS: Record<Exclude<FlowRankMode, "chronological">, RankWeights> 
 function scoreFlowPost(
   post: FeedCardPost,
   profile: TasteProfile,
-  opts: { now?: number; seen?: Set<string>; weights?: RankWeights } = {},
+  opts: { now?: number; seen?: Set<string>; weights?: RankWeights; viewerLangs?: Set<string> } = {},
 ): number {
   const now = opts.now ?? Date.now();
   const ageHours = Math.max((now - new Date(post.createdAt).getTime()) / HOUR_MS, 0.5);
@@ -320,6 +326,14 @@ function scoreFlowPost(
     tagMatch * w.tagMatch +
     richness;
 
+  // Cater to the viewer's language: content we can confidently read as one of
+  // their languages gets a real nudge up. Text we can't classify (or media-only
+  // posts) is left neutral — never penalized — so the Flow never empties out.
+  if (opts.viewerLangs && opts.viewerLangs.size > 0) {
+    const lang = guessLanguage(post.content);
+    if (lang && opts.viewerLangs.has(lang)) score += LANGUAGE_BOOST;
+  }
+
   // Proportional jitter, applied BEFORE the fatigue crush so it scales with the
   // score and survives the ×0.06 at the same ratio — a real score gap is never
   // inverted, only genuine near-ties reshuffle, so two visits to the same pool
@@ -352,6 +366,9 @@ export function rankFlowPosts(
      * Seeds the diversity window so author/platform runs can't straddle the
      * seam between one response and the next. */
     recent?: FeedCardPost[];
+    /** The viewer's languages (from Accept-Language). Same-language content is
+     * nudged up so the Flow caters to the language they actually read. */
+    viewerLangs?: Set<string>;
   } = {},
 ): FeedCardPost[] {
   const mode = opts.mode ?? "balanced";
@@ -381,7 +398,7 @@ export function rankFlowPosts(
   const weights = opts.studio ? weightsFromStudio(opts.studio) : MODE_WEIGHTS[mode];
   const now = Date.now();
   const scored = candidates
-    .map((post) => ({ post, score: scoreFlowPost(post, profile, { now, seen: opts.seen, weights }) }))
+    .map((post) => ({ post, score: scoreFlowPost(post, profile, { now, seen: opts.seen, weights, viewerLangs: opts.viewerLangs }) }))
     .sort((a, b) => b.score - a.score);
 
   const result: FeedCardPost[] = [];
