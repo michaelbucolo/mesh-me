@@ -1239,6 +1239,9 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       d.pinchMidX = (pts[0].x + pts[1].x) / 2;
       d.pinchMidY = (pts[0].y + pts[1].y) / 2;
+      // A second finger makes this a gesture, never a tap — so neither finger's
+      // lift falls into the tap/deselect path (which would clear your selection).
+      d.moved = true;
     }
   }, []);
 
@@ -1367,6 +1370,15 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       const d = dragRef.current;
       pointersRef.current.delete(e.pointerId);
       if (pointersRef.current.size < 2) d.pinchDist = 0;
+      if (pointersRef.current.size === 2) {
+        // Dropped from 3+ fingers back to 2: re-seed the pinch anchor from the
+        // two that remain, so the next pinch move doesn't jump on stale
+        // distance/midpoint left over from before the extra finger lifted.
+        const pts = [...pointersRef.current.values()];
+        d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        d.pinchMidX = (pts[0].x + pts[1].x) / 2;
+        d.pinchMidY = (pts[0].y + pts[1].y) / 2;
+      }
       if (pointersRef.current.size === 1) {
         // Lifting one finger of a pinch: re-anchor the drag on the finger that
         // stays down, so its next move measures from where it IS — otherwise the
@@ -1388,7 +1400,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         }
       }
 
-      if (!d.moved) {
+      // Only the FINAL finger lifting with no drag is a tap. Guarding on the
+      // pointer count means a lift that's part of a still-in-progress multi-touch
+      // gesture can never select or clear the selection.
+      if (!d.moved && pointersRef.current.size === 0) {
         const container = containerRef.current;
         if (!container) return;
         const rect = container.getBoundingClientRect();
@@ -1449,6 +1464,12 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     const d = dragRef.current;
     pointersRef.current.delete(e.pointerId);
     if (pointersRef.current.size < 2) d.pinchDist = 0;
+    if (pointersRef.current.size === 2) {
+      const pts = [...pointersRef.current.values()];
+      d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      d.pinchMidX = (pts[0].x + pts[1].x) / 2;
+      d.pinchMidY = (pts[0].y + pts[1].y) / 2;
+    }
     if (pointersRef.current.size === 1) {
       const [p] = [...pointersRef.current.values()];
       d.lastX = p.x;
