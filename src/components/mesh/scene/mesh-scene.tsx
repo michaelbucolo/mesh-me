@@ -511,6 +511,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           setActiveBranch(null);
           setSelectedNode(null);
           fitToContent();
+          // Re-seed the self/cursor Meshi at the freshly-fitted camera centre so
+          // it's visible the instant you arrive at (or travel to) a mesh — the
+          // step loop's one-shot seed re-runs next frame and fades it in.
+          cursorWorldTargetRef.current.seen = false;
           // Arrive INTO the world: the camera starts pushed in and eases out
           // while the mesh forms around you.
           zoomTargetRef.current = { zoom: cameraRef.current.zoom, ax: 0, ay: 0 };
@@ -1965,6 +1969,22 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       // Your own Meshi ambles across the mesh toward the pointer, swerving
       // around nodes, and leans in (locally only) when you hover something.
       const cursorEl = meshiCursorRef.current;
+      // First frame after arriving at a mesh: seed the self Meshi at the
+      // viewport centre and fade it in, so it's visible immediately instead of
+      // parked invisibly at the top-left until the first pointer move. One-shot
+      // (guarded on !seen) so the very next real move resumes cursor-following.
+      // Placed BEFORE the coarse branch so the opacity reveal runs for touch
+      // too (the coarse branch below re-affirms centre + seen harmlessly).
+      if (cursorEl && !cursorWorldTargetRef.current.seen) {
+        const cam = cameraRef.current;
+        const t = cursorWorldTargetRef.current;
+        t.x = -cam.panX / cam.zoom;
+        t.y = -cam.panY / cam.zoom;
+        cursorWorldPosRef.current.x = t.x;
+        cursorWorldPosRef.current.y = t.y;
+        t.seen = true;
+        cursorEl.style.opacity = "1";
+      }
       if (coarseRef.current) {
         const cam = cameraRef.current;
         const center = cursorWorldTargetRef.current;
