@@ -2235,6 +2235,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                         src={embed}
                         title="Preview"
                         allow="autoplay; encrypted-media"
+                        referrerPolicy="strict-origin-when-cross-origin"
                         className="mt-1.5 aspect-video w-56 rounded-lg border-0"
                       />
                     );
@@ -3290,6 +3291,7 @@ function ContentLens({
               title="Player"
               allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
               className="h-full w-full border-0"
             />
           </div>

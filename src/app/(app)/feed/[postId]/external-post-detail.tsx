@@ -66,6 +66,9 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
               title="Video player"
               allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
+              // Send the embedding origin so the player authorizes playback
+              // despite the site-wide no-referrer policy (see flow-client).
+              referrerPolicy="strict-origin-when-cross-origin"
               className="h-full w-full border-0"
             />
           </div>

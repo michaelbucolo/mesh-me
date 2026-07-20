@@ -613,6 +613,9 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 title="Video player"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
+                // Send the embedding origin so YouTube/Vimeo authorize playback
+                // despite the site-wide no-referrer policy (see flow-client).
+                referrerPolicy="strict-origin-when-cross-origin"
                 className="absolute inset-0 h-full w-full border-0"
               />
             ) : (

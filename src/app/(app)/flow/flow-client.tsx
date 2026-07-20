@@ -211,6 +211,11 @@ function ReelMedia({
           title="Video player"
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
+          // The site sends no Referer by default; YouTube's player needs the
+          // embedding origin to authorize playback (otherwise it fails with a
+          // "153"-class error as each reel mounts). Override just this frame to
+          // send the origin only — enough to authorize, nothing more.
+          referrerPolicy="strict-origin-when-cross-origin"
           className="absolute inset-0 h-full w-full border-0"
         />
       </div>
