@@ -40,6 +40,8 @@ export async function GET(req: Request) {
           },
         },
       },
+      // Stable order so the 80-cap returns the same set for every viewer/reload.
+      orderBy: { id: "desc" },
       take: 80,
     }),
     prisma.follow.findMany({
@@ -54,6 +56,8 @@ export async function GET(req: Request) {
           },
         },
       },
+      // Stable order so the 80-cap returns the same set for every viewer/reload.
+      orderBy: { id: "desc" },
       take: 80,
     }),
     prisma.communityMember.findMany({
@@ -322,7 +326,9 @@ export async function GET(req: Request) {
     if (followerIds.has(id)) mutualSet.add(id);
   }
 
-  const mutualIds = Array.from(mutualSet).slice(0, 12);
+  // Sort before the cap so the same 12 mutuals' meshes are fetched on every
+  // client (Set iteration order otherwise inherits query order).
+  const mutualIds = Array.from(mutualSet).sort().slice(0, 12);
   const friendMeshData = mutualIds.length > 0
     ? await prisma.user.findMany({
         where: {

@@ -50,7 +50,11 @@ function jitter(id: string): number {
   return ((h >>> 0) / 0xffffffff) * 2 - 1;
 }
 
-const byNewest = (a: SceneNode, b: SceneNode) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0);
+// Newest first, with a stable id tiebreak so equal-timestamp content sorts
+// identically on every client (never inherits the API's array order, which can
+// differ between viewers and reloads — a source of "posts look different").
+const byNewest = (a: SceneNode, b: SceneNode) =>
+  (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0) || a.id.localeCompare(b.id);
 
 // Fan `items` inside the wedge [center-half, center+half], newest first,
 // nearest ring first. Cards per ring grows with the ring's circumference so
