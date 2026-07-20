@@ -50,9 +50,19 @@ export function getVideoEmbedUrl(
     return `https://player.vimeo.com/video/${vimeo[1]}?${params.toString()}`;
   }
 
-  const twitchClip = /clips\.twitch\.tv\/([\w-]+)/i.exec(url);
+  // Twitch clips are shared two ways: clips.twitch.tv/<slug> and
+  // twitch.tv/<channel>/clip/<slug>. Match both, or the second form never
+  // embeds and just sits there as a dead thumbnail. `parent` must be the live
+  // host (required by Twitch), and autoplay needs muted=true per browser policy.
+  const twitchClip = /(?:clips\.twitch\.tv\/|(?:www\.)?twitch\.tv\/[\w.-]+\/clip\/)([A-Za-z0-9_-]+)/i.exec(url);
   if (twitchClip && typeof window !== "undefined") {
-    return `https://clips.twitch.tv/embed?clip=${twitchClip[1]}&parent=${window.location.hostname}&autoplay=${autoplay}&muted=${muted}`;
+    const params = new URLSearchParams({
+      clip: twitchClip[1],
+      parent: window.location.hostname,
+      autoplay: autoplay ? "true" : "false",
+      muted: muted ? "true" : "false",
+    });
+    return `https://clips.twitch.tv/embed?${params.toString()}`;
   }
 
   const tiktok = /tiktok\.com\/@[\w.-]+\/video\/(\d+)/i.exec(url);
