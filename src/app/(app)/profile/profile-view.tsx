@@ -32,6 +32,7 @@ import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
+import { Button } from "@/components/ui/button";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 
 const DEFAULT_MESHI = {
@@ -284,31 +285,28 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
               {isOwnProfile ? (
                 <>
-                  <Link
-                    href="/profile?tab=analytics"
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(47,124,255,0.3)] transition hover:brightness-110"
-                  >
-                    <BarChart3 size={16} aria-hidden="true" />
-                    Analytics
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5 text-sm font-medium text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
-                  >
-                    <Settings size={16} aria-hidden="true" />
-                    Settings
-                  </Link>
+                  <Button asChild>
+                    <Link href="/profile?tab=analytics">
+                      <BarChart3 size={16} aria-hidden="true" />
+                      Analytics
+                    </Link>
+                  </Button>
+                  <Button asChild variant="secondary">
+                    <Link href="/settings">
+                      <Settings size={16} aria-hidden="true" />
+                      Settings
+                    </Link>
+                  </Button>
                 </>
               ) : (
                 <>
                   <FollowButton userId={profile.id} isFollowing={profile.isFollowing} />
-                  <Link
-                    href={`/messages/${profile.id}?new=true`}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5 text-sm font-medium text-[var(--mesh-text)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
-                  >
-                    <MessageCircle size={16} aria-hidden="true" />
-                    Message
-                  </Link>
+                  <Button asChild variant="secondary">
+                    <Link href={`/messages/${profile.id}?new=true`}>
+                      <MessageCircle size={16} aria-hidden="true" />
+                      Message
+                    </Link>
+                  </Button>
                 </>
               )}
 
@@ -359,9 +357,9 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   {isOwnProfile ? "Join communities to see them here." : `${profile.displayName} hasn't joined any communities.`}
                 </p>
                 {isOwnProfile && (
-                  <Link href="/communities" className="mt-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent)]/90">
-                    Browse communities
-                  </Link>
+                  <Button asChild className="mt-2">
+                    <Link href="/communities">Browse communities</Link>
+                  </Button>
                 )}
               </section>
             )}
@@ -468,9 +466,9 @@ export async function InstagramProfileView({ username, tab }: { username: string
               {isOwnProfile ? "Share your first post from Home." : `${profile.displayName} has not posted yet.`}
             </p>
             {isOwnProfile && (
-              <Link href="/feed?compose=true" className="mt-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent)]/90">
-                Create post
-              </Link>
+              <Button asChild className="mt-2">
+                <Link href="/feed?compose=true">Create post</Link>
+              </Button>
             )}
           </section>
         )}

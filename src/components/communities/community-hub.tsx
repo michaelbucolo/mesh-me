@@ -6,6 +6,7 @@ import { useRef, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShieldCheck } from "lucide-react";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
+import { Button } from "@/components/ui/button";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 
 const HUB_SPRING = { type: "spring" as const, stiffness: 380, damping: 32 };
@@ -211,13 +212,9 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               </motion.button>
             );
           })}
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--mesh-border)] px-4 py-1.5 text-sm font-medium text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)] transition-colors"
-          >
+          <Button type="button" variant="outline" size="sm" rightIcon={<ChevronDown size={14} />}>
             More
-            <ChevronDown size={14} />
-          </button>
+          </Button>
         </div>
 
         {/* All communities directory */}
@@ -249,9 +246,9 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
           {filteredCommunities.length > 0 && (
             <p className="mt-4 text-center text-xs text-[var(--mesh-text-muted)]">
               Showing 1–{filteredCommunities.length} of {dedupedCommunities.length} communities
-              <button type="button" className="ml-3 rounded-lg border border-[var(--mesh-border)] px-3 py-1 text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)] transition-colors">
+              <Button type="button" variant="outline" size="sm" className="ml-3">
                 Load more
-              </button>
+              </Button>
             </p>
           )}
         </section>
