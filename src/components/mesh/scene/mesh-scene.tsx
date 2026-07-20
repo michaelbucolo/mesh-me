@@ -134,11 +134,14 @@ function generateStars(width: number, height: number) {
 // someone in the room. Horizontal offset sets the tilt direction and closer
 // neighbours pull harder; returns 0 when nobody's near, so a Meshi with the
 // room to itself stands straight.
-function gazeLeanDeg(x: number, y: number, others: { x: number; y: number }[]): number {
-  const RANGE = 300;
-  // Rank candidates by squared distance (no per-candidate sqrt); take one real
-  // distance for the single winner — this runs on a per-frame hot path.
-  let best: { x: number; y: number } | null = null;
+// A Meshi looks at things with its EYES, never by tilting. These helpers feed
+// the --meshi-look-x/-y custom properties (each a unit vector -1..1) that
+// MeshiMascot reads to shift its gaze. Runs on a per-frame hot path, so the
+// nearest search ranks by squared distance and takes one sqrt for the winner.
+type Pt = { x: number; y: number };
+
+function nearestWithin(x: number, y: number, others: Pt[], range: number): Pt | null {
+  let best: Pt | null = null;
   let bestSq = Infinity;
   for (const o of others) {
     const dx = o.x - x;
@@ -149,10 +152,18 @@ function gazeLeanDeg(x: number, y: number, others: { x: number; y: number }[]): 
       best = o;
     }
   }
-  if (!best || bestSq > RANGE * RANGE || bestSq < 1) return 0;
-  const bestD = Math.sqrt(bestSq);
-  const proximity = 1 - bestD / RANGE;
-  return Math.max(-14, Math.min(14, ((best.x - x) / bestD) * 14 * proximity));
+  if (!best || bestSq > range * range || bestSq < 1) return null;
+  return best;
+}
+
+// Unit direction from a Meshi at (x,y) toward a target — where its eyes point.
+function lookUnit(x: number, y: number, target: Pt | null): Pt {
+  if (!target) return { x: 0, y: 0 };
+  const dx = target.x - x;
+  const dy = target.y - y;
+  const d = Math.hypot(dx, dy);
+  if (d < 1) return { x: 0, y: 0 };
+  return { x: dx / d, y: dy / d };
 }
 
 export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
@@ -311,11 +322,14 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const perchNodeRef = useRef<Map<string, string>>(new Map());
   const lastScreenPosRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   // Meshi social life: where MY Meshi and the mesh owner's Meshi were last
-  // drawn (so the reaction/gaze logic can measure who's near whom), plus the
-  // smoothed gaze lean per visiting Meshi, and a debounce on warm reactions.
+  // drawn (so the look/reaction logic can measure who's near whom), plus the
+  // smoothed EYE look-direction per Meshi (unit vector), and a debounce on
+  // warm reactions. Meshis look with their eyes, never by tilting.
   const selfScreenRef = useRef<{ x: number; y: number } | null>(null);
   const ownerScreenRef = useRef<{ x: number; y: number } | null>(null);
-  const presenceGazeRef = useRef<Map<string, number>>(new Map());
+  // Smoothed eye look-direction (unit vector) per Meshi, keyed "__self__" /
+  // "__owner__" / a visitor's userId.
+  const presenceLookRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const socialUntilRef = useRef(0);
   const behaviorMoodRef = useRef<MeshiMood | null>(null);
   const reducedMotionRef = useRef(false);
@@ -1741,7 +1755,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             // (long sessions would otherwise accumulate every visitor ever).
             perchNodeRef.current.delete(id);
             lastScreenPosRef.current.delete(id);
-            presenceGazeRef.current.delete(id);
+            presenceLookRef.current.delete(id);
             joinStampRef.current.delete(id);
           }
         });
@@ -2143,6 +2157,33 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         center.seen = true;
         cursorVpRef.current = { vx: 0.5, vy: 0.5 };
       }
+      // ── Eye look-at: Meshis point their gaze (never their body) at what the
+      // viewer is attending to. easeLook smooths the unit look-vector into the
+      // --meshi-look-* custom properties MeshiMascot reads.
+      const easeLook = (el: HTMLElement, key: string, from: Pt, target: Pt | null) => {
+        const cur = presenceLookRef.current.get(key) ?? { x: 0, y: 0 };
+        const want = target ? lookUnit(from.x, from.y, target) : { x: 0, y: 0 };
+        if (want.x === 0 && want.y === 0 && Math.abs(cur.x) < 0.004 && Math.abs(cur.y) < 0.004) return;
+        const kk = 1 - Math.exp(-dt / 130);
+        const nx = cur.x + (want.x - cur.x) * kk;
+        const ny = cur.y + (want.y - cur.y) * kk;
+        presenceLookRef.current.set(key, { x: nx, y: ny });
+        el.style.setProperty("--meshi-look-x", nx.toFixed(3));
+        el.style.setProperty("--meshi-look-y", ny.toFixed(3));
+      };
+      // What YOUR Meshi looks at: the node you're pointing at, then the one you
+      // opened, then the nearest Meshi in the room.
+      const selfLookTarget = (fromX: number, fromY: number): Pt | null => {
+        const hoverHb = hoverIdRef.current ? hitboxesRef.current.get(hoverIdRef.current) : null;
+        const openHb = !hoverHb && selectedIdRef.current ? hitboxesRef.current.get(selectedIdRef.current) : null;
+        const hb = hoverHb ?? openHb;
+        if (hb) return { x: hb.x, y: hb.y };
+        const others: Pt[] = [];
+        lastScreenPosRef.current.forEach((q) => others.push(q));
+        if (!isOwnMesh && ownerScreenRef.current) others.push(ownerScreenRef.current);
+        return nearestWithin(fromX, fromY, others, 380);
+      };
+
       if (cursorEl) cursorEl.style.setProperty("--meshi-scale", meshiScale.toFixed(3));
       if (cursorEl && cursorWorldTargetRef.current.seen) {
         // Meshi IS your cursor: while the mouse is on the canvas it mirrors it
@@ -2160,21 +2201,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         const vpf = prev ? (clear.x - prev.x) / Math.max(dt, 1) : 0;
         cursorPrevRef.current = { x: clear.x, y: clear.y };
         selfScreenRef.current = { x: clear.x, y: clear.y };
+        // Body only banks into the direction of travel; the gaze is the eyes.
         const travelLean = Math.max(-16, Math.min(16, vpf * 24));
-        // When you're ambling slowly the gaze wins and your Meshi turns to look
-        // at whoever's nearest; while you're zipping after the pointer, the
-        // travel-lean takes over. Skipped under reduced-motion.
-        let leanTarget = travelLean;
-        if (!reducedMotionRef.current) {
-          const others: { x: number; y: number }[] = [];
-          lastScreenPosRef.current.forEach((q) => others.push(q));
-          if (ownerScreenRef.current) others.push(ownerScreenRef.current);
-          const gaze = gazeLeanDeg(clear.x, clear.y, others);
-          const gazeWeight = Math.max(0, 1 - Math.abs(vpf) / 0.25);
-          leanTarget = travelLean * (1 - gazeWeight) + gaze * gazeWeight;
-        }
-        cursorRotRef.current += (leanTarget - cursorRotRef.current) * (1 - Math.exp(-dt / 110));
+        cursorRotRef.current += (travelLean - cursorRotRef.current) * (1 - Math.exp(-dt / 110));
         cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) rotate(${cursorRotRef.current.toFixed(2)}deg)`;
+        easeLook(cursorEl, "__self__", clear, reducedMotionRef.current ? null : selfLookTarget(clear.x, clear.y));
       }
 
       // The mesh owner's Meshi. On someone else's mesh it rests at the heart
@@ -2232,62 +2263,48 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           const prevO = ownerPrevRef.current;
           const vpfO = prevO ? (cx - prevO.x) / Math.max(dt, 1) : 0;
           ownerPrevRef.current = { x: cx, y: cy };
+          // Body banks into travel only; the eyes carry the gaze.
           const travelLeanO = Math.max(-16, Math.min(16, vpfO * 24));
-          let leanTargetO = travelLeanO;
-          if (!reducedMotionRef.current) {
-            const others: { x: number; y: number }[] = [];
-            lastScreenPosRef.current.forEach((q) => others.push(q));
-            const gaze = gazeLeanDeg(cx, cy, others);
-            const gazeWeight = Math.max(0, 1 - Math.abs(vpfO) / 0.25);
-            leanTargetO = travelLeanO * (1 - gazeWeight) + gaze * gazeWeight;
-          }
-          ownerRotRef.current += (leanTargetO - ownerRotRef.current) * (1 - Math.exp(-dt / 110));
+          ownerRotRef.current += (travelLeanO - ownerRotRef.current) * (1 - Math.exp(-dt / 110));
           ownerEl.style.transform = `translate(-50%, -50%) rotate(${ownerRotRef.current.toFixed(2)}deg)`;
+          easeLook(ownerEl, "__self__", { x: cx, y: cy }, reducedMotionRef.current ? null : selfLookTarget(cx, cy));
         } else {
-          // The host you're visiting turns to look at whoever's in the room.
-          // The lean always EASES (so it settles back upright if the gaze is
-          // switched off mid-session), but the neighbour scan is what's gated
-          // off on reduced-motion / weak devices.
-          let target = 0;
+          // The host you're visiting watches whoever's in the room (eyes only).
+          let target: Pt | null = null;
           if (!reducedMotionRef.current && !coarseRef.current) {
-            const others: { x: number; y: number }[] = [];
+            const others: Pt[] = [];
             lastScreenPosRef.current.forEach((q) => others.push(q));
             if (selfScreenRef.current) others.push(selfScreenRef.current);
-            target = gazeLeanDeg(cx, cy, others);
+            target = nearestWithin(cx, cy, others, 420);
           }
-          const prevG = presenceGazeRef.current.get("__owner__") ?? 0;
-          if (target !== 0 || Math.abs(prevG) > 0.01) {
-            const nextG = prevG + (target - prevG) * (1 - Math.exp(-dt / 150));
-            presenceGazeRef.current.set("__owner__", nextG);
-            ownerEl.style.setProperty("--meshi-gaze", `${nextG.toFixed(2)}deg`);
-          }
+          easeLook(ownerEl, "__owner__", { x: cx, y: cy }, target);
         }
       }
-      // The visiting Meshis look around at each other and at you — a room that
-      // notices itself. The lean always eases (settling upright if gaze is
-      // gated off mid-session); the neighbour scan is skipped on coarse/weak
-      // devices.
+      // The visiting Meshis look (eyes only) at the node they're reading, and
+      // otherwise at the nearest Meshi — a room that notices itself. The scan is
+      // skipped on coarse/weak devices; existing gaze just eases back to center.
       {
-        const gazeActive = !reducedMotionRef.current && !coarseRef.current;
+        const lookActive = !reducedMotionRef.current && !coarseRef.current;
         presenceElsRef.current.forEach((el, userId) => {
-          let target = 0;
-          if (gazeActive) {
-            const me = lastScreenPosRef.current.get(userId);
-            if (me) {
-              const others: { x: number; y: number }[] = [];
+          const me = lastScreenPosRef.current.get(userId);
+          if (!me) return;
+          let target: Pt | null = null;
+          if (lookActive) {
+            const perchId = perchNodeRef.current.get(userId);
+            const hb = perchId ? hitboxesRef.current.get(perchId) : null;
+            if (hb) {
+              target = { x: hb.x, y: hb.y };
+            } else {
+              const others: Pt[] = [];
               lastScreenPosRef.current.forEach((q, id) => {
                 if (id !== userId) others.push(q);
               });
               if (selfScreenRef.current) others.push(selfScreenRef.current);
               if (ownerScreenRef.current) others.push(ownerScreenRef.current);
-              target = gazeLeanDeg(me.x, me.y, others);
+              target = nearestWithin(me.x, me.y, others, 420);
             }
           }
-          const prevG = presenceGazeRef.current.get(userId) ?? 0;
-          if (target === 0 && Math.abs(prevG) <= 0.01) return; // already upright
-          const nextG = prevG + (target - prevG) * (1 - Math.exp(-dt / 150));
-          presenceGazeRef.current.set(userId, nextG);
-          el.style.setProperty("--meshi-gaze", `${nextG.toFixed(2)}deg`);
+          easeLook(el, userId, me, target);
         });
       }
     };

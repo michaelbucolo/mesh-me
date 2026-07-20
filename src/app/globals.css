@@ -7444,12 +7444,12 @@ body > * { position: relative; z-index: 1; }
   .meshi-arrive, .meshi-arrive-ring, .meshi-leave { animation-duration: 0.01s; }
 }
 
-/* ── Meshis live IN the world: they scale with the zoom like nodes do. The
-   optional --meshi-gaze tips a Meshi toward whoever it's looking at (0 by
-   default, so untouched Meshis render exactly as before). ── */
+/* ── Meshis live IN the world: they scale with the zoom like nodes do. They
+   never tilt — a Meshi looks at things with its EYES (see --meshi-look-* on
+   MeshiMascot), keeping its body upright. ── */
 .meshi-world-scale {
   position: relative;
-  transform: scale(var(--meshi-scale, 1)) rotate(var(--meshi-gaze, 0deg));
+  transform: scale(var(--meshi-scale, 1));
   transform-origin: center;
   will-change: transform;
 }
