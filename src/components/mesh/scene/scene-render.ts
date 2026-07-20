@@ -4,7 +4,6 @@
 // hitbox for pointer hit-testing.
 
 import { platformLogoDataUri } from "@/components/platform/platform-logo";
-import { GUIDE_RINGS } from "./scene-layout";
 import type { BranchKey, SceneModel, SceneNode } from "./scene-model";
 
 // Rasterized brand marks (YouTube, Instagram, TikTok, …) for canvas drawing.
@@ -824,23 +823,6 @@ export function drawScene(o: RenderOptions): void {
   vig.addColorStop(1, "rgba(2,3,7,0.45)");
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, width, height);
-
-  // --- Closeness guide rings: quiet geometry only — the welcome note says
-  // closeness = distance once; the world shouldn't caption itself.
-  if (o.isOwnMesh && o.camera.zoom <= 1.15 && model.nodes.size > 1) {
-    ctx.save();
-    for (const ring of GUIDE_RINGS) {
-      const rr = ring.radius * o.camera.zoom;
-      ctx.beginPath();
-      ctx.setLineDash([3, 9]);
-      ctx.arc(gcx, gcy, rr, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(148,163,184,0.10)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    ctx.restore();
-  }
 
   const nodes = model.nodes;
   o.pillHitboxes?.clear();
