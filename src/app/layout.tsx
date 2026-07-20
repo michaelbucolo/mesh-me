@@ -3,6 +3,7 @@ import type React from "react";
 import { Suspense } from "react";
 import Script from "next/script";
 import { MotionConfig } from "framer-motion";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NavigationProgress } from "@/components/ui/navigation-progress";
 import { RootClientEffects } from "@/components/root-client-effects";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -155,6 +156,8 @@ export default function RootLayout({
             <RootClientEffects />
           </MotionConfig>
         </ThemeProvider>
+        {/* Vercel Speed Insights — real-user Core Web Vitals for every route. */}
+        <SpeedInsights />
       </body>
     </html>
   );
