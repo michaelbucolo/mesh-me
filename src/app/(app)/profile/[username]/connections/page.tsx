@@ -36,7 +36,9 @@ export default async function ConnectionsPage({
   // Connections are the profile's "people" branch — only fetch them when the
   // viewer is allowed to see who this person connects with.
   const canSee = profile.sectionVisibility.people;
-  const people = canSee ? await getProfileConnections(profile.id, activeTab, viewer.id) : [];
+  // getProfileConnections re-authorizes internally (it's a Server Action); the
+  // page gate here is just for choosing the "private list" vs list UI.
+  const people = canSee ? await getProfileConnections(profile.id, activeTab) : [];
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6 animate-page-enter">

@@ -477,17 +477,54 @@ export type ProfileConnection = {
 };
 
 /**
- * The followers / following list behind a profile's stat counts. The CALLER
- * must first confirm the viewer may see this profile's "people" branch
- * (profile.sectionVisibility.people) — this only fetches the rows. Suspended
- * accounts and anyone in a block relationship with the viewer (either
- * direction) are filtered out so the list can never surface a hidden account.
+ * The followers / following list behind a profile's stat counts. Authorization
+ * is enforced HERE, not only in the page: this file is a "use server" module, so
+ * this export is a dispatchable Server Action — it must re-derive the viewer from
+ * the session and re-check the target's "people" branch itself, or it could be
+ * invoked directly to enumerate an arbitrary (even private) user's social graph.
+ * Suspended accounts and anyone in a block relationship with the viewer (either
+ * direction) are additionally filtered out.
  */
 export async function getProfileConnections(
   targetId: string,
   tab: "followers" | "following",
-  viewerId: string,
 ): Promise<ProfileConnection[]> {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return [];
+  const viewerId = currentUser.id;
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetId },
+    include: { meshPrivacy: true },
+  });
+  if (!target || target.isSuspended) return [];
+
+  // Same in-function gate as getUserCommunities: a non-self, non-admin viewer
+  // may only enumerate connections when the target's "people" branch is visible
+  // to them under the target's own mesh-privacy settings.
+  const isSelf = currentUser.id === target.id;
+  if (!isSelf && !currentUser.isAdmin) {
+    const meshVisibility = normalizeMeshVisibility(
+      target.meshPrivacy?.meshVisibility,
+      target.isPublic ? "public" : "private",
+    );
+    const isFriend = await areMutualFollowers(currentUser.id, target.id);
+    if (!canViewProfile(currentUser, target, meshVisibility, isFriend)) return [];
+    const fallback: BranchVisibility = meshVisibility === "partial"
+      ? (target.isPublic ? "public" : "private")
+      : (meshVisibility as BranchVisibility);
+    const canSee = canSeeMeshBranch({
+      viewer: currentUser,
+      targetUserId: target.id,
+      branchKey: "people",
+      branchOverrides: parseBranchOverrides(target.meshPrivacy?.branchOverrides),
+      isFriend,
+      showConnections: target.meshPrivacy?.showConnections,
+      defaultVisibility: fallback,
+    });
+    if (!canSee) return [];
+  }
+
   const userSelect = {
     id: true,
     username: true,
