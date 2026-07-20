@@ -6,7 +6,7 @@ import { X, Send, Sparkles, Search, BarChart3, Shield, HelpCircle, PenLine, User
 import { askMeshi, runMeshiAction } from "@/lib/meshi-client";
 import type { MeshiAction, MeshiContext, MeshiHistoryMessage } from "@/lib/meshi-shared";
 import type { MeshGraphEntity } from "@/lib/queries";
-import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
+import { UserMeshi } from "@/components/meshi/user-meshi";
 import type { MeshiAccessory, MeshiMood, MeshiHat, MeshiColor, MeshiHair } from "./meshi-mascot";
 
 interface ChatMessage {
@@ -205,7 +205,7 @@ export function MeshiChat({
           className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-50 flex h-[calc(100dvh-9rem)] min-h-[22rem] max-h-[520px] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl shadow-2xl glass-dropdown sm:bottom-4 sm:right-4 sm:h-[520px] sm:max-h-[calc(100vh-6rem)] sm:w-[360px]"
         >
           <div className="flex items-center gap-3 border-b border-[var(--border-primary)] px-4 py-3" style={{ background: "var(--bg-secondary)" }}>
-            <MeshiPresenceGlyph size={36} active={isTyping || meshiMood === "thinking"} label="Chat with the single Meshi companion" />
+            <UserMeshi size={36} mood={isTyping ? "thinking" : meshiMood} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--text-primary)]">Meshi</p>
               <p className="text-[10px] text-[var(--text-muted)]">{isTyping ? "Thinking..." : statusLabel}</p>

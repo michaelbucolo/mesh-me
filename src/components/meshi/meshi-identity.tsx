@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
+import { UserMeshi } from "@/components/meshi/user-meshi";
 import { MeshiBrandMark } from "@/components/brand/meshi-brand-mark";
 
 interface MeshiBrandLockupProps {
@@ -25,7 +25,7 @@ function BrandContents({
   return (
     <>
       {useUserMeshi ? (
-        <MeshiPresenceGlyph size={size} label="Meshi presence marker" />
+        <UserMeshi size={size} animate={false} className="shrink-0" />
       ) : (
         <MeshiBrandMark size={size + 2} className="shrink-0 transition-transform duration-200 group-hover:scale-105" />
       )}
@@ -82,7 +82,7 @@ export function UserMeshiBadge({
       aria-label={`Meshi represents ${name} on Mesh.me`}
     >
       <span className="relative inline-flex shrink-0">
-        <MeshiPresenceGlyph size={size} label="Open the profile represented by the single Meshi companion" active={!compact} />
+        <UserMeshi size={size} animate={!compact} />
         <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[var(--bg-primary)] bg-emerald-400" />
       </span>
       {!compact && (

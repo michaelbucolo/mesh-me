@@ -7,7 +7,7 @@ import {
   Palette, Settings,
   PenSquare,
 } from "lucide-react";
-import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
+import { UserMeshi } from "@/components/meshi/user-meshi";
 import type { MeshiColor, MeshiHat } from "./meshi-mascot";
 
 interface MeshiActionsMenuProps {
@@ -37,7 +37,7 @@ export function MeshiActionsMenu({
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]" style={{ background: "var(--bg-secondary)" }}>
-        <MeshiPresenceGlyph size={28} active />
+        <UserMeshi size={28} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-[var(--text-primary)]">Meshi</p>
           <p className="text-[10px] text-[var(--text-muted)]">Your bridge to the internet</p>
