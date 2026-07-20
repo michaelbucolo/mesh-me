@@ -3,6 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { GLOBAL_MESH_BRANCHES } from "./global-mesh";
+import { ABOUT_FIELDS, type AboutField, aboutFieldMaxLen, isAboutPrivacyLevel } from "./profile-info";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getTrustedClientIp } from "./client-ip";
@@ -2926,6 +2927,41 @@ export async function updateProfileVisibility(level: "private" | "friends" | "pu
   revalidatePath("/privacy-controls");
   revalidatePath("/mesh");
   clearMeshCache(user.id);
+  return { success: true };
+}
+
+// Facebook-style "About" info with per-field privacy. Authorization is the
+// hardcoded where:{ userId: user.id } keyed on the @unique userId column — the
+// caller can only ever write their OWN row; no id is accepted from the client.
+// Every value is trimmed + length-capped, and every privacy level is validated
+// against the allowlist. An unset/invalid level falls back to "friends"
+// (connections), the same privacy-conservative default the editor shows — a
+// first-time field is never broadcast to the whole world by accident.
+export async function updateProfileInfo(input: {
+  fields?: Partial<Record<AboutField, string>>;
+  privacy?: Partial<Record<AboutField, string>>;
+}) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const cleanFields: Record<AboutField, string | null> = {} as Record<AboutField, string | null>;
+  const cleanPrivacy: Record<string, string> = {};
+  for (const field of ABOUT_FIELDS) {
+    const raw = input?.fields?.[field];
+    const value = typeof raw === "string" ? raw.trim().slice(0, aboutFieldMaxLen(field)) : "";
+    cleanFields[field] = value.length ? value : null;
+    const level = input?.privacy?.[field];
+    cleanPrivacy[field] = isAboutPrivacyLevel(level) ? level : "friends";
+  }
+
+  await prisma.profileInfo.upsert({
+    where: { userId: user.id },
+    create: { userId: user.id, ...cleanFields, fieldPrivacy: JSON.stringify(cleanPrivacy) },
+    update: { ...cleanFields, fieldPrivacy: JSON.stringify(cleanPrivacy) },
+  });
+
+  revalidatePath(`/profile/${user.username}`);
+  revalidatePath("/profile");
   return { success: true };
 }
 

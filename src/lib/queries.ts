@@ -5,6 +5,7 @@ import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { getGlobalMeshSelfPreviewCore, type GlobalMeshSelfPreview } from "./global-mesh";
 import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
+import { ABOUT_FIELDS, type AboutField, canSeeAboutField, parseFieldPrivacy } from "./profile-info";
 import {
   areMutualFollowers,
   canSeeMeshBranch,
@@ -440,8 +441,45 @@ export async function getUserProfile(username: string) {
 
   const hiddenCounts = { followers: 0, following: 0, posts: 0 };
 
+  // Facebook-style "About" — gated by the overall profile visibility AND then,
+  // field by field, by the owner's per-field privacy. Fails closed: a field
+  // with no explicit level is shown to its owner only. The raw privacy map and
+  // the full (including empty) field set are returned ONLY to the owner, for
+  // the editor; every other viewer gets just the fields they may see.
+  const profileInfo = await prisma.profileInfo.findUnique({
+    where: { userId: user.id },
+    select: {
+      aboutMe: true, workplace: true, jobTitle: true, school: true, hometown: true,
+      currentCity: true, relationshipStatus: true, birthday: true, gender: true,
+      pronouns: true, publicEmail: true, publicPhone: true, fieldPrivacy: true,
+    },
+  });
+  const aboutPrivacy = parseFieldPrivacy(profileInfo?.fieldPrivacy);
+  let about: Partial<Record<AboutField, string>> | null = null;
+  if (profileInfo && profileVisible) {
+    const visible: Partial<Record<AboutField, string>> = {};
+    for (const field of ABOUT_FIELDS) {
+      const value = profileInfo[field];
+      if (typeof value !== "string" || !value.trim()) continue;
+      if (canSeeAboutField(aboutPrivacy[field], { isOwner: isOwnProfile, isFriend })) {
+        visible[field] = value;
+      }
+    }
+    about = Object.keys(visible).length ? visible : null;
+  }
+  const aboutEditable = isOwnProfile
+    ? {
+        fields: Object.fromEntries(
+          ABOUT_FIELDS.map((field) => [field, (profileInfo?.[field] ?? "") as string]),
+        ) as Record<AboutField, string>,
+        privacy: aboutPrivacy,
+      }
+    : null;
+
   return {
     ...user,
+    about,
+    aboutEditable,
     // Last-online is privacy-gated on BOTH conditions: never expose the timestamp
     // (or the raw hide flag) when the user hides their activity OR their profile
     // isn't visible to the viewer. `profileVisible` is already true for your own

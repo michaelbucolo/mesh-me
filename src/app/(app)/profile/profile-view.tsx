@@ -32,7 +32,9 @@ import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
+import { ProfileAboutEditor } from "./[username]/profile-about-editor";
 import { Button } from "@/components/ui/button";
+import { ABOUT_FIELDS, ABOUT_FIELD_META, ABOUT_GROUPS, type AboutField } from "@/lib/profile-info";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 
 const DEFAULT_MESHI = {
@@ -97,7 +99,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
   // Analytics is folded into the profile as an own-profile-only tab — it is not a
   // separate top-level destination. Its (heavier) data is fetched only when that
   // tab is actually open, so the common Posts view stays lean.
-  const tabs = ["posts", "communities", ...(isOwnProfile ? ["collections", "analytics"] : []), "links"];
+  const tabs = ["posts", "about", "communities", ...(isOwnProfile ? ["collections", "analytics"] : []), "links"];
   const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
   const analyticsData =
     isOwnProfile && activeTab === "analytics" ? await getAnalyticsDashboardData() : null;
@@ -318,6 +320,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         {canViewProfile && (
           <nav className="profile-tabs-nav flex items-center gap-1 overflow-x-auto border-b border-[var(--mesh-border)] px-1" aria-label="Profile sections">
             <ProfileTab label="Posts" count={postCount} href={basePath} active={activeTab === "posts"} />
+            <ProfileTab label="About" href={`${basePath}?tab=about`} active={activeTab === "about"} />
             <ProfileTab label="Communities" count={communityCount} href={`${basePath}?tab=communities`} active={activeTab === "communities"} />
             {isOwnProfile && (
               <ProfileTab label="Collections" count={collectionCount} href={`${basePath}?tab=collections`} active={activeTab === "collections"} />
@@ -330,6 +333,19 @@ export async function InstagramProfileView({ username, tab }: { username: string
         )}
 
         {/* Active section */}
+        {canViewProfile && activeTab === "about" && (
+          isOwnProfile && profile.aboutEditable ? (
+            <ProfileAboutEditor initial={profile.aboutEditable} />
+          ) : profile.about ? (
+            <AboutReadOnly about={profile.about} />
+          ) : (
+            <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+              <h2 className="text-lg font-bold text-[var(--mesh-text)]">No details yet</h2>
+              <p className="text-sm text-[var(--mesh-text-secondary)]">{profile.displayName} hasn&apos;t shared any About details.</p>
+            </section>
+          )
+        )}
+
         {canViewProfile && activeTab === "communities" && (
           <div className="space-y-3">
             {memberships.length > 0 ? (
@@ -594,5 +610,35 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
         </span>
       )}
     </Link>
+  );
+}
+
+// Read-only "About" for viewers who aren't the owner. The fields are already
+// gated to what this viewer may see (per-field privacy applied server-side in
+// getUserProfile), so this just groups and renders whatever arrived.
+function AboutReadOnly({ about }: { about: Partial<Record<AboutField, string>> }) {
+  return (
+    <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+      <h2 className="text-lg font-bold text-[var(--mesh-text)]">About</h2>
+      <div className="mt-4 grid gap-5">
+        {ABOUT_GROUPS.map((group) => {
+          const groupFields = ABOUT_FIELDS.filter((f) => ABOUT_FIELD_META[f].group === group.key && about[f]);
+          if (!groupFields.length) return null;
+          return (
+            <div key={group.key}>
+              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--mesh-text-muted)]">{group.label}</h3>
+              <dl className="mt-2 grid gap-2">
+                {groupFields.map((f) => (
+                  <div key={f}>
+                    <dt className="text-xs font-semibold text-[var(--mesh-text-muted)]">{ABOUT_FIELD_META[f].label}</dt>
+                    <dd className="whitespace-pre-wrap break-words text-sm text-[var(--mesh-text)]">{about[f]}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
