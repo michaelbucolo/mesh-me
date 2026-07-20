@@ -5,22 +5,21 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
 
-export const metadata: Metadata = { title: "Connected Accounts" };
+export const metadata: Metadata = { title: "One Account" };
 
 export default async function ConnectedAccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; preselect?: string }>;
+  searchParams: Promise<{ connected?: string; error?: string; platform?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { from, preselect } = await searchParams;
-  const fromOnboarding = from === "onboarding";
-  const preselectPlatforms = (preselect ?? "")
-    .split(",")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
+  // The OAuth callback returns here with ?connected=<platform> on success or
+  // ?error=…&platform=<platform> on failure — surface either in the client.
+  const { connected, error } = await searchParams;
+  const justConnectedPlatform = (connected ?? "").trim().toLowerCase() || null;
+  const connectError = (error ?? "").trim() || null;
 
   const [dashboard, personaRows] = await Promise.all([
     getConnectedAccountsDashboard(user.id),
@@ -56,8 +55,8 @@ export default async function ConnectedAccountsPage({
         displayName: user.displayName,
         avatarUrl: user.avatarUrl ?? null,
       }}
-      fromOnboarding={fromOnboarding}
-      preselectPlatforms={preselectPlatforms}
+      justConnectedPlatform={justConnectedPlatform}
+      connectError={connectError}
     />
   );
 }

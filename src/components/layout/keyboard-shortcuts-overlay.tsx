@@ -91,7 +91,7 @@ const shortcutGroups: ShortcutGroup[] = [
     icon: PenSquare,
     shortcuts: [
       { keys: ["C"], label: "New post", description: "Open the feed composer.", action: "compose" },
-      { keys: ["Shift", "C"], label: "Connected accounts", description: "Manage every platform threading into your mesh.me account.", action: "contentHub" },
+      { keys: ["Shift", "C"], label: "One Account", description: "Manage every platform threading into your mesh.me account.", action: "contentHub" },
       { keys: ["A"], label: "Ask Meshi", description: "Open the single Meshi companion.", action: "meshi" },
     ],
   },

@@ -142,7 +142,7 @@ function createCommands(username: string): CommandItem[] {
     },
     {
       id: "go-connections",
-      title: "Open Connected Accounts",
+      title: "Open One Account",
       description: "Every platform threading into your one mesh.me account.",
       category: "Go",
       href: "/connected-accounts",
