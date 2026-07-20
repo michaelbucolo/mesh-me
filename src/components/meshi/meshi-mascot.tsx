@@ -1255,13 +1255,26 @@ export function MeshiMascot({
           {hairElement && hat && !OPEN_HATS.has(hat) ? <g transform={HAIR_TUCK_TRANSFORM}>{hairElement}</g> : hairElement}
         </motion.g>
 
-        {/* Face — eyes with smooth tracking and blinking */}
-        <motion.g
-          transform={`scale(${Math.min(scale, 1.2)})`}
-          style={{ x: smoothEyeX, y: smoothEyeY }}
+        {/* Face — eyes with smooth tracking and blinking. The outer group lets a
+            host (e.g. the mesh) point the gaze at a target via the --meshi-look-x
+            / --meshi-look-y custom properties (each -1..1); it shifts the whole
+            face a few px so the Meshi reads as LOOKING there, no head tilt. It
+            composes with, and is independent of, the interactive mouse-follow
+            (smoothEyeX/Y, which stays 0 for non-interactive mesh Meshis). */}
+        <g
+          style={{
+            transform:
+              "translate(calc(var(--meshi-look-x, 0) * 2.4px), calc(var(--meshi-look-y, 0) * 1.9px))",
+            transition: "transform 240ms cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
         >
-          {(SVG_FACES[renderedMood] || SVG_FACES.happy)(theme.primary)}
-        </motion.g>
+          <motion.g
+            transform={`scale(${Math.min(scale, 1.2)})`}
+            style={{ x: smoothEyeX, y: smoothEyeY }}
+          >
+            {(SVG_FACES[renderedMood] || SVG_FACES.happy)(theme.primary)}
+          </motion.g>
+        </g>
 
         {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
         {accessoryElement &&
