@@ -3204,6 +3204,17 @@ function ContentLens({
   const [likeCount, setLikeCount] = useState(metaCount(node, "Likes"));
   const [likePending, startLike] = useTransition();
 
+  // Same autoplay fix as the flow reels: a JSX `muted` sets only the attribute,
+  // but the browser's autoplay policy gates on the muted PROPERTY — set it
+  // imperatively and kick playback so a lens video file actually starts.
+  const lensVideoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const el = lensVideoRef.current;
+    if (!el) return;
+    el.muted = true;
+    void el.play().catch(() => {});
+  }, [node.videoUrl]);
+
   // Keyboard: arrows browse, Escape closes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -3263,6 +3274,7 @@ function ContentLens({
             images. Leaving mesh.me is never required to watch. */}
         {node.videoUrl ? (
           <video
+            ref={lensVideoRef}
             src={node.videoUrl}
             poster={node.imageUrl ?? undefined}
             controls
