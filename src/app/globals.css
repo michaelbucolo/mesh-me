@@ -1982,75 +1982,6 @@ body[data-meshi-panel="open"] .bug-report-widget {
   opacity: 0.8;
 }
 
-.meshi-presence-glyph {
-  --meshi-glyph-size: 2rem;
-  position: relative;
-  display: inline-flex;
-  width: var(--meshi-glyph-size);
-  height: var(--meshi-glyph-size);
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border-primary));
-  border-radius: 999px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent 44%),
-    color-mix(in srgb, var(--bg-secondary) 80%, transparent);
-  color: var(--accent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 10px 28px rgba(0, 0, 0, 0.18);
-  transform: translateZ(0);
-  transition:
-    transform var(--mesh-transition-medium),
-    border-color var(--mesh-transition-fast),
-    box-shadow var(--mesh-transition-medium);
-}
-
-.meshi-presence-glyph::before,
-.meshi-presence-glyph::after {
-  content: "";
-  position: absolute;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.meshi-presence-glyph::before {
-  display: none;
-}
-
-.meshi-presence-glyph::after {
-  inset: -40%;
-  background: conic-gradient(from 90deg, transparent, color-mix(in srgb, var(--accent) 24%, transparent), transparent 38%);
-  opacity: 0.46;
-  animation: meshGlyphOrbit 6.5s linear infinite;
-}
-
-@keyframes meshGlyphOrbit {
-  to { transform: rotate(360deg); }
-}
-
-.meshi-presence-glyph-face {
-  position: relative;
-  z-index: 1;
-  width: 78%;
-  height: 78%;
-  color: var(--accent);
-}
-
-.meshi-presence-glyph-active {
-  border-color: color-mix(in srgb, var(--accent) 58%, var(--border-primary));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent),
-    0 14px 36px rgba(0, 0, 0, 0.24);
-}
-
-.meshi-presence-glyph:hover,
-.meshi-presence-glyph:focus-visible {
-  transform: translateY(-1px) scale(1.035);
-}
 
 .meshi-float-shell {
   will-change: left, top, transform, opacity;
@@ -2547,8 +2478,7 @@ html {
   .mesh-stat-card:hover,
   .mesh-choice:hover,
   .mesh-action:hover,
-  .mesh-pressable:hover,
-  .meshi-presence-glyph:hover {
+  .mesh-pressable:hover {
     transform: none !important;
   }
 }
@@ -2771,8 +2701,7 @@ html {
   .mesh-entry-meshi-wrap-alive .mesh-entry-meshi-body::after,
   .mesh-entry-meshi-wrap-unlocking .mesh-entry-meshi-body,
   .mesh-entry-meshi-wrap-unlocking .mesh-entry-meshi-body::before,
-  .mesh-entry-meshi-wrap-failed .mesh-entry-meshi-body,
-  .meshi-presence-glyph::after {
+  .mesh-entry-meshi-wrap-failed .mesh-entry-meshi-body {
     animation: none !important;
   }
 }
@@ -5787,7 +5716,7 @@ body {
   .mesh-sidebar .mesh-nav-item span:not(.sr-only),
   .mesh-sidebar .mesh-privacy-card,
   .mesh-sidebar .mesh-user-dock .min-w-0.flex-1,
-  .mesh-sidebar .mesh-user-dock svg:not(.meshi-presence-glyph-face),
+  .mesh-sidebar .mesh-user-dock svg,
   .mesh-sidebar > div:last-child {
     display: none;
   }

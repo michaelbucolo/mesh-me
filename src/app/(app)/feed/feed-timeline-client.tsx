@@ -28,7 +28,7 @@ import { FlowReels } from "./flow-reels";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
 import { UserMeshiBadge } from "@/components/meshi/meshi-identity";
-import { MeshiPresenceGlyph } from "@/components/meshi/meshi-presence-glyph";
+import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
 import { readGhostMode } from "@/lib/ghost-mode";
 import { getPostPresenceKey } from "@/lib/presence-keys";
 import type { FeedContentFilter, FeedSource } from "@/lib/feed-data";
@@ -758,7 +758,7 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
               className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/90 px-1.5 py-1 shadow-[var(--shadow-sm)] backdrop-blur"
               style={{ left: `${left}%`, top: `${top}%` }}
             >
-              <MeshiPresenceGlyph size={18} active label={`${label} is here`} />
+              <MeshiMascot size={18} color={presence.meshiColor as MeshiColor} hat={presence.meshiHat as MeshiHat} animate={false} />
               <span className="max-w-[5.25rem] truncate text-[9px] font-bold text-[var(--text-secondary)]">
                 {label}
               </span>
@@ -769,11 +769,12 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
       <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/88 px-2 py-1 shadow-[var(--shadow-sm)] backdrop-blur">
         <div className="flex -space-x-1">
           {presences.slice(0, 3).map((presence) => (
-            <MeshiPresenceGlyph
+            <MeshiMascot
               key={presence.userId}
               size={20}
-              active
-              label={`${presence.displayName || presence.username} is viewing this post`}
+              color={presence.meshiColor as MeshiColor}
+              hat={presence.meshiHat as MeshiHat}
+              animate={false}
               className="shadow-sm"
             />
           ))}
