@@ -109,7 +109,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         {/* Profile header */}
         <section className="profile-header-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden">
           {/* Banner */}
-          <div className="profile-banner relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[#0a1628] to-[var(--mesh-bg)]">
+          <div className="profile-banner relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[var(--mesh-bg-elevated)] to-[var(--mesh-bg)]">
             {profile.bannerUrl ? (
               <Image src={profile.bannerUrl} alt={profile.bio?.trim() || `${profile.displayName}'s profile banner`} fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
             ) : (
@@ -144,7 +144,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
           <div className="profile-info relative px-6 pb-6">
             {/* Avatar — ringed like a node on the mesh */}
             <div className="-mt-16 mb-4 flex items-end gap-6">
-              <div className="shrink-0 rounded-full bg-gradient-to-tr from-[var(--accent)] via-[#58bfff] to-[var(--mesh-cyan)] p-[3px] shadow-[0_0_40px_rgba(47,124,255,0.25)]">
+              <div className="shrink-0 rounded-full bg-gradient-to-tr from-[var(--accent)] via-[color-mix(in_srgb,var(--accent)_50%,#ffffff)] to-[var(--mesh-cyan)] p-[3px] shadow-[0_0_40px_color-mix(in_srgb,var(--accent)_25%,transparent)]">
                 <Avatar
                   src={profile.avatarUrl}
                   alt={profile.displayName}
