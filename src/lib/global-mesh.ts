@@ -43,10 +43,14 @@ function parseSharedBranches(raw: string | null | undefined): Set<GlobalMeshBran
 type Viewer = FeedCurrentUser;
 
 /**
- * The MEMBER GATE: who is a visible Global member for this viewer. Triple-AND
- * (opted-in AND public AND not suspended) plus block filtering in BOTH
- * directions. A guest's id matches no Block rows, so the block clauses are
- * no-ops for signed-out viewers.
+ * The MEMBER GATE: who is a visible Global member for this viewer. To honor the
+ * zero-new-visibility invariant against a SIGNED-OUT guest, the gate matches the
+ * strictest guest-reachable baseline — a member must be opted-in AND public AND
+ * not suspended AND discoverable (showInDiscovery, which EVERY guest discovery
+ * surface requires and which defaults false) AND have an explicitly public mesh
+ * (meshVisibility === "public"; it defaults "private" and otherwise locks the
+ * public-mesh view even for signed-in strangers). Plus block filtering in BOTH
+ * directions — a guest's id matches no Block rows, so those clauses no-op.
  */
 function memberWhere(viewer: Viewer) {
   return {
@@ -54,6 +58,8 @@ function memberWhere(viewer: Viewer) {
     user: {
       isPublic: true,
       isSuspended: false,
+      showInDiscovery: true,
+      meshPrivacy: { meshVisibility: "public" },
       blockedBy: { none: { blockerId: viewer.id } }, // the viewer blocked them
       blocks: { none: { blockedId: viewer.id } }, // they blocked the viewer
     },
@@ -91,8 +97,9 @@ export async function getGlobalMeshSupply(viewer: Viewer): Promise<MeshApiRespon
           bio: true,
           isVerified: true,
           isMeshPro: true,
-          // followers is public; a PUBLIC-only post count is computed separately
-          // below so the node never leaks how many PRIVATE posts a member has.
+          // Counts are shown only when the member enabled showStats — the same
+          // gate the profile view and public mesh enforce (it defaults false).
+          meshPrivacy: { select: { showStats: true } },
           _count: { select: { followers: true } },
         },
       },
@@ -211,8 +218,10 @@ export async function getGlobalMeshSupply(viewer: Viewer): Promise<MeshApiRespon
     avatarUrl: m.user.avatarUrl,
     isVerified: m.user.isVerified,
     joinedAt: m.joinedAt,
-    followerCount: m.user._count.followers,
-    postCount: publicPostCountByAuthor.get(m.user.id) ?? 0,
+    // Counts only when the member opted into showing stats (defaults off) —
+    // never leak follower / public-post counts a stranger couldn't already see.
+    followerCount: m.user.meshPrivacy?.showStats ? m.user._count.followers : 0,
+    postCount: m.user.meshPrivacy?.showStats ? (publicPostCountByAuthor.get(m.user.id) ?? 0) : 0,
     status: "offline" as const,
   }));
 
