@@ -4,7 +4,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Check, ExternalLink, Heart, Histo
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { takeMeshPrefetch } from "./mesh-prefetch";
+import { meshApiUrl, takeMeshPrefetch } from "./mesh-prefetch";
 import { toggleReaction } from "@/lib/actions";
 import { MeshiLoader } from "@/components/meshi/meshi-loader";
 import {
@@ -36,6 +36,9 @@ import { reactionGlyphSvg, type ReactionGlyph } from "./reaction-glyphs";
 
 interface MeshSceneProps {
   viewUserId?: string;
+  /** "global" loads the guest-viewable world supply as a READ-ONLY view: no
+   * presence broadcast, no compose, treated as a visitor (never the owner). */
+  viewMode?: "mesh" | "global";
 }
 
 const MIN_ZOOM = 0.22;
@@ -126,8 +129,14 @@ function generateStars(width: number, height: number) {
   return stars;
 }
 
-export function MeshScene({ viewUserId }: MeshSceneProps) {
+export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const router = useRouter();
+  // The Global view is a READ-ONLY visitor surface over the synthetic world hub.
+  // "Am I on my own mesh?" must be an EXPLICIT test, never just `!viewUserId`:
+  // Global has no viewUserId either, but it must not broadcast presence, must
+  // not expose compose, and must be treated as a visitor (not the owner).
+  const isGlobal = viewMode === "global";
+  const isOwnMesh = !viewUserId && !isGlobal;
   const prefs = useMeshiPreferences();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -297,7 +306,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   useEffect(() => {
     setTraveling(null);
     travelingRef.current = false;
-  }, [viewUserId]);
+  }, [viewUserId, viewMode, isOwnMesh]);
   // Ghost Mode literally ghosts YOUR Meshi — pale, translucent, drifting —
   // so you can always see that you're browsing unseen.
   const [isGhosting, setIsGhosting] = useState(false);
@@ -319,7 +328,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // don't ALSO render the pointer-following cursor Meshi, or there are two of
   // you. The cursor Meshi is for exploring: show it only when visiting someone
   // else's mesh, or as a fallback when there's no owner Meshi to stand in.
-  const showCursorMeshi = prefs.enabled && (Boolean(viewUserId) || !meshData?.meshiPreference);
+  const showCursorMeshi = prefs.enabled && (!isOwnMesh || !meshData?.meshiPreference);
 
   const lastTapRef = useRef<{ x: number; y: number; t: number } | null>(null);
   // Read once per session so "New" marks stay stable while you explore, even
@@ -417,7 +426,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
   const loadScene = useCallback(
     async (opts?: { quiet?: boolean; signal?: AbortSignal }) => {
-      const url = viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
+      const url = meshApiUrl(viewUserId, viewMode);
       if (!opts?.quiet) {
         setStatus("loading");
         setMeshData(null);
@@ -460,10 +469,10 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           }
         }
         const model = buildSceneModel(payload, {
-          lastVisitAt: viewUserId ? null : lastVisitRef.current ?? null,
+          lastVisitAt: isOwnMesh ? lastVisitRef.current ?? null : null,
         });
         layoutScene(model);
-        if (!viewUserId) {
+        if (isOwnMesh) {
           try {
             localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
           } catch {
@@ -501,11 +510,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         }
         modelRef.current = model;
         loadImages(model);
-        meshOwnerIdRef.current = payload.user.id;
+        // Never seed the presence room id with the synthetic "global" hub — the
+        // heartbeat keys off this ref's truthiness, so leaving it null in Global
+        // is defense-in-depth on top of the presence effect being disabled.
+        meshOwnerIdRef.current = isGlobal ? null : payload.user.id;
         setViewedUser(
           viewUserId ? { username: payload.user.username, displayName: payload.user.displayName } : null,
         );
-        if (!viewUserId) {
+        if (isOwnMesh) {
           setMeshUser({ displayName: payload.user.displayName || payload.user.username, avatarUrl: payload.user.avatarUrl });
         }
         if (!quiet) {
@@ -536,7 +548,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         if (!opts?.quiet) setMeshData(null);
       }
     },
-    [viewUserId, loadImages, fitToContent],
+    [viewUserId, viewMode, isGlobal, isOwnMesh, loadImages, fitToContent],
   );
 
   useEffect(() => {
@@ -587,7 +599,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const prev = modelRef.current;
       const model = buildSceneModel(meshData, {
         // New marks only make sense in the present.
-        lastVisitAt: asOf != null || viewUserId ? null : lastVisitRef.current ?? null,
+        lastVisitAt: asOf != null || !isOwnMesh ? null : lastVisitRef.current ?? null,
         asOf,
       });
       layoutScene(model);
@@ -617,7 +629,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         setActiveBranch(null);
       }
     },
-    [meshData, viewUserId, loadImages],
+    [meshData, isOwnMesh, loadImages],
   );
 
   const onRewindInput = useCallback(
@@ -710,7 +722,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // to the people moving through it.
         const disturbances: { x: number; y: number }[] = [];
         if (cursorWorldTargetRef.current.seen) disturbances.push({ x: cursorWorldPosRef.current.x, y: cursorWorldPosRef.current.y });
-        if (!viewUserId) disturbances.push({ x: ownerWorldPosRef.current.x, y: ownerWorldPosRef.current.y });
+        if (isOwnMesh) disturbances.push({ x: ownerWorldPosRef.current.x, y: ownerWorldPosRef.current.y });
         presenceWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
         perchWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
         stepScenePhysics(model, physicsRef.current, time, dt, driftScaleFor(proVisualsRef.current.motionStyle), disturbances);
@@ -774,7 +786,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           pillHitboxes: pillHitboxesRef.current,
           profileHitboxes: profileHitboxesRef.current,
           avoidCenter: coarseRef.current,
-          isOwnMesh: !viewUserId,
+          isOwnMesh,
           strands: physicsRef.current.strands,
           strandPulses: strandPulsesRef.current,
           visuals: proVisualsRef.current,
@@ -833,7 +845,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [fitToContent, viewUserId]);
+  }, [fitToContent, viewUserId, viewMode, isOwnMesh]);
 
   // --- Interaction ---
   const flyToNode = useCallback((node: SceneNode) => {
@@ -905,14 +917,14 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
   const emitHeart = useCallback(
     (node: SceneNode) => {
-      const from = viewUserId ? cursorWorldPosRef.current : ownerWorldPosRef.current;
+      const from = !isOwnMesh ? cursorWorldPosRef.current : ownerWorldPosRef.current;
       spawnHeart(from.x, from.y, node.id);
       playSound("heart");
       pendingActionRef.current = { kind: "heart", targetId: node.id, at: Date.now() };
       // Broadcast immediately so the room sees the throw with minimal lag.
       heartbeatNowRef.current?.();
     },
-    [spawnHeart, viewUserId],
+    [spawnHeart, isOwnMesh],
   );
 
   const activateNode = useCallback(
@@ -1289,6 +1301,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
   // --- Live presence: broadcast where I am and show Meshis of users viewing this same mesh ---
   useEffect(() => {
+    // GLOBAL VIEW IS STRICTLY READ-ONLY: never broadcast presence, never poll
+    // or stream the room, never DELETE on unmount. A Global viewer must not be
+    // tracked, must not form a synthetic "global" presence room, and must not
+    // surface mutual connections' live cursors (isConnectedOnlineAnywhere) —
+    // any of which would leak viewer activity the zero-new-visibility invariant
+    // forbids. Disabling only the POST is insufficient (the GET/SSE poll leak
+    // too), so the WHOLE effect no-ops here. viewMode is in the dep array, so
+    // switching mesh→global tears down the prior room before this returns.
+    if (isGlobal) return;
     let stopped = false;
 
     // One global throttle across every trigger (fast lane, hover blips,
@@ -1717,7 +1738,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       if (!meshOwner || greetedRoomRef.current === meshOwner) return;
       if (!prefs.enabled || document.visibilityState !== "visible") return;
       greetedRoomRef.current = meshOwner;
-      const o = viewUserId ? cursorWorldPosRef.current : ownerWorldPosRef.current;
+      const o = !isOwnMesh ? cursorWorldPosRef.current : ownerWorldPosRef.current;
       spawnBurst(o.x, o.y - 20, "wave", 5);
       pendingActionRef.current = { kind: "wave", targetId: "", at: Date.now() };
       heartbeatNowRef.current?.();
@@ -1733,13 +1754,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       clearTimeout(kick);
       es?.close();
     };
-  }, [viewUserId, prefs.enabled, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart, spawnBurst]);
+  }, [viewUserId, viewMode, isGlobal, isOwnMesh, prefs.enabled, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart, spawnBurst]);
 
   useEffect(() => {
+    // The Global view never registered presence, so it must never DELETE it —
+    // no authenticated write to the tracking endpoint from a read-only surface.
+    // (On a mesh→global switch this effect re-runs and the prior mesh cleanup
+    // correctly clears the presence you had while on your mesh.)
+    if (isGlobal) return;
     return () => {
       fetch("/api/mesh/presence", { method: "DELETE" }).catch(() => {});
     };
-  }, []);
+  }, [isGlobal]);
 
   // Glide every Meshi ON the mesh each frame: positions live in world
   // coordinates so they pan/zoom with the web, and a screen-space pass keeps
@@ -2034,7 +2060,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       const container = containerRef.current;
       if (ownerEl && container) {
         ownerEl.style.setProperty("--meshi-scale", meshiScale.toFixed(3));
-        const isMe = !viewUserId;
+        const isMe = isOwnMesh;
         // On your own mesh your Meshi IS your cursor: it mirrors the mouse
         // while it's over the canvas, and only ambles home (casually) once
         // the mouse leaves or you go quiet.
@@ -2088,7 +2114,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [viewUserId]);
+  }, [viewUserId, viewMode, isOwnMesh]);
 
   // Keyboard shortcuts: / search, +/- zoom, 0 fit, Escape closes overlays.
   useEffect(() => {
@@ -2324,7 +2350,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                   <span className="mesh-owner-zzz">z</span>
                 </>
               )}
-              <div className={!viewUserId && isGhosting ? "mesh-ghosted" : undefined}>
+              <div className={isOwnMesh && isGhosting ? "mesh-ghosted" : undefined}>
               <MeshiMascot
                 size={54}
                 color={(m.colorTheme || "blue") as MeshiColor}
@@ -2337,9 +2363,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
                 mood={
                   !ownerOnline
                     ? "sleepy"
-                    : !viewUserId && showCompose
+                    : isOwnMesh && showCompose
                       ? "thinking"
-                      : !viewUserId && hoverNode
+                      : isOwnMesh && hoverNode
                         ? "excited"
                         : ((m.faceStyle || "happy") as MeshiMood)
                 }
@@ -2430,6 +2456,31 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           </div>
         </div>
       ))}
+
+      {/* Mesh / Global tabs. URL-driven (router.push, not local state) so the
+          load keys off the prop, the prefetch keeps URL parity, and back/refresh
+          behave. Shown only on your own mesh or the Global view — never when
+          viewing a specific person (that owns the top-left with its Back button). */}
+      {!viewUserId && (
+        <div className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/12 bg-black/45 p-1 backdrop-blur">
+          <button
+            type="button"
+            onClick={() => router.push("/mesh")}
+            aria-pressed={!isGlobal}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${!isGlobal ? "bg-white/15 text-white" : "text-white/60 hover:text-white/90"}`}
+          >
+            Mesh
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/mesh?view=global")}
+            aria-pressed={isGlobal}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${isGlobal ? "bg-white/15 text-white" : "text-white/60 hover:text-white/90"}`}
+          >
+            Global
+          </button>
+        </div>
+      )}
 
       {/* Top-left: back / context */}
       <div className="absolute left-3 top-20 z-30 flex items-center gap-2">
@@ -2581,7 +2632,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
 
       {/* What arrived while you were away — one tap starts a flying tour
           through it, right in the world. */}
-      {status === "ready" && !viewUserId && newCount > 0 && !rewindAt && !tourIds && (
+      {status === "ready" && isOwnMesh && newCount > 0 && !rewindAt && !tourIds && (
         <button
           type="button"
           onClick={startCatchUp}
@@ -2601,7 +2652,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
               loader dissolves straight into the real scene it precedes. */}
           <MeshFormingLoader backdrop className="opacity-80" />
           <MeshiLoader
-            title={viewUserId ? "Opening their world…" : "Weaving your world…"}
+            title={viewUserId ? "Opening their world…" : isGlobal ? "Weaving the Global Mesh…" : "Weaving your world…"}
             mode="mesh-building"
             transparent
           />
@@ -2659,9 +2710,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
             <p className="text-sm text-white/80">
               {viewedUser
                 ? `This mesh is just ${viewedUser.displayName || "@" + viewedUser.username} for now.`
-                : "Your mesh is just you for now."}
+                : isGlobal
+                  ? "The Global Mesh is quiet right now."
+                  : "Your mesh is just you for now."}
             </p>
-            {!viewedUser && (
+            {isOwnMesh && (
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <button
                   type="button"
@@ -2821,6 +2874,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           key={selectedNode.id}
           node={selectedNode}
           list={contentList()}
+          readOnly={isGlobal}
           streamLabel={tourIds ? "new since your last visit" : "on your mesh"}
           onHearted={emitHeart}
           onClose={() => {
@@ -3217,6 +3271,7 @@ function ContentLens({
   onHearted,
   onClose,
   onNavigate,
+  readOnly = false,
 }: {
   node: SceneNode;
   list: SceneNode[];
@@ -3225,6 +3280,9 @@ function ContentLens({
   onHearted?: (node: SceneNode) => void;
   onClose: () => void;
   onNavigate: (dir: 1 | -1) => void;
+  /** The Global view is READ-ONLY: no like/reaction writes and no impression
+   * tracking. Read actions (share, comment link, Ask Meshi) stay available. */
+  readOnly?: boolean;
 }) {
   const index = list.findIndex((n) => n.id === node.id);
   const total = list.length;
@@ -3275,7 +3333,8 @@ function ContentLens({
   // exactly (external/platform ids are left alone). Best-effort; the endpoint
   // writes nothing for guests and self-dedupes, so re-opening is harmless.
   useEffect(() => {
-    if (!postId) return;
+    // Read-only (Global) never records impressions — the viewer is not tracked.
+    if (!postId || readOnly) return;
     void fetch("/api/flow/impression", {
       method: "POST",
       body: JSON.stringify({ ids: [postId] }),
@@ -3283,7 +3342,7 @@ function ContentLens({
       credentials: "same-origin",
       keepalive: true,
     }).catch(() => {});
-  }, [postId]);
+  }, [postId, readOnly]);
 
   // Keyboard: arrows browse, Escape closes.
   useEffect(() => {
@@ -3301,7 +3360,7 @@ function ContentLens({
   }, [onNavigate, onClose]);
 
   const handleLike = () => {
-    if (!postId) return;
+    if (!postId || readOnly) return;
     const next = !liked;
     setLiked(next);
     setLikeCount((c) => c + (next ? 1 : -1));
@@ -3461,24 +3520,33 @@ function ContentLens({
 
           {/* Engagement */}
           <div className="flex items-center gap-2 border-t border-white/8 pt-3">
-            <button
-              type="button"
-              aria-label={liked ? "Unlike" : "Like"}
-              onClick={handleLike}
-              disabled={!postId || likePending}
-              className={`mesh-bubble-btn inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                liked ? "bg-rose-500/15 text-rose-300" : "bg-white/6 text-white/75 hover:bg-white/10"
-              } ${!postId ? "cursor-default opacity-70" : ""}`}
-            >
-              <span
-                key={likeCount}
-                className="inline-flex"
-                style={liked ? { animation: "meshHeartPop .45s ease" } : undefined}
-              >
-                <Heart size={14} fill={liked ? "currentColor" : "none"} />
+            {/* Read-only (Global): no interactive Like — it's a write that
+                notifies the author. Share/Comment/Ask-Meshi (reads) remain. */}
+            {readOnly ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/55">
+                <Heart size={14} />
+                {likeCount}
               </span>
-              {likeCount}
-            </button>
+            ) : (
+              <button
+                type="button"
+                aria-label={liked ? "Unlike" : "Like"}
+                onClick={handleLike}
+                disabled={!postId || likePending}
+                className={`mesh-bubble-btn inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  liked ? "bg-rose-500/15 text-rose-300" : "bg-white/6 text-white/75 hover:bg-white/10"
+                } ${!postId ? "cursor-default opacity-70" : ""}`}
+              >
+                <span
+                  key={likeCount}
+                  className="inline-flex"
+                  style={liked ? { animation: "meshHeartPop .45s ease" } : undefined}
+                >
+                  <Heart size={14} fill={liked ? "currentColor" : "none"} />
+                </span>
+                {likeCount}
+              </button>
+            )}
 
             {node.href && !isExternal ? (
               <Link

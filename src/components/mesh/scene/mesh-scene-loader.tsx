@@ -10,12 +10,12 @@ const MeshScene = dynamic(() => import("./mesh-scene").then((module) => module.M
   loading: () => <MeshFormingLoader />,
 });
 
-export function MeshSceneLoader({ viewUserId }: { viewUserId?: string }) {
+export function MeshSceneLoader({ viewUserId, viewMode = "mesh" }: { viewUserId?: string; viewMode?: "mesh" | "global" }) {
   // Start the data request while the scene chunk is still downloading, so the
   // two run in parallel instead of chaining.
   useEffect(() => {
-    prefetchMesh(meshApiUrl(viewUserId));
-  }, [viewUserId]);
+    prefetchMesh(meshApiUrl(viewUserId, viewMode));
+  }, [viewUserId, viewMode]);
 
-  return <MeshScene viewUserId={viewUserId} />;
+  return <MeshScene viewUserId={viewUserId} viewMode={viewMode} />;
 }
