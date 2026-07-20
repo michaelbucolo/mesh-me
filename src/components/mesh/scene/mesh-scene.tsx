@@ -224,6 +224,18 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   // input and ambles home to the heart once you've been idle a few seconds.
   const lastInputAtRef = useRef(0);
   const ownerWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // When you're VISITING someone's mesh and the owner is ALSO here (browsing
+  // their own mesh right now), this holds their live broadcast world position —
+  // the exact spot they, and every other visitor, see them at. null when the
+  // owner isn't on their mesh (away or offline), in which case their Meshi
+  // rests at the heart. Fixes the "owner looks frozen at their own center even
+  // though they're moving around" bug: a world coordinate is shared, so we can
+  // render them where they actually are instead of pinning them to the origin.
+  const ownerHereWorldRef = useRef<{ x: number; y: number } | null>(null);
+  // Last time the owner was seen in their own room — mirrors the roaming
+  // roster's hysteresis so a single dropped payload can't briefly sleep and
+  // drift their Meshi home before the next heartbeat brings them back.
+  const ownerSeenAtRef = useRef(0);
   const presenceTargetsRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
   const presenceElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const presencePosRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
@@ -271,8 +283,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const presenceSeenAtRef = useRef<Map<string, number>>(new Map());
   const presenceObjRef = useRef<Map<string, RemotePresence>>(new Map());
   const remoteSigRef = useRef<string>("");
-  // Whether the viewed mesh's owner is live anywhere on mesh.me — their
-  // pinned Meshi wakes/sleeps on this, independent of who's in the room.
+  // Whether the viewed mesh's owner is present IN THIS ROOM right now (browsing
+  // their own mesh) — their heart Meshi wakes and tracks their real position on
+  // this, and sleeps at home when they're away. Held through a short grace
+  // window (see ownerSeenAtRef) so one dropped heartbeat can't blink them out.
   const [ownerLive, setOwnerLive] = useState(false);
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
@@ -1542,7 +1556,28 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         // Fresh sightings first (live data), then the still-in-grace stragglers.
         effectiveVisible.unshift(...visible);
         const effectiveIds = new Set(effectiveVisible.map((p) => p.userId));
-        setOwnerLive(online.some((p) => p.userId === meshOwner));
+        // Is the owner actually IN THIS ROOM right now (browsing their own mesh),
+        // versus merely online somewhere else on mesh.me? Their Meshi should read
+        // as awake-and-present only when they're genuinely here — otherwise it
+        // rests at their home node as a calm "away" marker instead of looking
+        // like they're idling at their own center. When they ARE here, their
+        // broadcast world coordinate is the one truth every viewer shares, so we
+        // capture it and their dedicated heart Meshi tracks them for real.
+        const ownerPresence = online.find(
+          (p) => p.userId === meshOwner && p.viewingMesh === meshOwner && p.surface === "mesh",
+        );
+        if (ownerPresence) {
+          ownerSeenAtRef.current = nowSeen;
+          if (ownerPresence.position) {
+            ownerHereWorldRef.current = { x: ownerPresence.position.x, y: ownerPresence.position.y };
+          }
+          setOwnerLive(true);
+        } else if (nowSeen - ownerSeenAtRef.current > PRESENCE_GRACE_MS) {
+          // Absent past the grace window → they've really left the room.
+          ownerHereWorldRef.current = null;
+          setOwnerLive(false);
+        }
+        // else: within grace — keep the last known position and awake state.
         presenceInfoRef.current.clear();
         for (const p of online) {
           if (visibleIds.has(p.userId)) continue;
@@ -2208,9 +2243,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         easeLook(cursorEl, "__self__", clear, reducedMotionRef.current ? null : selfLookTarget(clear.x, clear.y));
       }
 
-      // The mesh owner's Meshi. On someone else's mesh it rests at the heart
-      // (world origin). On YOUR OWN mesh it follows the cursor, while coarse
-      // pointers keep it centered as the world moves underneath.
+      // The mesh owner's Meshi. On someone else's mesh it tracks the owner's
+      // real broadcast position when they're here browsing, and eases home to
+      // the heart (world origin) when they're away. On YOUR OWN mesh it follows
+      // the cursor, while coarse pointers keep it centered as the world moves.
       const ownerEl = ownerMeshiElRef.current;
       const container = containerRef.current;
       if (ownerEl && container) {
@@ -2223,8 +2259,14 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           pointerOnCanvasRef.current || time - lastInputAtRef.current < 4000;
         const active = isMe && cursorWorldTargetRef.current.seen && pointerLive;
         const centered = coarseRef.current && isMe;
-        const tx = centered ? cursorWorldTargetRef.current.x : active ? cursorWorldTargetRef.current.x : 0;
-        const ty = centered ? cursorWorldTargetRef.current.y : active ? cursorWorldTargetRef.current.y : 0;
+        const selfDriven = active || centered;
+        // When VISITING, follow the owner's real world position if they're here
+        // browsing their own mesh; otherwise (away/offline) the Meshi eases home
+        // to the heart. It glides between the two, so an owner arriving or
+        // leaving the room slides in/out rather than snapping to center.
+        const ownerHere = !isMe ? ownerHereWorldRef.current : null;
+        const tx = selfDriven ? cursorWorldTargetRef.current.x : ownerHere ? ownerHere.x : 0;
+        const ty = selfDriven ? cursorWorldTargetRef.current.y : ownerHere ? ownerHere.y : 0;
         const ok = active && !coarseRef.current ? 1 - Math.exp(-dt / 90) : k;
         const pos = ownerWorldPosRef.current;
         pos.x += (tx - pos.x) * ok;
@@ -2522,9 +2564,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         </div>
       )}
 
-      {/* The mesh owner's Meshi at the heart of their mesh. Awake and adrift
-          when they're online; curled up asleep with a soft "Zzz" when they're
-          offline, so a visited mesh always shows whether its owner is around. */}
+      {/* The mesh owner's Meshi. Awake and roaming to their real position when
+          they're here browsing their own mesh; curled up asleep with a soft
+          "Zzz" at their home node when they're away (offline or exploring
+          elsewhere), so a visited mesh shows whether its owner is in the room. */}
       {meshData?.meshiPreference && (() => {
         const m = meshData.meshiPreference;
         // The URL may address this mesh by username; presence always speaks in
