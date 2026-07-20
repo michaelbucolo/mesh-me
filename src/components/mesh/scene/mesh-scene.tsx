@@ -129,6 +129,32 @@ function generateStars(width: number, height: number) {
   return stars;
 }
 
+// The lean (in degrees) a Meshi at (x, y) adopts to "look toward" the nearest
+// other Meshi within range — it tips its body their way, like turning to notice
+// someone in the room. Horizontal offset sets the tilt direction and closer
+// neighbours pull harder; returns 0 when nobody's near, so a Meshi with the
+// room to itself stands straight.
+function gazeLeanDeg(x: number, y: number, others: { x: number; y: number }[]): number {
+  const RANGE = 300;
+  // Rank candidates by squared distance (no per-candidate sqrt); take one real
+  // distance for the single winner — this runs on a per-frame hot path.
+  let best: { x: number; y: number } | null = null;
+  let bestSq = Infinity;
+  for (const o of others) {
+    const dx = o.x - x;
+    const dy = o.y - y;
+    const sq = dx * dx + dy * dy;
+    if (sq < bestSq) {
+      bestSq = sq;
+      best = o;
+    }
+  }
+  if (!best || bestSq > RANGE * RANGE || bestSq < 1) return 0;
+  const bestD = Math.sqrt(bestSq);
+  const proximity = 1 - bestD / RANGE;
+  return Math.max(-14, Math.min(14, ((best.x - x) / bestD) * 14 * proximity));
+}
+
 export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const router = useRouter();
   // The Global view is a READ-ONLY visitor surface over the synthetic world hub.
@@ -284,6 +310,18 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   // used to hand positions across mode changes so Meshis NEVER teleport.
   const perchNodeRef = useRef<Map<string, string>>(new Map());
   const lastScreenPosRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // Meshi social life: where MY Meshi and the mesh owner's Meshi were last
+  // drawn (so the reaction/gaze logic can measure who's near whom), plus the
+  // smoothed gaze lean per visiting Meshi, and a debounce on warm reactions.
+  const selfScreenRef = useRef<{ x: number; y: number } | null>(null);
+  const ownerScreenRef = useRef<{ x: number; y: number } | null>(null);
+  const presenceGazeRef = useRef<Map<string, number>>(new Map());
+  const socialUntilRef = useRef(0);
+  const behaviorMoodRef = useRef<MeshiMood | null>(null);
+  const reducedMotionRef = useRef(false);
+  // A gentle mood driven by the room: warm when another Meshi is close, a
+  // look-around fidget then a doze when you go quiet. null = your resting face.
+  const [behaviorMood, setBehaviorMood] = useState<MeshiMood | null>(null);
   // Interaction pulses riding strands (edge key → start time).
   const strandPulsesRef = useRef<Map<string, number>>(new Map());
   // Precise pointer marker for fine pointers.
@@ -300,6 +338,75 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     const t = setTimeout(() => setPresenceToast(null), 3600);
     return () => clearTimeout(t);
   }, [presenceToast]);
+  // Honour reduced-motion for the extra body-language (gaze lean): it stays a
+  // ref so the per-frame loop reads it without re-subscribing.
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!mq) return;
+    reducedMotionRef.current = mq.matches;
+    const on = () => {
+      reducedMotionRef.current = mq.matches;
+    };
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  // Your Meshi's inner life, sampled a few times a second (never per frame, so
+  // it costs almost nothing and never thrashes React): it warms up when another
+  // Meshi drifts close, looks around when you've gone quiet, and dozes off if
+  // you stay away. The chosen mood also rides your presence broadcast, so the
+  // room sees you reacting to them too. The Global view is strictly read-only,
+  // so it grows no behaviours there.
+  useEffect(() => {
+    if (isGlobal) return;
+    const WARM: MeshiMood[] = ["giggle", "love", "wink", "happy"];
+    let warmIdx = 0;
+    const tick = () => {
+      const now = performance.now();
+      const self = selfScreenRef.current;
+      let nearest = Infinity;
+      if (self) {
+        lastScreenPosRef.current.forEach((p) => {
+          const d = Math.hypot(p.x - self.x, p.y - self.y);
+          if (d < nearest) nearest = d;
+        });
+        // The host's Meshi counts as a neighbour when you're visiting them.
+        if (!isOwnMesh && ownerScreenRef.current) {
+          const d = Math.hypot(ownerScreenRef.current.x - self.x, ownerScreenRef.current.y - self.y);
+          if (d < nearest) nearest = d;
+        }
+      }
+      let next: MeshiMood | null = null;
+      // Hysteresis: warm up when a neighbour comes within 118px, but stay warm
+      // until they drift past 165px — so a Meshi hovering near the boundary
+      // can't flip the face on and off between samples.
+      const wasWarm = behaviorMoodRef.current != null && WARM.includes(behaviorMoodRef.current);
+      if (self && nearest < (wasWarm ? 165 : 118)) {
+        // Someone's right here — react warmly, but hold each beat so it reads
+        // as a reaction rather than a flicker.
+        if (now > socialUntilRef.current) {
+          warmIdx = (warmIdx + 1) % WARM.length;
+          socialUntilRef.current = now + 2600;
+        }
+        next = WARM[warmIdx];
+      } else {
+        socialUntilRef.current = 0;
+        const idleFor = lastInputAtRef.current ? now - lastInputAtRef.current : 0;
+        if (idleFor > 22000) next = "sleepy";
+        else if (idleFor > 7000) next = Math.floor(now / 3400) % 2 === 0 ? "thinking" : "searching";
+      }
+      behaviorMoodRef.current = next;
+      setBehaviorMood((prev) => (prev === next ? prev : next));
+    };
+    const id = window.setInterval(tick, 700);
+    return () => {
+      window.clearInterval(id);
+      behaviorMoodRef.current = null;
+      // Reset the STATE too, or a mood set just before leaving (or switching to
+      // the read-only Global view, where this effect early-returns) would stick
+      // to the Meshi's face forever.
+      setBehaviorMood(null);
+    };
+  }, [isGlobal, isOwnMesh]);
   // Travel dive into a friend's mesh.
   const [traveling, setTraveling] = useState<{ label: string } | null>(null);
   const travelingRef = useRef(false);
@@ -1347,6 +1454,9 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
               if (composingRef.current) return "thinking";
               if (hoverIdRef.current) return "excited";
               if (selectedIdRef.current) return "learning";
+              // Your reaction to the room (warm when someone's near, a fidget or
+              // doze when you're quiet) rides along so others see it too.
+              if (behaviorMoodRef.current) return behaviorMoodRef.current;
               if (lastInputAtRef.current && performance.now() - lastInputAtRef.current > 15000) return "sleepy";
               return prefs.face;
             })(),
@@ -1631,6 +1741,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             // (long sessions would otherwise accumulate every visitor ever).
             perchNodeRef.current.delete(id);
             lastScreenPosRef.current.delete(id);
+            presenceGazeRef.current.delete(id);
             joinStampRef.current.delete(id);
           }
         });
@@ -2048,7 +2159,20 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         const prev = cursorPrevRef.current;
         const vpf = prev ? (clear.x - prev.x) / Math.max(dt, 1) : 0;
         cursorPrevRef.current = { x: clear.x, y: clear.y };
-        const leanTarget = Math.max(-16, Math.min(16, vpf * 24));
+        selfScreenRef.current = { x: clear.x, y: clear.y };
+        const travelLean = Math.max(-16, Math.min(16, vpf * 24));
+        // When you're ambling slowly the gaze wins and your Meshi turns to look
+        // at whoever's nearest; while you're zipping after the pointer, the
+        // travel-lean takes over. Skipped under reduced-motion.
+        let leanTarget = travelLean;
+        if (!reducedMotionRef.current) {
+          const others: { x: number; y: number }[] = [];
+          lastScreenPosRef.current.forEach((q) => others.push(q));
+          if (ownerScreenRef.current) others.push(ownerScreenRef.current);
+          const gaze = gazeLeanDeg(clear.x, clear.y, others);
+          const gazeWeight = Math.max(0, 1 - Math.abs(vpf) / 0.25);
+          leanTarget = travelLean * (1 - gazeWeight) + gaze * gazeWeight;
+        }
         cursorRotRef.current += (leanTarget - cursorRotRef.current) * (1 - Math.exp(-dt / 110));
         cursorEl.style.transform = `translate(${clear.x}px, ${clear.y}px) translate(-50%, -50%) rotate(${cursorRotRef.current.toFixed(2)}deg)`;
       }
@@ -2100,16 +2224,71 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         }
         ownerEl.style.left = `${cx}px`;
         ownerEl.style.top = `${cy}px`;
+        ownerScreenRef.current = { x: cx, y: cy };
         // Local body language for YOUR OWN Meshi: grow toward hovered nodes,
         // pop on click, lean into travel. Visitors' views are untouched.
         if (isMe) {
+          selfScreenRef.current = { x: cx, y: cy };
           const prevO = ownerPrevRef.current;
           const vpfO = prevO ? (cx - prevO.x) / Math.max(dt, 1) : 0;
           ownerPrevRef.current = { x: cx, y: cy };
-          const leanTargetO = Math.max(-16, Math.min(16, vpfO * 24));
+          const travelLeanO = Math.max(-16, Math.min(16, vpfO * 24));
+          let leanTargetO = travelLeanO;
+          if (!reducedMotionRef.current) {
+            const others: { x: number; y: number }[] = [];
+            lastScreenPosRef.current.forEach((q) => others.push(q));
+            const gaze = gazeLeanDeg(cx, cy, others);
+            const gazeWeight = Math.max(0, 1 - Math.abs(vpfO) / 0.25);
+            leanTargetO = travelLeanO * (1 - gazeWeight) + gaze * gazeWeight;
+          }
           ownerRotRef.current += (leanTargetO - ownerRotRef.current) * (1 - Math.exp(-dt / 110));
           ownerEl.style.transform = `translate(-50%, -50%) rotate(${ownerRotRef.current.toFixed(2)}deg)`;
+        } else {
+          // The host you're visiting turns to look at whoever's in the room.
+          // The lean always EASES (so it settles back upright if the gaze is
+          // switched off mid-session), but the neighbour scan is what's gated
+          // off on reduced-motion / weak devices.
+          let target = 0;
+          if (!reducedMotionRef.current && !coarseRef.current) {
+            const others: { x: number; y: number }[] = [];
+            lastScreenPosRef.current.forEach((q) => others.push(q));
+            if (selfScreenRef.current) others.push(selfScreenRef.current);
+            target = gazeLeanDeg(cx, cy, others);
+          }
+          const prevG = presenceGazeRef.current.get("__owner__") ?? 0;
+          if (target !== 0 || Math.abs(prevG) > 0.01) {
+            const nextG = prevG + (target - prevG) * (1 - Math.exp(-dt / 150));
+            presenceGazeRef.current.set("__owner__", nextG);
+            ownerEl.style.setProperty("--meshi-gaze", `${nextG.toFixed(2)}deg`);
+          }
         }
+      }
+      // The visiting Meshis look around at each other and at you — a room that
+      // notices itself. The lean always eases (settling upright if gaze is
+      // gated off mid-session); the neighbour scan is skipped on coarse/weak
+      // devices.
+      {
+        const gazeActive = !reducedMotionRef.current && !coarseRef.current;
+        presenceElsRef.current.forEach((el, userId) => {
+          let target = 0;
+          if (gazeActive) {
+            const me = lastScreenPosRef.current.get(userId);
+            if (me) {
+              const others: { x: number; y: number }[] = [];
+              lastScreenPosRef.current.forEach((q, id) => {
+                if (id !== userId) others.push(q);
+              });
+              if (selfScreenRef.current) others.push(selfScreenRef.current);
+              if (ownerScreenRef.current) others.push(ownerScreenRef.current);
+              target = gazeLeanDeg(me.x, me.y, others);
+            }
+          }
+          const prevG = presenceGazeRef.current.get(userId) ?? 0;
+          if (target === 0 && Math.abs(prevG) <= 0.01) return; // already upright
+          const nextG = prevG + (target - prevG) * (1 - Math.exp(-dt / 150));
+          presenceGazeRef.current.set(userId, nextG);
+          el.style.setProperty("--meshi-gaze", `${nextG.toFixed(2)}deg`);
+        });
       }
     };
     raf = requestAnimationFrame(step);
@@ -2260,7 +2439,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             size={54}
             color={prefs.color}
             hat={prefs.hat}
-            mood={showCompose ? "thinking" : hoverNode ? "excited" : prefs.face}
+            mood={showCompose ? "thinking" : hoverNode ? "excited" : behaviorMood ?? prefs.face}
             hair={prefs.hair}
             accessory={prefs.accessory}
             eyeStyle={prefs.eye}
@@ -2367,7 +2546,9 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
                       ? "thinking"
                       : isOwnMesh && hoverNode
                         ? "excited"
-                        : ((m.faceStyle || "happy") as MeshiMood)
+                        : isOwnMesh && behaviorMood
+                          ? behaviorMood
+                          : ((m.faceStyle || "happy") as MeshiMood)
                 }
                 animate={ownerOnline}
                 showGlow={ownerOnline}
