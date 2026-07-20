@@ -25,7 +25,9 @@ import {
 } from "@/components/meshi/meshi-mascot";
 import { Avatar } from "@/components/ui/avatar";
 import { PostCard } from "@/components/feed/post-card";
+import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { getCurrentUser } from "@/lib/auth";
+import { getAnalyticsDashboardData } from "@/lib/analytics-dashboard";
 import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
@@ -91,8 +93,13 @@ export async function InstagramProfileView({ username, tab }: { username: string
       ? formatLastActive(profile.lastSeenAt)
       : null;
   const basePath = isOwnProfile ? "/profile" : `/profile/${username}`;
-  const tabs = ["posts", "communities", ...(isOwnProfile ? ["collections"] : []), "links"];
+  // Analytics is folded into the profile as an own-profile-only tab — it is not a
+  // separate top-level destination. Its (heavier) data is fetched only when that
+  // tab is actually open, so the common Posts view stays lean.
+  const tabs = ["posts", "communities", ...(isOwnProfile ? ["collections", "analytics"] : []), "links"];
   const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
+  const analyticsData =
+    isOwnProfile && activeTab === "analytics" ? await getAnalyticsDashboardData() : null;
 
   return (
     <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] animate-page-enter">
@@ -263,7 +270,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               {isOwnProfile ? (
                 <>
                   <Link
-                    href="/analytics"
+                    href="/profile?tab=analytics"
                     className="inline-flex items-center gap-2 rounded-xl bg-[var(--mesh-blue)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(47,124,255,0.3)] transition hover:brightness-110"
                   >
                     <BarChart3 size={16} aria-hidden="true" />
@@ -301,6 +308,9 @@ export async function InstagramProfileView({ username, tab }: { username: string
             <ProfileTab label="Communities" count={communityCount} href={`${basePath}?tab=communities`} active={activeTab === "communities"} />
             {isOwnProfile && (
               <ProfileTab label="Collections" count={collectionCount} href={`${basePath}?tab=collections`} active={activeTab === "collections"} />
+            )}
+            {isOwnProfile && (
+              <ProfileTab label="Analytics" href={`${basePath}?tab=analytics`} active={activeTab === "analytics"} />
             )}
             <ProfileTab label="Creator Links" count={links.length} href={`${basePath}?tab=links`} active={activeTab === "links"} />
           </nav>
@@ -378,6 +388,17 @@ export async function InstagramProfileView({ username, tab }: { username: string
               </section>
             )}
           </div>
+        )}
+
+        {canViewProfile && activeTab === "analytics" && isOwnProfile && (
+          analyticsData ? (
+            <AnalyticsDashboard data={analyticsData} embedded />
+          ) : (
+            <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+              <h2 className="text-lg font-bold text-[var(--mesh-text)]">Analytics unavailable</h2>
+              <p className="text-sm text-[var(--mesh-text-secondary)]">We couldn&apos;t load your analytics right now. Please try again.</p>
+            </section>
+          )
         )}
 
         {canViewProfile && activeTab === "links" && (
@@ -543,7 +564,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
   );
 }
 
-function ProfileTab({ label, count, href, active = false }: { label: string; count: number; href: string; active?: boolean }) {
+function ProfileTab({ label, count, href, active = false }: { label: string; count?: number; href: string; active?: boolean }) {
   return (
     <Link
       href={href}
@@ -554,9 +575,11 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
       }`}
     >
       {label}
-      <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
-        {count}
-      </span>
+      {count !== undefined && (
+        <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--mesh-blue)]/10 text-[var(--mesh-blue)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
+          {count}
+        </span>
+      )}
     </Link>
   );
 }

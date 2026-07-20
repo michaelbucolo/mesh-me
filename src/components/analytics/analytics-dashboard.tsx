@@ -307,13 +307,19 @@ function TrendCard({ title, points, tone, index }: { title: string; points: Char
   );
 }
 
-export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
+export function AnalyticsDashboard({ data, embedded = false }: { data: AnalyticsDashboardData; embedded?: boolean }) {
+  // Folded into the profile as a tab (`embedded`) or shown as its own page.
+  // Embedded drops the page shell (outer <main>, max-width, page padding) so it
+  // fills the profile's own column, and demotes the heading so the profile's
+  // name stays the page's single <h1>.
+  const Container = embedded ? "div" : "main";
+  const Heading = embedded ? "h2" : "h1";
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+    <Container className={embedded ? "w-full" : "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6"}>
       {/* Header — quiet, product-like */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Analytics</h1>
+          <Heading className="text-2xl font-bold text-[var(--text-primary)]">Analytics</Heading>
           <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
             Every platform you&apos;ve connected, measured in one place.
           </p>
@@ -418,6 +424,6 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           <AnalyticsControls />
         </div>
       </section>
-    </main>
+    </Container>
   );
 }

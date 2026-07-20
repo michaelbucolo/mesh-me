@@ -56,6 +56,15 @@ export function ProfileIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function ExploreIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="8.2" />
+      <path d="M14.9 9.1 13.4 13.4 9.1 14.9 10.6 10.6 14.9 9.1Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function NotificationsIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
