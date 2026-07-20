@@ -5,20 +5,32 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { motion, useInView, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   BarChart3,
+  Bell,
+  Bookmark,
+  CheckCircle2,
   Clock3,
+  Crown,
   Eye,
   FileText,
+  Fingerprint,
   Gauge,
   Heart,
   LockKeyhole,
   MessageCircle,
   PlugZap,
+  RefreshCw,
+  Send,
   ShieldCheck,
   TrendingUp,
   Trophy,
+  UserPlus,
   Users,
+  UsersRound,
+  XCircle,
 } from "lucide-react";
+import { formatRelativeTime } from "@/lib/utils";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import { CrossPlatformCommand } from "@/components/analytics/cross-platform-command";
 import { PrivacyPermissionsManager } from "@/components/analytics/privacy-permissions-manager";
@@ -307,6 +319,166 @@ function TrendCard({ title, points, tone, index }: { title: string; points: Char
   );
 }
 
+/** The single strongest platform by composite score — the headline of the
+ * scorecards. Not a second leaderboard: one champion plus the blended rate. */
+function StandoutPlatform({ best, avgRate }: { best: AnalyticsDashboardData["creator"]["bestPlatform"]; avgRate: number }) {
+  if (!best) return null;
+  const tone = toneFor(best.platform);
+  const cells: Array<[string, string]> = [
+    ["Followers", compact(best.followerCount)],
+    ["Views", compact(best.totalViews)],
+    ["Eng. rate", pct(best.engagementRate)],
+    ["Growth", `${best.followerGrowth >= 0 ? "+" : ""}${compact(best.followerGrowth)}`],
+  ];
+  return (
+    <div
+      className="animate-mesh-rise mb-3 rounded-2xl border border-[var(--accent)]/30 p-4"
+      style={{ backgroundImage: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent)" }}
+    >
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="animate-mesh-pop flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${tone} 18%, transparent)` }}>
+          <Crown size={16} style={{ color: tone }} aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Your strongest platform</p>
+          <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-[var(--text-primary)]">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tone }} />
+            {labelFor(best.platform)}
+            {best.platformUsername && <span className="text-xs font-normal text-[var(--text-muted)]">@{best.platformUsername}</span>}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[420px]:grid-cols-4">
+        {cells.map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
+            <p className="truncate text-base font-bold text-[var(--text-primary)]">{value}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2.5 text-[11px] text-[var(--text-secondary)]">
+        <span className="font-bold text-[var(--text-primary)]">{pct(avgRate)}</span> overall engagement across every platform.
+      </p>
+    </div>
+  );
+}
+
+/** A compact, muted footprint tile — the viewer's own inward mesh.me numbers,
+ * visually distinct from the bright outward reach cards. */
+function FootprintTile({ icon: Icon, label, value, index }: { icon: LucideIcon; label: string; value: number; index: number }) {
+  return (
+    <div
+      className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/55 p-3"
+      style={{ ["--i" as string]: index } as CSSProperties}
+    >
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+        <Icon size={12} aria-hidden="true" />
+        <span className="truncate">{label}</span>
+      </p>
+      <p className="mt-1 text-lg font-bold leading-none text-[var(--text-primary)]">
+        <AnimatedNumber value={compact(value)} target={value} format={compact} />
+      </p>
+    </div>
+  );
+}
+
+const ACTIVITY_STYLE: Record<string, { icon: LucideIcon; tone: string }> = {
+  Post: { icon: FileText, tone: "#2f7cff" },
+  Synced: { icon: PlugZap, tone: "#a78bfa" },
+  Comment: { icon: MessageCircle, tone: "#34e4ea" },
+  Reaction: { icon: Heart, tone: "#f43f5e" },
+  Follower: { icon: Users, tone: "#34d399" },
+  Sync: { icon: RefreshCw, tone: "#94a3b8" },
+};
+
+function ActivityRow({ item }: { item: AnalyticsDashboardData["recentActivity"][number] }) {
+  const style = ACTIVITY_STYLE[item.type] ?? { icon: Activity, tone: "#94a3b8" };
+  const Icon = style.icon;
+  const inner = (
+    <div className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-[var(--bg-secondary)]">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${style.tone} 16%, transparent)` }}>
+        <Icon size={13} style={{ color: style.tone }} aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-[var(--text-primary)]">{item.title}</p>
+        <p className="truncate text-[11px] text-[var(--text-muted)]">{item.detail}</p>
+      </div>
+      <span className="shrink-0 text-[11px] text-[var(--text-muted)]">{formatRelativeTime(item.timestamp)}</span>
+    </div>
+  );
+  if (!item.href) return inner;
+  return item.href.startsWith("/") ? (
+    <Link href={item.href}>{inner}</Link>
+  ) : (
+    <a href={item.href} target="_blank" rel="noreferrer">{inner}</a>
+  );
+}
+
+const VISIBILITY_TONES: Array<[keyof AnalyticsDashboardData["privacy"]["visibilityBreakdown"], string, string]> = [
+  ["public", "Public", "#34d399"],
+  ["friends", "Friends", "#2f7cff"],
+  ["unlisted", "Unlisted", "#a78bfa"],
+  ["private", "Private", "#f59e0b"],
+  ["hidden", "Hidden", "#94a3b8"],
+  ["other", "Other", "#64748b"],
+];
+
+function VisibilityBar({ breakdown }: { breakdown: AnalyticsDashboardData["privacy"]["visibilityBreakdown"] }) {
+  const total = VISIBILITY_TONES.reduce((sum, [key]) => sum + breakdown[key], 0);
+  if (total === 0) {
+    return <p className="text-xs text-[var(--text-muted)]">Publish content to see where it&apos;s visible.</p>;
+  }
+  const parts = VISIBILITY_TONES.filter(([key]) => breakdown[key] > 0);
+  return (
+    <div>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--bg-primary)]/60">
+        {parts.map(([key, , tone]) => (
+          <span key={key} style={{ width: `${(breakdown[key] / total) * 100}%`, backgroundColor: tone }} />
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+        {parts.map(([key, label, tone]) => (
+          <span key={key} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tone }} />
+            {label} <span className="font-semibold text-[var(--text-primary)]">{breakdown[key]}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CheckRow({ label, passed, detail }: { label: string; passed: boolean; detail?: string }) {
+  return (
+    <div className="flex items-start gap-2.5 py-1">
+      {passed ? (
+        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-400" aria-hidden="true" />
+      ) : (
+        <XCircle size={15} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
+      )}
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-[var(--text-primary)]">{label}</p>
+        {detail && <p className="text-[11px] leading-snug text-[var(--text-muted)]">{detail}</p>}
+      </div>
+    </div>
+  );
+}
+
+function StatusPill({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+        ok
+          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+          : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-muted)]"
+      }`}
+    >
+      {ok ? <CheckCircle2 size={12} aria-hidden="true" /> : <XCircle size={12} aria-hidden="true" />}
+      {label}
+    </span>
+  );
+}
+
 export function AnalyticsDashboard({ data, embedded = false }: { data: AnalyticsDashboardData; embedded?: boolean }) {
   // Folded into the profile as a tab (`embedded`) or shown as its own page.
   // Embedded drops the page shell (outer <main>, max-width, page padding) so it
@@ -315,7 +487,10 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
   const Container = embedded ? "div" : "main";
   const Heading = embedded ? "h2" : "h1";
   return (
-    <Container className={embedded ? "w-full" : "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6"}>
+    // @container so grids track this column's width, not the viewport — the
+    // dashboard now renders inside the (narrower) profile column as well as the
+    // full-width standalone route.
+    <Container className={embedded ? "@container w-full" : "@container mx-auto w-full max-w-7xl px-4 py-6 sm:px-6"}>
       {/* Header — quiet, product-like */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -340,7 +515,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
       </div>
 
       {/* The numbers that matter, with their 14-day pulse */}
-      <section className="mesh-cascade mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Overview">
+      <section className="mesh-cascade mt-5 grid grid-cols-1 gap-3 @sm:grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-6" aria-label="Overview">
         <Stat index={0} icon={Users} label="Audience" value={compact(data.overview.totalFollowers)} rawValue={data.overview.totalFollowers} format={compact} sub={`${data.overview.connectedAccounts} platforms connected`} points={data.charts.followerGrowth} tone="#34d399" />
         <Stat index={1} icon={Eye} label="Views" value={compact(data.overview.totalViews)} rawValue={data.overview.totalViews} format={compact} sub="across synced content" />
         <Stat index={2} icon={Heart} label="Engagement" value={compact(data.overview.totalEngagement)} rawValue={data.overview.totalEngagement} format={compact} sub="likes · comments · shares" points={data.charts.engagement} tone="#2f7cff" />
@@ -361,6 +536,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
           title="Platform scorecards"
           sub="Every number each platform reports, one row per account."
         />
+        <StandoutPlatform best={data.creator.bestPlatform} avgRate={data.creator.averageEngagementRate} />
         {data.platformComparison.length > 0 ? (
           <div className="mesh-cascade grid gap-3">
             {data.platformComparison.map((account, i) => (
@@ -408,6 +584,40 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
         </div>
       </section>
 
+      {/* You on mesh.me — the inward footprint the page never used to show. */}
+      <section className="mt-8" aria-label="Your mesh.me footprint">
+        <SectionTitle
+          icon={Fingerprint}
+          title="You on mesh.me"
+          sub="Your own footprint here — visible only to you."
+        />
+        <div className="mesh-cascade grid grid-cols-2 gap-2.5 @sm:grid-cols-3 @3xl:grid-cols-5">
+          <FootprintTile index={0} icon={FileText} label="Posts · 30d" value={data.personal.postsThisWindow} />
+          <FootprintTile index={1} icon={Users} label="Followers" value={data.personal.followers} />
+          <FootprintTile index={2} icon={UserPlus} label="Following" value={data.personal.following} />
+          <FootprintTile index={3} icon={UsersRound} label="Communities" value={data.personal.communities} />
+          <FootprintTile index={4} icon={MessageCircle} label="Comments" value={data.personal.commentsWritten} />
+          <FootprintTile index={5} icon={Heart} label="Reactions" value={data.personal.reactionsMade} />
+          <FootprintTile index={6} icon={Bookmark} label="Saved" value={data.personal.savedPosts} />
+          <FootprintTile index={7} icon={Send} label="Messages" value={data.personal.messagesSent} />
+          <FootprintTile index={8} icon={Bell} label="Notifications" value={data.personal.notifications} />
+        </div>
+
+        {data.recentActivity.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 p-3 md:p-4">
+            <p className="mb-1 flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              <Activity size={13} aria-hidden="true" />
+              Recent activity
+            </p>
+            <div className="divide-y divide-[var(--border-primary)]/60">
+              {data.recentActivity.slice(0, 10).map((item) => (
+                <ActivityRow key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* Data controls, tucked at the end where they belong */}
       <section className="mt-10 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4 md:p-5" aria-label="Data and privacy">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -419,7 +629,49 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
             Privacy health <span className="font-bold text-[var(--text-primary)]">{data.privacy.score}%</span> · {data.privacy.sessions} active sessions
           </span>
         </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+
+        {/* Account status — verification, second factor, and plan at a glance. */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <StatusPill label="Email verified" ok={data.user.emailVerified} />
+          <StatusPill label="Phone verified" ok={data.user.phoneVerified} />
+          <StatusPill
+            label={data.privacy.twoFactorMethods > 0 ? `${data.privacy.twoFactorMethods} 2FA method${data.privacy.twoFactorMethods > 1 ? "s" : ""}` : "2FA off"}
+            ok={data.privacy.twoFactorMethods > 0}
+          />
+          <StatusPill label={data.user.isMeshPro ? "Mesh Pro" : "Free plan"} ok={data.user.isMeshPro} />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">
+            {data.user.isPublic ? "Public profile" : "Private profile"}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">
+            {data.user.showInDiscovery ? "In discovery" : "Hidden from discovery"}
+          </span>
+        </div>
+
+        {/* Security checklist + where your content actually lives. */}
+        <div className="mt-4 grid gap-4 @3xl:grid-cols-2">
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              <ShieldCheck size={13} className="text-emerald-400" aria-hidden="true" />
+              Security checklist
+            </p>
+            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 px-3 py-2">
+              {data.privacy.checks.map((check) => (
+                <CheckRow key={check.label} label={check.label} passed={check.passed} detail={check.detail} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              <Eye size={13} aria-hidden="true" />
+              Where your content is visible
+            </p>
+            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 p-4">
+              <VisibilityBar breakdown={data.privacy.visibilityBreakdown} />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 @3xl:grid-cols-2">
           <PrivacyPermissionsManager accounts={data.accounts} />
           <AnalyticsControls />
         </div>
