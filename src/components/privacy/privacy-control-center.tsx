@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   FileDown,
+  Globe,
   KeyRound,
   Loader2,
   LockKeyhole,
@@ -29,9 +30,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { updateMeshPrivacy, updatePrivacy } from "@/lib/actions";
+import { joinGlobalMesh, leaveGlobalMesh, updateMeshPrivacy, updatePrivacy } from "@/lib/actions";
+import { getGlobalMeshSelfPreview } from "@/lib/queries";
 import { cn, formatCount, formatRelativeTime } from "@/lib/utils";
 import type { PrivacyControlCenterData } from "@/lib/privacy-control-center";
+import type { GlobalMeshSelfPreview } from "@/lib/global-mesh";
 
 type ControlData = NonNullable<PrivacyControlCenterData>;
 type Account = ControlData["connected"]["accounts"][number];
@@ -422,6 +425,13 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
                 </Button>
               </div>
             </div>
+            <GlobalMeshCard
+              isActive={data.globalMesh.isActive}
+              profileIsPublic={profilePrivacy.isPublic}
+              showInDiscovery={profilePrivacy.showInDiscovery}
+              meshVisibility={meshPrivacy.meshVisibility}
+              onChanged={() => router.refresh()}
+            />
           </Panel>
 
           <Panel
@@ -655,6 +665,203 @@ function ToggleRow({ label, checked, onChange }: { label: string; checked: boole
         {checked ? "On" : "Off"}
       </span>
     </button>
+  );
+}
+
+// Only the branches the Global Mesh supply actually consumes today. Persisting
+// anything else would be dead weight — and the server re-validates this list
+// against the GLOBAL_MESH_BRANCHES allowlist regardless of what we send.
+const GLOBAL_MESH_SHARED_BRANCHES = ["posts", "platforms"];
+
+function GlobalMeshCard({
+  isActive,
+  profileIsPublic,
+  showInDiscovery,
+  meshVisibility,
+  onChanged,
+}: {
+  isActive: boolean;
+  profileIsPublic: boolean;
+  showInDiscovery: boolean;
+  meshVisibility: string;
+  onChanged: () => void;
+}) {
+  const [preview, setPreview] = useState<GlobalMeshSelfPreview | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  // A cheap client-side hint so members can see why they're blocked before the
+  // round-trip; the server preview is still the authority on eligibility.
+  const looksEligible = profileIsPublic && showInDiscovery && meshVisibility === "public";
+
+  async function review() {
+    setError(null);
+    setReviewing(true);
+    setLoadingPreview(true);
+    setPreview(null);
+    try {
+      const result = await getGlobalMeshSelfPreview(GLOBAL_MESH_SHARED_BRANCHES);
+      if (!result) {
+        setError("Please sign in again to review your content.");
+        return;
+      }
+      setPreview(result);
+    } catch {
+      setError("Could not load your public content preview. Try again.");
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
+
+  function join() {
+    startTransition(async () => {
+      setError(null);
+      const result = await joinGlobalMesh(GLOBAL_MESH_SHARED_BRANCHES);
+      if (result && "error" in result) {
+        setError(String(result.error));
+        return;
+      }
+      setReviewing(false);
+      setPreview(null);
+      onChanged();
+    });
+  }
+
+  function leave() {
+    startTransition(async () => {
+      setError(null);
+      const result = await leaveGlobalMesh();
+      if (result && "error" in result) {
+        setError(String(result.error));
+        return;
+      }
+      onChanged();
+    });
+  }
+
+  const previewItems = preview ? preview.posts.length + preview.platforms.length : 0;
+
+  return (
+    <div className="mt-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/55 p-3">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 text-[var(--accent)]">
+          <Globe className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-[var(--text-primary)]">Global Mesh</h3>
+          <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
+            Opt in to appear in the world mesh anyone can explore. Only your already-public content is
+            ever shown, and going private removes you automatically.
+          </p>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--ds-danger-border)] bg-[var(--bg-primary)]/62 px-3 py-2 text-xs font-semibold text-[var(--text-primary)]">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--ds-danger)]" aria-hidden="true" />
+          {error}
+        </div>
+      ) : null}
+
+      {isActive ? (
+        <>
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-3 py-2 text-xs font-bold text-[var(--text-primary)]">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+            You&rsquo;re on the Global Mesh
+          </div>
+          <Button type="button" variant="secondary" className="mt-3 w-full" onClick={leave} disabled={isPending}>
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            Leave the Global Mesh
+          </Button>
+        </>
+      ) : !reviewing ? (
+        <>
+          {!looksEligible ? (
+            <p className="mt-3 text-xs font-semibold text-[var(--text-muted)]">
+              A public profile, discovery, and a public mesh are required to join. Review shows you
+              exactly what you&rsquo;d share.
+            </p>
+          ) : null}
+          <Button type="button" variant="secondary" className="mt-3 w-full" onClick={review} disabled={loadingPreview}>
+            {loadingPreview && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            Review my public content &amp; join
+          </Button>
+        </>
+      ) : (
+        <div className="mt-3 grid gap-3">
+          {loadingPreview && !preview ? (
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)]">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Gathering your public content&hellip;
+            </div>
+          ) : null}
+
+          {preview && !preview.qualifies ? (
+            <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 p-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--ds-warning-border,#f59e0b)]" aria-hidden="true" />
+                You can&rsquo;t join the Global Mesh yet
+              </div>
+              <ul className="mt-2 grid gap-1 text-xs font-semibold text-[var(--text-secondary)]">
+                {preview.reasons.map((reason) => (
+                  <li key={reason}>&bull; {reason}</li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">Update the settings above, save, then review again.</p>
+            </div>
+          ) : null}
+
+          {preview && preview.qualifies ? (
+            <div className="grid gap-2">
+              <p className="text-xs font-semibold text-[var(--text-secondary)]">
+                Here&rsquo;s the already-public content you&rsquo;ll feature on the Global Mesh.{" "}
+                {previewItems === 0
+                  ? "You have no public content yet — you'll appear as a profile only."
+                  : "Only your already-public content is shared — nothing private."}
+              </p>
+              <p className="text-[11px] leading-4 text-[var(--text-muted)]">
+                Any public mature posts appear only to adult-verified viewers, so they aren&rsquo;t shown here.
+              </p>
+              {previewItems > 0 ? (
+                <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-2">
+                  {preview.posts.map((post) => (
+                    <div key={post.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">Post</span>
+                      <span className="truncate">{post.content || "Media post"}</span>
+                    </div>
+                  ))}
+                  {preview.platforms.map((platform) => (
+                    <div key={platform.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-bold uppercase capitalize tracking-wide text-[var(--accent)]">{platform.platform}</span>
+                      <span className="truncate">{platform.title}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <Button type="button" className="w-full" onClick={join} disabled={isPending}>
+                {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                Join the Global Mesh
+              </Button>
+            </div>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => {
+              setReviewing(false);
+              setPreview(null);
+              setError(null);
+            }}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
