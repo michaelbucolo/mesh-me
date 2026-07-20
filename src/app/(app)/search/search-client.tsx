@@ -18,7 +18,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { formatCount, formatRelativeTime } from "@/lib/utils";
+import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
 
 type SearchResults = {
   users: Array<{
@@ -464,7 +464,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 </>
               );
               return post.url ? (
-                <a key={post.id} style={rowStyle(index)} href={post.url} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
+                <a key={post.id} style={rowStyle(index)} href={safeHref(post.url)} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
                   {content}
                 </a>
               ) : (
@@ -492,7 +492,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 </>
               );
               return person.profileUrl ? (
-                <a key={person.id} style={rowStyle(index)} href={person.profileUrl} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
+                <a key={person.id} style={rowStyle(index)} href={safeHref(person.profileUrl)} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
                   {content}
                 </a>
               ) : (
@@ -537,7 +537,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         {showWeb && results.wikipedia.length > 0 && (
           <ResultSection title="Public reference" icon={Globe2}>
             {results.wikipedia.map((page, index) => (
-              <a key={page.id} style={rowStyle(index)} href={page.url} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
+              <a key={page.id} style={rowStyle(index)} href={safeHref(page.url)} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
                 <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
                   {page.thumbnailUrl ? <Image src={page.thumbnailUrl} alt="" fill sizes="56px" className="object-cover" /> : <Globe2 className="m-auto mt-4 h-6 w-6 text-[var(--accent)]" aria-hidden="true" />}
                 </span>

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toggleFollow } from "@/lib/actions";
 import type { FeedCardPost } from "@/lib/feed-data";
-import { formatCount } from "@/lib/utils";
+import { formatCount, safeHref } from "@/lib/utils";
 import { AnimatePresence, motion, useMotionTemplate, useReducedMotion, useSpring } from "framer-motion";
 import {
   ArrowUpRight,
@@ -890,7 +890,7 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
               className="shrink-0 snap-start"
             >
               <Link
-                href={post.externalUrl || `/feed/${post.id}`}
+                href={safeHref(post.externalUrl) || `/feed/${post.id}`}
                 className="group relative block h-44 w-[min(16rem,75vw)] overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
               >
                 {still ? (

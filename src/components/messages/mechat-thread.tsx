@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { playSound } from "@/lib/sound";
+import { safeHref } from "@/lib/utils";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
 import {
   buildLinkPreview,
@@ -789,9 +790,9 @@ export function MeChatThread({
                         </a>
                       )}
 
-                      {message.sourceUrl && !message.metadata.linkPreview && (
+                      {message.sourceUrl && !message.metadata.linkPreview && safeHref(message.sourceUrl) && (
                         <a
-                          href={message.sourceUrl}
+                          href={safeHref(message.sourceUrl)}
                           target="_blank"
                           rel="noreferrer"
                           className={`mt-2 inline-flex items-center gap-1 text-xs font-bold underline-offset-4 hover:underline ${isMine ? "text-white" : "text-[var(--accent)]"}`}
