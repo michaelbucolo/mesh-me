@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Heart, History, List, LocateFixed, MessageCircle, PenLine, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, ExternalLink, Heart, History, List, LocateFixed, MessageCircle, PenLine, Search, Share2, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -22,6 +22,7 @@ import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
 import { openMeshi } from "@/lib/meshi-events";
 import { playSound } from "@/lib/sound";
+import { shareContent } from "@/lib/native/share";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import type { MeshApiResponse } from "../mesh-data";
 import { PostComposer } from "@/components/feed/post-composer";
@@ -3281,6 +3282,31 @@ function ContentLens({
 
   const commentCount = metaCount(node, "Comments");
 
+  // Share a post straight from the mesh — the source URL for external items,
+  // otherwise an absolute mesh.me link to the post. Falls back to copying the
+  // link (with a brief "Copied" tick) when no native/Web share sheet exists.
+  const [shareCopied, setShareCopied] = useState(false);
+  const handleShare = () => {
+    const url = isExternal
+      ? node.href!
+      : node.href
+        ? `${window.location.origin}${node.href}`
+        : typeof window !== "undefined"
+          ? window.location.href
+          : "";
+    void shareContent({
+      title: node.label || "mesh.me",
+      text: node.content ? node.content.slice(0, 160) : node.label,
+      url,
+      dialogTitle: "Share post",
+    }).then((result) => {
+      if (result === "copied") {
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 1600);
+      }
+    });
+  };
+
   return (
     <div
       className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/65 p-3 backdrop-blur-md sm:items-center"
@@ -3421,6 +3447,16 @@ function ContentLens({
             >
               <Sparkles size={14} />
               Ask Meshi
+            </button>
+
+            <button
+              type="button"
+              aria-label="Share post"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+            >
+              {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+              {shareCopied ? "Copied" : "Share"}
             </button>
 
             {isExternal && node.href && (
