@@ -328,6 +328,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   const selectedIdRef = useRef<string | null>(null);
   const focusIdRef = useRef<string | null>(null);
   const coarseRef = useRef(true);
+  // Adaptive rendering budget so the mesh stays smooth on older/slower devices.
+  // Everyone starts at full quality + max frame rate (ProMotion). A runtime
+  // watchdog degrades in STAGES, only as far as a device actually needs:
+  //   tier 0 = full quality
+  //   tier 1 = fewer pixels (lower DPR) — usually enough, keeps full frame rate
+  //   tier 2 = fewer pixels + a steady 30fps cap (for devices still below ~45fps)
+  // Escalation is judged by the true inter-frame interval (which reflects the
+  // canvas draw, the presence/step loop, AND browser paint together), requires
+  // sustained-consecutive slow frames, and is one-way per mount. `frameCost` is
+  // a smoothed inter-frame time in ms; `slow` counts consecutive slow frames;
+  // `frames` is a warm-up guard against startup jank.
+  const perfRef = useRef({ tier: 0, frameCost: 16, slow: 0, frames: 0, lastRenderT: 0, lastStepT: 0 });
   // Mesh Pro visuals chosen by this mesh's OWNER (atmosphere, thread color,
   // node style, motion) — visitors see the owner's world the way they dressed
   // it. Read per-frame by the painter and physics.
@@ -646,7 +658,17 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     if (!ctx) return;
 
     let raf = 0;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const perf = perfRef.current;
+    // Genuinely weak devices (very few cores / little memory) start already
+    // degraded rather than waiting for the watchdog to notice the jank.
+    const cores = navigator.hardwareConcurrency || 8;
+    const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
+    if (cores <= 2 || mem <= 2) perf.tier = 2;
+    // Device-pixel-ratio ceiling per tier: full detail, then progressively fewer
+    // pixels to fill (the biggest lever for fill-rate-bound canvas rendering).
+    const dprForTier = (tier: number) =>
+      Math.min(window.devicePixelRatio || 1, tier >= 2 ? 1.3 : tier >= 1 ? 1.5 : 2);
+    let dpr = dprForTier(perf.tier);
 
     const resize = () => {
       const rect = container.getBoundingClientRect();
@@ -663,10 +685,18 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
     ro.observe(container);
 
     const render = (time: number) => {
+      raf = requestAnimationFrame(render);
+      // Frame-rate cap only at the deepest tier (~30fps): a steady 30 reads far
+      // smoother than a stuttering rate on a device that can't sustain more.
+      if (perf.tier >= 2 && time - perf.lastRenderT < 31) return;
+      perf.lastRenderT = time;
       const { width, height } = sizeRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const model = modelRef.current;
-      const dt = lastFrameRef.current ? time - lastFrameRef.current : 16;
+      // Clamp so a tab-refocus / long-idle gap (dt of many seconds) can't blow
+      // up the physics step or the perf watchdog's average; a real slow frame is
+      // still well within this bound.
+      const dt = lastFrameRef.current ? Math.min(time - lastFrameRef.current, 64) : 16;
       lastFrameRef.current = time;
       if (model && width && height) {
         // Physics: node springs toward the closeness/time layout, drifting at
@@ -764,7 +794,33 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           focusIdRef.current = nearest;
         }
       }
-      raf = requestAnimationFrame(render);
+      // Adaptive-quality watchdog. `dt` is the true inter-frame interval, so it
+      // reflects the canvas draw, the presence/step loop, and browser paint
+      // together — not just this callback's own span. If a device stays below
+      // ~45fps (dt > 22ms) for a full second of CONSECUTIVE frames, escalate ONE
+      // tier: reduce pixels first (tier 1), and only cap the frame rate (tier 2)
+      // if it's STILL slow afterwards. A single fast frame resets the counter,
+      // so a borderline device is never nudged down by noise. Skipped once
+      // frame-capped (tier 2 is the floor) and during a brief startup warm-up.
+      perf.frames++;
+      if (perf.tier < 2 && perf.frames > 30) {
+        perf.frameCost = perf.frameCost * 0.9 + dt * 0.1;
+        if (perf.frameCost > 22) {
+          if (++perf.slow > 60) {
+            perf.tier += 1;
+            // If trimming pixels wouldn't change anything (DPR already at/below
+            // the tier-1 ceiling), skip straight to the frame cap rather than
+            // idling a full window at a no-op stage.
+            if (perf.tier === 1 && dprForTier(1) === dpr) perf.tier = 2;
+            dpr = dprForTier(perf.tier);
+            perf.slow = 0;
+            perf.frameCost = 16; // judge the new tier fresh, ignoring the resize hitch
+            resize();
+          }
+        } else {
+          perf.slow = 0;
+        }
+      }
     };
     raf = requestAnimationFrame(render);
 
@@ -1787,6 +1843,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       });
     };
     const step = (time: number) => {
+      raf = requestAnimationFrame(step);
+      // Match the render loop's deepest-tier frame cap so both loops stay near
+      // 30fps together on struggling devices instead of both running full tilt.
+      if (perfRef.current.tier >= 2 && time - perfRef.current.lastStepT < 31) return;
+      perfRef.current.lastStepT = time;
       const dt = last ? Math.min(time - last, 50) : 16;
       last = time;
       stepHearts(time);
@@ -1991,8 +2052,6 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           ownerEl.style.transform = `translate(-50%, -50%) rotate(${ownerRotRef.current.toFixed(2)}deg)`;
         }
       }
-
-      raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
