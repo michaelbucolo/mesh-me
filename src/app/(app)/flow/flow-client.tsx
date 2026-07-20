@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, MessageCircle, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
 import { toggleFollow, toggleReaction, setFlowLike } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { playSound } from "@/lib/sound";
 import { useToast } from "@/components/ui/toast";
 import { PlatformLogo } from "@/components/platform/platform-logo";
+import { getPlatformCapability, normalizePlatformId } from "@/lib/platform-capabilities";
 
 export type FlowPost = {
   id: string;
@@ -326,6 +327,8 @@ function Reel({
   slideDir,
   onLaneSwipe,
   signedOut = false,
+  connectedSet,
+  onNeedsConnect,
 }: {
   post: FlowPost;
   /** Position in the vertical list — the observer's identity for this slot,
@@ -340,6 +343,8 @@ function Reel({
   slideDir: 1 | -1 | 0;
   onLaneSwipe: (dir: 1 | -1) => void;
   signedOut?: boolean;
+  connectedSet: Set<string>;
+  onNeedsConnect: (platformId: string) => void;
 }) {
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   // Shared with the tapped stage: a horizontal fling sets this so the trailing
@@ -384,6 +389,8 @@ function Reel({
             dir={slideDir}
             onLaneSwipe={onLaneSwipe}
             signedOut={signedOut}
+            connectedSet={connectedSet}
+            onNeedsConnect={onNeedsConnect}
             suppressTapRef={suppressTapRef}
           />
         </AnimatePresence>
@@ -405,6 +412,8 @@ function ReelContent({
   dir,
   onLaneSwipe,
   signedOut,
+  connectedSet,
+  onNeedsConnect,
   suppressTapRef,
 }: {
   post: FlowPost;
@@ -417,10 +426,17 @@ function ReelContent({
   dir: 1 | -1 | 0;
   onLaneSwipe: (dir: 1 | -1) => void;
   signedOut: boolean;
+  connectedSet: Set<string>;
+  onNeedsConnect: (platformId: string) => void;
   suppressTapRef: React.MutableRefObject<boolean>;
 }) {
   const router = useRouter();
   const native = !post.platform || post.platform === "mesh" || post.platform === "meshme";
+  // The source platform of an external reel, and whether this viewer has it
+  // connected/merged. Viewing is always open; this only gates the offer to
+  // interact ON the source platform.
+  const sourcePlatformId = native ? "" : normalizePlatformId(post.platform);
+  const hasSourceAccount = !sourcePlatformId || connectedSet.has(sourcePlatformId);
   const hasVideo = post.media.some((m) => m.type === "video");
   const { addToast } = useToast();
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
@@ -460,6 +476,11 @@ function ReelContent({
     // External content shows the source platform's own like count — never move
     // it. Only a native mesh like changes our own count.
     if (native) setLikeCount((c) => c + (next ? 1 : -1));
+    // The external like is a PRIVATE mesh-side taste signal — it never touches
+    // the source platform. When the viewer hasn't merged that platform, offer
+    // the path to interacting there for real (like/comment ON the source),
+    // without blocking the taste like or the freedom to keep browsing.
+    if (next && !native && !hasSourceAccount) onNeedsConnect(sourcePlatformId);
     startLike(async () => {
       const res = native ? await toggleReaction(post.id) : await setFlowLike(post.id, next);
       if (res && "error" in res) {
@@ -910,12 +931,16 @@ export function FlowClient({
   suggestedPeople = [],
   signedOut = false,
   isPro = false,
+  connectedPlatforms = [],
 }: {
   initialPosts: FlowPost[];
   initialHasMore: boolean;
   suggestedPeople?: FlowSuggestedPerson[];
   signedOut?: boolean;
   isPro?: boolean;
+  /** Source platforms this viewer has connected/merged. Viewing every platform
+   * stays open; this only decides when to offer "connect to interact there". */
+  connectedPlatforms?: string[];
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -944,6 +969,31 @@ export function FlowClient({
   activeIndexRef.current = activeIndex;
   const pullStartRef = useRef<number | null>(null);
   const pullDeltaRef = useRef(0);
+  // Normalized set of the platforms this viewer has connected/merged. Used only
+  // to decide when interacting with an external reel should offer to connect it.
+  const connectedSet = useMemo(
+    () => new Set(connectedPlatforms.map((p) => normalizePlatformId(p)).filter(Boolean)),
+    [connectedPlatforms],
+  );
+  // A gentle, dismissible "connect <platform> to interact there" prompt, raised
+  // the first time this session that a signed-in viewer engages with an external
+  // reel from a platform they haven't merged. Viewing and the private mesh-side
+  // taste like both stay open — this only surfaces the path to full interaction.
+  const [connectPrompt, setConnectPrompt] = useState<{ id: string; name: string } | null>(null);
+  const promptedPlatformsRef = useRef<Set<string>>(new Set());
+  const connectPromptTimerRef = useRef<number | null>(null);
+  const handleNeedsConnect = useCallback((platformId: string) => {
+    if (!platformId || connectedSet.has(platformId)) return;
+    if (promptedPlatformsRef.current.has(platformId)) return;
+    promptedPlatformsRef.current.add(platformId);
+    const name = getPlatformCapability(platformId)?.name ?? "this platform";
+    setConnectPrompt({ id: platformId, name });
+    if (connectPromptTimerRef.current) window.clearTimeout(connectPromptTimerRef.current);
+    connectPromptTimerRef.current = window.setTimeout(() => setConnectPrompt(null), 7000);
+  }, [connectedSet]);
+  useEffect(() => () => {
+    if (connectPromptTimerRef.current) window.clearTimeout(connectPromptTimerRef.current);
+  }, []);
   const seenRef = useRef<Set<string>>(new Set());
   // Server-persisted "seen" beacon: reels the ranker should suppress on EVERY
   // device. Batched (every few reels / on tab-hide) and deduped so a reel is
@@ -1383,6 +1433,29 @@ export function FlowClient({
           </Link>
         </div>
       )}
+      {!signedOut && connectPrompt && (
+        <div className="mesh-toast-in absolute inset-x-3 bottom-3 z-30 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-white/15 bg-black/80 px-4 py-3 backdrop-blur">
+          <p className="min-w-0 text-xs leading-5 text-white/85">
+            Liked into your Flow. Connect or merge {connectPrompt.name} to like &amp; comment there too.
+          </p>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link
+              href={`/connected-accounts?platform=${encodeURIComponent(connectPrompt.id)}&next=/flow&reason=like`}
+              className="rounded-full bg-white px-3.5 py-2 text-xs font-bold text-black transition hover:bg-white/90"
+            >
+              Connect
+            </Link>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setConnectPrompt(null)}
+              className="rounded-full p-1.5 text-white/60 transition hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
       <div
         ref={containerRef}
         onTouchStart={(e) => {
@@ -1420,6 +1493,8 @@ export function FlowClient({
               slideDir={slideDirs[post.id] ?? 0}
               onLaneSwipe={(dir) => void swipeLane(post.id, dir)}
               signedOut={signedOut}
+              connectedSet={connectedSet}
+              onNeedsConnect={handleNeedsConnect}
             />
           );
         })}

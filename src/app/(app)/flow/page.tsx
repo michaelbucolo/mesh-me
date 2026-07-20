@@ -26,6 +26,19 @@ export default async function FlowPage() {
     getViewerTasteProfile(viewer.id),
   ]);
 
+  // Which source platforms this viewer has connected/merged — the Flow uses this
+  // to know when interacting with an external post should offer "connect or merge
+  // <platform>" rather than silently keeping it a private, mesh-only taste signal.
+  // Viewing every platform's public content stays open regardless of this list.
+  const connectedPlatforms = user
+    ? (
+        await prisma.connectedAccount.findMany({
+          where: { userId: user.id, isActive: true },
+          select: { platform: true },
+        })
+      ).map((account) => account.platform)
+    : [];
+
   // Persisted seen/liked state for the first paint (the Flow's highest-visibility
   // slot), scoped to this batch's candidates. Guests have none.
   const impressions = user
@@ -66,6 +79,7 @@ export default async function FlowPage() {
       suggestedPeople={suggestedPeople}
       signedOut={!user}
       isPro={Boolean(user?.isMeshPro)}
+      connectedPlatforms={connectedPlatforms}
     />
   );
 }
