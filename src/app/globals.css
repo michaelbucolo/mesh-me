@@ -7445,10 +7445,12 @@ body > * { position: relative; z-index: 1; }
   .meshi-arrive, .meshi-arrive-ring, .meshi-leave { animation-duration: 0.01s; }
 }
 
-/* ── Meshis live IN the world: they scale with the zoom like nodes do. ── */
+/* ── Meshis live IN the world: they scale with the zoom like nodes do. The
+   optional --meshi-gaze tips a Meshi toward whoever it's looking at (0 by
+   default, so untouched Meshis render exactly as before). ── */
 .meshi-world-scale {
   position: relative;
-  transform: scale(var(--meshi-scale, 1));
+  transform: scale(var(--meshi-scale, 1)) rotate(var(--meshi-gaze, 0deg));
   transform-origin: center;
   will-change: transform;
 }
