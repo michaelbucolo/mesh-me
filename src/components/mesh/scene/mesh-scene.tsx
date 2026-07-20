@@ -860,7 +860,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         if (isOwnMesh) disturbances.push({ x: ownerWorldPosRef.current.x, y: ownerWorldPosRef.current.y });
         presenceWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
         perchWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
-        stepScenePhysics(model, physicsRef.current, time, dt, driftScaleFor(proVisualsRef.current.motionStyle), disturbances);
+        // Drift phase is driven by the shared wall clock (Date.now()), NOT the
+        // per-client rAF `time`, so nodes/posts settle to the same orbit on every
+        // screen — two viewers of one mesh agree on where each node sits.
+        stepScenePhysics(model, physicsRef.current, Date.now(), dt, driftScaleFor(proVisualsRef.current.motionStyle), disturbances);
 
         // Inertial pan: carry the fling velocity after release, with decay.
         const fling = flingRef.current;
