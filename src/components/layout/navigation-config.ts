@@ -1,4 +1,4 @@
-import { ExploreIcon, FlowIcon, MeChatIcon, MeshIcon, NotificationsIcon, ProfileIcon, type BrandIcon } from "@/components/brand/nav-icons";
+import { ExploreIcon, FlowIcon, MeChatIcon, MeshIcon, ProfileIcon, type BrandIcon } from "@/components/brand/nav-icons";
 
 export type BadgeKey = "messages" | "notifications";
 
@@ -10,16 +10,16 @@ export interface NavItem {
 }
 
 
-// The six persistent rail/tab surfaces: Mesh, Flow, MeChat, Explore,
-// Notifications, Profile. Analytics is folded into Profile (own-profile tab) and
-// Settings / One Account / Mesh Pro live in the account menu, so the primary nav
-// stays these six top-level destinations everywhere — sidebar and mobile alike.
+// The five persistent rail/tab surfaces: Mesh, Flow, MeChat, Explore, Profile.
+// Notifications is intentionally NOT a tab — it lives only in the top-bar bell
+// (with its unread badge). Analytics is folded into Profile (own-profile tab)
+// and Settings / One Account / Mesh Pro live in the account menu, so the primary
+// nav stays these five top-level destinations everywhere — sidebar and mobile.
 export const sidebarNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },
   { href: "/flow", icon: FlowIcon, label: "Flow" },
   { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
   { href: "/explore", icon: ExploreIcon, label: "Explore" },
-  { href: "/notifications", icon: NotificationsIcon, label: "Notifications", badgeKey: "notifications" },
   { href: "/profile", icon: ProfileIcon, label: "Profile" },
 ];
 
@@ -30,7 +30,6 @@ export const mobileNavItems: NavItem[] = [
   { href: "/flow", icon: FlowIcon, label: "Flow" },
   { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
   { href: "/explore", icon: ExploreIcon, label: "Explore" },
-  { href: "/notifications", icon: NotificationsIcon, label: "Notifications", badgeKey: "notifications" },
   { href: "/profile", icon: ProfileIcon, label: "Profile" },
 ];
 
