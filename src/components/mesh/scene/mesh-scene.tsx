@@ -1365,7 +1365,11 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         // Only people IN THIS ROOM appear as full Meshis. Connections online
         // elsewhere become discrete canvas indicators at their node — an
         // online ring plus a small chip naming the mesh they're exploring.
-        const visible = online.filter((p) => p.viewingMesh === meshOwner && p.surface === "mesh");
+        // The owner is represented once — by the static owner Meshi at the
+        // heart (see setOwnerLive below). Exclude them from the roaming
+        // live-presence roster so a friend browsing their OWN mesh from another
+        // session doesn't ALSO appear as a second, wandering copy of themselves.
+        const visible = online.filter((p) => p.viewingMesh === meshOwner && p.surface === "mesh" && p.userId !== meshOwner);
         const visibleIds = new Set(visible.map((p) => p.userId));
 
         // Presence hysteresis. A Meshi only LEAVES once it's been absent for a
@@ -1396,6 +1400,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
         presenceInfoRef.current.clear();
         for (const p of online) {
           if (visibleIds.has(p.userId)) continue;
+          // The owner is shown by their static heart Meshi — never as an
+          // "online elsewhere" ring/chip on their own node.
+          if (p.userId === meshOwner) continue;
           presenceInfoRef.current.set(p.userId, {
             where: p.surface === "mesh" ? p.viewingMesh : null,
             route: p.activeRoute ?? null,
@@ -1498,10 +1505,15 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
           perchNodeRef.current.set(p.userId, nextPerch);
           if (inRoom) {
             // World coordinates anchor their Meshi to the actual mesh, so it
-            // stays put on the web while you pan. Once a visitor has EVER
-            // broadcast a world position we stay world-anchored — flipping
-            // back to viewport fractions mid-visit teleports their Meshi.
-            if (p.position && (p.position.x !== 0 || p.position.y !== 0)) {
+            // stays put on the web while you pan — and, crucially, so EVERY
+            // viewer of this room sees this person in the SAME spot. Anyone in
+            // the room is world-anchored, including someone resting at the
+            // heart (world origin): a heartbeat always carries a position, so
+            // we use it directly. (The old guard treated a legitimate origin
+            // position as "unset" and fell back to a fraction of the VIEWER's
+            // own screen, which put the same person in a different place on
+            // every screen — the "their Meshi isn't where they are" bug.)
+            if (p.position) {
               presenceWorldRef.current.set(p.userId, { x: p.position.x, y: p.position.y });
               presenceTargetsRef.current.delete(p.userId);
             } else if (!presenceWorldRef.current.has(p.userId)) {
