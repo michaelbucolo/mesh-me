@@ -137,9 +137,13 @@ function ReelMedia({
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+    // React only sets the muted ATTRIBUTE, but the browser's autoplay policy
+    // gates on the muted PROPERTY — so a JSX `muted={…}` alone leaves play()
+    // blocked as "unmuted" and the reel silently never starts. Set it here.
+    el.muted = muted;
     if (active && !paused) void el.play().catch(() => {});
     else el.pause();
-  }, [active, paused]);
+  }, [active, paused, muted]);
 
   if (video) {
     return (
