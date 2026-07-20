@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, ExternalLink, Heart, History, List, LocateFixed, MessageCircle, PenLine, Search, Share2, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, ExternalLink, Heart, History, List, LocateFixed, Maximize2, MessageCircle, Minimize2, PenLine, Search, Share2, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -3249,6 +3249,26 @@ function ContentLens({
     void el.play().catch(() => {});
   }, [node.videoUrl]);
 
+  // Fullscreen happens INSIDE mesh.me — like the Flow, we request it on OUR
+  // media wrapper (which keeps mesh.me's chrome and just fills the screen),
+  // never on the embedded iframe/source. The source only opens if you tap the
+  // provenance link. Mirrors the Flow's in-app fullscreen so the two match.
+  const mediaWrapRef = useRef<HTMLDivElement>(null);
+  const [isLensFullscreen, setIsLensFullscreen] = useState(false);
+  const hasMedia = Boolean(node.videoUrl || lensEmbedUrl || node.imageUrl);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onChange = () => setIsLensFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  const toggleLensFullscreen = () => {
+    const el = mediaWrapRef.current;
+    if (typeof document === "undefined" || !el) return;
+    if (document.fullscreenElement) void document.exitFullscreen?.();
+    else void el.requestFullscreen?.().catch(() => {});
+  };
+
   // Keyboard: arrows browse, Escape closes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -3331,36 +3351,56 @@ function ContentLens({
         {/* Media stage — everything plays right here on the mesh: video files
             natively, platform pages through their embed players, stills as
             images. Leaving mesh.me is never required to watch. */}
-        {node.videoUrl ? (
-          <video
-            ref={lensVideoRef}
-            src={node.videoUrl}
-            poster={node.imageUrl ?? undefined}
-            controls
-            autoPlay
-            muted
-            playsInline
-            className="max-h-[46vh] w-full bg-black object-contain"
-          />
-        ) : lensEmbedUrl ? (
-          <div className="aspect-video w-full bg-black">
-            <iframe
-              src={lensEmbedUrl}
-              title="Player"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-              className="h-full w-full border-0"
-            />
+        {hasMedia && (
+          <div
+            ref={mediaWrapRef}
+            className={`relative bg-black${isLensFullscreen ? " flex h-full w-full items-center justify-center" : ""}`}
+          >
+            {node.videoUrl ? (
+              <video
+                ref={lensVideoRef}
+                src={node.videoUrl}
+                poster={node.imageUrl ?? undefined}
+                controls
+                autoPlay
+                muted
+                playsInline
+                className={`w-full bg-black object-contain ${isLensFullscreen ? "h-full max-h-full" : "max-h-[46vh]"}`}
+              />
+            ) : lensEmbedUrl ? (
+              <div className={`w-full bg-black ${isLensFullscreen ? "flex h-full items-center justify-center" : "aspect-video"}`}>
+                <iframe
+                  src={lensEmbedUrl}
+                  title="Player"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className={isLensFullscreen ? "aspect-video max-h-full w-full border-0" : "h-full w-full border-0"}
+                />
+              </div>
+            ) : node.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={node.imageUrl}
+                alt=""
+                className={`w-full ${isLensFullscreen ? "h-full max-h-full object-contain" : "max-h-[46vh] object-cover"}`}
+              />
+            ) : null}
+            {/* In-app fullscreen (video/embed): fills the screen with the player
+                still inside mesh.me. The source only opens via the provenance
+                link below — fullscreen never leaves for the native site. */}
+            {(node.videoUrl || lensEmbedUrl) && (
+              <button
+                type="button"
+                aria-label={isLensFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                onClick={toggleLensFullscreen}
+                className="absolute right-3 top-3 z-10 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+              >
+                {isLensFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            )}
           </div>
-        ) : node.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={node.imageUrl}
-            alt=""
-            className="max-h-[46vh] w-full object-cover"
-          />
-        ) : null}
+        )}
 
         <div className="flex flex-col gap-3 p-5">
           {/* Source */}
