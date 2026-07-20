@@ -524,8 +524,8 @@ select:focus-visible {
 }
 @media (prefers-reduced-motion: reduce) { .mesh-presence-ping::after { animation: none; opacity: 0; } }
 
-/* ─── Aurora ring — a slow conic shimmer for "new"/live avatars & notes ─── */
-@keyframes meshAuroraRingSpin { to { transform: rotate(360deg); } }
+/* ─── Aurora ring — a static conic accent border for "new"/live avatars &
+   notes. Held still (no idle spin) to stay on the calm north-star. ─── */
 .mesh-aurora-ring { position: relative; isolation: isolate; }
 .mesh-aurora-ring::before {
   content: "";
@@ -533,15 +533,13 @@ select:focus-visible {
   inset: -2.5px;
   border-radius: inherit;
   padding: 2.5px;
-  background: conic-gradient(from 0deg, var(--accent), var(--mesh-cyan), #ec4899, var(--accent));
+  background: conic-gradient(from 210deg, var(--accent), var(--mesh-cyan), #ec4899, var(--accent));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
-  animation: meshAuroraRingSpin 4s linear infinite;
   z-index: -1;
 }
-@media (prefers-reduced-motion: reduce) { .mesh-aurora-ring::before { animation: none; } }
 
 /* ─── Gentle float + breathing glow — for mascots, empty-state icons, chips ─── */
 @keyframes meshFloatBob {

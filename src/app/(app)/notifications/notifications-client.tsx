@@ -182,15 +182,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           inset: -1px;
           border-radius: inherit;
           pointer-events: none;
-          box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
-          animation: meshPriorityBreath 3.4s ease-in-out infinite;
-        }
-        @keyframes meshPriorityBreath {
-          0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
-          50% { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 66%, transparent), 0 0 16px 1px color-mix(in srgb, var(--accent) 26%, transparent); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .mesh-priority-ring::after { animation: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
         }
       `}</style>
       <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-6">

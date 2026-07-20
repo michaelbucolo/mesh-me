@@ -13,10 +13,7 @@ export function ActiveNow({ userId, fallback }: { userId: string; fallback?: str
   }
   return (
     <p className="flex items-center gap-1.5 truncate text-xs font-medium text-emerald-400 md:text-sm">
-      <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-      </span>
+      <span className="mesh-presence-ping inline-flex h-2 w-2 rounded-full bg-emerald-400 text-emerald-400" />
       Active now
     </p>
   );

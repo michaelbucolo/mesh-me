@@ -340,7 +340,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           >
             What&apos;s happening?
           </button>
-          <Button onClick={openComposer} size="sm" variant="gradient">
+          <Button onClick={openComposer} size="sm">
             Post
           </Button>
         </div>
@@ -589,7 +589,6 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                 onClick={handleSubmit}
                 disabled={(!content.trim() && !hasAttachment) || content.length > 500 || isPending || submitting}
                 size="sm"
-                variant="gradient"
               >
                 {isPending || submitting ? "Posting..." : selectedPlatforms.size > 0 ? `Post to ${selectedPlatforms.size + 1}` : "Post"}
               </Button>
