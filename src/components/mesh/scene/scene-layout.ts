@@ -35,13 +35,6 @@ const CARD_SPACING = 300;
 // Breathing room between zones so wedges never visually touch.
 const ZONE_MARGIN = 0.12;
 
-// Faint rings the renderer draws so the closeness geometry is
-// self-explaining: radii in world units, matched to the person band above.
-export const GUIDE_RINGS: { radius: number }[] = [
-  { radius: PERSON_NEAR + PERSON_SPREAD * 0.22 },
-  { radius: PERSON_NEAR + PERSON_SPREAD * 0.92 },
-];
-
 function normalizeAngle(angle: number): number {
   const full = Math.PI * 2;
   return ((angle % full) + full) % full;

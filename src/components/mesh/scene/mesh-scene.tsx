@@ -801,6 +801,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   // Your Meshi throws a heart at the post you just liked — visible to you AND
   // to everyone else in the room, where it lands and ticks the count up.
   const spawnHeart = useCallback((fromX: number, fromY: number, targetId: string) => {
+    // Respect reduced-motion, same as spawnBurst — no flying flourish (the like
+    // itself still registers through the normal action path).
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     heartsRef.current.push({
       id: ++heartSeqRef.current,
       fromX,
@@ -1014,7 +1017,12 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    const rect = containerRef.current!.getBoundingClientRect();
+    // A pointer captured on the canvas can still fire a move after the scene
+    // unmounts (route change mid-drag); bail instead of throwing on the
+    // non-null assertion.
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
     if (rect.width > 0 && rect.height > 0) {
@@ -1072,7 +1080,7 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       if (d.pinchDist > 0) {
         const cam = cameraRef.current;
         const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cam.zoom * (dist / d.pinchDist)));
-        const rect = containerRef.current!.getBoundingClientRect();
+        const rect = container.getBoundingClientRect();
         const midX = (pts[0].x + pts[1].x) / 2 - rect.left - rect.width / 2;
         const midY = (pts[0].y + pts[1].y) / 2 - rect.top - rect.height / 2;
         const k = next / cam.zoom;
@@ -1113,7 +1121,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
       }
 
       if (!d.moved) {
-        const rect = containerRef.current!.getBoundingClientRect();
+        const container = containerRef.current;
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
         // Double-tap / double-click on empty space zooms in on that spot.
         const now = performance.now();
         const prevTap = lastTapRef.current;
@@ -1165,7 +1175,9 @@ export function MeshScene({ viewUserId }: MeshSceneProps) {
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
-    const rect = containerRef.current!.getBoundingClientRect();
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
     const mx = e.clientX - rect.left - rect.width / 2;
     const my = e.clientY - rect.top - rect.height / 2;
     const factor = Math.exp(-e.deltaY * 0.0014);
