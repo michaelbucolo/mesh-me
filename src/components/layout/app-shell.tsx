@@ -10,6 +10,7 @@ import {
   Bell,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Moon,
   Search,
   Settings,
@@ -95,6 +96,10 @@ function getRouteInfo(pathname: string, username: string): RouteInfo {
   const firstSegment = `/${pathname.split("/").filter(Boolean)[0] ?? ""}`;
   return routeInfoMap[pathname] ?? routeInfoMap[firstSegment] ?? { title: "Mesh.me", description: "" };
 }
+
+type NavDir = "forward" | "back" | "dive" | "rise" | undefined;
+const isOnMesh = (p: string) => p === "/mesh" || p.startsWith("/mesh/");
+const isOnFlow = (p: string) => p === "/flow" || p.startsWith("/flow/");
 
 // Shared morphing sidebar indicator + a spring pop when an icon lands active.
 const SIDEBAR_INDICATOR_SPRING = { type: "spring" as const, stiffness: 380, damping: 30 };
@@ -321,24 +326,32 @@ export function AppShell({ children, user }: AppShellProps) {
   // Mesh Motion CSS reads. Unknown/initial → no direction (neutral rise).
   // Derived during render via React's "adjust state when a prop changes"
   // pattern, so the fresh (keyed) slot carries the direction on its first paint.
-  const [navTracker, setNavTracker] = useState<{ path: string; dir: "forward" | "back" | undefined; history: string[] }>(
+  const [navTracker, setNavTracker] = useState<{ path: string; dir: NavDir; history: string[] }>(
     () => ({ path: pathname, dir: undefined, history: [pathname] })
   );
   if (navTracker.path !== pathname) {
     const history = navTracker.history;
     const goingBack = history.length >= 2 && history[history.length - 2] === pathname;
     const prev = history[history.length - 1];
-    const prevDepth = prev ? prev.split("/").filter(Boolean).length : 0;
-    const nextDepth = pathname.split("/").filter(Boolean).length;
-    const dir: "forward" | "back" | undefined = goingBack || nextDepth < prevDepth ? "back" : "forward";
+    let dir: NavDir;
+    // The Mesh and the Flow are one vertical space: you dive DOWN into the Flow
+    // and rise back UP to the Mesh, so that pair transitions vertically instead
+    // of the usual horizontal forward/back slide.
+    if (prev && isOnMesh(prev) && isOnFlow(pathname)) dir = "dive";
+    else if (prev && isOnFlow(prev) && isOnMesh(pathname)) dir = "rise";
+    else {
+      const prevDepth = prev ? prev.split("/").filter(Boolean).length : 0;
+      const nextDepth = pathname.split("/").filter(Boolean).length;
+      dir = goingBack || nextDepth < prevDepth ? "back" : "forward";
+    }
     const nextHistory = goingBack ? history.slice(0, -1) : [...history, pathname].slice(-24);
     setNavTracker({ path: pathname, dir, history: nextHistory });
   }
   const navDir = navTracker.path === pathname ? navTracker.dir : undefined;
   const isFeedSurface = pathname === "/feed" || pathname.startsWith("/feed/");
-  const isMeshSurface = pathname === "/mesh" || pathname.startsWith("/mesh/");
+  const isMeshSurface = isOnMesh(pathname);
   // The Flow is a full-bleed reel stage: no top bar, no ambient background.
-  const isFlowSurface = pathname === "/flow" || pathname.startsWith("/flow/");
+  const isFlowSurface = isOnFlow(pathname);
   const userInitials = useMemo(() => {
     const fromName = user.displayName
       .split(/\s+/)
@@ -549,6 +562,22 @@ export function AppShell({ children, user }: AppShellProps) {
           </div>
         </div>
       </main>
+
+      {/* The Mesh and the Flow are one vertical space. A quiet handle on each
+          dives down into the Flow / rises back up to the Mesh; the route slot
+          animates vertically to match (see data-nav-dir dive/rise). */}
+      {isMeshSurface && (
+        <Link href="/flow" className="mesh-continuum-handle mesh-continuum-handle-down" aria-label="Dive into the Flow">
+          <span>Flow</span>
+          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+        </Link>
+      )}
+      {isFlowSurface && (
+        <Link href="/mesh" className="mesh-continuum-handle mesh-continuum-handle-up" aria-label="Back to the Mesh">
+          <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Mesh</span>
+        </Link>
+      )}
 
       <ReactiveSurfaces />
       <MobileNav username={user.username} unreadMessages={unreadCounts.unreadMessages} unreadNotifications={unreadCounts.unreadNotifications} />

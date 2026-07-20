@@ -941,6 +941,50 @@ select:focus-visible {
 }
 .mesh-route-slot[data-nav-dir="forward"].animate-page-enter { animation: pageEnterForward 0.36s var(--mesh-ease-out) both; }
 .mesh-route-slot[data-nav-dir="back"].animate-page-enter { animation: pageEnterBack 0.36s var(--mesh-ease-out) both; }
+/* Mesh ↔ Flow are one vertical space: dive DOWN into the Flow (it rises up into
+   view), rise back UP to the Mesh (it settles down from above). */
+@keyframes pageEnterDive {
+  0% { opacity: 0; transform: translateY(7%) scale(0.992); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pageEnterRise {
+  0% { opacity: 0; transform: translateY(-7%) scale(0.992); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mesh-route-slot[data-nav-dir="dive"].animate-page-enter { animation: pageEnterDive 0.42s var(--mesh-ease-out) both; }
+.mesh-route-slot[data-nav-dir="rise"].animate-page-enter { animation: pageEnterRise 0.42s var(--mesh-ease-out) both; }
+
+/* The handle that bridges the two: a quiet pill that dives into the Flow from
+   the Mesh, or rises back to the Mesh from the Flow. */
+.mesh-continuum-handle {
+  position: fixed;
+  left: 50%;
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  border: 1px solid var(--mesh-border);
+  background: color-mix(in srgb, var(--mesh-panel) 82%, transparent);
+  padding: 0.34rem 0.85rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--mesh-text-secondary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform var(--mesh-transition-fast), color var(--mesh-transition-fast), background var(--mesh-transition-fast);
+}
+.mesh-continuum-handle:hover { color: var(--mesh-text); background: color-mix(in srgb, var(--mesh-panel) 94%, transparent); }
+.mesh-continuum-handle-down { bottom: calc(5.4rem + env(safe-area-inset-bottom)); }
+.mesh-continuum-handle-down:hover { transform: translateX(-50%) translateY(2px); }
+.mesh-continuum-handle-up { top: calc(0.7rem + env(safe-area-inset-top)); }
+.mesh-continuum-handle-up:hover { transform: translateX(-50%) translateY(-2px); }
+@media (min-width: 768px) {
+  .mesh-continuum-handle-down { bottom: 1.35rem; }
+}
 /* A one-pass aurora sheen threads across freshly committed content. */
 .mesh-route-slot.animate-page-enter::after {
   content: "";
