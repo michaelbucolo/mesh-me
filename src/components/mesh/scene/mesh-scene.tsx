@@ -3269,6 +3269,22 @@ function ContentLens({
     else void el.requestFullscreen?.().catch(() => {});
   };
 
+  // A native post you OPEN on the mesh counts as "seen" — record it in the same
+  // Flow impression store so the Flow's ranker never replays something you
+  // already encountered on the mesh. Native ids match the Flow's seen-set key
+  // exactly (external/platform ids are left alone). Best-effort; the endpoint
+  // writes nothing for guests and self-dedupes, so re-opening is harmless.
+  useEffect(() => {
+    if (!postId) return;
+    void fetch("/api/flow/impression", {
+      method: "POST",
+      body: JSON.stringify({ ids: [postId] }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      keepalive: true,
+    }).catch(() => {});
+  }, [postId]);
+
   // Keyboard: arrows browse, Escape closes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
