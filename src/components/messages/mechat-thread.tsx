@@ -644,7 +644,7 @@ export function MeChatThread({
                             setActionsFor(null);
                             draftRef.current?.focus();
                           }}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-white/10 hover:text-[var(--text-primary)]"
+                          className="ds-focus-ring flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                           aria-label="Reply"
                           title="Reply"
                         >
@@ -657,7 +657,7 @@ export function MeChatThread({
                               beginEdit(message);
                               setActionsFor(null);
                             }}
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-white/10 hover:text-[var(--text-primary)]"
+                            className="ds-focus-ring flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                             aria-label="Edit"
                             title="Edit"
                           >
@@ -671,7 +671,7 @@ export function MeChatThread({
                               unsendMessage(message.id);
                               setActionsFor(null);
                             }}
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-white/10 hover:text-red-300"
+                            className="ds-focus-ring flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--mesh-danger)]"
                             aria-label="Unsend"
                             title="Unsend"
                           >
@@ -741,7 +741,7 @@ export function MeChatThread({
                             value={editDraft}
                             onChange={(event) => setEditDraft(event.target.value)}
                             onKeyDown={(event) => {
-                              if (event.key === "Enter" && !event.shiftKey) {
+                              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                                 event.preventDefault();
                                 saveEdit(message.id);
                               }
@@ -807,7 +807,7 @@ export function MeChatThread({
                       <div className={`flex flex-wrap items-center gap-1.5 px-2 text-[10px] text-[var(--text-muted)] ${isMine ? "justify-end" : "justify-start"}`}>
                         <span>{timeLabel(message.createdAt)}</span>
                         {delivery && (
-                          <span className={delivery.status === "delivered" ? "text-[var(--mesh-green,#34d399)]" : "text-red-300"}>
+                          <span className={delivery.status === "delivered" ? "text-[var(--mesh-green)]" : "text-[var(--mesh-danger)]"}>
                             · {delivery.status === "delivered"
                               ? `Delivered to ${platformDisplayName(delivery.platform)}`
                               : `Saved here — not delivered to ${platformDisplayName(delivery.platform)}`}
@@ -870,6 +870,8 @@ export function MeChatThread({
               )}
             </div>
             <div
+              role="status"
+              aria-live="polite"
               className="rounded-[1.3rem] rounded-bl-[0.5rem] border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 px-4 py-3 shadow-sm"
               aria-label={`${typingUsers.map((user) => user.displayName).join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing`}
             >
@@ -898,7 +900,7 @@ export function MeChatThread({
           </p>
         )}
         {error && (
-          <p className="mb-2 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+          <p role="alert" className="mb-2 rounded-lg border border-[var(--mesh-danger)]/30 bg-[var(--mesh-danger)]/10 px-3 py-2 text-xs text-[var(--mesh-danger)]">
             {error}
           </p>
         )}
@@ -933,7 +935,8 @@ export function MeChatThread({
                 key={attachment.id}
                 type="button"
                 onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
-                className="inline-flex items-center gap-1 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1.5 text-xs font-bold text-[var(--text-secondary)]"
+                aria-label={`Remove ${attachment.name || attachmentLabel(attachment.type)}`}
+                className="ds-focus-ring inline-flex items-center gap-1 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1.5 text-xs font-bold text-[var(--text-secondary)]"
               >
                 <Paperclip size={12} aria-hidden="true" />
                 {attachment.name || attachmentLabel(attachment.type)}
@@ -960,12 +963,14 @@ export function MeChatThread({
             <input
               value={attachmentUrl}
               onChange={(event) => setAttachmentUrl(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addAttachment(); } }}
               className="simple-input h-10 px-3 text-sm"
               placeholder="https://..."
             />
             <input
               value={attachmentName}
               onChange={(event) => setAttachmentName(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addAttachment(); } }}
               className="simple-input h-10 px-3 text-sm"
               placeholder="Name"
             />
@@ -1002,9 +1007,17 @@ export function MeChatThread({
                 el.style.height = `${Math.min(el.scrollHeight, 132)}px`;
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
+                // `isComposing` guards IME/CJK input: the Enter that commits a
+                // Japanese/Chinese/Korean candidate must not also send a
+                // half-composed message.
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                   event.preventDefault();
                   sendCurrentMessage();
+                } else if (event.key === "Escape") {
+                  // Escape backs out of whatever context is open, in order.
+                  if (replyTo) setReplyTo(null);
+                  else if (pendingSource) setPendingSource(undefined);
+                  else if (showMediaTools) setShowMediaTools(false);
                 }
               }}
               rows={1}

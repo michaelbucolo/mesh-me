@@ -313,7 +313,7 @@ export function MeChatConversationList({
         <button
           type="button"
           onClick={openCompose}
-          className="mesh-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[0_4px_18px_rgba(47,124,255,0.35)] transition hover:brightness-110 active:scale-95"
+          className="mesh-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[0_4px_18px_var(--accent-glow)] transition hover:brightness-110 active:scale-95"
           aria-label="Compose new message"
           title="Compose new message"
         >
@@ -333,7 +333,7 @@ export function MeChatConversationList({
                 onClick={() => setActiveFilter(filter.key)}
                 className={`mesh-pressable inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
                   selected
-                    ? "bg-[var(--accent)] text-white shadow-[0_2px_12px_rgba(47,124,255,0.3)]"
+                    ? "bg-[var(--accent)] text-white shadow-[0_2px_12px_var(--accent-glow)]"
                     : "bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text)]"
                 }`}
               >
@@ -401,7 +401,7 @@ export function MeChatConversationList({
                     {note.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
                     {note.text || note.songTitle}
                   </span>
-                  <span className="mesh-aurora-ring block rounded-full bg-gradient-to-tr from-[var(--accent)] to-[#58bfff] p-[2px] shadow-[0_0_24px_rgba(47,124,255,0.18)]">
+                  <span className="mesh-aurora-ring block rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-hover)] p-[2px] shadow-[0_0_24px_var(--accent-glow)]">
                     <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16 border-2 border-[var(--mesh-bg)]" />
                   </span>
                 </div>
@@ -466,7 +466,7 @@ export function MeChatConversationList({
                       )}
                       {!isGroup && thread.otherUser && onlineContacts.has(thread.otherUser.id) && (
                         <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5" aria-label="Active now">
-                          <span className="mesh-presence-ping block h-full w-full rounded-full border-2 border-[var(--mesh-bg)] bg-emerald-400 text-emerald-400" />
+                          <span className="mesh-presence-ping block h-full w-full rounded-full border-2 border-[var(--mesh-bg)] bg-[var(--mesh-green)] text-[var(--mesh-green)]" />
                         </span>
                       )}
                       {unread && thread.unread > 1 && (
@@ -658,7 +658,7 @@ export function MeChatConversationList({
                 type="button"
                 onClick={clearNote}
                 disabled={isPending}
-                className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-red-400 disabled:opacity-50"
+                className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-[var(--mesh-danger)] disabled:opacity-50"
               >
                 Clear note
               </button>
