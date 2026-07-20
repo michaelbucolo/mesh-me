@@ -43,12 +43,18 @@ function ringPositions(count: number): { x: number; y: number; angle: number }[]
 export function OneMeshHub({
   identity,
   accounts,
+  justConnectedPlatform = null,
 }: {
   identity: HubIdentity;
   accounts: HubAccount[];
+  /** Platform id just connected this visit — its node threads in with a flourish. */
+  justConnectedPlatform?: string | null;
 }) {
   const reduce = useReducedMotion();
   const positions = ringPositions(accounts.length);
+  const justIndex = justConnectedPlatform
+    ? accounts.findIndex((a) => a.platform.toLowerCase() === justConnectedPlatform.toLowerCase())
+    : -1;
   const initials =
     (identity.displayName
       .split(/\s+/)
@@ -86,6 +92,7 @@ export function OneMeshHub({
         <circle cx="50" cy="50" r="30" fill="url(#one-mesh-core)" />
         {positions.map((pos, i) => {
           const acct = accounts[i];
+          const isNew = i === justIndex;
           return (
             <line
               key={`string-${acct.id}`}
@@ -94,8 +101,8 @@ export function OneMeshHub({
               x2="50"
               y2="50"
               stroke="var(--accent)"
-              strokeOpacity={acct.synced ? 0.5 : 0.22}
-              strokeWidth={acct.synced ? 0.7 : 0.5}
+              strokeOpacity={isNew ? 0.9 : acct.synced ? 0.5 : 0.22}
+              strokeWidth={isNew ? 1 : acct.synced ? 0.7 : 0.5}
               strokeLinecap="round"
             />
           );
@@ -131,26 +138,59 @@ export function OneMeshHub({
           })}
       </svg>
 
+      {/* A just-connected account threads in with a one-shot pulse ring so the
+          new platform is unmistakable the moment you land back from OAuth. */}
+      {justIndex >= 0 && positions[justIndex] && (
+        reduce ? (
+          <span
+            className="pointer-events-none absolute h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--accent)]"
+            style={{ left: `${positions[justIndex].x}%`, top: `${positions[justIndex].y}%` }}
+            aria-hidden="true"
+          />
+        ) : (
+          <motion.span
+            key={`arrival-${justConnectedPlatform}`}
+            className="pointer-events-none absolute h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              left: `${positions[justIndex].x}%`,
+              top: `${positions[justIndex].y}%`,
+              border: "2px solid var(--accent)",
+            }}
+            initial={{ scale: 0.5, opacity: 0.7 }}
+            animate={{ scale: [0.5, 2.1], opacity: [0.7, 0] }}
+            transition={{ duration: 1.2, ease: "easeOut", repeat: 2, repeatDelay: 0.15 }}
+            aria-hidden="true"
+          />
+        )
+      )}
+
       {/* Satellite account nodes. */}
       {positions.map((pos, i) => {
         const acct = accounts[i];
+        const isNew = i === justIndex;
         return (
           <motion.div
             key={`node-${acct.id}`}
             className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
-            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-            initial={reduce ? false : { opacity: 0, left: "50%", top: "50%", scale: 0.4 }}
+            style={{ left: `${pos.x}%`, top: `${pos.y}%`, zIndex: isNew ? 2 : 1 }}
+            initial={reduce ? false : { opacity: 0, left: "50%", top: "50%", scale: isNew ? 0.2 : 0.4 }}
             animate={{ opacity: 1, left: `${pos.x}%`, top: `${pos.y}%`, scale: 1 }}
-            transition={{ duration: 0.6, delay: reduce ? 0 : 0.15 + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+            transition={
+              isNew
+                ? { duration: 0.7, delay: reduce ? 0 : 0.1, ease: [0.34, 1.56, 0.64, 1] }
+                : { duration: 0.6, delay: reduce ? 0 : 0.15 + i * 0.07, ease: [0.16, 1, 0.3, 1] }
+            }
           >
             <span
-              className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold shadow-sm ring-2 ring-[var(--ds-surface)]"
+              className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold shadow-sm ${
+                isNew ? "ring-2 ring-[var(--accent)]" : "ring-2 ring-[var(--ds-surface)]"
+              }`}
               style={{ backgroundColor: acct.bg, color: acct.fg ?? "#ffffff" }}
               title={acct.name}
             >
               {acct.glyph}
             </span>
-            <span className="max-w-[5rem] truncate text-[10px] font-semibold text-[var(--text-muted)]">
+            <span className={`max-w-[5rem] truncate text-[10px] font-semibold ${isNew ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
               {acct.name}
             </span>
           </motion.div>

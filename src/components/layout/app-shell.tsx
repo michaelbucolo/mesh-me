@@ -68,8 +68,7 @@ const routeInfoMap: Record<string, RouteInfo> = {
   "/notifications": { title: "Notifications", description: "Stay updated on what matters." },
   "/search": { title: "Search", description: "Find people, posts, and communities." },
   "/communities": { title: "Communities", description: "Discover, join, and build with communities around the world." },
-  "/connected-accounts": { title: "Connections", description: "Manage your connected platforms and accounts." },
-  "/one-account": { title: "One Account", description: "Every platform and account, merged into one you." },
+  "/connected-accounts": { title: "One Account", description: "Every platform and account, threading back to one you." },
   "/trust": { title: "Verify", description: "Identity verification and trust management." },
   "/settings": { title: "Settings", description: "Configure your Mesh.me experience." },
   "/analytics": { title: "Analytics", description: "Understand your digital footprint." },
@@ -282,7 +281,7 @@ function ShellTopBar({
               onClick={() => accountMenuRef.current?.removeAttribute("open")}
             >
               <Link href={`/profile/${user.username}`} className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 0 }}>Profile</Link>
-              <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 1 }}>Connected accounts</Link>
+              <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 1 }}>One Account</Link>
               <Link href="/settings" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 2 }}>Settings</Link>
               <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden" style={{ ["--acc-i" as string]: 3 }}>Search</Link>
               <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 4 }}>Mesh Pro</Link>

@@ -15,7 +15,6 @@ import {
   PlugZap,
   RefreshCw,
   Search,
-  Sparkles,
   ShieldCheck,
   Trash2,
   X,
@@ -435,17 +434,22 @@ export function ConnectedAccountsClient({
   initialDashboard,
   initialPersonas = [],
   identity,
-  fromOnboarding = false,
-  preselectPlatforms = [],
+  justConnectedPlatform = null,
+  connectError = null,
 }: {
   initialDashboard: ConnectedAccountsDashboard;
   initialPersonas?: PersonaView[];
   identity: { username: string; displayName: string; avatarUrl: string | null };
-  fromOnboarding?: boolean;
-  preselectPlatforms?: string[];
+  /** Platform id just connected via OAuth this visit (from ?connected=). */
+  justConnectedPlatform?: string | null;
+  /** OAuth failure message this visit (from ?error=). */
+  connectError?: string | null;
 }) {
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [personas, setPersonas] = useState(initialPersonas);
+  // The just-connected account stays lit in the One Mesh for a beat after you
+  // return from OAuth, then settles into the orbit with the rest.
+  const [justConnected, setJustConnected] = useState<string | null>(justConnectedPlatform);
 
   // Each connected account, resolved to its brand monogram, for the One Mesh hub.
   const hubAccounts = useMemo<HubAccount[]>(
@@ -500,6 +504,37 @@ export function ConnectedAccountsClient({
     })();
   }, [hasRefreshableAccounts]);
 
+  // Returning from an OAuth connect: the callback redirects here with
+  // ?connected=<platform> on success or ?error=…&platform on failure. Surface
+  // it (a toast + the just-connected node threading into the One Mesh), then
+  // scrub the query so a refresh doesn't replay it.
+  useEffect(() => {
+    if (justConnectedPlatform) {
+      const name =
+        initialDashboard.supportedPlatforms.find((platform) => platform.id === justConnectedPlatform)?.name ??
+        justConnectedPlatform.charAt(0).toUpperCase() + justConnectedPlatform.slice(1);
+      setActionState({ type: "success", message: `${name} connected to your one account.` });
+    } else if (connectError) {
+      setActionState({ type: "error", message: connectError });
+    }
+    if (justConnectedPlatform || connectError) {
+      try {
+        window.history.replaceState(null, "", window.location.pathname);
+      } catch {
+        // best-effort URL scrub
+      }
+    }
+    // Runs once on the return visit only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Let the new account settle into the ring after its arrival flourish.
+  useEffect(() => {
+    if (!justConnected) return;
+    const timer = setTimeout(() => setJustConnected(null), 6000);
+    return () => clearTimeout(timer);
+  }, [justConnected]);
+
   const filteredPlatforms = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return dashboard.supportedPlatforms.filter((platform) => {
@@ -517,14 +552,6 @@ export function ConnectedAccountsClient({
     for (const platform of dashboard.supportedPlatforms) values.add(platform.category);
     return Array.from(values).sort();
   }, [dashboard.supportedPlatforms]);
-
-  const quickMergePlatforms = useMemo(() => {
-    if (preselectPlatforms.length === 0) return [];
-    const byId = new Map(dashboard.supportedPlatforms.map((platform) => [platform.id, platform]));
-    return preselectPlatforms
-      .map((id) => byId.get(id))
-      .filter((platform): platform is SupportedPlatformView => Boolean(platform) && platform!.activeCount === 0);
-  }, [preselectPlatforms, dashboard.supportedPlatforms]);
 
   async function refreshDashboard() {
     setBusyKey("refresh");
@@ -636,9 +663,9 @@ export function ConnectedAccountsClient({
     <main data-testid="connected-accounts-center" className="ds-page-shell animate-page-enter grid gap-6">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div className="max-w-2xl">
-          <h1 className="text-3xl font-bold tracking-[0] sm:text-4xl">Connected accounts</h1>
+          <h1 className="text-3xl font-bold tracking-[0] sm:text-4xl">One Account</h1>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">
-            Bring your platforms into one mesh. One tap to connect — you approve every permission, and Mesh.me never sees your passwords.
+            Every platform, threading back to one mesh.me identity. One tap to connect — you approve every permission, and Mesh.me never sees your passwords.
           </p>
           <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
             <ShieldCheck className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
@@ -656,7 +683,7 @@ export function ConnectedAccountsClient({
       {/* The One Mesh — your mesh.me identity at the center, every connected
           account threading home to it. */}
       <section className="grid gap-4 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-5 sm:p-6">
-        <OneMeshHub identity={identity} accounts={hubAccounts} />
+        <OneMeshHub identity={identity} accounts={hubAccounts} justConnectedPlatform={justConnected} />
         <p className="mx-auto max-w-md text-center text-sm leading-6 text-[var(--text-secondary)]">
           {hubAccounts.length > 0 ? (
             <>
@@ -701,32 +728,6 @@ export function ConnectedAccountsClient({
                   Fold in
                 </Button>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {fromOnboarding && quickMergePlatforms.length > 0 && (
-        <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/40 bg-[var(--accent-subtle)] p-5">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[var(--accent)]">
-              <Sparkles className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="text-lg font-bold">Finish setting up the apps you picked</h2>
-              <p className="text-sm leading-6 text-[var(--text-secondary)]">
-                Connect each one below to pull your presence into a single mesh.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {quickMergePlatforms.map((platform) => (
-              <span key={`quick-${platform.id}`} className="inline-flex items-center gap-2 rounded-full border border-[var(--ds-border)] bg-[var(--ds-surface)] py-1 pl-1 pr-3 text-sm font-semibold text-[var(--text-primary)]">
-                <span className="[&>div]:h-7 [&>div]:w-7 [&>div]:text-[10px]">
-                  <PlatformAvatar platform={platform.id} name={platform.name} />
-                </span>
-                {platform.name}
-              </span>
             ))}
           </div>
         </section>

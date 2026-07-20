@@ -652,7 +652,7 @@ export function SettingsControlCenter({
           <div className="flex items-center gap-2">
             <Link href="/connected-accounts" className="settings-quick-link">
               <PlugZap size={15} aria-hidden="true" />
-              Connections
+              One Account
             </Link>
             <form action={signOut}>
               <button type="submit" className="settings-quick-link settings-quick-link-primary w-full">

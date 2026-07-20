@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
-// The One Account experience has merged into Connected accounts — one page where
-// every connected platform threads back to your single mesh.me identity. Kept as
-// a redirect so existing links (nav, profile, deep links) keep working.
+// The One Account page lives at /connected-accounts (kept as the URL slug so
+// existing deep links keep working). This alias redirects there so /one-account
+// still resolves.
 export default function OneAccountPage() {
   redirect("/connected-accounts");
 }
