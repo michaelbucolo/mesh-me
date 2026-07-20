@@ -12,7 +12,10 @@ type MeshPrefetchEntry = { promise: Promise<Response>; startedAt: number };
 const PREFETCH_MAX_AGE_MS = 15000;
 const meshPrefetches = new Map<string, MeshPrefetchEntry>();
 
-export function meshApiUrl(viewUserId?: string) {
+export function meshApiUrl(viewUserId?: string, viewMode: "mesh" | "global" = "mesh") {
+  // Global is the guest-viewable world supply (already privacy-safe); it never
+  // takes a ?user= and is mutually exclusive with viewing a specific person.
+  if (viewMode === "global") return "/api/mesh/global";
   return viewUserId ? `/api/mesh?user=${encodeURIComponent(viewUserId)}` : "/api/mesh";
 }
 
