@@ -3,6 +3,7 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { getGlobalMeshSelfPreviewCore, type GlobalMeshSelfPreview } from "./global-mesh";
 import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
 import {
   areMutualFollowers,
@@ -1150,6 +1151,17 @@ export const getTrendingCommunities = unstable_cache(
 
 
 // ─── Additional Queries ─────────────────────────────────────
+
+/**
+ * Preview EXACTLY what the world would see of YOU before opting in. Scoped to
+ * the session user (no target id), so it can only ever reveal your own already
+ * public content. `sharedBranches` is a selection filter only.
+ */
+export async function getGlobalMeshSelfPreview(sharedBranches?: string[]): Promise<GlobalMeshSelfPreview | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return getGlobalMeshSelfPreviewCore(user, sharedBranches);
+}
 
 export async function getUserCommunities(username: string) {
   const currentUser = await getCurrentUser();

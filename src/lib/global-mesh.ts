@@ -15,7 +15,7 @@
 
 import { prisma } from "./prisma";
 import { nsfwHiddenWhere } from "./content-safety";
-import type { FeedCurrentUser } from "./feed-data";
+import { ANONYMOUS_VIEWER, type FeedCurrentUser } from "./feed-data";
 import type { MeshApiResponse } from "@/components/mesh/mesh-data";
 
 const MAX_MEMBERS = 120;
@@ -24,7 +24,7 @@ const MAX_POSTS_PER_MEMBER = 8;
 // Branch-level opt-in choices a member can make. Global can only ever show
 // LESS than all-public, so this list is the allowlist for reading a member's
 // stored choices. (The join action that WRITES it lands in a follow-up PR.)
-const GLOBAL_MESH_BRANCHES = ["posts", "platforms", "people", "interests", "communities"] as const;
+export const GLOBAL_MESH_BRANCHES = ["posts", "platforms", "people", "interests", "communities"] as const;
 type GlobalMeshBranch = (typeof GLOBAL_MESH_BRANCHES)[number];
 
 // Read a member's stored `sharedBranches` JSON into a validated Set.
@@ -276,4 +276,84 @@ export async function getGlobalMeshSupply(viewer: Viewer): Promise<MeshApiRespon
       activityCount: 0,
     },
   } as MeshApiResponse;
+}
+
+export type GlobalMeshSelfPreview = {
+  /** Whether you'd actually appear in the Global Mesh right now. */
+  qualifies: boolean;
+  /** Plain-language reasons you would NOT appear (empty when qualifies). */
+  reasons: string[];
+  posts: { id: string; content: string; media: { url: string; type: string }[] }[];
+  platforms: { id: string; platform: string; title: string; thumbnailUrl: string | null }[];
+};
+
+/**
+ * The content-review step: shows a member EXACTLY what the world would see of
+ * THEM before they opt in — their own already-public content, re-derived from
+ * live rows with the identical supply predicates, using the strict stranger
+ * NSFW baseline so it never over-promises. Scoped entirely to `viewer.id`, so
+ * it can only ever reveal the caller's own public content (the dispatch wrapper
+ * in queries.ts derives the viewer from getCurrentUser and takes no id).
+ */
+export async function getGlobalMeshSelfPreviewCore(
+  viewer: Viewer,
+  sharedBranches?: string[],
+): Promise<GlobalMeshSelfPreview> {
+  const selected = new Set(
+    (Array.isArray(sharedBranches) ? sharedBranches : (GLOBAL_MESH_BRANCHES as readonly string[]))
+      .map(String)
+      .filter((b): b is GlobalMeshBranch => (GLOBAL_MESH_BRANCHES as readonly string[]).includes(b)),
+  );
+
+  // Eligibility from LIVE rows — the exact memberWhere user-gate.
+  const me = await prisma.user.findUnique({
+    where: { id: viewer.id },
+    select: { isPublic: true, showInDiscovery: true, isSuspended: true, meshPrivacy: { select: { meshVisibility: true } } },
+  });
+  const reasons: string[] = [];
+  if (!me?.isPublic) reasons.push("Your profile is private");
+  if (!me?.showInDiscovery) reasons.push("You're hidden from discovery");
+  if (me?.isSuspended) reasons.push("Your account is suspended");
+  if (me?.meshPrivacy?.meshVisibility !== "public") reasons.push("Your mesh isn't set to public");
+  const qualifies = reasons.length === 0;
+
+  // "What the world sees" = the guest-reachable set: the exact public supply
+  // predicates scoped to YOU, with the strict stranger NSFW baseline (a
+  // signed-out guest with NSFW off) so the preview can never over-promise.
+  const guestNsfw = nsfwHiddenWhere(ANONYMOUS_VIEWER);
+
+  const [nativePosts, platformPosts] = await Promise.all([
+    selected.has("posts")
+      ? prisma.post.findMany({
+          where: { ...guestNsfw, authorId: viewer.id, visibility: "public", OR: [{ communityId: null }, { community: { isPublic: true } }] },
+          select: { id: true, content: true, media: { select: { url: true, type: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 12,
+        })
+      : Promise.resolve([]),
+    selected.has("platforms")
+      ? prisma.platformPost.findMany({
+          where: { ...guestNsfw, visibility: "public", connectedAccount: { isActive: true, userId: viewer.id, user: { isSuspended: false, showInDiscovery: true } } },
+          select: { id: true, title: true, thumbnailUrl: true, connectedAccount: { select: { platform: true } } },
+          orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+          take: 12,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    qualifies,
+    reasons,
+    posts: nativePosts.map((p) => ({
+      id: p.id,
+      content: (p.content || "").slice(0, 160),
+      media: p.media.map((m) => ({ url: m.url, type: m.type })),
+    })),
+    platforms: platformPosts.map((pp) => ({
+      id: `platform-${pp.id}`,
+      platform: pp.connectedAccount.platform,
+      title: (pp.title || `${pp.connectedAccount.platform} post`).slice(0, 120),
+      thumbnailUrl: pp.thumbnailUrl,
+    })),
+  };
 }

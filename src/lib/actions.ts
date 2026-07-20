@@ -2,6 +2,7 @@
 
 import { prisma } from "./prisma";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
+import { GLOBAL_MESH_BRANCHES } from "./global-mesh";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getTrustedClientIp } from "./client-ip";
@@ -2235,6 +2236,15 @@ export async function updatePrivacy(formData: FormData) {
     data: { isPublic, showInDiscovery, hideActivityStatus, readReceipts },
   });
 
+  // Privacy-downgrade coupling (strictly one-directional): going private or
+  // undiscoverable authoritatively removes you from the Global Mesh, so stored
+  // membership can never outlive eligibility. updateMany is an idempotent no-op
+  // for anyone who never joined; returning to public never auto-rejoins (that
+  // needs a fresh explicit opt-in).
+  if (!isPublic || !showInDiscovery) {
+    await prisma.globalMeshMember.updateMany({ where: { userId: user.id }, data: { isActive: false } });
+  }
+
   revalidatePath("/settings");
   revalidatePath("/privacy-controls");
   return { success: true };
@@ -2862,6 +2872,12 @@ export async function updateMeshPrivacy(data: {
     },
   });
 
+  // Any non-public mesh (private / friends / partial all fail the Global gate's
+  // meshVisibility === "public" clause) removes you from the Global Mesh.
+  if (data.meshVisibility !== "public") {
+    await prisma.globalMeshMember.updateMany({ where: { userId: user.id }, data: { isActive: false } });
+  }
+
   revalidatePath("/settings");
   revalidatePath("/privacy-controls");
   revalidatePath("/mesh");
@@ -2900,6 +2916,10 @@ export async function updateProfileVisibility(level: "private" | "friends" | "pu
       },
       update: { meshVisibility: level },
     }),
+    // Going non-public leaves the Global Mesh in the SAME transaction, so
+    // User.isPublic / MeshPrivacy.meshVisibility / GlobalMeshMember.isActive can
+    // never drift. One-directional: public never auto-rejoins.
+    ...(isPublic ? [] : [prisma.globalMeshMember.updateMany({ where: { userId: user.id }, data: { isActive: false } })]),
   ]);
 
   revalidatePath("/settings");
@@ -2910,8 +2930,60 @@ export async function updateProfileVisibility(level: "private" | "friends" | "pu
 }
 
 // ─── Global Mesh Actions ────────────────────────────────────
+// The opt-in WRITE flow. Security invariants (each verified adversarially):
+//  • target is ALWAYS getCurrentUser().id — no RPC takes a user/member id, so
+//    the hardcoded where:{userId:user.id} on the @unique column is the entire
+//    authorization boundary and nobody can join/leave on another's behalf;
+//  • sharedBranches is validated against the shared allowlist and can only ever
+//    SUBTRACT from all-public (never add visibility);
+//  • the read-side gate (memberWhere in global-mesh.ts) still re-derives
+//    publicness live, so even a stale isActive:true leaks nothing.
 
+export async function joinGlobalMesh(sharedBranches: string[]) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
 
+  // Subtract-only: keep ONLY recognized branch keys; never persist junk that a
+  // future supply change could misread as ADD-visibility.
+  const validated = Array.isArray(sharedBranches)
+    ? [...new Set(sharedBranches.map(String).filter((b) => (GLOBAL_MESH_BRANCHES as readonly string[]).includes(b)))]
+    : [];
+
+  // Eligibility re-check from LIVE rows so an ineligible user is told they won't
+  // appear (a member only ever renders when public + discoverable + not
+  // suspended + mesh explicitly public — the exact memberWhere user-gate).
+  const fresh = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { isPublic: true, showInDiscovery: true, isSuspended: true, meshPrivacy: { select: { meshVisibility: true } } },
+  });
+  const eligible = Boolean(
+    fresh && fresh.isPublic && fresh.showInDiscovery && !fresh.isSuspended && fresh.meshPrivacy?.meshVisibility === "public",
+  );
+
+  await prisma.globalMeshMember.upsert({
+    where: { userId: user.id },
+    // isActive MUST be set explicitly — the column defaults false.
+    create: { userId: user.id, isActive: true, sharedBranches: JSON.stringify(validated) },
+    update: { isActive: true, sharedBranches: JSON.stringify(validated) },
+  });
+
+  revalidatePath("/mesh");
+  revalidatePath("/privacy-controls");
+  revalidatePath("/settings");
+  return { success: true, eligible };
+}
+
+export async function leaveGlobalMesh() {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  // Soft-leave (keep the row) so joinedAt / sharedBranches survive a re-join.
+  // updateMany is idempotent (never P2025) and the @unique userId touches ≤1 row.
+  await prisma.globalMeshMember.updateMany({ where: { userId: user.id }, data: { isActive: false } });
+  revalidatePath("/mesh");
+  revalidatePath("/privacy-controls");
+  revalidatePath("/settings");
+  return { success: true };
+}
 
 
 // ─── Redeem Code Actions ─────────────────────────────────────
