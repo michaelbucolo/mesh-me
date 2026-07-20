@@ -205,15 +205,8 @@ export function OneMeshHub({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
-        <motion.div
-          className="relative flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--accent)] bg-[var(--ds-surface)] shadow-lg"
-          animate={reduce ? undefined : { boxShadow: [
-            "0 0 0 0 rgba(110,139,255,0.0)",
-            "0 0 22px 4px rgba(110,139,255,0.32)",
-            "0 0 30px 7px rgba(52,228,234,0.26)",
-            "0 0 0 0 rgba(52,228,234,0.0)",
-          ] }}
-          transition={reduce ? undefined : { duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+        <div
+          className="relative flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--accent)] bg-[var(--ds-surface)] shadow-[0_0_22px_2px_color-mix(in_srgb,var(--accent)_24%,transparent)]"
         >
           {identity.avatarUrl ? (
             <Avatar src={identity.avatarUrl} alt={identity.username} size="lg" />
@@ -222,7 +215,7 @@ export function OneMeshHub({
               {initials}
             </span>
           )}
-        </motion.div>
+        </div>
         <div className="mt-2 flex flex-col items-center">
           <span className="text-sm font-bold text-[var(--text-primary)]">@{identity.username}</span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">

@@ -158,16 +158,6 @@ function ExpandablePostText({
   );
 }
 
-// Aurora spark palette flung from the heart on a like — periwinkle, cyan, rose.
-const LIKE_SPARKS = [
-  { angle: -12, dist: 30, color: "#6e8bff" },
-  { angle: 34, dist: 26, color: "#34e4ea" },
-  { angle: 74, dist: 32, color: "#fb7185" },
-  { angle: -58, dist: 28, color: "#34e4ea" },
-  { angle: 128, dist: 24, color: "#6e8bff" },
-  { angle: 168, dist: 30, color: "#fb7185" },
-];
-
 export const PostCard = memo(function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager }: PostCardProps) {
   const [liked, setLiked] = useState(post.reactions && post.reactions.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
@@ -180,7 +170,6 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const [platformActionMessage, setPlatformActionMessage] = useState("");
   const { addToast } = useToast();
   const [likeAnimating, setLikeAnimating] = useState(false);
-  const [likeSparks, setLikeSparks] = useState<number[]>([]);
   const [bursts, setBursts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [deleted, setDeleted] = useState(false);
@@ -305,10 +294,6 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       setLikeAnimating(true);
       playSound("heart");
       setTimeout(() => setLikeAnimating(false), 520);
-      // Aurora spark burst around the heart on every like.
-      const sparkId = Date.now();
-      setLikeSparks((current) => [...current.slice(-2), sparkId]);
-      window.setTimeout(() => setLikeSparks((current) => current.filter((s) => s !== sparkId)), 760);
       if (viaDoubleTap) {
         const now = Date.now();
         const point = coords ?? { x: 50, y: 50 };
@@ -735,22 +720,6 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               className={cn("insta-post-action relative", liked ? "text-rose-400" : "text-[var(--text-primary)] hover:text-rose-400")}
             >
               <span className={cn("like-burst", likeAnimating && "like-burst-active")} aria-hidden="true" />
-              {likeSparks.length > 0 && (
-                <span className="pointer-events-none absolute inset-0" aria-hidden="true">
-                  {LIKE_SPARKS.map((s, i) => (
-                    <span
-                      key={i}
-                      className="mesh-burst-particle"
-                      style={{
-                        background: s.color,
-                        boxShadow: `0 0 6px ${s.color}`,
-                        ["--angle" as string]: `${s.angle}deg`,
-                        ["--dist" as string]: `${s.dist}px`,
-                      }}
-                    />
-                  ))}
-                </span>
-              )}
               <Heart className={cn("h-5 w-5 transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
             </button>
             <Link
