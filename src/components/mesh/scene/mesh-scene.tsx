@@ -198,7 +198,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     vx: number;
     vy: number;
     pinchDist: number;
-  }>({ active: false, moved: false, startX: 0, startY: 0, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0 });
+    // Screen midpoint between the two fingers, so a pinch can PAN (drag both
+    // fingers together) as well as zoom. 0 until a two-finger gesture seeds it.
+    pinchMidX: number;
+    pinchMidY: number;
+  }>({ active: false, moved: false, startX: 0, startY: 0, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0, pinchMidX: 0, pinchMidY: 0 });
   const flingRef = useRef({ vx: 0, vy: 0 });
   const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
   const panTargetRef = useRef<{ nodeId: string } | null>(null);
@@ -1174,14 +1178,17 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       }
     }
     let found: SceneNode | null = null;
-    let bestR = Infinity;
+    let bestD = Infinity;
     hitboxesRef.current.forEach((box, id) => {
       const d = Math.hypot(box.x - sx, box.y - sy);
-      if (d <= box.r + slop && box.r < bestR) {
+      // Among every target the finger is within reach of, pick the one whose
+      // CENTRE is nearest the tap — so a fingertip lands on the node it's
+      // actually over, not on a tiny far neighbour that merely overlaps it.
+      if (d <= box.r + slop && d < bestD) {
         const node = model.nodes.get(id);
         if (node) {
           found = node;
-          bestR = box.r;
+          bestD = d;
         }
       }
     });
@@ -1230,6 +1237,8 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     if (pointersRef.current.size === 2) {
       const pts = [...pointersRef.current.values()];
       d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      d.pinchMidX = (pts[0].x + pts[1].x) / 2;
+      d.pinchMidY = (pts[0].y + pts[1].y) / 2;
     }
   }, []);
 
@@ -1294,18 +1303,29 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     if (pointersRef.current.size === 2) {
       const pts = [...pointersRef.current.values()];
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const rawMidX = (pts[0].x + pts[1].x) / 2;
+      const rawMidY = (pts[0].y + pts[1].y) / 2;
       if (d.pinchDist > 0) {
         const cam = cameraRef.current;
         const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cam.zoom * (dist / d.pinchDist)));
         const rect = container.getBoundingClientRect();
-        const midX = (pts[0].x + pts[1].x) / 2 - rect.left - rect.width / 2;
-        const midY = (pts[0].y + pts[1].y) / 2 - rect.top - rect.height / 2;
+        const midX = rawMidX - rect.left - rect.width / 2;
+        const midY = rawMidY - rect.top - rect.height / 2;
         const k = next / cam.zoom;
+        // Zoom, anchored at the finger midpoint so it grows where you pinch…
         cam.panX = midX - (midX - cam.panX) * k;
         cam.panY = midY - (midY - cam.panY) * k;
         cam.zoom = next;
+        // …AND pan by however far that midpoint slid, so dragging both fingers
+        // together moves the mesh — the gesture people expect but didn't have.
+        if (d.pinchMidX !== 0 || d.pinchMidY !== 0) {
+          cam.panX += rawMidX - d.pinchMidX;
+          cam.panY += rawMidY - d.pinchMidY;
+        }
       }
       d.pinchDist = dist;
+      d.pinchMidX = rawMidX;
+      d.pinchMidY = rawMidY;
       d.moved = true;
       return;
     }
@@ -1347,8 +1367,22 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       const d = dragRef.current;
       pointersRef.current.delete(e.pointerId);
       if (pointersRef.current.size < 2) d.pinchDist = 0;
+      if (pointersRef.current.size === 1) {
+        // Lifting one finger of a pinch: re-anchor the drag on the finger that
+        // stays down, so its next move measures from where it IS — otherwise the
+        // mesh jumps by the stale gap between the two fingers on the handoff.
+        const [p] = [...pointersRef.current.values()];
+        d.lastX = p.x;
+        d.lastY = p.y;
+        d.vx = 0;
+        d.vy = 0;
+        d.pinchMidX = 0;
+        d.pinchMidY = 0;
+      }
       if (pointersRef.current.size === 0) {
         d.active = false;
+        d.pinchMidX = 0;
+        d.pinchMidY = 0;
         if (d.moved && performance.now() - d.lastT < 80) {
           flingRef.current = { vx: d.vx, vy: d.vy };
         }
@@ -1359,9 +1393,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         if (!container) return;
         const rect = container.getBoundingClientRect();
         // A fingertip is far larger and less precise than a cursor, so on touch
-        // every tap hit-test is forgiving by ~16px — a tap that lands near a
-        // node still selects it. A mouse click stays pixel-precise (slop 0).
-        const tapSlop = coarseRef.current ? 16 : 0;
+        // every tap hit-test is forgiving by ~22px — a tap that lands near a
+        // node still selects it (and the nearest-centre tiebreak in hitTest picks
+        // the right one in a cluster). A mouse click stays pixel-precise (slop 0).
+        const tapSlop = coarseRef.current ? 22 : 0;
         // Double-tap / double-click on empty space zooms in on that spot.
         const now = performance.now();
         const prevTap = lastTapRef.current;
@@ -1396,21 +1431,40 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           activateNode(node);
           return;
         }
-        // Only if a direct (slop-forgiven) tap hit nothing does touch fall back
-        // to "Meshi is the cursor" — selecting whatever your Meshi is resting on.
-        if (coarseRef.current && focusIdRef.current) {
-          const focused = modelRef.current?.nodes.get(focusIdRef.current);
-          if (focused) {
-            activateNode(focused);
-            return;
-          }
-        }
+        // Tapping empty space clears the selection. (It used to fall back to
+        // selecting whatever was nearest the screen CENTRE, which made taps feel
+        // like they grabbed the wrong node — so an intentional tap on nothing
+        // now simply deselects, as you'd expect.)
         setSelectedNode(null);
         setActiveBranch(null);
       }
     },
     [activateNode, hitTest, router],
   );
+
+  // A browser-initiated cancel (system gesture, pointer stolen) should ABORT the
+  // gesture, never select — just drop the pointer and re-anchor any survivor,
+  // so a cancelled tap can't grab a node and a cancelled pinch can't jump.
+  const onPointerCancel = useCallback((e: React.PointerEvent) => {
+    const d = dragRef.current;
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) d.pinchDist = 0;
+    if (pointersRef.current.size === 1) {
+      const [p] = [...pointersRef.current.values()];
+      d.lastX = p.x;
+      d.lastY = p.y;
+      d.vx = 0;
+      d.vy = 0;
+      d.pinchMidX = 0;
+      d.pinchMidY = 0;
+    }
+    if (pointersRef.current.size === 0) {
+      d.active = false;
+      d.moved = false;
+      d.pinchMidX = 0;
+      d.pinchMidY = 0;
+    }
+  }, []);
 
   const onWheel = useCallback((e: React.WheelEvent) => {
     const container = containerRef.current;
@@ -2466,7 +2520,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onPointerLeave={(e) => {
           // A lifted finger fires pointerleave too — only a mouse leaving the
           // canvas should hide Meshi; on touch it stays where you left it.
