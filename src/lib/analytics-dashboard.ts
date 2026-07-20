@@ -57,10 +57,15 @@ function sum(values: Array<number | null | undefined>) {
   return values.reduce<number>((total, value) => total + (Number.isFinite(Number(value)) ? Number(value) : 0), 0);
 }
 
+// Returns a FRACTION (0–1), the scale every consumer expects: the UI's pct()
+// helper caps at 1.0 = 100% and the command center multiplies by 100. Snapshot
+// rates are already stored as percentages and divided by 100 at the call site,
+// so this keeps the fallback path on the same 0–1 scale (previously it returned
+// 0–100, which made pct() clamp every real rate to a flat "100%").
 function engagementRate(engagements: number, views: number, fallbackAudience: number) {
   const denominator = views > 0 ? views : fallbackAudience;
   if (denominator <= 0) return 0;
-  return Math.min(100, (engagements / denominator) * 100);
+  return Math.min(1, engagements / denominator);
 }
 
 function totalPostEngagement(post: {
