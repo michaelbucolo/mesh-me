@@ -271,7 +271,12 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
   }
   people.sort((a, b) => {
     if (!!a.isMutual !== !!b.isMutual) return a.isMutual ? -1 : 1;
-    return (b.interactionCount || 0) - (a.interactionCount || 0);
+    // Id tiebreak so equally-close people order (and which ones survive the
+    // MAX_PEOPLE slice) is identical across clients, not API array order.
+    return (
+      (b.interactionCount || 0) - (a.interactionCount || 0) ||
+      String(a.id).localeCompare(String(b.id))
+    );
   });
   const friendMeshMap = new Map((data.friendMeshes || []).map((f) => [f.user.id, f]));
   const peopleToShow = people.slice(0, MAX_PEOPLE);
@@ -356,8 +361,11 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
   }
 
   // --- Posts (your own native posts) — strand straight from you ---
+  // Sort with an id tiebreak BEFORE the cap so the same MAX_POSTS survive on
+  // every client even when several posts share a timestamp (never API order).
   const posts: any[] = (data.posts || [])
     .filter((p: any) => existedBy(toMs(p.createdAt)))
+    .sort((a: any, b: any) => (toMs(b.createdAt) ?? 0) - (toMs(a.createdAt) ?? 0) || String(a.id).localeCompare(String(b.id)))
     .slice(0, MAX_POSTS);
   if (posts.length) {
     posts.forEach((p: any) => {
