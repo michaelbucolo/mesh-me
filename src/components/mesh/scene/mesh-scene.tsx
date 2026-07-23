@@ -2599,7 +2599,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           </div>
           {hoverNode && hoverNode.kind !== "self" && (
             <div
-              className="absolute left-1/2 top-full mt-1.5 w-max max-w-[16.5rem] -translate-x-1/2 animate-[fadeIn_.14s_ease] overflow-hidden rounded-xl border border-white/12 bg-[#0a0f1f]/90 text-center shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+              className="mesh-glass absolute left-1/2 top-full mt-1.5 w-max max-w-[16.5rem] -translate-x-1/2 animate-[fadeIn_.14s_ease] overflow-hidden rounded-xl text-center shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
               style={{ boxShadow: `0 12px 40px rgba(0,0,0,0.55), inset 0 2px 0 ${hoverNode.color || "var(--accent)"}` }}
             >
               <div className="px-3 py-2">
@@ -2922,7 +2922,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       {showRewind && oldestMoment != null && status === "ready" && (
         <div className="absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
           <div
-            className="w-full max-w-xl animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-black/60 px-4 py-3 backdrop-blur"
+            className="mesh-glass w-full max-w-xl animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl px-4 py-3"
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -3003,7 +3003,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs text-white"
+            className="mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs text-white"
           >
             Try again
           </button>
@@ -3036,7 +3036,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             </Link>
             <Link
               href="/mesh"
-              className="mesh-bubble-btn rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white hover:bg-white/15"
+              className="mesh-bubble-btn mesh-cta ds-focus-ring rounded-full px-5 py-2 text-sm font-semibold"
             >
               Back to my mesh
             </Link>
@@ -3045,7 +3045,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       )}
       {status === "ready" && meshIsEmpty && !showCompose && (
         <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex justify-center px-6">
-          <div className="pointer-events-auto flex max-w-sm flex-col items-center gap-2.5 rounded-2xl border border-white/12 bg-black/55 px-5 py-4 text-center backdrop-blur">
+          <div className="mesh-glass pointer-events-auto flex max-w-sm flex-col items-center gap-2.5 rounded-2xl px-5 py-4 text-center">
             <p className="text-sm text-white/80">
               {viewedUser
                 ? `This mesh is just ${viewedUser.displayName || "@" + viewedUser.username} for now.`
@@ -3064,7 +3064,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
                 </button>
                 <Link
                   href="/connected-accounts"
-                  className="mesh-bubble-btn rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium text-white/85"
+                  className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs font-medium text-white/85"
                 >
                   Connect accounts
                 </Link>
@@ -3084,7 +3084,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           }}
         >
           <div
-            className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-5 shadow-2xl"
+            className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-5 shadow-2xl"
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-start justify-between">
@@ -3107,7 +3107,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             <button
               type="button"
               onClick={dismissTips}
-              className="mesh-bubble-btn mt-4 w-full rounded-full bg-[var(--accent)] py-2 text-xs font-semibold text-white"
+              className="mesh-bubble-btn mesh-cta ds-focus-ring mt-4 w-full rounded-full py-2 text-xs font-semibold"
             >
               Start exploring
             </button>
@@ -3124,7 +3124,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             if (e.target === e.currentTarget) setShowSearch(false);
           }}
         >
-          <div className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-2 shadow-2xl">
+          <div className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-2 shadow-2xl">
             <div className="flex items-center gap-2 px-2">
               <Search size={15} className="shrink-0 text-white/45" />
               <input
@@ -3266,7 +3266,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             if (e.target === e.currentTarget) setShowCompose(false);
           }}
         >
-          <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-3 shadow-2xl">
+          <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-3 shadow-2xl">
             <div className="mb-2 flex items-start justify-between px-1">
               <div className="flex items-center gap-2">
                 <Sparkles size={15} className="text-[var(--accent)]" />
@@ -3386,7 +3386,7 @@ function MeshListView({
       <div
         role="dialog"
         aria-label="Your mesh as a list"
-        className="flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col border-l border-white/10 bg-[#0b1020] pt-16 shadow-2xl"
+        className="mesh-panel flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col pt-16 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-white/8 px-4 py-3.5">
@@ -3508,7 +3508,7 @@ function NodeDetail({
 }) {
   return (
     <div
-      className="absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020]/95 p-4 shadow-2xl backdrop-blur sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
+      className="mesh-panel absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl p-4 shadow-2xl sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-start gap-3">
@@ -3562,7 +3562,7 @@ function NodeDetail({
           <button
             type="button"
             onClick={() => onEnterMesh(node)}
-            className="mesh-bubble-btn flex-1 rounded-full bg-[var(--accent)] py-2 text-xs font-semibold text-white"
+            className="mesh-bubble-btn mesh-cta ds-focus-ring flex-1 rounded-full py-2 text-xs font-semibold"
           >
             Enter their mesh
           </button>
@@ -3571,7 +3571,7 @@ function NodeDetail({
           <Link
             href={node.href}
             target={node.href.startsWith("http") ? "_blank" : undefined}
-            className="mesh-bubble-btn flex-1 rounded-full border border-white/15 bg-white/5 py-2 text-center text-xs font-semibold text-white hover:bg-white/10"
+            className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
           >
             {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
           </Link>
@@ -3751,7 +3751,7 @@ function ContentLens({
       }}
     >
       <div
-        className="relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0b1020]/95 shadow-2xl"
+        className="mesh-panel relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
         // The lens speaks Meshi's focused-content contract, so asking Meshi
         // about "this post" works on the mesh exactly like it does on the feed.
@@ -3809,7 +3809,7 @@ function ContentLens({
                 type="button"
                 aria-label={isLensFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 onClick={toggleLensFullscreen}
-                className="absolute right-3 top-3 z-10 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+                className="mesh-glass mesh-ctl ds-focus-ring absolute right-3 top-3 z-10 rounded-full p-2 text-white/90 transition active:scale-90"
               >
                 {isLensFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>

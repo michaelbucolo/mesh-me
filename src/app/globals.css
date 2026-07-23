@@ -7444,6 +7444,24 @@ body > * { position: relative; z-index: 1; }
   backdrop-filter: blur(14px) saturate(1.05);
   -webkit-backdrop-filter: blur(14px) saturate(1.05);
 }
+/* Denser sibling of .mesh-glass for modals and drawers: near-opaque so dense
+   content stays legible over the busy starfield, same border + accent language. */
+.mesh-panel {
+  background: rgba(11, 16, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px) saturate(1.05);
+  -webkit-backdrop-filter: blur(18px) saturate(1.05);
+}
+/* Primary accent action — the mesh's dark-correct equivalent of the app's
+   default Button (theme-aware surfaces would go light in light mode, wrong over
+   the always-dark canvas). Pair with .ds-focus-ring. */
+.mesh-cta {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--accent) 78%, #ffffff 0%);
+  transition: background-color 0.16s ease, filter 0.16s ease;
+}
+.mesh-cta:hover { background: var(--accent-hover); }
 /* An interactive mesh control (pill / rail button / tab). Pairs with
    .ds-focus-ring for a keyboard focus ring identical to the rest of the app. */
 /* Tints are painted with background-IMAGE so they layer OVER the .mesh-glass
