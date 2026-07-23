@@ -7420,8 +7420,8 @@ body > * { position: relative; z-index: 1; }
 .mesh-rail-btn {
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
 }
-.mesh-rail-btn:hover { transform: scale(1.12); }
-.mesh-rail-btn:active { transform: scale(0.88); }
+.mesh-rail-btn:hover { transform: scale(1.04); }
+.mesh-rail-btn:active { transform: scale(0.94); }
 .mesh-bubble-btn {
   transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, opacity 0.2s ease;
 }
@@ -7430,6 +7430,68 @@ body > * { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) {
   .mesh-rail-btn, .mesh-rail-btn:hover, .mesh-rail-btn:active { transition: none; transform: none; }
   .mesh-bubble-btn, .mesh-bubble-btn:hover, .mesh-bubble-btn:active { transition: none; transform: none; }
+}
+
+/* ── Mesh chrome: one shared surface + control language for every floating
+   overlay, so the mesh reads as the same product as sign-in and the rest of the
+   app. Dark glass (the mesh canvas is always a night sky) with the account
+   accent carrying hover/active/focus — replacing the old ad-hoc bg-black/45 +
+   border-white/12 pills that each looked slightly different and had no focus
+   ring. ─────────────────────────────────────────────────────────────────── */
+.mesh-glass {
+  background: rgba(9, 12, 22, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+}
+/* An interactive mesh control (pill / rail button / tab). Pairs with
+   .ds-focus-ring for a keyboard focus ring identical to the rest of the app. */
+/* Tints are painted with background-IMAGE so they layer OVER the .mesh-glass
+   background-color instead of replacing it (a control keeps its dark base on
+   hover/active). */
+.mesh-ctl {
+  color: rgba(255, 255, 255, 0.82);
+  transition: background-image 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.mesh-ctl:hover {
+  color: #fff;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.09));
+}
+/* The selected/active state uses the accent, like the app's primary controls. */
+.mesh-ctl-active {
+  color: #fff;
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--accent) 34%, transparent),
+    color-mix(in srgb, var(--accent) 34%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.mesh-ctl-active:hover {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--accent) 42%, transparent),
+    color-mix(in srgb, var(--accent) 42%, transparent)
+  );
+}
+/* Rail control label: always visible on touch (discoverable), reveals on
+   hover/focus with a mouse so the rail stays a tidy icon column by default. */
+.mesh-rail-label {
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mesh-rail-label {
+    max-width: 0;
+    margin-left: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-width 0.24s ease, opacity 0.18s ease, margin-left 0.24s ease;
+  }
+  .mesh-rail-btn:hover .mesh-rail-label,
+  .mesh-rail-btn:focus-visible .mesh-rail-label {
+    max-width: 12rem;
+    margin-left: 0.5rem;
+    opacity: 1;
+  }
 }
 
 /* ── Monthly Trail: the thread draws itself, moments pop in along it ──── */

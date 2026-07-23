@@ -2792,12 +2792,12 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           behave. Shown only on your own mesh or the Global view — never when
           viewing a specific person (that owns the top-left with its Back button). */}
       {!viewUserId && (
-        <div className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/12 bg-black/45 p-1 backdrop-blur">
+        <div className="mesh-glass absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full p-1">
           <button
             type="button"
             onClick={() => router.push("/mesh")}
             aria-pressed={!isGlobal}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${!isGlobal ? "bg-white/15 text-white" : "text-white/60 hover:text-white/90"}`}
+            className={`mesh-ctl ds-focus-ring rounded-full border border-transparent px-4 py-2 text-xs font-semibold ${!isGlobal ? "mesh-ctl-active" : ""}`}
           >
             Mesh
           </button>
@@ -2805,7 +2805,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             type="button"
             onClick={() => router.push("/mesh?view=global")}
             aria-pressed={isGlobal}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${isGlobal ? "bg-white/15 text-white" : "text-white/60 hover:text-white/90"}`}
+            className={`mesh-ctl ds-focus-ring rounded-full border border-transparent px-4 py-2 text-xs font-semibold ${isGlobal ? "mesh-ctl-active" : ""}`}
           >
             Global
           </button>
@@ -2818,21 +2818,21 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           <button
             type="button"
             onClick={() => router.push("/mesh")}
-            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/60"
+            className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-white"
           >
             <ArrowLeft size={14} />
             Back to your mesh
           </button>
         ) : null}
         {viewedUser && (
-          <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white/80 backdrop-blur">
+          <span className="mesh-glass rounded-full px-3 py-2 text-xs text-white/80">
             {viewedUser.displayName || "@" + viewedUser.username}&apos;s mesh
           </span>
         )}
         {viewedUser && (
           <Link
             href={`/profile/${viewedUser.username}`}
-            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/60"
+            className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-white"
           >
             <UserRound size={14} aria-hidden="true" />
             View profile
@@ -2845,7 +2845,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         data-testid="mesh-action-bar"
         role="toolbar"
         aria-label="Mesh actions"
-        className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2"
+        className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col items-end gap-2"
       >
         {!viewedUser && meshUser && (
           <RailButton label="Create on your mesh" onClick={() => setShowCompose(true)}>
@@ -3307,12 +3307,13 @@ function RailButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
-      className="mesh-rail-btn group relative flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white/85 backdrop-blur hover:bg-black/65 hover:text-white"
+      // A labeled control, not a mystery icon: on touch the label is always
+      // shown (no hover to reveal it); with a mouse it stays a tidy icon that
+      // expands its label on hover/focus. Comfortable 44px touch target.
+      className="mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-white/85"
     >
-      {children}
-      <span className="pointer-events-none absolute right-full mr-2 hidden w-max rounded-lg border border-white/12 bg-black/80 px-2 py-1 text-[11px] font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 sm:block">
-        {label}
-      </span>
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
+      <span className="mesh-rail-label text-xs font-medium">{label}</span>
     </button>
   );
 }
