@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { meshApiUrl, takeMeshPrefetch } from "./mesh-prefetch";
-import { toggleReaction } from "@/lib/actions";
+import { toggleReaction, toggleFollow } from "@/lib/actions";
 import { MeshiLoader } from "@/components/meshi/meshi-loader";
 import {
   MeshiMascot,
@@ -1080,7 +1080,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         return;
       }
       if (node.kind === "person" && node.userId) {
-        enterFriendMesh(node);
+        // Don't teleport straight into their mesh — open their card so you can
+        // choose: enter their mesh, follow, share, or view their profile.
+        setActiveBranch(node.branch);
+        setSelectedNode(node);
+        playSound("pop");
         return;
       }
       if (node.kind === "branch") {
@@ -1104,7 +1108,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       }
       flyToNode(node);
     },
-    [fitToContent, flyToNode, enterFriendMesh, spawnBurst],
+    [fitToContent, flyToNode, spawnBurst],
   );
 
   // Every readable piece of content on the mesh, newest first — so the
@@ -3236,6 +3240,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         selectedNode.kind !== "activity" && (
           <NodeDetail
             node={selectedNode}
+            canFollow={isOwnMesh}
             onClose={() => {
               setSelectedNode(null);
               setActiveBranch(null);
@@ -3499,13 +3504,56 @@ function MeshListView({
 
 function NodeDetail({
   node,
+  canFollow,
   onClose,
   onEnterMesh,
 }: {
   node: SceneNode;
+  // Follow only when the node's isFollowing is authoritative for the VIEWER —
+  // i.e. on your own mesh. On a visited/global mesh the follow flags describe
+  // the mesh owner's ties, not yours, so we show Enter / Share / Profile only.
+  canFollow: boolean;
   onClose: () => void;
   onEnterMesh: (node: SceneNode) => void;
 }) {
+  const isPerson = node.kind === "person" && !!node.userId;
+  const [following, setFollowing] = useState(!!node.isFollowing);
+  const [, startFollow] = useTransition();
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const onToggleFollow = () => {
+    if (!node.userId) return;
+    const next = !following;
+    setFollowing(next); // optimistic
+    startFollow(async () => {
+      const res = await toggleFollow(node.userId!);
+      // Server authorizes + guards blocks/self. Reconcile to its truth: revert on
+      // error, otherwise take the authoritative follow state it returns.
+      if (res && "error" in res && res.error) setFollowing(!next);
+      else if (res && "following" in res) setFollowing(res.following ?? next);
+    });
+  };
+
+  const onShare = () => {
+    const url =
+      node.href && typeof window !== "undefined"
+        ? `${window.location.origin}${node.href}`
+        : typeof window !== "undefined"
+          ? window.location.href
+          : "";
+    void shareContent({
+      title: node.label || "mesh.me",
+      text: node.sublabel || node.label,
+      url,
+      dialogTitle: "Share profile",
+    }).then((result) => {
+      if (result === "copied") {
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 1600);
+      }
+    });
+  };
+
   return (
     <div
       className="mesh-panel absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl p-4 shadow-2xl sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
@@ -3557,26 +3605,58 @@ function NodeDetail({
         </div>
       )}
 
-      <div className="mt-4 flex gap-2">
-        {node.kind === "person" && node.userId && (
+      {isPerson ? (
+        <div className="mt-4 space-y-2">
           <button
             type="button"
             onClick={() => onEnterMesh(node)}
-            className="mesh-bubble-btn mesh-cta ds-focus-ring flex-1 rounded-full py-2 text-xs font-semibold"
+            className="mesh-bubble-btn mesh-cta ds-focus-ring w-full rounded-full py-2 text-xs font-semibold"
           >
             Enter their mesh
           </button>
-        )}
-        {node.href && (
-          <Link
-            href={node.href}
-            target={node.href.startsWith("http") ? "_blank" : undefined}
-            className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
-          >
-            {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
-          </Link>
-        )}
-      </div>
+          <div className="flex gap-2">
+            {canFollow && (
+              <button
+                type="button"
+                onClick={onToggleFollow}
+                aria-pressed={following}
+                className={`mesh-bubble-btn ds-focus-ring flex-1 rounded-full py-2 text-xs font-semibold ${
+                  following ? "mesh-glass mesh-ctl text-white" : "mesh-cta"
+                }`}
+              >
+                {following ? (node.isMutual ? "Friends" : "Following") : "Follow"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onShare}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-xs font-semibold text-white"
+            >
+              {shareCopied ? "Copied" : "Share"}
+            </button>
+            {node.href && (
+              <Link
+                href={node.href}
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
+              >
+                Profile
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : (
+        node.href && (
+          <div className="mt-4 flex gap-2">
+            <Link
+              href={node.href}
+              target={node.href.startsWith("http") ? "_blank" : undefined}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
+            >
+              {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
+            </Link>
+          </div>
+        )
+      )}
     </div>
   );
 }
