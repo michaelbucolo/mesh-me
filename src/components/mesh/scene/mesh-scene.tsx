@@ -3614,30 +3614,36 @@ function NodeDetail({
           >
             Enter their mesh
           </button>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {canFollow && (
               <button
                 type="button"
                 onClick={onToggleFollow}
                 aria-pressed={following}
-                className={`mesh-bubble-btn ds-focus-ring flex-1 rounded-full py-2 text-xs font-semibold ${
+                className={`mesh-bubble-btn ds-focus-ring rounded-full py-2 text-xs font-semibold ${
                   following ? "mesh-glass mesh-ctl text-white" : "mesh-cta"
                 }`}
               >
                 {following ? (node.isMutual ? "Friends" : "Following") : "Follow"}
               </button>
             )}
+            <Link
+              href={`/messages/${node.userId}?new=true`}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
+            >
+              Message
+            </Link>
             <button
               type="button"
               onClick={onShare}
-              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-xs font-semibold text-white"
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-xs font-semibold text-white"
             >
               {shareCopied ? "Copied" : "Share"}
             </button>
             {node.href && (
               <Link
                 href={node.href}
-                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
               >
                 Profile
               </Link>
