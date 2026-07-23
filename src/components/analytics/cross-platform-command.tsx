@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, type CSSProperties } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import { Crown, Flame, Gauge, Layers, Rocket, Scale, Trophy, Zap } from "lucide-react";
+import { Crown, Fingerprint, Flame, Gauge, Layers, Rocket, Scale, Trophy, Zap } from "lucide-react";
 import type { AnalyticsDashboardData } from "@/lib/analytics-dashboard";
 
 /**
@@ -146,6 +146,87 @@ function PerPostBar({ platform, epp, maxEpp, index }: { platform: string; epp: n
   );
 }
 
+/**
+ * The one thing no single platform can tell you: which real people follow you
+ * in more than one place. Computed by matching handles across your synced
+ * followers — presented honestly as a lower bound ("fans we've found"), with a
+ * graceful state when fewer than two platforms have follower data yet.
+ */
+function CrossPlatformFans({ overlap }: { overlap: AnalyticsDashboardData["audienceOverlap"] }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-4">
+      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+        <Fingerprint size={12} aria-hidden="true" />
+        Your true fans
+      </p>
+      <h3 className="mt-1 text-sm font-bold text-[var(--text-primary)]">Who follows you everywhere</h3>
+
+      {!overlap.hasEnoughData ? (
+        <p className="mt-2 text-xs text-[var(--text-secondary)]">
+          Connect and sync followers on at least two platforms to see who follows you in more than one place.
+        </p>
+      ) : overlap.multiPlatformCount === 0 ? (
+        <p className="mt-2 text-xs text-[var(--text-secondary)]">
+          No overlapping followers found yet across your synced followers. As more sync in, your cross-platform fans
+          will show up here.
+        </p>
+      ) : (
+        <>
+          <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
+            <span className="text-base font-bold text-[var(--text-primary)]">{fmt(overlap.multiPlatformCount)}</span>{" "}
+            {overlap.multiPlatformCount === 1 ? "person follows" : "people follow"} you on more than one platform.
+          </p>
+          {overlap.superfans.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1.5">
+              {overlap.superfans.map((fan, i) => {
+                const inner = (
+                  <>
+                    {fan.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={fan.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg-secondary)] text-xs font-bold text-[var(--text-muted)]">
+                        {(fan.name || "?").charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--text-primary)]">
+                      {fan.name || "Someone"}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1" aria-hidden="true">
+                      {fan.platforms.map((p) => (
+                        <span key={p} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tone(p) }} title={label(p)} />
+                      ))}
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={i}>
+                    {fan.profileUrl ? (
+                      <a
+                        href={fan.profileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="flex items-center gap-2.5 rounded-xl px-1.5 py-1 transition hover:bg-[var(--bg-secondary)]"
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <div className="flex items-center gap-2.5 px-1.5 py-1">{inner}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
+      )}
+      <p className="mt-3 text-[10px] leading-snug text-[var(--text-muted)]">
+        Matched by username across your synced followers (exact matches only) — a lower bound, not your full audience.
+      </p>
+    </div>
+  );
+}
+
 export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData }) {
   const platforms: Comparison[] = data.platformComparison;
   const nativeAudience = data.personal.followers;
@@ -233,6 +314,10 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
           <ShareBar key={row.key} row={row} />
         ))}
       </div>
+
+      {/* Cross-platform superfans — the deduplicated counterpart to the Audience
+          bar above: who your summed audience actually shares. */}
+      <CrossPlatformFans overlap={data.audienceOverlap} />
 
       {/* Engagement per post — which platform repays your effort */}
       {perPost.length > 0 && (
