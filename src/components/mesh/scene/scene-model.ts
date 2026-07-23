@@ -54,6 +54,10 @@ export interface SceneNode {
   userId?: string;
   username?: string;
   isVerified?: boolean;
+  /** For person nodes: whether you follow them / follow each other, so the
+   *  detail card can show the right Follow / Following state without a fetch. */
+  isFollowing?: boolean;
+  isMutual?: boolean;
   status?: string;
   /** Count shown on collapsed branch / item hubs. */
   count?: number;
@@ -317,6 +321,8 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
         href: "/profile/" + p.username,
         userId: p.id,
         username: p.username,
+        isFollowing: !!p.isFollowing,
+        isMutual: !!p.isMutual,
         status: p.status || "offline",
         count: friendPosts.length || undefined,
         closeness,
