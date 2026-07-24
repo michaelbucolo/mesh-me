@@ -487,8 +487,8 @@ export async function canViewMeshRoom(
   // Suspended accounts' presence rooms stay locked to everyone but admins (the
   // owner already returned true above).
   if (target.isSuspended && !viewerIsAdmin) return false;
-  // Canonical mesh-visibility default is "private" (matching getMeshPrivacy,
-  // getFriendMeshData, and the /api/mesh gate) — NOT `isPublic`. A public
+  // Canonical mesh-visibility default is "private" (matching getMeshPrivacy
+  // and the /api/mesh gate) — NOT `isPublic`. A public
   // account with a private mesh must not expose its live presence room, so gate
   // with canViewMesh, whose "private" case has no isPublic short-circuit.
   const visibility = normalizeMeshVisibility(

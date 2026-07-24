@@ -736,7 +736,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
   targetUserId = targetUser.id;
 
   // The owner's meshVisibility setting decides. The canonical default
-  // (getMeshPrivacy, getFriendMeshData) is "private" — enforcement must match
+  // (getMeshPrivacy) is "private" — enforcement must match
   // what Settings displays, so a public account with an explicit "private" mesh
   // (or no MeshPrivacy row) stays locked to strangers instead of leaking the
   // whole graph via isPublic. Gate with canViewMesh, not canViewProfile.
@@ -768,7 +768,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     return lockedMeshResponse();
   }
 
-  // Per-branch enforcement, mirroring getFriendMeshData: the owner's branch
+  // Per-branch enforcement, mirroring canShareFriendMeshBranch: the owner's branch
   // overrides, showConnections, and showStats decide what a viewer can see even
   // after mesh access is granted.
   const viewerRef = { id: viewerId, isAdmin: viewerIsAdmin };

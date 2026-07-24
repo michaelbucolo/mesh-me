@@ -4,6 +4,7 @@
 // hitbox for pointer hit-testing.
 
 import { platformLogoDataUri } from "@/components/platform/platform-logo";
+import { projectPoint, type Camera } from "../core/camera";
 import type { BranchKey, SceneModel, SceneNode } from "./scene-model";
 
 // Rasterized brand marks (YouTube, Instagram, TikTok, …) for canvas drawing.
@@ -43,12 +44,6 @@ function drawLogoTile(
   ctx.clip();
   ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
   ctx.restore();
-}
-
-export interface Camera {
-  panX: number;
-  panY: number;
-  zoom: number;
 }
 
 export interface RenderOptions {
@@ -91,11 +86,10 @@ export interface RenderOptions {
   livePresence?: Map<string, { where: string | null; route?: string | null }>;
 }
 
+// World→screen goes through core/camera — the painter owns no projection
+// math of its own (TODO(PR2): callers consume core/camera directly).
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
-  return {
-    x: o.width / 2 + o.camera.panX + node.dx * o.camera.zoom,
-    y: o.height / 2 + o.camera.panY + node.dy * o.camera.zoom,
-  };
+  return projectPoint(o.camera, o.width, o.height, node.dx, node.dy);
 }
 
 const BIRTH_MS = 1150;

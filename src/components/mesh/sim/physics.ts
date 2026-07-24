@@ -4,8 +4,11 @@
 // — closeness and time decided every position, so physics never pulls a node
 // away from where it belongs; it only makes the world feel alive on the way
 // there.
+//
+// (Ported from scene/scene-physics.ts; the model types still live in
+// scene/scene-model.ts until the domain build moves into core.)
 
-import type { SceneModel, SceneNode } from "./scene-model";
+import type { SceneModel, SceneNode } from "../scene/scene-model";
 
 const STIFFNESS = 42;
 const DAMPING = 11;
