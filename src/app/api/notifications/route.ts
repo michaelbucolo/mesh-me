@@ -59,8 +59,15 @@ export async function GET(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return noStore({ error: "Not authenticated" }, { status: 401 });
 
-  const page = Math.max(Number(req.nextUrl.searchParams.get("page") ?? "1"), 1);
-  const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get("limit") ?? "60"), 1), MAX_NOTIFICATION_LIMIT);
+  // Guard against non-numeric input (e.g. ?limit=all): Number() yields NaN,
+  // which Math.max/min propagate and Prisma then rejects as skip/take, 500ing
+  // this continuously-polled endpoint.
+  const rawPage = Number(req.nextUrl.searchParams.get("page") ?? "1");
+  const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? "60");
+  const page = Number.isFinite(rawPage) && rawPage > 1 ? Math.floor(rawPage) : 1;
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(Math.floor(rawLimit), 1), MAX_NOTIFICATION_LIMIT)
+    : 60;
   const { center } = await loadNotificationCenter(page, limit, user.id);
 
   return noStore({

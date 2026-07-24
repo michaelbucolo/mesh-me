@@ -249,7 +249,10 @@ export function getSupportedPlatformAdapter(platform: string): SupportedPlatform
     compliance: {
       officialApiOnly: true,
       noScraping: true,
-      noCredentialCollection: authType === "manual",
+      // Neither flow collects the user's password: OAuth is a redirect/token
+      // exchange and manual is a public-profile reference. (Was inverted —
+      // reporting that OAuth connections collect credentials.)
+      noCredentialCollection: true,
       userInitiatedWritesOnly: true,
     },
   };

@@ -22,8 +22,7 @@ export function getPostPresenceKey(source: PresenceSource | null | undefined) {
   if (source.id.startsWith("friend-platform-")) return `platform:${source.id.slice("friend-platform-".length)}`;
   if (source.id.startsWith("post-")) return `mesh:${source.id.slice("post-".length)}`;
   if (source.id.startsWith("friend-native-post-")) {
-    const parts = source.id.split("-");
-    return parts.length > 4 ? `mesh:${parts.slice(4).join("-")}` : `mesh:${source.id}`;
+    return `mesh:${source.id.slice("friend-native-post-".length)}`;
   }
 
   return `mesh:${source.id}`;

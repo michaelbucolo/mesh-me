@@ -55,8 +55,22 @@ const GREETINGS: Record<string, { text: string; mood: MeshiMood }> = {
 };
 
 function getGreetingForPath(pathname: string) {
-  const matchedKey = Object.keys(GREETINGS).find((key) => pathname.startsWith(key));
+  // Match most-specific first: "/meshpro" startsWith "/mesh", so without the
+  // length sort the "/mesh" entry would shadow the dedicated "/meshpro" one.
+  const matchedKey = Object.keys(GREETINGS)
+    .sort((a, b) => b.length - a.length)
+    .find((key) => pathname.startsWith(key));
   return matchedKey ? GREETINGS[matchedKey] : { text: "I am your bridge to the internet.", mood: "happy" as MeshiMood };
+}
+
+// The contextual prop for a route. Uses the same most-specific-first prefix
+// match as the page-transition effect so sub-routes (e.g. "/feed/abc") keep the
+// prop; indexing PAGE_PROPS by the exact pathname dropped it on every sub-route.
+function getContextualProp(pathname: string): MeshiProp {
+  const key = Object.keys(PAGE_PROPS)
+    .sort((a, b) => b.length - a.length)
+    .find((k) => pathname.startsWith(k));
+  return key ? PAGE_PROPS[key] : "none";
 }
 
 // On the Mesh, the canvas renders the single living Meshi (the user's cursor/avatar
@@ -512,9 +526,6 @@ function getPageArrivalPosition(pathname: string): MeshiPoint {
   if (pathname.startsWith("/settings") || pathname.startsWith("/analytics")) {
     return findSafeMeshiPosition({ x: rightRail, y: lower });
   }
-  if (pathname.startsWith("/connected-accounts")) {
-    return findSafeMeshiPosition({ x: rightRail, y: middle });
-  }
   if (pathname.startsWith("/profile") || pathname.startsWith("/communities") || pathname.startsWith("/explore")) {
     return findSafeMeshiPosition({ x: rightRail, y: window.innerHeight * 0.32 });
   }
@@ -957,8 +968,7 @@ export function MeshiFloat() {
   useEffect(() => {
     if (!meshiEnabled) return;
     // Set contextual prop based on current page
-    const matchedPropKey = Object.keys(PAGE_PROPS).find((key) => pathname.startsWith(key));
-    const contextualProp = matchedPropKey ? PAGE_PROPS[matchedPropKey] : "none";
+    const contextualProp = getContextualProp(pathname);
     queueMicrotask(() => setActiveProp(contextualProp));
     if (pathname !== lastPath && lastPath !== "") {
       const nextGreeting = getGreetingForPath(pathname);
@@ -1091,7 +1101,7 @@ export function MeshiFloat() {
         const safe = getSafePosition();
         meshiX.set(safe.x);
         meshiY.set(safe.y);
-        setActiveProp(PAGE_PROPS[pathname] || "none");
+        setActiveProp(getContextualProp(pathname));
       }, MESHI_FOLLOW_RELEASE_MS);
     };
     const moveNear = (point: MeshiPoint, nextMood: MeshiMood, prop: MeshiProp = "none") => {
@@ -1121,7 +1131,7 @@ export function MeshiFloat() {
       const target = event.target as HTMLElement | null;
       if (!target?.matches("input, textarea, select, button, a, [role='button'], [data-meshi-follow]")) return;
       const rect = target.getBoundingClientRect();
-      moveNear(getPointerFollowPosition(rect.right, rect.top + rect.height / 2), "thinking", PAGE_PROPS[pathname] || "none");
+      moveNear(getPointerFollowPosition(rect.right, rect.top + rect.height / 2), "thinking", getContextualProp(pathname));
     };
 
     const handleClick = (event: MouseEvent) => {
@@ -1149,7 +1159,9 @@ export function MeshiFloat() {
   // Ambient mood cycling
   useEffect(() => {
     if (!meshiEnabled || view !== "closed" || isIdle || isTyping || isDragging) return;
-    const matchedKey = Object.keys(PAGE_AMBIENT_MOODS).find((key) => pathname.startsWith(key));
+    const matchedKey = Object.keys(PAGE_AMBIENT_MOODS)
+      .sort((a, b) => b.length - a.length)
+      .find((key) => pathname.startsWith(key));
     if (!matchedKey) return;
     const moods = PAGE_AMBIENT_MOODS[matchedKey];
     let idx = 0;
@@ -1491,7 +1503,9 @@ export function MeshiFloat() {
   const handleMeshiClick = useCallback(() => {
     if (wasDragged) return;
     emitTapBurst();
-    impactFeedback("MEDIUM");
+    // void: impactFeedback is async and rejects when the native bridge is
+    // unavailable — every other call site guards it, so match them here.
+    void impactFeedback("MEDIUM");
     // Mark first-time interaction
     if (isFirstTimeMeshi) {
       setIsFirstTimeMeshi(false);

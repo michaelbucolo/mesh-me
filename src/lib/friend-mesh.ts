@@ -77,23 +77,26 @@ export function canShareFriendMeshBranch(
 // Request-cached: the feed can ask for friend platform posts more than once
 // per render (e.g. multi-pass flow ranking) with the same viewer and limit.
 const getMutualFriendIds = cache(async (userId: string, limit = 80) => {
+  // Don't cap each side before intersecting: a `take` on the following and
+  // followers lists independently drops any mutual that falls outside the first
+  // `limit` (unordered) rows of either side, so real friends vanish
+  // non-deterministically. Intersect the full sets, then cap the result.
   const [following, followers] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: userId },
       select: { followingId: true },
-      take: limit,
     }),
     prisma.follow.findMany({
       where: { followingId: userId },
       select: { followerId: true },
-      take: limit,
     }),
   ]);
 
   const followerIds = new Set(followers.map((follow) => follow.followerId));
   return following
     .map((follow) => follow.followingId)
-    .filter((id) => followerIds.has(id));
+    .filter((id) => followerIds.has(id))
+    .slice(0, limit);
 });
 
 export async function getFriendPlatformFeedPosts(user: FriendMeshCurrentUser, limit = 20): Promise<FriendPlatformFeedPost[]> {

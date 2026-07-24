@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 export async function GET() {
   const session = await getSession();
@@ -31,13 +31,10 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
   const { method, label } = body;
   const validMethods = ["email", "sms", "totp", "passkey"];
-  if (!method || !validMethods.includes(method)) {
+  if (typeof method !== "string" || !validMethods.includes(method)) {
     return NextResponse.json({ error: "Invalid 2FA method. Must be: " + validMethods.join(", ") }, { status: 400 });
   }
   if (label !== undefined && label !== null && typeof label !== "string") {
@@ -76,12 +73,9 @@ export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
   const { methodId } = body;
-  if (!methodId) return NextResponse.json({ error: "methodId required" }, { status: 400 });
+  if (!methodId || typeof methodId !== "string") return NextResponse.json({ error: "methodId required" }, { status: 400 });
 
   // Verify ownership
   const method = await prisma.twoFactorMethod.findUnique({ where: { id: methodId } });

@@ -495,7 +495,12 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden">
+            {/* Key per conversation so a soft navigation between threads remounts
+                the client component — its message/thread state is seeded from
+                props via useState and would otherwise stay pinned to the first
+                thread, showing the wrong messages and sending to the wrong one. */}
             <MeChatThread
+              key={activeThreadId ?? formRecipientId ?? "new"}
               currentUser={{
                 id: user.id,
                 username: user.username,

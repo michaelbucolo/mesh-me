@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts } from "@/lib/flow-ranking";
 import { parseAcceptLanguage } from "@/lib/language";
+import { rateLimit } from "@/lib/security";
+import { getTrustedClientIp } from "@/lib/client-ip";
 
 /**
  * Ranked Flow feed. The client sends the ids it already has (`exclude`) plus
@@ -13,6 +15,18 @@ import { parseAcceptLanguage } from "@/lib/language";
  */
 export async function GET(request: Request) {
   const user = (await getCurrentUser()) ?? ANONYMOUS_VIEWER;
+
+  // This route runs the heaviest read workload in the feed subsystem and — so
+  // guests can browse — is intentionally left out of the proxy's protected
+  // prefixes, so it gets no proxy-level throttle. Cap it in-handler (per user,
+  // or per IP for guests) so it can't be looped for cheap request→work
+  // amplification. The sibling /api/flow/impression does the same.
+  const rlKey = user.id === ANONYMOUS_VIEWER.id
+    ? `flow:ip:${getTrustedClientIp(request.headers)}`
+    : `flow:${user.id}`;
+  if (!rateLimit(rlKey, 120, 60_000).allowed) {
+    return NextResponse.json({ error: "Slow down" }, { status: 429 });
+  }
 
   const { searchParams } = new URL(request.url);
   const limitRaw = parseInt(searchParams.get("limit") || "12", 10);

@@ -41,8 +41,16 @@ export function loadKnowledge(): MeshiExplorationState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored) as MeshiExplorationState;
-      return parsed;
+      const parsed = JSON.parse(stored) as Partial<MeshiExplorationState> | null;
+      // Validate/merge over defaults: a legacy or corrupted value missing
+      // `entries` would otherwise crash indexNode (state.entries[node.id]).
+      if (parsed && typeof parsed === "object") {
+        return {
+          ...getDefaultState(),
+          ...parsed,
+          entries: parsed.entries && typeof parsed.entries === "object" ? parsed.entries : {},
+        };
+      }
     }
   } catch { /* ignore */ }
   return getDefaultState();

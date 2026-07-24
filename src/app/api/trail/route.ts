@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/security";
 
 // Your monthly Trail: the literal path you traveled through the mesh — every
 // post you made, heart you threw, comment you left, person you connected
@@ -28,6 +29,12 @@ function truncate(value: string | null | undefined, max: number): string {
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  // This endpoint isn't in the proxy's protected prefixes and runs several heavy
+  // queries per call, so throttle it in-handler.
+  if (!rateLimit(`trail:${user.id}`, 30, 60_000).allowed) {
+    return NextResponse.json({ error: "Slow down" }, { status: 429 });
+  }
 
   const { searchParams } = new URL(req.url);
   const now = new Date();
@@ -62,7 +69,7 @@ export async function GET(req: Request) {
   }
   const range = { gte: start, lt: end };
 
-  const [posts, reactions, comments, follows, messages, accounts] = await Promise.all([
+  const [posts, reactions, comments, follows, messages, accounts, postTotal, heartTotal, commentTotal, followTotal, messageTotal] = await Promise.all([
     prisma.post.findMany({
       where: { authorId: user.id, createdAt: range },
       select: {
@@ -134,6 +141,13 @@ export async function GET(req: Request) {
         },
       },
     }),
+    // True period totals for the summary headline. The findMany queries above are
+    // capped (take), so their `.length` saturates and under-reports active users.
+    prisma.post.count({ where: { authorId: user.id, createdAt: range } }),
+    prisma.reaction.count({ where: { userId: user.id, createdAt: range } }),
+    prisma.comment.count({ where: { authorId: user.id, createdAt: range } }),
+    prisma.follow.count({ where: { followerId: user.id, createdAt: range } }),
+    prisma.message.count({ where: { senderId: user.id, createdAt: range } }),
   ]);
 
   type Step = {
@@ -299,12 +313,12 @@ export async function GET(req: Request) {
     steps: shown,
     summary: {
       totalMoments: total,
-      posts: posts.length,
-      hearts: reactions.length,
-      comments: comments.length,
-      newPeople: follows.length,
+      posts: postTotal,
+      hearts: heartTotal,
+      comments: commentTotal,
+      newPeople: followTotal,
       published: accounts.reduce((sum, a) => sum + a.platformPosts.length, 0),
-      messages: messages.length,
+      messages: messageTotal,
       activeDays: dayCounts.size,
       busiestDay,
       busiestCount,

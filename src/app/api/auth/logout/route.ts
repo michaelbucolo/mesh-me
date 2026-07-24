@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/auth";
-import { isCrossSiteRequest, isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest } from "@/lib/request-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,10 @@ const NO_STORE_HEADERS = {
 };
 
 export async function GET(request: Request) {
-  if (isCrossSiteRequest(request)) {
+  // Fail closed like the POST handler and /logout: isCrossSiteRequest returns
+  // false (i.e. allows) when Origin/Referer/Sec-Fetch-Site are all absent, which
+  // let a cross-site GET log the victim out. Require positive same-origin proof.
+  if (!isSameOriginRequest(request)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

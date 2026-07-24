@@ -388,6 +388,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
+  // React/edit/unsend each do a DB read + write; throttle like POST so they
+  // can't be looped into write amplification (POST caps sends, PATCH was open).
+  if (!rateLimit(`msg-patch:${user.id}`, 120, 60 * 1000).allowed) {
+    return NextResponse.json({ error: "Slow down" }, { status: 429 });
+  }
+
   const body = await readJsonObject(request);
   const action = cleanText(body.action, 40);
 

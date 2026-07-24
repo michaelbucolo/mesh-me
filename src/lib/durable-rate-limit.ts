@@ -92,35 +92,28 @@ export async function checkDurableLockout(id: string): Promise<{ locked: boolean
 export async function recordDurableFailedLogin(id: string): Promise<void> {
   const key = lockKey(id);
   try {
-    const entry = await prisma.rateLimitHit.findUnique({ where: { key } });
-    const count = (entry?.count ?? 0) + 1;
-    const lockCount = entry?.lockCount ?? 0;
+    // Increment atomically. A read-then-write (findUnique → count+1 → update:
+    // {count}) let concurrent failed logins all read the same stale count and
+    // write back the same value, pinning the counter low so the escalating
+    // lockout never engaged under a burst of parallel attempts.
+    const entry = await prisma.rateLimitHit.upsert({
+      where: { key },
+      create: { key, count: 1, resetAt: new Date(Date.now() + LOCKOUT_DURATIONS[0]) },
+      update: { count: { increment: 1 } },
+    });
 
-    if (count >= LOCKOUT_THRESHOLD) {
+    if (entry.count >= LOCKOUT_THRESHOLD) {
+      const lockCount = entry.lockCount ?? 0;
       const duration = LOCKOUT_DURATIONS[Math.min(lockCount, LOCKOUT_DURATIONS.length - 1)];
-      await prisma.rateLimitHit.upsert({
+      await prisma.rateLimitHit.update({
         where: { key },
-        create: {
-          key,
-          count,
+        data: {
+          lockedUntil: new Date(Date.now() + duration),
+          lockCount: lockCount + 1,
           resetAt: new Date(Date.now() + duration),
-          lockedUntil: new Date(Date.now() + duration),
-          lockCount: lockCount + 1,
-        },
-        update: {
-          count,
-          lockedUntil: new Date(Date.now() + duration),
-          lockCount: lockCount + 1,
         },
       });
-      return;
     }
-
-    await prisma.rateLimitHit.upsert({
-      where: { key },
-      create: { key, count, resetAt: new Date(Date.now() + LOCKOUT_DURATIONS[0]) },
-      update: { count },
-    });
   } catch {
     // Fail open — a failed write just means no lockout escalation this round.
   }

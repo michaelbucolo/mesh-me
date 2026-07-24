@@ -109,7 +109,10 @@ export async function POST(request: NextRequest) {
       adultVerificationProvider: provider,
       adultVerificationRegion: region || null,
       adultVerificationReference: reference || null,
-      nsfwEnabled: false,
+      // Force NSFW off only on non-verified transitions (rejection/expiry). A
+      // "verified" webhook (e.g. a renewal) must not clobber a preference the
+      // user legitimately enabled in Settings after verifying.
+      ...(verified ? {} : { nsfwEnabled: false }),
     },
   });
 

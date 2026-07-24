@@ -48,7 +48,11 @@ function billingFallback(user: {
   };
 }
 
-export async function syncMeshProSubscription(subscription: Stripe.Subscription, fallbackUserId?: string) {
+export async function syncMeshProSubscription(
+  subscription: Stripe.Subscription,
+  fallbackUserId?: string,
+  options: { revalidate?: boolean } = {},
+) {
   const subscriptionId = subscription.id;
   const customerId = stripeObjectId(subscription.customer);
   const userId = subscription.metadata?.userId || fallbackUserId;
@@ -77,10 +81,16 @@ export async function syncMeshProSubscription(subscription: Stripe.Subscription,
     },
   });
 
-  revalidatePath("/meshpro");
-  revalidatePath("/billing");
-  revalidatePath("/settings");
-  revalidatePath(`/profile/${updated.username}`);
+  // revalidatePath throws when called during a Server Component render (Next.js
+  // error E7), so cache invalidation is opt-in and only requested from route
+  // handlers / server actions (the Stripe webhook). Render-time callers
+  // (billing/meshpro pages) reconcile the DB but must not revalidate here.
+  if (options.revalidate) {
+    revalidatePath("/meshpro");
+    revalidatePath("/billing");
+    revalidatePath("/settings");
+    revalidatePath(`/profile/${updated.username}`);
+  }
 
   return updated;
 }
@@ -124,9 +134,8 @@ export async function syncMeshProCheckoutSessionForUser(sessionId: string, userI
         stripeCustomerId: customerId,
       },
     });
-    revalidatePath("/meshpro");
-    revalidatePath("/billing");
-    revalidatePath("/settings");
+    // No revalidatePath here: this runs during the meshpro page render (E7).
+    // The checkout.session.completed webhook revalidates authoritatively.
     return { ok: true, message: "Mesh Pro is active." };
   }
 
@@ -157,10 +166,18 @@ export async function getMeshProBillingState(userId: string): Promise<MeshProBil
     }) as SubscriptionWithPeriod;
     await syncMeshProSubscription(subscription, userId);
 
-    const price = subscription.items.data[0]?.price;
-    const currentPeriodEnd = typeof subscription.current_period_end === "number"
-      ? new Date(subscription.current_period_end * 1000)
-      : null;
+    const firstItem = subscription.items.data[0];
+    const price = firstItem?.price;
+    // As of the pinned Stripe API version, current_period_end lives on the
+    // subscription item, not the subscription root. Fall back to the root for
+    // older API versions.
+    const periodEndSeconds =
+      typeof firstItem?.current_period_end === "number"
+        ? firstItem.current_period_end
+        : typeof subscription.current_period_end === "number"
+          ? subscription.current_period_end
+          : null;
+    const currentPeriodEnd = periodEndSeconds !== null ? new Date(periodEndSeconds * 1000) : null;
 
     return billingFallback(user, {
       isConfigured: true,

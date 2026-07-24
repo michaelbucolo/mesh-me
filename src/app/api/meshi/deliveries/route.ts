@@ -64,7 +64,17 @@ export async function GET() {
           where: {
             senderId: n.actorId,
             createdAt: { lte: new Date(n.createdAt.getTime() + 5000) },
-            thread: { members: { some: { userId: user.id } } },
+            // Scope to the 1:1 DM between the two users, not any shared thread —
+            // otherwise a later message the actor posts to a shared *group* within
+            // the 5s window overrides the actual delivered message.
+            thread: {
+              threadType: "direct",
+              members: { every: { userId: { in: [user.id, n.actorId] } } },
+              AND: [
+                { members: { some: { userId: user.id } } },
+                { members: { some: { userId: n.actorId } } },
+              ],
+            },
           },
           orderBy: { createdAt: "desc" },
           select: { content: true },

@@ -107,7 +107,13 @@ export function MeshBackground({
 
     resize();
     window.addEventListener("resize", resize);
-    window.addEventListener("scroll", resize, { passive: true });
+    // Scrolling only changes where the canvas sits in the viewport — refresh the
+    // cached rect used for pointer mapping, but never re-run the full resize
+    // (which reseeds every star via Math.random and teleports the constellation).
+    const onScroll = () => {
+      canvasRectRef.current = canvas.getBoundingClientRect();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const updateReducedMotion = () => {
@@ -468,7 +474,7 @@ export function MeshBackground({
 
     return () => {
       window.removeEventListener("resize", resize);
-      window.removeEventListener("scroll", resize);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("mesh-activity", handleActivity);
       window.removeEventListener("mesh-converge", handleConverge);
       reducedMotionQuery.removeEventListener("change", updateReducedMotion);

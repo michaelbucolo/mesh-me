@@ -38,7 +38,14 @@ async function getCachedTypingMeshi(userId: string): Promise<TypingMeshi | null>
         outfit: pref.outfitStyle,
       }
     : null;
-  cache.set(userId, { meshi, expiresAt: Date.now() + MESHI_CACHE_TTL_MS });
+  // Opportunistically evict expired entries (this runs only on a cache miss, so
+  // at most once per user per TTL) — otherwise the process-global map grows one
+  // permanent entry per distinct user forever.
+  const now = Date.now();
+  for (const [key, entry] of cache) {
+    if (entry.expiresAt <= now) cache.delete(key);
+  }
+  cache.set(userId, { meshi, expiresAt: now + MESHI_CACHE_TTL_MS });
   return meshi;
 }
 

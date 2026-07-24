@@ -3,7 +3,15 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { nsfwHiddenWhere } from "./content-safety";
-import { areMutualFollowers, getBlockedUserIdSet } from "./privacy-policy";
+import {
+  areMutualFollowers,
+  getBlockedUserIdSet,
+  canSeeMeshBranch,
+  canSeeMeshStats,
+  canViewProfile,
+  normalizeMeshVisibility,
+  parseBranchOverrides,
+} from "./privacy-policy";
 import { rateLimit } from "./security";
 
 /**
@@ -191,7 +199,11 @@ function detectIntent(query: string): QueryIntent {
 
   // ── Platform queries ──
   for (const platform of PLATFORM_NAMES) {
-    if (q.includes(platform)) {
+    // Bare "x" (Twitter) is a single letter, so a plain substring check would
+    // match any query containing the letter x (e.g. "explain my content").
+    // Require a standalone-word match for it.
+    const matchesPlatform = platform === "x" ? /\bx\b/.test(q) : q.includes(platform);
+    if (matchesPlatform) {
       if (q.includes("content") || q.includes("posts") || q.includes("videos") || q.includes("photos")) {
         const normalizedPlatform = platform === "x"
           ? "twitter"
@@ -264,14 +276,30 @@ async function resolvePersonForViewer(name: string, viewerId: string) {
       ],
       isSuspended: false,
     },
-    select: { id: true, username: true, displayName: true, isPublic: true },
+    select: {
+      id: true, username: true, displayName: true, isPublic: true,
+      meshPrivacy: {
+        select: { meshVisibility: true, branchOverrides: true, showConnections: true, showStats: true },
+      },
+    },
   });
   if (!person) return null;
 
   const isSelf = person.id === viewerId;
   const isMutual = isSelf ? true : await areMutualFollowers(viewerId, person.id);
   const canSeeContent = isSelf || person.isPublic || isMutual;
-  return { ...person, isSelf, isMutual, canSeeContent };
+  // Connected accounts have no per-row visibility flag; the only gate the app
+  // applies is the "platforms" mesh branch (queries.ts canSeeBranch). Mirror it
+  // so Meshi never discloses channels the owner hid on their profile.
+  const canSeePlatforms = canSeeMeshBranch({
+    viewer: { id: viewerId },
+    targetUserId: person.id,
+    branchKey: "platforms",
+    branchOverrides: parseBranchOverrides(person.meshPrivacy?.branchOverrides),
+    isFriend: isMutual,
+    showConnections: person.meshPrivacy?.showConnections,
+  });
+  return { ...person, isSelf, isMutual, canSeeContent, canSeePlatforms };
 }
 
 function privateProfileAnswer(): MeshiAnswer {
@@ -312,7 +340,10 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
         select: {
           id: true, username: true, displayName: true, bio: true,
           avatarUrl: true, isVerified: true, status: true, lastSeenAt: true,
-          hideActivityStatus: true,
+          hideActivityStatus: true, isPublic: true, isSuspended: true,
+          meshPrivacy: {
+            select: { meshVisibility: true, branchOverrides: true, showConnections: true, showStats: true },
+          },
           _count: { select: { followers: true, following: true, posts: true } },
         },
       },
@@ -322,20 +353,30 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
   if (found) {
     const u = found.following;
     // Check if mutual
-    const isMutual = await prisma.follow.findFirst({
+    const isMutual = Boolean(await prisma.follow.findFirst({
       where: { followerId: u.id, followingId: user.id },
-    });
+      select: { id: true },
+    }));
+
+    // A one-way follow does not make a private profile visible. Gate bio,
+    // stats, and last-seen exactly as the profile page does (queries.ts): bio
+    // and activity require canViewProfile; counts additionally require the
+    // owner's showStats. Otherwise Meshi discloses what the profile withholds.
+    const viewer = { id: user.id, isAdmin: user.isAdmin };
+    const meshVisibility = normalizeMeshVisibility(u.meshPrivacy?.meshVisibility);
+    const profileVisible = canViewProfile(viewer, u, meshVisibility, isMutual);
+    const canSeeStats = profileVisible && canSeeMeshStats(viewer, u.id, u.meshPrivacy);
 
     const parts = [`${u.displayName} (@${u.username}) is on your mesh!`];
     if (isMutual) parts.push("You follow each other.");
     else parts.push("You follow them.");
-    if (u.bio) parts.push(`Bio: "${u.bio}"`);
-    parts.push(`${u._count.followers} followers, ${u._count.following} following, ${u._count.posts} posts.`);
+    if (profileVisible && u.bio) parts.push(`Bio: "${u.bio}"`);
+    if (canSeeStats) parts.push(`${u._count.followers} followers, ${u._count.following} following, ${u._count.posts} posts.`);
     if (u.isVerified) parts.push("They're verified!");
-    // Respect the target's "Hide activity status" — Meshi must not leak online
-    // state or a last-seen timestamp for someone who's hidden their activity,
-    // matching the gate on profiles.
-    if (!u.hideActivityStatus) {
+    // Respect the target's "Hide activity status" AND profile visibility —
+    // Meshi must not leak online state or a last-seen timestamp for someone
+    // who's hidden their activity or whose (private) profile the viewer can't see.
+    if (profileVisible && !u.hideActivityStatus) {
       if (u.status === "online") parts.push("They're online right now!");
       else if (u.lastSeenAt) {
         const ago = getTimeAgo(u.lastSeenAt);
@@ -424,8 +465,12 @@ async function getSharedPosts(name: string): Promise<MeshiAnswer> {
   const totalInteractions = myPostsCommentedByThem.length + theirPostsCommentedByMe.length + mentionPosts.length;
 
   if (totalInteractions === 0) {
+    // Don't echo the resolved person's identity here: resolvePersonForViewer
+    // fuzzy-matches any non-suspended account with no visibility/block gate, so
+    // naming them would confirm a private/non-discoverable account's existence
+    // (and display name + @username) purely from a search string.
     return {
-      content: `I don't see any shared posts or interactions between you and ${otherUser.displayName} (@${otherUser.username}) yet. You could post something together or comment on each other's posts to build that connection!`,
+      content: `I don't see any shared posts or interactions with "${name}" yet. You could comment on each other's posts to build that connection!`,
       mood: "thinking",
     };
   }
@@ -483,6 +528,10 @@ async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
   }
   if (!person.canSeeContent) return privateProfileAnswer();
 
+  // Synced platform posts (and the platform names they reveal) are only
+  // aggregated when the viewer may see the target's "platforms" mesh branch —
+  // otherwise the topic summary would leak hidden channel linkage.
+  const canSeePlatformPosts = person.isSelf || person.canSeePlatforms;
   const [meshPosts, platformPosts] = await Promise.all([
     prisma.post.findMany({
       where: { ...safetyWhere, authorId: person.id, ...visibleAuthorPostWhere(person.isSelf, person.isMutual) },
@@ -493,18 +542,20 @@ async function getPersonPostTopics(name: string): Promise<MeshiAnswer> {
       orderBy: { createdAt: "desc" },
       take: 80,
     }),
-    prisma.platformPost.findMany({
-      where: {
-        ...safetyWhere,
-        connectedAccount: { userId: person.id },
-        // Aggregate topic counts must not include a target's non-public synced
-        // posts for anyone but the owner.
-        ...(person.isSelf ? {} : { visibility: "public" }),
-      },
-      select: { postType: true, content: true, title: true, connectedAccount: { select: { platform: true } } },
-      orderBy: { publishedAt: "desc" },
-      take: 80,
-    }),
+    canSeePlatformPosts
+      ? prisma.platformPost.findMany({
+          where: {
+            ...safetyWhere,
+            connectedAccount: { userId: person.id },
+            // Aggregate topic counts must not include a target's non-public synced
+            // posts for anyone but the owner.
+            ...(person.isSelf ? {} : { visibility: "public" }),
+          },
+          select: { postType: true, content: true, title: true, connectedAccount: { select: { platform: true } } },
+          orderBy: { publishedAt: "desc" },
+          take: 80,
+        })
+      : Promise.resolve([] as { postType: string; content: string | null; title: string | null; connectedAccount: { platform: string } }[]),
   ]);
 
   const topicCounts = new Map<string, number>();
@@ -554,6 +605,9 @@ async function getPersonChannels(name: string): Promise<MeshiAnswer> {
     return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
   }
   if (!person.canSeeContent) return privateProfileAnswer();
+  if (!person.canSeePlatforms) {
+    return { content: `${person.displayName} keeps their connected channels private.`, mood: "thinking" };
+  }
 
   const accounts = await prisma.connectedAccount.findMany({
     where: { userId: person.id, isActive: true },
@@ -601,6 +655,9 @@ async function getPersonPlatformCreated(name: string, platform: string): Promise
     return { content: `I can't find "${name}" on mesh.me.`, mood: "thinking" };
   }
   if (!person.canSeeContent) return privateProfileAnswer();
+  if (!person.canSeePlatforms) {
+    return { content: `${person.displayName} keeps their connected channels private.`, mood: "thinking" };
+  }
 
   const account = await prisma.connectedAccount.findFirst({
     where: {

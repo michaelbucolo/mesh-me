@@ -249,8 +249,10 @@ export async function GET(
               accessToken: encryptedAccessToken,
               ...(encryptedRefreshToken ? { refreshToken: encryptedRefreshToken } : {}),
               expiresAt,
-              platformUsername,
-              platformId,
+              // Don't clobber previously-good identity with null when a transient
+              // profile-fetch failure left these unresolved on a reconnect.
+              ...(platformUsername ? { platformUsername } : {}),
+              ...(platformId ? { platformId } : {}),
               scopes: grantedScopes,
               isActive: true,
               updatedAt: new Date(),

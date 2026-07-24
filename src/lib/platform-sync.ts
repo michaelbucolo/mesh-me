@@ -2533,7 +2533,7 @@ function missingScopeError(
 
 async function getActingAccountForSourcePost(
   userId: string,
-  sourceAccount: { id: string; userId: string; platform: string; accessToken: string | null; scopes: string | null }
+  sourceAccount: { id: string; userId: string; platform: string; accessToken: string | null; refreshToken: string | null; expiresAt: Date | null; scopes: string | null }
 ) {
   if (sourceAccount.userId === userId) return sourceAccount;
 
@@ -2562,7 +2562,7 @@ export async function deletePlatformPost(postId: string) {
   const scopeError = missingScopeError(post.connectedAccount, capability);
   if (scopeError) return { error: scopeError };
 
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  const accessToken = await getValidAccessToken(post.connectedAccount);
   if (post.connectedAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
   if (!accessToken) return { error: "No access token" };
 
@@ -2600,7 +2600,7 @@ export async function crossPostContent(content: string, platforms: string[], med
         results[account.platformUsername || account.platform] = { success: false, error: scopeError };
         continue;
       }
-      const accessToken = getStoredAccessToken(account.accessToken);
+      const accessToken = await getValidAccessToken(account);
       if (account.accessToken && !accessToken) {
         results[accountId] = { success: false, error: "Token encryption key is missing" };
         continue;
@@ -2638,7 +2638,6 @@ export async function crossPostContent(content: string, platforms: string[], med
         results[platform] = { success: false, error: capability.reason };
         continue;
       }
-      const accessToken = getStoredAccessToken(account?.accessToken || null);
       if (!account) {
         results[platform] = { success: false, error: "Not connected or no access token" };
         continue;
@@ -2648,6 +2647,7 @@ export async function crossPostContent(content: string, platforms: string[], med
         results[platform] = { success: false, error: scopeError };
         continue;
       }
+      const accessToken = await getValidAccessToken(account);
       if (account.accessToken && !accessToken) {
         results[platform] = { success: false, error: "Token encryption key is missing" };
         continue;
@@ -2698,7 +2698,7 @@ export async function editPlatformPost(postId: string, content: string) {
   if (!capability.supported) return { error: capability.reason };
   const scopeError = missingScopeError(post.connectedAccount, capability);
   if (scopeError) return { error: scopeError };
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  const accessToken = await getValidAccessToken(post.connectedAccount);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
@@ -2730,7 +2730,7 @@ export async function likePlatformPost(postId: string) {
   const scopeError = missingScopeError(actingAccount, capability);
   if (scopeError) return { error: scopeError };
 
-  const accessToken = getStoredAccessToken(actingAccount.accessToken);
+  const accessToken = await getValidAccessToken(actingAccount);
   if (actingAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
   if (!accessToken) return { error: "No access token" };
 
@@ -2770,7 +2770,7 @@ export async function unlikePlatformPost(postId: string) {
   const scopeError = missingScopeError(actingAccount, capability);
   if (scopeError) return { error: scopeError };
 
-  const accessToken = getStoredAccessToken(actingAccount.accessToken);
+  const accessToken = await getValidAccessToken(actingAccount);
   if (actingAccount.accessToken && !accessToken) return { error: "Stored token is unreadable. Reconnect this platform account." };
   if (!accessToken) return { error: "No access token" };
 
@@ -2806,7 +2806,7 @@ export async function followPlatformUser(connectedAccountId: string, platformUse
   if (!capability.supported) return { error: capability.reason };
   const followScopeError = missingScopeError(account, capability);
   if (followScopeError) return { error: followScopeError };
-  const accessToken = getStoredAccessToken(account.accessToken);
+  const accessToken = await getValidAccessToken(account);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(account.platform);
@@ -2835,17 +2835,32 @@ export async function unfollowPlatformUser(connectedAccountId: string, platformU
   if (!capability.supported) return { error: capability.reason };
   const unfollowScopeError = missingScopeError(account, capability);
   if (unfollowScopeError) return { error: unfollowScopeError };
-  const accessToken = getStoredAccessToken(account.accessToken);
+  const accessToken = await getValidAccessToken(account);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(account.platform);
   const ok = await adapter.unfollowUser(accessToken, platformUserId);
   if (!ok) return { error: "Unfollow failed — platform may not support this action" };
 
-  await prisma.platformFollower.updateMany({
+  // After unfollowing, the "I follow them" edge is gone. If it was mutual, they
+  // still follow us → downgrade to a plain "follower". If it was a one-way
+  // "following" (e.g. a YouTube subscription), no relationship remains — remove
+  // the row rather than relabel it "follower" (which would wrongly assert they
+  // follow us).
+  const existing = await prisma.platformFollower.findFirst({
     where: { connectedAccountId, platformUserId },
-    data: { isMutual: false, relationshipType: "follower" },
+    select: { isMutual: true },
   });
+  if (existing?.isMutual) {
+    await prisma.platformFollower.updateMany({
+      where: { connectedAccountId, platformUserId },
+      data: { isMutual: false, relationshipType: "follower" },
+    });
+  } else {
+    await prisma.platformFollower.deleteMany({
+      where: { connectedAccountId, platformUserId },
+    });
+  }
 
   return { success: true };
 }
@@ -2870,7 +2885,7 @@ export async function sharePlatformPost(postId: string, comment?: string) {
   if (!capability.supported) return { error: capability.reason };
   const scopeError = missingScopeError(actingAccount, capability);
   if (scopeError) return { error: scopeError };
-  const accessToken = getStoredAccessToken(actingAccount.accessToken);
+  const accessToken = await getValidAccessToken(actingAccount);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(actingAccount.platform);
@@ -2898,7 +2913,7 @@ export async function pinPlatformPost(postId: string) {
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
   const capability = getPlatformActionCapability(post.connectedAccount.platform, "pin");
   if (!capability.supported) return { error: capability.reason };
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  const accessToken = await getValidAccessToken(post.connectedAccount);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
@@ -2924,7 +2939,7 @@ export async function unpinPlatformPost(postId: string) {
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
   const capability = getPlatformActionCapability(post.connectedAccount.platform, "unpin");
   if (!capability.supported) return { error: capability.reason };
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  const accessToken = await getValidAccessToken(post.connectedAccount);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
@@ -2950,7 +2965,7 @@ export async function updatePlatformPostVisibility(postId: string, visibility: s
   if (!post || post.connectedAccount.userId !== user.id) return { error: "Post not found" };
   const capability = getPlatformActionCapability(post.connectedAccount.platform, "visibility");
   if (!capability.supported) return { error: capability.reason };
-  const accessToken = getStoredAccessToken(post.connectedAccount.accessToken);
+  const accessToken = await getValidAccessToken(post.connectedAccount);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(post.connectedAccount.platform);
@@ -2974,6 +2989,11 @@ export async function replyToPlatformComment(postId: string, content: string) {
     include: { connectedAccount: true },
   });
   if (!post) return { error: "Post not found" };
+  // Match like/unlike/share: never let a non-owner act on someone else's
+  // non-public synced post (would post a comment on their private content and
+  // cross-link a PlatformComment row to the caller's account).
+  const isPostOwner = post.connectedAccount.userId === user.id;
+  if (!isPostOwner && post.visibility !== "public") return { error: "Post not found" };
 
   const actingAccount = await getActingAccountForSourcePost(user.id, post.connectedAccount);
   if (!actingAccount) return { error: `Connect ${post.connectedAccount.platform} to comment on this post from Mesh.me.` };
@@ -2983,7 +3003,7 @@ export async function replyToPlatformComment(postId: string, content: string) {
   const scopeError = missingScopeError(actingAccount, capability);
   if (scopeError) return { error: scopeError };
 
-  const accessToken = getStoredAccessToken(actingAccount.accessToken);
+  const accessToken = await getValidAccessToken(actingAccount);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(actingAccount.platform);
@@ -3018,7 +3038,7 @@ export async function deletePlatformComment(commentId: string) {
   if (!capability.supported) return { error: capability.reason };
   const scopeError = missingScopeError(comment.connectedAccount, capability);
   if (scopeError) return { error: scopeError };
-  const accessToken = getStoredAccessToken(comment.connectedAccount.accessToken);
+  const accessToken = await getValidAccessToken(comment.connectedAccount);
   if (!accessToken) return { error: "No access token" };
 
   const adapter = getAdapter(comment.connectedAccount.platform);

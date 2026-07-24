@@ -96,6 +96,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   if (
     (action === "start" ||
       action === "end" ||
+      action === "start-call" ||
       action === "end-call" ||
       action === "invite" ||
       action === "remove-participant" ||

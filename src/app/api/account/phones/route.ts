@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
 
@@ -34,10 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many phone additions. Please try again later." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
   const { phone } = body;
   if (!phone || typeof phone !== "string" || phone.length < 7) {
     return NextResponse.json({ error: "Valid phone number required" }, { status: 400 });
@@ -86,12 +83,9 @@ export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const deleteBody = await req.json().catch(() => null);
-  if (!deleteBody || typeof deleteBody !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const deleteBody = await readJsonObject(req);
   const { phoneId } = deleteBody;
-  if (!phoneId) return NextResponse.json({ error: "phoneId required" }, { status: 400 });
+  if (!phoneId || typeof phoneId !== "string") return NextResponse.json({ error: "phoneId required" }, { status: 400 });
 
   const phoneRecord = await prisma.userPhone.findUnique({ where: { id: phoneId } });
   if (!phoneRecord || phoneRecord.userId !== session.userId) {

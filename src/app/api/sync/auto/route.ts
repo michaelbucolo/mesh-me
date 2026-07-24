@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { syncPlatform } from "@/lib/platform-sync";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { canImportFromPlatform } from "@/lib/platform-capabilities";
+import { clearMeshCache } from "@/lib/mesh-cache";
 
 export async function GET() {
   return NextResponse.json(
@@ -69,8 +70,12 @@ export async function POST(req: Request) {
       }
     }
 
+    const syncedCount = results.filter((r) => r.success).length;
+    // Invalidate the 45s-TTL mesh cache so freshly synced content shows up.
+    if (syncedCount > 0) clearMeshCache(user.id);
+
     return NextResponse.json({
-      synced: results.filter((r) => r.success).length,
+      synced: syncedCount,
       total: staleAccounts.length,
       results,
     });
