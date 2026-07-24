@@ -1,17 +1,21 @@
 // useMeshInput — every gesture on the canvas: drag-pan with inertia, pinch
-// zoom+pan, wheel zoom, tap/double-tap, hover hit-testing, node activation,
-// the travel dive into a friend's mesh, and the content stream the lens
-// glides through. Extracted verbatim from the old mesh-scene.tsx.
+// zoom+pan, wheel zoom, tap/double-tap, long-press pluck, hover hit-testing,
+// node activation, the travel dive into a friend's mesh, and the content
+// stream the lens glides through. Extracted verbatim from the old
+// mesh-scene.tsx; PR5 adds the pluck (press-and-hold a content node →
+// cosmetic spring stretch + the DOM quick-action ring).
 
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import type React from "react";
 import { playSound } from "@/lib/sound";
 import { clampZoom, unprojectPoint, MAX_ZOOM } from "../core/camera";
-import type { MeshRuntimeRef } from "./runtime";
+import type { MeshRuntime, MeshRuntimeRef } from "./runtime";
+import { catchUpTourIds } from "./seen-marks";
 import type { BranchKey, SceneModel, SceneNode } from "./scene-model";
 import { spawnBurst } from "../live/hearts";
+import { aimPluck, releasePluck, startPluck } from "../sim/toys";
 
 export interface MeshInputDeps {
   fitToContent: () => void;
@@ -25,6 +29,9 @@ export interface MeshInputDeps {
   onStartTour: (ids: string[]) => void;
   /** Catch-up fallback when nothing is new: open the list view. */
   openList: () => void;
+  /** A long-press plucked this content node — open the quick-action ring at
+   * this screen anchor (the DOM overlay's job; the canvas only stretches). */
+  onPluck: (node: SceneNode, anchor: { x: number; y: number }) => void;
 }
 
 export interface MeshInput {
@@ -64,6 +71,16 @@ export function contentListOf(model: SceneModel | null, tourIds: string[] | null
   return out;
 }
 
+/** Press-and-hold this long (touch long-press / mouse hold) plucks a node. */
+const PLUCK_HOLD_MS = 420;
+
+function cancelPluckHold(rt: MeshRuntime): void {
+  if (rt.pluckHold) {
+    clearTimeout(rt.pluckHold.timer);
+    rt.pluckHold = null;
+  }
+}
+
 export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshInput {
   const {
     fitToContent,
@@ -74,7 +91,14 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     onTravel,
     onStartTour,
     openList,
+    onPluck,
   } = deps;
+
+  // A pending hold timer must not outlive the scene.
+  useEffect(() => {
+    const rt = rtRef.current;
+    return () => cancelPluckHold(rt);
+  }, [rtRef]);
 
   const flyToNode = useCallback(
     (node: SceneNode) => {
@@ -162,25 +186,24 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     return contentListOf(rt.model, rt.tourIds);
   }, [rtRef]);
 
-  // Catch-up tour: fly through what arrived since your last visit, oldest
-  // first, right in the world — each stop opens in the lens where it lives.
+  // Catch-up tour: fly through what arrived since your last visit — every
+  // unseen item, OLDEST first (the order life happened) — each stop opening
+  // in the lens where it lives. The ordering is pinned by the seen-bridge
+  // contract test via the pure catchUpTourIds.
   const startCatchUp = useCallback(() => {
     const rt = rtRef.current;
     const model = rt.model;
     if (!model) return;
-    const fresh = Array.from(model.nodes.values())
-      .filter((n) => n.isNew && (n.kind === "post" || n.kind === "activity"))
-      .sort((a, b) => (a.createdAtMs ?? 0) - (b.createdAtMs ?? 0));
-    if (fresh.length === 0) {
+    const ids = catchUpTourIds(model);
+    if (ids.length === 0) {
       openList();
       return;
     }
-    const ids = fresh.map((n) => n.id);
     // Sync the runtime immediately so the lens's very first render already
     // sees the tour stream, not the full mesh stream.
     rt.tourIds = ids;
     onStartTour(ids);
-    const first = fresh[0];
+    const first = model.nodes.get(ids[0])!;
     setActiveBranch(first.branch);
     setSelectedNode(first);
     rt.panTarget = { nodeId: first.id };
@@ -275,7 +298,46 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       d.vy = 0;
       rt.fling = { vx: 0, vy: 0 };
       rt.panTarget = null;
+      // Arm the PLUCK: a single pointer resting on a content node for
+      // PLUCK_HOLD_MS (without moving, without a second finger) plucks it —
+      // spring stretch on the canvas + the quick-action ring in the DOM.
+      cancelPluckHold(rt);
+      if (rt.pointers.size === 1 && !rt.toys.pluck && rect && rect.width > 0 && rect.height > 0) {
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const held = hitTest(sx, sy, rt.coarse ? 22 : 0);
+        if (held && (held.kind === "post" || held.kind === "activity")) {
+          const nodeId = held.id;
+          const pointerId = e.pointerId;
+          rt.pluckHold = {
+            nodeId,
+            pointerId,
+            timer: setTimeout(() => {
+              rt.pluckHold = null;
+              // Still a genuine hold? (finger down, hasn't dragged or pinched)
+              if (!rt.drag.active || rt.drag.moved || rt.pointers.size !== 1) return;
+              const model = rt.model;
+              const node = model?.nodes.get(nodeId);
+              const anchor = rt.hitmap.circles.get(nodeId);
+              const container = rt.containerEl;
+              if (!model || !node || !anchor || !container) return;
+              const r = container.getBoundingClientRect();
+              const p = rt.pointers.get(pointerId);
+              if (!r.width || !r.height || !p) return;
+              const w = unprojectPoint(rt.camera, r.width, r.height, p.x - r.left, p.y - r.top);
+              startPluck(rt.toys, nodeId, w.x, w.y);
+              rt.pluckPointerId = pointerId;
+              // The eventual lift is the pluck's release — never a tap, never
+              // a double-tap half.
+              rt.lastTap = null;
+              playSound("pop");
+              onPluck(node, { x: anchor.x, y: anchor.y });
+            }, PLUCK_HOLD_MS),
+          };
+        }
+      }
       if (rt.pointers.size === 2) {
+        cancelPluckHold(rt);
         const pts = [...rt.pointers.values()];
         d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         d.pinchMidX = (pts[0].x + pts[1].x) / 2;
@@ -285,7 +347,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         d.moved = true;
       }
     },
-    [rtRef],
+    [rtRef, hitTest, onPluck],
   );
 
   const onPointerMove = useCallback(
@@ -299,6 +361,16 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       const rect = container.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
+      // A plucked node follows the finger — its pointer steers the spring
+      // stretch (world-space aim), never the camera or the hover state.
+      if (rt.pluckPointerId === e.pointerId) {
+        rt.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (rect.width > 0 && rect.height > 0) {
+          const w = unprojectPoint(rt.camera, rect.width, rect.height, sx, sy);
+          aimPluck(rt.toys, w.x, w.y);
+        }
+        return;
+      }
       if (rect.width > 0 && rect.height > 0) {
         if (rt.coarse) {
           rt.cursorVp = { vx: 0.5, vy: 0.5 };
@@ -386,6 +458,8 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       const moveThresh = rt.coarse ? 12 : 3;
       const wasMoved = d.moved;
       if (Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY) > moveThresh) d.moved = true;
+      // A confirmed drag is a pan, not a hold — disarm any pending pluck.
+      if (d.moved && rt.pluckHold) cancelPluckHold(rt);
       // Don't pan until the gesture is a confirmed drag, so a tap never nudges the
       // scene under your finger. On the frame it first becomes a drag, catch up
       // the full displacement from the press point so panning starts without a jump.
@@ -414,6 +488,22 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     (e: React.PointerEvent) => {
       const rt = rtRef.current;
       const d = rt.drag;
+      // Lifting a plucked node releases the spring (snap-back wobble). The
+      // DOM ring resolves its own release-on-action; this lift is never a
+      // tap, a fling, or a deselect.
+      if (rt.pluckPointerId === e.pointerId) {
+        rt.pluckPointerId = null;
+        releasePluck(rt.toys, rt.model, rt.reducedMotion);
+        rt.pointers.delete(e.pointerId);
+        d.active = false;
+        d.moved = false;
+        d.pinchDist = 0;
+        d.pinchMidX = 0;
+        d.pinchMidY = 0;
+        return;
+      }
+      // A lift before the hold fired is an ordinary tap — disarm the pluck.
+      cancelPluckHold(rt);
       rt.pointers.delete(e.pointerId);
       if (rt.pointers.size < 2) d.pinchDist = 0;
       if (rt.pointers.size === 2) {
@@ -510,6 +600,12 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     (e: React.PointerEvent) => {
       const rt = rtRef.current;
       const d = rt.drag;
+      // An aborted gesture also aborts any pluck — release the spring quietly.
+      cancelPluckHold(rt);
+      if (rt.pluckPointerId === e.pointerId) {
+        rt.pluckPointerId = null;
+        releasePluck(rt.toys, rt.model, rt.reducedMotion);
+      }
       rt.pointers.delete(e.pointerId);
       if (rt.pointers.size < 2) d.pinchDist = 0;
       if (rt.pointers.size === 2) {

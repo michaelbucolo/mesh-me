@@ -753,6 +753,11 @@ model FeedPreference {
   userId    String   @unique
   layout    String   @default("cards")
   sources   String   @default("all")
+  // Viewer-side muted mesh sources (JSON array of "author:{userId}" /
+  // "account:{connectedAccountId}" keys). Muting is a private preference: it
+  // drops a source's content from THIS viewer's own mesh model and Flow
+  // candidates only — it never changes what anyone else can see.
+  mutedSources String @default("[]")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

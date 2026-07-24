@@ -45,6 +45,10 @@ export interface MeshApiResponse {
     connectedAccounts: any[];
   }>;
   alterEgos: any[];
+  /** Own-mesh payload only: the VIEWER's private muted-source keys
+   * ("author:{userId}" / "account:{connectedAccountId}") so the client can
+   * mark muted hubs and offer Unmute. Never present on visited/Global. */
+  viewerMutedSources?: string[];
   meshiPreference: {
     colorTheme: string;
     hatStyle: string;
@@ -153,6 +157,11 @@ export function parseMeshApiResponse(input: unknown): MeshApiResponse {
   }
   if (input.meshCosmetics != null) {
     out.meshCosmetics = arrayOrEmpty(input.meshCosmetics, "meshCosmetics");
+  }
+  if (input.viewerMutedSources != null) {
+    out.viewerMutedSources = arrayOrEmpty(input.viewerMutedSources, "viewerMutedSources").filter(
+      (key): key is string => typeof key === "string",
+    );
   }
   return out;
 }

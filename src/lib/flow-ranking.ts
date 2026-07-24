@@ -12,6 +12,7 @@
 import { prisma } from "./prisma";
 import { ANONYMOUS_VIEWER, canonicalFeedKey, getCombinedFeedPosts, type FeedCardPost, type FeedCurrentUser } from "./feed-data";
 import { guessLanguage } from "./language";
+import { parseMutedSources } from "./muted-sources";
 
 export type TasteProfile = {
   // authorKey (user id or external author handle) -> interaction weight
@@ -127,7 +128,55 @@ export async function getFlowCandidates(user: FeedCurrentUser): Promise<FeedCard
     const key = canonicalFeedKey(post);
     if (!byId.has(key)) byId.set(key, post);
   }
-  return [...byId.values()];
+  return dropMutedSources(user, [...byId.values()]);
+}
+
+/**
+ * Muted mesh sources (a viewer-side preference — see lib/muted-sources.ts)
+ * drop out of THIS viewer's Flow candidate pool: native + platform posts by a
+ * muted author, and platform posts from a muted connected account. Filtering
+ * only ever subtracts from the viewer's own feed; nothing changes for anyone
+ * else. Guests have no preference row by construction.
+ */
+async function dropMutedSources(user: FeedCurrentUser, candidates: FeedCardPost[]): Promise<FeedCardPost[]> {
+  if (user.id === ANONYMOUS_VIEWER.id || candidates.length === 0) return candidates;
+  const pref = await prisma.feedPreference.findUnique({
+    where: { userId: user.id },
+    select: { mutedSources: true },
+  });
+  const keys = parseMutedSources(pref?.mutedSources);
+  if (keys.length === 0) return candidates;
+
+  const mutedAuthors = new Set(
+    keys.filter((k) => k.startsWith("author:")).map((k) => k.slice("author:".length)),
+  );
+  const mutedAccounts = keys
+    .filter((k) => k.startsWith("account:"))
+    .map((k) => k.slice("account:".length));
+
+  // Account-level mutes resolve precisely through the candidates' PlatformPost
+  // row ids (`sourceId`), so muting one account never hides a second account
+  // on the same platform. One bounded query, only when account mutes exist.
+  let mutedPlatformRows = new Set<string>();
+  if (mutedAccounts.length > 0) {
+    const sourceIds = candidates
+      .filter((post) => post.sourceId && post.platform)
+      .map((post) => post.sourceId as string);
+    if (sourceIds.length > 0) {
+      const rows = await prisma.platformPost.findMany({
+        where: { id: { in: sourceIds }, connectedAccountId: { in: mutedAccounts } },
+        select: { id: true },
+      });
+      mutedPlatformRows = new Set(rows.map((row) => row.id));
+    }
+  }
+
+  return candidates.filter((post) => {
+    if (mutedAuthors.has(post.author.id)) return false;
+    if (post.meshFriend && mutedAuthors.has(post.meshFriend.userId)) return false;
+    if (post.sourceId && mutedPlatformRows.has(post.sourceId)) return false;
+    return true;
+  });
 }
 
 export function dominantFormat(post: FeedCardPost): "video" | "image" | "text" {

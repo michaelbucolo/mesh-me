@@ -24,9 +24,12 @@ import { meshCopy } from "../ui/copy";
 import { MeshGates } from "../ui/gates";
 import { MeshListView } from "../ui/list-view";
 import { NodeDetail } from "../ui/node-detail";
+import { MeshPluckRing } from "../ui/pluck-ring";
 import { MeshSearchOverlay } from "../ui/search-overlay";
 import { MeshShortcutsSheet } from "../ui/shortcuts-sheet";
 import { MeshTipsCard } from "../ui/tips-card";
+import { useCatchUp } from "../ui/use-catchup";
+import { MeshWedgeCounts } from "../ui/wedge-counts";
 import { createMeshRuntime, type MeshRuntime, type MeshRuntimeRef } from "./runtime";
 import type { BranchKey, SceneNode } from "./scene-model";
 import { useMeshFrame } from "./use-mesh-frame";
@@ -63,6 +66,8 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [hoverNode, setHoverNode] = useState<SceneNode | null>(null);
   const [tourIds, setTourIds] = useState<string[] | null>(null);
+  // A long-press plucked this node — the radial quick-action ring is open.
+  const [pluck, setPluck] = useState<{ node: SceneNode; anchor: { x: number; y: number } } | null>(null);
   // Travel veil, keyed by the view it started from — arriving at the new view
   // (new props) derives it away without an imperative reset.
   const viewKey = `${viewUserId ?? ""}|${viewMode}`;
@@ -134,6 +139,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     onTravel: useCallback((label: string) => setTravelState({ key: viewKey, label }), [viewKey]),
     onStartTour: setTourIds,
     openList: useCallback(() => chromeRef.current?.open("list"), []),
+    onPluck: useCallback((node: SceneNode, anchor: { x: number; y: number }) => setPluck({ node, anchor }), []),
   });
 
   const chrome = useMeshChrome({
@@ -190,6 +196,26 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   // The lens's stream, derived from the STATE model (identical object to the
   // runtime's — refreshed on every load/rewind rebuild).
   const lensList = useMemo(() => contentListOf(world.model, tourIds), [world.model, tourIds]);
+
+  // Catch-up mode: the tour auto-advances (oldest first) with progress dots;
+  // manual navigation and any touch inside the lens pause it.
+  const catchup = useCatchUp({
+    tourIds,
+    selectedId: selectedNode?.id ?? null,
+    navigate: input.navigateContent,
+    end: closeSelection,
+  });
+
+  // Opening content in the lens clears its New mark for this session — the
+  // viewer-side half of "seen" (wedge counts fall as you actually read). The
+  // cross-Flow impression bridge is separate and lives in the lens itself.
+  const { markNodeSeen } = world;
+  useEffect(() => {
+    if (selectedNode && (selectedNode.kind === "post" || selectedNode.kind === "activity")) {
+      markNodeSeen(selectedNode.id);
+    }
+  }, [selectedNode, markNodeSeen]);
+
   const isContentSelection =
     selectedNode && (selectedNode.kind === "post" || selectedNode.kind === "activity");
   const isDetailSelection =
@@ -260,6 +286,17 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         onRecenter={world.fitToContent}
       />
 
+      {/* Wedge unseen counts + mark-seen pills — the manage layer's "what's
+          piled up where". Own mesh, present time only (marks are viewer-side
+          and Rewind's past has no "new"). */}
+      {viewer.isOwner && world.status === "ready" && world.rewindAt == null && (
+        <MeshWedgeCounts
+          unseen={world.unseen}
+          onFocusBranch={(branch) => setActiveBranch((prev) => (prev === branch ? null : branch))}
+          onMarkSeen={world.markBranchSeen}
+        />
+      )}
+
       {/* Status gates + travel veil. */}
       <MeshGates
         status={world.status}
@@ -312,9 +349,14 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           list={lensList}
           viewer={viewer}
           streamLabel={tourIds ? "new since your last visit" : copy.streamLabel}
+          catchup={catchup}
           onHearted={(node) => emitHeart(rtRef.current, isOwnMesh, node)}
           onClose={closeSelection}
-          onNavigate={input.navigateContent}
+          onNavigate={(dir) => {
+            // Manual browsing means "my pace now" — pause the auto-advance.
+            catchup?.onInteract();
+            input.navigateContent(dir);
+          }}
         />
       )}
 
@@ -325,6 +367,20 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           viewer={viewer}
           onClose={clearSelectionOnly}
           onEnterMesh={input.enterFriendMesh}
+          onMuteChanged={() => void world.loadScene({ quiet: true })}
+        />
+      )}
+
+      {/* Pluck radial ring — the long-press quick-action layer. DOM overlay
+          over the canvas; the canvas only performs the spring stretch. */}
+      {pluck && (
+        <MeshPluckRing
+          node={pluck.node}
+          viewer={viewer}
+          anchor={pluck.anchor}
+          onHearted={(node) => emitHeart(rtRef.current, isOwnMesh, node)}
+          onMuted={() => void world.loadScene({ quiet: true })}
+          onClose={() => setPluck(null)}
         />
       )}
 

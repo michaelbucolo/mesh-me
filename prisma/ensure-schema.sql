@@ -479,6 +479,7 @@ CREATE TABLE IF NOT EXISTS "FeedPreference" (
     "userId" TEXT NOT NULL,
     "layout" TEXT NOT NULL DEFAULT 'cards',
     "sources" TEXT NOT NULL DEFAULT 'all',
+    "mutedSources" TEXT NOT NULL DEFAULT '[]',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "FeedPreference_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE

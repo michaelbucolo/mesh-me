@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { canShareFriendMeshBranch, parseMeshBranchOverrides } from "@/lib/friend-mesh";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
+import { accountMuteKey, authorMuteKey, parseMutedSources } from "@/lib/muted-sources";
 import { areMutualFollowers, canViewMesh, canSeeMeshBranch, canSeeMeshStats, normalizeMeshVisibility, parseBranchOverrides, type BranchVisibility } from "@/lib/privacy-policy";
 
 export async function GET(req: Request) {
@@ -27,7 +28,12 @@ export async function GET(req: Request) {
 
   const safetyWhere = nsfwHiddenWhere(user);
 
-  const [followingData, followersData, communitiesData, interestsData, postsData, connectedAccountsData, alterEgosData, meshiPrefData, meshCosmeticsData] = await Promise.all([
+  // Deliberately trimmed to what the constellation actually renders: the old
+  // communities / interests / activities computations (4 activity queries, a
+  // shared-community join, per-person interest selects) fed payload branches
+  // the scene never builds — they're gone, and their payload keys stay as
+  // empty arrays for shape compatibility.
+  const [followingData, followersData, postsData, connectedAccountsData, alterEgosData, meshiPrefData, meshCosmeticsData, feedPrefData] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: user.id },
       include: {
@@ -36,7 +42,6 @@ export async function GET(req: Request) {
             id: true, username: true, displayName: true, avatarUrl: true,
             status: true, lastSeenAt: true,
             _count: { select: { followers: true, posts: true } },
-            interests: { select: { tag: true }, take: 5 },
           },
         },
       },
@@ -52,7 +57,6 @@ export async function GET(req: Request) {
             id: true, username: true, displayName: true, avatarUrl: true,
             status: true, lastSeenAt: true,
             _count: { select: { followers: true, posts: true } },
-            interests: { select: { tag: true }, take: 5 },
           },
         },
       },
@@ -60,18 +64,6 @@ export async function GET(req: Request) {
       orderBy: { id: "desc" },
       take: 80,
     }),
-    prisma.communityMember.findMany({
-      where: { userId: user.id },
-      include: {
-        community: {
-          select: {
-            id: true, name: true, slug: true, description: true, category: true,
-            _count: { select: { members: true, posts: true } },
-          },
-        },
-      },
-    }),
-    prisma.userInterest.findMany({ where: { userId: user.id }, select: { tag: true } }),
     prisma.post.findMany({
       where: { ...safetyWhere, authorId: user.id },
       select: {
@@ -143,180 +135,16 @@ export async function GET(req: Request) {
       where: { userId: user.id, isActive: true },
       select: { type: true, value: true, isActive: true },
     }),
-  ]);
-
-  const [notificationsData, commentActivityData, reactionActivityData, messageActivityData] = await Promise.all([
-    prisma.notification.findMany({
-      where: { recipientId: user.id },
-      select: {
-        id: true,
-        type: true,
-        message: true,
-        read: true,
-        createdAt: true,
-        postId: true,
-        actor: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatarUrl: true,
-          },
-        },
-        post: {
-          select: {
-            id: true,
-            content: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }),
-    prisma.comment.findMany({
-      where: {
-        authorId: user.id,
-        post: safetyWhere,
-      },
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        post: {
-          select: {
-            id: true,
-            content: true,
-            author: {
-              select: {
-                username: true,
-                displayName: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    }),
-    prisma.reaction.findMany({
-      where: { userId: user.id, post: safetyWhere },
-      select: {
-        id: true,
-        type: true,
-        createdAt: true,
-        post: {
-          select: {
-            id: true,
-            content: true,
-            author: {
-              select: {
-                username: true,
-                displayName: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    }),
-    prisma.message.findMany({
-      where: { senderId: user.id },
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        threadId: true,
-        sourcePlatform: true,
-        messageType: true,
-        sourcePostId: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 6,
+    // The viewer's own muted sources (a private preference) ride the owner
+    // payload so the client can mark muted hubs and offer Unmute.
+    prisma.feedPreference.findUnique({
+      where: { userId: user.id },
+      select: { mutedSources: true },
     }),
   ]);
 
-  const activityData = [
-    ...notificationsData.map((notification) => ({
-      id: `notification-${notification.id}`,
-      type: "notification",
-      label: notification.type.replace(/_/g, " "),
-      summary: notification.message || notification.post?.content || "New Mesh notification",
-      href: notification.postId ? `/feed/${notification.postId}` : "/notifications",
-      sourcePostId: notification.postId,
-      createdAt: notification.createdAt,
-      isUnread: !notification.read,
-      actor: notification.actor
-        ? {
-            id: notification.actor.id,
-            username: notification.actor.username,
-            displayName: notification.actor.displayName,
-            avatarUrl: notification.actor.avatarUrl,
-          }
-        : null,
-    })),
-    ...commentActivityData.map((comment) => ({
-      id: `comment-${comment.id}`,
-      type: "comment",
-      label: "Commented",
-      summary: comment.content || `Replied to ${comment.post.author.displayName || comment.post.author.username}`,
-      href: `/feed/${comment.post.id}`,
-      sourcePostId: comment.post.id,
-      createdAt: comment.createdAt,
-      isUnread: false,
-      actor: null,
-    })),
-    ...reactionActivityData.map((reaction) => ({
-      id: `reaction-${reaction.id}`,
-      type: reaction.type || "reaction",
-      label: reaction.type === "like" ? "Liked a post" : `${reaction.type} reaction`,
-      summary: reaction.post.content || `Reacted to ${reaction.post.author.displayName || reaction.post.author.username}`,
-      href: `/feed/${reaction.post.id}`,
-      sourcePostId: reaction.post.id,
-      createdAt: reaction.createdAt,
-      isUnread: false,
-      actor: null,
-    })),
-    ...messageActivityData.map((message) => ({
-      id: `message-${message.id}`,
-      type: "message",
-      label: message.sourcePlatform === "mesh" ? "MeChat message" : `${message.sourcePlatform} message`,
-      summary: message.content,
-      href: `/messages/${message.threadId}`,
-      sourcePostId: message.sourcePostId || null,
-      createdAt: message.createdAt,
-      isUnread: false,
-      actor: null,
-    })),
-    ...connectedAccountsData
-      .filter((account) => Boolean(account.lastSyncAt))
-      .map((account) => ({
-        id: `sync-${account.id}`,
-        type: "sync",
-        label: `${account.platform} synced`,
-        summary: account.platformUsername
-          ? `@${account.platformUsername} is connected and ready.`
-          : `${account.platform} is connected and ready.`,
-        href: "/connected-accounts",
-        sourcePostId: null,
-        connectedAccountId: account.id,
-        createdAt: account.lastSyncAt,
-        isUnread: false,
-        actor: null,
-      })),
-    {
-      id: `profile-created-${user.id}`,
-      type: "profile",
-      label: "Mesh created",
-      summary: "Your private Mesh account is active.",
-      href: "/settings",
-      sourcePostId: null,
-      connectedAccountId: null,
-      createdAt: user.createdAt,
-      isUnread: false,
-      actor: null,
-    },
-  ].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).slice(0, 18);
+  const mutedSourceKeys = parseMutedSources(feedPrefData?.mutedSources);
+  const mutedSourceSet = new Set(mutedSourceKeys);
 
   // Find mutual follows (people the user follows who also follow them back)
   const followingIds = new Set(followingData.map((f) => f.following.id));
@@ -414,39 +242,7 @@ export async function GET(req: Request) {
       })
     : [];
 
-  // Find which users share communities with the current user
-  const communityIds = communitiesData.map((cm) => cm.community.id);
   const allUserIds = Array.from(new Set([...followingIds, ...followerIds]));
-  const sharedCommunityMembers = communityIds.length > 0 && allUserIds.length > 0
-    ? await prisma.communityMember.findMany({
-        where: {
-          communityId: { in: communityIds },
-          userId: { in: allUserIds },
-        },
-        select: { userId: true, communityId: true },
-      })
-    : [];
-
-  // Build user-to-community connections
-  const userCommunityLinks: Record<string, string[]> = {};
-  for (const m of sharedCommunityMembers) {
-    if (!userCommunityLinks[m.userId]) userCommunityLinks[m.userId] = [];
-    userCommunityLinks[m.userId].push(m.communityId);
-  }
-
-  // Find shared interests between user and all connected users
-  const userTags = new Set(interestsData.map((i) => i.tag));
-  const userSharedInterests: Record<string, string[]> = {};
-  for (const f of followingData) {
-    const shared = f.following.interests?.filter((i) => userTags.has(i.tag)).map((i) => i.tag) || [];
-    if (shared.length > 0) userSharedInterests[f.following.id] = shared;
-  }
-  for (const f of followersData) {
-    if (!userSharedInterests[f.follower.id]) {
-      const shared = f.follower.interests?.filter((i) => userTags.has(i.tag)).map((i) => i.tag) || [];
-      if (shared.length > 0) userSharedInterests[f.follower.id] = shared;
-    }
-  }
 
   // Calculate interaction counts per user (comments, likes, messages exchanged)
   // This powers interaction-based proximity — more interactions = closer in the mesh
@@ -506,8 +302,6 @@ export async function GET(req: Request) {
     following: followingData.map((f) => ({
       ...f.following,
       isMutual: mutualSet.has(f.following.id),
-      sharedCommunities: userCommunityLinks[f.following.id] || [],
-      sharedInterests: userSharedInterests[f.following.id] || [],
       // When this person entered your world — powers the mesh's Rewind.
       joinedAt: f.createdAt,
       lastSeenAt: f.following.lastSeenAt,
@@ -519,8 +313,6 @@ export async function GET(req: Request) {
     followers: followersData.map((f) => ({
       ...f.follower,
       isMutual: mutualSet.has(f.follower.id),
-      sharedCommunities: userCommunityLinks[f.follower.id] || [],
-      sharedInterests: userSharedInterests[f.follower.id] || [],
       joinedAt: f.createdAt,
       followerCount: f.follower._count.followers,
       postCount: f.follower._count.posts,
@@ -528,16 +320,10 @@ export async function GET(req: Request) {
       status: f.follower.status || "offline",
       lastSeenAt: f.follower.lastSeenAt,
     })),
-    communities: communitiesData.map((cm) => ({
-      id: cm.community.id,
-      name: cm.community.name,
-      slug: cm.community.slug,
-      description: cm.community.description,
-      category: cm.community.category,
-      memberCount: cm.community._count.members,
-      postCount: cm.community._count.posts,
-    })),
-    interests: interestsData.map((i) => i.tag),
+    // Never rendered by the constellation — kept as empty arrays purely for
+    // payload-shape compatibility (the client parser defaults them anyway).
+    communities: [],
+    interests: [],
     posts: postsData.map((p) => ({
       id: p.id,
       content: p.content.slice(0, 200),
@@ -565,7 +351,9 @@ export async function GET(req: Request) {
       analytics: acct.platformAnalytics[0] || null,
       // This is the owner's own mesh — they should see all of their own synced
       // posts (the query is already scoped to safetyWhere, not visibility).
-      topPosts: acct.platformPosts
+      // A MUTED account keeps its hub (so it can be unmuted from the mesh)
+      // but ships no content — the viewer asked for quiet, not amnesia.
+      topPosts: (mutedSourceSet.has(accountMuteKey(acct.id)) ? [] : acct.platformPosts)
         .map((p) => ({
         id: p.id,
         platformPostId: p.platformPostId,
@@ -608,6 +396,9 @@ export async function GET(req: Request) {
       const meshVisibility = friend.meshPrivacy?.meshVisibility ?? "private";
       const canSharePosts = canShareFriendMeshBranch(meshVisibility, branchOverrides, "posts");
       const canSharePlatforms = canShareFriendMeshBranch(meshVisibility, branchOverrides, "platforms");
+      // Viewer-side mute: a muted friend's posts stay out of the viewer's own
+      // payload (their person node remains, for context and unmuting).
+      const authorMuted = mutedSourceSet.has(authorMuteKey(friend.id));
 
       return {
         user: {
@@ -616,7 +407,7 @@ export async function GET(req: Request) {
           displayName: friend.displayName,
           avatarUrl: friend.avatarUrl,
         },
-        posts: canSharePosts
+        posts: canSharePosts && !authorMuted
           ? friend.posts.map((p) => ({
               id: p.id,
               content: p.content.slice(0, 200),
@@ -634,13 +425,13 @@ export async function GET(req: Request) {
               repostCount: p._count.reposts,
             }))
           : [],
-        connectedAccounts: canSharePlatforms
+        connectedAccounts: canSharePlatforms && !authorMuted
           ? friend.connectedAccounts.map((acct) => ({
               id: acct.id,
               platform: acct.platform,
               platformUsername: acct.platformUsername,
               syncStatus: acct.syncStatus,
-              topPosts: acct.platformPosts.map((p) => ({
+              topPosts: (mutedSourceSet.has(accountMuteKey(acct.id)) ? [] : acct.platformPosts).map((p) => ({
                 id: p.id,
                 platformPostId: p.platformPostId,
                 connectedAccountId: acct.id,
@@ -669,7 +460,11 @@ export async function GET(req: Request) {
       };
     }),
     alterEgos: alterEgosData,
-    activities: activityData,
+    activities: [],
+    // The viewer's own muted sources (private preference) — lets the client
+    // mark muted hubs and offer Unmute. Own-mesh payload only, and the mesh
+    // cache is per-user, so this never reaches another viewer.
+    viewerMutedSources: mutedSourceKeys,
     meshiPreference: meshiPrefData || {
       colorTheme: "blue",
       hatStyle: "none",
@@ -685,12 +480,12 @@ export async function GET(req: Request) {
       followingCount: followingData.length,
       followerCount: followersData.length,
       mutualCount: mutualSet.size,
-      communityCount: communitiesData.length,
+      communityCount: 0,
       postCount: postsData.length,
-      interestCount: interestsData.length,
+      interestCount: 0,
       connectedPlatformCount: connectedAccountsData.length,
       alterEgoCount: alterEgosData.length,
-      activityCount: activityData.length,
+      activityCount: 0,
     },
   };
 

@@ -73,6 +73,12 @@ export function MeshShortcutsSheet({
         {isCoarsePointer && (
           <p className="text-xs leading-relaxed text-white/70">
             Drag to look around, pinch to zoom, tap anything to open it. Double-tap empty space to zoom in.
+            Press and hold a post to pluck it — quick actions pop out around it.
+          </p>
+        )}
+        {!isCoarsePointer && (
+          <p className="mt-3 text-[11px] leading-relaxed text-white/50">
+            Tip: press and hold a post to pluck it — Like, Save, Share and Mute pop out around it.
           </p>
         )}
         <button

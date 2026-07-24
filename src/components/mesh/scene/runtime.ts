@@ -15,6 +15,7 @@ import { createCamera } from "../core/camera";
 import type { MeshScheduler } from "../core/scheduler";
 import { createHitmap, type Hitmap } from "../sim/hitmap";
 import { createPhysicsState, type PhysicsState } from "../sim/physics";
+import { createToysState, type ToysState } from "../sim/toys";
 import type { PaintEngine } from "../paint";
 import type { BranchKey, SceneModel } from "./scene-model";
 import type { ReactionGlyph } from "./reaction-glyphs";
@@ -170,6 +171,15 @@ export interface MeshRuntime {
   coarse: boolean;
   traveling: boolean;
 
+  // --- toys (cosmetic play physics: the pluck) ---
+  toys: ToysState;
+  /** Pending long-press: armed on pointer-down over a content node, fires
+   * the pluck if the pointer stays put; cancelled by move/lift/pinch. */
+  pluckHold: { timer: ReturnType<typeof setTimeout>; nodeId: string; pointerId: number } | null;
+  /** The pointer currently holding a plucked node (its moves steer the
+   * stretch instead of panning; its lift releases the spring, never taps). */
+  pluckPointerId: number | null;
+
   // --- selection mirrors (React state is authoritative; these feed frames) ---
   hoverId: string | null;
   selectedId: string | null;
@@ -249,6 +259,10 @@ export function createMeshRuntime(): MeshRuntime {
     lastTap: null,
     coarse: true,
     traveling: false,
+
+    toys: createToysState(),
+    pluckHold: null,
+    pluckPointerId: null,
 
     hoverId: null,
     selectedId: null,
