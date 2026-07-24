@@ -551,6 +551,14 @@ function ReelContent({
       router.push("/login?next=/flow");
       return;
     }
+    // Connect-to-interact: watching ANY platform's content is always free, but
+    // liking an external platform's post requires that platform's account
+    // connected or merged — the heart doesn't land until it is. (The server
+    // enforces the same rule, so this gate can't be skipped.)
+    if (!native && !hasSourceAccount) {
+      onNeedsConnect(sourcePlatformId);
+      return;
+    }
     const next = viaDoubleTap ? true : !liked;
     if (next === liked && viaDoubleTap) return;
     setLiked(next);
@@ -561,11 +569,6 @@ function ReelContent({
     // External content shows the source platform's own like count — never move
     // it. Only a native mesh like changes our own count.
     if (native) setLikeCount((c) => c + (next ? 1 : -1));
-    // The external like is a PRIVATE mesh-side taste signal — it never touches
-    // the source platform. When the viewer hasn't merged that platform, offer
-    // the path to interacting there for real (like/comment ON the source),
-    // without blocking the taste like or the freedom to keep browsing.
-    if (next && !native && !hasSourceAccount) onNeedsConnect(sourcePlatformId);
     startLike(async () => {
       const res = native ? await toggleReaction(post.id) : await setFlowLike(post.id, next);
       if (res && "error" in res) {
@@ -1619,7 +1622,7 @@ export function FlowClient({
       {!signedOut && connectPrompt && (
         <div className="mesh-toast-in absolute inset-x-3 bottom-3 z-30 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-white/15 bg-black/80 px-4 py-3 backdrop-blur">
           <p className="min-w-0 text-xs leading-5 text-white/85">
-            Liked into your Flow. Connect or merge {connectPrompt.name} to like &amp; comment there too.
+            Watching is always free — liking a {connectPrompt.name} post needs your {connectPrompt.name} account. Connect it once and hearts land everywhere.
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
             <Link
