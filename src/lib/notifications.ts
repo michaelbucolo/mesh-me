@@ -181,9 +181,36 @@ function getNotificationHref(notification: Pick<SerializedNotification, "categor
   return "/notifications";
 }
 
+// ─── Meshi-delivery message linkage ─────────────────────────────────────
+// A meshi_delivery notification stores WHICH Message row Meshi carried as a
+// machine prefix inside its message column ("[mid:<id>] Meshi delivered…").
+// The Notification model has no spare column and this slice ships with NO
+// schema migrations, so the id rides the text and is stripped at every edge
+// that renders it. The deliveries route resolves the exact message by id
+// (killing the old wrong-message time-window heuristic); legacy rows without
+// the prefix fall back to that heuristic unchanged.
+
+const DELIVERY_MESSAGE_ID_RE = /^\[mid:([A-Za-z0-9_-]{1,64})\]\s?/;
+
+export function encodeDeliveryNotificationMessage(messageId: string, summary: string): string {
+  return `[mid:${messageId}] ${summary}`;
+}
+
+export function parseDeliveryNotificationMessage(
+  message: string | null | undefined,
+): { messageId: string | null; text: string } {
+  if (!message) return { messageId: null, text: "" };
+  const match = message.match(DELIVERY_MESSAGE_ID_RE);
+  if (!match) return { messageId: null, text: message };
+  return { messageId: match[1], text: message.slice(match[0].length) };
+}
+
 function serializeNotification(notification: NotificationRecord): SerializedNotification {
   const createdAt = notification.createdAt instanceof Date ? notification.createdAt.toISOString() : notification.createdAt;
-  const message = notification.message?.trim() || fallbackMessage(notification);
+  // Strip the meshi-delivery message-id marker — machine data never renders.
+  const message =
+    parseDeliveryNotificationMessage(notification.message?.trim()).text ||
+    fallbackMessage(notification);
   const category = classifyNotificationType(notification.type);
   const serialized: SerializedNotification = {
     id: notification.id,

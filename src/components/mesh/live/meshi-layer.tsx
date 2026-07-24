@@ -1,17 +1,18 @@
 // MeshiLayer — the DOM sprite layer over the canvas: your cursor Meshi, the
 // owner's heart Meshi, remote visitors, departure fade-outs, the precise
 // cursor reticle, and the hearts-in-flight host. Positions are written
-// imperatively by the domSync phase; this component only mounts the elements
-// and re-renders on roster/appearance changes. Extracted from mesh-scene.tsx.
+// imperatively by the domSync phase (THE projection edge — sprites live in
+// world coordinates; see live/meshi-machine); this component only mounts the
+// elements and re-renders on roster/appearance changes.
 //
-// One sanctioned PR4 delta lives here: the hover preview card is decoupled
-// from the cursor-Meshi cosmetic (it now also anchors to the plain cursor
-// reticle when the Meshi is disabled or you're on your own mesh) and its
-// media is STILLS ONLY — no autoplaying iframe until the Lens opens.
+// PR6: each remote visitor is a MEMOIZED component keyed on its stable
+// roster entry (live/roster reuses the object while a person's appearance
+// signature is unchanged), so one Meshi's mood or cosmetic change re-renders
+// exactly that Meshi — never the whole room.
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -70,6 +71,49 @@ function HoverPreviewCard({ node }: { node: SceneNode }) {
   );
 }
 
+/** One remote visitor. Memoized: `p` keeps its identity while this person's
+ * appearance signature is unchanged (live/roster), so one Meshi's motion or
+ * mood never re-renders the rest of the room. Mounted invisible at the
+ * centre — the very next domSync frame places it at its world spot. */
+const RemoteMeshi = memo(function RemoteMeshi({
+  p,
+  arriving,
+  register,
+}: {
+  p: RemotePresence;
+  arriving: boolean;
+  register: (userId: string, el: HTMLDivElement | null) => void;
+}) {
+  return (
+    <div
+      ref={(el) => register(p.userId, el)}
+      className={`pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2${arriving ? " meshi-arrive" : ""}`}
+      style={{ left: "50%", top: "50%", opacity: 0 }}
+    >
+      <div className="meshi-world-scale">
+        {p.isPro && <span className="meshi-pro-aura" aria-hidden />}
+        <MeshiMascot
+          size={54}
+          color={p.meshiColor as MeshiColor}
+          hat={p.meshiHat as MeshiHat}
+          hair={(p.meshiHair || "none") as MeshiHair}
+          accessory={(p.meshiAccessory || "none") as MeshiAccessory}
+          eyeStyle={(p.meshiEyeStyle || "regular") as MeshiEyeStyle}
+          badge={(p.meshiBadge || "none") as MeshiBadge}
+          outfit={(p.meshiOutfit || "none") as MeshiOutfit}
+          mood={(p.meshiMood as MeshiMood) || "happy"}
+          animate
+          showGlow={false}
+        />
+      </div>
+      <p className="mt-0.5 max-w-[5rem] truncate text-center text-[9px] font-medium text-white/70">
+        @{p.username}
+      </p>
+      {arriving && <span className="meshi-arrive-ring" aria-hidden />}
+    </div>
+  );
+});
+
 export function MeshiLayer({
   rtRef,
   prefs,
@@ -110,6 +154,16 @@ export function MeshiLayer({
       window.removeEventListener("storage", read);
     };
   }, []);
+
+  // One stable registrar for every remote Meshi element — stable so the
+  // memoized visitors never re-render because of a new callback identity.
+  const registerPresenceEl = useCallback(
+    (userId: string, el: HTMLDivElement | null) => {
+      if (el) rtRef.current.presenceEls.set(userId, el);
+      else rtRef.current.presenceEls.delete(userId);
+    },
+    [rtRef],
+  );
 
   // On your OWN mesh, the owner Meshi pinned at the heart already is you — so
   // don't ALSO render the pointer-following cursor Meshi, or there are two of
@@ -233,65 +287,18 @@ export function MeshiLayer({
         );
       })()}
 
-      {/* Other users' Meshis — visible only while they're viewing this same mesh */}
+      {/* Other users' Meshis — visible only while they're viewing this same
+          mesh. Each is memoized; the roster array only changes on membership/
+          appearance changes, and unchanged members keep their object identity. */}
       {remotePresences.map((p) => {
         // Transient animation gate, recomputed per roster render by design —
         // the roster only re-renders on join/appearance changes, so the
-        // wall-clock read here is what makes the arrive burst expire.
+        // wall-clock read here is what makes the arrive burst expire. The
+        // sprite read is a seed, not a subscription (positions ride domSync).
+        const joinedAt = rtRef.current.presence.sprites.get(p.userId)?.joinedAt ?? 0;
         // eslint-disable-next-line react-hooks/purity
-        const arriving = Date.now() - (rtRef.current.presence.joinStamp.get(p.userId) ?? 0) < 1100;
-        return (
-          <div
-            key={p.userId}
-            ref={(el) => {
-              if (el) rtRef.current.presenceEls.set(p.userId, el);
-              else rtRef.current.presenceEls.delete(p.userId);
-            }}
-            className={`pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2${arriving ? " meshi-arrive" : ""}`}
-            style={(() => {
-              // Initial mount position only — per-frame placement is written
-              // imperatively by the domSync phase, so this render read of the
-              // runtime is a seed, not a subscription.
-              const live = rtRef.current.presence;
-              // Perched connections are positioned per-frame from their node;
-              // start invisible so they never flash in at the viewport centre.
-              if (live.mode.get(p.userId) === "perch") {
-                const pos = live.perchPos.get(p.userId);
-                return pos
-                  ? { left: `${pos.x}px`, top: `${pos.y}px` }
-                  : { left: "50%", top: "50%", opacity: 0 };
-              }
-              const pos =
-                live.pos.get(p.userId) ??
-                live.targets.get(p.userId) ?? {
-                  vx: Math.min(0.97, Math.max(0.03, p.viewportPosition?.vx ?? 0.5)),
-                  vy: Math.min(0.95, Math.max(0.05, p.viewportPosition?.vy ?? 0.5)),
-                };
-              return { left: `${Math.min(pos.vx, 0.95) * 100}%`, top: `${pos.vy * 100}%` };
-            })()}
-          >
-            <div className="meshi-world-scale">
-              {p.isPro && <span className="meshi-pro-aura" aria-hidden />}
-              <MeshiMascot
-                size={54}
-                color={p.meshiColor as MeshiColor}
-                hat={p.meshiHat as MeshiHat}
-                hair={(p.meshiHair || "none") as MeshiHair}
-                accessory={(p.meshiAccessory || "none") as MeshiAccessory}
-                eyeStyle={(p.meshiEyeStyle || "regular") as MeshiEyeStyle}
-                badge={(p.meshiBadge || "none") as MeshiBadge}
-                outfit={(p.meshiOutfit || "none") as MeshiOutfit}
-                mood={(p.meshiMood as MeshiMood) || "happy"}
-                animate
-                showGlow={false}
-              />
-            </div>
-            <p className="mt-0.5 max-w-[5rem] truncate text-center text-[9px] font-medium text-white/70">
-              @{p.username}
-            </p>
-            {arriving && <span className="meshi-arrive-ring" aria-hidden />}
-          </div>
-        );
+        const arriving = joinedAt > 0 && Date.now() - joinedAt < 1100;
+        return <RemoteMeshi key={p.userId} p={p} arriving={arriving} register={registerPresenceEl} />;
       })}
 
       {/* Departed visitors fade out right where they stood. */}

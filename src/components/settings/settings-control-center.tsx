@@ -95,6 +95,7 @@ import {
 } from "@/lib/actions";
 import { getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "@/lib/content-safety";
 import { broadcastGhostMode, GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
+import { broadcastWhereShare, readWhereShare, WHERE_SHARE_EVENT } from "@/lib/where-share";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
 
 type SettingsSnapshot = {
@@ -1116,6 +1117,7 @@ function PrivacySection({
             onChange={applyGhostMode}
           />
           <Toggle icon={EyeOff} label="Hide when you're online" description="Others won't see your online status or last active time." value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
+          <ShareWhereToggle />
           <Toggle icon={CheckCheck} label="Read receipts" description="Let people see when you've read their messages." value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
         </div>
         <HintDetails label="About Ghost Mode">
@@ -2163,6 +2165,36 @@ function SaveButton({ label, pending, disabled = false }: { label: string; pendi
       {pending && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
       {label}
     </button>
+  );
+}
+
+/** The where-chip OPT-IN ("in Ana's mesh", "watching the Flow"). Off by
+ * default; a per-device flag like Ghost Mode's local half. The server
+ * redacts location for anyone who hasn't opted in, so this toggle is the
+ * ONLY way connections ever see where you're browsing. */
+function ShareWhereToggle() {
+  const [shareWhere, setShareWhere] = useState(false);
+  useEffect(() => {
+    const sync = () => setShareWhere(readWhereShare());
+    sync();
+    window.addEventListener(WHERE_SHARE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(WHERE_SHARE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  return (
+    <Toggle
+      icon={MapPin}
+      label="Share where you browse"
+      description="Connections may see which mesh or corner of mesh.me you're exploring. Off, they only see that you're online."
+      value={shareWhere}
+      onChange={(value) => {
+        setShareWhere(value);
+        broadcastWhereShare(value);
+      }}
+    />
   );
 }
 

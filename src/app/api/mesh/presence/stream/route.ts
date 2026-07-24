@@ -130,11 +130,15 @@ export async function GET(request: Request) {
           .catch(() => {});
       }, 20000);
 
-      // Keepalive comment frame so intermediaries don't time out the connection.
+      // Keepalive as a real `ping` EVENT (not a comment): it keeps
+      // intermediaries from timing the connection out AND — because comments
+      // are invisible to EventSource — lets the client's health monitor see
+      // that a quiet room's stream is genuinely alive, so the poll fallback
+      // stays down while the stream is healthy.
       const keepaliveTimer = setInterval(() => {
         if (closed) return;
         try {
-          controller.enqueue(encoder.encode(`: keepalive\n\n`));
+          controller.enqueue(encoder.encode(`event: ping\ndata: {}\n\n`));
         } catch {
           // ignore
         }

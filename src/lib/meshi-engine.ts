@@ -3,6 +3,7 @@
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { nsfwHiddenWhere } from "./content-safety";
+import { encodeDeliveryNotificationMessage } from "./notifications";
 import {
   areMutualFollowers,
   getBlockedUserIdSet,
@@ -1188,21 +1189,27 @@ async function sendMeshiMessage(recipient: string, message: string): Promise<Mes
   }
 
   // Create the message
-  await prisma.message.create({
+  const carried = await prisma.message.create({
     data: {
       content: message,
       senderId: user.id,
       threadId: thread.id,
     },
+    select: { id: true },
   });
 
-  // Create notification
+  // Create notification. The carried message's id rides the summary as a
+  // machine prefix (see src/lib/notifications.ts) so the deliveries route
+  // hands over the EXACT message — no more newest-message-in-window guess.
   await prisma.notification.create({
     data: {
       type: "meshi_delivery",
       recipientId: recipientUser.id,
       actorId: user.id,
-      message: `Meshi delivered a message: "${message.length > 50 ? message.slice(0, 50) + "..." : message}"`,
+      message: encodeDeliveryNotificationMessage(
+        carried.id,
+        `Meshi delivered a message: "${message.length > 50 ? message.slice(0, 50) + "..." : message}"`,
+      ),
     },
   });
 
