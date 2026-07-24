@@ -1490,6 +1490,20 @@ export async function toggleFollow(targetUserId: string) {
   return { success: true, following: !existing, isFriend };
 }
 
+/** Read-only: does the signed-in viewer already follow this user? Seeds UI
+ * that must not guess before letting toggleFollow act — e.g. the private-mesh
+ * gate, whose locked payload carries no viewer-follow state; guessing `false`
+ * there would turn the first click into a silent unfollow. */
+export async function getViewerFollowsUser(targetUserId: string) {
+  const user = await getCurrentUser();
+  if (!user || user.id === targetUserId) return { following: false };
+  const existing = await prisma.follow.findUnique({
+    where: { followerId_followingId: { followerId: user.id, followingId: targetUserId } },
+    select: { id: true },
+  });
+  return { following: Boolean(existing) };
+}
+
 // ─── Profile Actions ─────────────────────────────────────────
 
 function normalizeProfileInterests(formData: FormData) {

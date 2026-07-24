@@ -53,3 +53,4 @@ dev.db
 prisma/dev.db
 
 .env*.local
+.claude/worktrees/

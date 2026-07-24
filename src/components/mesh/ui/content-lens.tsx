@@ -1,0 +1,408 @@
+// The Content Lens — an immersive reader that opens over the mesh when you
+// tap a post or activity. You read the full content and its media, react to
+// it, and glide to the next piece of content on your mesh without ever
+// leaving the web. Extracted from the old mesh-scene.tsx; share rides the
+// ONE useShare() flow, the stream label comes from meshCopy, and Escape is
+// handled by the chrome stacking manager (topmost-layer dismissal), so the
+// lens itself only listens for the arrow keys.
+
+"use client";
+
+import Link from "next/link";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Heart,
+  Maximize2,
+  MessageCircle,
+  Minimize2,
+  Share2,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { toggleReaction } from "@/lib/actions";
+import { openMeshi } from "@/lib/meshi-events";
+import { PlatformLogo } from "@/components/platform/platform-logo";
+import { getVideoEmbedUrl } from "@/lib/video-embed";
+import type { ViewerCaps } from "../core/viewer";
+import type { SceneNode } from "../scene/scene-model";
+import { useShare } from "./use-share";
+
+// The native Post id behind a content node, if it's one of our own posts a
+// signed-in user can react to (external platform posts return null).
+function nativePostId(node: SceneNode): string | null {
+  if (node.id.startsWith("post:")) return node.id.slice("post:".length);
+  if (node.id.startsWith("friend-post:")) {
+    const parts = node.id.split(":");
+    return parts[parts.length - 1] || null;
+  }
+  return null;
+}
+
+function metaCount(node: SceneNode, label: string): number {
+  const v = node.meta?.find((m) => m.label === label)?.value;
+  const n = v ? parseInt(v, 10) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function ContentLens({
+  node,
+  list,
+  viewer,
+  streamLabel = "on your mesh",
+  onHearted,
+  onClose,
+  onNavigate,
+}: {
+  node: SceneNode;
+  list: SceneNode[];
+  /** The Global view is READ-ONLY: no like/reaction writes and no impression
+   * tracking. Read actions (share, comment link, Ask Meshi) stay available. */
+  viewer: ViewerCaps;
+  streamLabel?: string;
+  /** Called on a like so the scene can throw a visible heart at the node. */
+  onHearted?: (node: SceneNode) => void;
+  onClose: () => void;
+  onNavigate: (dir: 1 | -1) => void;
+}) {
+  const readOnly = viewer.isGlobalReadOnly;
+  const index = list.findIndex((n) => n.id === node.id);
+  const total = list.length;
+  const postId = nativePostId(node);
+  const isExternal = Boolean(node.href && node.href.startsWith("http"));
+  // Page-link videos (YouTube/Vimeo/Twitch) play in the lens via their embed
+  // player whenever there's no playable file.
+  const lensEmbedUrl = !node.videoUrl ? getVideoEmbedUrl(node.href, { autoplay: true, muted: true }) : null;
+
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(metaCount(node, "Likes"));
+  const [likePending, startLike] = useTransition();
+
+  // Same autoplay fix as the flow reels: a JSX `muted` sets only the attribute,
+  // but the browser's autoplay policy gates on the muted PROPERTY — set it
+  // imperatively and kick playback so a lens video file actually starts.
+  const lensVideoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const el = lensVideoRef.current;
+    if (!el) return;
+    el.muted = true;
+    void el.play().catch(() => {});
+  }, [node.videoUrl]);
+
+  // Fullscreen happens INSIDE mesh.me — like the Flow, we request it on OUR
+  // media wrapper (which keeps mesh.me's chrome and just fills the screen),
+  // never on the embedded iframe/source. The source only opens if you tap the
+  // provenance link. Mirrors the Flow's in-app fullscreen so the two match.
+  const mediaWrapRef = useRef<HTMLDivElement>(null);
+  const [isLensFullscreen, setIsLensFullscreen] = useState(false);
+  const hasMedia = Boolean(node.videoUrl || lensEmbedUrl || node.imageUrl);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onChange = () => setIsLensFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  const toggleLensFullscreen = () => {
+    const el = mediaWrapRef.current;
+    if (typeof document === "undefined" || !el) return;
+    if (document.fullscreenElement) void document.exitFullscreen?.();
+    else void el.requestFullscreen?.().catch(() => {});
+  };
+
+  // A native post you OPEN on the mesh counts as "seen" — record it in the same
+  // Flow impression store so the Flow's ranker never replays something you
+  // already encountered on the mesh. Native ids match the Flow's seen-set key
+  // exactly (external/platform ids are left alone). Best-effort; the endpoint
+  // writes nothing for guests and self-dedupes, so re-opening is harmless.
+  useEffect(() => {
+    // Read-only (Global) never records impressions — the viewer is not tracked.
+    if (!postId || readOnly) return;
+    void fetch("/api/flow/impression", {
+      method: "POST",
+      body: JSON.stringify({ ids: [postId] }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      keepalive: true,
+    }).catch(() => {});
+  }, [postId, readOnly]);
+
+  // Keyboard: arrows browse. (Escape is the chrome stacking manager's — it
+  // closes the topmost layer, which is this lens whenever it's on top.)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Typing elsewhere — like the Meshi chat opened from this lens — must
+      // not browse the lens under the caret.
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (e.key === "ArrowRight") onNavigate(1);
+      else if (e.key === "ArrowLeft") onNavigate(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onNavigate]);
+
+  const handleLike = () => {
+    if (!postId || readOnly) return;
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((c) => c + (next ? 1 : -1));
+    // Liking is a physical act in the world: your Meshi throws the heart.
+    if (next) onHearted?.(node);
+    startLike(async () => {
+      const res = await toggleReaction(postId);
+      if (res && "error" in res) {
+        setLiked(!next);
+        setLikeCount((c) => c + (next ? -1 : 1));
+      }
+    });
+  };
+
+  const commentCount = metaCount(node, "Comments");
+
+  // Share a post straight from the mesh — the source URL for external items,
+  // otherwise an absolute mesh.me link to the post. Falls back to copying the
+  // link (with a brief "Copied" tick) when no native/Web share sheet exists.
+  const { copied: shareCopied, share } = useShare();
+  const handleShare = () => {
+    const url = isExternal
+      ? node.href!
+      : node.href
+        ? `${window.location.origin}${node.href}`
+        : typeof window !== "undefined"
+          ? window.location.href
+          : "";
+    share({
+      title: node.label || "mesh.me",
+      text: node.content ? node.content.slice(0, 160) : node.label,
+      url,
+      dialogTitle: "Share post",
+    });
+  };
+
+  return (
+    <div
+      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/65 p-3 backdrop-blur-md sm:items-center"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="mesh-panel relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl shadow-2xl"
+        onPointerDown={(e) => e.stopPropagation()}
+        // The lens speaks Meshi's focused-content contract, so asking Meshi
+        // about "this post" works on the mesh exactly like it does on the feed.
+        data-meshi-content-card="true"
+        data-meshi-content-id={node.id}
+        data-meshi-content-platform={isExternal ? node.sublabel || "external" : "meshme"}
+        data-meshi-content-author={node.label}
+        data-meshi-content-text={(node.content || node.label).slice(0, 900)}
+        data-meshi-content-url={node.href}
+        data-meshi-content-media={node.videoUrl || lensEmbedUrl ? "video" : node.imageUrl ? "image" : ""}
+      >
+        {/* Media stage — everything plays right here on the mesh: video files
+            natively, platform pages through their embed players, stills as
+            images. Leaving mesh.me is never required to watch. */}
+        {hasMedia && (
+          <div
+            ref={mediaWrapRef}
+            className={`relative bg-black${isLensFullscreen ? " flex h-full w-full items-center justify-center" : ""}`}
+          >
+            {node.videoUrl ? (
+              <video
+                ref={lensVideoRef}
+                src={node.videoUrl}
+                poster={node.imageUrl ?? undefined}
+                controls
+                autoPlay
+                muted
+                playsInline
+                className={`w-full bg-black object-contain ${isLensFullscreen ? "h-full max-h-full" : "max-h-[46vh]"}`}
+              />
+            ) : lensEmbedUrl ? (
+              <div className={`w-full bg-black ${isLensFullscreen ? "flex h-full items-center justify-center" : "aspect-video"}`}>
+                <iframe
+                  src={lensEmbedUrl}
+                  title="Player"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className={isLensFullscreen ? "aspect-video max-h-full w-full border-0" : "h-full w-full border-0"}
+                />
+              </div>
+            ) : node.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={node.imageUrl}
+                alt=""
+                className={`w-full ${isLensFullscreen ? "h-full max-h-full object-contain" : "max-h-[46vh] object-cover"}`}
+              />
+            ) : null}
+            {/* In-app fullscreen (video/embed): fills the screen with the player
+                still inside mesh.me. The source only opens via the provenance
+                link below — fullscreen never leaves for the native site. */}
+            {(node.videoUrl || lensEmbedUrl) && (
+              <button
+                type="button"
+                aria-label={isLensFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                onClick={toggleLensFullscreen}
+                className="mesh-glass mesh-ctl ds-focus-ring absolute right-3 top-3 z-10 rounded-full p-2 text-white/90 transition active:scale-90"
+              >
+                {isLensFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3 p-5">
+          {/* Source */}
+          <div className="flex items-center gap-3">
+            {node.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={node.avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            ) : node.sublabel && !node.sublabel.startsWith("@") ? (
+              <PlatformLogo platform={node.sublabel} size={36} className="shrink-0 rounded-xl" />
+            ) : (
+              <span
+                className="h-9 w-9 shrink-0 rounded-full"
+                style={{ background: `radial-gradient(circle at 34% 30%, #ffffff55, ${node.color})` }}
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{node.label}</p>
+              {node.sublabel && <p className="truncate text-xs text-white/50">{node.sublabel}</p>}
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/45">
+              <Sparkles size={11} />
+              {node.kind === "activity" ? "Activity" : "Post"}
+            </span>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClose}
+              className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Body */}
+          {node.content ? (
+            <p className="max-h-[28vh] overflow-y-auto whitespace-pre-wrap text-[15px] leading-relaxed text-white/85">
+              {node.content}
+            </p>
+          ) : (
+            <p className="text-sm text-white/45">{node.label}</p>
+          )}
+
+          {/* Engagement */}
+          <div className="flex items-center gap-2 border-t border-white/8 pt-3">
+            {/* Read-only (Global): no interactive Like — it's a write that
+                notifies the author. Share/Comment/Ask-Meshi (reads) remain. */}
+            {readOnly ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/55">
+                <Heart size={14} />
+                {likeCount}
+              </span>
+            ) : (
+              <button
+                type="button"
+                aria-label={liked ? "Unlike" : "Like"}
+                onClick={handleLike}
+                disabled={!postId || likePending}
+                className={`mesh-bubble-btn inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  liked ? "bg-rose-500/15 text-rose-300" : "bg-white/6 text-white/75 hover:bg-white/10"
+                } ${!postId ? "cursor-default opacity-70" : ""}`}
+              >
+                <span
+                  key={likeCount}
+                  className="inline-flex"
+                  style={liked ? { animation: "meshHeartPop .45s ease" } : undefined}
+                >
+                  <Heart size={14} fill={liked ? "currentColor" : "none"} />
+                </span>
+                {likeCount}
+              </button>
+            )}
+
+            {node.href && !isExternal ? (
+              <Link
+                href={node.href}
+                onClick={onClose}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+              >
+                <MessageCircle size={14} />
+                {commentCount > 0 ? commentCount : "Comment"}
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/55">
+                <MessageCircle size={14} />
+                {commentCount}
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => openMeshi("chat")}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+            >
+              <Sparkles size={14} />
+              Ask Meshi
+            </button>
+
+            <button
+              type="button"
+              aria-label="Share post"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+            >
+              {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+              {shareCopied ? "Copied" : "Share"}
+            </button>
+
+            {isExternal && node.href && (
+              // Secondary by design: everything plays here; the source link is
+              // provenance, not a requirement.
+              <Link
+                href={node.href}
+                target="_blank"
+                className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-white/40 transition-colors hover:text-white/70"
+              >
+                <ExternalLink size={11} />
+                {node.sublabel || "source"}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Stream controls — browse content across the mesh */}
+        {total > 1 && (
+          <div className="flex items-center justify-between border-t border-white/8 bg-black/30 px-4 py-2.5">
+            <button
+              type="button"
+              onClick={() => onNavigate(-1)}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <ChevronLeft size={15} />
+              Prev
+            </button>
+            <span className="text-[11px] font-medium tracking-wide text-white/40">
+              {index >= 0 ? index + 1 : 1} / {total} {streamLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() => onNavigate(1)}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Next
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
