@@ -31,33 +31,77 @@ export async function POST(request: Request) {
   if (!rl.allowed) return new NextResponse(null, { status: 429 });
 
   const body = await readJsonObject(request);
+  // Real post ids (cuids and external composites) are far under 200 chars —
+  // longer strings are junk that would only bloat the sender's own rows.
+  const idOk = (v: string) => v.length > 0 && v.length <= 200;
   const ids = Array.isArray(body.ids)
     ? [
         ...new Set(
           (body.ids as unknown[])
             .filter((v): v is string => typeof v === "string")
             .map((v) => v.trim())
-            .filter(Boolean),
+            .filter(idOk),
         ),
       ].slice(0, MAX_IDS)
     : [];
-  if (ids.length === 0) return new NextResponse(null, { status: 204 });
+  // Watch entries: {i: postId, w: watch segment ms, c: best completion 0..1}.
+  // These shape only the SENDER's own taste profile (their private feed), so
+  // client-reported values can't affect anyone else; still, clamp every number
+  // so junk can never distort rows beyond one honest session's worth.
+  type WatchEntry = { i: string; w: number; c: number };
+  const watch: WatchEntry[] = Array.isArray(body.watch)
+    ? (body.watch as unknown[])
+        .filter((v): v is Record<string, unknown> => !!v && typeof v === "object")
+        .map((v) => ({
+          i: typeof v.i === "string" ? v.i.trim() : "",
+          w: Math.max(0, Math.min(120_000, Math.round(Number(v.w) || 0))),
+          c: Math.max(0, Math.min(1, Number(v.c) || 0)),
+        }))
+        .filter((v) => idOk(v.i) && (v.w > 0 || v.c > 0))
+        .slice(0, MAX_IDS)
+    : [];
+  if (ids.length === 0 && watch.length === 0) return new NextResponse(null, { status: 204 });
 
   try {
     // Insert only genuinely-new rows (SQLite has no skipDuplicates): fetching
     // the already-present ids first means we never touch an existing row — so a
     // `liked` row (with its taste signal + heart state) is never clobbered by a
     // later plain "seen".
+    const watchIds = watch.map((w) => w.i);
+    const allIds = [...new Set([...ids, ...watchIds])];
     const existing = await prisma.flowImpression.findMany({
-      where: { userId: user.id, postId: { in: ids } },
-      select: { postId: true },
+      where: { userId: user.id, postId: { in: allIds } },
+      select: { postId: true, watchMs: true, completion: true },
     });
-    const have = new Set(existing.map((e) => e.postId));
-    const fresh = ids.filter((id) => !have.has(id));
+    const have = new Map(existing.map((e) => [e.postId, e]));
+    const watchById = new Map(watch.map((w) => [w.i, w]));
+    // The union of ids + watch ids can reach 2×MAX_IDS — cap the INSERT batch
+    // itself so the documented one-request bound actually holds.
+    const fresh = allIds.filter((id) => !have.has(id)).slice(0, MAX_IDS);
     if (fresh.length > 0) {
       const seenAt = new Date();
       await prisma.flowImpression.createMany({
-        data: fresh.map((postId) => ({ userId: user.id, postId, seenAt })),
+        data: fresh.map((postId) => {
+          const w = watchById.get(postId);
+          return { userId: user.id, postId, seenAt, watchMs: w?.w ?? 0, completion: w?.c ?? 0 };
+        }),
+      });
+    }
+    // Keep the LONGEST single watch segment and the BEST completion reached.
+    // Max, not sum: the ranker's thresholds (fast-skip <2s, full watch ≥24s)
+    // are per-view semantics — a lifetime sum would let twenty 1s flicks past
+    // a recycled reel masquerade as a completed watch and flip an author the
+    // viewer keeps rejecting into positive affinity. Iterates the deduped map
+    // so duplicate ids in one beacon can't multiply row updates.
+    for (const w of watchById.values()) {
+      const row = have.get(w.i);
+      if (!row) continue;
+      const nextWatch = Math.min(600_000, Math.max(row.watchMs ?? 0, w.w));
+      const nextCompletion = Math.max(row.completion ?? 0, w.c);
+      if (nextWatch === row.watchMs && nextCompletion === row.completion) continue;
+      await prisma.flowImpression.update({
+        where: { userId_postId: { userId: user.id, postId: w.i } },
+        data: { watchMs: nextWatch, completion: nextCompletion },
       });
     }
 

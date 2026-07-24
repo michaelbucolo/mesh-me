@@ -1297,6 +1297,8 @@ CREATE TABLE IF NOT EXISTS "FlowImpression" (
     "authorKey" TEXT,
     "format" TEXT,
     "tags" TEXT,
+    "watchMs" INTEGER NOT NULL DEFAULT 0,
+    "completion" REAL NOT NULL DEFAULT 0,
     PRIMARY KEY ("userId", "postId"),
     CONSTRAINT "FlowImpression_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );

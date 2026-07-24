@@ -121,6 +121,7 @@ function ReelMedia({
   muted,
   onToggleMute,
   nearActive = false,
+  onProgress,
 }: {
   post: FlowPost;
   active: boolean;
@@ -130,6 +131,9 @@ function ReelMedia({
   /** This reel is the active one or one of the next couple — fetch its video
    * ahead of time so it plays instantly the moment you scroll onto it. */
   nearActive?: boolean;
+  /** Fraction of the video reached (0..1) — the watch-completion signal the
+   * ranker feeds on. Only fired while this reel owns the screen. */
+  onProgress?: (completion: number) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -197,8 +201,11 @@ function ReelMedia({
           onError={() => setVideoFailed(true)}
           onTimeUpdate={(event) => {
             const el = event.currentTarget;
-            if (progressRef.current && el.duration > 0) {
-              progressRef.current.style.width = `${(el.currentTime / el.duration) * 100}%`;
+            if (el.duration > 0) {
+              if (progressRef.current) {
+                progressRef.current.style.width = `${(el.currentTime / el.duration) * 100}%`;
+              }
+              if (active) onProgress?.(el.currentTime / el.duration);
             }
           }}
           className={`relative h-full w-full ${contain ? "object-contain" : "object-cover"}`}
@@ -398,6 +405,7 @@ function Reel({
   signedOut = false,
   connectedSet,
   onNeedsConnect,
+  onWatchProgress,
 }: {
   post: FlowPost;
   /** Position in the vertical list — the observer's identity for this slot,
@@ -415,6 +423,7 @@ function Reel({
   signedOut?: boolean;
   connectedSet: Set<string>;
   onNeedsConnect: (platformId: string) => void;
+  onWatchProgress: (postId: string, completion: number) => void;
 }) {
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   // Shared with the tapped stage: a horizontal fling sets this so the trailing
@@ -462,6 +471,7 @@ function Reel({
             signedOut={signedOut}
             connectedSet={connectedSet}
             onNeedsConnect={onNeedsConnect}
+            onWatchProgress={onWatchProgress}
             suppressTapRef={suppressTapRef}
           />
         </AnimatePresence>
@@ -486,6 +496,7 @@ function ReelContent({
   signedOut,
   connectedSet,
   onNeedsConnect,
+  onWatchProgress,
   suppressTapRef,
 }: {
   post: FlowPost;
@@ -501,6 +512,7 @@ function ReelContent({
   signedOut: boolean;
   connectedSet: Set<string>;
   onNeedsConnect: (platformId: string) => void;
+  onWatchProgress: (postId: string, completion: number) => void;
   suppressTapRef: React.MutableRefObject<boolean>;
 }) {
   const router = useRouter();
@@ -629,7 +641,7 @@ function ReelContent({
       transition={laneStageTransition}
       onClick={handleStageTap}
     >
-          <ReelMedia post={post} active={active} nearActive={nearActive} paused={paused} muted={muted} onToggleMute={onToggleMute} />
+          <ReelMedia post={post} active={active} nearActive={nearActive} paused={paused} muted={muted} onToggleMute={onToggleMute} onProgress={(c) => onWatchProgress(post.id, c)} />
 
           {/* Double-tap hearts bloom from the exact tap point — a cluster of
               hearts and a couple of cyan sparks flung outward, plus a ring. */}
@@ -1089,6 +1101,60 @@ export function FlowClient({
   const pendingSeenRef = useRef<Set<string>>(new Set());
   const reportedRef = useRef<Set<string>>(new Set());
   const flushTimerRef = useRef<number | null>(null);
+  // Watch-time capture — Reels' primary ranking signal. Dwell milliseconds
+  // accumulate for whichever reel currently owns the screen, and videos also
+  // report the furthest fraction reached. Flushed with the seen beacon; only
+  // ever shapes THIS viewer's own feed.
+  const watchAccumRef = useRef<Map<string, { w: number; c: number }>>(new Map());
+  const activeWatchRef = useRef<{ id: string | null; startedAt: number }>({ id: null, startedAt: 0 });
+  // The reel on screen, tracked separately from the dwell clock so the clock
+  // can fully SUSPEND while the tab is hidden and resume for the right reel.
+  const displayedIdRef = useRef<string | null>(null);
+
+  // Bank the elapsed dwell for the reel currently on screen and restart its
+  // clock — called on reel change, on flush, and around tab-hide gaps.
+  const foldActiveWatch = useCallback(() => {
+    const cur = activeWatchRef.current;
+    if (!cur.id) return;
+    const now = Date.now();
+    const delta = now - cur.startedAt;
+    cur.startedAt = now;
+    if (delta <= 0) return;
+    const entry = watchAccumRef.current.get(cur.id) ?? { w: 0, c: 0 };
+    entry.w = Math.min(120_000, entry.w + delta);
+    watchAccumRef.current.set(cur.id, entry);
+  }, []);
+
+  const beginWatch = useCallback((id: string | null) => {
+    foldActiveWatch();
+    displayedIdRef.current = signedOut ? null : id;
+    // The dwell clock only ever runs while the tab is visible — a reel that
+    // becomes active under a hidden tab (a fetch resolving in the background)
+    // starts its clock on the next visibilitychange back.
+    const hidden = typeof document !== "undefined" && document.hidden;
+    activeWatchRef.current = { id: hidden ? null : displayedIdRef.current, startedAt: Date.now() };
+  }, [foldActiveWatch, signedOut]);
+
+  // A failed non-beacon flush puts the watch quantities back, so a dropped
+  // request can't freeze a genuinely-watched reel at a fast-skip reading.
+  const restoreWatch = useCallback((entries: { i: string; w: number; c: number }[]) => {
+    for (const e of entries) {
+      const cur = watchAccumRef.current.get(e.i) ?? { w: 0, c: 0 };
+      cur.w = Math.min(120_000, cur.w + e.w);
+      cur.c = Math.max(cur.c, e.c);
+      watchAccumRef.current.set(e.i, cur);
+    }
+  }, []);
+
+  const reportWatchProgress = useCallback((id: string, completion: number) => {
+    if (signedOut || !(completion > 0)) return;
+    const entry = watchAccumRef.current.get(id) ?? { w: 0, c: 0 };
+    const c = Math.min(1, completion);
+    if (c > entry.c) {
+      entry.c = c;
+      watchAccumRef.current.set(id, entry);
+    }
+  }, [signedOut]);
 
   // Recently-watched reels persist across visits so the ranker can keep the
   // feed fresh instead of replaying yesterday.
@@ -1105,11 +1171,19 @@ export function FlowClient({
   // sendBeacon (survives the page going away); otherwise a keepalive fetch.
   const flushSeen = useCallback((useBeacon = false) => {
     if (signedOut) return;
+    foldActiveWatch();
     const pending = [...pendingSeenRef.current].filter((id) => !reportedRef.current.has(id));
-    if (pending.length === 0) return;
+    // Watch stats ride along with the seen ids. Sub-250ms dwell with no real
+    // completion is scroll-past noise — leave it accumulating for next time.
+    const watch = [...watchAccumRef.current.entries()]
+      .filter(([, v]) => v.w >= 250 || v.c > 0)
+      .slice(0, 60)
+      .map(([i, v]) => ({ i, w: Math.round(v.w), c: Math.round(v.c * 1000) / 1000 }));
+    if (pending.length === 0 && watch.length === 0) return;
     pendingSeenRef.current = new Set();
     pending.forEach((id) => reportedRef.current.add(id));
-    const bodyStr = JSON.stringify({ ids: pending });
+    for (const w of watch) watchAccumRef.current.delete(w.i);
+    const bodyStr = JSON.stringify({ ids: pending, watch });
     if (useBeacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
       navigator.sendBeacon("/api/flow/impression", new Blob([bodyStr], { type: "application/json" }));
       return;
@@ -1120,8 +1194,12 @@ export function FlowClient({
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       keepalive: true,
-    }).catch(() => {});
-  }, [signedOut]);
+    })
+      .then((res) => {
+        if (!res.ok) restoreWatch(watch);
+      })
+      .catch(() => restoreWatch(watch));
+  }, [signedOut, foldActiveWatch, restoreWatch]);
 
   const markSeen = useCallback((id: string) => {
     if (seenRef.current.has(id)) return;
@@ -1151,7 +1229,21 @@ export function FlowClient({
   // and once more on unmount.
   useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden) flushSeen(true);
+      if (document.hidden) {
+        // Fold dwell up to the hide moment and ship it, then SUSPEND the
+        // clock entirely — otherwise a later fold while still hidden (a
+        // pagehide from the tab strip, a throttled timer) would book the
+        // whole hidden stretch as watch time.
+        flushSeen(true);
+        activeWatchRef.current = { id: null, startedAt: 0 };
+        if (flushTimerRef.current) {
+          window.clearTimeout(flushTimerRef.current);
+          flushTimerRef.current = null;
+        }
+      } else {
+        // Resume the clock for whatever reel is on screen.
+        activeWatchRef.current = { id: displayedIdRef.current, startedAt: Date.now() };
+      }
     };
     const onPageHide = () => flushSeen(true);
     document.addEventListener("visibilitychange", onVisibility);
@@ -1228,14 +1320,18 @@ export function FlowClient({
     return () => observer.disconnect();
   }, [posts.length, lanes]);
 
-  // Whatever is on screen counts as watched — original or lane content.
+  // Whatever is on screen counts as watched — original or lane content. The
+  // same moment starts its dwell clock (folding the previous reel's time).
   useEffect(() => {
     const slot = posts[activeIndex];
     if (!slot) return;
     const lane = lanes[slot.id];
     const displayed = lane && lane.index > 0 ? lane.posts[lane.index - 1] : slot;
-    if (displayed) markSeen(displayed.id);
-  }, [activeIndex, posts, lanes, markSeen]);
+    if (displayed) {
+      markSeen(displayed.id);
+      beginWatch(displayed.id);
+    }
+  }, [activeIndex, posts, lanes, markSeen, beginWatch]);
 
   // Pull the next ranked batch as the viewer nears the end. The server ranks;
   // we just tell it what we already have and what's been watched.
@@ -1585,6 +1681,7 @@ export function FlowClient({
               signedOut={signedOut}
               connectedSet={connectedSet}
               onNeedsConnect={handleNeedsConnect}
+              onWatchProgress={reportWatchProgress}
             />
           );
         })}
