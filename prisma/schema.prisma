@@ -239,6 +239,11 @@ model FlowImpression {
   authorKey String?
   format    String?
   tags      String?
+  // Watch signal (Reels-style ranking inputs): accumulated on-screen time in
+  // ms, and the best video completion fraction (0..1) reached. A tiny watchMs
+  // with no like is an implicit "skipped past it" negative signal.
+  watchMs    Int   @default(0)
+  completion Float @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

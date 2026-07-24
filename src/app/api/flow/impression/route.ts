@@ -41,23 +41,58 @@ export async function POST(request: Request) {
         ),
       ].slice(0, MAX_IDS)
     : [];
-  if (ids.length === 0) return new NextResponse(null, { status: 204 });
+  // Watch entries: {i: postId, w: watchMs delta, c: best completion 0..1}.
+  // These shape only the SENDER's own taste profile (their private feed), so
+  // client-reported values can't affect anyone else; still, clamp every number
+  // so junk can never distort rows beyond one honest session's worth.
+  type WatchEntry = { i: string; w: number; c: number };
+  const watch: WatchEntry[] = Array.isArray(body.watch)
+    ? (body.watch as unknown[])
+        .filter((v): v is Record<string, unknown> => !!v && typeof v === "object")
+        .map((v) => ({
+          i: typeof v.i === "string" ? v.i.trim() : "",
+          w: Math.max(0, Math.min(120_000, Math.round(Number(v.w) || 0))),
+          c: Math.max(0, Math.min(1, Number(v.c) || 0)),
+        }))
+        .filter((v) => v.i.length > 0 && (v.w > 0 || v.c > 0))
+        .slice(0, MAX_IDS)
+    : [];
+  if (ids.length === 0 && watch.length === 0) return new NextResponse(null, { status: 204 });
 
   try {
     // Insert only genuinely-new rows (SQLite has no skipDuplicates): fetching
     // the already-present ids first means we never touch an existing row — so a
     // `liked` row (with its taste signal + heart state) is never clobbered by a
     // later plain "seen".
+    const watchIds = watch.map((w) => w.i);
+    const allIds = [...new Set([...ids, ...watchIds])];
     const existing = await prisma.flowImpression.findMany({
-      where: { userId: user.id, postId: { in: ids } },
-      select: { postId: true },
+      where: { userId: user.id, postId: { in: allIds } },
+      select: { postId: true, watchMs: true, completion: true },
     });
-    const have = new Set(existing.map((e) => e.postId));
-    const fresh = ids.filter((id) => !have.has(id));
+    const have = new Map(existing.map((e) => [e.postId, e]));
+    const watchById = new Map(watch.map((w) => [w.i, w]));
+    const fresh = allIds.filter((id) => !have.has(id));
     if (fresh.length > 0) {
       const seenAt = new Date();
       await prisma.flowImpression.createMany({
-        data: fresh.map((postId) => ({ userId: user.id, postId, seenAt })),
+        data: fresh.map((postId) => {
+          const w = watchById.get(postId);
+          return { userId: user.id, postId, seenAt, watchMs: w?.w ?? 0, completion: w?.c ?? 0 };
+        }),
+      });
+    }
+    // Accumulate watch time onto rows that already exist (capped so a looping
+    // video can't inflate forever) and keep the BEST completion reached.
+    for (const w of watch) {
+      const row = have.get(w.i);
+      if (!row) continue;
+      const nextWatch = Math.min(600_000, (row.watchMs ?? 0) + w.w);
+      const nextCompletion = Math.max(row.completion ?? 0, w.c);
+      if (nextWatch === row.watchMs && nextCompletion === row.completion) continue;
+      await prisma.flowImpression.update({
+        where: { userId_postId: { userId: user.id, postId: w.i } },
+        data: { watchMs: nextWatch, completion: nextCompletion },
       });
     }
 

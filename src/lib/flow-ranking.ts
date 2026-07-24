@@ -25,6 +25,50 @@ export type TasteProfile = {
 
 const HOUR_MS = 3_600_000;
 
+/**
+ * Per-post implicit watch behavior — the signal Instagram weighs above all
+ * else for Reels. Read only from the VIEWER's own impressions.
+ */
+export type WatchStats = { watchMs: number; completion: number; liked: boolean };
+
+// Watch-time value model thresholds: a near-complete watch (or long dwell) is
+// a quiet "more like this"; flicking past in under two seconds is the
+// clearest "less". An explicit like always overrides the skip read.
+const WATCH_FULL_MS = 24_000;
+const WATCH_PARTIAL_MS = 10_000;
+const FAST_SKIP_MS = 2_000;
+
+function isFastSkip(ws: WatchStats): boolean {
+  return !ws.liked && ws.watchMs > 0 && ws.watchMs < FAST_SKIP_MS && ws.completion < 0.2;
+}
+
+/**
+ * Fold the viewer's implicit watch behavior into their taste profile.
+ * Completing a video (or dwelling a long while) accrues author affinity at
+ * roughly half a like; a fast skip subtracts — so authors the viewer keeps
+ * flicking past sink across the whole feed, not just the one seen post.
+ * Mutates the profile in place; only ever shapes the viewer's own feed.
+ */
+export function applyWatchSignal(
+  profile: TasteProfile,
+  posts: FeedCardPost[],
+  watch: Map<string, WatchStats>,
+): void {
+  if (watch.size === 0) return;
+  const byId = new Map(posts.map((post) => [post.id, post]));
+  for (const [postId, ws] of watch) {
+    const post = byId.get(postId);
+    if (!post) continue;
+    let delta = 0;
+    if (ws.completion >= 0.85 || ws.watchMs >= WATCH_FULL_MS) delta = 0.5;
+    else if (ws.completion >= 0.5 || ws.watchMs >= WATCH_PARTIAL_MS) delta = 0.25;
+    else if (isFastSkip(ws)) delta = -0.35;
+    if (delta === 0) continue;
+    const key = authorKey(post);
+    profile.authorAffinity.set(key, (profile.authorAffinity.get(key) ?? 0) + delta);
+  }
+}
+
 // How hard to nudge same-language content up. Strong enough to cater the Flow
 // to the viewer's language, but below author affinity (2.6) so people you
 // actually engage with are never buried by language alone.
@@ -315,7 +359,13 @@ const MODE_WEIGHTS: Record<Exclude<FlowRankMode, "chronological">, RankWeights> 
 function scoreFlowPost(
   post: FeedCardPost,
   profile: TasteProfile,
-  opts: { now?: number; seen?: Set<string>; weights?: RankWeights; viewerLangs?: Set<string> } = {},
+  opts: {
+    now?: number;
+    seen?: Set<string>;
+    weights?: RankWeights;
+    viewerLangs?: Set<string>;
+    watch?: Map<string, WatchStats>;
+  } = {},
 ): number {
   const now = opts.now ?? Date.now();
   const ageHours = Math.max((now - new Date(post.createdAt).getTime()) / HOUR_MS, 0.5);
@@ -332,9 +382,14 @@ function scoreFlowPost(
   const recency = Math.exp(-ageHours / 52);
 
   // Author affinity: the strongest IG signal — content from people the viewer
-  // actually interacts with.
+  // actually interacts with. Positive history saturates on a log curve;
+  // net-negative history (an author the viewer keeps flicking past, via
+  // applyWatchSignal) becomes a real subtractive penalty.
   const affinityRaw = profile.authorAffinity.get(authorKey(post)) ?? 0;
-  const affinity = Math.min(Math.log1p(affinityRaw) / Math.log(20), 1.5);
+  const affinity =
+    affinityRaw >= 0
+      ? Math.min(Math.log1p(affinityRaw) / Math.log(20), 1.5)
+      : Math.max(affinityRaw, -3) * 0.2;
 
   // Format match: viewers who mostly watch video get more video, etc.
   const format = dominantFormat(post);
@@ -383,8 +438,12 @@ function scoreFlowPost(
   score *= 1 + (Math.random() - 0.5) * 0.16;
 
   // Seen fatigue: already-watched reels sink hard but stay retrievable once
-  // fresh material runs out.
-  if (opts.seen?.has(post.id)) score *= 0.06;
+  // fresh material runs out. A reel the viewer fast-skipped sinks hardest —
+  // they already answered — while everything else keeps the standard crush.
+  if (opts.seen?.has(post.id)) {
+    const ws = opts.watch?.get(post.id);
+    score *= ws && isFastSkip(ws) ? 0.02 : 0.06;
+  }
 
   return score;
 }
@@ -410,6 +469,9 @@ export function rankFlowPosts(
     /** The viewer's languages (from Accept-Language). Same-language content is
      * nudged up so the Flow caters to the language they actually read. */
     viewerLangs?: Set<string>;
+    /** The viewer's own per-post watch stats — deepens the seen crush for
+     * fast-skipped reels. Author-level effects come via applyWatchSignal. */
+    watch?: Map<string, WatchStats>;
   } = {},
 ): FeedCardPost[] {
   const mode = opts.mode ?? "balanced";
@@ -439,7 +501,7 @@ export function rankFlowPosts(
   const weights = opts.studio ? weightsFromStudio(opts.studio) : MODE_WEIGHTS[mode];
   const now = Date.now();
   const scored = candidates
-    .map((post) => ({ post, score: scoreFlowPost(post, profile, { now, seen: opts.seen, weights, viewerLangs: opts.viewerLangs }) }))
+    .map((post) => ({ post, score: scoreFlowPost(post, profile, { now, seen: opts.seen, weights, viewerLangs: opts.viewerLangs, watch: opts.watch }) }))
     .sort((a, b) => b.score - a.score);
 
   const result: FeedCardPost[] = [];

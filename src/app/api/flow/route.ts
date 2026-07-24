@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
-import { authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts } from "@/lib/flow-ranking";
+import { applyWatchSignal, authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
 import { parseAcceptLanguage } from "@/lib/language";
 
 /**
@@ -48,10 +48,20 @@ export async function GET(request: Request) {
     ? []
     : await prisma.flowImpression.findMany({
         where: { userId: user.id, postId: { in: candidates.map((p) => p.id) } },
-        select: { postId: true, liked: true },
+        select: { postId: true, liked: true, watchMs: true, completion: true },
       });
   const persistedSeen = new Set(impressions.map((i) => i.postId));
   const likedSet = new Set(impressions.filter((i) => i.liked).map((i) => i.postId));
+
+  // Implicit watch behavior — Reels' primary ranking input. Completions and
+  // long dwells accrue author affinity in the same profile explicit likes
+  // feed; fast skips subtract, and also deepen the per-post seen crush below.
+  const watchStats = new Map<string, WatchStats>(
+    impressions
+      .filter((i) => i.watchMs > 0 || i.completion > 0 || i.liked)
+      .map((i) => [i.postId, { watchMs: i.watchMs, completion: i.completion, liked: i.liked }]),
+  );
+  applyWatchSignal(profile, candidates, watchStats);
 
   // Recency by *last* appearance: the client's exclude list is in scroll
   // order and repeats ids once the Flow wraps, so walk it backwards and keep
@@ -126,7 +136,7 @@ export async function GET(request: Request) {
     if (!poolFits(pool) && fallback && new Set(fallback.map(authorKey)).size >= new Set(pool.map(authorKey)).size) {
       pool = fallback;
     }
-    ranked = rankFlowPosts(pool, profile, { seen: seenAll, limit, mode, studio, recent: recentPosts, viewerLangs });
+    ranked = rankFlowPosts(pool, profile, { seen: seenAll, limit, mode, studio, recent: recentPosts, viewerLangs, watch: watchStats });
     recycled = ranked.some((post) => exclude.has(post.id));
   }
 

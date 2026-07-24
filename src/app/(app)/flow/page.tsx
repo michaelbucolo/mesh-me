@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { parseAcceptLanguage } from "@/lib/language";
-import { explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
+import { applyWatchSignal, explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
 import { getDiscoverUsers } from "@/lib/queries";
 import { FlowClient, type FlowPost, type FlowSuggestedPerson } from "./flow-client";
 
@@ -49,13 +49,22 @@ export default async function FlowPage() {
   const impressions = user
     ? await prisma.flowImpression.findMany({
         where: { userId: user.id, postId: { in: candidates.map((p) => p.id) } },
-        select: { postId: true, liked: true },
+        select: { postId: true, liked: true, watchMs: true, completion: true },
       })
     : [];
   const persistedSeen = new Set(impressions.map((i) => i.postId));
   const likedSet = new Set(impressions.filter((i) => i.liked).map((i) => i.postId));
 
-  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT, seen: persistedSeen, viewerLangs }).map((post) => ({
+  // Implicit watch behavior (completions up, fast skips down) folds into the
+  // same taste profile explicit likes feed — Reels' primary ranking input.
+  const watchStats = new Map<string, WatchStats>(
+    impressions
+      .filter((i) => i.watchMs > 0 || i.completion > 0 || i.liked)
+      .map((i) => [i.postId, { watchMs: i.watchMs, completion: i.completion, liked: i.liked }]),
+  );
+  applyWatchSignal(profile, candidates, watchStats);
+
+  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT, seen: persistedSeen, viewerLangs, watch: watchStats }).map((post) => ({
     ...post,
     createdAt: String(post.createdAt),
     reactions: likedSet.has(post.id) ? [{ id: "self" }] : post.reactions,
