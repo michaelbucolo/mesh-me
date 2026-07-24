@@ -296,6 +296,8 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showList, setShowList] = useState(false);
+  // "Link copied" feedback for the rail's share-this-mesh action.
+  const [meshShareCopied, setMeshShareCopied] = useState(false);
   const [newCount, setNewCount] = useState(0);
   const [showTips, setShowTips] = useState(false);
   // Rewind: travel back through your world. rewindAt is the moment being
@@ -2861,6 +2863,41 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         </RailButton>
         <RailButton label="Explore as a list" onClick={() => setShowList(true)}>
           <List size={16} />
+        </RailButton>
+        <RailButton
+          label={meshShareCopied ? "Link copied" : isOwnMesh ? "Share your mesh" : "Share this mesh"}
+          onClick={() => {
+            // Share a canonical link to this world. Recipients still pass the
+            // server's mesh-visibility checks — a link is an invitation, not a
+            // bypass.
+            const username = meshData?.user.username;
+            const url = isGlobal
+              ? `${window.location.origin}/mesh?view=global`
+              : username
+                ? `${window.location.origin}/mesh?user=${encodeURIComponent(username)}`
+                : window.location.href;
+            void shareContent({
+              title: isGlobal
+                ? "The Global Mesh on mesh.me"
+                : isOwnMesh
+                  ? "My mesh on mesh.me"
+                  : `@${username}'s mesh on mesh.me`,
+              text: isGlobal
+                ? "The whole world, woven into one mesh."
+                : isOwnMesh
+                  ? "Step into my world — everything I make, in one living mesh."
+                  : `Step into @${username}'s world on mesh.me.`,
+              url,
+              dialogTitle: "Share this mesh",
+            }).then((result) => {
+              if (result === "copied") {
+                setMeshShareCopied(true);
+                setTimeout(() => setMeshShareCopied(false), 1600);
+              }
+            });
+          }}
+        >
+          {meshShareCopied ? <Check size={16} /> : <Share2 size={16} />}
         </RailButton>
         {oldestMoment != null && (
           <RailButton
