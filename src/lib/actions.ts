@@ -25,6 +25,7 @@ import { communityThreadTitle } from "./community-constants";
 import { isUniqueConstraintError } from "./prisma-errors";
 import { getFeedPostById } from "./feed-data";
 import { authorKey, dominantFormat } from "./flow-ranking";
+import { normalizePlatformId } from "./platform-capabilities";
 
 async function hashAuthTokenValue(token: string) {
   const crypto = await import("crypto");
@@ -1325,6 +1326,20 @@ export async function setFlowLike(feedItemId: string, liked: boolean) {
   }
   const post = await getFeedPostById(user, feedItemId);
   if (!post) return { error: "Post not found" };
+  // Connect-to-interact, server-authoritative: watching any platform's content
+  // is free, but LIKING an external platform's post requires that platform's
+  // account connected — calling the action directly can't skip the client gate.
+  // (Un-liking stays open so a like never becomes unremovable after a
+  // disconnect.)
+  const platformId = normalizePlatformId(post.platform);
+  if (liked && platformId && platformId !== "mesh" && platformId !== "meshme") {
+    const connected = await prisma.connectedAccount.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { platform: true },
+    });
+    const hasPlatform = connected.some((account) => normalizePlatformId(account.platform) === platformId);
+    if (!hasPlatform) return { error: "Connect this platform to like its posts" };
+  }
   const data = {
     liked,
     authorKey: authorKey(post),

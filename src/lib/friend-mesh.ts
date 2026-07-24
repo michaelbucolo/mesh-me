@@ -137,17 +137,26 @@ export async function getFriendPlatformFeedPosts(user: FriendMeshCurrentUser, li
     });
 
     return platformPosts.map((post) => {
+    const fallbackType = ["video", "reel", "short", "story"].includes(post.postType) ? "video" : "image";
     const media = post.media.length > 0
-      ? post.media.map((item) => ({
-          id: item.id,
-          url: item.thumbnailUrl || item.url,
-          type: item.mediaType,
-        }))
+      ? post.media.map((item) => {
+          // PlatformMedia.mediaType is a free provider string — normalize to
+          // the types the renderers actually understand so a raw value can
+          // never reach an <img> tag it doesn't belong in. Audio keeps its
+          // playable URL (a thumbnail can't be listened to).
+          const raw = (item.mediaType || "").toLowerCase().trim();
+          const type = ["image", "video", "audio", "gif", "document", "link"].includes(raw) ? raw : fallbackType;
+          return {
+            id: item.id,
+            url: type === "audio" ? item.url : item.thumbnailUrl || item.url,
+            type,
+          };
+        })
       : post.thumbnailUrl
         ? [{
             id: `${post.id}-thumbnail`,
             url: post.thumbnailUrl,
-            type: ["video", "reel", "short", "story"].includes(post.postType) ? "video" : "image",
+            type: fallbackType,
           }]
         : [];
 
