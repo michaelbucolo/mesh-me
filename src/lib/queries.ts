@@ -3,6 +3,7 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { parseMeChatMetadata } from "./mechat-metadata";
 import { getGlobalMeshSelfPreviewCore, type GlobalMeshSelfPreview } from "./global-mesh";
 import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
 import { ABOUT_FIELDS, type AboutField, canSeeAboutField, parseFieldPrivacy } from "./profile-info";
@@ -806,7 +807,16 @@ export async function getMessageThreads() {
             .map((m) => m.user.displayName)
             .join(", ")
         : thread.members.find((m) => m.userId !== user.id)?.user.displayName || "Conversation"),
-    lastMessage: thread.messages[0] || null,
+    lastMessage: thread.messages[0]
+      ? {
+          ...thread.messages[0],
+          // An unsent message keeps its row but drops its content — the inbox
+          // preview should say what happened instead of rendering blank.
+          content: parseMeChatMetadata(thread.messages[0].metadata).unsent
+            ? "Unsent a message"
+            : thread.messages[0].content,
+        }
+      : null,
     unreadCount: unreadCountByThread.get(thread.id) || 0,
   }));
 }
