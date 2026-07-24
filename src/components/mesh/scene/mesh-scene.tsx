@@ -3,7 +3,7 @@
 import { ArrowLeft, ChevronLeft, ChevronRight, Check, ExternalLink, Heart, History, List, LocateFixed, Maximize2, MessageCircle, Minimize2, PenLine, Search, Share2, Sparkles, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { meshApiUrl, takeMeshPrefetch } from "./mesh-prefetch";
 import { toggleReaction, toggleFollow } from "@/lib/actions";
 import { MeshiLoader } from "@/components/meshi/meshi-loader";
@@ -24,15 +24,28 @@ import { openMeshi } from "@/lib/meshi-events";
 import { playSound } from "@/lib/sound";
 import { shareContent } from "@/lib/native/share";
 import { PlatformLogo } from "@/components/platform/platform-logo";
-import type { MeshApiResponse } from "../mesh-data";
+import type { MeshApiResponse } from "../core/domain";
 import { PostComposer } from "@/components/feed/post-composer";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { MeshFormingLoader } from "./mesh-forming-loader";
 import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from "./scene-model";
-import { layoutScene, sceneBounds } from "./scene-layout";
-import { drawScene, type Camera } from "./scene-render";
-import { createPhysicsState, driftScaleFor, stepScenePhysics, type PhysicsState } from "./scene-physics";
+import { byNewest, layoutScene, sceneBounds } from "../sim/layout";
+import { drawScene } from "./scene-render";
+import { createPhysicsState, driftScaleFor, stepScenePhysics, type PhysicsState } from "../sim/physics";
 import { reactionGlyphSvg, type ReactionGlyph } from "./reaction-glyphs";
+// TODO(PR4-delete): the old scene consumes the new core (camera/viewer/store)
+// through this one adapter until it's hollowed out module-by-module.
+import {
+  clampZoom,
+  createCamera,
+  createMeshStore,
+  deriveViewerCaps,
+  unprojectPoint,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  type Camera,
+  type MeshStore,
+} from "./core-adapter";
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -41,8 +54,6 @@ interface MeshSceneProps {
   viewMode?: "mesh" | "global";
 }
 
-const MIN_ZOOM = 0.22;
-const MAX_ZOOM = 2.4;
 const TIPS_SEEN_KEY = "mesh-tips-seen";
 // Your previous visit's timestamp — anything made after it is marked "New".
 const LAST_VISIT_KEY = "meshLastVisit";
@@ -168,18 +179,26 @@ function lookUnit(x: number, y: number, target: Pt | null): Pt {
 
 export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const router = useRouter();
-  // The Global view is a READ-ONLY visitor surface over the synthetic world hub.
-  // "Am I on my own mesh?" must be an EXPLICIT test, never just `!viewUserId`:
-  // Global has no viewUserId either, but it must not broadcast presence, must
-  // not expose compose, and must be treated as a visitor (not the owner).
-  const isGlobal = viewMode === "global";
-  const isOwnMesh = !viewUserId && !isGlobal;
+  // What this viewer MAY do here, derived ONCE (core/viewer.ts): the Global
+  // view is read-only by capability, and "am I on my own mesh?" stays an
+  // EXPLICIT test, never just `!viewUserId` — Global has no viewUserId
+  // either, but it must not broadcast presence, must not expose compose, and
+  // must be treated as a visitor (not the owner).
+  const viewer = useMemo(() => deriveViewerCaps({ viewUserId, viewMode }), [viewUserId, viewMode]);
+  const isGlobal = viewer.isGlobal;
+  const isOwnMesh = viewer.isOwner;
   const prefs = useMeshiPreferences();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cameraRef = useRef<Camera>({ panX: 0, panY: 0, zoom: 0.6 });
+  const cameraRef = useRef<Camera>(createCamera());
   const modelRef = useRef<SceneModel | null>(null);
+  // TODO(PR4-delete): transitional store wiring — the old scene mirrors its
+  // coarse interactive facts (viewer, selection) into the new core store so
+  // store-fed modules land against real state; React still renders from the
+  // local state below until the store takes over as the single source.
+  const storeRef = useRef<MeshStore | null>(null);
+  if (storeRef.current === null) storeRef.current = createMeshStore(viewer);
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const hitboxesRef = useRef<Map<string, { x: number; y: number; r: number }>>(new Map());
   const pillHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
@@ -388,10 +407,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   // it costs almost nothing and never thrashes React): it warms up when another
   // Meshi drifts close, looks around when you've gone quiet, and dozes off if
   // you stay away. The chosen mood also rides your presence broadcast, so the
-  // room sees you reacting to them too. The Global view is strictly read-only,
-  // so it grows no behaviours there.
+  // room sees you reacting to them too. The mood rides the presence
+  // broadcast, so it only grows where the viewer may broadcast at all — the
+  // read-only Global view grows no behaviours.
   useEffect(() => {
-    if (isGlobal) return;
+    if (!viewer.canBroadcastPresence) return;
     const WARM: MeshiMood[] = ["giggle", "love", "wink", "happy"];
     let warmIdx = 0;
     const tick = () => {
@@ -440,7 +460,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       // to the Meshi's face forever.
       setBehaviorMood(null);
     };
-  }, [isGlobal, isOwnMesh]);
+  }, [viewer.canBroadcastPresence, isOwnMesh]);
   // Travel dive into a friend's mesh.
   const [traveling, setTraveling] = useState<{ label: string } | null>(null);
   const travelingRef = useRef(false);
@@ -506,7 +526,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   }, [activeBranch]);
   useEffect(() => {
     selectedIdRef.current = selectedNode?.id ?? null;
+    storeRef.current?.select(selectedNode?.id ?? null);
   }, [selectedNode]);
+  useEffect(() => {
+    storeRef.current?.setViewer(viewer);
+  }, [viewer]);
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
     const update = () => {
@@ -1215,10 +1239,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       } else {
         cursorVpRef.current = { vx: sx / rect.width, vy: sy / rect.height };
       }
-      const cam = cameraRef.current;
       const t = cursorWorldTargetRef.current;
-      t.x = (sx - rect.width / 2 - cam.panX) / cam.zoom;
-      t.y = (sy - rect.height / 2 - cam.panY) / cam.zoom;
+      const w = unprojectPoint(cameraRef.current, rect.width, rect.height, sx, sy);
+      t.x = w.x;
+      t.y = w.y;
       if (!t.seen) {
         cursorWorldPosRef.current.x = t.x;
         cursorWorldPosRef.current.y = t.y;
@@ -1268,10 +1292,8 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         // Pointer position in WORLD coordinates — where Meshi wanders toward,
         // and what we broadcast so everyone anchors you to the same spot on
         // the actual mesh.
-        const cam = cameraRef.current;
         const t = cursorWorldTargetRef.current;
-        const wx = (sx - rect.width / 2 - cam.panX) / cam.zoom;
-        const wy = (sy - rect.height / 2 - cam.panY) / cam.zoom;
+        const { x: wx, y: wy } = unprojectPoint(cameraRef.current, rect.width, rect.height, sx, sy);
         if (!t.seen) {
           cursorWorldPosRef.current.x = wx;
           cursorWorldPosRef.current.y = wy;
@@ -1316,7 +1338,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       const rawMidY = (pts[0].y + pts[1].y) / 2;
       if (d.pinchDist > 0) {
         const cam = cameraRef.current;
-        const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cam.zoom * (dist / d.pinchDist)));
+        const next = clampZoom(cam.zoom * (dist / d.pinchDist));
         const rect = container.getBoundingClientRect();
         const midX = rawMidX - rect.left - rect.width / 2;
         const midY = rawMidY - rect.top - rect.height / 2;
@@ -1431,7 +1453,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           lastTapRef.current = null;
           const base = zoomTargetRef.current?.zoom ?? cameraRef.current.zoom;
           zoomTargetRef.current = {
-            zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base * 1.55)),
+            zoom: clampZoom(base * 1.55),
             ax: e.clientX - rect.left - rect.width / 2,
             ay: e.clientY - rect.top - rect.height / 2,
           };
@@ -1502,7 +1524,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     const factor = Math.exp(-e.deltaY * 0.0014);
     const base = zoomTargetRef.current?.zoom ?? cameraRef.current.zoom;
     zoomTargetRef.current = {
-      zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base * factor)),
+      zoom: clampZoom(base * factor),
       ax: mx,
       ay: my,
     };
@@ -1511,7 +1533,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const zoomBy = useCallback((factor: number) => {
     const base = zoomTargetRef.current?.zoom ?? cameraRef.current.zoom;
     zoomTargetRef.current = {
-      zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base * factor)),
+      zoom: clampZoom(base * factor),
       ax: 0,
       ay: 0,
     };
@@ -1528,7 +1550,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     // forbids. Disabling only the POST is insufficient (the GET/SSE poll leak
     // too), so the WHOLE effect no-ops here. viewMode is in the dep array, so
     // switching mesh→global tears down the prior room before this returns.
-    if (isGlobal) return;
+    if (!viewer.canBroadcastPresence) return;
     let stopped = false;
 
     // One global throttle across every trigger (fast lane, hover blips,
@@ -1998,18 +2020,19 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       clearTimeout(kick);
       es?.close();
     };
-  }, [viewUserId, viewMode, isGlobal, isOwnMesh, prefs.enabled, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart, spawnBurst]);
+  }, [viewUserId, viewMode, viewer.canBroadcastPresence, isOwnMesh, prefs.enabled, prefs.color, prefs.hat, prefs.hair, prefs.accessory, prefs.eye, prefs.badge, prefs.outfit, prefs.face, spawnHeart, spawnBurst]);
 
   useEffect(() => {
-    // The Global view never registered presence, so it must never DELETE it —
-    // no authenticated write to the tracking endpoint from a read-only surface.
-    // (On a mesh→global switch this effect re-runs and the prior mesh cleanup
-    // correctly clears the presence you had while on your mesh.)
-    if (isGlobal) return;
+    // A viewer who never broadcast presence (the read-only Global view) must
+    // never DELETE it either — no authenticated write to the tracking
+    // endpoint from a read-only surface. (On a mesh→global switch this effect
+    // re-runs and the prior mesh cleanup correctly clears the presence you
+    // had while on your mesh.)
+    if (!viewer.canBroadcastPresence) return;
     return () => {
       fetch("/api/mesh/presence", { method: "DELETE" }).catch(() => {});
     };
-  }, [isGlobal]);
+  }, [viewer.canBroadcastPresence]);
 
   // Glide every Meshi ON the mesh each frame: positions live in world
   // coordinates so they pan/zoom with the web, and a screen-space pass keeps
@@ -3254,7 +3277,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           key={selectedNode.id}
           node={selectedNode}
           list={contentList()}
-          readOnly={isGlobal}
+          readOnly={viewer.isGlobalReadOnly}
           streamLabel={tourIds ? "new since your last visit" : "on your mesh"}
           onHearted={emitHeart}
           onClose={() => {
@@ -3277,7 +3300,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         selectedNode.kind !== "activity" && (
           <NodeDetail
             node={selectedNode}
-            canFollow={isOwnMesh}
+            canFollow={viewer.canFollow}
             onClose={() => {
               setSelectedNode(null);
               setActiveBranch(null);
@@ -3376,7 +3399,9 @@ function MeshListView({
 }) {
   if (!model) return null;
   const all = Array.from(model.nodes.values());
-  const byNewest = (a: SceneNode, b: SceneNode) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0);
+  // Sorted with the canvas layout's shared byNewest (sim/layout.ts): the id
+  // tiebreak keeps equal-timestamp rows in the same order on every client,
+  // and keeps the list agreeing with the constellation it mirrors.
   const people = all
     .filter((n) => n.kind === "person")
     .sort((a, b) => (b.closeness ?? 0) - (a.closeness ?? 0));

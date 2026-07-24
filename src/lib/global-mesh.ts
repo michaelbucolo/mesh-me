@@ -16,7 +16,7 @@
 import { prisma } from "./prisma";
 import { nsfwHiddenWhere } from "./content-safety";
 import { ANONYMOUS_VIEWER, type FeedCurrentUser } from "./feed-data";
-import type { MeshApiResponse } from "@/components/mesh/mesh-data";
+import type { MeshApiResponse } from "@/components/mesh/core/domain";
 
 const MAX_MEMBERS = 120;
 const MAX_POSTS_PER_MEMBER = 8;

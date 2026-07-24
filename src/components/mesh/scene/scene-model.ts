@@ -6,10 +6,10 @@
 // anyone made fanning outward from its maker with the newest work nearest
 // (time flows outward); and live people visibly alive. Every placement has a
 // stated reason — nothing on the mesh is arbitrary. Layout is computed
-// separately by scene-layout.ts.
+// separately by sim/layout.ts.
 
 import { bestStillUrl, playableVideoUrl } from "@/lib/external-media";
-import type { MeshApiResponse } from "../mesh-data";
+import type { MeshApiResponse } from "../core/domain";
 import { PLATFORM_COLORS } from "../mesh-types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -74,7 +74,7 @@ export interface SceneNode {
   /** Honest one-line reason this node sits where it sits. */
   placeReason?: string;
   meta?: { label: string; value: string }[];
-  // Layout output (filled by scene-layout)
+  // Layout output (filled by sim/layout)
   x: number;
   y: number;
   angle: number;
@@ -202,10 +202,16 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
       const acctMs = toMs(acct.createdAt);
       if (!existedBy(acctMs)) return;
       const platformId = `platform:${acct.id}`;
+      // Sort BEFORE slicing (id tiebreak): the kept top-N must be the same set
+      // on every client no matter what order the API happened to send.
       const topPosts: any[] = (acct.topPosts || [])
         .filter((pp: any) => existedBy(toMs(pp.publishedAt)))
-        .slice(0, MAX_PLATFORM_POSTS)
-        .sort((a: any, b: any) => (toMs(b.publishedAt) ?? 0) - (toMs(a.publishedAt) ?? 0));
+        .sort(
+          (a: any, b: any) =>
+            (toMs(b.publishedAt) ?? 0) - (toMs(a.publishedAt) ?? 0) ||
+            String(a.id).localeCompare(String(b.id)),
+        )
+        .slice(0, MAX_PLATFORM_POSTS);
       const followers = acct.analytics?.followerCount ?? acct.counts?.platformFollowers ?? 0;
       const postCount = acct.counts?.platformPosts ?? topPosts.length;
       add({
@@ -290,8 +296,15 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
       if (!existedBy(joinedMs)) return;
       const personId = `person:${p.id}`;
       const friendMesh = friendMeshMap.get(p.id);
+      // Sort before slicing, id-tiebroken, for the same cross-client
+      // determinism reason as platform topPosts above.
       const friendPosts: any[] = ((friendMesh?.posts as any[]) || [])
         .filter((fp: any) => existedBy(toMs(fp.createdAt)))
+        .sort(
+          (a: any, b: any) =>
+            (toMs(b.createdAt) ?? 0) - (toMs(a.createdAt) ?? 0) ||
+            String(a.id).localeCompare(String(b.id)),
+        )
         .slice(0, 3);
       // Closeness is the human truth of the tie: following each other, how
       // often you actually interact, and whether they're here right now.

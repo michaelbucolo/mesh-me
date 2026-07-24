@@ -18,8 +18,11 @@
 // Angles are deterministic per node id, so everyone keeps their place between
 // visits and spatial memory works. A final relaxation pass guarantees nothing
 // overlaps regardless of how much lives on the mesh.
+//
+// (Ported from scene/scene-layout.ts; the model types still live in
+// scene/scene-model.ts until the domain build moves into core.)
 
-import type { SceneModel, SceneNode, SceneNodeKind } from "./scene-model";
+import type { SceneModel, SceneNode, SceneNodeKind } from "../scene/scene-model";
 
 const TOP = -Math.PI / 2;
 const BOTTOM = Math.PI / 2;
@@ -53,7 +56,9 @@ function jitter(id: string): number {
 // Newest first, with a stable id tiebreak so equal-timestamp content sorts
 // identically on every client (never inherits the API's array order, which can
 // differ between viewers and reloads — a source of "posts look different").
-const byNewest = (a: SceneNode, b: SceneNode) =>
+// Shared with the list view: the accessible twin must order the world the
+// exact same way the canvas does.
+export const byNewest = (a: SceneNode, b: SceneNode) =>
   (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0) || a.id.localeCompare(b.id);
 
 // Fan `items` inside the wedge [center-half, center+half], newest first,
@@ -185,7 +190,13 @@ const FOOTPRINT: Record<SceneNodeKind, number> = {
 const FOOTPRINT_MARGIN = 18;
 
 function resolveOverlaps(model: SceneModel): void {
-  const list = Array.from(model.nodes.values());
+  // Iterate a canonical id-sorted list, NEVER Map insertion order (which
+  // follows the raw API array order). Pairwise relaxation is order-sensitive,
+  // so iterating insertion order quietly re-introduced the very cross-client
+  // "same mesh, slightly different settle" divergence every id-tiebroken sort
+  // upstream exists to eliminate. Determinism is asserted by the golden test
+  // in scripts/mesh-layout-determinism.ts.
+  const list = Array.from(model.nodes.values()).sort((a, b) => a.id.localeCompare(b.id));
   const radiusOf = (n: SceneNode) => FOOTPRINT[n.kind] ?? 34;
 
   for (let iter = 0; iter < 90; iter += 1) {
