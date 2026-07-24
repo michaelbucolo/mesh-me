@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS "User" (
     "resetToken" TEXT,
     "resetTokenExpiry" DATETIME,
     "status" TEXT NOT NULL DEFAULT 'offline',
-    "lastSeenAt" DATETIME
+    "lastSeenAt" DATETIME,
+    "mergedIntoUserId" TEXT
 );
 
 -- CreateTable
@@ -775,8 +776,11 @@ CREATE TABLE IF NOT EXISTS "AccountMergeRequest" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "primaryUserId" TEXT NOT NULL,
     "secondaryEmail" TEXT NOT NULL,
+    "secondaryUserId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'pending',
     "verifyToken" TEXT,
+    "approvedAt" DATETIME,
+    "expiresAt" DATETIME,
     "completedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -1233,6 +1237,9 @@ CREATE INDEX IF NOT EXISTS "AccountMergeRequest_primaryUserId_idx" ON "AccountMe
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "AccountMergeRequest_secondaryEmail_idx" ON "AccountMergeRequest"("secondaryEmail");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AccountMergeRequest_secondaryUserId_idx" ON "AccountMergeRequest"("secondaryUserId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "ProfileInfo_userId_key" ON "ProfileInfo"("userId");
