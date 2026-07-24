@@ -231,9 +231,12 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         rtRef.current.containerEl = el;
       }}
       data-testid="mesh-scene"
-      className={`relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[#04050c] select-none ${!isCoarsePointer ? "cursor-none" : ""}`}
+      className="relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[#04050c] select-none"
       onWheel={input.onWheel}
     >
+      {/* cursor-none lives on the canvas only — there the reticle/Meshi IS the
+          cursor. DOM chrome layered above (tabs, marquee, panels) keeps native
+          cursors, so leaving the play area never strands you cursorless. */}
       <canvas
         ref={(el) => {
           rtRef.current.canvasEl = el;
@@ -241,7 +244,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         data-testid="mesh-canvas"
         role="img"
         aria-label="Your mesh constellation"
-        className="block h-full w-full"
+        className={`block h-full w-full ${!isCoarsePointer ? "cursor-none" : ""}`}
         onPointerDown={input.onPointerDown}
         onPointerMove={input.onPointerMove}
         onPointerUp={input.onPointerUp}
