@@ -323,6 +323,67 @@ select:focus-visible {
 /* ─── Selection ─── */
 ::selection { background: var(--selection-bg); color: var(--text-primary); }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CURSOR SYSTEM — one calm, native baseline for every surface.
+   No overlay gimmicks: the mesh canvas already owns its own bespoke
+   reticle, and everywhere else the OS cursor is the most precise,
+   accessible pointer there is. Tailwind v4's preflight stopped giving
+   <button> a pointer cursor, which left affordances patched per-component
+   and missing on most raw buttons — restored here once, for everything.
+   Declared in @layer base so utilities (cursor-default, cursor-grab, …)
+   and component rules still override, and scoped to fine pointers so
+   touch devices ship zero cursor styling.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (pointer: fine) {
+  @layer base {
+    /* Anything interactive advertises itself with a pointer. */
+    :is(
+      a[href],
+      button,
+      summary,
+      select,
+      [role="button"],
+      [role="link"],
+      [role="tab"],
+      [role="option"],
+      [role="switch"],
+      [role="checkbox"],
+      [role="radio"],
+      [role="menuitem"],
+      [role="menuitemradio"],
+      [role="menuitemcheckbox"]
+    ):not(:disabled, [aria-disabled="true"]),
+    input:is(
+      [type="checkbox"],
+      [type="radio"],
+      [type="file"],
+      [type="range"],
+      [type="color"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"]
+    ):not(:disabled),
+    label:has(input:is([type="checkbox"], [type="radio"], [type="file"]):not(:disabled)) {
+      cursor: pointer;
+    }
+
+    /* Disabled controls say so. Deliberate overrides still win — e.g. the
+       feed's in-flight chips show `wait`, and buttons with pointer-events
+       disabled fall through to the surface beneath. Scoped to interactive
+       elements so passive containers flagged aria-disabled stay quiet. */
+    :is(button, select, input, textarea):disabled,
+    :is(a, button, summary, select, [role="button"], [role="link"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"])[aria-disabled="true"] {
+      cursor: not-allowed;
+    }
+
+    /* Editable prose reads as editable, matching real inputs. */
+    [contenteditable="true"],
+    [contenteditable="plaintext-only"] {
+      cursor: text;
+    }
+  }
+}
+
 /* ─── Base Animations ─── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp {
