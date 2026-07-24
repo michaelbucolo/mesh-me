@@ -69,6 +69,9 @@ export interface SceneNode {
   freshness?: number;
   /** Content created since your last visit gets a visible mark. */
   isNew?: boolean;
+  /** Source hub (platform/person) the VIEWER muted — its content is withheld
+   *  server-side; the hub stays so the detail sheet can offer Unmute. */
+  muted?: boolean;
   /** Content creation time (ms epoch) — time flows outward on the mesh. */
   createdAtMs?: number;
   /** Honest one-line reason this node sits where it sits. */

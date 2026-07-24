@@ -4,7 +4,9 @@
 // leaving the web. Extracted from the old mesh-scene.tsx; share rides the
 // ONE useShare() flow, the stream label comes from meshCopy, and Escape is
 // handled by the chrome stacking manager (topmost-layer dismissal), so the
-// lens itself only listens for the arrow keys.
+// lens itself only listens for the arrow keys. During a Catch-up tour the
+// lens grows a progress-dots row with pause/resume, and any interaction
+// inside the panel pauses the auto-advance.
 
 "use client";
 
@@ -18,6 +20,8 @@ import {
   Maximize2,
   MessageCircle,
   Minimize2,
+  Pause,
+  Play,
   Share2,
   Sparkles,
   X,
@@ -29,17 +33,17 @@ import { PlatformLogo } from "@/components/platform/platform-logo";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import type { ViewerCaps } from "../core/viewer";
 import type { SceneNode } from "../scene/scene-model";
+import { impressionIdFor, nativePostId } from "./seen-bridge";
 import { useShare } from "./use-share";
 
-// The native Post id behind a content node, if it's one of our own posts a
-// signed-in user can react to (external platform posts return null).
-function nativePostId(node: SceneNode): string | null {
-  if (node.id.startsWith("post:")) return node.id.slice("post:".length);
-  if (node.id.startsWith("friend-post:")) {
-    const parts = node.id.split(":");
-    return parts[parts.length - 1] || null;
-  }
-  return null;
+/** Catch-up mode riding the lens: where the auto-advancing tour stands. */
+export interface LensCatchUp {
+  index: number;
+  total: number;
+  paused: boolean;
+  onTogglePause: () => void;
+  /** Any interaction inside the lens pauses the auto-advance. */
+  onInteract: () => void;
 }
 
 function metaCount(node: SceneNode, label: string): number {
@@ -53,6 +57,7 @@ export function ContentLens({
   list,
   viewer,
   streamLabel = "on your mesh",
+  catchup = null,
   onHearted,
   onClose,
   onNavigate,
@@ -63,6 +68,8 @@ export function ContentLens({
    * tracking. Read actions (share, comment link, Ask Meshi) stay available. */
   viewer: ViewerCaps;
   streamLabel?: string;
+  /** Present while this lens is a Catch-up stream (progress dots + pause). */
+  catchup?: LensCatchUp | null;
   /** Called on a like so the scene can throw a visible heart at the node. */
   onHearted?: (node: SceneNode) => void;
   onClose: () => void;
@@ -114,20 +121,22 @@ export function ContentLens({
 
   // A native post you OPEN on the mesh counts as "seen" — record it in the same
   // Flow impression store so the Flow's ranker never replays something you
-  // already encountered on the mesh. Native ids match the Flow's seen-set key
-  // exactly (external/platform ids are left alone). Best-effort; the endpoint
-  // writes nothing for guests and self-dedupes, so re-opening is harmless.
+  // already encountered on the mesh. The FROZEN contract lives in
+  // seen-bridge.ts (native ids only, never Global — impressionIdFor returns
+  // null otherwise; the endpoint itself writes nothing for guests) and is
+  // pinned by scripts/mesh-seen-bridge-contract.ts. Best-effort; the endpoint
+  // self-dedupes, so re-opening is harmless.
+  const seenId = impressionIdFor(node, viewer);
   useEffect(() => {
-    // Read-only (Global) never records impressions — the viewer is not tracked.
-    if (!postId || readOnly) return;
+    if (!seenId) return;
     void fetch("/api/flow/impression", {
       method: "POST",
-      body: JSON.stringify({ ids: [postId] }),
+      body: JSON.stringify({ ids: [seenId] }),
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       keepalive: true,
     }).catch(() => {});
-  }, [postId, readOnly]);
+  }, [seenId]);
 
   // Keyboard: arrows browse. (Escape is the chrome stacking manager's — it
   // closes the topmost layer, which is this lens whenever it's on top.)
@@ -192,7 +201,11 @@ export function ContentLens({
     >
       <div
         className="mesh-panel relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl shadow-2xl"
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          // Touching the reader is a "wait, I'm reading" — pause catch-up.
+          catchup?.onInteract();
+        }}
         // The lens speaks Meshi's focused-content contract, so asking Meshi
         // about "this post" works on the mesh exactly like it does on the feed.
         data-meshi-content-card="true"
@@ -377,6 +390,44 @@ export function ContentLens({
             )}
           </div>
         </div>
+
+        {/* Catch-up progress — dots for every unseen stop, pause/resume for
+            the auto-advance. Reading (any touch in the panel) pauses too. */}
+        {catchup && (
+          <div className="flex items-center justify-center gap-2.5 border-t border-white/8 bg-cyan-400/[0.06] px-4 py-2">
+            <button
+              type="button"
+              aria-label={catchup.paused ? "Resume catch-up" : "Pause catch-up"}
+              onClick={catchup.onTogglePause}
+              className="rounded-full bg-white/8 p-1.5 text-cyan-100 transition-colors hover:bg-white/15"
+            >
+              {catchup.paused ? <Play size={12} /> : <Pause size={12} />}
+            </button>
+            {catchup.total <= 14 ? (
+              <div className="flex items-center gap-1.5" aria-label={`Catch-up: ${catchup.index + 1} of ${catchup.total}`}>
+                {Array.from({ length: catchup.total }, (_, i) => (
+                  <span
+                    key={i}
+                    className={`rounded-full transition-all ${
+                      i === catchup.index
+                        ? "h-2 w-2 bg-cyan-300"
+                        : i < catchup.index
+                          ? "h-1.5 w-1.5 bg-cyan-300/45"
+                          : "h-1.5 w-1.5 bg-white/20"
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : (
+              <span className="text-[11px] font-semibold tracking-wide text-cyan-100/80">
+                {catchup.index + 1} / {catchup.total}
+              </span>
+            )}
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-cyan-100/50">
+              {catchup.paused ? "Paused" : "Catch-up"}
+            </span>
+          </div>
+        )}
 
         {/* Stream controls — browse content across the mesh */}
         {total > 1 && (

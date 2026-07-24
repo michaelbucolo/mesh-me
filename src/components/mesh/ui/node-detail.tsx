@@ -2,14 +2,17 @@
 // and interest nodes. Extracted from the old mesh-scene.tsx; its share
 // affordance rides the ONE useShare() flow, and its person actions now come
 // from ViewerCaps (Follow was already owner-only; Message follows canDM so
-// the read-only Global view offers no DM entry point).
+// the read-only Global view offers no DM entry point). Source hubs (person /
+// platform) on your own mesh also carry the Mute-source toggle — the
+// viewer-side preference the pluck ring sets, and the only way back out.
 
 "use client";
 
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Volume2, VolumeX, X } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toggleFollow } from "@/lib/actions";
+import { toggleFollow, toggleMeshSourceMute } from "@/lib/actions";
+import { meshNodeMuteKey } from "@/lib/muted-sources";
 import type { ViewerCaps } from "../core/viewer";
 import type { SceneNode } from "../scene/scene-model";
 import { useShare } from "./use-share";
@@ -19,6 +22,7 @@ export function NodeDetail({
   viewer,
   onClose,
   onEnterMesh,
+  onMuteChanged,
 }: {
   node: SceneNode;
   // Follow only when the node's isFollowing is authoritative for the VIEWER —
@@ -28,11 +32,34 @@ export function NodeDetail({
   viewer: ViewerCaps;
   onClose: () => void;
   onEnterMesh: (node: SceneNode) => void;
+  /** Mute toggled — the scene quiet-reloads so content drops out / returns. */
+  onMuteChanged?: () => void;
 }) {
   const isPerson = node.kind === "person" && !!node.userId;
   const [following, setFollowing] = useState(!!node.isFollowing);
   const [, startFollow] = useTransition();
   const { copied: shareCopied, share } = useShare();
+
+  // Mute-source: own mesh only (ViewerCaps), person/platform hubs only.
+  const muteKey =
+    viewer.canMuteSources && (node.kind === "person" || node.kind === "platform")
+      ? meshNodeMuteKey(node.id)
+      : null;
+  const [muted, setMuted] = useState(!!node.muted);
+  const [, startMute] = useTransition();
+  const onToggleMute = () => {
+    if (!muteKey) return;
+    const next = !muted;
+    setMuted(next); // optimistic
+    startMute(async () => {
+      const res = await toggleMeshSourceMute(muteKey);
+      if (res && "error" in res && res.error) setMuted(!next);
+      else {
+        if (res && "muted" in res && typeof res.muted === "boolean") setMuted(res.muted);
+        onMuteChanged?.();
+      }
+    });
+  };
 
   const onToggleFollow = () => {
     if (!node.userId) return;
@@ -101,6 +128,12 @@ export function NodeDetail({
         </p>
       )}
 
+      {muteKey && muted && (
+        <p className="mt-2.5 rounded-lg bg-amber-400/[0.08] px-2.5 py-1.5 text-[11px] leading-snug text-amber-100/80">
+          Muted — this source&apos;s posts stay off your mesh and Flow. Only you can see this.
+        </p>
+      )}
+
       {node.content && <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-white/70">{node.content}</p>}
 
       {node.meta && node.meta.length > 0 && (
@@ -158,18 +191,42 @@ export function NodeDetail({
                 Profile
               </Link>
             )}
+            {muteKey && (
+              <button
+                type="button"
+                onClick={onToggleMute}
+                aria-pressed={muted}
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring col-span-2 flex items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold text-white"
+              >
+                {muted ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                {muted ? "Unmute source" : "Mute source"}
+              </button>
+            )}
           </div>
         </div>
       ) : (
-        node.href && (
+        (node.href || muteKey) && (
           <div className="mt-4 flex gap-2">
-            <Link
-              href={node.href}
-              target={node.href.startsWith("http") ? "_blank" : undefined}
-              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
-            >
-              {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
-            </Link>
+            {node.href && (
+              <Link
+                href={node.href}
+                target={node.href.startsWith("http") ? "_blank" : undefined}
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
+              >
+                {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
+              </Link>
+            )}
+            {muteKey && (
+              <button
+                type="button"
+                onClick={onToggleMute}
+                aria-pressed={muted}
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold text-white"
+              >
+                {muted ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                {muted ? "Unmute source" : "Mute source"}
+              </button>
+            )}
           </div>
         )
       )}

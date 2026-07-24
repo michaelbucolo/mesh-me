@@ -13,6 +13,7 @@ import { createPaintEngine, resolveMeshEngine, type MeshEngineKind } from "../pa
 import { drawScene } from "./scene-render";
 import { rebuildHitmap } from "../sim/hitmap";
 import { driftScaleFor, stepScenePhysics } from "../sim/physics";
+import { stepToys } from "../sim/toys";
 import type { MeshRuntimeRef } from "./runtime";
 
 function generateStars(width: number, height: number) {
@@ -182,6 +183,10 @@ export function useMeshFrame(
       // per-client rAF `time`, so nodes/posts settle to the same orbit on every
       // screen — two viewers of one mesh agree on where each node sits.
       stepScenePhysics(model, rt.physics, Date.now(), dt, driftScaleFor(rt.proVisuals.motionStyle), disturbances);
+      // Toys ride the same springs: a held pluck injects velocity toward the
+      // pointer AFTER the layout springs settle — cosmetic offset only, and a
+      // no-op (one null check) whenever nothing is being played with.
+      stepToys(model, rt.toys, dt, rt.reducedMotion);
 
       // Inertial pan: carry the fling velocity after release, with decay.
       const fling = rt.fling;

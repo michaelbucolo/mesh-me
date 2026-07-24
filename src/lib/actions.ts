@@ -25,6 +25,7 @@ import { communityThreadTitle } from "./community-constants";
 import { isUniqueConstraintError } from "./prisma-errors";
 import { getFeedPostById } from "./feed-data";
 import { authorKey, dominantFormat } from "./flow-ranking";
+import { isValidMutedSourceKey, MAX_MUTED_SOURCES, parseMutedSources, serializeMutedSources } from "./muted-sources";
 import { normalizePlatformId } from "./platform-capabilities";
 
 async function hashAuthTokenValue(token: string) {
@@ -2137,6 +2138,37 @@ export async function adminDeletePost(postId: string) {
 
 // ─── Mute Actions ───────────────────────────────────────────
 
+// Mute/unmute a mesh SOURCE (a platform account or an author) from the pluck
+// ring or a node's detail sheet. This is a viewer-side preference stored on
+// the viewer's OWN FeedPreference row: the muted source's content drops out of
+// this viewer's mesh payload and Flow candidates only. Nothing the muted
+// source (or anyone else) can see ever changes — privacy by construction.
+export async function toggleMeshSourceMute(sourceKey: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!isValidMutedSourceKey(sourceKey)) return { error: "Invalid source" };
+
+  const pref = await prisma.feedPreference.findUnique({
+    where: { userId: user.id },
+    select: { mutedSources: true },
+  });
+  const current = parseMutedSources(pref?.mutedSources);
+  const muted = !current.includes(sourceKey);
+  const next = muted
+    ? [...current, sourceKey].slice(-MAX_MUTED_SOURCES)
+    : current.filter((key) => key !== sourceKey);
+
+  await prisma.feedPreference.upsert({
+    where: { userId: user.id },
+    update: { mutedSources: serializeMutedSources(next) },
+    create: { userId: user.id, mutedSources: serializeMutedSources(next) },
+  });
+
+  // Only the viewer's own cached mesh payload changes — muting is invisible
+  // to the muted source, so no other cache entry is touched.
+  clearMeshCache(user.id);
+  return { success: true, muted };
+}
 
 // ─── Repost Actions ─────────────────────────────────────────
 

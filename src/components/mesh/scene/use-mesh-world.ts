@@ -1,22 +1,84 @@
 // useMeshWorld — fetching the mesh payload, building + laying out the scene
-// model, the 25s quiet live-weave poll, and Rewind's as-of world rebuilds.
-// Extracted verbatim from the old mesh-scene.tsx; all imperative state lives
-// on the shared MeshRuntime, React state here is only what chrome renders.
+// model, the 25s quiet live-weave poll, Rewind's as-of world rebuilds, and
+// the viewer-side seen state (branch mark-seen watermarks + per-session
+// read marks) behind the wedge counts and the catch-up chip. Extracted
+// verbatim from the old mesh-scene.tsx; all imperative state lives on the
+// shared MeshRuntime, React state here is only what chrome renders.
 
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { meshApiUrl, takeMeshPrefetch } from "./mesh-prefetch";
+import { meshNodeMuteKey } from "@/lib/muted-sources";
 import type { MeshApiResponse } from "../core/domain";
 import type { ViewerCaps } from "../core/viewer";
 import { MIN_ZOOM } from "../core/camera";
-import { buildSceneModel, type SceneModel } from "./scene-model";
+import { buildSceneModel, type BranchKey, type SceneModel } from "./scene-model";
+import {
+  applySeenState,
+  loadBranchSeenMarks,
+  saveBranchSeenMarks,
+  totalUnseen,
+  unseenByBranch,
+  type BranchSeenMarks,
+  type UnseenBranchCount,
+} from "./seen-marks";
 import { layoutScene, sceneBounds } from "../sim/layout";
 import { createPhysicsState } from "../sim/physics";
 import type { MeshRuntimeRef } from "./runtime";
 
 // Your previous visit's timestamp — anything made after it is marked "New".
 const LAST_VISIT_KEY = "meshLastVisit";
+
+/**
+ * Carry animated display state (positions, velocities, birth moments) from
+ * the previous model into a rebuilt one so a refresh never re-forms the sky —
+ * the ONE shared util behind both the quiet live-weave poll and Rewind's
+ * scrubbing (they used to duplicate this loop). Nodes with no predecessor are
+ * NEWBORN: they spawn at their maker's current position (or the fallback
+ * origin) with a fresh birth moment, and the count of them is returned so the
+ * quiet path can announce arrivals.
+ */
+function carryAnimState(
+  prev: SceneModel | null,
+  next: SceneModel,
+  bornStamp: number,
+  newbornOrigin: "layout" | "center",
+): number {
+  let newborn = 0;
+  next.nodes.forEach((node) => {
+    const old = prev?.nodes.get(node.id);
+    if (old) {
+      node.dx = old.dx;
+      node.dy = old.dy;
+      node.vx = old.vx;
+      node.vy = old.vy;
+      node.bornAt = old.bornAt;
+    } else {
+      // New content weaves itself in LIVE: it springs out of whatever made
+      // it, playing the arrival celebration on the way.
+      const parent = node.parentId ? next.nodes.get(node.parentId) : null;
+      node.dx = parent ? parent.dx : newbornOrigin === "layout" ? node.x : 0;
+      node.dy = parent ? parent.dy : newbornOrigin === "layout" ? node.y : 0;
+      node.bornAt = bornStamp;
+      newborn += 1;
+    }
+  });
+  return newborn;
+}
+
+/** Mark the viewer's muted source hubs (platform/person) on a fresh model so
+ * the detail sheet can show the muted state and offer Unmute. Content of
+ * muted sources was already withheld server-side — this is display only. */
+function applyMutedHubs(model: SceneModel, mutedKeys: string[] | undefined): void {
+  if (!mutedKeys || mutedKeys.length === 0) return;
+  const muted = new Set(mutedKeys);
+  model.nodes.forEach((node) => {
+    if (node.kind !== "platform" && node.kind !== "person") return;
+    const key = meshNodeMuteKey(node.id);
+    if (key && muted.has(key)) node.muted = true;
+  });
+}
 
 /**
  * Choreograph the world forming: you ignite first, then your sources spring
@@ -47,6 +109,8 @@ export interface MeshWorld {
   viewedUser: { username: string; displayName: string | null } | null;
   meshIsEmpty: boolean;
   newCount: number;
+  /** Unseen content per branch wedge — feeds the wedge-count chips. */
+  unseen: UnseenBranchCount[];
   weaveToast: { count: number; key: number } | null;
   oldestMoment: number | null;
   rewindAt: number | null;
@@ -56,6 +120,11 @@ export interface MeshWorld {
   loadImages: (model: SceneModel) => void;
   onRewindInput: (value: number) => void;
   backToNow: () => void;
+  /** Mark-seen pill: clear a whole branch's unseen state (viewer-side only —
+   * a local watermark; nothing anyone else can see changes). */
+  markBranchSeen: (branch: BranchKey) => void;
+  /** Opening content in the lens clears its New mark for this session. */
+  markNodeSeen: (nodeId: string) => void;
 }
 
 export function useMeshWorld(
@@ -81,6 +150,23 @@ export function useMeshWorld(
   const [meshData, setMeshData] = useState<MeshApiResponse | null>(null);
   const [viewedUser, setViewedUser] = useState<{ username: string; displayName: string | null } | null>(null);
   const [newCount, setNewCount] = useState(0);
+  const [unseen, setUnseen] = useState<UnseenBranchCount[]>([]);
+  // Viewer-side seen refinements: per-branch mark-seen watermarks (persisted
+  // locally) and the ids read this session — reapplied on every rebuild so
+  // the 25s quiet poll can't resurrect a cleared New mark.
+  const branchSeenRef = useRef<BranchSeenMarks | null>(null);
+  const sessionSeenRef = useRef<Set<string>>(new Set());
+  const branchSeenMarks = useCallback((): BranchSeenMarks => {
+    if (branchSeenRef.current === null) branchSeenRef.current = loadBranchSeenMarks();
+    return branchSeenRef.current;
+  }, []);
+  const refreshSeenCounts = useCallback(
+    (model: SceneModel) => {
+      setNewCount(totalUnseen(model));
+      setUnseen(unseenByBranch(model));
+    },
+    [],
+  );
   // Live weave toast: shown when polling brings something new into the world.
   const [weaveToast, setWeaveToast] = useState<{ count: number; key: number } | null>(null);
   useEffect(() => {
@@ -192,36 +278,22 @@ export function useMeshWorld(
         });
         layoutScene(model);
         if (isOwnMesh) {
+          // Viewer-side seen refinements: branch mark-seen watermarks + this
+          // session's read items survive every rebuild.
+          applySeenState(model, branchSeenMarks(), sessionSeenRef.current);
           try {
             localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
           } catch {
             // Storage may be unavailable — New marks just won't persist.
           }
         }
+        applyMutedHubs(model, payload.viewerMutedSources);
         const quiet = Boolean(loadOpts?.quiet && rt.model);
         if (quiet) {
-          // Carry over animated positions so a refresh doesn't re-form the sky.
-          const prev = rt.model!;
+          // Carry over animated positions so a refresh doesn't re-form the sky
+          // (shared carryAnimState — same util Rewind scrubbing rides).
           const bornStamp = typeof performance !== "undefined" ? performance.now() : Date.now();
-          let newborn = 0;
-          model.nodes.forEach((node) => {
-            const old = prev.nodes.get(node.id);
-            if (old) {
-              node.dx = old.dx;
-              node.dy = old.dy;
-              node.vx = old.vx;
-              node.vy = old.vy;
-              node.bornAt = old.bornAt;
-            } else {
-              // New content weaves itself in LIVE: it springs out of whatever
-              // made it, playing the arrival celebration on the way.
-              const parent = node.parentId ? model.nodes.get(node.parentId) : null;
-              node.dx = parent ? parent.dx : node.x;
-              node.dy = parent ? parent.dy : node.y;
-              node.bornAt = bornStamp;
-              newborn += 1;
-            }
-          });
+          const newborn = carryAnimState(rt.model, model, bornStamp, "layout");
           if (newborn > 0) setWeaveToast({ count: newborn, key: Date.now() });
         } else {
           rt.physics = createPhysicsState();
@@ -255,11 +327,7 @@ export function useMeshWorld(
         // An empty mesh is still the mesh: render the canvas (you + your
         // Meshi) and let compose/search work — just surface a gentle hint.
         setMeshIsEmpty(model.nodes.size <= 1);
-        let fresh = 0;
-        model.nodes.forEach((n) => {
-          if (n.isNew) fresh += 1;
-        });
-        setNewCount(fresh);
+        refreshSeenCounts(model);
         setStatus("ready");
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -267,7 +335,7 @@ export function useMeshWorld(
         if (!loadOpts?.quiet) setMeshData(null);
       }
     },
-    [rtRef, viewUserId, viewMode, isGlobal, isOwnMesh, loadImages, fitToContent, onWorldReplaced],
+    [rtRef, viewUserId, viewMode, isGlobal, isOwnMesh, loadImages, fitToContent, onWorldReplaced, branchSeenMarks, refreshSeenCounts],
   );
 
   useEffect(() => {
@@ -316,40 +384,31 @@ export function useMeshWorld(
     (asOf: number | null) => {
       if (!meshData) return;
       const rt = rtRef.current;
-      const prev = rt.model;
       const model = buildSceneModel(meshData, {
         // New marks only make sense in the present.
         lastVisitAt: asOf != null || !isOwnMesh ? null : rt.lastVisit ?? null,
         asOf,
       });
       layoutScene(model);
+      if (isOwnMesh && asOf == null) {
+        applySeenState(model, branchSeenMarks(), sessionSeenRef.current);
+      }
+      applyMutedHubs(model, meshData.viewerMutedSources);
+      // Scrubbing forward: things come into existence out of whoever made
+      // them, with the arrival burst — your life re-assembling. (Shared
+      // carryAnimState — same util the quiet live-weave refresh rides.)
       const stamp = typeof performance !== "undefined" ? performance.now() : Date.now();
-      model.nodes.forEach((node) => {
-        const old = prev?.nodes.get(node.id);
-        if (old) {
-          node.dx = old.dx;
-          node.dy = old.dy;
-          node.vx = old.vx;
-          node.vy = old.vy;
-          node.bornAt = old.bornAt;
-        } else {
-          // Scrubbing forward: things come into existence out of whoever made
-          // them, with the arrival burst — your life re-assembling.
-          const parent = node.parentId ? model.nodes.get(node.parentId) : null;
-          node.dx = parent ? parent.dx : 0;
-          node.dy = parent ? parent.dy : 0;
-          node.bornAt = stamp;
-        }
-      });
+      carryAnimState(rt.model, model, stamp, "center");
       rt.model = model;
       setModel(model);
       loadImages(model);
+      refreshSeenCounts(model);
       // Whatever was selected may not exist at this moment in time.
       if (rt.selectedId && !model.nodes.get(rt.selectedId)) {
         onSelectionInvalid();
       }
     },
-    [rtRef, meshData, isOwnMesh, loadImages, onSelectionInvalid],
+    [rtRef, meshData, isOwnMesh, loadImages, onSelectionInvalid, branchSeenMarks, refreshSeenCounts],
   );
 
   const rewindDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -382,6 +441,39 @@ export function useMeshWorld(
     applyAsOf(null);
   }, [applyAsOf]);
 
+  // --- Viewer-side seen management (wedge mark-seen pill + lens reads) ---
+  // Both mutate only presentation flags on this viewer's model + a local
+  // watermark. Nothing here writes anywhere another user could observe.
+  const markBranchSeen = useCallback(
+    (branch: BranchKey) => {
+      const marks = branchSeenMarks();
+      marks[branch] = Date.now();
+      saveBranchSeenMarks(marks);
+      const model = rtRef.current.model;
+      if (!model) return;
+      model.nodes.forEach((node) => {
+        if (node.branch === branch && node.isNew) {
+          node.isNew = false;
+          sessionSeenRef.current.add(node.id);
+        }
+      });
+      refreshSeenCounts(model);
+    },
+    [rtRef, branchSeenMarks, refreshSeenCounts],
+  );
+
+  const markNodeSeen = useCallback(
+    (nodeId: string) => {
+      const model = rtRef.current.model;
+      const node = model?.nodes.get(nodeId);
+      if (!model || !node?.isNew) return;
+      node.isNew = false;
+      sessionSeenRef.current.add(nodeId);
+      refreshSeenCounts(model);
+    },
+    [rtRef, refreshSeenCounts],
+  );
+
   return {
     status,
     model,
@@ -390,6 +482,7 @@ export function useMeshWorld(
     viewedUser,
     meshIsEmpty,
     newCount,
+    unseen,
     weaveToast,
     oldestMoment,
     rewindAt,
@@ -399,5 +492,7 @@ export function useMeshWorld(
     loadImages,
     onRewindInput,
     backToNow,
+    markBranchSeen,
+    markNodeSeen,
   };
 }

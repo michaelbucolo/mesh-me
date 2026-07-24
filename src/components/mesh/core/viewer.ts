@@ -28,6 +28,12 @@ export interface ViewerCaps {
   canPost: boolean;
   /** May write likes to native posts (never from Global). */
   canLike: boolean;
+  /** May save native posts to the viewer's bookmarks (never from Global —
+   *  Global read-only means no write of any kind, Save included). */
+  canSave: boolean;
+  /** May mute/unmute a content SOURCE (platform account / author) — a
+   *  viewer-side preference that only exists on the viewer's OWN mesh. */
+  canMuteSources: boolean;
   /** May open a DM with a person node (never from Global). */
   canDM: boolean;
   /** May follow/unfollow from a person card. Own mesh only: on a visited
@@ -60,6 +66,8 @@ export function deriveViewerCaps({ viewUserId, viewMode = "mesh" }: ViewerContex
     isGlobalReadOnly: isGlobal,
     canPost: isOwner,
     canLike: !isGlobal,
+    canSave: !isGlobal,
+    canMuteSources: isOwner,
     canDM: !isGlobal,
     canFollow: isOwner,
     canBroadcastPresence: !isGlobal,
