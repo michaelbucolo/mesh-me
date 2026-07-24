@@ -32,18 +32,24 @@ import { buildSceneModel, type BranchKey, type SceneModel, type SceneNode } from
 import { byNewest, layoutScene, sceneBounds } from "../sim/layout";
 import { drawScene } from "./scene-render";
 import { createPhysicsState, driftScaleFor, stepScenePhysics, type PhysicsState } from "../sim/physics";
+import { createHitmap, rebuildHitmap, type Hitmap } from "../sim/hitmap";
 import { reactionGlyphSvg, type ReactionGlyph } from "./reaction-glyphs";
-// TODO(PR4-delete): the old scene consumes the new core (camera/viewer/store)
-// through this one adapter until it's hollowed out module-by-module.
+// TODO(PR4-delete): the old scene consumes the new core (camera/viewer/
+// store/scheduler) through this one adapter until it's hollowed out
+// module-by-module.
 import {
+  cameraCenterWorld,
   clampZoom,
   createCamera,
+  createMeshScheduler,
   createMeshStore,
   deriveViewerCaps,
+  projectPoint,
   unprojectPoint,
   MIN_ZOOM,
   MAX_ZOOM,
   type Camera,
+  type MeshScheduler,
   type MeshStore,
 } from "./core-adapter";
 
@@ -200,9 +206,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const storeRef = useRef<MeshStore | null>(null);
   if (storeRef.current === null) storeRef.current = createMeshStore(viewer);
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
-  const hitboxesRef = useRef<Map<string, { x: number; y: number; r: number }>>(new Map());
-  const pillHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
-  const profileHitboxesRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
+  // Hit targets derive from the model + camera each tick (sim/hitmap) — the
+  // painter never writes them, so a node that isn't in the model (gated,
+  // culled, not yet born) can never be tapped or retain a ghost hitbox.
+  const hitmapRef = useRef<Hitmap>(createHitmap());
   const starsRef = useRef<{ x: number; y: number; r: number; tw: number }[]>([]);
   const sizeRef = useRef({ width: 0, height: 0 });
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -226,7 +233,6 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
   const panTargetRef = useRef<{ nodeId: string } | null>(null);
   const physicsRef = useRef<PhysicsState>(createPhysicsState());
-  const lastFrameRef = useRef(0);
 
   const meshiCursorRef = useRef<HTMLDivElement>(null);
   // Meshi lives ON the mesh: its target and eased position are WORLD
@@ -510,7 +516,17 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   // sustained-consecutive slow frames, and is one-way per mount. `frameCost` is
   // a smoothed inter-frame time in ms; `slow` counts consecutive slow frames;
   // `frames` is a warm-up guard against startup jank.
-  const perfRef = useRef({ tier: 0, frameCost: 16, slow: 0, frames: 0, lastRenderT: 0, lastStepT: 0 });
+  const perfRef = useRef({ tier: 0, frameCost: 16, slow: 0, frames: 0 });
+  // THE one rAF: every per-frame system (physics + camera, hitmap + paint,
+  // Meshi/hearts DOM sync) rides this scheduler's fixed phases — nothing in
+  // the mesh may run its own loop. The deepest perf tier's ~30fps cap is
+  // handed to the scheduler so frame skipping happens once, for everything.
+  const schedulerRef = useRef<MeshScheduler | null>(null);
+  if (schedulerRef.current === null) {
+    schedulerRef.current = createMeshScheduler({
+      frameCapMs: () => (perfRef.current.tier >= 2 ? 31 : 0),
+    });
+  }
   // Mesh Pro visuals chosen by this mesh's OWNER (atmosphere, thread color,
   // node style, motion) — visitors see the owner's world the way they dressed
   // it. Read per-frame by the painter and physics.
@@ -831,7 +847,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     setShowRewind(false);
   }, [backToNow]);
 
-  // --- Canvas sizing + render loop ---
+  // --- Canvas sizing + the scene's sim/paint phases on the one scheduler ---
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -839,7 +855,6 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let raf = 0;
     const perf = perfRef.current;
     // Genuinely weak devices (very few cores / little memory) start already
     // degraded rather than waiting for the watchdog to notice the jank.
@@ -866,76 +881,94 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     const ro = new ResizeObserver(resize);
     ro.observe(container);
 
-    const render = (time: number) => {
-      raf = requestAnimationFrame(render);
-      // Frame-rate cap only at the deepest tier (~30fps): a steady 30 reads far
-      // smoother than a stuttering rate on a device that can't sustain more.
-      if (perf.tier >= 2 && time - perf.lastRenderT < 31) return;
-      perf.lastRenderT = time;
+    // The one scheduler owns the rAF, the frame cap (deepest tier ~30fps),
+    // and the single clamped dt every phase shares — a tab-refocus gap can't
+    // blow up the physics step or the perf watchdog's average.
+    const scheduler = schedulerRef.current;
+
+    // sim: physics + camera motion. World state settles before anything is
+    // derived from it (hitmap) or drawn (paint).
+    scheduler?.setPhase("sim", ({ dt }) => {
+      const { width, height } = sizeRef.current;
+      const model = modelRef.current;
+      if (!model || !width || !height) return;
+      // Physics: node springs toward the closeness/time layout, drifting at
+      // the owner's chosen motion style. Every Meshi in the room — yours
+      // included — disturbs nearby strands as it passes, so the web reacts
+      // to the people moving through it.
+      const disturbances: { x: number; y: number }[] = [];
+      if (cursorWorldTargetRef.current.seen) disturbances.push({ x: cursorWorldPosRef.current.x, y: cursorWorldPosRef.current.y });
+      if (isOwnMesh) disturbances.push({ x: ownerWorldPosRef.current.x, y: ownerWorldPosRef.current.y });
+      presenceWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
+      perchWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
+      // Drift phase is driven by the shared wall clock (Date.now()), NOT the
+      // per-client rAF `time`, so nodes/posts settle to the same orbit on every
+      // screen — two viewers of one mesh agree on where each node sits.
+      stepScenePhysics(model, physicsRef.current, Date.now(), dt, driftScaleFor(proVisualsRef.current.motionStyle), disturbances);
+
+      // Inertial pan: carry the fling velocity after release, with decay.
+      const fling = flingRef.current;
+      if (!dragRef.current.active && (Math.abs(fling.vx) > 4 || Math.abs(fling.vy) > 4)) {
+        const flingDt = Math.min(dt, 50);
+        cameraRef.current.panX += (fling.vx * flingDt) / 1000;
+        cameraRef.current.panY += (fling.vy * flingDt) / 1000;
+        const decay = Math.exp(-flingDt / 320);
+        fling.vx *= decay;
+        fling.vy *= decay;
+      }
+
+      // Glide the camera toward a fly-to node, tracking its live position so
+      // branch expansion, drift, and zoom changes are all accounted for.
+      const pt = panTargetRef.current;
+      if (pt) {
+        const target = model.nodes.get(pt.nodeId);
+        if (!target) {
+          panTargetRef.current = null;
+        } else {
+          const cam = cameraRef.current;
+          const tx = -target.dx * cam.zoom;
+          const ty = -target.dy * cam.zoom;
+          const k = Math.min(1, dt / 220);
+          cam.panX += (tx - cam.panX) * k;
+          cam.panY += (ty - cam.panY) * k;
+          if (Math.hypot(tx - cam.panX, ty - cam.panY) < 1.5) panTargetRef.current = null;
+        }
+      }
+
+      // Smooth zoom: ease toward the wheel / button target around its anchor.
+      const zt = zoomTargetRef.current;
+      if (zt) {
+        const cam = cameraRef.current;
+        const k = Math.min(1, dt / 90);
+        const next = cam.zoom + (zt.zoom - cam.zoom) * k;
+        const ratio = next / cam.zoom;
+        cam.panX = zt.ax - (zt.ax - cam.panX) * ratio;
+        cam.panY = zt.ay - (zt.ay - cam.panY) * ratio;
+        cam.zoom = next;
+        if (Math.abs(zt.zoom - cam.zoom) < 0.002) zoomTargetRef.current = null;
+      }
+    });
+
+    // paint: hit targets are derived from the settled model + camera FIRST
+    // (sim/hitmap — the painter has no say in what's tappable), then the
+    // canvas draws, then the perf watchdog judges the frame.
+    scheduler?.setPhase("paint", ({ time, dt }) => {
       const { width, height } = sizeRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const model = modelRef.current;
-      // Clamp so a tab-refocus / long-idle gap (dt of many seconds) can't blow
-      // up the physics step or the perf watchdog's average; a real slow frame is
-      // still well within this bound.
-      const dt = lastFrameRef.current ? Math.min(time - lastFrameRef.current, 64) : 16;
-      lastFrameRef.current = time;
       if (model && width && height) {
-        // Physics: node springs toward the closeness/time layout, drifting at
-        // the owner's chosen motion style. Every Meshi in the room — yours
-        // included — disturbs nearby strands as it passes, so the web reacts
-        // to the people moving through it.
-        const disturbances: { x: number; y: number }[] = [];
-        if (cursorWorldTargetRef.current.seen) disturbances.push({ x: cursorWorldPosRef.current.x, y: cursorWorldPosRef.current.y });
-        if (isOwnMesh) disturbances.push({ x: ownerWorldPosRef.current.x, y: ownerWorldPosRef.current.y });
-        presenceWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
-        perchWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
-        // Drift phase is driven by the shared wall clock (Date.now()), NOT the
-        // per-client rAF `time`, so nodes/posts settle to the same orbit on every
-        // screen — two viewers of one mesh agree on where each node sits.
-        stepScenePhysics(model, physicsRef.current, Date.now(), dt, driftScaleFor(proVisualsRef.current.motionStyle), disturbances);
-
-        // Inertial pan: carry the fling velocity after release, with decay.
-        const fling = flingRef.current;
-        if (!dragRef.current.active && (Math.abs(fling.vx) > 4 || Math.abs(fling.vy) > 4)) {
-          const flingDt = Math.min(dt, 50);
-          cameraRef.current.panX += (fling.vx * flingDt) / 1000;
-          cameraRef.current.panY += (fling.vy * flingDt) / 1000;
-          const decay = Math.exp(-flingDt / 320);
-          fling.vx *= decay;
-          fling.vy *= decay;
-        }
-
-        // Glide the camera toward a fly-to node, tracking its live position so
-        // branch expansion, drift, and zoom changes are all accounted for.
-        const pt = panTargetRef.current;
-        if (pt) {
-          const target = model.nodes.get(pt.nodeId);
-          if (!target) {
-            panTargetRef.current = null;
-          } else {
-            const cam = cameraRef.current;
-            const tx = -target.dx * cam.zoom;
-            const ty = -target.dy * cam.zoom;
-            const k = Math.min(1, dt / 220);
-            cam.panX += (tx - cam.panX) * k;
-            cam.panY += (ty - cam.panY) * k;
-            if (Math.hypot(tx - cam.panX, ty - cam.panY) < 1.5) panTargetRef.current = null;
-          }
-        }
-
-        // Smooth zoom: ease toward the wheel / button target around its anchor.
-        const zt = zoomTargetRef.current;
-        if (zt) {
-          const cam = cameraRef.current;
-          const k = Math.min(1, dt / 90);
-          const next = cam.zoom + (zt.zoom - cam.zoom) * k;
-          const ratio = next / cam.zoom;
-          cam.panX = zt.ax - (zt.ax - cam.panX) * ratio;
-          cam.panY = zt.ay - (zt.ay - cam.panY) * ratio;
-          cam.zoom = next;
-          if (Math.abs(zt.zoom - cam.zoom) < 0.002) zoomTargetRef.current = null;
-        }
+        rebuildHitmap(hitmapRef.current, {
+          model,
+          camera: cameraRef.current,
+          width,
+          height,
+          time,
+          activeBranch: activeBranchRef.current,
+          selectedId: selectedIdRef.current,
+          hoverId: hoverIdRef.current,
+          images: imagesRef.current,
+          avoidCenter: coarseRef.current,
+        });
 
         drawScene({
           ctx,
@@ -950,9 +983,6 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           hoverId: hoverIdRef.current,
           images: imagesRef.current,
           backgroundStars: starsRef.current,
-          hitboxes: hitboxesRef.current,
-          pillHitboxes: pillHitboxesRef.current,
-          profileHitboxes: profileHitboxesRef.current,
           avoidCenter: coarseRef.current,
           isOwnMesh,
           strands: physicsRef.current.strands,
@@ -966,7 +996,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         let best = 52;
         const cx = width / 2;
         const cy = height / 2;
-        hitboxesRef.current.forEach((box, id) => {
+        hitmapRef.current.circles.forEach((box, id) => {
           const node = model.nodes.get(id);
           if (!node || node.kind === "self" || node.kind === "branch") return;
           const d = Math.hypot(box.x - cx, box.y - cy);
@@ -983,10 +1013,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       // reflects the canvas draw, the presence/step loop, and browser paint
       // together — not just this callback's own span. If a device stays below
       // ~45fps (dt > 22ms) for a full second of CONSECUTIVE frames, escalate ONE
-      // tier: reduce pixels first (tier 1), and only cap the frame rate (tier 2)
-      // if it's STILL slow afterwards. A single fast frame resets the counter,
-      // so a borderline device is never nudged down by noise. Skipped once
-      // frame-capped (tier 2 is the floor) and during a brief startup warm-up.
+      // tier: reduce pixels first (tier 1), and only cap the frame rate (tier 2,
+      // enforced by the scheduler's frame cap) if it's STILL slow afterwards. A
+      // single fast frame resets the counter, so a borderline device is never
+      // nudged down by noise. Skipped once frame-capped (tier 2 is the floor)
+      // and during a brief startup warm-up.
       perf.frames++;
       if (perf.tier < 2 && perf.frames > 30) {
         perf.frameCost = perf.frameCost * 0.9 + dt * 0.1;
@@ -1006,11 +1037,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           perf.slow = 0;
         }
       }
-    };
-    raf = requestAnimationFrame(render);
+    });
 
     return () => {
-      cancelAnimationFrame(raf);
+      scheduler?.setPhase("sim", null);
+      scheduler?.setPhase("paint", null);
       ro.disconnect();
     };
   }, [fitToContent, viewUserId, viewMode, isOwnMesh]);
@@ -1201,7 +1232,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     const model = modelRef.current;
     if (!model) return null;
     // Label pills (branch / self) are clickable too.
-    for (const [id, pill] of pillHitboxesRef.current) {
+    for (const [id, pill] of hitmapRef.current.pills) {
       if (sx >= pill.x - 4 - slop && sx <= pill.x + pill.w + 4 + slop && sy >= pill.y - 4 - slop && sy <= pill.y + pill.h + 4 + slop) {
         const node = model.nodes.get(id);
         if (node) return node;
@@ -1209,7 +1240,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     }
     let found: SceneNode | null = null;
     let bestD = Infinity;
-    hitboxesRef.current.forEach((box, id) => {
+    hitmapRef.current.circles.forEach((box, id) => {
       const d = Math.hypot(box.x - sx, box.y - sy);
       // Among every target the finger is within reach of, pick the one whose
       // CENTRE is nearest the tap — so a fingertip lands on the node it's
@@ -1459,7 +1490,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           };
           return;
         }
-        const profileRect = profileHitboxesRef.current.get(modelRef.current?.selfId || "");
+        const profileRect = hitmapRef.current.profile.get(modelRef.current?.selfId || "");
         if (profileRect) {
           const sx = e.clientX - rect.left;
           const sy = e.clientY - rect.top;
@@ -1595,10 +1626,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
               return prefs.face;
             })(),
             viewportPosition: coarseRef.current ? { vx: 0.5, vy: 0.5 } : vp,
-            position: {
-              x: coarseRef.current ? -cameraRef.current.panX / cameraRef.current.zoom : cursorWorldTargetRef.current.x,
-              y: coarseRef.current ? -cameraRef.current.panY / cameraRef.current.zoom : cursorWorldTargetRef.current.y,
-            },
+            // Touch broadcasts the world point the camera is centred on;
+            // fine pointers broadcast the cursor's world target.
+            position: coarseRef.current
+              ? cameraCenterWorld(cameraRef.current)
+              : { x: cursorWorldTargetRef.current.x, y: cursorWorldTargetRef.current.y },
             viewingMesh: meshOwner,
             surface: "mesh",
             activeNodeId: selectedIdRef.current,
@@ -1727,14 +1759,16 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             // Perched or viewport-anchored: unproject their current screen spot.
             const perch = perchPosRef.current.get(p.userId);
             if (perch && c) {
-              sx = (perch.x - c.clientWidth / 2 - cam.panX) / cam.zoom;
-              sy = (perch.y - c.clientHeight / 2 - cam.panY) / cam.zoom;
+              const w = unprojectPoint(cam, c.clientWidth, c.clientHeight, perch.x, perch.y);
+              sx = w.x;
+              sy = w.y;
             } else {
               const vp =
                 presencePosRef.current.get(p.userId) ?? presenceTargetsRef.current.get(p.userId);
               if (vp && c) {
-                sx = (vp.vx * c.clientWidth - c.clientWidth / 2 - cam.panX) / cam.zoom;
-                sy = (vp.vy * c.clientHeight - c.clientHeight / 2 - cam.panY) / cam.zoom;
+                const w = unprojectPoint(cam, c.clientWidth, c.clientHeight, vp.vx * c.clientWidth, vp.vy * c.clientHeight);
+                sx = w.x;
+                sy = w.y;
               }
             }
           }
@@ -1776,10 +1810,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             const c = containerRef.current;
             const cam = cameraRef.current;
             if (last && c) {
-              const worldFromLast = {
-                x: (last.x - c.clientWidth / 2 - cam.panX) / cam.zoom,
-                y: (last.y - c.clientHeight / 2 - cam.panY) / cam.zoom,
-              };
+              const worldFromLast = unprojectPoint(cam, c.clientWidth, c.clientHeight, last.x, last.y);
               if (nextMode === "room") {
                 presenceWorldPosRef.current.set(p.userId, worldFromLast);
               } else {
@@ -1841,8 +1872,9 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
               let y: number | null = null;
               const world = presenceWorldPosRef.current.get(q.userId) ?? presenceWorldRef.current.get(q.userId);
               if (world && c) {
-                x = c.clientWidth / 2 + cam.panX + world.x * cam.zoom;
-                y = c.clientHeight / 2 + cam.panY + world.y * cam.zoom;
+                const s = projectPoint(cam, c.clientWidth, c.clientHeight, world.x, world.y);
+                x = s.x;
+                y = s.y;
               } else {
                 const perch = perchPosRef.current.get(q.userId);
                 if (perch) {
@@ -1980,7 +2012,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     const hb = setInterval(() => {
       const now = Date.now();
       const cur = coarseRef.current
-        ? { x: -cameraRef.current.panX / cameraRef.current.zoom, y: -cameraRef.current.panY / cameraRef.current.zoom }
+        ? cameraCenterWorld(cameraRef.current)
         : { x: cursorWorldTargetRef.current.x, y: cursorWorldTargetRef.current.y };
       const moved = Math.hypot(cur.x - lastSent.x, cur.y - lastSent.y);
       const due = now - lastFullBeat >= 2000;
@@ -2034,20 +2066,23 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     };
   }, [viewer.canBroadcastPresence]);
 
-  // Glide every Meshi ON the mesh each frame: positions live in world
-  // coordinates so they pan/zoom with the web, and a screen-space pass keeps
-  // them from ever sitting on top of a node.
+  // Glide every Meshi ON the mesh in the scheduler's dom.sync phase — same
+  // frame, AFTER physics and paint, so it reads THIS frame's hitmap and
+  // camera (the old second loop consumed the paint loop's leftovers with no
+  // ordering guarantee). Positions live in world coordinates so they
+  // pan/zoom with the web, and a screen-space pass keeps them from ever
+  // sitting on top of a node.
   useEffect(() => {
     let meshiRLive = 13;
     // Deterministic per-frame push away from any node the Meshi would cover.
     // Recomputed from the world position each frame (never written back), so
-    // it can't feedback-oscillate.
+    // it can't feedback-oscillate. Reads the model-derived hitmap.
     const avoidNodes = (sx: number, sy: number): { x: number; y: number } => {
       let x = sx;
       let y = sy;
       for (let pass = 0; pass < 2; pass += 1) {
         let pushed = false;
-        hitboxesRef.current.forEach((hb) => {
+        hitmapRef.current.circles.forEach((hb) => {
           const minD = hb.r + meshiRLive;
           const dx = x - hb.x;
           const dy = y - hb.y;
@@ -2062,16 +2097,16 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       }
       return { x, y };
     };
-    const project = (wx: number, wy: number) => {
-      const container = containerRef.current;
-      const cam = cameraRef.current;
-      const w = container?.clientWidth ?? 0;
-      const h = container?.clientHeight ?? 0;
-      return { x: w / 2 + cam.panX + wx * cam.zoom, y: h / 2 + cam.panY + wy * cam.zoom };
-    };
+    // World→screen for the DOM layer — through core/camera like everyone else.
+    const project = (wx: number, wy: number) =>
+      projectPoint(
+        cameraRef.current,
+        containerRef.current?.clientWidth ?? 0,
+        containerRef.current?.clientHeight ?? 0,
+        wx,
+        wy,
+      );
 
-    let raf = 0;
-    let last = 0;
     // Hearts in flight: each rises out of a Meshi, arcs across the world, and
     // pops on the post it was thrown at — nudging the count up as it lands.
     const stepHearts = (now: number) => {
@@ -2152,14 +2187,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         return true;
       });
     };
-    const step = (time: number) => {
-      raf = requestAnimationFrame(step);
-      // Match the render loop's deepest-tier frame cap so both loops stay near
-      // 30fps together on struggling devices instead of both running full tilt.
-      if (perfRef.current.tier >= 2 && time - perfRef.current.lastStepT < 31) return;
-      perfRef.current.lastStepT = time;
-      const dt = last ? Math.min(time - last, 50) : 16;
-      last = time;
+    // The scheduler's frame cap and single dt clamp already govern this
+    // phase — no second clock, no second frame cap.
+    const scheduler = schedulerRef.current;
+    scheduler?.setPhase("domSync", ({ time, dt }) => {
       stepHearts(time);
       // Meshis are THINGS IN THE WORLD: they scale with the zoom exactly like
       // nodes do (same clamp), so their size relative to the mesh never
@@ -2202,7 +2233,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         if (presenceModeRef.current.get(userId) === "perch") {
           const nodeId = perchNodeRef.current.get(userId);
           const node = nodeId ? modelRef.current?.nodes.get(nodeId) : null;
-          const hb = nodeId ? hitboxesRef.current.get(nodeId) : null;
+          const hb = nodeId ? hitmapRef.current.circles.get(nodeId) : null;
           if (!node || !hb) {
             el.style.opacity = "0";
             return;
@@ -2233,10 +2264,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             const lastDrawn = lastScreenPosRef.current.get(userId);
             pos =
               lastDrawn && cEl2
-                ? {
-                    x: (lastDrawn.x - cEl2.clientWidth / 2 - cam2.panX) / cam2.zoom,
-                    y: (lastDrawn.y - cEl2.clientHeight / 2 - cam2.panY) / cam2.zoom,
-                  }
+                ? unprojectPoint(cam2, cEl2.clientWidth, cEl2.clientHeight, lastDrawn.x, lastDrawn.y)
                 : { ...world };
           }
           glide(pos, world.x, world.y, worldMaxSpeed);
@@ -2282,20 +2310,20 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       // Placed BEFORE the coarse branch so the opacity reveal runs for touch
       // too (the coarse branch below re-affirms centre + seen harmlessly).
       if (cursorEl && !cursorWorldTargetRef.current.seen) {
-        const cam = cameraRef.current;
+        const center = cameraCenterWorld(cameraRef.current);
         const t = cursorWorldTargetRef.current;
-        t.x = -cam.panX / cam.zoom;
-        t.y = -cam.panY / cam.zoom;
+        t.x = center.x;
+        t.y = center.y;
         cursorWorldPosRef.current.x = t.x;
         cursorWorldPosRef.current.y = t.y;
         t.seen = true;
         cursorEl.style.opacity = "1";
       }
       if (coarseRef.current) {
-        const cam = cameraRef.current;
+        const camCenter = cameraCenterWorld(cameraRef.current);
         const center = cursorWorldTargetRef.current;
-        center.x = -cam.panX / cam.zoom;
-        center.y = -cam.panY / cam.zoom;
+        center.x = camCenter.x;
+        center.y = camCenter.y;
         center.seen = true;
         cursorVpRef.current = { vx: 0.5, vy: 0.5 };
       }
@@ -2316,8 +2344,8 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       // What YOUR Meshi looks at: the node you're pointing at, then the one you
       // opened, then the nearest Meshi in the room.
       const selfLookTarget = (fromX: number, fromY: number): Pt | null => {
-        const hoverHb = hoverIdRef.current ? hitboxesRef.current.get(hoverIdRef.current) : null;
-        const openHb = !hoverHb && selectedIdRef.current ? hitboxesRef.current.get(selectedIdRef.current) : null;
+        const hoverHb = hoverIdRef.current ? hitmapRef.current.circles.get(hoverIdRef.current) : null;
+        const openHb = !hoverHb && selectedIdRef.current ? hitmapRef.current.circles.get(selectedIdRef.current) : null;
         const hb = hoverHb ?? openHb;
         if (hb) return { x: hb.x, y: hb.y };
         const others: Pt[] = [];
@@ -2380,7 +2408,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         const restingHome = !isMe && !ownerHere;
         let homeY = 0;
         if (restingHome) {
-          const selfHb = selfId ? hitboxesRef.current.get(selfId) : null;
+          const selfHb = selfId ? hitmapRef.current.circles.get(selfId) : null;
           const clearPx = (selfHb?.r ?? 40) + 26 * meshiScale;
           homeY = clearPx / Math.max(cameraRef.current.zoom, 0.05);
         }
@@ -2399,7 +2427,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         if (!coarseRef.current && Math.hypot(pos.x, pos.y) > 30) {
           let px = s.x;
           let py = s.y;
-          hitboxesRef.current.forEach((hb, id) => {
+          hitmapRef.current.circles.forEach((hb, id) => {
             if (id === selfId) return;
             const minD = hb.r + 14 * meshiScale;
             const dx = px - hb.x;
@@ -2451,7 +2479,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           let target: Pt | null = null;
           if (lookActive) {
             const perchId = perchNodeRef.current.get(userId);
-            const hb = perchId ? hitboxesRef.current.get(perchId) : null;
+            const hb = perchId ? hitmapRef.current.circles.get(perchId) : null;
             if (hb) {
               target = { x: hb.x, y: hb.y };
             } else {
@@ -2467,9 +2495,8 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           easeLook(el, userId, me, target);
         });
       }
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    });
+    return () => scheduler?.setPhase("domSync", null);
   }, [viewUserId, viewMode, isOwnMesh]);
 
   // Keyboard shortcuts: / search, +/- zoom, 0 fit, Escape closes overlays.

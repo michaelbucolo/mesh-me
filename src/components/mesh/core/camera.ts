@@ -38,6 +38,13 @@ export function projectPoint(
   };
 }
 
+/** The world point at the viewport centre — where the camera is looking.
+ * Equivalent to `unprojectPoint(camera, w, h, w/2, h/2)`; the half-viewport
+ * terms cancel, so the centre is viewport-size-independent. */
+export function cameraCenterWorld(camera: Camera): { x: number; y: number } {
+  return { x: -camera.panX / camera.zoom, y: -camera.panY / camera.zoom };
+}
+
 /** Screen position → world position — the exact inverse of `projectPoint`. */
 export function unprojectPoint(
   camera: Camera,

@@ -5,12 +5,15 @@
 // ../core directly, never from here.
 
 export {
+  cameraCenterWorld,
   clampZoom,
   createCamera,
+  projectPoint,
   unprojectPoint,
   MIN_ZOOM,
   MAX_ZOOM,
   type Camera,
 } from "../core/camera";
+export { createMeshScheduler, type MeshScheduler } from "../core/scheduler";
 export { deriveViewerCaps } from "../core/viewer";
 export { createMeshStore, type MeshStore } from "../core/store";
