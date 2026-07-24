@@ -439,10 +439,14 @@ function scoreFlowPost(
 
   // Seen fatigue: already-watched reels sink hard but stay retrievable once
   // fresh material runs out. A reel the viewer fast-skipped sinks hardest —
-  // they already answered — while everything else keeps the standard crush.
+  // they already answered. Sign-safe: a negative score (possible now that
+  // net-negative authors subtract) is DIVIDED by the crush so it falls
+  // further — multiplying it would pull it toward zero and rank a rejected
+  // reel above that author's unseen posts.
   if (opts.seen?.has(post.id)) {
     const ws = opts.watch?.get(post.id);
-    score *= ws && isFastSkip(ws) ? 0.02 : 0.06;
+    const crush = ws && isFastSkip(ws) ? 0.02 : 0.06;
+    score = score > 0 ? score * crush : score / crush;
   }
 
   return score;

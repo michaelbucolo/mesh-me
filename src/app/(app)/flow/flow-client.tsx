@@ -1107,6 +1107,9 @@ export function FlowClient({
   // ever shapes THIS viewer's own feed.
   const watchAccumRef = useRef<Map<string, { w: number; c: number }>>(new Map());
   const activeWatchRef = useRef<{ id: string | null; startedAt: number }>({ id: null, startedAt: 0 });
+  // The reel on screen, tracked separately from the dwell clock so the clock
+  // can fully SUSPEND while the tab is hidden and resume for the right reel.
+  const displayedIdRef = useRef<string | null>(null);
 
   // Bank the elapsed dwell for the reel currently on screen and restart its
   // clock — called on reel change, on flush, and around tab-hide gaps.
@@ -1124,8 +1127,24 @@ export function FlowClient({
 
   const beginWatch = useCallback((id: string | null) => {
     foldActiveWatch();
-    activeWatchRef.current = { id: signedOut ? null : id, startedAt: Date.now() };
+    displayedIdRef.current = signedOut ? null : id;
+    // The dwell clock only ever runs while the tab is visible — a reel that
+    // becomes active under a hidden tab (a fetch resolving in the background)
+    // starts its clock on the next visibilitychange back.
+    const hidden = typeof document !== "undefined" && document.hidden;
+    activeWatchRef.current = { id: hidden ? null : displayedIdRef.current, startedAt: Date.now() };
   }, [foldActiveWatch, signedOut]);
+
+  // A failed non-beacon flush puts the watch quantities back, so a dropped
+  // request can't freeze a genuinely-watched reel at a fast-skip reading.
+  const restoreWatch = useCallback((entries: { i: string; w: number; c: number }[]) => {
+    for (const e of entries) {
+      const cur = watchAccumRef.current.get(e.i) ?? { w: 0, c: 0 };
+      cur.w = Math.min(120_000, cur.w + e.w);
+      cur.c = Math.max(cur.c, e.c);
+      watchAccumRef.current.set(e.i, cur);
+    }
+  }, []);
 
   const reportWatchProgress = useCallback((id: string, completion: number) => {
     if (signedOut || !(completion > 0)) return;
@@ -1175,8 +1194,12 @@ export function FlowClient({
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       keepalive: true,
-    }).catch(() => {});
-  }, [signedOut, foldActiveWatch]);
+    })
+      .then((res) => {
+        if (!res.ok) restoreWatch(watch);
+      })
+      .catch(() => restoreWatch(watch));
+  }, [signedOut, foldActiveWatch, restoreWatch]);
 
   const markSeen = useCallback((id: string) => {
     if (seenRef.current.has(id)) return;
@@ -1207,12 +1230,19 @@ export function FlowClient({
   useEffect(() => {
     const onVisibility = () => {
       if (document.hidden) {
-        // The flush folds dwell up to the hide moment…
+        // Fold dwell up to the hide moment and ship it, then SUSPEND the
+        // clock entirely — otherwise a later fold while still hidden (a
+        // pagehide from the tab strip, a throttled timer) would book the
+        // whole hidden stretch as watch time.
         flushSeen(true);
+        activeWatchRef.current = { id: null, startedAt: 0 };
+        if (flushTimerRef.current) {
+          window.clearTimeout(flushTimerRef.current);
+          flushTimerRef.current = null;
+        }
       } else {
-        // …and the hidden stretch itself must never count as watch time, so
-        // restart the active reel's clock when the tab comes back.
-        activeWatchRef.current.startedAt = Date.now();
+        // Resume the clock for whatever reel is on screen.
+        activeWatchRef.current = { id: displayedIdRef.current, startedAt: Date.now() };
       }
     };
     const onPageHide = () => flushSeen(true);
