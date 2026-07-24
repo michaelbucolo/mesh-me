@@ -1,0 +1,178 @@
+// NodeDetail — the bottom sheet / side card for person, platform, community
+// and interest nodes. Extracted from the old mesh-scene.tsx; its share
+// affordance rides the ONE useShare() flow, and its person actions now come
+// from ViewerCaps (Follow was already owner-only; Message follows canDM so
+// the read-only Global view offers no DM entry point).
+
+"use client";
+
+import Link from "next/link";
+import { X } from "lucide-react";
+import { useState, useTransition } from "react";
+import { toggleFollow } from "@/lib/actions";
+import type { ViewerCaps } from "../core/viewer";
+import type { SceneNode } from "../scene/scene-model";
+import { useShare } from "./use-share";
+
+export function NodeDetail({
+  node,
+  viewer,
+  onClose,
+  onEnterMesh,
+}: {
+  node: SceneNode;
+  // Follow only when the node's isFollowing is authoritative for the VIEWER —
+  // i.e. on your own mesh (viewer.canFollow). On a visited/global mesh the
+  // follow flags describe the mesh owner's ties, not yours, so we show
+  // Enter / Message / Share / Profile only.
+  viewer: ViewerCaps;
+  onClose: () => void;
+  onEnterMesh: (node: SceneNode) => void;
+}) {
+  const isPerson = node.kind === "person" && !!node.userId;
+  const [following, setFollowing] = useState(!!node.isFollowing);
+  const [, startFollow] = useTransition();
+  const { copied: shareCopied, share } = useShare();
+
+  const onToggleFollow = () => {
+    if (!node.userId) return;
+    const next = !following;
+    setFollowing(next); // optimistic
+    startFollow(async () => {
+      const res = await toggleFollow(node.userId!);
+      // Server authorizes + guards blocks/self. Reconcile to its truth: revert on
+      // error, otherwise take the authoritative follow state it returns.
+      if (res && "error" in res && res.error) setFollowing(!next);
+      else if (res && "following" in res) setFollowing(res.following ?? next);
+    });
+  };
+
+  const onShare = () => {
+    const url =
+      node.href && typeof window !== "undefined"
+        ? `${window.location.origin}${node.href}`
+        : typeof window !== "undefined"
+          ? window.location.href
+          : "";
+    share({
+      title: node.label || "mesh.me",
+      text: node.sublabel || node.label,
+      url,
+      dialogTitle: "Share profile",
+    });
+  };
+
+  return (
+    <div
+      className="mesh-panel absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl p-4 shadow-2xl sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-start gap-3">
+        {node.avatarUrl || node.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={(node.avatarUrl || node.imageUrl) as string}
+            alt=""
+            className="h-12 w-12 shrink-0 rounded-xl object-cover"
+          />
+        ) : (
+          <span
+            className="h-12 w-12 shrink-0 rounded-xl"
+            style={{ background: `radial-gradient(circle at 35% 30%, #ffffff55, ${node.color})` }}
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">{node.label}</p>
+          {node.sublabel && <p className="truncate text-xs text-white/55">{node.sublabel}</p>}
+        </div>
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={onClose}
+          className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {node.placeReason && (
+        <p className="mt-2.5 rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-[11px] leading-snug text-white/55">
+          {node.placeReason}
+        </p>
+      )}
+
+      {node.content && <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-white/70">{node.content}</p>}
+
+      {node.meta && node.meta.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {node.meta.map((m) => (
+            <span key={m.label} className="rounded-lg bg-white/5 px-2.5 py-1 text-[11px] text-white/70">
+              <span className="font-semibold text-white">{m.value}</span> {m.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {isPerson ? (
+        <div className="mt-4 space-y-2">
+          <button
+            type="button"
+            onClick={() => onEnterMesh(node)}
+            className="mesh-bubble-btn mesh-cta ds-focus-ring w-full rounded-full py-2 text-xs font-semibold"
+          >
+            Enter their mesh
+          </button>
+          <div className="grid grid-cols-2 gap-2">
+            {viewer.canFollow && (
+              <button
+                type="button"
+                onClick={onToggleFollow}
+                aria-pressed={following}
+                className={`mesh-bubble-btn ds-focus-ring rounded-full py-2 text-xs font-semibold ${
+                  following ? "mesh-glass mesh-ctl text-white" : "mesh-cta"
+                }`}
+              >
+                {following ? (node.isMutual ? "Friends" : "Following") : "Follow"}
+              </button>
+            )}
+            {viewer.canDM && (
+              <Link
+                href={`/messages/${node.userId}?new=true`}
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
+              >
+                Message
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={onShare}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-xs font-semibold text-white"
+            >
+              {shareCopied ? "Copied" : "Share"}
+            </button>
+            {node.href && (
+              <Link
+                href={node.href}
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
+              >
+                Profile
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : (
+        node.href && (
+          <div className="mt-4 flex gap-2">
+            <Link
+              href={node.href}
+              target={node.href.startsWith("http") ? "_blank" : undefined}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
+            >
+              {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
+            </Link>
+          </div>
+        )
+      )}
+    </div>
+  );
+}

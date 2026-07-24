@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { MeshFormingLoader } from "./mesh-forming-loader";
 import { meshApiUrl, prefetchMesh } from "./mesh-prefetch";
 
-const MeshScene = dynamic(() => import("./mesh-scene").then((module) => module.MeshScene), {
+const MeshScene = dynamic(() => import("./mesh-surface").then((module) => module.MeshScene), {
   ssr: false,
   loading: () => <MeshFormingLoader />,
 });

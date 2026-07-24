@@ -329,7 +329,10 @@ const checks = [
     description: "The Mesh has stable testability/accessibility hooks",
     fix: "Keep the Mesh canvas, controls, and diagnostics-visible states accessible to browser tests.",
     run: async () => {
-      const source = read("src/components/mesh/scene/mesh-scene.tsx") + read("src/components/mesh/mesh-desktop-chrome.tsx");
+      const source =
+        read("src/components/mesh/scene/mesh-surface.tsx") +
+        read("src/components/mesh/ui/rail.tsx") +
+        read("src/components/mesh/mesh-desktop-chrome.tsx");
       const required = ['data-testid="mesh-scene"', 'data-testid="mesh-canvas"', 'data-testid="mesh-action-bar"', "aria-label", "MeshScene"];
       const missing = required.filter((token) => !source.includes(token));
       assert(missing.length === 0, `Missing Mesh testability markers: ${missing.join(", ")}`);
