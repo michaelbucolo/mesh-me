@@ -1,10 +1,21 @@
 // Canvas painter for the constellation scene. Everything is projected to
 // screen space manually (no ctx scale) so node sizes scale with zoom while
-// strokes and labels stay crisp. The painter also records each node's screen
-// hitbox for pointer hit-testing.
+// strokes and labels stay crisp. The painter draws and ONLY draws: hit
+// targets derive from the model + camera in sim/hitmap (whose size/birth/
+// emphasis vocabulary this file shares), never from what was painted.
 
 import { platformLogoDataUri } from "@/components/platform/platform-logo";
 import { projectPoint, type Camera } from "../core/camera";
+import {
+  baseRadius,
+  birthProgress,
+  chainFrom,
+  nodeEmphasis,
+  postCardScale,
+  postCardSize,
+  POST_CARD_MIN_EMPH,
+  POST_CARD_MIN_ZOOM,
+} from "../sim/hitmap";
 import type { BranchKey, SceneModel, SceneNode } from "./scene-model";
 
 // Rasterized brand marks (YouTube, Instagram, TikTok, …) for canvas drawing.
@@ -65,12 +76,6 @@ export interface RenderOptions {
     nodeStyle?: string | null;
     atmosphere?: string | null;
   };
-  /** Output: screen-space hitboxes keyed by node id. */
-  hitboxes: Map<string, { x: number; y: number; r: number }>;
-  /** Output: screen-space label-pill rects keyed by node id (branch/self). */
-  pillHitboxes?: Map<string, { x: number; y: number; w: number; h: number }>;
-  /** Output: screen-space hitbox for the self-node profile button. */
-  profileHitboxes?: Map<string, { x: number; y: number; w: number; h: number }>;
   /** Keep labels clear of the screen center (where the pinned Meshi sits). */
   avoidCenter?: boolean;
   isOwnMesh?: boolean;
@@ -87,25 +92,9 @@ export interface RenderOptions {
 }
 
 // World→screen goes through core/camera — the painter owns no projection
-// math of its own (TODO(PR2): callers consume core/camera directly).
+// math of its own, this is just a per-node convenience over projectPoint.
 function project(node: { dx: number; dy: number }, o: RenderOptions) {
   return projectPoint(o.camera, o.width, o.height, node.dx, node.dy);
-}
-
-const BIRTH_MS = 1150;
-
-/**
- * 0→1 arrival progress (easeOutCubic) for a freshly joined node; 1 if
- * settled. Nodes whose birth moment hasn't arrived yet return 0 and are not
- * drawn at all — this is what lets the world FORM in choreographed waves
- * instead of appearing all at once.
- */
-function birthProgress(node: SceneNode, time: number): number {
-  if (node.bornAt == null) return 1;
-  const age = time - node.bornAt;
-  if (age < 0) return 0;
-  if (age >= BIRTH_MS) return 1;
-  return 1 - Math.pow(1 - age / BIRTH_MS, 3);
 }
 
 /**
@@ -205,26 +194,6 @@ function drawGlyphBubble(ctx: CanvasRenderingContext2D, x: number, y: number, s:
   ctx.lineJoin = "round";
   ctx.stroke();
   ctx.restore();
-}
-
-function baseRadius(node: SceneNode): number {
-  switch (node.kind) {
-    case "self":
-      return 30;
-    case "branch":
-      return 18;
-    case "person":
-    case "persona":
-      return 16 + node.weight * 14;
-    case "platform":
-      return 13 + node.weight * 11;
-    case "community":
-      return 14 + node.weight * 11;
-    case "interest":
-      return 10 + node.weight * 10;
-    default:
-      return 8 + node.weight * 10;
-  }
 }
 
 function withAlpha(hex: string, alpha: number): string {
@@ -340,7 +309,7 @@ function drawSelfProfile(
   emph: number,
   isHover: boolean,
   isSelected: boolean,
-): { w: number; h: number; profileRect: { x: number; y: number; w: number; h: number } | null; avatarRadius: number } {
+): void {
   const { ctx } = o;
   const zoomScale = Math.max(0.68, Math.min(1.18, o.camera.zoom * 1.08));
   const avatarR = 31 * zoomScale;
@@ -392,11 +361,11 @@ function drawSelfProfile(
 
   // The profile panel (name, bio, View Profile, chips) appears only when the
   // center is hovered or selected — at rest the heart of the mesh is just the
-  // living Meshi, not a floating ID card.
+  // living Meshi, not a floating ID card. (sim/hitmap gates the button's hit
+  // rect on the same condition.)
   if (!isHover && !isSelected) {
-    o.profileHitboxes?.delete(node.id);
     ctx.restore();
-    return { w: avatarR * 2, h: avatarR * 2, profileRect: null, avatarRadius: avatarR };
+    return;
   }
 
   const contentTop = y + avatarR + 18 * zoomScale;
@@ -504,8 +473,9 @@ function drawSelfProfile(
   ctx.fillStyle = '#ffffff';
   ctx.font = `600 ${buttonFont}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textBaseline = 'middle';
+  // sim/hitmap mirrors this button's rect exactly — a layout change here
+  // must land there too, or the tap target drifts off the pixels.
   ctx.fillText(buttonText, x, buttonRect.y + buttonRect.h / 2 + 0.5);
-  o.profileHitboxes?.set(node.id, buttonRect);
 
   let chipCursor = x - chipRowW / 2;
   for (const [index, chip] of chips.entries()) {
@@ -525,7 +495,6 @@ function drawSelfProfile(
   }
 
   ctx.restore();
-  return { w: panelW, h: panelRect.h, profileRect: buttonRect, avatarRadius: avatarR };
 }
 /** Rich floating card for post nodes: media, text, likes/comments, source chip. */
 function drawPostCard(
@@ -537,17 +506,16 @@ function drawPostCard(
   emph: number,
   isHover: boolean,
   isSelected: boolean,
-): { w: number; h: number } {
+): void {
   const { ctx } = o;
   const img = node.imageUrl ? o.images.get(node.id) : undefined;
   const pad = 10 * scale;
-  const w = 172 * scale;
   const headH = 22 * scale;
   const imgH = img ? 96 * scale : 0;
   const fontSize = Math.max(8, 10.5 * scale);
-  const textH = 32 * scale;
   const footH = 22 * scale;
-  const h = headH + imgH + textH + footH;
+  // Outer box shared with sim/hitmap, so the tap target IS the drawn card.
+  const { w, h } = postCardSize(scale, Boolean(img));
   const x = cx - w / 2;
   const y = cy - h / 2;
   const radius = 16 * scale;
@@ -703,7 +671,6 @@ function drawPostCard(
   }
 
   ctx.restore();
-  return { w, h };
 }
 
 function roundedImage(
@@ -823,35 +790,15 @@ export function drawScene(o: RenderOptions): void {
   ctx.fillRect(0, 0, width, height);
 
   const nodes = model.nodes;
-  o.pillHitboxes?.clear();
-  o.profileHitboxes?.clear();
 
-  // Chain of ids from the hovered node back to the center — these strands light up.
-  const chainFrom = (id: string | null | undefined): Set<string> => {
-    const chain = new Set<string>();
-    if (!id) return chain;
-    let cursor: SceneNode | undefined = nodes.get(id);
-    while (cursor) {
-      chain.add(cursor.id);
-      cursor = cursor.parentId ? nodes.get(cursor.parentId) : undefined;
-    }
-    return chain;
-  };
-  const hoverChain = chainFrom(o.hoverId);
-  // Selecting something focuses the world on its lineage: the selected node,
-  // its maker, and you stay lit; everything unrelated recedes. This is how
-  // "what am I looking at, and where did it come from" stays unmistakable.
-  const selChain = chainFrom(o.selectedId);
-
-  const emphasisFor = (node: SceneNode): number => {
-    if (hoverChain.has(node.id) || selChain.has(node.id)) return 1;
-    if (node.kind === "self" || node.kind === "branch") return 1;
-    if (selChain.size > 0) return 0.24;
-    // At rest the mesh should read as CONTENT, not dim geometry — posts and
-    // people stay bright enough to recognize without focusing a branch.
-    if (!o.activeBranch) return 0.8;
-    return node.branch === o.activeBranch ? 1 : 0.18;
-  };
+  // Chain of ids from the hovered node back to the center — these strands
+  // light up. Selecting something focuses the world on its lineage: the
+  // selected node, its maker, and you stay lit; everything unrelated recedes
+  // (nodeEmphasis in sim/hitmap — shared, so LOD and tappability agree).
+  const hoverChain = chainFrom(model, o.hoverId);
+  const selChain = chainFrom(model, o.selectedId);
+  const emphasisFor = (node: SceneNode): number =>
+    nodeEmphasis(node, hoverChain, selChain, o.activeBranch);
 
   // --- Edges (constellation strands) ---
   ctx.lineCap = "round";
@@ -968,13 +915,9 @@ export function drawScene(o: RenderOptions): void {
 
   nodes.forEach((node) => {
     const bornNow = birthProgress(node, time);
-    if (bornNow <= 0 && node.kind !== "self") {
-      o.hitboxes.delete(node.id);
-      return;
-    }
+    if (bornNow <= 0 && node.kind !== "self") return;
     const p = project(node, o);
     let r = Math.max(2.5, baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)));
-    o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(r, 14) });
 
     // Cull offscreen (cards are wide, so give them a larger margin).
     const cull = node.kind === "post" ? 170 : 80;
@@ -1031,19 +974,17 @@ export function drawScene(o: RenderOptions): void {
     const isHover = o.hoverId === node.id;
 
     if (node.kind === "self") {
-      o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(baseRadius(node) * Math.max(0.5, Math.min(o.camera.zoom, 2.2)), 44) });
       selfQueue.push({ node, x: p.x, y: p.y, emph, isHover, isSelected });
       return;
     }
 
     // Posts float as rich cards only once the camera is close enough to READ
     // them — zoomed out they collapse to compact thumbnails/orbs, so a busy
-    // mesh reads as a constellation, not a wall of cards.
-    if (node.kind === "post" && o.camera.zoom >= 0.42 && emph > 0.2) {
-      const cardScale =
-        Math.max(0.78, Math.min(o.camera.zoom, 1.35)) * (0.82 + node.weight * 0.36);
-      const size = drawPostCard(o, node, p.x, p.y, cardScale, emph, isHover, isSelected);
-      o.hitboxes.set(node.id, { x: p.x, y: p.y, r: Math.max(size.w, size.h) / 2 });
+    // mesh reads as a constellation, not a wall of cards. (Gate and box are
+    // shared with sim/hitmap, so the tap target follows the same decision.)
+    if (node.kind === "post" && o.camera.zoom >= POST_CARD_MIN_ZOOM && emph > POST_CARD_MIN_EMPH) {
+      const cardScale = postCardScale(o.camera.zoom, node.weight);
+      drawPostCard(o, node, p.x, p.y, cardScale, emph, isHover, isSelected);
       return;
     }
 
@@ -1255,7 +1196,8 @@ export function drawScene(o: RenderOptions): void {
       ctx.arcTo(rx, ly, rx + textW + padX * 2, ly, radius);
       ctx.closePath();
       ctx.fill();
-      o.pillHitboxes?.set(node.id, { x: rx, y: ly, w: textW + padX * 2, h });
+      // sim/hitmap mirrors this pill's rect (and the centre-avoid stacking
+      // above) — a layout change here must land there too.
       ctx.strokeStyle = withAlpha(node.color, 0.5);
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -1271,7 +1213,6 @@ export function drawScene(o: RenderOptions): void {
   }
 
   for (const item of selfQueue) {
-    const card = drawSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected);
-    o.hitboxes.set(item.node.id, { x: item.x, y: item.y, r: Math.max(card.avatarRadius * 1.12, 26) });
+    drawSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected);
   }
 }
