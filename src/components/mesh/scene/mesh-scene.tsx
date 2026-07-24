@@ -43,7 +43,9 @@ import {
   createCamera,
   createMeshScheduler,
   createMeshStore,
+  createQualityGovernor,
   deriveViewerCaps,
+  probeStartTier,
   projectPoint,
   unprojectPoint,
   MIN_ZOOM,
@@ -51,7 +53,17 @@ import {
   type Camera,
   type MeshScheduler,
   type MeshStore,
+  type QualityGovernor,
 } from "./core-adapter";
+// PR3: the layered paint engine + its runtime kill-switch. `mesh_engine=next`
+// (default) renders through paint/; `mesh_engine=legacy` keeps the untouched
+// scene-render.ts path callable until the new core has soaked in production.
+import {
+  createPaintEngine,
+  resolveMeshEngine,
+  type MeshEngineKind,
+  type PaintEngine,
+} from "../paint";
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -517,6 +529,16 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   // a smoothed inter-frame time in ms; `slow` counts consecutive slow frames;
   // `frames` is a warm-up guard against startup jank.
   const perfRef = useRef({ tier: 0, frameCost: 16, slow: 0, frames: 0 });
+  // PR3 kill-switch: which paint core this mount renders through, resolved
+  // ONCE (localStorage `mesh_engine`, then ?mesh_engine=, then "next").
+  const engineKindRef = useRef<MeshEngineKind | null>(null);
+  if (engineKindRef.current === null) engineKindRef.current = resolveMeshEngine();
+  // Two-way quality governor (next engine only): startup device probe picks
+  // the tier — and pins its floor — then the frame-budget monitor demotes on
+  // sustained slowness and promotes back on sustained headroom. The legacy
+  // engine keeps its original one-way watchdog (perfRef) untouched.
+  const governorRef = useRef<QualityGovernor | null>(null);
+  const paintEngineRef = useRef<PaintEngine | null>(null);
   // THE one rAF: every per-frame system (physics + camera, hitmap + paint,
   // Meshi/hearts DOM sync) rides this scheduler's fixed phases — nothing in
   // the mesh may run its own loop. The deepest perf tier's ~30fps cap is
@@ -524,7 +546,18 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const schedulerRef = useRef<MeshScheduler | null>(null);
   if (schedulerRef.current === null) {
     schedulerRef.current = createMeshScheduler({
-      frameCapMs: () => (perfRef.current.tier >= 2 ? 31 : 0),
+      frameCapMs: () =>
+        engineKindRef.current === "next"
+          ? governorRef.current?.params().frameCapMs ?? 0
+          : perfRef.current.tier >= 2
+            ? 31
+            : 0,
+    });
+  }
+  if (governorRef.current === null && engineKindRef.current === "next") {
+    governorRef.current = createQualityGovernor({
+      startTier: probeStartTier(),
+      getStats: () => schedulerRef.current?.getStats() ?? null,
     });
   }
   // Mesh Pro visuals chosen by this mesh's OWNER (atmosphere, thread color,
@@ -580,7 +613,20 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const loadImages = useCallback((model: SceneModel) => {
     model.nodes.forEach((node) => {
       const src = node.avatarUrl || node.imageUrl;
-      if (!src || imagesRef.current.has(node.id)) return;
+      if (!src) return;
+      // Next engine: URL-keyed LRU with a real memory ceiling (and a changed
+      // URL for the same node actually reloads). The id→image map stays the
+      // single source painters AND hitmap read, so a card's drawn height and
+      // its tap target always agree.
+      const engine = paintEngineRef.current;
+      if (engine) {
+        const ready = engine.images.request(src, node.id, (img) => {
+          imagesRef.current.set(node.id, img);
+        });
+        if (ready) imagesRef.current.set(node.id, ready);
+        return;
+      }
+      if (imagesRef.current.has(node.id)) return;
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => imagesRef.current.set(node.id, img);
@@ -856,16 +902,45 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     if (!ctx) return;
 
     const perf = perfRef.current;
-    // Genuinely weak devices (very few cores / little memory) start already
-    // degraded rather than waiting for the watchdog to notice the jank.
-    const cores = navigator.hardwareConcurrency || 8;
-    const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
-    if (cores <= 2 || mem <= 2) perf.tier = 2;
+    const engineKind = engineKindRef.current ?? "next";
+    if (engineKind === "legacy") {
+      // Legacy watchdog's probe: genuinely weak devices (very few cores /
+      // little memory) start already degraded. (The next engine's richer
+      // probe lives in core/motion.ts and seeded the governor at mount.)
+      const cores = navigator.hardwareConcurrency || 8;
+      const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
+      if (cores <= 2 || mem <= 2) perf.tier = 2;
+    }
     // Device-pixel-ratio ceiling per tier: full detail, then progressively fewer
     // pixels to fill (the biggest lever for fill-rate-bound canvas rendering).
     const dprForTier = (tier: number) =>
       Math.min(window.devicePixelRatio || 1, tier >= 2 ? 1.3 : tier >= 1 ? 1.5 : 2);
-    let dpr = dprForTier(perf.tier);
+    const dprNow = () =>
+      engineKind === "next" && governorRef.current
+        ? Math.min(window.devicePixelRatio || 1, governorRef.current.params().dprCap)
+        : dprForTier(perf.tier);
+    let dpr = dprNow();
+
+    // PR3: the layered paint engine (kill-switch "next"). Its caches are
+    // per-mount state — created here, disposed on cleanup, never shared.
+    if (engineKind === "next" && paintEngineRef.current === null) {
+      paintEngineRef.current = createPaintEngine({
+        // Image LRU eviction drops the same ids from the id→image map that
+        // hitmap + painters read, so paint and hit stay in lockstep.
+        onImagesEvicted: (ids) => {
+          for (const id of ids) imagesRef.current.delete(id);
+        },
+      });
+    }
+    paintEngineRef.current?.setDpr(dpr);
+    if (process.env.NODE_ENV !== "production") {
+      console.info(
+        `[mesh] paint engine: ${engineKind}` +
+          (engineKind === "next" && governorRef.current
+            ? ` (probe tier T${governorRef.current.tier()})`
+            : ""),
+      );
+    }
 
     const resize = () => {
       const rect = container.getBoundingClientRect();
@@ -880,6 +955,19 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(container);
+
+    // Governor tier changes (either direction) re-derive the DPR ceiling and
+    // re-rasterize at the new density; the scheduler reads the tier's frame
+    // cap live, so a T2 30fps cap applies without re-wiring anything.
+    const unsubscribeTier =
+      governorRef.current?.onTierChange((tier) => {
+        dpr = dprNow();
+        paintEngineRef.current?.setDpr(dpr);
+        resize();
+        if (process.env.NODE_ENV !== "production") {
+          console.info(`[mesh] quality tier → T${tier}`);
+        }
+      }) ?? null;
 
     // The one scheduler owns the rAF, the frame cap (deepest tier ~30fps),
     // and the single clamped dt every phase shares — a tab-refocus gap can't
@@ -970,7 +1058,9 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           avoidCenter: coarseRef.current,
         });
 
-        drawScene({
+        // One options object serves whichever paint core the kill-switch
+        // picked — the two are structurally identical by design.
+        const frame = {
           ctx,
           model,
           width,
@@ -989,7 +1079,13 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           strandPulses: strandPulsesRef.current,
           visuals: proVisualsRef.current,
           livePresence: presenceInfoRef.current,
-        });
+        };
+        const paintEngine = engineKind === "next" ? paintEngineRef.current : null;
+        if (paintEngine && governorRef.current) {
+          paintEngine.draw(frame, governorRef.current.tier());
+        } else {
+          drawScene(frame);
+        }
 
         // Focus = item nearest screen center (the Meshi cursor's target).
         let nearest: string | null = null;
@@ -1008,6 +1104,15 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         if (nearest !== focusIdRef.current) {
           focusIdRef.current = nearest;
         }
+      }
+      // Quality control, per engine. NEXT: the two-way governor judges the
+      // frame against the budget SLO (demotes on sustained slowness,
+      // promotes back on sustained headroom; DPR/fx changes arrive via its
+      // onTierChange hook above). LEGACY: the original one-way watchdog,
+      // untouched.
+      if (engineKind === "next") {
+        governorRef.current?.onFrame(dt);
+        return;
       }
       // Adaptive-quality watchdog. `dt` is the true inter-frame interval, so it
       // reflects the canvas draw, the presence/step loop, and browser paint
@@ -1043,6 +1148,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       scheduler?.setPhase("sim", null);
       scheduler?.setPhase("paint", null);
       ro.disconnect();
+      unsubscribeTier?.();
+      // The paint engine's caches (sprites, images, background) are
+      // per-mount state — dropped whole here, never retained or shared.
+      paintEngineRef.current?.dispose();
+      paintEngineRef.current = null;
     };
   }, [fitToContent, viewUserId, viewMode, isOwnMesh]);
 

@@ -9,6 +9,7 @@
 // scene/scene-model.ts until the domain build moves into core.)
 
 import type { SceneModel, SceneNode } from "../scene/scene-model";
+import { SpatialGrid } from "./spatial-grid";
 
 const STIFFNESS = 42;
 const DAMPING = 11;
@@ -32,10 +33,13 @@ export interface PhysicsState {
   seeded: boolean;
   /** Live control-point of each parent→child strand, keyed "parent>child". */
   strands: Map<string, StrandPoint>;
+  /** Spatial hash over node positions for strand routing — rebuilt per step,
+   * so each strand consults only nearby nodes: O(E×k), not O(E×N). */
+  grid: SpatialGrid<SceneNode>;
 }
 
 export function createPhysicsState(): PhysicsState {
-  return { seeded: false, strands: new Map() };
+  return { seeded: false, strands: new Map(), grid: new SpatialGrid(NODE_CLEARANCE) };
 }
 
 // Strand physics — each connection is an elastic filament. Its control point
@@ -66,7 +70,10 @@ function stepStrands(
   disturbances: StrandDisturbance[],
 ): void {
   const seen = new Set<string>();
-  const list = Array.from(model.nodes.values());
+  // One O(N) grid rebuild per step buys O(k)-neighbour routing per strand
+  // below (the old pass scanned every node for every strand — O(E×N), the
+  // hottest per-frame loop in the scene at scale).
+  state.grid.rebuild(model.nodes.values());
   model.nodes.forEach((node) => {
     if (!node.parentId) return;
     const parent = model.nodes.get(node.parentId);
@@ -92,9 +99,12 @@ function stepStrands(
     // Route around obstacles: any node other than this strand's own endpoints
     // pushes the control point away, so the strand bows around it instead of
     // cutting through — strands never overlap a node, and long strands split
-    // their path around whatever's in the way.
-    for (let k = 0; k < list.length; k += 1) {
-      const other = list[k];
+    // their path around whatever's in the way. The spatial grid hands back
+    // just the nodes within clearance range (a superset; the distance check
+    // below stays the authority), so this is O(k) per strand.
+    const near = state.grid.near(s.mx, s.my);
+    for (let k = 0; k < near.length; k += 1) {
+      const other = near[k];
       if (other.id === node.id || other.id === parent.id) continue;
       const dx = s.mx - other.dx;
       const dy = s.my - other.dy;
