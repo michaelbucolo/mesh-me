@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import {
+  ArrowDown,
   CheckCheck,
   Image as ImageIcon,
   Link2,
@@ -266,6 +267,13 @@ export function MeChatThread({
   const [actionsFor, setActionsFor] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Auto-scroll only when you're already near the bottom, so reading history
+  // isn't yanked down by an incoming message; a "New messages" pill offers the
+  // jump instead.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const nearBottomRef = useRef(true);
+  const prevLenRef = useRef(0);
+  const [hasNewBelow, setHasNewBelow] = useState(false);
   const draftRef = useRef<HTMLTextAreaElement>(null);
   const typingTimerRef = useRef<number | null>(null);
   // Track which message ids have already been shown so only genuinely new
@@ -331,8 +339,25 @@ export function MeChatThread({
   }, [activeThreadId, loadThread]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
+    const grew = messages.length > prevLenRef.current;
+    prevLenRef.current = messages.length;
+    // Stay pinned to the newest only if you're already there (this also keeps
+    // the typing indicator in view). If you've scrolled up to read, a NEW
+    // message raises the pill instead of hijacking your scroll position.
+    if (nearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ block: "end" });
+      setHasNewBelow(false); // no-op when already false
+    } else if (grew) {
+      setHasNewBelow(true);
+    }
   }, [messages.length, typingUsers.length]);
+
+  // Switching threads starts you at the bottom of the new conversation.
+  useEffect(() => {
+    nearBottomRef.current = true;
+    prevLenRef.current = 0;
+    setHasNewBelow(false);
+  }, [activeThreadId]);
 
   // Once a message has rendered it counts as "seen" — later re-mounts (search
   // filtering, reordering) then skip the entrance instead of replaying it.
@@ -550,7 +575,16 @@ export function MeChatThread({
         </label>
       </div>
 
-      <div className="min-h-0 overflow-y-auto px-3 py-4 md:px-4">
+      <div
+        ref={scrollRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const near = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+          nearBottomRef.current = near;
+          if (near && hasNewBelow) setHasNewBelow(false);
+        }}
+        className="min-h-0 overflow-y-auto px-3 py-4 md:px-4"
+      >
         {visibleMessages.length > 0 ? (
           <div className="grid">
             {visibleMessages.map((message, index) => {
@@ -883,6 +917,25 @@ export function MeChatThread({
             </div>
           </div>
         )}
+
+        {/* "New messages" pill — appears only when you've scrolled up and a
+            fresh message arrived, sticking to the bottom of the scroll port so
+            it never hijacks your reading position. Tap to jump to the latest. */}
+        <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
+          {hasNewBelow && (
+            <button
+              type="button"
+              onClick={() => {
+                bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                setHasNewBelow(false);
+              }}
+              className="ds-focus-ring pointer-events-auto flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg transition hover:bg-[var(--accent-hover)]"
+            >
+              New messages
+              <ArrowDown size={14} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
 
       <form
