@@ -177,8 +177,9 @@ export function useMeshFrame(
       const disturbances: { x: number; y: number }[] = [];
       if (rt.cursorWorldTarget.seen) disturbances.push({ x: rt.cursorWorldPos.x, y: rt.cursorWorldPos.y });
       if (isOwnMesh) disturbances.push({ x: rt.ownerWorldPos.x, y: rt.ownerWorldPos.y });
-      rt.presence.worldPos.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
-      rt.presence.perchWorldPos.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
+      rt.presence.sprites.forEach((s) => {
+        if (s.world) disturbances.push({ x: s.world.x, y: s.world.y });
+      });
       // Drift phase is driven by the shared wall clock (Date.now()), NOT the
       // per-client rAF `time`, so nodes/posts settle to the same orbit on every
       // screen — two viewers of one mesh agree on where each node sits.

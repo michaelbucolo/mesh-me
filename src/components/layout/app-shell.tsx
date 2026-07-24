@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { signOut } from "@/lib/actions";
 import { readGhostMode } from "@/lib/ghost-mode";
+import { readWhereShare } from "@/lib/where-share";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
@@ -427,11 +428,14 @@ export function AppShell({ children, user }: AppShellProps) {
         // storage unavailable — defaults are fine
       }
       const ghostMode = readGhostMode();
+      // The where-chip opt-in rides every surface's heartbeat; the server
+      // redacts activeRoute/viewingMesh for anyone who hasn't opted in.
+      const shareWhere = readWhereShare();
       void fetch("/api/mesh/presence", {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: pathname, ghostMode }),
+        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: pathname, ghostMode, shareWhere }),
       }).catch(() => {});
     };
 

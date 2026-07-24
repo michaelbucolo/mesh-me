@@ -8,6 +8,11 @@
  * heartbeats read synchronously.
  */
 
+// NOTE: where-share.ts imports readGhostMode from here, so this is a module
+// cycle — safe because both modules only export hoisted function declarations
+// that call each other at runtime, never at module-evaluation time.
+import { readWhereShare } from "@/lib/where-share";
+
 export const GHOST_STORAGE_KEY = "meshGhostMode";
 
 /** Same-tab event fired whenever Ghost Mode flips, so every control re-syncs. */
@@ -45,6 +50,9 @@ export function broadcastGhostMode(next: boolean): void {
     method: "POST",
     credentials: "same-origin",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ surface: "feed", ghostMode: next }),
+    // Stamp the where-share opt-in too: the server treats an absent flag as
+    // false, so this beat would otherwise knock an opted-in user's flag off
+    // until their next regular heartbeat restored it.
+    body: JSON.stringify({ surface: "feed", ghostMode: next, shareWhere: readWhereShare() }),
   }).catch(() => {});
 }

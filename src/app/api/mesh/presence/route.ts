@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
+import {
+  encodeLastAction,
+  isKnownVerb,
+  parseActionBody,
+} from "@/components/mesh/live/action-bus";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import {
   buildPresencePayload,
   canViewMeshRoom,
-  clampNumber,
   getBlockedUserIds,
   getMutualConnectionIds,
   listPresences,
@@ -36,7 +40,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await readJsonObject(request);
-    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, velocity, activity, ghostMode, action } = body;
+    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, activity, ghostMode, shareWhere, action } = body;
 
     // Ghost Mode is server-authoritative: the persisted account setting wins, so
     // a ghosting user stays hidden even from a fresh device whose local heartbeat
@@ -46,24 +50,20 @@ export async function POST(request: Request) {
 
     // Tiny world actions broadcast to the room: a Meshi throwing a heart at a
     // post, a reaction burst (star/spark/wow), or a wave hello on arrival.
-    // Strictly validated against a fixed kind set and size-capped. `heart`
+    // Parsed at the edge through the versioned action bus — the v1 JSON
+    // envelope ({v,type,targetId,atMs}) and the legacy shape ({type,…,at})
+    // are both accepted — then validated against the fixed verb set and
+    // stored in the legacy pipe encoding old clients already parse. `heart`
     // flies at a target node so it requires a targetId; the others are
     // targetless flourishes that spawn at the sender's Meshi.
-    const ACTION_KINDS = new Set(["heart", "star", "spark", "wow", "wave"]);
     let lastAction: string | null = null;
-    if (action && typeof action === "object") {
-      const a = action as Record<string, unknown>;
-      if (
-        typeof a.type === "string" &&
-        ACTION_KINDS.has(a.type) &&
-        typeof a.at === "number" &&
-        Number.isFinite(a.at)
-      ) {
-        const targetId = typeof a.targetId === "string" ? a.targetId.slice(0, 160) : "";
-        if (a.type !== "heart" || targetId.length > 0) {
-          lastAction = `${a.type}|${targetId}|${Math.round(a.at)}`;
-        }
-      }
+    const wireAction = parseActionBody(action);
+    if (
+      wireAction &&
+      isKnownVerb(wireAction.verb) &&
+      (wireAction.verb !== "heart" || wireAction.targetId.length > 0)
+    ) {
+      lastAction = encodeLastAction(wireAction);
     }
 
     await setPresence({
@@ -87,7 +87,9 @@ export async function POST(request: Request) {
       activePostId: typeof activePostId === "string" && activePostId.length > 0 ? activePostId.slice(0, 160) : null,
       activeNodeId: typeof activeNodeId === "string" && activeNodeId.length > 0 ? activeNodeId.slice(0, 160) : null,
       activeRoute: typeof activeRoute === "string" && activeRoute.length > 0 ? activeRoute.slice(0, 160) : null,
-      velocity: clampNumber(velocity, 0, 0, 1000),
+      // The where-chip OPT-IN: strictly boolean-true from the client; the
+      // payload builder redacts location for everyone who hasn't opted in.
+      shareWhere: shareWhere === true,
       activity: activity === "traveling" || activity === "exploring" ? activity : "idle",
       ghostMode: ghosting,
       lastAction,

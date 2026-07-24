@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { parseDeliveryNotificationMessage } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
@@ -52,14 +53,31 @@ export async function GET() {
       take: 5,
     });
 
-    // Recover each delivery's full message body: the message row is created
-    // immediately before its notification, so the sender's newest message in a
-    // shared thread at (or just after) the notification time is the one Meshi
-    // carried. The stored summary is only a truncated fallback.
+    // Recover each delivery's full message body. New notifications carry the
+    // EXACT message id as a machine prefix in the message column (see
+    // src/lib/notifications.ts) — resolve it directly, scoped to messages
+    // this actor sent in a thread the recipient belongs to, so the id can
+    // never exfiltrate someone else's message. Legacy rows without the
+    // prefix fall back to the old newest-message-in-window heuristic.
     const fullBodies = new Map<string, string>();
     await Promise.all(
       deliveryNotifs.map(async (n) => {
         if (!n.actorId) return;
+        const { messageId } = parseDeliveryNotificationMessage(n.message);
+        if (messageId) {
+          const exact = await prisma.message.findFirst({
+            where: {
+              id: messageId,
+              senderId: n.actorId,
+              thread: { members: { some: { userId: user.id } } },
+            },
+            select: { content: true },
+          });
+          if (exact?.content) {
+            fullBodies.set(n.id, exact.content);
+            return;
+          }
+        }
         const carried = await prisma.message.findFirst({
           where: {
             senderId: n.actorId,
@@ -87,7 +105,9 @@ export async function GET() {
       id: n.id,
       fromUser: n.actor?.displayName || "Someone",
       fromUsername: n.actor?.username || "unknown",
-      message: fullBodies.get(n.id) || unwrapDeliverySummary(n.message || ""),
+      message:
+        fullBodies.get(n.id) ||
+        unwrapDeliverySummary(parseDeliveryNotificationMessage(n.message).text),
       meshiColor: n.actor?.meshiPreference?.colorTheme || "blue",
       meshiHat: n.actor?.meshiPreference?.hatStyle || "none",
       meshiHair: n.actor?.meshiPreference?.hairStyle || "none",

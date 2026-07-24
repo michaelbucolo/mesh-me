@@ -30,6 +30,7 @@ import { PostComposer } from "@/components/feed/post-composer";
 import { UserMeshiBadge } from "@/components/meshi/meshi-identity";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
 import { readGhostMode } from "@/lib/ghost-mode";
+import { readWhereShare } from "@/lib/where-share";
 import { getPostPresenceKey } from "@/lib/presence-keys";
 import type { FeedContentFilter, FeedSource } from "@/lib/feed-data";
 
@@ -384,6 +385,11 @@ export function FeedTimelineClient({
           // Must send ghostMode so the server's last-seen touch stays frozen
           // while ghosting — every other heartbeat caller sends it too.
           ghostMode: readGhostMode(),
+          // EVERY heartbeat caller must stamp the where-share opt-in: the
+          // server treats an absent flag as false, so omitting it here would
+          // flip-flop an opted-in user's entry against the app-shell beat
+          // (where-chip blinking + every flip forcing a write-through).
+          shareWhere: readWhereShare(),
         }),
       }).catch(() => {});
     };

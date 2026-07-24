@@ -1,6 +1,11 @@
 import { EventEmitter } from "events";
 import { prisma } from "@/lib/prisma";
 import {
+  isSignificantPresenceWrite,
+  PRESENCE_WRITE_BEHIND_MS,
+  redactWhere,
+} from "@/lib/presence-policy";
+import {
   areMutualFollowers,
   canViewMesh,
   normalizeMeshVisibility,
@@ -27,7 +32,15 @@ export type PresenceEntry = {
   activePostId: string | null;
   activeNodeId: string | null;
   activeRoute: string | null;
-  velocity: number;
+  /**
+   * The "Share where you browse" OPT-IN. When false (the default), payload
+   * builds redact this user's browsing location (viewingMesh/activeRoute/…)
+   * from every viewer lane except the room genuinely shared with the viewer.
+   * Persisted in the legacy `velocity` DB column (1/0) — that column was
+   * written and read by nobody (audited dead weight), and this slice ships
+   * with NO schema migrations.
+   */
+  shareWhere: boolean;
   activity: "idle" | "traveling" | "exploring";
   ghostMode: boolean;
   /**
@@ -130,7 +143,9 @@ function rowToEntry(row: PresenceRow): PresenceEntry {
     activePostId: row.activePostId,
     activeNodeId: row.activeNodeId,
     activeRoute: row.activeRoute,
-    velocity: row.velocity,
+    // The dead `velocity` column carries the where-chip opt-in (see the
+    // PresenceEntry doc) — no schema migration needed.
+    shareWhere: row.velocity >= 1,
     activity:
       row.activity === "traveling" || row.activity === "exploring"
         ? row.activity
@@ -164,7 +179,7 @@ function entryToRow(entry: PresenceEntry) {
     activePostId: entry.activePostId,
     activeNodeId: entry.activeNodeId,
     activeRoute: entry.activeRoute,
-    velocity: entry.velocity,
+    velocity: entry.shareWhere ? 1 : 0,
     activity: entry.activity,
     ghostMode: entry.ghostMode,
     lastAction: entry.lastAction,
@@ -173,14 +188,24 @@ function entryToRow(entry: PresenceEntry) {
   };
 }
 
-// Write/refresh a user's presence. Updates the in-memory cache and notifies
-// local subscribers instantly, then persists to the DB so other serverless
-// instances can observe it.
+// Write/refresh a user's presence. The in-memory cache + local subscribers
+// are updated instantly on EVERY beat (same-instance SSE stays live), while
+// the DB write — the app's heaviest sustained write path at ~3 upserts/s per
+// moving user — is WRITE-BEHIND COALESCED (~2s): significant transitions
+// (join, room/surface/perch change, a world action, ghosting; see
+// src/lib/presence-policy) write through immediately, and pure position/mood
+// drift folds into one trailing upsert per window. Cross-instance viewers
+// already read on a ~2s effective cadence, so they lose nothing.
 let lastPresenceWriteError = 0;
 
-export async function setPresence(entry: PresenceEntry): Promise<void> {
-  presence.store.set(entry.userId, entry);
-  emitChange();
+type PendingPresenceWrite = {
+  lastWriteAt: number;
+  timer: ReturnType<typeof setTimeout> | null;
+  latest: PresenceEntry;
+};
+const pendingWrites = new Map<string, PendingPresenceWrite>();
+
+async function flushPresenceWrite(entry: PresenceEntry): Promise<void> {
   try {
     const row = entryToRow(entry);
     await prisma.meshPresence.upsert({
@@ -200,9 +225,44 @@ export async function setPresence(entry: PresenceEntry): Promise<void> {
   }
 }
 
+export async function setPresence(entry: PresenceEntry): Promise<void> {
+  const prev = presence.store.get(entry.userId);
+  presence.store.set(entry.userId, entry);
+  emitChange();
+
+  const now = Date.now();
+  const state = pendingWrites.get(entry.userId);
+  const due = !state || now - state.lastWriteAt >= PRESENCE_WRITE_BEHIND_MS;
+  if (due || isSignificantPresenceWrite(prev, entry)) {
+    if (state?.timer) clearTimeout(state.timer);
+    pendingWrites.set(entry.userId, { lastWriteAt: now, timer: null, latest: entry });
+    await flushPresenceWrite(entry);
+    return;
+  }
+  // Coalesce: remember the freshest entry and (once) arm a trailing flush at
+  // the end of the window. A serverless instance freezing before the timer
+  // fires only loses sub-window drift — the next beat writes through.
+  state.latest = entry;
+  if (!state.timer) {
+    const delay = Math.max(50, PRESENCE_WRITE_BEHIND_MS - (now - state.lastWriteAt));
+    state.timer = setTimeout(() => {
+      state.timer = null;
+      state.lastWriteAt = Date.now();
+      void flushPresenceWrite(state.latest);
+      // Housekeeping: forget coalescing state for users gone quiet.
+      pendingWrites.forEach((s, id) => {
+        if (!s.timer && Date.now() - s.lastWriteAt > STALE_MS) pendingWrites.delete(id);
+      });
+    }, delay);
+  }
+}
+
 // Remove a user's presence (leaving the mesh / logout / hidden activity).
 export async function removePresence(userId: string): Promise<void> {
   presence.store.delete(userId);
+  const state = pendingWrites.get(userId);
+  if (state?.timer) clearTimeout(state.timer);
+  pendingWrites.delete(userId);
   emitChange();
   try {
     await prisma.meshPresence.deleteMany({ where: { userId } });
@@ -297,7 +357,8 @@ export type ViewerContext = {
 };
 
 export type PresencePayload = {
-  presences: Array<Omit<PresenceEntry, "lastSeen"> & { isOnline: boolean }>;
+  /** `shareWhere` never leaves the server; `velocity` (dead weight) is gone. */
+  presences: Array<Omit<PresenceEntry, "lastSeen" | "shareWhere"> & { isOnline: boolean }>;
   summary: {
     totalOnline: number;
     sameMeshOnline: number;
@@ -371,6 +432,28 @@ export function buildPresencePayload(
     if (isOnline && isViewingSameMesh) sameMeshOnline += 1;
     if (isOnline && isConnectedAndOnline) connectedOnline += 1;
 
+    // "Where they are" is OPT-IN (src/lib/presence-policy): location fields
+    // are revealed only inside the observed room, to the owner whose mesh is
+    // being browsed, on genuine same-post co-presence, or with the subject's
+    // shareWhere opt-in. Redaction is server-side — a client never receives
+    // what it must not show. (Hide-activity users have no entry at all, and
+    // ghosting entries were skipped above, so their location can NEVER
+    // appear here regardless of the flag.)
+    const where = redactWhere(
+      {
+        viewingMesh: entry.viewingMesh,
+        activeRoute: entry.activeRoute,
+        activeNodeId: entry.activeNodeId,
+        activePostId: entry.activePostId,
+      },
+      {
+        inObservedRoom: isViewingSameMesh,
+        viewingViewerMesh: isViewingOurMesh,
+        samePost: isSameFeedPost || isSameMeshContent,
+        shareWhere: entry.shareWhere,
+      },
+    );
+
     presences.push({
       userId: entry.userId,
       username: entry.username,
@@ -387,14 +470,15 @@ export function buildPresencePayload(
       position: entry.position,
       viewportPosition: entry.viewportPosition,
       surface: entry.surface,
-      activePostId: entry.activePostId,
-      activeNodeId: entry.activeNodeId,
-      viewingMesh: entry.viewingMesh,
-      activeRoute: entry.activeRoute,
-      velocity: entry.velocity,
+      activePostId: where.activePostId,
+      activeNodeId: where.activeNodeId,
+      viewingMesh: where.viewingMesh,
+      activeRoute: where.activeRoute,
       activity: entry.activity,
       ghostMode: entry.ghostMode,
-      lastAction: entry.lastAction,
+      // Room actions are ROOM detail: a heart's target names the post they
+      // just liked, so it never leaves the observed room either.
+      lastAction: isViewingSameMesh ? entry.lastAction : null,
       isPro: entry.isPro,
       isOnline,
     });
@@ -498,7 +582,7 @@ export async function canViewMeshRoom(
   return canViewMesh({ id: viewerId, isAdmin: viewerIsAdmin }, meshOwnerId, visibility, isFriend);
 }
 
-export function clampNumber(
+function clampNumber(
   value: unknown,
   fallback: number,
   min: number,

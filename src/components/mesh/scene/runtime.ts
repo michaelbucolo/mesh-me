@@ -17,36 +17,16 @@ import { createHitmap, type Hitmap } from "../sim/hitmap";
 import { createPhysicsState, type PhysicsState } from "../sim/physics";
 import { createToysState, type ToysState } from "../sim/toys";
 import type { PaintEngine } from "../paint";
+import { createReplayGate, type ActionReplayGate } from "../live/action-bus";
+import type { MeshiSprite } from "../live/meshi-machine";
+import { createBehaviorMoodState, type BehaviorMoodState } from "../live/mood";
+import { createRoster, type RemotePresence, type RoomRoster } from "../live/roster";
 import type { BranchKey, SceneModel } from "./scene-model";
 import type { ReactionGlyph } from "./reaction-glyphs";
-import type { MeshiMood } from "@/components/meshi/meshi-mascot";
 
-export type RemotePresence = {
-  userId: string;
-  username: string;
-  displayName: string;
-  meshiColor: string;
-  meshiHat: string;
-  meshiHair?: string;
-  meshiAccessory?: string;
-  meshiEyeStyle?: string;
-  meshiBadge?: string;
-  meshiOutfit?: string;
-  meshiMood: string;
-  viewportPosition: { vx: number; vy: number };
-  position?: { x: number; y: number };
-  viewingMesh: string;
-  surface?: string;
-  /** The node this person is reading right now — their Meshi stands at it. */
-  activeNodeId?: string | null;
-  /** Encoded tiny world action ("heart|targetId|atMs") to replay in the room. */
-  lastAction?: string | null;
-  /** Where on mesh.me they are when not on a mesh surface (e.g. "/flow"). */
-  activeRoute?: string | null;
-  /** Mesh Pro member — their Meshi carries a subtle gold aura. */
-  isPro?: boolean;
-  isOnline: boolean;
-};
+// The payload entry type lives with the roster logic now; re-exported here so
+// existing importers keep one path.
+export type { RemotePresence } from "../live/roster";
 
 /** A departed visitor fading out where their Meshi last stood. */
 export type LeavingMeshi = {
@@ -97,38 +77,30 @@ interface DragState {
   pinchMidY: number;
 }
 
-/** All live-room bookkeeping (positions, hysteresis, dedupe, gaze). Owned by
- * the live/ modules; grouped so the rest of the scene can't reach in ad hoc. */
+/** All live-room bookkeeping. Owned by the live/ modules; grouped so the
+ * rest of the scene can't reach in ad hoc. The old 12-map, 3-coordinate-
+ * space handoff machinery is GONE — one sprite state machine per Meshi
+ * (world coords only; see live/meshi-machine) plus the roster, replay gate,
+ * and mood state, each owned by its pure module. */
 interface PresenceRuntime {
-  targets: Map<string, { vx: number; vy: number }>;
-  pos: Map<string, { vx: number; vy: number }>;
-  // "room" = viewing this same mesh (drifts like a live cursor);
-  // "perch" = a connection online elsewhere, perched on their own node.
-  mode: Map<string, "room" | "perch">;
-  perchPos: Map<string, { x: number; y: number }>;
-  world: Map<string, { x: number; y: number }>;
-  worldPos: Map<string, { x: number; y: number }>;
-  perchWorldPos: Map<string, { x: number; y: number }>;
-  avoidOffset: Map<string, { x: number; y: number }>;
+  /** One behaviour-machine sprite per remote Meshi in the room. */
+  sprites: Map<string, MeshiSprite>;
+  /** Who is in the room (grace/hysteresis/signatures — live/roster). */
+  roster: RoomRoster;
+  /** Connections online ELSEWHERE — the canvas ring + where-chip data. */
   info: Map<string, { where: string | null; route: string | null }>;
-  seenAt: Map<string, number>;
-  obj: Map<string, RemotePresence>;
-  remoteSig: string;
-  look: Map<string, { x: number; y: number }>;
-  lastScreenPos: Map<string, { x: number; y: number }>;
-  perchNode: Map<string, string>;
-  seenActions: Map<string, number>;
-  actionBaseline: boolean;
-  prevIds: Set<string> | null;
-  prevList: RemotePresence[];
-  joinStamp: Map<string, number>;
+  /** Action replay dedupe (live/action-bus). */
+  actionGate: ActionReplayGate;
+  /** Your Meshi's inner-life state (live/mood). */
+  behavior: BehaviorMoodState;
   ownerHereWorld: { x: number; y: number } | null;
   ownerSeenAt: number;
   greetedRoom: string | null;
+  // --- projection-edge motion caches (screen space, cosmetic only) ---
   selfScreen: { x: number; y: number } | null;
   ownerScreen: { x: number; y: number } | null;
-  socialUntil: number;
-  behaviorMood: MeshiMood | null;
+  selfLook: { x: number; y: number };
+  ownerLook: { x: number; y: number };
   cursorRot: number;
   cursorPrev: { x: number; y: number } | null;
   ownerRot: number;
@@ -287,33 +259,18 @@ export function createMeshRuntime(): MeshRuntime {
     pendingAction: null,
 
     presence: {
-      targets: new Map(),
-      pos: new Map(),
-      mode: new Map(),
-      perchPos: new Map(),
-      world: new Map(),
-      worldPos: new Map(),
-      perchWorldPos: new Map(),
-      avoidOffset: new Map(),
+      sprites: new Map(),
+      roster: createRoster(),
       info: new Map(),
-      seenAt: new Map(),
-      obj: new Map(),
-      remoteSig: "",
-      look: new Map(),
-      lastScreenPos: new Map(),
-      perchNode: new Map(),
-      seenActions: new Map(),
-      actionBaseline: false,
-      prevIds: null,
-      prevList: [],
-      joinStamp: new Map(),
+      actionGate: createReplayGate(),
+      behavior: createBehaviorMoodState(),
       ownerHereWorld: null,
       ownerSeenAt: 0,
       greetedRoom: null,
       selfScreen: null,
       ownerScreen: null,
-      socialUntil: 0,
-      behaviorMood: null,
+      selfLook: { x: 0, y: 0 },
+      ownerLook: { x: 0, y: 0 },
       cursorRot: 0,
       cursorPrev: null,
       ownerRot: 0,
