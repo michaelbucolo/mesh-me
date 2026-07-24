@@ -4980,14 +4980,14 @@ body,
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.65rem;
-  border-radius: 0.8rem;
-  padding: 0.65rem 0.75rem;
+  gap: 0.55rem;
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.65rem;
 }
 
 .settings-quick-link {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: 2.5rem;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
@@ -5014,23 +5014,27 @@ body,
 }
 
 .settings-section-stack,
-.settings-list,
 .settings-picker-stack {
   display: grid;
-  gap: 0.9rem;
+  gap: 0.75rem;
+}
+
+.settings-list {
+  display: grid;
+  gap: 0.4rem;
 }
 
 .settings-row {
   display: flex;
-  min-height: 3rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  border-radius: 0.8rem;
-  padding: 0.72rem 0.85rem;
+  gap: 0.85rem;
+  border-radius: 0.7rem;
+  padding: 0.4rem 0.6rem;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 750;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 .settings-row strong {
@@ -5044,14 +5048,14 @@ body,
 
 .settings-action-row {
   display: flex;
-  min-height: 3rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: space-between;
-  gap: 0.85rem;
-  border-radius: 0.8rem;
-  padding: 0.75rem 0.85rem;
+  gap: 0.75rem;
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.65rem;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
 }
 
@@ -5071,12 +5075,12 @@ body,
 
 .settings-toggle {
   display: flex;
-  min-height: 4rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
-  border-radius: 0.85rem;
-  padding: 0.82rem 0.9rem;
+  gap: 0.7rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.65rem;
   color: var(--text-primary);
   text-align: left;
 }
@@ -5147,20 +5151,105 @@ body,
 
 .settings-toggle-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .settings-muted-box {
-  border-radius: 0.85rem;
-  padding: 0.85rem;
+  border-radius: 0.75rem;
+  padding: 0.7rem;
 }
 
 .settings-mini-label {
+  display: block;
   color: var(--text-muted);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+/* Icon-forward control language: every row leads with a small accent tile. */
+.settings-icon-tile {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-primary));
+  border-radius: 0.55rem;
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.settings-icon-tile-danger {
+  border-color: color-mix(in srgb, #ef4444 36%, var(--border-primary));
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+
+/* Section headers recede so the accent row tiles carry the hierarchy. */
+.settings-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+}
+
+.settings-card-heading h3 {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* Collapsed helper copy — a quiet native disclosure under a control group. */
+.settings-hint {
+  margin-top: 0.5rem;
+}
+
+.settings-hint summary {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.settings-hint summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-hint summary:hover {
+  color: var(--text-secondary);
+}
+
+.settings-hint summary:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-focus-ring);
+}
+
+.settings-hint-chevron {
+  transition: transform 140ms ease;
+}
+
+.settings-hint[open] .settings-hint-chevron {
+  transform: rotate(180deg);
+}
+
+.settings-hint-body {
+  padding: 0 0.4rem 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.55;
 }
 
 .settings-meshi-preview {
@@ -5197,7 +5286,11 @@ body,
   .app-account-action,
   .mesh-entry-primary,
   .mesh-entry-input,
-  .app-x-nav-link {
+  .app-x-nav-link,
+  .settings-status-toast,
+  .settings-switch,
+  .settings-switch-knob,
+  .settings-hint-chevron {
     animation: none !important;
     transition: none !important;
   }
