@@ -7,6 +7,7 @@ import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
 import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Send, Copy, Link2, ExternalLink, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useState, useTransition, useRef } from "react";
 import { toggleReaction, toggleSavePost, repost, createComment } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -220,22 +221,37 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
         {/* Content */}
         <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap mb-4">{post.content}</p>
 
-        {/* Media */}
-        {visualMedia.length > 0 && (
-          <div className={cn(
-            "rounded-xl overflow-hidden mb-4 bg-[var(--bg-secondary)]",
-            visualMedia.length === 1 && "grid",
-            visualMedia.length >= 2 && "grid grid-cols-2 gap-1"
-          )}>
-            {visualMedia.map((media) => (
-              <div key={media.id} className={cn("relative overflow-hidden", visualMedia.length === 1 ? "aspect-[4/5] max-h-[560px]" : "aspect-square")}>
+        {/* Media — single media keeps its NATIVE ratio (clamped 4:5–16:9,
+            extremes letterbox over a blurred self-fill); galleries crop to
+            consistent square tiles. */}
+        {visualMedia.length === 1 && (
+          <div className="rounded-xl overflow-hidden mb-4 bg-[var(--bg-secondary)]">
+            <NativeAspectMedia
+              media={visualMedia[0]}
+              alt=""
+              videoMode="controls"
+              sizes="(max-width: 768px) 100vw, 672px"
+              className="max-h-[min(70dvh,560px)]"
+            />
+          </div>
+        )}
+        {visualMedia.length >= 2 && (
+          <div className="rounded-xl overflow-hidden mb-4 bg-[var(--bg-secondary)] grid grid-cols-2 gap-1">
+            {visualMedia.map((media, idx) => (
+              <div
+                key={media.id}
+                className={cn(
+                  "relative overflow-hidden",
+                  visualMedia.length === 3 && idx === 0 ? "row-span-2 aspect-auto" : "aspect-square",
+                )}
+              >
                 {media.type.toLowerCase() === "video" ? (
                   <video src={media.url} className="h-full w-full object-cover" controls preload="metadata" playsInline />
                 ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={media.url} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <Image src={media.url} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                  <Image src={media.url} alt="" fill sizes="(max-width: 768px) 50vw, 336px" className="object-cover" />
                 )}
               </div>
             ))}

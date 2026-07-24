@@ -8,7 +8,18 @@ import { Volume2, VolumeX } from "lucide-react";
  * into view and pauses when it leaves, exactly like the big feeds — no matter
  * which platform the file originally came from. Tap the badge for sound.
  */
-export function AutoplayVideo({ src, poster, className }: { src: string; poster?: string; className?: string }) {
+export function AutoplayVideo({
+  src,
+  poster,
+  className,
+  onAspectRatio,
+}: {
+  src: string;
+  poster?: string;
+  className?: string;
+  /** Reports the natural width/height ratio once metadata (or the poster fallback) loads. */
+  onAspectRatio?: (ratio: number) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -39,8 +50,18 @@ export function AutoplayVideo({ src, poster, className }: { src: string; poster?
   }, []);
 
   if (failed && poster) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={poster} alt="" className={className} />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={poster}
+        alt=""
+        onLoad={(e) => {
+          const el = e.currentTarget;
+          if (el.naturalWidth && el.naturalHeight) onAspectRatio?.(el.naturalWidth / el.naturalHeight);
+        }}
+        className={className}
+      />
+    );
   }
 
   return (
@@ -54,6 +75,10 @@ export function AutoplayVideo({ src, poster, className }: { src: string; poster?
         playsInline
         preload="metadata"
         onError={() => setFailed(true)}
+        onLoadedMetadata={(e) => {
+          const el = e.currentTarget;
+          if (el.videoWidth && el.videoHeight) onAspectRatio?.(el.videoWidth / el.videoHeight);
+        }}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
