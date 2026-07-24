@@ -36,6 +36,7 @@ import { ProfileAboutEditor } from "./[username]/profile-about-editor";
 import { Button } from "@/components/ui/button";
 import { ABOUT_FIELDS, ABOUT_FIELD_META, ABOUT_GROUPS, type AboutField } from "@/lib/profile-info";
 import { PlatformLogo } from "@/components/platform/platform-logo";
+import { platformProfileUrl } from "@/lib/platform-links";
 
 const DEFAULT_MESHI = {
   colorTheme: "blue",
@@ -233,9 +234,25 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 <div className="shrink-0">
                   <p className="mb-2 text-xs font-medium text-[var(--mesh-text-muted)]">Connected Platforms</p>
                   <div className="flex items-center gap-2">
-                    {connectedAccounts.slice(0, 4).map((account) => (
-                      <PlatformIcon key={account.id} platform={account.platform} />
-                    ))}
+                    {connectedAccounts.slice(0, 4).map((account) => {
+                      // Deep-link the badge out to their real profile on that
+                      // platform, turning the row into a true link-in-bio hub.
+                      const url = platformProfileUrl(account.platform, account.platformUsername);
+                      return url ? (
+                        <a
+                          key={account.id}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          title={`${account.platform}${account.platformUsername ? ` @${account.platformUsername}` : ""}`}
+                          className="ds-focus-ring rounded-full transition-transform hover:scale-110"
+                        >
+                          <PlatformIcon platform={account.platform} />
+                        </a>
+                      ) : (
+                        <PlatformIcon key={account.id} platform={account.platform} />
+                      );
+                    })}
                     {connectedAccounts.length > 4 && (
                       <Link
                         href="/connected-accounts"

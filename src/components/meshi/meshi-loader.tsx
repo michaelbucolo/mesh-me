@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useReducedMotion } from "framer-motion";
 import {
   getMeshiPrefsStatic,
@@ -9,7 +9,7 @@ import {
   MESHI_PREFERENCES_EVENT,
   type MeshiPreferences,
 } from "@/hooks/use-meshi-preferences";
-import { MeshiMascot, type MeshiMood } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, type MeshiMood, type MeshiProp } from "@/components/meshi/meshi-mascot";
 
 // ── The loader: a tiny moment of joy, painted instantly ─────────────────────
 //
@@ -40,15 +40,94 @@ const MODE_PALETTE: Record<MeshiLoaderMode, string[]> = {
   creator: ["#a855f7", "#ec4899", "#22d3ee", "#fbbf24", "#f472b6"],
 };
 
-/** Meshi's expression per loader context. */
-const MODE_MOOD: Record<MeshiLoaderMode, MeshiMood> = {
-  default: "happy",
-  "mesh-building": "thinking",
-  "message-writing": "love",
-  secure: "cool",
-  search: "searching",
-  social: "excited",
-  creator: "celebrating",
+// ── What Meshi is DOING while each surface loads ────────────────────────────
+//
+// Not a bounce — a context-relevant ACTION: Meshi holds the prop that fits what
+// is loading and moves with the matching calm motion (see the `.la-*` classes).
+// Each surface has 8 distinct variants (a different held prop + expression), so
+// the same "action" never looks identical twice; a fresh one is picked at mount
+// (see the variant index below), so back-to-back loads feel alive, not canned.
+type LoaderAction = { prop: MeshiProp; mood: MeshiMood; motion: string };
+
+const LOADER_ACTIONS: Record<MeshiLoaderMode, ReadonlyArray<LoaderAction>> = {
+  // Generic app load: a calm, present Meshi — sometimes empty-handed, sometimes
+  // holding a small everyday thing.
+  default: [
+    { prop: "none", mood: "happy", motion: "la-idle" },
+    { prop: "none", mood: "cool", motion: "la-idle" },
+    { prop: "compass", mood: "happy", motion: "la-idle" },
+    { prop: "heart", mood: "love", motion: "la-idle" },
+    { prop: "bell", mood: "happy", motion: "la-idle" },
+    { prop: "none", mood: "excited", motion: "la-idle" },
+    { prop: "notebook", mood: "thinking", motion: "la-idle" },
+    { prop: "none", mood: "thinking", motion: "la-idle" },
+  ],
+  // Mesh: weaving / exploring the constellation.
+  "mesh-building": [
+    { prop: "compass", mood: "thinking", motion: "la-navigate" },
+    { prop: "notebook", mood: "thinking", motion: "la-navigate" },
+    { prop: "paper", mood: "cool", motion: "la-navigate" },
+    { prop: "compass", mood: "cool", motion: "la-navigate" },
+    { prop: "wrench", mood: "thinking", motion: "la-navigate" },
+    { prop: "grab", mood: "happy", motion: "la-navigate" },
+    { prop: "compass", mood: "searching", motion: "la-navigate" },
+    { prop: "notebook", mood: "cool", motion: "la-navigate" },
+  ],
+  // MeChat: writing your letters.
+  "message-writing": [
+    { prop: "paper", mood: "love", motion: "la-write" },
+    { prop: "envelope", mood: "love", motion: "la-write" },
+    { prop: "keyboard", mood: "happy", motion: "la-write" },
+    { prop: "paper", mood: "thinking", motion: "la-write" },
+    { prop: "envelope", mood: "happy", motion: "la-write" },
+    { prop: "keyboard", mood: "love", motion: "la-write" },
+    { prop: "notebook", mood: "thinking", motion: "la-write" },
+    { prop: "heart", mood: "love", motion: "la-write" },
+  ],
+  // Secure surfaces: standing guard.
+  secure: [
+    { prop: "shield", mood: "cool", motion: "la-guard" },
+    { prop: "shield", mood: "thinking", motion: "la-guard" },
+    { prop: "shield", mood: "happy", motion: "la-guard" },
+    { prop: "wrench", mood: "cool", motion: "la-guard" },
+    { prop: "keyboard", mood: "cool", motion: "la-guard" },
+    { prop: "wrench", mood: "thinking", motion: "la-guard" },
+    { prop: "clipboard", mood: "cool", motion: "la-guard" },
+    { prop: "shield", mood: "excited", motion: "la-guard" },
+  ],
+  // Search / explore: peering through the glass.
+  search: [
+    { prop: "magnifying-glass", mood: "searching", motion: "la-peer" },
+    { prop: "magnifying-glass", mood: "thinking", motion: "la-peer" },
+    { prop: "magnifying-glass", mood: "cool", motion: "la-peer" },
+    { prop: "magnifying-glass", mood: "happy", motion: "la-peer" },
+    { prop: "notebook", mood: "searching", motion: "la-peer" },
+    { prop: "notebook", mood: "thinking", motion: "la-peer" },
+    { prop: "compass", mood: "searching", motion: "la-peer" },
+    { prop: "clipboard", mood: "searching", motion: "la-peer" },
+  ],
+  // Feed / flow: watching and reacting.
+  social: [
+    { prop: "heart", mood: "love", motion: "la-watch" },
+    { prop: "heart", mood: "excited", motion: "la-watch" },
+    { prop: "bell", mood: "happy", motion: "la-watch" },
+    { prop: "heart", mood: "happy", motion: "la-watch" },
+    { prop: "ball", mood: "excited", motion: "la-watch" },
+    { prop: "megaphone", mood: "excited", motion: "la-watch" },
+    { prop: "heart", mood: "celebrating", motion: "la-watch" },
+    { prop: "bell", mood: "excited", motion: "la-watch" },
+  ],
+  // Creator / Mesh Pro: making something.
+  creator: [
+    { prop: "paintbrush", mood: "celebrating", motion: "la-craft" },
+    { prop: "megaphone", mood: "excited", motion: "la-craft" },
+    { prop: "paintbrush", mood: "happy", motion: "la-craft" },
+    { prop: "megaphone", mood: "celebrating", motion: "la-craft" },
+    { prop: "paintbrush", mood: "cool", motion: "la-craft" },
+    { prop: "clipboard", mood: "thinking", motion: "la-craft" },
+    { prop: "paintbrush", mood: "love", motion: "la-craft" },
+    { prop: "megaphone", mood: "happy", motion: "la-craft" },
+  ],
 };
 
 // Matches the mascot's COLOR_THEMES primaries so the loading Meshi is *your*
@@ -275,7 +354,15 @@ export function MeshiLoader({
   const prefs = useSyncExternalStore(subscribeToPrefs, getPrefsSnapshot, getServerPrefsSnapshot);
   const color = MESHI_COLOR[prefs.color] ?? MESHI_COLOR.blue;
   const palette = MODE_PALETTE[mode] ?? MODE_PALETTE.default;
-  const mascotMood = MODE_MOOD[mode] ?? "happy";
+  const actions = LOADER_ACTIONS[mode] ?? LOADER_ACTIONS.default;
+  // Pick a fresh variant AFTER mount (never during SSR, so the server and client
+  // markup match). Variant 0 — a sensible canonical action for the surface —
+  // paints first, then a random sibling is chosen so back-to-back loads differ.
+  const [variant, setVariant] = useState(0);
+  useEffect(() => {
+    setVariant(Math.floor(Math.random() * actions.length));
+  }, [actions]);
+  const action = actions[variant % actions.length];
   const reducedMotion = useReducedMotion();
 
   return (
@@ -303,16 +390,21 @@ export function MeshiLoader({
         {/* The motif — mirrors what's actually loading. */}
         <Motif mode={mode} palette={palette} />
 
-        {/* Soft ground shadow that breathes with the bounce */}
+        {/* Soft ground shadow, breathing gently on its own. */}
         <span className="meshi-load-shadow" style={{ background: `${color}33` }} />
 
-        {/* Meshi — the real high-fidelity mascot, in your colour + cosmetics.
-            The .meshi-load-bounce wrapper still drives the squash-and-stretch
-            bounce; the mascot supplies the canonical face, blink and wearables. */}
-        <div className="meshi-load-bounce" style={{ filter: `drop-shadow(0 6px 18px ${color}55)` }}>
+        {/* Meshi — the real high-fidelity mascot, in your colour + cosmetics,
+            actually DOING the thing that's loading: it holds the surface's prop
+            (with its grip hands) and moves with the matching calm `.la-*` motion
+            instead of bouncing. The mascot supplies the canonical face + blink. */}
+        <div
+          className={`meshi-load-actor ${reducedMotion ? "" : action.motion}`}
+          style={{ filter: `drop-shadow(0 6px 18px ${color}55)` }}
+        >
           <MeshiMascot
             size={74}
-            mood={mascotMood}
+            mood={action.mood}
+            prop={action.prop}
             color={prefs.color}
             hat={prefs.hat}
             hair={prefs.hair}

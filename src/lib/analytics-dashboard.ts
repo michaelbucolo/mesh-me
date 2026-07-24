@@ -131,6 +131,100 @@ const loadAnalyticsDashboard = memoizeWithTtl(loadAnalyticsDashboardUncached, {
   key: (user) => `${user.id}:${user.updatedAt.getTime()}`,
 });
 
+// ── Cross-platform audience overlap ─────────────────────────────────────────
+// Match the same person across a user's connected platforms by normalized
+// handle, to surface their "superfans" — people who follow them in more than
+// one place, something no single platform can see. Operates on the SYNCED
+// follower sample (each platform syncs a capped page), so it's presented as a
+// lower bound ("fans we've found"), never an inflated total.
+type FollowerRowForOverlap = {
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  profileUrl: string | null;
+  platformUserId: string;
+  connectedAccount: { platform: string };
+};
+
+function computeAudienceOverlap(rows: FollowerRowForOverlap[]) {
+  const platformsWithFollowers = new Set<string>();
+  const people = new Map<
+    string,
+    {
+      byHandle: boolean;
+      name: string | null;
+      avatarUrl: string | null;
+      profileUrl: string | null;
+      platforms: Set<string>;
+      seen: Set<string>;
+    }
+  >();
+
+  for (const r of rows) {
+    const platform = r.connectedAccount.platform;
+    platformsWithFollowers.add(platform);
+    const handle = r.username ? r.username.trim().toLowerCase().replace(/^@+/, "") : "";
+    const byHandle = handle.length > 0;
+    const key = byHandle ? `h:${handle}` : r.displayName ? `n:${r.displayName.trim().toLowerCase()}` : "";
+    if (!key) continue;
+    let p = people.get(key);
+    if (!p) {
+      p = {
+        byHandle,
+        name: r.displayName || r.username || null,
+        avatarUrl: r.avatarUrl,
+        profileUrl: r.profileUrl,
+        platforms: new Set(),
+        seen: new Set(),
+      };
+      people.set(key, p);
+    }
+    // Dedupe a person within one platform (two of the user's own accounts on the
+    // same platform shouldn't count them twice).
+    const dedupe = `${platform}:${r.platformUserId}`;
+    if (p.seen.has(dedupe)) continue;
+    p.seen.add(dedupe);
+    p.platforms.add(platform);
+    if (!p.avatarUrl && r.avatarUrl) p.avatarUrl = r.avatarUrl;
+    if (!p.profileUrl && r.profileUrl) p.profileUrl = r.profileUrl;
+    if (!p.name && (r.displayName || r.username)) p.name = r.displayName || r.username;
+  }
+
+  const superfans: {
+    name: string | null;
+    avatarUrl: string | null;
+    profileUrl: string | null;
+    platforms: string[];
+  }[] = [];
+  let multiPlatformCount = 0;
+  people.forEach((p) => {
+    if (p.platforms.size >= 2) {
+      multiPlatformCount += 1;
+      // Only surface high-confidence (handle-matched) people as named superfans;
+      // display-name-only matches are too collision-prone to show as a person.
+      if (p.byHandle) {
+        superfans.push({
+          name: p.name,
+          avatarUrl: p.avatarUrl,
+          profileUrl: p.profileUrl,
+          platforms: Array.from(p.platforms).sort(),
+        });
+      }
+    }
+  });
+  superfans.sort((a, b) => b.platforms.length - a.platforms.length);
+
+  return {
+    platformsWithFollowers: Array.from(platformsWithFollowers).sort(),
+    // Whether at least two platforms have any synced followers to overlap.
+    hasEnoughData: platformsWithFollowers.size >= 2,
+    syncedFollowerSample: rows.length,
+    // Lower bound: people we FOUND following on 2+ platforms in the sample.
+    multiPlatformCount,
+    superfans: superfans.slice(0, 8),
+  };
+}
+
 async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
   const chartStart = daysAgoStart(CHART_DAYS);
   const windowStart = daysAgoStart(METRIC_WINDOW_DAYS);
@@ -172,6 +266,7 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
     notificationsCount,
     nativeLikesReceived,
     nativeCommentsReceived,
+    platformFollowerRows,
   ] = await Promise.all([
     prisma.connectedAccount.findMany({
       where: { userId: user.id },
@@ -366,6 +461,22 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
     // array is capped at 500, so reducing over it undercounts prolific authors.
     prisma.reaction.count({ where: { post: { authorId: user.id } } }),
     prisma.comment.count({ where: { post: { authorId: user.id } } }),
+    // Followers across every connected platform, to find the "superfans" who
+    // follow on more than one. Hard-scoped to this user's OWN accounts (self-
+    // only, like the rest of this loader). Capped generously — each platform
+    // syncs only a page of followers, so a few hundred rows is typical.
+    prisma.platformFollower.findMany({
+      where: { connectedAccount: { userId: user.id } },
+      select: {
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        profileUrl: true,
+        platformUserId: true,
+        connectedAccount: { select: { platform: true } },
+      },
+      take: 5000,
+    }),
   ]);
 
   const totalNativeEngagement = nativePosts.reduce((total, post) => total + totalPostEngagement(post), 0);
@@ -381,6 +492,9 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
     const latest = account.platformAnalytics.at(-1);
     return total + (latest?.followerCount || account._count.platformFollowers);
   }, 0);
+  // The deduplicated view only mesh.me can compute: who follows you across
+  // more than one platform.
+  const audienceOverlap = computeAudienceOverlap(platformFollowerRows);
 
   const engagementSeries = makeSeries();
   const contentSeries = makeSeries();
@@ -638,6 +752,7 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
       activity: activitySeries,
     },
     platformComparison,
+    audienceOverlap,
     bestContent,
     recentActivity,
     privacy: {

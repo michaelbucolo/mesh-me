@@ -126,15 +126,21 @@ function stepStrands(
   }
 }
 
-function targetFor(node: SceneNode, time: number, driftScale: number): { x: number; y: number } {
+// `driftTime` MUST be a shared wall clock (Date.now()), never a per-client
+// timer like performance.now(). The drift is a deterministic function of the
+// node id (phase) and this clock, so anchoring it to wall time makes every
+// client compute the SAME orbit offset at the same instant — two people looking
+// at one mesh see each node in the same spot (to within clock skew), instead of
+// each node wobbling out of phase per screen.
+function targetFor(node: SceneNode, driftTime: number, driftScale: number): { x: number; y: number } {
   let tx = node.x;
   let ty = node.y;
 
   if (node.depth >= 1 && driftScale > 0) {
     const p = phase(node.id);
     const amp = DRIFT_AMP * driftScale * (node.depth >= 2 ? 1 : 0.6);
-    tx += Math.sin(time * 0.00045 + p) * amp;
-    ty += Math.cos(time * 0.00038 + p * 1.7) * amp;
+    tx += Math.sin(driftTime * 0.00045 + p) * amp;
+    ty += Math.cos(driftTime * 0.00038 + p * 1.7) * amp;
   }
 
   return { x: tx, y: ty };
@@ -150,7 +156,7 @@ export function driftScaleFor(motionStyle?: string | null): number {
 export function stepScenePhysics(
   model: SceneModel,
   state: PhysicsState,
-  time: number,
+  driftTime: number,
   dtMs: number,
   driftScale = 1,
   disturbances: StrandDisturbance[] = [],
@@ -172,7 +178,7 @@ export function stepScenePhysics(
   }
 
   model.nodes.forEach((node) => {
-    const t = targetFor(node, time, driftScale);
+    const t = targetFor(node, driftTime, driftScale);
     node.vx += (t.x - node.dx) * STIFFNESS * dt - node.vx * DAMPING * dt;
     node.vy += (t.y - node.dy) * STIFFNESS * dt - node.vy * DAMPING * dt;
     node.dx += node.vx * dt;

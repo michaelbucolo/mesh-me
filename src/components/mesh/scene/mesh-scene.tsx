@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { meshApiUrl, takeMeshPrefetch } from "./mesh-prefetch";
-import { toggleReaction } from "@/lib/actions";
+import { toggleReaction, toggleFollow } from "@/lib/actions";
 import { MeshiLoader } from "@/components/meshi/meshi-loader";
 import {
   MeshiMascot,
@@ -198,7 +198,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     vx: number;
     vy: number;
     pinchDist: number;
-  }>({ active: false, moved: false, startX: 0, startY: 0, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0 });
+    // Screen midpoint between the two fingers, so a pinch can PAN (drag both
+    // fingers together) as well as zoom. 0 until a two-finger gesture seeds it.
+    pinchMidX: number;
+    pinchMidY: number;
+  }>({ active: false, moved: false, startX: 0, startY: 0, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, pinchDist: 0, pinchMidX: 0, pinchMidY: 0 });
   const flingRef = useRef({ vx: 0, vy: 0 });
   const zoomTargetRef = useRef<{ zoom: number; ax: number; ay: number } | null>(null);
   const panTargetRef = useRef<{ nodeId: string } | null>(null);
@@ -224,6 +228,18 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   // input and ambles home to the heart once you've been idle a few seconds.
   const lastInputAtRef = useRef(0);
   const ownerWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // When you're VISITING someone's mesh and the owner is ALSO here (browsing
+  // their own mesh right now), this holds their live broadcast world position —
+  // the exact spot they, and every other visitor, see them at. null when the
+  // owner isn't on their mesh (away or offline), in which case their Meshi
+  // rests at the heart. Fixes the "owner looks frozen at their own center even
+  // though they're moving around" bug: a world coordinate is shared, so we can
+  // render them where they actually are instead of pinning them to the origin.
+  const ownerHereWorldRef = useRef<{ x: number; y: number } | null>(null);
+  // Last time the owner was seen in their own room — mirrors the roaming
+  // roster's hysteresis so a single dropped payload can't briefly sleep and
+  // drift their Meshi home before the next heartbeat brings them back.
+  const ownerSeenAtRef = useRef(0);
   const presenceTargetsRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
   const presenceElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const presencePosRef = useRef<Map<string, { vx: number; vy: number }>>(new Map());
@@ -271,8 +287,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const presenceSeenAtRef = useRef<Map<string, number>>(new Map());
   const presenceObjRef = useRef<Map<string, RemotePresence>>(new Map());
   const remoteSigRef = useRef<string>("");
-  // Whether the viewed mesh's owner is live anywhere on mesh.me — their
-  // pinned Meshi wakes/sleeps on this, independent of who's in the room.
+  // Whether the viewed mesh's owner is present IN THIS ROOM right now (browsing
+  // their own mesh) — their heart Meshi wakes and tracks their real position on
+  // this, and sleeps at home when they're away. Held through a short grace
+  // window (see ownerSeenAtRef) so one dropped heartbeat can't blink them out.
   const [ownerLive, setOwnerLive] = useState(false);
   const [activeBranch, setActiveBranch] = useState<BranchKey | null>(null);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
@@ -846,7 +864,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         if (isOwnMesh) disturbances.push({ x: ownerWorldPosRef.current.x, y: ownerWorldPosRef.current.y });
         presenceWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
         perchWorldPosRef.current.forEach((p) => disturbances.push({ x: p.x, y: p.y }));
-        stepScenePhysics(model, physicsRef.current, time, dt, driftScaleFor(proVisualsRef.current.motionStyle), disturbances);
+        // Drift phase is driven by the shared wall clock (Date.now()), NOT the
+        // per-client rAF `time`, so nodes/posts settle to the same orbit on every
+        // screen — two viewers of one mesh agree on where each node sits.
+        stepScenePhysics(model, physicsRef.current, Date.now(), dt, driftScaleFor(proVisualsRef.current.motionStyle), disturbances);
 
         // Inertial pan: carry the fling velocity after release, with decay.
         const fling = flingRef.current;
@@ -1059,7 +1080,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         return;
       }
       if (node.kind === "person" && node.userId) {
-        enterFriendMesh(node);
+        // Don't teleport straight into their mesh — open their card so you can
+        // choose: enter their mesh, follow, share, or view their profile.
+        setActiveBranch(node.branch);
+        setSelectedNode(node);
+        playSound("pop");
         return;
       }
       if (node.kind === "branch") {
@@ -1083,7 +1108,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       }
       flyToNode(node);
     },
-    [fitToContent, flyToNode, enterFriendMesh, spawnBurst],
+    [fitToContent, flyToNode, spawnBurst],
   );
 
   // Every readable piece of content on the mesh, newest first — so the
@@ -1157,14 +1182,17 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       }
     }
     let found: SceneNode | null = null;
-    let bestR = Infinity;
+    let bestD = Infinity;
     hitboxesRef.current.forEach((box, id) => {
       const d = Math.hypot(box.x - sx, box.y - sy);
-      if (d <= box.r + slop && box.r < bestR) {
+      // Among every target the finger is within reach of, pick the one whose
+      // CENTRE is nearest the tap — so a fingertip lands on the node it's
+      // actually over, not on a tiny far neighbour that merely overlaps it.
+      if (d <= box.r + slop && d < bestD) {
         const node = model.nodes.get(id);
         if (node) {
           found = node;
-          bestR = box.r;
+          bestD = d;
         }
       }
     });
@@ -1213,6 +1241,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     if (pointersRef.current.size === 2) {
       const pts = [...pointersRef.current.values()];
       d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      d.pinchMidX = (pts[0].x + pts[1].x) / 2;
+      d.pinchMidY = (pts[0].y + pts[1].y) / 2;
+      // A second finger makes this a gesture, never a tap — so neither finger's
+      // lift falls into the tap/deselect path (which would clear your selection).
+      d.moved = true;
     }
   }, []);
 
@@ -1277,18 +1310,29 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     if (pointersRef.current.size === 2) {
       const pts = [...pointersRef.current.values()];
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const rawMidX = (pts[0].x + pts[1].x) / 2;
+      const rawMidY = (pts[0].y + pts[1].y) / 2;
       if (d.pinchDist > 0) {
         const cam = cameraRef.current;
         const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cam.zoom * (dist / d.pinchDist)));
         const rect = container.getBoundingClientRect();
-        const midX = (pts[0].x + pts[1].x) / 2 - rect.left - rect.width / 2;
-        const midY = (pts[0].y + pts[1].y) / 2 - rect.top - rect.height / 2;
+        const midX = rawMidX - rect.left - rect.width / 2;
+        const midY = rawMidY - rect.top - rect.height / 2;
         const k = next / cam.zoom;
+        // Zoom, anchored at the finger midpoint so it grows where you pinch…
         cam.panX = midX - (midX - cam.panX) * k;
         cam.panY = midY - (midY - cam.panY) * k;
         cam.zoom = next;
+        // …AND pan by however far that midpoint slid, so dragging both fingers
+        // together moves the mesh — the gesture people expect but didn't have.
+        if (d.pinchMidX !== 0 || d.pinchMidY !== 0) {
+          cam.panX += rawMidX - d.pinchMidX;
+          cam.panY += rawMidY - d.pinchMidY;
+        }
       }
       d.pinchDist = dist;
+      d.pinchMidX = rawMidX;
+      d.pinchMidY = rawMidY;
       d.moved = true;
       return;
     }
@@ -1330,21 +1374,48 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       const d = dragRef.current;
       pointersRef.current.delete(e.pointerId);
       if (pointersRef.current.size < 2) d.pinchDist = 0;
+      if (pointersRef.current.size === 2) {
+        // Dropped from 3+ fingers back to 2: re-seed the pinch anchor from the
+        // two that remain, so the next pinch move doesn't jump on stale
+        // distance/midpoint left over from before the extra finger lifted.
+        const pts = [...pointersRef.current.values()];
+        d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        d.pinchMidX = (pts[0].x + pts[1].x) / 2;
+        d.pinchMidY = (pts[0].y + pts[1].y) / 2;
+      }
+      if (pointersRef.current.size === 1) {
+        // Lifting one finger of a pinch: re-anchor the drag on the finger that
+        // stays down, so its next move measures from where it IS — otherwise the
+        // mesh jumps by the stale gap between the two fingers on the handoff.
+        const [p] = [...pointersRef.current.values()];
+        d.lastX = p.x;
+        d.lastY = p.y;
+        d.vx = 0;
+        d.vy = 0;
+        d.pinchMidX = 0;
+        d.pinchMidY = 0;
+      }
       if (pointersRef.current.size === 0) {
         d.active = false;
+        d.pinchMidX = 0;
+        d.pinchMidY = 0;
         if (d.moved && performance.now() - d.lastT < 80) {
           flingRef.current = { vx: d.vx, vy: d.vy };
         }
       }
 
-      if (!d.moved) {
+      // Only the FINAL finger lifting with no drag is a tap. Guarding on the
+      // pointer count means a lift that's part of a still-in-progress multi-touch
+      // gesture can never select or clear the selection.
+      if (!d.moved && pointersRef.current.size === 0) {
         const container = containerRef.current;
         if (!container) return;
         const rect = container.getBoundingClientRect();
         // A fingertip is far larger and less precise than a cursor, so on touch
-        // every tap hit-test is forgiving by ~16px — a tap that lands near a
-        // node still selects it. A mouse click stays pixel-precise (slop 0).
-        const tapSlop = coarseRef.current ? 16 : 0;
+        // every tap hit-test is forgiving by ~22px — a tap that lands near a
+        // node still selects it (and the nearest-centre tiebreak in hitTest picks
+        // the right one in a cluster). A mouse click stays pixel-precise (slop 0).
+        const tapSlop = coarseRef.current ? 22 : 0;
         // Double-tap / double-click on empty space zooms in on that spot.
         const now = performance.now();
         const prevTap = lastTapRef.current;
@@ -1379,21 +1450,46 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           activateNode(node);
           return;
         }
-        // Only if a direct (slop-forgiven) tap hit nothing does touch fall back
-        // to "Meshi is the cursor" — selecting whatever your Meshi is resting on.
-        if (coarseRef.current && focusIdRef.current) {
-          const focused = modelRef.current?.nodes.get(focusIdRef.current);
-          if (focused) {
-            activateNode(focused);
-            return;
-          }
-        }
+        // Tapping empty space clears the selection. (It used to fall back to
+        // selecting whatever was nearest the screen CENTRE, which made taps feel
+        // like they grabbed the wrong node — so an intentional tap on nothing
+        // now simply deselects, as you'd expect.)
         setSelectedNode(null);
         setActiveBranch(null);
       }
     },
     [activateNode, hitTest, router],
   );
+
+  // A browser-initiated cancel (system gesture, pointer stolen) should ABORT the
+  // gesture, never select — just drop the pointer and re-anchor any survivor,
+  // so a cancelled tap can't grab a node and a cancelled pinch can't jump.
+  const onPointerCancel = useCallback((e: React.PointerEvent) => {
+    const d = dragRef.current;
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) d.pinchDist = 0;
+    if (pointersRef.current.size === 2) {
+      const pts = [...pointersRef.current.values()];
+      d.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      d.pinchMidX = (pts[0].x + pts[1].x) / 2;
+      d.pinchMidY = (pts[0].y + pts[1].y) / 2;
+    }
+    if (pointersRef.current.size === 1) {
+      const [p] = [...pointersRef.current.values()];
+      d.lastX = p.x;
+      d.lastY = p.y;
+      d.vx = 0;
+      d.vy = 0;
+      d.pinchMidX = 0;
+      d.pinchMidY = 0;
+    }
+    if (pointersRef.current.size === 0) {
+      d.active = false;
+      d.moved = false;
+      d.pinchMidX = 0;
+      d.pinchMidY = 0;
+    }
+  }, []);
 
   const onWheel = useCallback((e: React.WheelEvent) => {
     const container = containerRef.current;
@@ -1542,7 +1638,28 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         // Fresh sightings first (live data), then the still-in-grace stragglers.
         effectiveVisible.unshift(...visible);
         const effectiveIds = new Set(effectiveVisible.map((p) => p.userId));
-        setOwnerLive(online.some((p) => p.userId === meshOwner));
+        // Is the owner actually IN THIS ROOM right now (browsing their own mesh),
+        // versus merely online somewhere else on mesh.me? Their Meshi should read
+        // as awake-and-present only when they're genuinely here — otherwise it
+        // rests at their home node as a calm "away" marker instead of looking
+        // like they're idling at their own center. When they ARE here, their
+        // broadcast world coordinate is the one truth every viewer shares, so we
+        // capture it and their dedicated heart Meshi tracks them for real.
+        const ownerPresence = online.find(
+          (p) => p.userId === meshOwner && p.viewingMesh === meshOwner && p.surface === "mesh",
+        );
+        if (ownerPresence) {
+          ownerSeenAtRef.current = nowSeen;
+          if (ownerPresence.position) {
+            ownerHereWorldRef.current = { x: ownerPresence.position.x, y: ownerPresence.position.y };
+          }
+          setOwnerLive(true);
+        } else if (nowSeen - ownerSeenAtRef.current > PRESENCE_GRACE_MS) {
+          // Absent past the grace window → they've really left the room.
+          ownerHereWorldRef.current = null;
+          setOwnerLive(false);
+        }
+        // else: within grace — keep the last known position and awake state.
         presenceInfoRef.current.clear();
         for (const p of online) {
           if (visibleIds.has(p.userId)) continue;
@@ -2208,9 +2325,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         easeLook(cursorEl, "__self__", clear, reducedMotionRef.current ? null : selfLookTarget(clear.x, clear.y));
       }
 
-      // The mesh owner's Meshi. On someone else's mesh it rests at the heart
-      // (world origin). On YOUR OWN mesh it follows the cursor, while coarse
-      // pointers keep it centered as the world moves underneath.
+      // The mesh owner's Meshi. On someone else's mesh it tracks the owner's
+      // real broadcast position when they're here browsing, and eases home to
+      // the heart (world origin) when they're away. On YOUR OWN mesh it follows
+      // the cursor, while coarse pointers keep it centered as the world moves.
       const ownerEl = ownerMeshiElRef.current;
       const container = containerRef.current;
       if (ownerEl && container) {
@@ -2223,8 +2341,26 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           pointerOnCanvasRef.current || time - lastInputAtRef.current < 4000;
         const active = isMe && cursorWorldTargetRef.current.seen && pointerLive;
         const centered = coarseRef.current && isMe;
-        const tx = centered ? cursorWorldTargetRef.current.x : active ? cursorWorldTargetRef.current.x : 0;
-        const ty = centered ? cursorWorldTargetRef.current.y : active ? cursorWorldTargetRef.current.y : 0;
+        const selfDriven = active || centered;
+        // When VISITING, follow the owner's real world position if they're here
+        // browsing their own mesh; otherwise (away/offline) the Meshi eases home
+        // to the heart. It glides between the two, so an owner arriving or
+        // leaving the room slides in/out rather than snapping to center.
+        const ownerHere = !isMe ? ownerHereWorldRef.current : null;
+        const selfId = modelRef.current?.selfId;
+        // When the owner is away, their Meshi rests/sleeps at home — but tucked
+        // just BELOW their profile node, never on top of it. The drop is the
+        // node's on-screen radius converted back to world units, so it clears the
+        // node at any zoom and the Meshi eases there smoothly (no snap).
+        const restingHome = !isMe && !ownerHere;
+        let homeY = 0;
+        if (restingHome) {
+          const selfHb = selfId ? hitboxesRef.current.get(selfId) : null;
+          const clearPx = (selfHb?.r ?? 40) + 26 * meshiScale;
+          homeY = clearPx / Math.max(cameraRef.current.zoom, 0.05);
+        }
+        const tx = selfDriven ? cursorWorldTargetRef.current.x : ownerHere ? ownerHere.x : 0;
+        const ty = selfDriven ? cursorWorldTargetRef.current.y : ownerHere ? ownerHere.y : homeY;
         const ok = active && !coarseRef.current ? 1 - Math.exp(-dt / 90) : k;
         const pos = ownerWorldPosRef.current;
         pos.x += (tx - pos.x) * ok;
@@ -2233,7 +2369,6 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         // Avoid nodes while wandering — but its own heart node is home, so
         // it's allowed to settle there. Touch users keep the owner Meshi
         // centered, so it must not be pushed aside by the focused node.
-        const selfId = modelRef.current?.selfId;
         let cx = s.x;
         let cy = coarseRef.current ? s.y : s.y - 6;
         if (!coarseRef.current && Math.hypot(pos.x, pos.y) > 30) {
@@ -2421,7 +2556,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onPointerLeave={(e) => {
           // A lifted finger fires pointerleave too — only a mouse leaving the
           // canvas should hide Meshi; on touch it stays where you left it.
@@ -2468,7 +2603,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           </div>
           {hoverNode && hoverNode.kind !== "self" && (
             <div
-              className="absolute left-1/2 top-full mt-1.5 w-max max-w-[16.5rem] -translate-x-1/2 animate-[fadeIn_.14s_ease] overflow-hidden rounded-xl border border-white/12 bg-[#0a0f1f]/90 text-center shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+              className="mesh-glass absolute left-1/2 top-full mt-1.5 w-max max-w-[16.5rem] -translate-x-1/2 animate-[fadeIn_.14s_ease] overflow-hidden rounded-xl text-center shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
               style={{ boxShadow: `0 12px 40px rgba(0,0,0,0.55), inset 0 2px 0 ${hoverNode.color || "var(--accent)"}` }}
             >
               <div className="px-3 py-2">
@@ -2522,9 +2657,10 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         </div>
       )}
 
-      {/* The mesh owner's Meshi at the heart of their mesh. Awake and adrift
-          when they're online; curled up asleep with a soft "Zzz" when they're
-          offline, so a visited mesh always shows whether its owner is around. */}
+      {/* The mesh owner's Meshi. Awake and roaming to their real position when
+          they're here browsing their own mesh; curled up asleep with a soft
+          "Zzz" at their home node when they're away (offline or exploring
+          elsewhere), so a visited mesh shows whether its owner is in the room. */}
       {meshData?.meshiPreference && (() => {
         const m = meshData.meshiPreference;
         // The URL may address this mesh by username; presence always speaks in
@@ -2660,12 +2796,12 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           behave. Shown only on your own mesh or the Global view — never when
           viewing a specific person (that owns the top-left with its Back button). */}
       {!viewUserId && (
-        <div className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/12 bg-black/45 p-1 backdrop-blur">
+        <div className="mesh-glass absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full p-1">
           <button
             type="button"
             onClick={() => router.push("/mesh")}
             aria-pressed={!isGlobal}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${!isGlobal ? "bg-white/15 text-white" : "text-white/60 hover:text-white/90"}`}
+            className={`mesh-ctl ds-focus-ring rounded-full border border-transparent px-4 py-2 text-xs font-semibold ${!isGlobal ? "mesh-ctl-active" : ""}`}
           >
             Mesh
           </button>
@@ -2673,7 +2809,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             type="button"
             onClick={() => router.push("/mesh?view=global")}
             aria-pressed={isGlobal}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${isGlobal ? "bg-white/15 text-white" : "text-white/60 hover:text-white/90"}`}
+            className={`mesh-ctl ds-focus-ring rounded-full border border-transparent px-4 py-2 text-xs font-semibold ${isGlobal ? "mesh-ctl-active" : ""}`}
           >
             Global
           </button>
@@ -2686,21 +2822,21 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           <button
             type="button"
             onClick={() => router.push("/mesh")}
-            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/60"
+            className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-white"
           >
             <ArrowLeft size={14} />
             Back to your mesh
           </button>
         ) : null}
         {viewedUser && (
-          <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white/80 backdrop-blur">
+          <span className="mesh-glass rounded-full px-3 py-2 text-xs text-white/80">
             {viewedUser.displayName || "@" + viewedUser.username}&apos;s mesh
           </span>
         )}
         {viewedUser && (
           <Link
             href={`/profile/${viewedUser.username}`}
-            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/60"
+            className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-white"
           >
             <UserRound size={14} aria-hidden="true" />
             View profile
@@ -2713,7 +2849,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         data-testid="mesh-action-bar"
         role="toolbar"
         aria-label="Mesh actions"
-        className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2"
+        className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col items-end gap-2"
       >
         {!viewedUser && meshUser && (
           <RailButton label="Create on your mesh" onClick={() => setShowCompose(true)}>
@@ -2790,7 +2926,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       {showRewind && oldestMoment != null && status === "ready" && (
         <div className="absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
           <div
-            className="w-full max-w-xl animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-black/60 px-4 py-3 backdrop-blur"
+            className="mesh-glass w-full max-w-xl animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl px-4 py-3"
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -2871,7 +3007,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs text-white"
+            className="mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs text-white"
           >
             Try again
           </button>
@@ -2904,7 +3040,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             </Link>
             <Link
               href="/mesh"
-              className="mesh-bubble-btn rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white hover:bg-white/15"
+              className="mesh-bubble-btn mesh-cta ds-focus-ring rounded-full px-5 py-2 text-sm font-semibold"
             >
               Back to my mesh
             </Link>
@@ -2913,7 +3049,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       )}
       {status === "ready" && meshIsEmpty && !showCompose && (
         <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex justify-center px-6">
-          <div className="pointer-events-auto flex max-w-sm flex-col items-center gap-2.5 rounded-2xl border border-white/12 bg-black/55 px-5 py-4 text-center backdrop-blur">
+          <div className="mesh-glass pointer-events-auto flex max-w-sm flex-col items-center gap-2.5 rounded-2xl px-5 py-4 text-center">
             <p className="text-sm text-white/80">
               {viewedUser
                 ? `This mesh is just ${viewedUser.displayName || "@" + viewedUser.username} for now.`
@@ -2932,7 +3068,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
                 </button>
                 <Link
                   href="/connected-accounts"
-                  className="mesh-bubble-btn rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium text-white/85"
+                  className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs font-medium text-white/85"
                 >
                   Connect accounts
                 </Link>
@@ -2945,14 +3081,14 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       {/* How to explore — shown on first visit, reopenable from the rail */}
       {showTips && status === "ready" && (
         <div
-          className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
+          className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/55 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:pb-4"
           onPointerDown={(e) => {
             e.stopPropagation();
             if (e.target === e.currentTarget) dismissTips();
           }}
         >
           <div
-            className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-5 shadow-2xl"
+            className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-5 shadow-2xl"
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-start justify-between">
@@ -2975,7 +3111,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             <button
               type="button"
               onClick={dismissTips}
-              className="mesh-bubble-btn mt-4 w-full rounded-full bg-[var(--accent)] py-2 text-xs font-semibold text-white"
+              className="mesh-bubble-btn mesh-cta ds-focus-ring mt-4 w-full rounded-full py-2 text-xs font-semibold"
             >
               Start exploring
             </button>
@@ -2992,7 +3128,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             if (e.target === e.currentTarget) setShowSearch(false);
           }}
         >
-          <div className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-2 shadow-2xl">
+          <div className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-2 shadow-2xl">
             <div className="flex items-center gap-2 px-2">
               <Search size={15} className="shrink-0 text-white/45" />
               <input
@@ -3104,6 +3240,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         selectedNode.kind !== "activity" && (
           <NodeDetail
             node={selectedNode}
+            canFollow={isOwnMesh}
             onClose={() => {
               setSelectedNode(null);
               setActiveBranch(null);
@@ -3134,7 +3271,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
             if (e.target === e.currentTarget) setShowCompose(false);
           }}
         >
-          <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020] p-3 shadow-2xl">
+          <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-3 shadow-2xl">
             <div className="mb-2 flex items-start justify-between px-1">
               <div className="flex items-center gap-2">
                 <Sparkles size={15} className="text-[var(--accent)]" />
@@ -3175,12 +3312,13 @@ function RailButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
-      className="mesh-rail-btn group relative flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white/85 backdrop-blur hover:bg-black/65 hover:text-white"
+      // A labeled control, not a mystery icon: on touch the label is always
+      // shown (no hover to reveal it); with a mouse it stays a tidy icon that
+      // expands its label on hover/focus. Comfortable 44px touch target.
+      className="mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-white/85"
     >
-      {children}
-      <span className="pointer-events-none absolute right-full mr-2 hidden w-max rounded-lg border border-white/12 bg-black/80 px-2 py-1 text-[11px] font-medium text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 sm:block">
-        {label}
-      </span>
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
+      <span className="mesh-rail-label text-xs font-medium">{label}</span>
     </button>
   );
 }
@@ -3253,7 +3391,7 @@ function MeshListView({
       <div
         role="dialog"
         aria-label="Your mesh as a list"
-        className="flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col border-l border-white/10 bg-[#0b1020] pt-16 shadow-2xl"
+        className="mesh-panel flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col pt-16 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-white/8 px-4 py-3.5">
@@ -3366,16 +3504,59 @@ function MeshListView({
 
 function NodeDetail({
   node,
+  canFollow,
   onClose,
   onEnterMesh,
 }: {
   node: SceneNode;
+  // Follow only when the node's isFollowing is authoritative for the VIEWER —
+  // i.e. on your own mesh. On a visited/global mesh the follow flags describe
+  // the mesh owner's ties, not yours, so we show Enter / Share / Profile only.
+  canFollow: boolean;
   onClose: () => void;
   onEnterMesh: (node: SceneNode) => void;
 }) {
+  const isPerson = node.kind === "person" && !!node.userId;
+  const [following, setFollowing] = useState(!!node.isFollowing);
+  const [, startFollow] = useTransition();
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const onToggleFollow = () => {
+    if (!node.userId) return;
+    const next = !following;
+    setFollowing(next); // optimistic
+    startFollow(async () => {
+      const res = await toggleFollow(node.userId!);
+      // Server authorizes + guards blocks/self. Reconcile to its truth: revert on
+      // error, otherwise take the authoritative follow state it returns.
+      if (res && "error" in res && res.error) setFollowing(!next);
+      else if (res && "following" in res) setFollowing(res.following ?? next);
+    });
+  };
+
+  const onShare = () => {
+    const url =
+      node.href && typeof window !== "undefined"
+        ? `${window.location.origin}${node.href}`
+        : typeof window !== "undefined"
+          ? window.location.href
+          : "";
+    void shareContent({
+      title: node.label || "mesh.me",
+      text: node.sublabel || node.label,
+      url,
+      dialogTitle: "Share profile",
+    }).then((result) => {
+      if (result === "copied") {
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 1600);
+      }
+    });
+  };
+
   return (
     <div
-      className="absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border border-white/12 bg-[#0b1020]/95 p-4 shadow-2xl backdrop-blur sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
+      className="mesh-panel absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl p-4 shadow-2xl sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-80"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-start gap-3">
@@ -3424,26 +3605,64 @@ function NodeDetail({
         </div>
       )}
 
-      <div className="mt-4 flex gap-2">
-        {node.kind === "person" && node.userId && (
+      {isPerson ? (
+        <div className="mt-4 space-y-2">
           <button
             type="button"
             onClick={() => onEnterMesh(node)}
-            className="mesh-bubble-btn flex-1 rounded-full bg-[var(--accent)] py-2 text-xs font-semibold text-white"
+            className="mesh-bubble-btn mesh-cta ds-focus-ring w-full rounded-full py-2 text-xs font-semibold"
           >
             Enter their mesh
           </button>
-        )}
-        {node.href && (
-          <Link
-            href={node.href}
-            target={node.href.startsWith("http") ? "_blank" : undefined}
-            className="mesh-bubble-btn flex-1 rounded-full border border-white/15 bg-white/5 py-2 text-center text-xs font-semibold text-white hover:bg-white/10"
-          >
-            {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
-          </Link>
-        )}
-      </div>
+          <div className="grid grid-cols-2 gap-2">
+            {canFollow && (
+              <button
+                type="button"
+                onClick={onToggleFollow}
+                aria-pressed={following}
+                className={`mesh-bubble-btn ds-focus-ring rounded-full py-2 text-xs font-semibold ${
+                  following ? "mesh-glass mesh-ctl text-white" : "mesh-cta"
+                }`}
+              >
+                {following ? (node.isMutual ? "Friends" : "Following") : "Follow"}
+              </button>
+            )}
+            <Link
+              href={`/messages/${node.userId}?new=true`}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
+            >
+              Message
+            </Link>
+            <button
+              type="button"
+              onClick={onShare}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-xs font-semibold text-white"
+            >
+              {shareCopied ? "Copied" : "Share"}
+            </button>
+            {node.href && (
+              <Link
+                href={node.href}
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
+              >
+                Profile
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : (
+        node.href && (
+          <div className="mt-4 flex gap-2">
+            <Link
+              href={node.href}
+              target={node.href.startsWith("http") ? "_blank" : undefined}
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
+            >
+              {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
+            </Link>
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -3618,7 +3837,7 @@ function ContentLens({
       }}
     >
       <div
-        className="relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0b1020]/95 shadow-2xl"
+        className="mesh-panel relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
         // The lens speaks Meshi's focused-content contract, so asking Meshi
         // about "this post" works on the mesh exactly like it does on the feed.
@@ -3676,7 +3895,7 @@ function ContentLens({
                 type="button"
                 aria-label={isLensFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 onClick={toggleLensFullscreen}
-                className="absolute right-3 top-3 z-10 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+                className="mesh-glass mesh-ctl ds-focus-ring absolute right-3 top-3 z-10 rounded-full p-2 text-white/90 transition active:scale-90"
               >
                 {isLensFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
