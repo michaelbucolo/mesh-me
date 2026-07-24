@@ -3579,9 +3579,8 @@ body {
   max-height: min(72dvh, 620px);
 }
 
-.feed-media-single {
-  min-height: min(88vw, 560px);
-}
+/* .feed-media-single height comes from the media's own clamped aspect-ratio
+   (NativeAspectMedia) — only runaway height is capped, via .feed-media-frame. */
 
 .feed-media-grid {
   max-height: min(72dvh, 620px);
@@ -3626,11 +3625,6 @@ body {
 .feed-adaptive-photo .feed-media-frame,
 .feed-adaptive-video .feed-media-frame {
   border-radius: 0.95rem;
-}
-
-.feed-adaptive-video .feed-media-single {
-  aspect-ratio: 16 / 9;
-  min-height: unset;
 }
 
 .feed-adaptive-creator .feed-post-list {
@@ -3682,8 +3676,6 @@ body {
 
 @media (min-width: 640px) {
   .feed-media-single {
-    aspect-ratio: 16 / 10;
-    min-height: 18rem;
     max-height: min(68dvh, 520px);
   }
 }
@@ -3707,10 +3699,6 @@ body {
     border-radius: 0;
     border-top: 0;
     border-bottom: 1px solid var(--border-primary);
-  }
-
-  .feed-media-single {
-    min-height: min(112vw, 560px);
   }
 
   .feed-post-copy-clamped {
@@ -3847,11 +3835,6 @@ body {
     border: 1px solid var(--border-primary);
     border-radius: 1rem;
     max-height: min(68dvh, 520px);
-  }
-
-  .feed-media-single {
-    aspect-ratio: 16 / 10;
-    min-height: unset;
   }
 
   .feed-text-post {

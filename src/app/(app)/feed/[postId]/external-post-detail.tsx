@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, BadgeCheck, Bookmark, ExternalLink, Heart, MessageCircle, Repeat2, Send } from "lucide-react";
-import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { Avatar } from "@/components/ui/avatar";
+import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import type { FeedCardPost } from "@/lib/feed-data";
 import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
@@ -56,9 +56,11 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
       </Link>
 
       <article className="mesh-surface overflow-hidden rounded-3xl border border-[var(--mesh-border)]">
-        {/* Media stage — plays right here */}
+        {/* Media stage — plays right here. Native ratio (clamped 4:5–16:9);
+            out-of-range media letterboxes over a blurred self-fill, and the
+            frame reserves 16:9 before metadata arrives so nothing jumps. */}
         {video ? (
-          <AutoplayVideo src={video.url} poster={video.posterUrl} className="aspect-video w-full bg-black object-contain" />
+          <NativeAspectMedia media={video} defaultRatio={16 / 9} className="bg-black" />
         ) : embedUrl ? (
           <div className="aspect-video w-full bg-black">
             <iframe
@@ -73,8 +75,13 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
             />
           </div>
         ) : image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image.url} alt="" className="max-h-[60vh] w-full bg-black object-contain" />
+          <NativeAspectMedia
+            media={image}
+            alt=""
+            defaultRatio={16 / 9}
+            sizes="(max-width: 768px) 100vw, 672px"
+            className="max-h-[60vh] bg-black"
+          />
         ) : null}
 
         <div className="flex flex-col gap-4 p-5">

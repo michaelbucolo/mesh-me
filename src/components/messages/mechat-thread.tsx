@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { playSound } from "@/lib/sound";
 import { safeHref } from "@/lib/utils";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
@@ -1245,18 +1246,31 @@ export function MeChatThread({
 }
 
 function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachment; isMine: boolean }) {
+  // Image/video bubbles get a stable width and a reserved aspect-ratio frame
+  // (native ratio clamped 4:5–16:9, extremes letterboxed over a blurred
+  // self-fill) so the thread never reflows as media loads.
   if (attachment.type === "image") {
     return (
-      <a href={attachment.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-black/10">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={attachment.url} alt={attachment.name || "Shared image"} loading="lazy" decoding="async" className="max-h-72 w-full object-cover" />
+      <a href={attachment.url} target="_blank" rel="noreferrer" className="block w-fit overflow-hidden rounded-xl border border-black/10">
+        <NativeAspectMedia
+          media={{ url: attachment.url, type: "image" }}
+          alt={attachment.name || "Shared image"}
+          sizes="320px"
+          defaultRatio={4 / 3}
+          className="w-[min(20rem,70vw)]"
+        />
       </a>
     );
   }
 
   if (attachment.type === "video") {
     return (
-      <video src={attachment.url} controls className="max-h-72 w-full rounded-xl border border-black/10" />
+      <NativeAspectMedia
+        media={{ url: attachment.url, type: "video" }}
+        videoMode="controls"
+        defaultRatio={16 / 9}
+        className="w-[min(20rem,70vw)] rounded-xl border border-black/10 bg-black"
+      />
     );
   }
 

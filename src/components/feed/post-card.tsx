@@ -8,6 +8,7 @@ import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, P
 import Link from "next/link";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
+import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost, reportPost } from "@/lib/actions";
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
@@ -624,14 +625,30 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
         )}
 
-        {!cardEmbedUrl && visualMedia.length > 0 && (
+        {!cardEmbedUrl && visualMedia.length === 1 && (
           <Link
             href={postHref}
-            className={cn(
-              "feed-media-frame relative block overflow-hidden bg-[var(--bg-secondary)]",
-              visualMedia.length === 1 && "feed-media-single aspect-[4/5]",
-              visualMedia.length >= 2 && "feed-media-grid grid grid-cols-2 gap-px",
-            )}
+            className="feed-media-frame feed-media-single relative block overflow-hidden bg-[var(--bg-secondary)]"
+            aria-label="Open post"
+          >
+            {/* Single media shows at its NATIVE ratio (clamped 4:5–16:9, extreme
+                ratios letterbox over a blurred self-fill) with space reserved
+                up front — no stretch, no hard crop, no layout jump. */}
+            <NativeAspectMedia
+              media={visualMedia[0]}
+              alt={postMediaAlt}
+              eager={Boolean(eager)}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 640px, 624px"
+              className="[max-height:inherit]"
+              imageClassName="transition-transform duration-300 group-hover:scale-[1.015]"
+            />
+          </Link>
+        )}
+
+        {!cardEmbedUrl && visualMedia.length >= 2 && (
+          <Link
+            href={postHref}
+            className="feed-media-frame feed-media-grid grid grid-cols-2 gap-px overflow-hidden bg-[var(--bg-secondary)]"
             aria-label="Open post"
           >
             {visualMedia.slice(0, 4).map((media, idx) => (
@@ -639,11 +656,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 key={media.id}
                 className={cn(
                   "relative overflow-hidden",
-                  visualMedia.length === 1 && "h-full",
-                  visualMedia.length === 2 && "aspect-square",
-                  visualMedia.length === 3 && idx === 0 && "row-span-2 aspect-auto",
-                  visualMedia.length === 3 && idx > 0 && "aspect-square",
-                  visualMedia.length >= 4 && "aspect-square",
+                  visualMedia.length === 3 && idx === 0 ? "row-span-2 aspect-auto" : "aspect-square",
                 )}
               >
                 {media.type.toLowerCase() === "video" ? (
@@ -656,7 +669,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                     src={media.url}
                     alt={postMediaAlt}
                     fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 640px, 624px"
+                    sizes="(max-width: 640px) 50vw, 320px"
                     priority={Boolean(eager && idx === 0)}
                     loading={eager && idx === 0 ? undefined : "lazy"}
                     decoding="async"
