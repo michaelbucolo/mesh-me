@@ -5,19 +5,30 @@ import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, use
 import { useRouter } from "next/navigation";
 import {
   Activity,
+  AlignLeft,
   AtSign,
   BadgeCheck,
+  BarChart3,
   BellRing,
+  CheckCheck,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Compass,
   CreditCard,
   Crown,
   Database,
-  Download,
+  EyeOff,
+  Fingerprint,
+  Flame,
   Ghost,
+  Globe,
+  Hash,
   IdCard,
+  Info,
   KeyRound,
+  LayoutGrid,
   Link as LinkIcon,
   Loader2,
   Lock,
@@ -25,6 +36,13 @@ import {
   LogOut,
   Mail,
   MailCheck,
+  MapPin,
+  Megaphone,
+  MessageCircle,
+  MessageSquare,
+  Monitor,
+  MonitorSmartphone,
+  Moon,
   Palette,
   Phone,
   PlugZap,
@@ -35,8 +53,11 @@ import {
   ShieldCheck,
   Sparkles,
   Smartphone,
+  Sun,
   Trash2,
+  UserPlus,
   UserRound,
+  UsersRound,
   Volume2,
   WandSparkles,
   Waypoints,
@@ -251,6 +272,22 @@ const sectionOrder: Array<{
   { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
   { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
 ];
+
+// Sections whose controls persist on every change (no explicit save button).
+const autosaveSections = new Set<SettingsSectionId>(["privacy", "notifications", "mesh"]);
+const branchIcons: Record<(typeof branchKeys)[number], LucideIcon> = {
+  people: UserRound,
+  communities: UsersRound,
+  interests: Hash,
+  platforms: PlugZap,
+  content: LayoutGrid,
+};
+const twoFactorIcons: Record<string, LucideIcon> = {
+  email: Mail,
+  sms: Smartphone,
+  totp: KeyRound,
+  passkey: Fingerprint,
+};
 
 function parseBranchOverrides(raw: string) {
   try {
@@ -729,26 +766,27 @@ export function SettingsControlCenter({
         </aside>
 
         <section className={`settings-panel rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
-          <div className="settings-panel-heading flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border-primary)] px-4 py-4">
+          <div className="settings-panel-heading flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border-primary)] px-4 py-3">
             <div className="w-full">
               <button
                 type="button"
                 onClick={showMobileSectionList}
-                className="mb-3 inline-flex items-center gap-1 text-sm font-bold text-[var(--accent)] lg:hidden"
+                className="mb-2 inline-flex min-h-10 items-center gap-1 text-sm font-bold text-[var(--accent)] lg:hidden"
               >
                 <ChevronLeft size={16} aria-hidden="true" />
                 Settings
               </button>
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">{activeSectionMeta.description}</p>
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                {activeSectionMeta.description}
+                {autosaveSections.has(activeSection) && " · Changes save automatically"}
+              </p>
             </div>
           </div>
           <div className="settings-panel-scroll px-4 py-4">
             {activeSection === "account" && (
               <AccountSection
                 settings={settings}
-                privacySummary={privacySummary}
-                storedTotal={storedTotal}
                 sendEmailVerification={sendEmailVerification}
                 isPending={isPending}
               />
@@ -839,14 +877,10 @@ export function SettingsControlCenter({
 
 function AccountSection({
   settings,
-  privacySummary,
-  storedTotal,
   sendEmailVerification,
   isPending,
 }: {
   settings: SettingsSnapshot;
-  privacySummary: PrivacySummary;
-  storedTotal: number;
   sendEmailVerification: () => void;
   isPending: boolean;
 }) {
@@ -854,50 +888,39 @@ function AccountSection({
     <div className="settings-section-stack">
       <SettingsCard title="Account details" icon={Settings2}>
         <div className="settings-list">
-          <SettingsRow label="Username" value={`@${settings.username}`} />
-          <SettingsRow label="Email" value={settings.email || "No email on file"} />
-          <SettingsRow label="Email verification" value={settings.emailVerified ? "Verified" : "Not verified"} />
-          <SettingsRow label="Mesh Pro" value={settings.isMeshPro ? "Active" : "Free"} />
+          <SettingsRow icon={AtSign} label="Username" value={`@${settings.username}`} />
+          <SettingsRow icon={Mail} label="Email" value={settings.email || "No email on file"} />
+          <SettingsRow icon={MailCheck} label="Email verification" value={settings.emailVerified ? "Verified" : "Not verified"} />
+          <SettingsRow icon={Crown} label="Mesh Pro" value={settings.isMeshPro ? "Active" : "Free"} />
         </div>
         {!settings.emailVerified && (
           <button
             type="button"
             onClick={sendEmailVerification}
             disabled={isPending || !settings.email}
-            className="mesh-action mesh-action-primary mt-4 px-4 text-sm disabled:opacity-50"
+            className="mesh-action mesh-action-primary mt-3 px-4 text-sm disabled:opacity-50"
           >
             {isPending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <MailCheck size={15} aria-hidden="true" />}
             Send verification email
           </button>
         )}
-      </SettingsCard>
-
-      <SettingsCard title="Quick actions" icon={LogOut}>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <form action={signOut}>
             <button type="submit" className="settings-action-row w-full">
-              <span className="inline-flex items-center gap-2">
-                <LogOut size={16} aria-hidden="true" />
+              <span className="flex min-w-0 items-center gap-2.5">
+                <IconTile icon={LogOut} />
                 Sign out
               </span>
               <span className="text-xs text-[var(--text-muted)]">This device</span>
             </button>
           </form>
           <Link href="/account/delete" className="settings-action-row settings-action-danger">
-            <span className="inline-flex items-center gap-2">
-              <Trash2 size={16} aria-hidden="true" />
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={Trash2} danger />
               Delete account
             </span>
             <span className="text-xs">Permanent</span>
           </Link>
-        </div>
-      </SettingsCard>
-
-      <SettingsCard title="Account snapshot" icon={Database}>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <MetricTile label="Sessions" value={privacySummary.sessions.toLocaleString()} />
-          <MetricTile label="Stored records" value={storedTotal.toLocaleString()} />
-          <MetricTile label="Connections" value={(privacySummary.connections.followers + privacySummary.connections.following).toLocaleString()} />
         </div>
       </SettingsCard>
     </div>
@@ -931,13 +954,11 @@ function ProfileSection({
   saveProfile: (event: FormEvent) => void;
   isPending: boolean;
 }) {
-  const visibleTags = profile.interestTags.split(/[,\n]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 8);
-
   return (
     <form onSubmit={saveProfile} className="settings-section-stack">
       <SettingsCard title="Public profile" icon={UserRound}>
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="Display name">
+          <Field icon={UserRound} label="Display name">
             <input
               value={profile.displayName}
               onChange={(event) => setProfile((current) => ({ ...current, displayName: event.target.value }))}
@@ -945,7 +966,7 @@ function ProfileSection({
               maxLength={80}
             />
           </Field>
-          <Field label="Accent color">
+          <Field icon={Palette} label="Accent color">
             <span className="grid grid-cols-[3rem_minmax(0,1fr)] gap-2">
               <input
                 type="color"
@@ -962,7 +983,7 @@ function ProfileSection({
               />
             </span>
           </Field>
-          <Field label="Bio" wide>
+          <Field icon={AlignLeft} label="Bio" wide>
             <textarea
               value={profile.bio}
               onChange={(event) => setProfile((current) => ({ ...current, bio: event.target.value }))}
@@ -971,7 +992,7 @@ function ProfileSection({
               maxLength={280}
             />
           </Field>
-          <Field label="Location">
+          <Field icon={MapPin} label="Location">
             <input
               value={profile.location}
               onChange={(event) => setProfile((current) => ({ ...current, location: event.target.value }))}
@@ -979,7 +1000,7 @@ function ProfileSection({
               maxLength={80}
             />
           </Field>
-          <Field label="Website">
+          <Field icon={LinkIcon} label="Website">
             <input
               value={profile.website}
               onChange={(event) => setProfile((current) => ({ ...current, website: event.target.value }))}
@@ -987,7 +1008,7 @@ function ProfileSection({
               placeholder="https://example.com"
             />
           </Field>
-          <Field label="Interest tags" wide>
+          <Field icon={Hash} label="Interest tags" wide>
             <input
               value={profile.interestTags}
               onChange={(event) => setProfile((current) => ({ ...current, interestTags: event.target.value }))}
@@ -999,44 +1020,36 @@ function ProfileSection({
         <SaveButton label="Save profile" pending={isPending} />
       </SettingsCard>
 
-      <SettingsCard title="Profile preview" icon={AtSign}>
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="settings-muted-box">
-            <p className="settings-mini-label">Public handle</p>
-            <p className="mt-1 truncate text-sm font-bold">@{settings.username}</p>
-            <Link href={`/profile/${settings.username}`} className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[var(--accent)]">
-              <LinkIcon size={13} aria-hidden="true" />
-              View profile
-            </Link>
-          </div>
-          <div className="settings-muted-box">
-            <p className="settings-mini-label">Visible tags</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(visibleTags.length ? visibleTags : ["No tags yet"]).map((tag) => (
-                <span key={tag} className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-xs font-bold text-[var(--text-secondary)]">
-                  {tag === "No tags yet" ? tag : `#${tag.replace(/^#/, "")}`}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="settings-muted-box mt-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="inline-flex items-center gap-2 text-sm font-bold">
-              <PlugZap size={16} aria-hidden="true" />
-              Connected platforms
-            </p>
-            <Link href="/connected-accounts" className="text-xs font-bold text-[var(--accent)]">Manage</Link>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {settings.connectedAccounts.length > 0 ? settings.connectedAccounts.map((account) => (
-              <span key={account.id} className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold capitalize text-[var(--text-secondary)]">
-                {account.platform}
-                {account.platformUsername ? ` @${account.platformUsername}` : ""}
+      <SettingsCard title="Preview" icon={AtSign}>
+        <div className="grid gap-2">
+          <Link href={`/profile/${settings.username}`} className="settings-action-row">
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={AtSign} />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold">@{settings.username}</span>
+                <span className="block text-xs text-[var(--text-muted)]">View public profile</span>
               </span>
-            )) : (
-              <span className="text-xs text-[var(--text-muted)]">No connected platforms yet.</span>
-            )}
+            </span>
+            <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
+          </Link>
+          <div className="settings-muted-box">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2.5 text-sm font-bold">
+                <IconTile icon={PlugZap} />
+                Connected platforms
+              </span>
+              <Link href="/connected-accounts" className="text-xs font-bold text-[var(--accent)]">Manage</Link>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {settings.connectedAccounts.length > 0 ? settings.connectedAccounts.map((account) => (
+                <span key={account.id} className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-xs font-bold capitalize text-[var(--text-secondary)]">
+                  {account.platform}
+                  {account.platformUsername ? ` @${account.platformUsername}` : ""}
+                </span>
+              )) : (
+                <span className="text-xs text-[var(--text-muted)]">No connected platforms yet.</span>
+              )}
+            </div>
           </div>
         </div>
       </SettingsCard>
@@ -1073,13 +1086,12 @@ function PrivacySection({
 }) {
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Profile & discovery" icon={LockKeyhole}>
-        <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
-        <div className="mb-4 grid gap-2">
+      <SettingsCard title="Visibility" icon={LockKeyhole}>
+        <div className="grid gap-2">
           <PickerGroup label="Who can see your profile">
-            <ChoiceButton active={profileVisibilityLevel === "public"} onClick={() => applyProfileVisibility("public")}>Public</ChoiceButton>
-            <ChoiceButton active={profileVisibilityLevel === "friends"} onClick={() => applyProfileVisibility("friends")}>Friends</ChoiceButton>
-            <ChoiceButton active={profileVisibilityLevel === "private"} onClick={() => applyProfileVisibility("private")}>Private</ChoiceButton>
+            <ChoiceButton icon={Globe} active={profileVisibilityLevel === "public"} onClick={() => applyProfileVisibility("public")}>Public</ChoiceButton>
+            <ChoiceButton icon={UsersRound} active={profileVisibilityLevel === "friends"} onClick={() => applyProfileVisibility("friends")}>Friends</ChoiceButton>
+            <ChoiceButton icon={Lock} active={profileVisibilityLevel === "private"} onClick={() => applyProfileVisibility("private")}>Private</ChoiceButton>
           </PickerGroup>
           <p className="text-xs text-[var(--text-muted)]">
             {profileVisibilityLevel === "public"
@@ -1089,35 +1101,32 @@ function PrivacySection({
                 : "Only you can open your profile and Mesh."}
           </p>
         </div>
-        <div className="settings-toggle-grid">
-          <Toggle label="Show me in discovery" description="When on, people can find you in search, suggestions, and the public feed." value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
+        <div className="settings-toggle-grid mt-3">
+          <Toggle icon={Compass} label="Show me in discovery" description="People can find you in search, suggestions, and the public feed." value={privacy.showInDiscovery} onChange={(value) => applyPrivacy({ ...privacy, showInDiscovery: value })} />
         </div>
       </SettingsCard>
 
-      <SettingsCard title="Ghost Mode" icon={Ghost}>
+      <SettingsCard title="Presence" icon={Activity}>
         <div className="settings-toggle-grid">
           <Toggle
-            label="Go invisible on the live Mesh"
-            description="Your Meshi disappears from live rooms and cursors and you stop showing as active — while your own feeds, chats, and Mesh keep working normally."
+            icon={Ghost}
+            label="Ghost Mode"
+            description="Invisible in live rooms, cursors, and active status — your own feeds, chats, and Mesh keep working."
             value={ghostMode}
             onChange={applyGhostMode}
           />
+          <Toggle icon={EyeOff} label="Hide when you're online" description="Others won't see your online status or last active time." value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
+          <Toggle icon={CheckCheck} label="Read receipts" description="Let people see when you've read their messages." value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
         </div>
-        <p className="settings-muted-box mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+        <HintDetails label="About Ghost Mode">
+          Your Meshi disappears from live rooms and cursors and you stop showing as active — while your own feeds, chats, and Mesh keep working normally.
           Ghost Mode follows you across devices, and you can flip it anytime from the ghost button in the top bar.
-        </p>
+        </HintDetails>
       </SettingsCard>
 
-      <SettingsCard title="Activity" icon={Activity}>
-        <div className="settings-toggle-grid">
-          <Toggle label="Hide when you're online" description="Others won't see your online status or when you were last active." value={privacy.hideActivityStatus} onChange={(value) => applyPrivacy({ ...privacy, hideActivityStatus: value })} />
-          <Toggle label="Read receipts" description="Let people see when you've read their messages." value={privacy.readReceipts} onChange={(value) => applyPrivacy({ ...privacy, readReceipts: value })} />
-        </div>
-      </SettingsCard>
-
-      <SettingsCard title="Sensitive content" icon={ShieldAlert}>
+      <SettingsCard title="Sensitive content" icon={Flame}>
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-          <Field label="Your U.S. state">
+          <Field icon={MapPin} label="Your U.S. state">
             <select
               value={sensitive.adultVerificationRegion}
               onChange={(event) => {
@@ -1139,8 +1148,9 @@ function PrivacySection({
             <p className="mt-1 text-sm font-bold capitalize">{adultVerified ? "Verified" : sensitive.adultVerificationStatus || "Unverified"}</p>
           </div>
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="settings-toggle-grid mt-3">
           <Toggle
+            icon={Flame}
             label="Show sensitive content"
             description={adultVerified ? "Show 18+ content in your feeds." : "Verify your age first to turn this on."}
             value={sensitive.nsfwEnabled && adultVerified}
@@ -1148,16 +1158,19 @@ function PrivacySection({
             onChange={(value) => applySensitive({ ...sensitive, nsfwEnabled: adultVerified ? value : false })}
           />
           <button type="button" onClick={startAdultVerification} disabled={isPending} className="settings-action-row text-left">
-            <span>
-              <span className="block text-sm font-bold">Verify your age</span>
-              <span className="mt-1 block text-xs text-[var(--text-muted)]">A third-party ID check. Mesh.me only stores whether you passed.</span>
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={IdCard} />
+              <span className="min-w-0">
+                <span className="block text-sm font-bold">Verify your age</span>
+                <span className="block text-xs text-[var(--text-muted)]">A third-party ID check. Mesh.me only stores whether you passed.</span>
+              </span>
             </span>
-            {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <IdCard size={16} aria-hidden="true" />}
+            {isPending ? <Loader2 size={16} className="shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight size={15} className="shrink-0" aria-hidden="true" />}
           </button>
         </div>
-        <div className="settings-muted-box mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+        <HintDetails label="Why verification is required">
           {nsfwPolicy.reason} Minimum age: {nsfwPolicy.minAge}. Sensitive content stays hidden until you verify your age and turn this on.
-        </div>
+        </HintDetails>
       </SettingsCard>
     </div>
   );
@@ -1182,16 +1195,16 @@ function NotificationsSection({
 }) {
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Notification delivery" icon={BellRing}>
-        <p className="mb-3 text-sm text-[var(--text-secondary)]">Changes save automatically.</p>
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+      <SettingsCard title="Delivery and alerts" icon={BellRing}>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_12rem]">
           <Toggle
+            icon={BellRing}
             label="Push notifications"
             description="Get alerts on this device"
             value={notifications.pushEnabled}
             onChange={(value) => applyNotifications({ ...notifications, pushEnabled: value })}
           />
-          <Field label="Email digest">
+          <Field icon={Mail} label="Email digest">
             <select
               value={notifications.emailDigest}
               onChange={(event) => applyNotifications({ ...notifications, emailDigest: event.target.value })}
@@ -1203,17 +1216,18 @@ function NotificationsSection({
             </select>
           </Field>
         </div>
-      </SettingsCard>
-
-      <SettingsCard title="What reaches you" icon={BellRing}>
-        <div className="settings-toggle-grid">
-          <Toggle label="Messages" description="New direct messages" value={notifications.messages} onChange={(value) => applyNotifications({ ...notifications, messages: value })} />
-          <Toggle label="Comments" description="Replies to your posts" value={notifications.comments} onChange={(value) => applyNotifications({ ...notifications, comments: value })} />
-          <Toggle label="Follows" description="New followers and friend requests" value={notifications.follows} onChange={(value) => applyNotifications({ ...notifications, follows: value })} />
-          <Toggle label="Platform alerts" description="Connected platform activity" value={notifications.platformAlerts} onChange={(value) => applyNotifications({ ...notifications, platformAlerts: value })} />
-          <Toggle label="Product updates" description="News and feature announcements" value={notifications.productUpdates} onChange={(value) => applyNotifications({ ...notifications, productUpdates: value })} />
+        <p className="settings-mini-label mt-4">What reaches you</p>
+        <div className="settings-toggle-grid mt-2">
+          <Toggle icon={MessageSquare} label="Messages" description="New direct messages" value={notifications.messages} onChange={(value) => applyNotifications({ ...notifications, messages: value })} />
+          <Toggle icon={MessageCircle} label="Comments" description="Replies to your posts" value={notifications.comments} onChange={(value) => applyNotifications({ ...notifications, comments: value })} />
+          <Toggle icon={UserPlus} label="Follows" description="New followers and friend requests" value={notifications.follows} onChange={(value) => applyNotifications({ ...notifications, follows: value })} />
+          <Toggle icon={PlugZap} label="Platform alerts" description="Connected platform activity" value={notifications.platformAlerts} onChange={(value) => applyNotifications({ ...notifications, platformAlerts: value })} />
+          <Toggle icon={Megaphone} label="Product updates" description="News and feature announcements" value={notifications.productUpdates} onChange={(value) => applyNotifications({ ...notifications, productUpdates: value })} />
         </div>
-        <p className="settings-muted-box mt-3 text-xs text-[var(--text-secondary)]">Security alerts are always on to protect your account.</p>
+        <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+          <ShieldCheck size={13} aria-hidden="true" />
+          Security alerts are always on to protect your account.
+        </p>
       </SettingsCard>
     </div>
   );
@@ -1255,13 +1269,13 @@ function SecuritySection({
     <div className="settings-section-stack">
       <SettingsCard title="Security status" icon={ShieldCheck}>
         <div className="settings-list">
-          <SettingsRow label="Email verification" value={settings.emailVerified ? "Verified" : "Not verified"} />
-          <SettingsRow label="Active sessions" value={privacySummary.sessions.toLocaleString()} />
-          <SettingsRow label="Activity status" value={settings.hideActivityStatus ? "Hidden" : "Visible"} />
-          <SettingsRow label="Sensitive content" value={settings.nsfwEnabled ? "Allowed after verification" : "Off"} />
+          <SettingsRow icon={MailCheck} label="Email verification" value={settings.emailVerified ? "Verified" : "Not verified"} />
+          <SettingsRow icon={Smartphone} label="Active sessions" value={privacySummary.sessions.toLocaleString()} />
+          <SettingsRow icon={Activity} label="Activity status" value={settings.hideActivityStatus ? "Hidden" : "Visible"} />
+          <SettingsRow icon={Flame} label="Sensitive content" value={settings.nsfwEnabled ? "Allowed after verification" : "Off"} />
         </div>
         {!settings.emailVerified && (
-          <p className="settings-muted-box mt-3 text-xs text-[var(--text-secondary)]">
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
             Not verified yet — send a verification email from Account settings.
           </p>
         )}
@@ -1309,18 +1323,18 @@ function SecuritySection({
       <SettingsCard title="Security shortcuts" icon={LockKeyhole}>
         <div className="grid gap-2 sm:grid-cols-2">
           <Link href="/trust" className="settings-action-row">
-            <span className="inline-flex items-center gap-2">
-              <BadgeCheck size={16} aria-hidden="true" />
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={BadgeCheck} />
               Verify your identity
             </span>
-            <ChevronRight size={15} aria-hidden="true" />
+            <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
           </Link>
           <Link href="/privacy-controls" className="settings-action-row">
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck size={16} aria-hidden="true" />
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={ShieldCheck} />
               Privacy controls
             </span>
-            <ChevronRight size={15} aria-hidden="true" />
+            <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
           </Link>
         </div>
       </SettingsCard>
@@ -1394,12 +1408,14 @@ function SecurityDevices() {
         </div>
       </div>
       {message && <p className="mt-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">{message}</p>}
-      <div className="mt-4 grid gap-2">
+      <div className="settings-list mt-3">
         {sessions.length > 0 ? sessions.slice(0, 4).map((session) => (
-          <div key={`${session.createdAt}-${session.expiresAt}-${session.isCurrent ? "current" : "other"}`} className="settings-row">
-            <span>{session.isCurrent ? "Current device" : "Other device"}</span>
-            <strong>{new Date(session.expiresAt).toLocaleDateString()}</strong>
-          </div>
+          <SettingsRow
+            key={`${session.createdAt}-${session.expiresAt}-${session.isCurrent ? "current" : "other"}`}
+            icon={session.isCurrent ? Smartphone : Monitor}
+            label={session.isCurrent ? "Current device" : "Other device"}
+            value={new Date(session.expiresAt).toLocaleDateString()}
+          />
         )) : (
           <p className="text-sm text-[var(--text-muted)]">No sessions found.</p>
         )}
@@ -1510,16 +1526,19 @@ function RecoveryMethods() {
         </form>
       </div>
       {message && <p className="mt-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">{message}</p>}
-      <div className="mt-4 grid gap-2">
+      <div className="settings-list mt-3">
         {loading ? <p className="text-sm text-[var(--text-muted)]">Loading recovery methods...</p> : null}
         {[...emails.map((item) => ({ ...item, kind: "email" as const, label: item.email })), ...phones.map((item) => ({ ...item, kind: "phone" as const, label: item.phone }))].map((item) => (
           <div key={`${item.kind}-${item.id}`} className="settings-row">
-            <span className="min-w-0 truncate">{item.label}</span>
-            <span className="flex shrink-0 items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={item.kind === "email" ? Mail : Phone} />
+              <span className="min-w-0 truncate">{item.label}</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5">
               <strong>{item.isVerified ? "Verified" : "Unverified"}</strong>
               {!item.isPrimary && (
-                <button type="button" onClick={() => void removeMethod(item.kind, item.id)} disabled={busy === item.id} className="rounded-md p-1 text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label}`}>
-                  {busy === item.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Trash2 size={14} aria-hidden="true" />}
+                <button type="button" onClick={() => void removeMethod(item.kind, item.id)} disabled={busy === item.id} className="grid h-10 w-10 place-items-center rounded-lg text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label}`}>
+                  {busy === item.id ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
                 </button>
               )}
             </span>
@@ -1599,33 +1618,36 @@ function TwoFactorMethods() {
 
   return (
     <SettingsCard title="Two-factor authentication" icon={ShieldCheck}>
-      <p className="text-sm leading-6 text-[var(--text-secondary)]">
-        2FA enrollment is shown here, but the server will only enable methods when challenge verification is available.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(["email", "sms", "totp", "passkey"] as const).map((method) => (
-          <button
-            key={method}
-            type="button"
-            disabled={busy !== null || configured.has(method)}
-            onClick={() => void addTwoFactor(method)}
-            className="mesh-action mesh-action-secondary px-3 text-sm capitalize disabled:opacity-50"
-          >
-            {busy === method ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <ShieldCheck size={15} aria-hidden="true" />}
-            {configured.has(method) ? `${method} added` : `Add ${method}`}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2">
+        {(["email", "sms", "totp", "passkey"] as const).map((method) => {
+          const MethodIcon = twoFactorIcons[method] ?? ShieldCheck;
+          return (
+            <button
+              key={method}
+              type="button"
+              disabled={busy !== null || configured.has(method)}
+              onClick={() => void addTwoFactor(method)}
+              className="mesh-action mesh-action-secondary px-3 text-sm capitalize disabled:opacity-50"
+            >
+              {busy === method ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <MethodIcon size={15} aria-hidden="true" />}
+              {configured.has(method) ? `${method} added` : `Add ${method}`}
+            </button>
+          );
+        })}
       </div>
       {message && <p className="mt-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">{message}</p>}
-      <div className="mt-4 grid gap-2">
+      <div className="settings-list mt-3">
         {loading ? <p className="text-sm text-[var(--text-muted)]">Loading 2FA methods...</p> : null}
         {methods.length > 0 ? methods.map((item) => (
           <div key={item.id} className="settings-row">
-            <span className="capitalize">{item.label || item.method}</span>
-            <span className="flex items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={twoFactorIcons[item.method] ?? ShieldCheck} />
+              <span className="min-w-0 truncate capitalize">{item.label || item.method}</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5">
               <strong>{item.isEnabled ? "Enabled" : "Pending"}</strong>
-              <button type="button" onClick={() => void removeTwoFactor(item.id)} disabled={busy === item.id} className="rounded-md p-1 text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label || item.method}`}>
-                {busy === item.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Trash2 size={14} aria-hidden="true" />}
+              <button type="button" onClick={() => void removeTwoFactor(item.id)} disabled={busy === item.id} className="grid h-10 w-10 place-items-center rounded-lg text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label || item.method}`}>
+                {busy === item.id ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
               </button>
             </span>
           </div>
@@ -1633,6 +1655,9 @@ function TwoFactorMethods() {
           <p className="text-sm text-[var(--text-muted)]">No 2FA methods enrolled.</p>
         )}
       </div>
+      <HintDetails label="How enrollment works">
+        2FA enrollment is shown here, but the server will only enable methods when challenge verification is available.
+      </HintDetails>
     </SettingsCard>
   );
 }
@@ -1657,35 +1682,42 @@ function MeshSection({
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Mesh visibility" icon={Waypoints}>
-        <p className="mb-3 text-sm text-[var(--text-secondary)]">
-          Overall visibility is set by <span className="font-bold text-[var(--text-secondary)]">Who can see your profile</span> in Privacy. Fine-tune what shows on your Mesh below — changes save automatically.
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Overall visibility follows <span className="font-bold">Who can see your profile</span> in Privacy.
         </p>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Toggle label="Show connections" description="Display who you're connected to" value={mesh.showConnections} onChange={(value) => applyMeshPrivacy({ ...mesh, showConnections: value })} />
-          <Toggle label="Show stats" description="Display counts on your mesh" value={mesh.showStats} onChange={(value) => applyMeshPrivacy({ ...mesh, showStats: value })} />
+        <div className="settings-toggle-grid">
+          <Toggle icon={UsersRound} label="Show connections" description="Display who you're connected to" value={mesh.showConnections} onChange={(value) => applyMeshPrivacy({ ...mesh, showConnections: value })} />
+          <Toggle icon={BarChart3} label="Show stats" description="Display counts on your mesh" value={mesh.showStats} onChange={(value) => applyMeshPrivacy({ ...mesh, showStats: value })} />
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-          {branchKeys.map((key) => (
-            <label key={key} className="settings-muted-box grid gap-2 text-xs font-bold capitalize">
-              {key}
-              <select
-                value={mesh.branches[key] ?? branchInherit}
-                onChange={(event) => applyMeshPrivacy({
-                  ...mesh,
-                  branches: { ...mesh.branches, [key]: event.target.value },
-                })}
-                className="simple-input h-10 px-2 text-sm capitalize"
-              >
-                {visibilityOptions.slice(0, 3).map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
-            </label>
-          ))}
+        <p className="settings-mini-label mt-4">Per-branch visibility</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {branchKeys.map((key) => {
+            const BranchIcon = branchIcons[key];
+            return (
+              <label key={key} className="settings-muted-box grid gap-1.5 text-xs font-bold capitalize">
+                <span className="inline-flex items-center gap-1.5">
+                  <BranchIcon size={13} className="text-[var(--accent)]" aria-hidden="true" />
+                  {key}
+                </span>
+                <select
+                  value={mesh.branches[key] ?? branchInherit}
+                  onChange={(event) => applyMeshPrivacy({
+                    ...mesh,
+                    branches: { ...mesh.branches, [key]: event.target.value },
+                  })}
+                  className="simple-input h-10 px-2 text-sm capitalize"
+                >
+                  {visibilityOptions.slice(0, 3).map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+              </label>
+            );
+          })}
         </div>
       </SettingsCard>
 
       <SettingsCard title="Mesh visuals" icon={WandSparkles}>
         {!isMeshPro && (
-          <div className="settings-muted-box mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="settings-muted-box mb-3 flex flex-wrap items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2 text-sm font-bold">
               <Crown size={15} aria-hidden="true" />
               Mesh Pro customization
@@ -1700,7 +1732,7 @@ function MeshSection({
               type="button"
               disabled={!isMeshPro}
               onClick={() => applyMeshVisuals({ ...meshVisuals, atmosphere: sky.id })}
-              className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold ${meshVisuals.atmosphere === sky.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
+              className={`mesh-choice inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-bold ${meshVisuals.atmosphere === sky.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
               aria-pressed={meshVisuals.atmosphere === sky.id}
             >
               <span
@@ -1711,14 +1743,14 @@ function MeshSection({
             </button>
           ))}
         </PickerGroup>
-        <PickerGroup label="Connection color" className="mt-4">
+        <PickerGroup label="Connection color" className="mt-3">
           {meshConnectionColors.map((color) => (
             <button
               key={color}
               type="button"
               disabled={!isMeshPro}
               onClick={() => applyMeshVisuals({ ...meshVisuals, connectionColor: color })}
-              className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold ${meshVisuals.connectionColor === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
+              className={`mesh-choice inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-bold ${meshVisuals.connectionColor === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
               aria-pressed={meshVisuals.connectionColor === color}
             >
               <span className="h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
@@ -1726,7 +1758,7 @@ function MeshSection({
             </button>
           ))}
         </PickerGroup>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
           <PickerGroup label="Node style">
             {meshNodeStyles.map((style) => (
               <ChoiceButton key={style} active={meshVisuals.nodeStyle === style} disabled={!isMeshPro} onClick={() => applyMeshVisuals({ ...meshVisuals, nodeStyle: style })}>
@@ -1780,10 +1812,10 @@ function MeshiSection({
 }) {
   return (
     <form onSubmit={saveMeshi} className="settings-section-stack">
-      <SettingsCard title="Meshi preview" icon={Sparkles}>
+      <SettingsCard title="Customize Meshi" icon={Sparkles}>
         <div className="settings-meshi-preview">
           <MeshiMascot
-            size={116}
+            size={96}
             color={meshiState.colorTheme as MeshiColor}
             hat={meshiState.hatStyle as MeshiHat}
             mood={meshiState.faceStyle as MeshiMood}
@@ -1796,17 +1828,11 @@ function MeshiSection({
             animate
             interactive
           />
-          <div>
-            <h3 className="text-lg font-bold">Meshi represents you.</h3>
-            <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--text-secondary)]">
-              Customize the same single Meshi that follows you across Mesh.me.
-            </p>
-          </div>
+          <p className="text-sm text-[var(--text-secondary)]">
+            One Meshi follows you across Mesh.me — customize it below.
+          </p>
         </div>
-      </SettingsCard>
-
-      <SettingsCard title="Customize Meshi" icon={Palette}>
-        <div className="settings-picker-stack">
+        <div className="settings-picker-stack mt-4">
           <PickerGroup label="Color">
             {colors.map((color) => {
               const locked = meshiLocked("colors", color);
@@ -1816,7 +1842,7 @@ function MeshiSection({
                   type="button"
                   disabled={locked}
                   onClick={() => setMeshiState((current) => ({ ...current, colorTheme: color }))}
-                  className={`mesh-choice flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold capitalize ${meshiState.colorTheme === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${locked ? "cursor-not-allowed opacity-55" : ""}`}
+                  className={`mesh-choice inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-bold capitalize ${meshiState.colorTheme === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${locked ? "cursor-not-allowed opacity-55" : ""}`}
                   aria-pressed={meshiState.colorTheme === color}
                 >
                   <span className="h-4 w-4 rounded-full" style={{ backgroundColor: colorHex[color] || "#3b82f6" }} />
@@ -1871,17 +1897,18 @@ function AppearanceSection({
   isMeshPro: boolean;
 }) {
   const [soundsOn, setSoundsOn] = useState(() => isSoundEnabled());
+  const modeIcons: Record<"system" | "light" | "dark", LucideIcon> = { system: MonitorSmartphone, light: Sun, dark: Moon };
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Appearance" icon={Palette}>
-        <PickerGroup label="Mode">
-          {(["system", "light", "dark"] as const).map((themeMode) => (
-            <ChoiceButton key={themeMode} active={mode === themeMode} onClick={() => setMode(themeMode)}>
-              {themeMode}
-            </ChoiceButton>
-          ))}
-        </PickerGroup>
-        <div className="mt-4">
+      <SettingsCard title="Theme and sound" icon={Palette}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <PickerGroup label="Mode">
+            {(["system", "light", "dark"] as const).map((themeMode) => (
+              <ChoiceButton key={themeMode} icon={modeIcons[themeMode]} active={mode === themeMode} onClick={() => setMode(themeMode)}>
+                {themeMode}
+              </ChoiceButton>
+            ))}
+          </PickerGroup>
           <PickerGroup label="Preset">
             {themePresets.map((themePreset) => (
               <ChoiceButton key={themePreset.id} active={preset === themePreset.id} onClick={() => setPreset(themePreset.id)}>
@@ -1890,32 +1917,32 @@ function AppearanceSection({
             ))}
           </PickerGroup>
         </div>
-      </SettingsCard>
-
-      <SettingsCard title="Sound" icon={Volume2}>
-        <Toggle
-          label="Interface sounds"
-          description="Soft pops and chimes for likes, arrivals, messages, and travel"
-          value={soundsOn}
-          onChange={(value) => {
-            setSoundsOn(value);
-            setSoundEnabled(value);
-            if (value) playSound("chime");
-          }}
-        />
+        <div className="settings-toggle-grid mt-3">
+          <Toggle
+            icon={Volume2}
+            label="Interface sounds"
+            description="Soft pops and chimes for likes, arrivals, messages, and travel"
+            value={soundsOn}
+            onChange={(value) => {
+              setSoundsOn(value);
+              setSoundEnabled(value);
+              if (value) playSound("chime");
+            }}
+          />
+        </div>
       </SettingsCard>
 
       <form onSubmit={applyCustomTheme}>
-        <SettingsCard title="Custom theme colors" icon={Crown}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="max-w-xl text-sm leading-6 text-[var(--text-secondary)]">
-              Mesh Pro unlocks full color tuning while system light/dark mode stays available to everyone.
+        <SettingsCard title="Custom theme" icon={Crown}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-[var(--text-muted)]">
+              Mesh Pro unlocks full color tuning — light/dark mode stays available to everyone.
             </p>
             {!isMeshPro && <Link href="/meshpro" className="text-xs font-bold text-[var(--accent)]">Upgrade</Link>}
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(themeDraft).map(([key, value]) => (
-              <label key={key} className="grid gap-2 text-xs font-bold text-[var(--text-secondary)]">
+              <label key={key} className="grid gap-1.5 text-xs font-bold text-[var(--text-secondary)]">
                 {themeColorLabels[key] ?? key}
                 <input
                   type="color"
@@ -1927,7 +1954,7 @@ function AppearanceSection({
               </label>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button type="submit" disabled={!isMeshPro} className="mesh-action mesh-action-primary px-4 text-sm disabled:opacity-50">
               Apply custom theme
             </button>
@@ -1945,22 +1972,22 @@ function BillingSection({ isMeshPro }: { isMeshPro: boolean }) {
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Mesh Pro" icon={Crown}>
-        <p className="text-sm leading-6 text-[var(--text-secondary)]">
+        <p className="text-xs text-[var(--text-muted)]">
           {isMeshPro
             ? "Mesh Pro is active. Billing and payment methods are managed from the billing page."
             : "Mesh Pro unlocks deeper analytics, custom Mesh visuals, Meshi cosmetics, badges, and themes."}
         </p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <Link href="/meshpro" className="settings-action-row">
-            <span className="inline-flex items-center gap-2">
-              <Crown size={16} aria-hidden="true" />
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={Crown} />
               {isMeshPro ? "View Pro features" : "Upgrade to Mesh Pro"}
             </span>
-            <ChevronRight size={15} aria-hidden="true" />
+            <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
           </Link>
           <Link href="/billing" className="settings-action-row">
-            <span className="inline-flex items-center gap-2">
-              <CreditCard size={16} aria-hidden="true" />
+            <span className="flex min-w-0 items-center gap-2.5">
+              <IconTile icon={CreditCard} />
               Billing
             </span>
             <span className="text-xs text-[var(--text-muted)]">{isMeshPro ? "Active" : "Free"}</span>
@@ -1974,23 +2001,22 @@ function BillingSection({ isMeshPro }: { isMeshPro: boolean }) {
 function DataSection({ privacySummary, storedTotal }: { privacySummary: PrivacySummary; storedTotal: number }) {
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Data controls" icon={Download}>
-        <p className="text-sm leading-6 text-[var(--text-secondary)]">
+      <SettingsCard title="Your data" icon={Database}>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
           Export your Mesh.me data or remove imported platform data. Permanent account deletion stays in Account.
         </p>
-        <div className="mt-4">
-          <AnalyticsControls />
-        </div>
-      </SettingsCard>
-      <SettingsCard title="Data snapshot" icon={Database}>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <AnalyticsControls />
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <MetricTile label="Stored records" value={storedTotal.toLocaleString()} />
           <MetricTile label="Followers" value={privacySummary.connections.followers.toLocaleString()} />
           <MetricTile label="Following" value={privacySummary.connections.following.toLocaleString()} />
         </div>
-        <Link href="/privacy-controls" className="mesh-action mesh-action-primary mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm">
-          <ShieldCheck size={16} aria-hidden="true" />
-          Privacy control center
+        <Link href="/privacy-controls" className="settings-action-row mt-3">
+          <span className="flex min-w-0 items-center gap-2.5">
+            <IconTile icon={ShieldCheck} />
+            Privacy control center
+          </span>
+          <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
         </Link>
       </SettingsCard>
     </div>
@@ -2062,15 +2088,36 @@ function MeshiOptionGroup({
 
 function SettingsCard({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: ReactNode }) {
   return (
-    <section className="settings-card rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] p-4">
-      <div className="mb-4 flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)]">
-          <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
-        </span>
-        <h3 className="text-lg font-bold text-[var(--text-primary)]">{title}</h3>
+    <section className="settings-card rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] p-3.5">
+      <div className="settings-card-heading">
+        <Icon size={14} aria-hidden="true" />
+        <h3>{title}</h3>
       </div>
       {children}
     </section>
+  );
+}
+
+// Small accent-tinted icon tile — the leading visual of every settings row.
+function IconTile({ icon: Icon, danger = false }: { icon: LucideIcon; danger?: boolean }) {
+  return (
+    <span className={`settings-icon-tile ${danger ? "settings-icon-tile-danger" : ""}`} aria-hidden="true">
+      <Icon size={15} />
+    </span>
+  );
+}
+
+// Verbose helper copy folds behind this native disclosure so rows stay dense.
+function HintDetails({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <details className="settings-hint">
+      <summary>
+        <Info size={13} aria-hidden="true" />
+        {label}
+        <ChevronDown size={13} className="settings-hint-chevron" aria-hidden="true" />
+      </summary>
+      <div className="settings-hint-body">{children}</div>
+    </details>
   );
 }
 
@@ -2086,19 +2133,25 @@ function SummaryPill({ label, value, icon: Icon }: { label: string; value: strin
   );
 }
 
-function SettingsRow({ label, value }: { label: string; value: string }) {
+function SettingsRow({ label, value, icon }: { label: string; value: string; icon?: LucideIcon }) {
   return (
     <div className="settings-row">
-      <span>{label}</span>
+      <span className="flex min-w-0 items-center gap-2.5">
+        {icon && <IconTile icon={icon} />}
+        <span className="min-w-0 truncate">{label}</span>
+      </span>
       <strong>{value}</strong>
     </div>
   );
 }
 
-function Field({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) {
+function Field({ label, icon: Icon, children, wide = false }: { label: string; icon?: LucideIcon; children: ReactNode; wide?: boolean }) {
   return (
-    <label className={`grid gap-2 text-sm font-bold ${wide ? "md:col-span-2" : ""}`}>
-      {label}
+    <label className={`grid gap-1.5 text-sm font-bold ${wide ? "md:col-span-2" : ""}`}>
+      <span className="inline-flex items-center gap-1.5">
+        {Icon && <Icon size={13} className="text-[var(--accent)]" aria-hidden="true" />}
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -2114,6 +2167,7 @@ function SaveButton({ label, pending, disabled = false }: { label: string; pendi
 }
 
 function Toggle({
+  icon,
   label,
   description,
   value,
@@ -2121,6 +2175,7 @@ function Toggle({
   disabled = false,
   locked = false,
 }: {
+  icon?: LucideIcon;
   label: string;
   description?: string;
   value: boolean;
@@ -2137,12 +2192,13 @@ function Toggle({
       className={`settings-toggle ${value ? "settings-toggle-on" : ""} ${disabled ? "cursor-not-allowed opacity-65" : ""}`}
       aria-checked={value}
     >
-      <span className="min-w-0">
+      {icon && <IconTile icon={icon} />}
+      <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-sm font-bold">{label}</span>
           {locked && <Lock size={12} className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />}
         </span>
-        <span className="block text-xs text-[var(--text-muted)]">{description ?? (value ? "On" : "Off")}</span>
+        {description && <span className="block text-xs leading-4 text-[var(--text-muted)]">{description}</span>}
       </span>
       <span className={`settings-switch ${value ? "settings-switch-on" : ""}`} aria-hidden="true">
         <span className="settings-switch-knob" />
@@ -2153,9 +2209,9 @@ function Toggle({
 
 function PickerGroup({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className={className ? `grid gap-2 ${className}` : "grid gap-2"}>
-      <p className="text-sm font-bold">{label}</p>
-      <div className="flex flex-wrap gap-2">{children}</div>
+    <div className={className ? `grid gap-1.5 ${className}` : "grid gap-1.5"}>
+      <p className="text-xs font-bold text-[var(--text-secondary)]">{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
     </div>
   );
 }
@@ -2165,20 +2221,23 @@ function ChoiceButton({
   onClick,
   children,
   disabled = false,
+  icon: Icon,
 }: {
   active: boolean;
   onClick: () => void;
   children: ReactNode;
   disabled?: boolean;
+  icon?: LucideIcon;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`mesh-choice rounded-md px-3 py-2 text-sm font-bold capitalize ${active ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${disabled ? "opacity-55" : ""}`}
+      className={`mesh-choice inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-bold capitalize ${active ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${disabled ? "opacity-55" : ""}`}
       aria-pressed={active}
     >
+      {Icon && <Icon size={14} aria-hidden="true" />}
       {children}
     </button>
   );
@@ -2220,7 +2279,7 @@ function MetricTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="settings-muted-box">
       <p className="settings-mini-label">{label}</p>
-      <p className="mt-1 text-xl font-bold text-[var(--text-primary)]">{value}</p>
+      <p className="mt-0.5 text-lg font-bold text-[var(--text-primary)]">{value}</p>
     </div>
   );
 }
