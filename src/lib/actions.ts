@@ -2318,6 +2318,7 @@ export async function deleteAccount(formData: FormData) {
     where: {
       OR: [
         { primaryUserId: user.id },
+        { secondaryUserId: user.id },
         { secondaryEmail: user.email },
       ],
     },

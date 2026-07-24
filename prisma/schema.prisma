@@ -87,6 +87,10 @@ model User {
   // Online status: "online" | "dnd" | "busy" | "offline"
   status                     String                     @default("offline")
   lastSeenAt                 DateTime?
+  // Account-merge tombstone: set when this account was merged into another
+  // mesh.me account. The account stays suspended (never hard-deleted) and this
+  // points at the surviving account.
+  mergedIntoUserId           String?
   alterEgos                  AlterEgo[]
   emails                     UserEmail[]
   emailVerificationTokens    EmailVerificationToken[]
@@ -1136,17 +1140,30 @@ model AccountMergeRequest {
   id             String    @id @default(cuid())
   // The account that will remain (primary)
   primaryUserId  String
-  // The account that will be merged in (secondary → becomes alter ego)
+  // The identifier (email or username) the requester entered for the account
+  // to merge in. Stored exactly as entered (normalized) so the requester's own
+  // view never reveals the resolved account's real email address.
   secondaryEmail String
-  // Status: "pending" | "verified" | "completed" | "rejected"
+  // The resolved account that will be merged in (secondary → becomes alter
+  // ego). Null when the identifier didn't resolve — the row is still created
+  // so request creation never acts as an account-existence oracle.
+  secondaryUserId String?
+  // Status: "pending" (awaiting secondary-side approval) | "verified"
+  // (secondary side proven via credentials or in-session approval) |
+  // "completed" | "declined" | "cancelled" | "expired"
   status         String    @default("pending")
-  // Verification token sent to secondary account email
+  // Legacy email-token flow artifact; unused by the two-party flow.
   verifyToken    String?
+  // When the secondary side was proven (credential check or B's approval).
+  approvedAt     DateTime?
+  // Pending requests expire; treated as createdAt + 7 days when null (legacy rows).
+  expiresAt      DateTime?
   completedAt    DateTime?
   createdAt      DateTime  @default(now())
 
   @@index([primaryUserId])
   @@index([secondaryEmail])
+  @@index([secondaryUserId])
 }
 
 // ─── Profile Info (Facebook-level fields with per-field privacy) ──

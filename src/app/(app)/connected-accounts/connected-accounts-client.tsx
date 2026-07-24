@@ -32,6 +32,8 @@ import type {
 import type { PlatformAdapterCategory, PlatformAdapterCapabilityKey } from "@/lib/platform-adapters";
 import { OneMeshHub, type HubAccount } from "@/components/accounts/one-mesh-hub";
 import { foldPersonaIntoMainIdentity } from "@/lib/one-account-actions";
+import { AccountMergePanel } from "./account-merge-panel";
+import type { AccountMergeCenter } from "@/lib/account-merge";
 
 /** A separate identity (alter ego) that can be folded into the one account. */
 type PersonaView = {
@@ -432,12 +434,15 @@ function PlatformCard({
 
 export function ConnectedAccountsClient({
   initialDashboard,
+  mergeCenter,
   initialPersonas = [],
   identity,
   justConnectedPlatform = null,
   connectError = null,
 }: {
   initialDashboard: ConnectedAccountsDashboard;
+  /** Two-party account merge state: my open requests + requests targeting me. */
+  mergeCenter: AccountMergeCenter;
   initialPersonas?: PersonaView[];
   identity: { username: string; displayName: string; avatarUrl: string | null };
   /** Platform id just connected via OAuth this visit (from ?connected=). */
@@ -696,6 +701,8 @@ export function ConnectedAccountsClient({
           )}
         </p>
       </section>
+
+      <AccountMergePanel center={mergeCenter} identity={{ username: identity.username }} />
 
       {personas.length > 0 && (
         <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/30 bg-[var(--accent-subtle)] p-5">

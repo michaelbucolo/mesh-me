@@ -4,6 +4,7 @@ import { ConnectedAccountsClient } from "./connected-accounts-client";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
+import { getAccountMergeCenter } from "@/lib/account-merge";
 
 export const metadata: Metadata = { title: "One Account" };
 
@@ -21,8 +22,10 @@ export default async function ConnectedAccountsPage({
   const justConnectedPlatform = (connected ?? "").trim().toLowerCase() || null;
   const connectError = (error ?? "").trim() || null;
 
-  const [dashboard, personaRows] = await Promise.all([
+  const [dashboard, mergeCenter, personaRows] = await Promise.all([
     getConnectedAccountsDashboard(user.id),
+    // Two-party account merge: my open requests + requests targeting me.
+    getAccountMergeCenter({ id: user.id, email: user.email }),
     // Separate identities (alter egos) that can be folded back into the one
     // mesh.me account — the "One Account" unification lives here now.
     prisma.alterEgo.findMany({
@@ -49,6 +52,7 @@ export default async function ConnectedAccountsPage({
   return (
     <ConnectedAccountsClient
       initialDashboard={dashboard}
+      mergeCenter={mergeCenter}
       initialPersonas={personas}
       identity={{
         username: user.username,
