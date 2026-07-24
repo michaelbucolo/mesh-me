@@ -591,8 +591,10 @@ export async function requestPasswordReset(email: string) {
 
   await sendPasswordResetEmail(normalizedEmail, resetUrl);
 
-  // In development, return the link to speed up local/staging testing.
-  if (process.env.NODE_ENV !== "production") {
+  // Only echo the reset link to the caller in local development. Using
+  // `!== "production"` would also leak the raw token on any staging/preview
+  // deployment whose NODE_ENV is unset or something other than "production".
+  if (process.env.NODE_ENV === "development") {
     return { success: true, resetUrl };
   }
 
@@ -630,7 +632,8 @@ export async function requestEmailVerification(formData?: FormData) {
   const { verificationUrl } = await issueEmailVerificationToken(user.id, normalizedEmail);
   await sendEmailVerificationEmail(normalizedEmail, verificationUrl);
 
-  if (process.env.NODE_ENV !== "production") {
+  // Local development only — see requestPasswordReset for why not `!== "production"`.
+  if (process.env.NODE_ENV === "development") {
     return { success: true, verificationUrl };
   }
 
@@ -930,15 +933,18 @@ export async function completeOnboarding(formData: FormData) {
     },
   });
 
-  // Persist phone number if provided
-  if (phone && phone.trim()) {
+  // Persist phone number if provided. Normalize to digits/+ (as signUp does)
+  // so phone-based sign-in — which looks up UserPhone by the normalized value —
+  // can match what onboarding stored.
+  const normalizedPhone = phone ? normalizePhone(phone) : "";
+  if (normalizedPhone) {
     const existing = await prisma.userPhone.findFirst({ where: { userId: user.id } });
     if (!existing) {
       try {
         await prisma.userPhone.create({
           data: {
             userId: user.id,
-            phone: phone.trim(),
+            phone: normalizedPhone,
             isPrimary: true,
             isVerified: false,
           },
@@ -1277,21 +1283,28 @@ export async function toggleReaction(postId: string) {
   if (existing) {
     await prisma.reaction.delete({ where: { id: existing.id } });
   } else {
-    await prisma.reaction.create({
-      data: { userId: user.id, postId, type: "like" },
-    });
-
-    // Create notification
-    if (post.authorId !== user.id) {
-      await prisma.notification.create({
-        data: {
-          type: "like",
-          recipientId: post.authorId,
-          actorId: user.id,
-          postId,
-          message: `${user.displayName} liked your post`,
-        },
+    try {
+      await prisma.reaction.create({
+        data: { userId: user.id, postId, type: "like" },
       });
+
+      // Create notification
+      if (post.authorId !== user.id) {
+        await prisma.notification.create({
+          data: {
+            type: "like",
+            recipientId: post.authorId,
+            actorId: user.id,
+            postId,
+            message: `${user.displayName} liked your post`,
+          },
+        });
+      }
+    } catch (e) {
+      // A concurrent double-tap can race two creates against the
+      // @@unique([userId, postId]) constraint; treat the loser as an
+      // idempotent success instead of surfacing a 500.
+      if (!isUniqueConstraintError(e)) throw e;
     }
   }
 
@@ -1360,6 +1373,13 @@ export async function createComment(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
+  // Comment creation also inserts a notification for the author, so throttle it
+  // like the other write actions (createPost/sendMessage) to prevent flooding.
+  const rl = rateLimit(`comment:${user.id}`, 30, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "Commenting too fast. Please slow down." };
+  }
+
   const content = formData.get("content") as string;
   const postId = formData.get("postId") as string;
   const parentId = formData.get("parentId") as string | null;
@@ -1376,6 +1396,18 @@ export async function createComment(formData: FormData) {
   });
   if (!post) return { error: "Post not found" };
   if (!(await canUserInteractWithPost(user.id, post))) return { error: "Post not found" };
+
+  // A reply's parent must live on the same post, or threading corrupts (a reply
+  // attached to a comment from an unrelated post).
+  if (parentId) {
+    const parent = await prisma.comment.findUnique({
+      where: { id: parentId },
+      select: { postId: true },
+    });
+    if (!parent || parent.postId !== postId) {
+      return { error: "Invalid parent comment" };
+    }
+  }
 
   await prisma.comment.create({
     data: {
@@ -1414,6 +1446,13 @@ export async function toggleFollow(targetUserId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
   if (user.id === targetUserId) return { error: "Cannot follow yourself" };
+
+  // Each follow writes a notification to the target; throttle so repeated
+  // follow/unfollow can't be scripted into notification harassment.
+  const rl = rateLimit(`follow:${user.id}`, 30, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "You're following too fast. Please slow down." };
+  }
 
   const targetUser = await prisma.user.findUnique({
     where: { id: targetUserId },
@@ -2107,6 +2146,14 @@ export async function repost(postId: string) {
   }
 
   if (!(await canUserInteractWithPost(user.id, original))) return { error: "Post not found" };
+
+  // A repost is authored by the reposter and shown to the reposter's audience.
+  // Copying a non-public original's visibility would rebroadcast it to people
+  // the original author never shared it with (e.g. a friends-only post reaching
+  // the reposter's friends), so only public posts — or your own — can be reposted.
+  if (original.visibility !== "public" && original.authorId !== user.id) {
+    return { error: "Only public posts can be reposted." };
+  }
 
   await prisma.post.create({
     data: {

@@ -118,6 +118,11 @@ export async function POST(req: Request) {
         if (!body.messageContent || body.messageContent.trim().length === 0) {
           return NextResponse.json({ error: "Message content is required" }, { status: 400 });
         }
+        // Mirror the per-thread send cap so a Meshi message can't bypass the
+        // app's message-length contract and bloat the thread/storage.
+        if (body.messageContent.trim().length > 4000) {
+          return NextResponse.json({ error: "Message is too long (max 4000 chars)" }, { status: 400 });
+        }
         if (body.recipientId === user.id) {
           return NextResponse.json({ error: "Cannot message yourself" }, { status: 400 });
         }
@@ -144,9 +149,13 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Cannot message this user" }, { status: 403 });
         }
 
-        // Find or create thread
+        // Find or create the 1:1 DM thread. Constrain to threadType "direct" so
+        // a shared *group* thread the two users happen to belong to is never
+        // selected — otherwise the private message would be written into the
+        // group and exposed to every other member (mirrors the messages route).
         let thread = await prisma.messageThread.findFirst({
           where: {
+            threadType: "direct",
             AND: [
               { members: { some: { userId: user.id } } },
               { members: { some: { userId: body.recipientId } } },
@@ -158,6 +167,7 @@ export async function POST(req: Request) {
         if (!thread) {
           thread = await prisma.messageThread.create({
             data: {
+              threadType: "direct",
               members: {
                 create: [
                   { userId: user.id },
@@ -177,10 +187,19 @@ export async function POST(req: Request) {
           },
         });
 
-        // Update thread timestamp
+        // Update thread timestamp and notify the recipient, matching every other
+        // message-send path (a Meshi DM should ring the bell like any other).
         await prisma.messageThread.update({
           where: { id: thread.id },
           data: { updatedAt: new Date() },
+        });
+        await prisma.notification.create({
+          data: {
+            type: "message",
+            recipientId: body.recipientId,
+            actorId: user.id,
+            message: `${user.displayName} sent you a message`,
+          },
         });
 
         revalidatePath("/messages");

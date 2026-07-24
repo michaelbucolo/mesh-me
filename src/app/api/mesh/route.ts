@@ -563,8 +563,9 @@ export async function GET(req: Request) {
       syncStatus: acct.syncStatus,
       counts: acct._count,
       analytics: acct.platformAnalytics[0] || null,
+      // This is the owner's own mesh — they should see all of their own synced
+      // posts (the query is already scoped to safetyWhere, not visibility).
       topPosts: acct.platformPosts
-        .filter((p) => p.visibility === "public")
         .map((p) => ({
         id: p.id,
         platformPostId: p.platformPostId,
@@ -835,7 +836,9 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
       select: { id: true, tag: true },
     }),
     prisma.connectedAccount.findMany({
-      where: { userId: targetUserId },
+      // Only active accounts — a disconnected account must not surface on
+      // someone else's mesh (matches the owner/friend queries).
+      where: { userId: targetUserId, isActive: true },
       select: { id: true, platform: true, platformUsername: true, isActive: true, createdAt: true },
     }),
     prisma.meshiPreference.findUnique({

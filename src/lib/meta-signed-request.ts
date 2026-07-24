@@ -80,7 +80,12 @@ export function verifyMetaSignedRequest(
   }
 
   if (expectedSig.length === 0) return null;
-  if (payload.algorithm && payload.algorithm.toUpperCase().replace("-", "") !== "HMACSHA256") {
+  // payload is parsed from fully attacker-controlled input; algorithm may be a
+  // non-string (number/object/array), on which `.toUpperCase()` would throw a
+  // TypeError here — outside the try/catch and before signature verification —
+  // turning a public endpoint into an unauthenticated 500. Guard the type, and
+  // strip every hyphen (not just the first) so "HMAC-SHA-256" normalizes too.
+  if (typeof payload.algorithm === "string" && payload.algorithm.toUpperCase().replace(/-/g, "") !== "HMACSHA256") {
     return null;
   }
 

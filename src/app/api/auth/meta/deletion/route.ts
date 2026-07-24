@@ -17,6 +17,15 @@ import {
 //   https://www.meshs.me/api/auth/meta/deletion
 export async function POST(request: Request) {
   const secrets = getConfiguredMetaAppSecrets();
+  // If no app secret is configured we can't verify the signature; ack cleanly
+  // (as the deauthorize callback does) so Meta stops retrying, instead of
+  // returning a 400 that triggers indefinite redelivery.
+  if (secrets.length === 0) {
+    return NextResponse.json({
+      url: `${getBaseUrl()}/api/auth/meta/deletion`,
+      confirmation_code: "unconfigured",
+    });
+  }
   const form = await readFormData(request);
   const signedRequest = form?.get("signed_request");
   const verified = verifyMetaSignedRequest(

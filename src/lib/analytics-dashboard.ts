@@ -89,7 +89,14 @@ function totalPostScore(post: {
   _count?: { reactions?: number; comments?: number; reposts?: number };
 }) {
   if (post._count) {
-    return sum([post._count.reactions, post._count.comments, post._count.reposts]);
+    // Weight native engagement the same way as the platform branch below, so
+    // native and platform posts are scored on one comparable scale (bestContent
+    // sorts across both). Native posts have no view count, so there's no view term.
+    return sum([
+      (post._count.reactions || 0) * 8,
+      (post._count.comments || 0) * 12,
+      (post._count.reposts || 0) * 15,
+    ]);
   }
   return sum([
     post.viewCount,
@@ -257,6 +264,8 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
     twoFactorCount,
     meshPrivacy,
     notificationsCount,
+    nativeLikesReceived,
+    nativeCommentsReceived,
     platformFollowerRows,
   ] = await Promise.all([
     prisma.connectedAccount.findMany({
@@ -448,6 +457,10 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
     prisma.twoFactorMethod.count({ where: { userId: user.id, isEnabled: true } }),
     prisma.meshPrivacy.findUnique({ where: { userId: user.id } }),
     prisma.notification.count({ where: { recipientId: user.id } }),
+    // Lifetime likes/comments received across ALL native posts — the nativePosts
+    // array is capped at 500, so reducing over it undercounts prolific authors.
+    prisma.reaction.count({ where: { post: { authorId: user.id } } }),
+    prisma.comment.count({ where: { post: { authorId: user.id } } }),
     // Followers across every connected platform, to find the "superfans" who
     // follow on more than one. Hard-scoped to this user's OWN accounts (self-
     // only, like the rest of this loader). Capped generously — each platform
@@ -696,11 +709,13 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
       nativePosts: nativePostCount,
       importedPosts: totalPlatformContent,
       totalViews: totalPlatformViews,
-      totalLikes: (platformTotals._sum.likeCount || 0) + nativePosts.reduce((total, post) => total + post._count.reactions, 0),
-      totalComments: (platformTotals._sum.commentCount || 0) + nativePosts.reduce((total, post) => total + post._count.comments, 0),
+      totalLikes: (platformTotals._sum.likeCount || 0) + nativeLikesReceived,
+      totalComments: (platformTotals._sum.commentCount || 0) + nativeCommentsReceived,
       totalShares: platformTotals._sum.shareCount || 0,
       totalEngagement: totalNativeEngagement + totalPlatformEngagement,
-      engagementRate: engagementRate(totalNativeEngagement + totalPlatformEngagement, totalPlatformViews, totalFollowersFromPlatforms + privacyHealthScore),
+      // fallbackAudience is a follower count — privacyHealthScore (a 0-100
+      // percentage) was a copy/paste error that inflated the denominator.
+      engagementRate: engagementRate(totalNativeEngagement + totalPlatformEngagement, totalPlatformViews, totalFollowersFromPlatforms + nativeFollowerTotal),
       totalFollowers: totalFollowersFromPlatforms + nativeFollowerTotal,
       connectedAccounts: accounts.length,
       activeAccounts: activeAccounts.length,
@@ -720,8 +735,8 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
     },
     creator: {
       totalViews: totalPlatformViews,
-      totalLikes: (platformTotals._sum.likeCount || 0) + nativePosts.reduce((total, post) => total + post._count.reactions, 0),
-      totalComments: (platformTotals._sum.commentCount || 0) + nativePosts.reduce((total, post) => total + post._count.comments, 0),
+      totalLikes: (platformTotals._sum.likeCount || 0) + nativeLikesReceived,
+      totalComments: (platformTotals._sum.commentCount || 0) + nativeCommentsReceived,
       totalShares: platformTotals._sum.shareCount || 0,
       totalFollowers: totalFollowersFromPlatforms,
       watchTimeSeconds: totalWatchSeconds,

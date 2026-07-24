@@ -12,6 +12,7 @@ import {
   canSeeMeshStats,
   canUserInteractWithPost,
   canViewProfile,
+  getBlockedUserIdSet,
   normalizeMeshVisibility,
   parseBranchOverrides,
   type BranchVisibility,
@@ -891,6 +892,8 @@ export async function searchAll(query: string) {
 
   const q = query.trim();
   const wikipediaPromise = searchWikipedia(q);
+  // People search must never cross a block in either direction.
+  const blocked = await getBlockedUserIdSet(user.id);
 
   const [users, posts, communities, platformPosts, platformPeople, connectedSocialSources, messages] = await Promise.all([
     prisma.user.findMany({
@@ -899,7 +902,7 @@ export async function searchAll(query: string) {
           { username: { contains: q } },
           { displayName: { contains: q } },
         ],
-        id: { not: user.id },
+        id: { notIn: [user.id, ...blocked] },
         isSuspended: false,
         showInDiscovery: true,
       },
@@ -1125,7 +1128,7 @@ export async function getDiscoverUsers(currentUser?: CurrentUser | null) {
   // Ordering the whole user table by follower count would make SQLite run a
   // correlated COUNT per user, so pull one bounded fresh window instead and
   // rank it in memory: exact for small networks, an approximation at scale.
-  const [candidates, userInterests] = await Promise.all([
+  const [candidateRows, userInterests, blocked] = await Promise.all([
     prisma.user.findMany({
       where: {
         isSuspended: false,
@@ -1141,7 +1144,10 @@ export async function getDiscoverUsers(currentUser?: CurrentUser | null) {
       where: { userId: user.id },
       select: { tag: true },
     }),
+    getBlockedUserIdSet(user.id),
   ]);
+  // Discovery must never cross a block in either direction.
+  const candidates = candidateRows.filter((u) => !blocked.has(u.id));
   const tags = userInterests.map((i) => i.tag);
 
   const byFollowers = (a: (typeof candidates)[number], b: (typeof candidates)[number]) =>
@@ -1268,7 +1274,10 @@ export async function getSavedPosts(page = 1, limit = 20) {
   if (!user) return [];
 
   const saved = await prisma.savedPost.findMany({
-    where: { userId: user.id, post: nsfwHiddenWhere(user) },
+    // Exclude suspended authors' content — canUserInteractWithPost (used below)
+    // has no suspension check, so the saved collection is otherwise the one
+    // surface that still surfaces a moderated author's posts.
+    where: { userId: user.id, post: { ...nsfwHiddenWhere(user), author: { isSuspended: false } } },
     include: {
       post: {
         include: {
@@ -1323,6 +1332,7 @@ export async function getSavedPostCount() {
       post: {
         AND: [
           nsfwHiddenWhere(user),
+          { author: { isSuspended: false } },
           {
             OR: [
               { authorId: user.id },

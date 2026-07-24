@@ -5,6 +5,23 @@
  * natively inside mesh.me instead of sitting there as a thumbnail.
  */
 
+// The host to hand Twitch as the required `parent`. Read from the build-inlined
+// NEXT_PUBLIC_APP_URL so it's identical on the server and client renders (no
+// hydration mismatch) and Twitch clips embed in server components too; fall back
+// to the live location, then localhost for dev.
+function embedParentHost(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  if (configured) {
+    try {
+      return new URL(configured).hostname;
+    } catch {
+      // ignore malformed config and fall through
+    }
+  }
+  if (typeof window !== "undefined") return window.location.hostname;
+  return "localhost";
+}
+
 const YT_PATTERNS = [
   /(?:youtube\.com\/watch\?(?:.*&)?v=)([\w-]{6,})/i,
   /(?:youtu\.be\/)([\w-]{6,})/i,
@@ -55,10 +72,10 @@ export function getVideoEmbedUrl(
   // embeds and just sits there as a dead thumbnail. `parent` must be the live
   // host (required by Twitch), and autoplay needs muted=true per browser policy.
   const twitchClip = /(?:clips\.twitch\.tv\/|(?:www\.)?twitch\.tv\/[\w.-]+\/clip\/)([A-Za-z0-9_-]+)/i.exec(url);
-  if (twitchClip && typeof window !== "undefined") {
+  if (twitchClip) {
     const params = new URLSearchParams({
       clip: twitchClip[1],
-      parent: window.location.hostname,
+      parent: embedParentHost(),
       autoplay: autoplay ? "true" : "false",
       muted: muted ? "true" : "false",
     });

@@ -97,11 +97,10 @@ export async function getAdminDashboard() {
     prisma.notification.count({
       where: {
         read: false,
-        OR: [
-          { type: { contains: "security" } },
-          { message: { contains: "security" } },
-          { message: { contains: "suspicious" } },
-        ],
+        // Match the authoritative notification `type` only — matching `message`
+        // let a user-controlled display name (e.g. "Security Alert liked your
+        // post") inflate this admin metric with unrelated, non-security events.
+        type: { contains: "security" },
       },
     }),
     prisma.user.findMany({

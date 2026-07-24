@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ANONYMOUS_VIEWER, getFeedPostById } from "@/lib/feed-data";
 import { getFlowCandidates, rankRelatedPosts } from "@/lib/flow-ranking";
+import { rateLimit } from "@/lib/security";
+import { getTrustedClientIp } from "@/lib/client-ip";
 
 /**
  * The sideways lane: content similar/related to the reel the viewer just
@@ -10,6 +12,15 @@ import { getFlowCandidates, rankRelatedPosts } from "@/lib/flow-ranking";
  */
 export async function GET(request: Request) {
   const user = (await getCurrentUser()) ?? ANONYMOUS_VIEWER;
+
+  // Guest-reachable and runs getFlowCandidates (heavy), but is intentionally
+  // outside the proxy's protected prefixes — throttle in-handler like /api/flow.
+  const rlKey = user.id === ANONYMOUS_VIEWER.id
+    ? `flow-related:ip:${getTrustedClientIp(request.headers)}`
+    : `flow-related:${user.id}`;
+  if (!rateLimit(rlKey, 120, 60_000).allowed) {
+    return NextResponse.json({ error: "Slow down" }, { status: 429 });
+  }
 
   const { searchParams } = new URL(request.url);
   const anchorId = searchParams.get("anchor");

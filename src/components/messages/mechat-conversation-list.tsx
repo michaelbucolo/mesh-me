@@ -130,7 +130,11 @@ export function MeChatConversationList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [threads] = useState(initialThreads);
+  // Render the live prop directly. MessagesDataProvider polls and pushes fresh
+  // threads down through this prop; snapshotting it into useState (as before)
+  // froze the list at mount so new conversations, latest-message previews, and
+  // unread counts never updated without a full reload.
+  const threads = initialThreads;
   // Same live presence that animates Meshi on the mesh — here it's the
   // "active now" dot on conversations.
   const onlineContacts = useContactPresence();
@@ -482,7 +486,7 @@ export function MeChatConversationList({
                           {threadDisplay(thread)}
                         </span>
                         {isVerified && <BadgeCheck size={14} className="shrink-0 self-center text-[var(--accent)]" />}
-                        {thread.platform && thread.platform !== "mesh" && (
+                        {isSyncedThread(thread) && (
                           <span className={`shrink-0 self-center rounded px-1 py-0.5 text-[9px] font-bold ${platformBadgeClass(thread.platform)}`}>
                             {platformLabel(thread.platform)}
                           </span>

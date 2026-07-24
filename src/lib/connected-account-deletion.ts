@@ -15,14 +15,22 @@ import { clearMeshCache } from "./mesh-cache";
 const META_PLATFORMS = ["facebook", "instagram", "threads"] as const;
 
 async function tearDownAccount(accountId: string, userId: string, platform: string, encryptedAccessToken: string | null) {
-  if (isPlatformOAuth(platform) && encryptedAccessToken) {
-    const config = OAUTH_CONFIGS[platform];
-    if (config.revokeUrl) {
-      const accessToken = decryptSecret(encryptedAccessToken);
-      if (accessToken) {
-        await revokeOAuthToken(config, accessToken).catch(() => false);
+  // Best-effort provider revoke. decryptSecret throws on malformed ciphertext or
+  // after an encryption-key rotation (AES-GCM auth failure); that must never stop
+  // the DB teardown below, or a data-deletion request would be acknowledged while
+  // the account is silently retained.
+  try {
+    if (isPlatformOAuth(platform) && encryptedAccessToken) {
+      const config = OAUTH_CONFIGS[platform];
+      if (config.revokeUrl) {
+        const accessToken = decryptSecret(encryptedAccessToken);
+        if (accessToken) {
+          await revokeOAuthToken(config, accessToken).catch(() => false);
+        }
       }
     }
+  } catch {
+    // Token unreadable/unrevocable — proceed with deletion regardless.
   }
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {

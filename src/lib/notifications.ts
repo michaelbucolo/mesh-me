@@ -129,17 +129,42 @@ export function getNotificationCategoryLabel(category: NotificationCategory) {
   return categoryLabels[category];
 }
 
-function classifyNotificationType(type: string, message = ""): NotificationCategory {
-  const normalized = `${type} ${message}`.toLowerCase();
-  if (/(security|login|password|passkey|two.?factor|2fa|session|device|recovery)/.test(normalized)) return "security";
-  if (/(privacy|permission|data|export|delete|connected account|sync|oauth|token)/.test(normalized)) return "privacy";
-  if (/(community|space|group|room|member)/.test(normalized)) return "communities";
-  if (/(mention|tagged|@)/.test(normalized)) return "mentions";
-  if (/(message|mechat|dm|chat)/.test(normalized)) return "messages";
-  if (/(comment|reply)/.test(normalized)) return "comments";
-  if (/(follow|friend|mesh_friend)/.test(normalized)) return "follows";
-  if (/(repost|share|shared)/.test(normalized)) return "shares";
-  if (/(like|heart|reaction)/.test(normalized)) return "likes";
+// Map the authoritative notification `type` (a server-set enum) to a category.
+const NOTIFICATION_TYPE_CATEGORY: Record<string, NotificationCategory> = {
+  like: "likes",
+  reaction: "likes",
+  comment: "comments",
+  reply: "comments",
+  follow: "follows",
+  friend: "follows",
+  mesh_friend: "follows",
+  message: "messages",
+  meshi_delivery: "messages",
+  mechat_session: "messages",
+  mention: "mentions",
+  repost: "shares",
+  share: "shares",
+  security_alert: "security",
+};
+
+function classifyNotificationType(type: string): NotificationCategory {
+  const key = type.toLowerCase().trim();
+  const mapped = NOTIFICATION_TYPE_CATEGORY[key];
+  if (mapped) return mapped;
+
+  // Fallback for unknown/system types: match on the authoritative `type` ONLY,
+  // never the message — the message embeds the actor's user-controlled display
+  // name, so keyword-matching it let a hostile name (e.g. "Security Alert")
+  // forge a high-priority security/privacy category and misroute the link.
+  if (/(security|login|password|passkey|two.?factor|2fa|session|device|recovery)/.test(key)) return "security";
+  if (/(privacy|permission|data|export|delete|connected|sync|oauth|token)/.test(key)) return "privacy";
+  if (/(community|space|group|room|member)/.test(key)) return "communities";
+  if (/(mention|tagged)/.test(key)) return "mentions";
+  if (/(message|mechat|dm|chat)/.test(key)) return "messages";
+  if (/(comment|reply)/.test(key)) return "comments";
+  if (/(follow|friend)/.test(key)) return "follows";
+  if (/(repost|share)/.test(key)) return "shares";
+  if (/(like|heart|reaction)/.test(key)) return "likes";
   return "privacy";
 }
 
@@ -159,7 +184,7 @@ function getNotificationHref(notification: Pick<SerializedNotification, "categor
 function serializeNotification(notification: NotificationRecord): SerializedNotification {
   const createdAt = notification.createdAt instanceof Date ? notification.createdAt.toISOString() : notification.createdAt;
   const message = notification.message?.trim() || fallbackMessage(notification);
-  const category = classifyNotificationType(notification.type, message);
+  const category = classifyNotificationType(notification.type);
   const serialized: SerializedNotification = {
     id: notification.id,
     type: notification.type,

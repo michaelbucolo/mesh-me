@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          await syncMeshProSubscription(subscription, userId);
+          await syncMeshProSubscription(subscription, userId, { revalidate: true });
         } else if (userId) {
           const customerId = stripeObjectId(session.customer);
           await prisma.user.update({
@@ -62,12 +62,12 @@ export async function POST(req: Request) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        await syncMeshProSubscription(subscription);
+        await syncMeshProSubscription(subscription, undefined, { revalidate: true });
         break;
       }
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        await syncMeshProSubscription(subscription);
+        await syncMeshProSubscription(subscription, undefined, { revalidate: true });
         break;
       }
       case "invoice.payment_failed": {

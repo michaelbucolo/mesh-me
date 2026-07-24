@@ -221,7 +221,9 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
     }),
     prisma.platformFollower.groupBy({
       by: ["connectedAccountId"],
-      where: { connectedAccountId: { in: accountIds } },
+      // "Followers" must not count "following" rows (accounts the user follows,
+      // stored in the same table) — otherwise the stat is followers + following.
+      where: { connectedAccountId: { in: accountIds }, relationshipType: { not: "following" } },
       _count: { _all: true },
     }),
     prisma.platformMedia.groupBy({

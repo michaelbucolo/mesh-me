@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOriginRequest } from "@/lib/request-guard";
+import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
 
@@ -34,10 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many email additions. Please try again later." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
   const { email } = body;
   if (!email || typeof email !== "string" || !email.includes("@")) {
     return NextResponse.json({ error: "Valid email required" }, { status: 400 });
@@ -90,12 +87,9 @@ export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const deleteBody = await req.json().catch(() => null);
-  if (!deleteBody || typeof deleteBody !== "object") {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const deleteBody = await readJsonObject(req);
   const { emailId } = deleteBody;
-  if (!emailId) return NextResponse.json({ error: "emailId required" }, { status: 400 });
+  if (!emailId || typeof emailId !== "string") return NextResponse.json({ error: "emailId required" }, { status: 400 });
 
   // Don't allow deleting primary email
   const emailRecord = await prisma.userEmail.findUnique({ where: { id: emailId } });
