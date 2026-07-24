@@ -15,7 +15,8 @@ import type { MeshRuntime, MeshRuntimeRef } from "./runtime";
 import { catchUpTourIds } from "./seen-marks";
 import type { BranchKey, SceneModel, SceneNode } from "./scene-model";
 import { spawnBurst } from "../live/hearts";
-import { aimPluck, releasePluck, startPluck } from "../sim/toys";
+import { aimPluck, peekPluckFlick, releasePluck, startPluck } from "../sim/toys";
+import { playFunSound } from "../audio/sound-kit";
 
 export interface MeshInputDeps {
   fitToContent: () => void;
@@ -32,6 +33,13 @@ export interface MeshInputDeps {
   /** A long-press plucked this content node — open the quick-action ring at
    * this screen anchor (the DOM overlay's job; the canvas only stretches). */
   onPluck: (node: SceneNode, anchor: { x: number; y: number }) => void;
+  /** A long-press held a PERSON node — open the emote wheel at this anchor.
+   * Only wired when the viewer may broadcast presence (never in Global):
+   * absent handler = the gesture is never armed, capability-by-construction. */
+  onEmoteHold?: (node: SceneNode, anchor: { x: number; y: number }) => void;
+  /** The plucked node was FLUNG on release — throw a heart at it. Only wired
+   * when the viewer may broadcast presence (the heart is a bus verb). */
+  onFlick?: (node: SceneNode) => void;
 }
 
 export interface MeshInput {
@@ -73,6 +81,12 @@ export function contentListOf(model: SceneModel | null, tourIds: string[] | null
 
 /** Press-and-hold this long (touch long-press / mouse hold) plucks a node. */
 const PLUCK_HOLD_MS = 420;
+/** Release speed (SCREEN px/s — world speed × zoom, so the gesture feels the
+ * same at any zoom) above which letting go of a pluck reads as a FLICK. */
+const FLICK_MIN_PX_S = 700;
+/** A flick must come off a LIVE gesture — a stale velocity from a pause
+ * before release never throws. */
+const FLICK_MAX_AGE_MS = 140;
 
 function cancelPluckHold(rt: MeshRuntime): void {
   if (rt.pluckHold) {
@@ -92,6 +106,8 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     onStartTour,
     openList,
     onPluck,
+    onEmoteHold,
+    onFlick,
   } = deps;
 
   // A pending hold timer must not outlive the scene.
@@ -301,12 +317,21 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       // Arm the PLUCK: a single pointer resting on a content node for
       // PLUCK_HOLD_MS (without moving, without a second finger) plucks it —
       // spring stretch on the canvas + the quick-action ring in the DOM.
+      // A PERSON node long-press is the same gesture opening the EMOTE WHEEL
+      // instead — and only ever arms when the emote handler is wired (the
+      // surface withholds it without broadcast capability, so Global never
+      // grows the gesture at all).
       cancelPluckHold(rt);
       if (rt.pointers.size === 1 && !rt.toys.pluck && rect && rect.width > 0 && rect.height > 0) {
         const sx = e.clientX - rect.left;
         const sy = e.clientY - rect.top;
         const held = hitTest(sx, sy, rt.coarse ? 22 : 0);
-        if (held && (held.kind === "post" || held.kind === "activity")) {
+        const holdable =
+          held &&
+          (held.kind === "post" ||
+            held.kind === "activity" ||
+            (held.kind === "person" && !!onEmoteHold));
+        if (held && holdable) {
           const nodeId = held.id;
           const pointerId = e.pointerId;
           rt.pluckHold = {
@@ -325,13 +350,23 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
               const p = rt.pointers.get(pointerId);
               if (!r.width || !r.height || !p) return;
               const w = unprojectPoint(rt.camera, r.width, r.height, p.x - r.left, p.y - r.top);
-              startPluck(rt.toys, nodeId, w.x, w.y);
+              startPluck(rt.toys, nodeId, w.x, w.y, performance.now());
               rt.pluckPointerId = pointerId;
               // The eventual lift is the pluck's release — never a tap, never
               // a double-tap half.
               rt.lastTap = null;
-              playSound("pop");
-              onPluck(node, { x: anchor.x, y: anchor.y });
+              if (node.kind === "person" && onEmoteHold) {
+                // Opening the emote wheel is a fun-layer moment: its pop rides
+                // the explicit sound opt-in, and the eventual lift dismisses
+                // the wheel — it must never double as a flick broadcast.
+                rt.pluckEmote = true;
+                playFunSound("pop");
+                onEmoteHold(node, { x: anchor.x, y: anchor.y });
+              } else {
+                rt.pluckEmote = false;
+                playSound("pop");
+                onPluck(node, { x: anchor.x, y: anchor.y });
+              }
             }, PLUCK_HOLD_MS),
           };
         }
@@ -347,7 +382,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         d.moved = true;
       }
     },
-    [rtRef, hitTest, onPluck],
+    [rtRef, hitTest, onPluck, onEmoteHold],
   );
 
   const onPointerMove = useCallback(
@@ -367,7 +402,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         rt.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (rect.width > 0 && rect.height > 0) {
           const w = unprojectPoint(rt.camera, rect.width, rect.height, sx, sy);
-          aimPluck(rt.toys, w.x, w.y);
+          aimPluck(rt.toys, w.x, w.y, performance.now());
         }
         return;
       }
@@ -490,9 +525,14 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       const d = rt.drag;
       // Lifting a plucked node releases the spring (snap-back wobble). The
       // DOM ring resolves its own release-on-action; this lift is never a
-      // tap, a fling, or a deselect.
+      // tap, a fling, or a deselect. A FAST lift is a FLICK: the node snaps
+      // back exactly as springily, and a heart flies at it (when the flick
+      // emitter is wired at all — broadcast capability only).
       if (rt.pluckPointerId === e.pointerId) {
         rt.pluckPointerId = null;
+        // A wheel-opening pluck's lift dismisses the wheel — never a flick.
+        const flick = onFlick && !rt.pluckEmote ? peekPluckFlick(rt.toys, performance.now()) : null;
+        rt.pluckEmote = false;
         releasePluck(rt.toys, rt.model, rt.reducedMotion);
         rt.pointers.delete(e.pointerId);
         d.active = false;
@@ -500,6 +540,14 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         d.pinchDist = 0;
         d.pinchMidX = 0;
         d.pinchMidY = 0;
+        if (
+          flick &&
+          flick.ageMs < FLICK_MAX_AGE_MS &&
+          flick.speed * rt.camera.zoom > FLICK_MIN_PX_S
+        ) {
+          const node = rt.model?.nodes.get(flick.nodeId);
+          if (node) onFlick?.(node);
+        }
         return;
       }
       // A lift before the hold fired is an ordinary tap — disarm the pluck.
@@ -590,7 +638,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         setActiveBranch(null);
       }
     },
-    [rtRef, activateNode, hitTest, push, setActiveBranch, setSelectedNode],
+    [rtRef, activateNode, hitTest, push, setActiveBranch, setSelectedNode, onFlick],
   );
 
   // A browser-initiated cancel (system gesture, pointer stolen) should ABORT the
@@ -604,6 +652,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       cancelPluckHold(rt);
       if (rt.pluckPointerId === e.pointerId) {
         rt.pluckPointerId = null;
+        rt.pluckEmote = false;
         releasePluck(rt.toys, rt.model, rt.reducedMotion);
       }
       rt.pointers.delete(e.pointerId);

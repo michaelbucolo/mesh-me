@@ -78,8 +78,8 @@ function ok(condition: boolean, label: string): void {
 
 {
   ok(
-    ACTION_VERBS.length === 5 && ACTION_VERBS.every((v) => isKnownVerb(v)) && !isKnownVerb("strum"),
-    "the v1 verb set is exactly heart/star/spark/wow/wave",
+    ACTION_VERBS.length === 6 && ACTION_VERBS.every((v) => isKnownVerb(v)) && !isKnownVerb("strum"),
+    "the verb set is exactly heart/star/spark/wow/wave/fling (fling = PR7's cosmetic heart)",
   );
   const env = encodeActionEnvelope({ kind: "heart", targetId: "post:1", at: 1000.6 });
   ok(env.v === 1 && env.atMs === 1001 && env.at === 1001, "envelope carries v + atMs + legacy at alias");
@@ -113,6 +113,10 @@ function ok(condition: boolean, label: string): void {
   ok(admitRoomAction(gate, "bo", `strum|edge|${t0 - 50}`, t0 + 100) === null, "ignored verbs still consume their dedupe slot");
   const newer = admitRoomAction(gate, "bo", `wave||${t0 + 200}`, t0 + 300);
   ok(newer?.verb === "wave", "a KNOWN verb from the same sender still replays afterwards");
+  // PR7's fun-verb heart: `fling` replays with its target so receivers can fly
+  // the NON-COUNTING heart (a `heart` on the wire stays a real like).
+  const fling = admitRoomAction(gate, "bo", `fling|p|${t0 + 400}`, t0 + 450);
+  ok(fling?.verb === "fling" && fling.targetId === "p", "the cosmetic fling heart replays as its own verb");
   pruneReplayGate(gate, t0 + 120_000);
   ok(gate.seen.size === 0, "dedupe stamps prune by age");
 }

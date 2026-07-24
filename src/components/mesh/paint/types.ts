@@ -7,6 +7,19 @@
 import type { Camera } from "../core/camera";
 import type { BranchKey, SceneModel, SceneNode } from "../scene/scene-model";
 
+/** An incoming reaction's comet trail — from the sender's Meshi to the node
+ * they reacted at, following the same arc the thrown glyph flies. The fx
+ * layer draws it (particle-budget scaled by tier, off with fx), resolving the
+ * target's LIVE position each frame so the trail lands where the heart does. */
+export interface ReactionTrail {
+  fromX: number;
+  fromY: number;
+  targetId: string;
+  /** performance.now() timestamp (the scheduler's frame clock). */
+  born: number;
+  dur: number;
+}
+
 export interface ScenePaintOptions {
   ctx: CanvasRenderingContext2D;
   model: SceneModel;
@@ -33,6 +46,11 @@ export interface ScenePaintOptions {
   strands?: Map<string, { mx: number; my: number }>;
   /** Interaction pulses riding strands (edge key → start time). */
   strandPulses?: Map<string, number>;
+  /** Strand strums (edge key → start time): a sweep across a filament sends
+   * a shimmer down it. Omitted entirely under reduced motion. */
+  strandStrums?: Map<string, number>;
+  /** Incoming reactions' comet trails (fx layer; tier-budgeted). */
+  trails?: ReactionTrail[];
   /** Connections online right now but NOT in this room, keyed by userId. */
   livePresence?: Map<string, { where: string | null; route?: string | null }>;
 }

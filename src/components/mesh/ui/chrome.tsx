@@ -35,7 +35,8 @@ type MeshLayerId =
   | "list"
   | "shortcuts"
   | "rewind"
-  | "selection";
+  | "selection"
+  | "emote";
 
 export interface MeshChromeController {
   isOpen: (id: MeshLayerId) => boolean;
@@ -55,10 +56,12 @@ export function useMeshChrome(opts: {
   closeSelection: () => void;
   /** Leaving the rewind layer returns the world to now. */
   closeRewind: () => void;
+  /** Close the emote wheel (its open state lives with the surface). */
+  closeEmote?: () => void;
   zoomBy: (factor: number) => void;
   fitToContent: () => void;
 }): MeshChromeController {
-  const { closeSelection, closeRewind, zoomBy, fitToContent } = opts;
+  const { closeSelection, closeRewind, closeEmote, zoomBy, fitToContent } = opts;
   // First visit: walk newcomers through how to explore the mesh — the tips
   // layer starts open until they've been seen once.
   const [stack, setStack] = useState<MeshLayerId[]>(() => {
@@ -102,10 +105,11 @@ export function useMeshChrome(opts: {
     if (!top) return false;
     if (top === "selection") closeSelection();
     else if (top === "rewind") closeRewind();
+    else if (top === "emote") closeEmote?.();
     else if (top === "tips") markTipsSeen();
     close(top);
     return true;
-  }, [close, closeSelection, closeRewind, markTipsSeen]);
+  }, [close, closeSelection, closeRewind, closeEmote, markTipsSeen]);
 
   const dismissTips = useCallback(() => {
     markTipsSeen();
@@ -233,6 +237,7 @@ export function MeshChrome({
   onBackToNow,
   navigate,
   onRecenter,
+  onEmote,
 }: {
   viewer: ViewerCaps;
   copy: MeshCopy;
@@ -250,6 +255,9 @@ export function MeshChrome({
   onBackToNow: () => void;
   navigate: (href: string) => void;
   onRecenter: () => void;
+  /** Open the emote wheel by the rail — only provided when the viewer may
+   * broadcast presence (capability-derived; absent = no React button). */
+  onEmote?: (anchor: { x: number; y: number }) => void;
 }) {
   return (
     <>
@@ -279,6 +287,7 @@ export function MeshChrome({
         }}
         onHelp={() => chrome.toggle("shortcuts")}
         onRecenter={onRecenter}
+        onEmote={onEmote}
       />
       {/* ONE top-center ambient message at a time. */}
       <MeshMarquee item={marquee} />

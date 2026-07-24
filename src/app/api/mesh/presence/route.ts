@@ -54,14 +54,16 @@ export async function POST(request: Request) {
     // envelope ({v,type,targetId,atMs}) and the legacy shape ({type,…,at})
     // are both accepted — then validated against the fixed verb set and
     // stored in the legacy pipe encoding old clients already parse. `heart`
-    // flies at a target node so it requires a targetId; the others are
-    // targetless flourishes that spawn at the sender's Meshi.
+    // (a real like) and `fling` (the cosmetic fun-verb heart) fly at a target
+    // node so they require a targetId; the others are targetless flourishes
+    // that spawn at the sender's Meshi.
     let lastAction: string | null = null;
     const wireAction = parseActionBody(action);
     if (
       wireAction &&
       isKnownVerb(wireAction.verb) &&
-      (wireAction.verb !== "heart" || wireAction.targetId.length > 0)
+      ((wireAction.verb !== "heart" && wireAction.verb !== "fling") ||
+        wireAction.targetId.length > 0)
     ) {
       lastAction = encodeLastAction(wireAction);
     }

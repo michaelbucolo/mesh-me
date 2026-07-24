@@ -27,6 +27,11 @@ interface PluckState {
   /** Pointer position in WORLD coordinates — what the node stretches toward. */
   aimX: number;
   aimY: number;
+  /** Blended aim velocity (world units/s) — the flick detector's signal. */
+  vx: number;
+  vy: number;
+  /** When the aim last moved, so a flick is only read off a LIVE gesture. */
+  lastAimAt: number;
 }
 
 export interface ToysState {
@@ -37,15 +42,35 @@ export function createToysState(): ToysState {
   return { pluck: null };
 }
 
-export function startPluck(toys: ToysState, nodeId: string, aimX: number, aimY: number): void {
-  toys.pluck = { nodeId, aimX, aimY };
+export function startPluck(toys: ToysState, nodeId: string, aimX: number, aimY: number, nowMs: number): void {
+  toys.pluck = { nodeId, aimX, aimY, vx: 0, vy: 0, lastAimAt: nowMs };
 }
 
-/** Track the pointer while held — the spring re-aims every move. */
-export function aimPluck(toys: ToysState, aimX: number, aimY: number): void {
-  if (!toys.pluck) return;
-  toys.pluck.aimX = aimX;
-  toys.pluck.aimY = aimY;
+/** Track the pointer while held — the spring re-aims every move, and the
+ * blended aim velocity is what a release reads to recognize a FLICK. */
+export function aimPluck(toys: ToysState, aimX: number, aimY: number, nowMs: number): void {
+  const p = toys.pluck;
+  if (!p) return;
+  const dt = Math.max(nowMs - p.lastAimAt, 1);
+  // Same blend the camera fling uses: an instantaneous sample eased into the
+  // running estimate, so one jittery event can't fake a flick.
+  p.vx = p.vx * 0.65 + (((aimX - p.aimX) * 1000) / dt) * 0.35;
+  p.vy = p.vy * 0.65 + (((aimY - p.aimY) * 1000) / dt) * 0.35;
+  p.lastAimAt = nowMs;
+  p.aimX = aimX;
+  p.aimY = aimY;
+}
+
+/** Read the held pluck's flick state (call BEFORE releasePluck). Returns the
+ * aim speed in world units/s and how stale the last aim sample is — the
+ * caller decides the threshold in screen terms (speed × zoom). */
+export function peekPluckFlick(
+  toys: ToysState,
+  nowMs: number,
+): { nodeId: string; speed: number; ageMs: number } | null {
+  const p = toys.pluck;
+  if (!p) return null;
+  return { nodeId: p.nodeId, speed: Math.hypot(p.vx, p.vy), ageMs: nowMs - p.lastAimAt };
 }
 
 /**
