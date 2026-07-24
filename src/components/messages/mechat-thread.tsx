@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
+import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { safeHref } from "@/lib/utils";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
@@ -1276,7 +1277,10 @@ function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachmen
 
   if (attachment.type === "audio") {
     return (
-      <audio src={attachment.url} controls className="w-full" />
+      // Loudness-leveled on first play (never preload); CORS-unsafe sources
+      // keep their native audio path. Video attachments get the same treatment
+      // inside NativeAspectMedia's controls player.
+      <audio src={attachment.url} controls onPlay={(event) => attachNormalizer(event.currentTarget)} className="w-full" />
     );
   }
 

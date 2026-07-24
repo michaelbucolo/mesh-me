@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, Maximize2, MessageCircle, Minimize2, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
 import { toggleFollow, toggleReaction, setFlowLike } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
+import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { useToast } from "@/components/ui/toast";
 import { PlatformLogo } from "@/components/platform/platform-logo";
@@ -201,6 +202,9 @@ function ReelMedia({
           muted={muted}
           playsInline
           preload={nearActive ? "auto" : "metadata"}
+          // Level cross-platform loudness the moment playback starts (never on
+          // preload). CORS-unsafe sources are left on their native audio path.
+          onPlay={(event) => attachNormalizer(event.currentTarget)}
           onLoadedMetadata={(event) => {
             const el = event.currentTarget;
             if (el.videoWidth > 0 && el.videoHeight > 0) {
@@ -319,7 +323,7 @@ function ReelMedia({
               <Music2 size={56} className="text-white/80" />
             </span>
           )}
-          <audio src={audio.url} controls preload="metadata" className="w-full" />
+          <audio src={audio.url} controls preload="metadata" onPlay={(event) => attachNormalizer(event.currentTarget)} className="w-full" />
         </div>
       </div>
     );
