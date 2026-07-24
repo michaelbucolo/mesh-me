@@ -24,9 +24,14 @@
 
 const ACTION_BUS_VERSION = 1;
 
-/** Every world action this build understands. PR7 extends this list — old
- * clients ignore the new entries by the unknown-verb rule above. */
-export const ACTION_VERBS = ["heart", "star", "spark", "wow", "wave"] as const;
+/** Every world action this build understands. PR7 adds `fling` — the fun-verb
+ * COSMETIC heart (flick release, the emote wheel's heart): it flies at a
+ * target exactly like `heart`, but no like is written, so receivers spawn the
+ * non-counting variant (the displayed Likes tick never moves). `heart` stays
+ * reserved for a real like write. Old clients ignore `fling` by the
+ * unknown-verb rule above — a mixed-version room degrades to silence, never
+ * to a phantom count. */
+export const ACTION_VERBS = ["heart", "star", "spark", "wow", "wave", "fling"] as const;
 export type ActionVerb = (typeof ACTION_VERBS)[number];
 
 const VERB_SET: ReadonlySet<string> = new Set(ACTION_VERBS);

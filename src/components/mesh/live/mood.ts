@@ -105,8 +105,9 @@ export interface BroadcastMoodInput {
 export function deriveBroadcastMood(input: BroadcastMoodInput): string {
   const { now, pendingAction } = input;
   if (pendingAction && now - pendingAction.at < BROADCAST_ACTION_GLOW_MS) {
-    // A heart-throw beams love; a wave or reaction burst reads as excited.
-    return pendingAction.kind === "heart" ? "love" : "excited";
+    // A heart-throw (real like or cosmetic fling) beams love; a wave or
+    // reaction burst reads as excited.
+    return pendingAction.kind === "heart" || pendingAction.kind === "fling" ? "love" : "excited";
   }
   if (input.composing) return "thinking";
   if (input.hovering) return "excited";

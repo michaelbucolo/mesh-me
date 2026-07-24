@@ -10,6 +10,7 @@
 
 import { useEffect } from "react";
 import { playSound } from "@/lib/sound";
+import { playFunSound } from "../audio/sound-kit";
 import { cameraCenterWorld, projectPoint } from "../core/camera";
 import { reactionGlyphSvg } from "../scene/reaction-glyphs";
 import type { MeshRuntimeRef } from "../scene/runtime";
@@ -94,13 +95,23 @@ export function useMeshiDomSync(
     };
 
     // Hearts in flight: each rises out of a Meshi, arcs across the world, and
-    // pops on the post it was thrown at — nudging the count up as it lands.
+    // pops on the post it was thrown at — nudging the count up as it lands
+    // (real likes only; cosmetic fun-verb hearts land without counting).
     const stepHearts = (now: number) => {
       const host = rt.heartsEl;
       if (!host) return;
       rt.strandPulses.forEach((start, key) => {
         if (now - start > 1400) rt.strandPulses.delete(key);
       });
+      // Strum stamps double as re-strum cooldowns — collect them once both
+      // the shimmer (620ms) and the cooldown (550ms) are safely spent.
+      rt.strandStrums.forEach((start, key) => {
+        if (now - start > 900) rt.strandStrums.delete(key);
+      });
+      // Reaction trails: drop each once its lingering tail has faded.
+      for (let i = rt.trails.length - 1; i >= 0; i -= 1) {
+        if (now - rt.trails[i].born > rt.trails[i].dur * 1.2 + 60) rt.trails.splice(i, 1);
+      }
       rt.hearts = rt.hearts.filter((h) => {
         const t = (now - h.born) / h.dur;
         // Free-flight flourish: no target node, no count bump — rises out of a
@@ -136,14 +147,22 @@ export function useMeshiDomSync(
           return false;
         }
         if (t >= 1) {
-          const meta = target.meta?.find((m) => m.label === "Likes");
-          if (meta) {
-            const n = parseInt(meta.value, 10);
-            if (Number.isFinite(n)) meta.value = String(n + 1);
+          if (h.cosmetic) {
+            // A fun-verb heart (flick / wheel / incoming fling): the landing
+            // keeps its full flourish, but NO like was written, so the
+            // displayed Likes tick and the strand pulse stay untouched —
+            // play never mutates data. Its tick is a fun sound: opt-in only.
+            playFunSound("land");
+          } else {
+            const meta = target.meta?.find((m) => m.label === "Likes");
+            if (meta) {
+              const n = parseInt(meta.value, 10);
+              if (Number.isFinite(n)) meta.value = String(n + 1);
+            }
+            // The interaction rides the strand home to the maker.
+            if (target.parentId) rt.strandPulses.set(`${target.parentId}>${target.id}`, now);
+            playSound("land");
           }
-          // The interaction rides the strand home to the maker.
-          if (target.parentId) rt.strandPulses.set(`${target.parentId}>${target.id}`, now);
-          playSound("land");
           if (el) {
             el.style.animation = "meshHeartLand .34s ease-out forwards";
             const gone = el;

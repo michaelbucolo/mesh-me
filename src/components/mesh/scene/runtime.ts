@@ -15,9 +15,12 @@ import { createCamera } from "../core/camera";
 import type { MeshScheduler } from "../core/scheduler";
 import { createHitmap, type Hitmap } from "../sim/hitmap";
 import { createPhysicsState, type PhysicsState } from "../sim/physics";
+import { createStrumState, type StrumState } from "../sim/strum";
 import { createToysState, type ToysState } from "../sim/toys";
 import type { PaintEngine } from "../paint";
-import { createReplayGate, type ActionReplayGate } from "../live/action-bus";
+import type { ReactionTrail } from "../paint/types";
+import { createReplayGate, type ActionReplayGate, type ActionVerb } from "../live/action-bus";
+import { createFunVerbGate, type FunVerbGate } from "../live/emotes";
 import type { MeshiSprite } from "../live/meshi-machine";
 import { createBehaviorMoodState, type BehaviorMoodState } from "../live/mood";
 import { createRoster, type RemotePresence, type RoomRoster } from "../live/roster";
@@ -48,6 +51,10 @@ type FlyingHeart = {
   born: number;
   dur: number;
   glyph?: ReactionGlyph;
+  /** Fun-verb heart (flick / emote wheel / incoming `fling`): flies and lands
+   * with the full flourish but NEVER bumps the Likes tick or pulses the
+   * strand — play never mutates data, and no like was written. */
+  cosmetic?: boolean;
   /** Free-flight: fly out along `angle` by `dist` world units, no node, no count bump. */
   burst?: { angle: number; dist: number };
 };
@@ -143,14 +150,22 @@ export interface MeshRuntime {
   coarse: boolean;
   traveling: boolean;
 
-  // --- toys (cosmetic play physics: the pluck) ---
+  // --- toys (cosmetic play physics: the pluck, the strand strum) ---
   toys: ToysState;
+  /** The strum's presence-point trace (sim/strum) — crossing a strand twangs it. */
+  strum: StrumState;
+  /** Client-side courtesy caps on outgoing fun verbs (flick hearts, emote
+   * wheel) — on TOP of the server's presence-route rate limits. */
+  funGate: FunVerbGate;
   /** Pending long-press: armed on pointer-down over a content node, fires
    * the pluck if the pointer stays put; cancelled by move/lift/pinch. */
   pluckHold: { timer: ReturnType<typeof setTimeout>; nodeId: string; pointerId: number } | null;
   /** The pointer currently holding a plucked node (its moves steer the
    * stretch instead of panning; its lift releases the spring, never taps). */
   pluckPointerId: number | null;
+  /** The active pluck opened the emote wheel — its lift dismisses the wheel
+   *  and must never double as a flick broadcast. */
+  pluckEmote: boolean;
 
   // --- selection mirrors (React state is authoritative; these feed frames) ---
   hoverId: string | null;
@@ -169,14 +184,18 @@ export interface MeshRuntime {
   lastMoveHb: number;
   reducedMotion: boolean;
 
-  // --- hearts / strand pulses ---
+  // --- hearts / strand pulses / strums / trails ---
   hearts: FlyingHeart[];
   heartSeq: number;
   strandPulses: Map<string, number>;
+  /** Strummed strands (edge key → start time): fx shimmer + re-strum cooldown. */
+  strandStrums: Map<string, number>;
+  /** Incoming reactions' comet trails (fx layer, tier-budgeted). */
+  trails: ReactionTrail[];
 
   // --- presence bridge (written by input/lens, read by the heartbeat) ---
   heartbeatNow: (() => void) | null;
-  pendingAction: { kind: ReactionGlyph; targetId: string; at: number } | null;
+  pendingAction: { kind: ActionVerb; targetId: string; at: number } | null;
 
   presence: PresenceRuntime;
 }
@@ -233,8 +252,11 @@ export function createMeshRuntime(): MeshRuntime {
     traveling: false,
 
     toys: createToysState(),
+    strum: createStrumState(),
+    funGate: createFunVerbGate(),
     pluckHold: null,
     pluckPointerId: null,
+    pluckEmote: false,
 
     hoverId: null,
     selectedId: null,
@@ -254,6 +276,8 @@ export function createMeshRuntime(): MeshRuntime {
     hearts: [],
     heartSeq: 0,
     strandPulses: new Map(),
+    strandStrums: new Map(),
+    trails: [],
 
     heartbeatNow: null,
     pendingAction: null,

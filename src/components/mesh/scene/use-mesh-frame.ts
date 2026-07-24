@@ -13,6 +13,7 @@ import { createPaintEngine, resolveMeshEngine, type MeshEngineKind } from "../pa
 import { drawScene } from "./scene-render";
 import { rebuildHitmap } from "../sim/hitmap";
 import { driftScaleFor, stepScenePhysics } from "../sim/physics";
+import { stepStrum } from "../sim/strum";
 import { stepToys } from "../sim/toys";
 import type { MeshRuntimeRef } from "./runtime";
 
@@ -37,9 +38,12 @@ export function useMeshFrame(
     viewMode: "mesh" | "global";
     isOwnMesh: boolean;
     fitToContent: () => void;
+    /** A strand was strummed this frame — the surface owns the tone (opt-in
+     * gated sound) and the one-time "Sound on?" affordance. */
+    onStrum?: (note: number) => void;
   },
 ): void {
-  const { viewUserId, viewMode, isOwnMesh, fitToContent } = opts;
+  const { viewUserId, viewMode, isOwnMesh, fitToContent, onStrum } = opts;
 
   // Adaptive rendering budget so the mesh stays smooth on older/slower devices
   // (LEGACY engine only — the next engine rides the two-way governor).
@@ -166,7 +170,7 @@ export function useMeshFrame(
 
     // sim: physics + camera motion. World state settles before anything is
     // derived from it (hitmap) or drawn (paint).
-    scheduler?.setPhase("sim", ({ dt }) => {
+    scheduler?.setPhase("sim", ({ time, dt }) => {
       const { width, height } = rt.size;
       const model = rt.model;
       if (!model || !width || !height) return;
@@ -188,6 +192,24 @@ export function useMeshFrame(
       // pointer AFTER the layout springs settle — cosmetic offset only, and a
       // no-op (one null check) whenever nothing is being played with.
       stepToys(model, rt.toys, dt, rt.reducedMotion);
+      // The STRUM: your presence point (cursor on fine pointers; the world
+      // spot the touch Meshi rides during a pan/fling) sweeping across a
+      // filament twangs it — strand-control-point kick + fx stamp + tone via
+      // onStrum. Early-outs to one distance check while you're still, and
+      // never touches laid-out positions (cosmetic-only, like every toy).
+      if (rt.cursorWorldTarget.seen) {
+        stepStrum(
+          model,
+          rt.physics,
+          rt.strum,
+          rt.strandStrums,
+          rt.cursorWorldTarget.x,
+          rt.cursorWorldTarget.y,
+          time,
+          rt.reducedMotion,
+          onStrum,
+        );
+      }
 
       // Inertial pan: carry the fling velocity after release, with decay.
       const fling = rt.fling;
@@ -272,6 +294,10 @@ export function useMeshFrame(
           isOwnMesh,
           strands: rt.physics.strands,
           strandPulses: rt.strandPulses,
+          // Reduced motion collapses the strum to its tone: the painter never
+          // sees the shimmer stamps (they remain as re-strum cooldowns only).
+          strandStrums: rt.reducedMotion ? undefined : rt.strandStrums,
+          trails: rt.trails,
           visuals: rt.proVisuals,
           livePresence: rt.presence.info,
         };
@@ -349,5 +375,5 @@ export function useMeshFrame(
       rt.paintEngine?.dispose();
       rt.paintEngine = null;
     };
-  }, [rtRef, fitToContent, viewUserId, viewMode, isOwnMesh]);
+  }, [rtRef, fitToContent, viewUserId, viewMode, isOwnMesh, onStrum]);
 }

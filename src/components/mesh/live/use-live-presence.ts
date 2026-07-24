@@ -34,7 +34,7 @@ import { cameraCenterWorld, projectPoint, unprojectPoint } from "../core/camera"
 import type { ViewerCaps } from "../core/viewer";
 import type { LeavingMeshi, MeshRuntimeRef } from "../scene/runtime";
 import { admitRoomAction, createReplayGate, encodeActionEnvelope, pruneReplayGate, sealReplayBaseline } from "./action-bus";
-import { spawnBurst, spawnHeart } from "./hearts";
+import { spawnBurst, spawnCosmeticHeart, spawnHeart, spawnReactionTrail } from "./hearts";
 import { applySighting, createSprite } from "./meshi-machine";
 import { deriveBroadcastMood, stepBehaviorMood } from "./mood";
 import { createPresenceClient, type LiveLink } from "./presence-client";
@@ -325,12 +325,22 @@ export function useLivePresence(
         if (!ev) continue;
         const sprite = rt.presence.sprites.get(p.userId);
         const at = sprite?.world ?? sprite?.target ?? null;
-        if (ev.verb === "heart") {
+        if (ev.verb === "heart" || ev.verb === "fling") {
           if (!ev.targetId) continue;
           const target = rt.model?.nodes.get(ev.targetId);
           if (!target) continue;
-          if (at) spawnHeart(rt, at.x, at.y, ev.targetId);
-          else spawnHeart(rt, target.dx, target.dy - 220, ev.targetId);
+          // A `heart` accompanies a real like write, so its landing ticks the
+          // displayed count toward truth; a `fling` is a fun verb with NO
+          // write behind it, so it spawns the non-counting variant — same
+          // flight and flourish, Likes tick untouched.
+          const spawn = ev.verb === "fling" ? spawnCosmeticHeart : spawnHeart;
+          const ox = at ? at.x : target.dx;
+          const oy = at ? at.y : target.dy - 220;
+          spawn(rt, ox, oy, ev.targetId);
+          // The comet trail — the reaction visibly travels from the SENDER
+          // to its target (canvas fx layer; tier-budgeted, reduced-motion
+          // skipped, hard-capped inside).
+          spawnReactionTrail(rt, ox, oy, ev.targetId);
         } else if (at) {
           // Targetless flourish — blooms at the sender's Meshi.
           spawnBurst(rt, at.x, at.y - 12, ev.verb, 5);

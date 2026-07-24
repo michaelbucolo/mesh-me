@@ -5,12 +5,20 @@
 
 "use client";
 
-import { Check, CircleHelp, History, List, LocateFixed, PenLine, Search, Share2 } from "lucide-react";
+import { Check, CircleHelp, History, List, LocateFixed, PenLine, Search, Share2, Smile } from "lucide-react";
 import type { ViewerCaps } from "../core/viewer";
 import type { MeshCopy } from "./copy";
 import { useShare } from "./use-share";
 
-function RailButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+function RailButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
@@ -40,6 +48,7 @@ export function MeshRail({
   onRewind,
   onHelp,
   onRecenter,
+  onEmote,
 }: {
   viewer: ViewerCaps;
   copy: MeshCopy;
@@ -54,6 +63,10 @@ export function MeshRail({
   onRewind: () => void;
   onHelp: () => void;
   onRecenter: () => void;
+  /** Open the emote wheel anchored by the rail. Only provided when the
+   * viewer may broadcast presence — no capability, no button (Global's rail
+   * simply never grows a social affordance). */
+  onEmote?: (anchor: { x: number; y: number }) => void;
 }) {
   const { copied, share } = useShare();
 
@@ -75,6 +88,18 @@ export function MeshRail({
       <RailButton label="Explore as a list" onClick={onList}>
         <List size={16} />
       </RailButton>
+      {onEmote && (
+        <RailButton
+          label="React"
+          onClick={(e) => {
+            // Anchor the wheel just left of the rail button that opened it.
+            const r = e.currentTarget.getBoundingClientRect();
+            onEmote({ x: r.left - 96, y: r.top + r.height / 2 });
+          }}
+        >
+          <Smile size={16} />
+        </RailButton>
+      )}
       <RailButton
         label={copied ? "Link copied" : copy.shareLabel}
         onClick={() => {

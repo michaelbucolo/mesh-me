@@ -20,6 +20,7 @@ import { SpriteAtlas } from "./atlas";
 import { BackgroundLayer, paintSky } from "./background";
 import { ImageLru } from "./caches";
 import { drawEdges } from "./edges";
+import { drawReactionTrails } from "./fx";
 import { createNodePassResources, drawNodesPass, type NodePassResources } from "./nodes";
 import { domSurface, type CreateSurface, type ScenePaintOptions } from "./types";
 
@@ -82,6 +83,10 @@ export function createPaintEngine(options: PaintEngineOptions = {}): PaintEngine
       else paintSky(ctx, skyInputs); // direct: the exact legacy op stream
       drawEdges(ctx, o, { liveStrands: params.liveStrands, fx: params.fx });
       drawNodesPass(o, nodeRes);
+      // Incoming reactions' comet trails ride the topmost canvas layer —
+      // halved at T1 (particleScale), absent at T2 (fx off) — the reaction
+      // itself (the thrown glyph + count tick) works at every tier.
+      if (params.fx) drawReactionTrails(ctx, o, params.particleScale);
     },
     setDpr(dpr) {
       background.setDpr(dpr);

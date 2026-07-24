@@ -6,6 +6,11 @@
 
 import { platformLogoDataUri } from "@/components/platform/platform-logo";
 import { projectPoint, type Camera } from "../core/camera";
+// PR7 fx (strum shimmer, reaction trails) are SHARED functions with the next
+// engine, so the kill-switch cores stay op-identical by construction.
+import { drawReactionTrails, drawStrandStrum } from "../paint/fx";
+import type { ReactionTrail } from "../paint/types";
+import { STRUM_WAVE_MS } from "../sim/strum";
 import {
   baseRadius,
   birthProgress,
@@ -84,6 +89,11 @@ export interface RenderOptions {
   /** Interaction pulses riding strands (edge key → start time): a liked post
    * sends a bright wave down its strand to its maker. */
   strandPulses?: Map<string, number>;
+  /** Strand strums (edge key → start time): a sweep across a filament sends
+   * a shimmer down it. Omitted entirely under reduced motion. */
+  strandStrums?: Map<string, number>;
+  /** Incoming reactions' comet trails (topmost fx pass). */
+  trails?: ReactionTrail[];
   /** Connections online right now but NOT in this room, keyed by userId.
    * `where` is the mesh owner's userId they're exploring (null = elsewhere
    * on mesh.me); `route` is their app route when off the mesh surface.
@@ -907,6 +917,16 @@ export function drawScene(o: RenderOptions): void {
       }
     }
 
+    // Strum shimmer: a sweep across this filament sent a wave down it
+    // (shared fx op stream with the next engine).
+    const strumStart = o.strandStrums?.get(`${parent.id}>${node.id}`);
+    if (strumStart != null) {
+      const st = (time - strumStart) / STRUM_WAVE_MS;
+      if (st >= 0 && st < 1) {
+        drawStrandStrum(ctx, a.x, a.y, c.x, c.y, b.x, b.y, st, o.camera.zoom, node.color);
+      }
+    }
+
   });
 
   // --- Nodes ---
@@ -1215,4 +1235,8 @@ export function drawScene(o: RenderOptions): void {
   for (const item of selfQueue) {
     drawSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected);
   }
+
+  // Incoming reactions' comet trails — topmost, full particle budget (the
+  // legacy core has no tier ladder; its watchdog only trims DPR/frame cap).
+  drawReactionTrails(ctx, o, 1);
 }

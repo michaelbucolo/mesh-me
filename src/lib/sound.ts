@@ -29,6 +29,21 @@ export function isSoundEnabled(): boolean {
   }
 }
 
+/**
+ * Whether the user has ever made an EXPLICIT sound choice (settings toggle or
+ * the mesh's one-time "Sound on?" opt-in). The mesh's playful layer treats an
+ * unset preference as quiet-by-default while the rest of the app keeps its
+ * historical default — one preference, two defaults, zero extra toggles.
+ */
+export function hasSoundPreference(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(SOUND_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function setSoundEnabled(on: boolean): void {
   try {
     localStorage.setItem(SOUND_KEY, on ? "1" : "0");
@@ -219,4 +234,30 @@ export function playSound(name: SoundName): void {
       voice(ctx, { type: "sine", from: 420, to: 210, at: t, dur: 0.34, peak: 0.02, lp: 1600 });
       break;
   }
+}
+
+// C-major pentatonic across ~1.5 octaves — ANY sequence of these sounds
+// musical, so sweeping across several mesh strands plays a pleasant
+// glissando no matter which filaments you brush (no wrong notes possible).
+const PENTATONIC_HZ = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25] as const;
+
+/**
+ * A soft plucked-string tone for the mesh's strand strum. `degree` picks a
+ * step of the pentatonic scale (0 = lowest). Same master bus, same gating,
+ * same warmth as every other platform sound; allocates nothing while sounds
+ * are off.
+ */
+export function playStrum(degree: number): void {
+  if (!isSoundEnabled()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  if (ctx.state === "suspended") {
+    if (!unlocked) return;
+    ctx.resume().catch(() => {});
+  }
+  const t = ctx.currentTime + 0.005;
+  const f = PENTATONIC_HZ[Math.max(0, Math.min(PENTATONIC_HZ.length - 1, Math.round(degree)))];
+  // A rounded string body with a whisper of octave shimmer — harp, not beep.
+  voice(ctx, { type: "triangle", from: f, at: t, dur: 0.34, peak: 0.034, lp: 3000, detune: -4 });
+  voice(ctx, { type: "sine", from: f * 2, at: t + 0.004, dur: 0.16, peak: 0.011, lp: 4200 });
 }

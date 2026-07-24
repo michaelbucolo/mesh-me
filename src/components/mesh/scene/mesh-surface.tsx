@@ -11,8 +11,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { playStrumTone, shouldOfferSoundOptIn } from "../audio/sound-kit";
 import { deriveViewerCaps } from "../core/viewer";
 import { createMeshStore, type MeshStore } from "../core/store";
+import { flickHeart, sendEmote } from "../live/emotes";
 import { emitHeart } from "../live/hearts";
 import { MeshiLayer } from "../live/meshi-layer";
 import { useLivePresence } from "../live/use-live-presence";
@@ -21,10 +23,12 @@ import { MeshChrome, pickMarqueeItem, useMeshChrome, type MeshChromeController }
 import { ContentLens } from "../ui/content-lens";
 import { MeshComposeModal } from "../ui/compose-modal";
 import { meshCopy } from "../ui/copy";
+import { MeshEmoteWheel } from "../ui/emote-wheel";
 import { MeshGates } from "../ui/gates";
 import { MeshListView } from "../ui/list-view";
 import { NodeDetail } from "../ui/node-detail";
 import { MeshPluckRing } from "../ui/pluck-ring";
+import { MeshSoundOptIn } from "../ui/sound-optin";
 import { MeshSearchOverlay } from "../ui/search-overlay";
 import { MeshShortcutsSheet } from "../ui/shortcuts-sheet";
 import { MeshTipsCard } from "../ui/tips-card";
@@ -68,6 +72,18 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
   const [tourIds, setTourIds] = useState<string[] | null>(null);
   // A long-press plucked this node — the radial quick-action ring is open.
   const [pluck, setPluck] = useState<{ node: SceneNode; anchor: { x: number; y: number } } | null>(null);
+  // The emote wheel — open on a person (long-press; hearts fly at them) or
+  // from the rail (targetless flourishes). `held` = the opening pointer is
+  // still down, so the wheel resolves release-on-emote.
+  const [emote, setEmote] = useState<{
+    node: SceneNode | null;
+    anchor: { x: number; y: number };
+    held: boolean;
+  } | null>(null);
+  // The one-time "Sound on?" affordance — armed by the first playful gesture
+  // of the session, and only while no explicit sound choice exists.
+  const [soundOffer, setSoundOffer] = useState(false);
+  const soundOfferRanRef = useRef(false);
   // Travel veil, keyed by the view it started from — arriving at the new view
   // (new props) derives it away without an imperative reset.
   const viewKey = `${viewUserId ?? ""}|${viewMode}`;
@@ -119,6 +135,54 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     setTourIds(null);
   }, [rtRef]);
 
+  // --- PR7 fun layer ---
+  // Social fun verbs (flick heart, emote wheel) exist only where presence
+  // broadcast does — Global's read-only view never wires the handlers, so
+  // the gestures/buttons are structurally absent, not disabled.
+  const canEmote = viewer.canBroadcastPresence;
+  // First playful gesture of the session may offer the one-time sound opt-in
+  // (only while the user has never made an explicit sound choice).
+  const onFunMoment = useCallback(() => {
+    if (soundOfferRanRef.current) return;
+    soundOfferRanRef.current = true;
+    if (shouldOfferSoundOptIn()) setSoundOffer(true);
+  }, []);
+  useEffect(() => {
+    if (!soundOffer) return;
+    // Ignored is not declined: the chip retires quietly and nothing persists,
+    // so it may offer again another session.
+    const t = setTimeout(() => setSoundOffer(false), 12000);
+    return () => clearTimeout(t);
+  }, [soundOffer]);
+  // A strand was strummed (sim phase): the pentatonic tone (opt-in gated,
+  // cadence-capped in audio/sound-kit) + the opt-in trigger.
+  const onStrum = useCallback(
+    (note: number) => {
+      playStrumTone(note);
+      onFunMoment();
+    },
+    [onFunMoment],
+  );
+  const closeEmote = useCallback(() => setEmote(null), []);
+  const openEmoteHold = useCallback(
+    (node: SceneNode, anchor: { x: number; y: number }) => {
+      onFunMoment();
+      setEmote({ node, anchor, held: true });
+    },
+    [onFunMoment],
+  );
+  const openEmoteFromRail = useCallback((anchor: { x: number; y: number }) => {
+    setEmote({ node: null, anchor, held: false });
+  }, []);
+  // Flinging a plucked node throws a heart at it (courtesy-capped in
+  // live/emotes; broadcast rides the existing bus heart verb).
+  const handleFlick = useCallback(
+    (node: SceneNode) => {
+      if (flickHeart(rtRef.current, isOwnMesh, node)) onFunMoment();
+    },
+    [rtRef, isOwnMesh, onFunMoment],
+  );
+
   // --- world / frame / input / chrome / live ---
   const world = useMeshWorld(rtRef, viewer, {
     viewUserId,
@@ -126,7 +190,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     onWorldReplaced: clearSelectionOnly,
     onSelectionInvalid: clearSelectionOnly,
   });
-  useMeshFrame(rtRef, { viewUserId, viewMode, isOwnMesh, fitToContent: world.fitToContent });
+  useMeshFrame(rtRef, { viewUserId, viewMode, isOwnMesh, fitToContent: world.fitToContent, onStrum });
 
   const chromeRef = useRef<MeshChromeController | null>(null);
   const push = useCallback((href: string) => router.push(href), [router]);
@@ -139,12 +203,24 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     onTravel: useCallback((label: string) => setTravelState({ key: viewKey, label }), [viewKey]),
     onStartTour: setTourIds,
     openList: useCallback(() => chromeRef.current?.open("list"), []),
-    onPluck: useCallback((node: SceneNode, anchor: { x: number; y: number }) => setPluck({ node, anchor }), []),
+    onPluck: useCallback(
+      (node: SceneNode, anchor: { x: number; y: number }) => {
+        // The blueprint's "first pluck/strum" moment — may offer sound.
+        onFunMoment();
+        setPluck({ node, anchor });
+      },
+      [onFunMoment],
+    ),
+    // Capability-by-construction: no broadcast capability, no handler — the
+    // person long-press and the flick never even arm in Global.
+    onEmoteHold: canEmote ? openEmoteHold : undefined,
+    onFlick: canEmote ? handleFlick : undefined,
   });
 
   const chrome = useMeshChrome({
     closeSelection,
     closeRewind: world.backToNow,
+    closeEmote,
     zoomBy: input.zoomBy,
     fitToContent: world.fitToContent,
   });
@@ -157,6 +233,12 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
     if (selectedNode) chromeOpen("selection");
     else chromeClose("selection");
   }, [selectedNode, chromeOpen, chromeClose]);
+  // The emote wheel joins the layered-dismissal stack (Esc closes it first
+  // when it's on top; one overlay at a time via the one stacking manager).
+  useEffect(() => {
+    if (emote) chromeOpen("emote");
+    else chromeClose("emote");
+  }, [emote, chromeOpen, chromeClose]);
   const showCompose = chrome.isOpen("compose");
   useEffect(() => {
     rtRef.current.composing = showCompose;
@@ -299,6 +381,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         onBackToNow={world.backToNow}
         navigate={push}
         onRecenter={world.fitToContent}
+        onEmote={canEmote ? openEmoteFromRail : undefined}
       />
 
       {/* Wedge unseen counts + mark-seen pills — the manage layer's "what's
@@ -398,6 +481,27 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
           onClose={() => setPluck(null)}
         />
       )}
+
+      {/* Emote wheel — the radial picker for the room's bus verbs. Mounted
+          only with broadcast capability (never in Global) and stacked under
+          the one chrome manager like every overlay. */}
+      {emote && canEmote && (
+        <MeshEmoteWheel
+          target={emote.node}
+          anchor={emote.anchor}
+          heldPointer={emote.held}
+          onSend={(verb, target) => {
+            onFunMoment();
+            return sendEmote(rtRef.current, isOwnMesh, verb, target);
+          }}
+          onClose={closeEmote}
+        />
+      )}
+
+      {/* The one-time "Sound on?" opt-in — the mesh's fun sounds stay silent
+          until the user explicitly says yes (persisted through the ONE
+          existing sound preference; no second toggle). */}
+      {soundOffer && <MeshSoundOptIn onDone={() => setSoundOffer(false)} />}
 
       {/* The same world, as a list — the canvas's accessible twin. */}
       {chrome.isOpen("list") && world.status === "ready" && (

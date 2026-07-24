@@ -12,6 +12,18 @@ import type { ReactionGlyph } from "../scene/reaction-glyphs";
 /** Your Meshi throws a heart at the post you just liked — visible to you AND
  * to everyone else in the room, where it lands and ticks the count up. */
 export function spawnHeart(rt: MeshRuntime, fromX: number, fromY: number, targetId: string): void {
+  pushHeart(rt, fromX, fromY, targetId, false);
+}
+
+/** The NON-COUNTING variant for fun-verb hearts (the flick release, the emote
+ * wheel's heart, and an incoming `fling`): same flight, same landing flourish,
+ * but the landing never bumps the displayed Likes tick or pulses the strand —
+ * no like is written for a fun verb, so the tick must not pretend one was. */
+export function spawnCosmeticHeart(rt: MeshRuntime, fromX: number, fromY: number, targetId: string): void {
+  pushHeart(rt, fromX, fromY, targetId, true);
+}
+
+function pushHeart(rt: MeshRuntime, fromX: number, fromY: number, targetId: string, cosmetic: boolean): void {
   // Respect reduced-motion, same as spawnBurst — no flying flourish (the like
   // itself still registers through the normal action path).
   if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -22,6 +34,7 @@ export function spawnHeart(rt: MeshRuntime, fromX: number, fromY: number, target
     targetId,
     born: typeof performance !== "undefined" ? performance.now() : Date.now(),
     dur: 950,
+    cosmetic,
   });
 }
 
@@ -52,6 +65,27 @@ export function spawnBurst(
       burst: { angle, dist: 66 + Math.random() * 46 },
     });
   }
+}
+
+/** How many trails may ride at once — a reaction storm degrades to hearts
+ * only, never to an fx flood. */
+const MAX_TRAILS = 10;
+
+/** An INCOMING reaction's comet trail: fading motes tracing the same arc the
+ * remote heart flies, from the sender's Meshi to the target. Pure garnish on
+ * the canvas fx layer (tier-budgeted there: halved at T1, off at T2), so
+ * reduced motion skips it entirely and a cap bounds the worst case. */
+export function spawnReactionTrail(rt: MeshRuntime, fromX: number, fromY: number, targetId: string): void {
+  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  if (rt.trails.length >= MAX_TRAILS) return;
+  rt.trails.push({
+    fromX,
+    fromY,
+    targetId,
+    born: typeof performance !== "undefined" ? performance.now() : Date.now(),
+    // Matches the heart's flight, so the DOM glyph is the comet's head.
+    dur: 950,
+  });
 }
 
 /** Like → the heart physically flies from your Meshi and the room hears it. */

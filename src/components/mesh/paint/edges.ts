@@ -12,7 +12,8 @@
 
 import { projectPoint } from "../core/camera";
 import { birthProgress, chainFrom, nodeEmphasis } from "../sim/hitmap";
-import { drawStrandPulse } from "./fx";
+import { STRUM_WAVE_MS } from "../sim/strum";
+import { drawStrandPulse, drawStrandStrum } from "./fx";
 import { drawPill, strandLabelFor, withAlpha } from "./shared";
 import type { SceneNode, ScenePaintOptions } from "./types";
 
@@ -115,6 +116,14 @@ export function drawEdges(ctx: CanvasRenderingContext2D, o: ScenePaintOptions, k
         const pt = (time - pulseStart) / 900;
         if (pt >= 0 && pt < 1) {
           drawStrandPulse(ctx, a.x, a.y, c.x, c.y, b.x, b.y, pt, o.camera.zoom);
+        }
+      }
+      // Strum shimmer: a sweep across this filament sent a wave down it.
+      const strumStart = o.strandStrums?.get(`${parent.id}>${node.id}`);
+      if (strumStart != null) {
+        const st = (time - strumStart) / STRUM_WAVE_MS;
+        if (st >= 0 && st < 1) {
+          drawStrandStrum(ctx, a.x, a.y, c.x, c.y, b.x, b.y, st, o.camera.zoom, node.color);
         }
       }
     }
