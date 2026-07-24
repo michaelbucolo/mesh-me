@@ -15,6 +15,7 @@
     "foundation:check": "node scripts/foundation-check.mjs",
     "privacy:check": "node --import tsx scripts/privacy-policy-check.ts",
     "mesh:layout-check": "node --import tsx scripts/mesh-layout-determinism.ts",
+    "mesh:render-parity": "node --import tsx scripts/mesh-render-parity.ts",
     "reconciliation:check": "node --import tsx scripts/reconciliation-check.ts",
     "seed": "node --import tsx prisma/seed.ts",
     "test:smoke": "node scripts/platform-diagnostics.mjs --strict",

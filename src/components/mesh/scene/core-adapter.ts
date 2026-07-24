@@ -15,5 +15,10 @@ export {
   type Camera,
 } from "../core/camera";
 export { createMeshScheduler, type MeshScheduler } from "../core/scheduler";
+export {
+  createQualityGovernor,
+  probeStartTier,
+  type QualityGovernor,
+} from "../core/motion";
 export { deriveViewerCaps } from "../core/viewer";
 export { createMeshStore, type MeshStore } from "../core/store";
