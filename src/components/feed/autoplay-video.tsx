@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
+import { attachNormalizer, detachSafe } from "@/lib/audio-normalize";
 
 /**
  * Native video everywhere: plays automatically (muted) the moment it scrolls
@@ -46,7 +47,12 @@ export function AutoplayVideo({
       { threshold: [0, 0.5] },
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      // Normalizer graphs are element-lifetime — this is the documented no-op
+      // that says so; the element and its nodes are GC'd together.
+      detachSafe(el);
+    };
   }, []);
 
   if (failed && poster) {
@@ -74,6 +80,10 @@ export function AutoplayVideo({
         muted={muted}
         playsInline
         preload="metadata"
+        // Level cross-platform loudness once playback starts (never on
+        // preload) so unmuting lands at one considered level. CORS-unsafe
+        // sources keep their native audio path.
+        onPlay={(e) => attachNormalizer(e.currentTarget)}
         onError={() => setFailed(true)}
         onLoadedMetadata={(e) => {
           const el = e.currentTarget;

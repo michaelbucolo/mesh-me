@@ -9,6 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useState, useTransition, useRef } from "react";
+import { attachNormalizer } from "@/lib/audio-normalize";
 import { toggleReaction, toggleSavePost, repost, createComment } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 
@@ -246,7 +247,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                 )}
               >
                 {media.type.toLowerCase() === "video" ? (
-                  <video src={media.url} className="h-full w-full object-cover" controls preload="metadata" playsInline />
+                  <video src={media.url} className="h-full w-full object-cover" controls preload="metadata" playsInline onPlay={(event) => attachNormalizer(event.currentTarget)} />
                 ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={media.url} alt="" className="h-full w-full object-cover" />

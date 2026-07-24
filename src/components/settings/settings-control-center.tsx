@@ -7,6 +7,7 @@ import {
   Activity,
   AlignLeft,
   AtSign,
+  AudioLines,
   BadgeCheck,
   BarChart3,
   BellRing,
@@ -64,6 +65,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
+import { isVolumeNormalizationEnabled, setVolumeNormalizationEnabled } from "@/lib/audio-normalize";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import {
   MeshiMascot,
@@ -1899,6 +1901,7 @@ function AppearanceSection({
   isMeshPro: boolean;
 }) {
   const [soundsOn, setSoundsOn] = useState(() => isSoundEnabled());
+  const [normalizeOn, setNormalizeOn] = useState(() => isVolumeNormalizationEnabled());
   const modeIcons: Record<"system" | "light" | "dark", LucideIcon> = { system: MonitorSmartphone, light: Sun, dark: Moon };
   return (
     <div className="settings-section-stack">
@@ -1929,6 +1932,16 @@ function AppearanceSection({
               setSoundsOn(value);
               setSoundEnabled(value);
               if (value) playSound("chime");
+            }}
+          />
+          <Toggle
+            icon={AudioLines}
+            label="Normalize volume"
+            description="Even out loudness across videos and audio from every platform"
+            value={normalizeOn}
+            onChange={(value) => {
+              setNormalizeOn(value);
+              setVolumeNormalizationEnabled(value);
             }}
           />
         </div>

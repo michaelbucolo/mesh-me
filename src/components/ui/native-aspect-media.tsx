@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { attachNormalizer } from "@/lib/audio-normalize";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
 
 /**
@@ -97,6 +98,9 @@ export function NativeAspectMedia({
             controls
             preload="metadata"
             playsInline
+            // Level cross-platform loudness once playback starts (never on
+            // preload). CORS-unsafe sources keep their native audio path.
+            onPlay={(event) => attachNormalizer(event.currentTarget)}
             onLoadedMetadata={(event) => {
               const el = event.currentTarget;
               if (el.videoWidth && el.videoHeight) captureRatio(el.videoWidth / el.videoHeight);
