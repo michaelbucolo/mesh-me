@@ -144,8 +144,17 @@ function ReelMedia({
   // landscape media is shown whole (object-contain) over a blurred fill of its
   // own poster, so the real aspect ratio is preserved instead of hard-cropped.
   const [videoFit, setVideoFit] = useState<"cover" | "contain">("cover");
-  const video = videoFailed ? undefined : post.media.find((m) => m.type === "video");
-  const image = post.media.find((m) => m.type !== "video") ?? (videoFailed
+  // Type-aware media selection — any media type gets a stage that fits it:
+  // video plays, audio gets a player, every image in a gallery shows (not just
+  // the first), links/documents get the caption card with a way out. GIFs are
+  // images to an <img>.
+  const typeOf = (m: { type: string }) => m.type.toLowerCase();
+  const video = videoFailed ? undefined : post.media.find((m) => typeOf(m) === "video");
+  const audio = post.media.find((m) => typeOf(m) === "audio");
+  const images = post.media.filter((m) => ["image", "photo", "gif"].includes(typeOf(m)));
+  const linkMedia = post.media.find((m) => ["link", "document"].includes(typeOf(m)));
+  const [imageIndex, setImageIndex] = useState(0);
+  const image = images[0] ?? (videoFailed
     ? post.media.map((m) => (m.posterUrl ? { ...m, url: m.posterUrl, type: "image" } : null)).find(Boolean) ?? undefined
     : undefined);
 
@@ -292,25 +301,98 @@ function ReelMedia({
     );
   }
 
+  // Audio (podcasts, tracks): a real player over its art — never an <img>
+  // pointed at an audio file.
+  if (audio) {
+    return (
+      <div ref={wrapRef} className="relative flex h-full w-full items-center justify-center bg-black" onClick={(e) => e.stopPropagation()}>
+        {image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image.url} alt="" aria-hidden loading="lazy" decoding="async" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" />
+        )}
+        <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-5 px-8">
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image.url} alt="" loading="lazy" decoding="async" className="h-44 w-44 rounded-2xl object-cover shadow-2xl" />
+          ) : (
+            <span className="flex h-44 w-44 items-center justify-center rounded-2xl bg-white/10">
+              <Music2 size={56} className="text-white/80" />
+            </span>
+          )}
+          <audio src={audio.url} controls preload="metadata" className="w-full" />
+        </div>
+      </div>
+    );
+  }
+
   if (image) {
+    const shown = images.length > 1 ? images[Math.min(imageIndex, images.length - 1)] : image;
+    const shownIndex = Math.min(imageIndex, Math.max(images.length - 1, 0));
     return (
       <div className="relative h-full w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image.url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" aria-hidden />
+        <img src={shown.url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" aria-hidden />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image.url} alt="" loading="lazy" decoding="async" className="relative h-full w-full object-contain" />
+        <img src={shown.url} alt="" loading="lazy" decoding="async" className="relative h-full w-full object-contain" />
         {embedUrl && (
           <span className="absolute inset-0 flex items-center justify-center">
             <Play size={64} className="text-white/85 drop-shadow-lg" fill="currentColor" />
           </span>
         )}
+        {/* Galleries: every image reachable, IG-style dots + step arrows. The
+            arrows stop propagation so stepping never pauses or double-likes. */}
+        {images.length > 1 && (
+          <>
+            <span className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center gap-1.5">
+              {images.map((m, i) => (
+                <span key={m.id ?? i} className={`h-1 rounded-full transition-all duration-200 ${i === shownIndex ? "w-5 bg-white/90" : "w-2.5 bg-white/35"}`} />
+              ))}
+            </span>
+            {shownIndex > 0 && (
+              <button
+                type="button"
+                aria-label="Previous image"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageIndex(Math.max(0, shownIndex - 1));
+                }}
+                className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+              >
+                <ChevronLeft size={18} />
+              </button>
+            )}
+            {shownIndex < images.length - 1 && (
+              <button
+                type="button"
+                aria-label="Next image"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageIndex(Math.min(images.length - 1, shownIndex + 1));
+                }}
+                className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/55 p-2 text-white/90 backdrop-blur transition active:scale-90"
+              >
+                <ChevronRight size={18} />
+              </button>
+            )}
+          </>
+        )}
       </div>
     );
   }
 
-  // Text-only content gets the full reel stage.
+  // Text, link, and article posts get the full reel stage — with an explicit
+  // way out when the post IS a link (previously a link rendered as a broken
+  // <img> because "media" was non-empty).
+  const linkHost = (() => {
+    if (!linkMedia) return null;
+    try {
+      return new URL(linkMedia.url).hostname.replace(/^www\./, "");
+    } catch {
+      return null;
+    }
+  })();
   return (
-    <div className="flex h-full w-full items-center justify-center px-8" style={{ background: textStageFor(post.id) }}>
+    <div className="flex h-full w-full flex-col items-center justify-center gap-5 px-8" style={{ background: textStageFor(post.id) }}>
       <p
         className={`max-w-md whitespace-pre-wrap text-center font-semibold leading-snug text-white ${
           post.content.length > 220 ? "text-lg" : post.content.length > 90 ? "text-xl" : "text-2xl"
@@ -318,6 +400,18 @@ function ReelMedia({
       >
         {post.content}
       </p>
+      {linkMedia && linkHost && (
+        <a
+          href={linkMedia.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-2 rounded-full bg-black/40 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur transition hover:bg-black/55"
+        >
+          <Link2 size={15} />
+          {linkHost}
+        </a>
+      )}
     </div>
   );
 }
