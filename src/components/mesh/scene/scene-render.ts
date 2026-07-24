@@ -672,7 +672,8 @@ function drawPostCard(
     ctx.fillText(String(comments), mx, footY);
   }
 
-  // Source chip (pill) on the right.
+  // Source chip (pill) on the right — quiet, neutral provenance, not a neon
+  // badge (the branch color stays on the tiny author dot only).
   const chipText = "Source";
   ctx.font = `600 ${Math.max(7, 8 * scale)}px ui-sans-serif, system-ui, sans-serif`;
   const chipTW = ctx.measureText(chipText).width;
@@ -682,19 +683,22 @@ function drawPostCard(
   const chipX = x + w - pad - chipW;
   const chipY = footY - chipH / 2;
   roundRectPath(ctx, chipX, chipY, chipW, chipH, chipH / 2);
-  ctx.fillStyle = withAlpha(node.color, 0.16);
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
   ctx.fill();
-  ctx.strokeStyle = withAlpha(node.color, 0.5);
+  ctx.strokeStyle = "rgba(255,255,255,0.16)";
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = withAlpha(node.color, 0.95);
+  ctx.fillStyle = withAlpha("#9aa3bc", 0.95);
   ctx.textAlign = "center";
   ctx.fillText(chipText, chipX + chipW / 2, footY + 0.5);
 
-  // Border + soft glow.
+  // Border + soft glow — the same glass-card language as the app's panels:
+  // a subtle white hairline at rest, the account accent when engaged.
   ctx.textAlign = "left";
   roundRectPath(ctx, x, y, w, h, radius);
-  ctx.strokeStyle = withAlpha(node.color, isSelected ? 0.95 : isHover ? 0.8 : 0.32 * emph + 0.14);
+  ctx.strokeStyle = isSelected || isHover
+    ? withAlpha("#6e8bff", isSelected ? 0.95 : 0.75)
+    : withAlpha("#ffffff", 0.10 + 0.10 * emph);
   ctx.lineWidth = isSelected || isHover ? 1.8 : 1.1;
   ctx.stroke();
 

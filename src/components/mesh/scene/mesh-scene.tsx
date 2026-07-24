@@ -3081,7 +3081,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       {/* How to explore — shown on first visit, reopenable from the rail */}
       {showTips && status === "ready" && (
         <div
-          className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
+          className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/55 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:pb-4"
           onPointerDown={(e) => {
             e.stopPropagation();
             if (e.target === e.currentTarget) dismissTips();
