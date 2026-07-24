@@ -222,17 +222,22 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
   let memberCount = 0;
   let threadCreatedAt = new Date().toISOString();
   let formRecipientId: string | undefined;
+  // The viewer's lastRead as it stood BEFORE this visit bumps it — the client
+  // anchors its "New" unread divider to this moment.
+  let viewerLastReadAt: string | null = null;
   let conversationMembers: Array<{
     userId: string;
     role: string;
     notificationsMuted: boolean;
     lastRead: string;
+    readReceipts: boolean;
     user: ConversationUser;
   }> = [{
     userId: user.id,
     role: "owner",
     notificationsMuted: false,
     lastRead: new Date().toISOString(),
+    readReceipts: true,
     user: {
       id: user.id,
       username: user.username,
@@ -256,6 +261,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
           displayName: true,
           avatarUrl: true,
           isVerified: true,
+          readReceipts: true,
         },
       }),
       prisma.messageThread.findFirst({
@@ -289,6 +295,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
         role: "member",
         notificationsMuted: false,
         lastRead: new Date(0).toISOString(),
+        readReceipts: foundRecipient?.readReceipts ?? false,
         user: {
           id: recipient.id,
           username: recipient.username,
@@ -314,6 +321,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                 displayName: true,
                 avatarUrl: true,
                 isVerified: true,
+                readReceipts: true,
               },
             },
           },
@@ -323,6 +331,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
 
     if (!thread) notFound();
     const otherMembers = thread.members.filter((member) => member.userId !== user.id);
+    viewerLastReadAt = thread.members.find((member) => member.userId === user.id)?.lastRead.toISOString() ?? null;
     recipient = otherMembers[0]?.user ?? null;
     isGroupThread = thread.threadType === "group" || otherMembers.length > 1;
     isExternalThread = Boolean(thread.connectedAccountId && thread.externalConversationId);
@@ -345,6 +354,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
       role: member.role,
       notificationsMuted: member.notificationsMuted,
       lastRead: member.userId === user.id ? new Date().toISOString() : member.lastRead.toISOString(),
+      readReceipts: member.user.readReceipts,
       user: {
         id: member.user.id,
         username: member.user.username,
@@ -396,7 +406,10 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
         senderName: replyTo.senderName,
       } : null,
       readBy: conversationMembers
-        .filter((member) => new Date(member.lastRead).getTime() >= message.createdAt.getTime())
+        // Mirror GET /api/messages/[threadId]: the per-user "Read receipts"
+        // toggle (default off) is honored on first paint too, so an opted-out
+        // member never flashes as "Read" before the first poll corrects it.
+        .filter((member) => member.readReceipts && new Date(member.lastRead).getTime() >= message.createdAt.getTime())
         .map((member) => ({
           userId: member.userId,
           displayName: member.user.displayName,
@@ -513,6 +526,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
               initialSource={sharedContent ?? undefined}
               isExternalThread={isExternalThread}
               threadPlatform={threadPlatform}
+              initialLastReadAt={viewerLastReadAt}
             />
           </div>
         </section>

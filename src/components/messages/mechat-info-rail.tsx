@@ -1,4 +1,4 @@
-import { BadgeCheck, FileText, Image as ImageIcon, LockKeyhole, Settings2, ShieldCheck, Users } from "lucide-react";
+import { BadgeCheck, FileText, Image as ImageIcon, LockKeyhole, ShieldCheck, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -107,28 +107,22 @@ export function MeChatInfoRail({
           </div>
           <p className="mt-1 text-sm text-[var(--mesh-text-secondary)]">{subtitle}</p>
 
-          <div className="mt-4 grid w-full grid-cols-2 gap-2 min-[360px]:grid-cols-4">
+          {/* Stat tiles, not buttons — nothing here pretends to be tappable
+              until the capability behind it actually exists. */}
+          <div className="mt-4 grid w-full grid-cols-3 gap-2">
             {[
               { icon: Users, label: "Members", value: members.length },
               { icon: ImageIcon, label: "Media", value: mediaCount },
               { icon: FileText, label: "Files", value: fileCount },
-              { icon: Settings2, label: "Settings", value: null },
             ].map((item) => (
-              <button
+              <div
                 key={item.label}
-                type="button"
-                className="mesh-pressable flex flex-col items-center gap-1 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-3 text-center"
+                className="flex flex-col items-center gap-1 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-3 text-center"
               >
                 <item.icon size={15} className="text-[var(--mesh-text-secondary)]" />
                 <span className="text-[11px] font-semibold text-[var(--mesh-text-secondary)]">{item.label}</span>
-                {item.value === null ? (
-                  <span className="flex h-4 items-center text-[var(--mesh-text)]" aria-hidden="true">
-                    <Settings2 size={14} />
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold text-[var(--mesh-text)]">{item.value}</span>
-                )}
-              </button>
+                <span className="text-xs font-bold text-[var(--mesh-text)]">{item.value}</span>
+              </div>
             ))}
           </div>
         </div>

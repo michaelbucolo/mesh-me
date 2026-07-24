@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
   CheckCheck,
@@ -101,6 +101,8 @@ type MeChatThreadProps = {
   initialSource?: SharedMessageSource;
   isExternalThread?: boolean;
   threadPlatform?: string;
+  /** The viewer's lastRead before this visit bumped it — anchors the "New" divider. */
+  initialLastReadAt?: string | null;
 };
 
 const QUICK_REACTIONS = ["\u2764\uFE0F", "\uD83D\uDE02", "\uD83D\uDD25", "\uD83D\uDC4D"];
@@ -130,9 +132,17 @@ function localReactionGroups(message: MeChatSerializedMessage, currentUserId: st
 
 function readState(message: MeChatSerializedMessage, currentUserId: string) {
   if (message.senderId !== currentUserId) return "";
+  // An optimistic bubble hasn't reached the server yet — say so instead of
+  // claiming "Delivered" before the POST confirms.
+  if (message.id.startsWith("optimistic-")) return "Sending";
   const readers = message.readBy.filter((reader) => reader.userId !== currentUserId);
   if (readers.length === 0) return "Delivered";
   return "Read";
+}
+
+/** True for anything not authored by the viewer (including synced external senders). */
+function isIncomingMessage(message: MeChatSerializedMessage, currentUserId: string) {
+  return message.senderId !== currentUserId || Boolean(message.metadata.externalSender);
 }
 
 function messageMatchesSearch(message: MeChatSerializedMessage, query: string) {
@@ -246,8 +256,10 @@ export function MeChatThread({
   initialSource,
   isExternalThread = false,
   threadPlatform = "mesh",
+  initialLastReadAt,
 }: MeChatThreadProps) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const [activeThreadId, setActiveThreadId] = useState(initialThreadId);
   const [messages, setMessages] = useState(initialMessages);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
@@ -273,9 +285,28 @@ export function MeChatThread({
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
   const prevLenRef = useRef(0);
-  const [hasNewBelow, setHasNewBelow] = useState(false);
+  const [newBelowCount, setNewBelowCount] = useState(0);
+  // Visible whenever you've scrolled up, even with nothing new — a quiet way
+  // back to the latest message.
+  const [showJump, setShowJump] = useState(false);
+  // The "New" divider anchors to the first message you hadn't read when the
+  // thread opened, and stays put for the whole visit even though polling keeps
+  // bumping lastRead server-side.
+  const [firstUnreadId] = useState<string | null>(() => {
+    if (!initialLastReadAt) return null;
+    const lastRead = +new Date(initialLastReadAt);
+    const first = initialMessages.find(
+      (message) => +new Date(message.createdAt) > lastRead && isIncomingMessage(message, currentUser.id),
+    );
+    return first?.id ?? null;
+  });
+  const unreadDividerRef = useRef<HTMLDivElement>(null);
+  const didInitialScrollRef = useRef(false);
   const draftRef = useRef<HTMLTextAreaElement>(null);
   const typingTimerRef = useRef<number | null>(null);
+  // Only real keystrokes signal "typing" — a restored draft or shared source
+  // pre-filling the composer must not raise a phantom indicator for others.
+  const draftTouchedRef = useRef(false);
   // Track which message ids have already been shown so only genuinely new
   // arrivals spring in — initial history and search re-filters stay calm.
   const seenIdsRef = useRef<Set<string>>(new Set(initialMessages.map((message) => message.id)));
@@ -339,16 +370,31 @@ export function MeChatThread({
   }, [activeThreadId, loadThread]);
 
   useEffect(() => {
-    const grew = messages.length > prevLenRef.current;
+    const grew = messages.length - prevLenRef.current;
     prevLenRef.current = messages.length;
+    // Opening a thread with unread history lands on the "New" divider so you
+    // resume where you left off; without one you start at the newest message.
+    if (!didInitialScrollRef.current) {
+      didInitialScrollRef.current = true;
+      if (unreadDividerRef.current) {
+        unreadDividerRef.current.scrollIntoView({ block: "start" });
+        const el = scrollRef.current;
+        if (el) {
+          const near = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+          nearBottomRef.current = near;
+          setShowJump(!near);
+        }
+        return;
+      }
+    }
     // Stay pinned to the newest only if you're already there (this also keeps
     // the typing indicator in view). If you've scrolled up to read, a NEW
     // message raises the pill instead of hijacking your scroll position.
     if (nearBottomRef.current) {
       bottomRef.current?.scrollIntoView({ block: "end" });
-      setHasNewBelow(false); // no-op when already false
-    } else if (grew) {
-      setHasNewBelow(true);
+      setNewBelowCount(0); // no-op when already 0
+    } else if (grew > 0) {
+      setNewBelowCount((count) => count + grew);
     }
   }, [messages.length, typingUsers.length]);
 
@@ -356,14 +402,58 @@ export function MeChatThread({
   useEffect(() => {
     nearBottomRef.current = true;
     prevLenRef.current = 0;
-    setHasNewBelow(false);
+    setNewBelowCount(0);
   }, [activeThreadId]);
 
   // Once a message has rendered it counts as "seen" — later re-mounts (search
   // filtering, reordering) then skip the entrance instead of replaying it.
+  // Genuinely new arrivals from someone else also get a soft receive chime.
   useEffect(() => {
-    for (const message of messages) seenIdsRef.current.add(message.id);
-  }, [messages]);
+    let incoming = false;
+    for (const message of messages) {
+      if (seenIdsRef.current.has(message.id)) continue;
+      seenIdsRef.current.add(message.id);
+      if (isIncomingMessage(message, currentUser.id)) incoming = true;
+    }
+    if (incoming && document.visibilityState === "visible") playSound("ding");
+  }, [messages, currentUser.id]);
+
+  // A half-typed draft survives hopping between conversations — kept per
+  // thread in sessionStorage so nothing lingers after the tab closes.
+  const draftStorageKey = `mechat-draft:${activeThreadId || recipientId || "new"}`;
+
+  useEffect(() => {
+    if (initialSource?.content) return; // a shared source already fills the composer
+    try {
+      const saved = sessionStorage.getItem(draftStorageKey);
+      if (saved) setDraft((current) => current || saved);
+    } catch {
+      // Storage may be unavailable; the composer just starts empty.
+    }
+  }, [draftStorageKey, initialSource]);
+
+  useEffect(() => {
+    try {
+      if (draft) sessionStorage.setItem(draftStorageKey, draft.slice(0, 4000));
+      else sessionStorage.removeItem(draftStorageKey);
+    } catch {
+      // Best-effort.
+    }
+  }, [draft, draftStorageKey]);
+
+  // Auto-grow with the draft (typing, restored drafts, the thumbs-up shortcut)
+  // up to ~5 lines, then scroll inside; emptying it snaps back to one line.
+  useEffect(() => {
+    const el = draftRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 132)}px`;
+  }, [draft]);
+
+  // Desktop lands ready to type; touch keeps the keyboard down until asked.
+  useEffect(() => {
+    if (window.matchMedia("(pointer: fine)").matches) draftRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!activeThreadId) return;
@@ -377,6 +467,7 @@ export function MeChatThread({
       }).catch(() => {});
       return;
     }
+    if (!draftTouchedRef.current) return;
 
     typingTimerRef.current = window.setTimeout(() => {
       void fetch(`/api/messages/${activeThreadId}/typing`, {
@@ -442,6 +533,9 @@ export function MeChatThread({
           source: pendingSource,
         });
         optimisticId = optimistic.id;
+        // Sending always brings you back to the newest message, even if you
+        // were reading history when you hit Enter.
+        nearBottomRef.current = true;
         setMessages((current) => [...current, optimistic]);
         playSound("send");
 
@@ -464,9 +558,13 @@ export function MeChatThread({
         const data = await safeFetchJson<{ message?: MeChatSerializedMessage; error?: string }>(response);
         if (!response.ok || !data.message) throw new Error(data.error || "Message failed");
         setDraft("");
-        // Reset the auto-grown height, or the composer stays tall and empty
-        // after sending a multi-line message.
-        if (draftRef.current) draftRef.current.style.height = "auto";
+        // Drop the stored draft under the pre-send key too (creating a thread
+        // moves the key from recipient to thread mid-flight).
+        try {
+          sessionStorage.removeItem(draftStorageKey);
+        } catch {
+          // Best-effort.
+        }
         setReplyTo(null);
         setPendingSource(undefined);
         setAttachments([]);
@@ -581,7 +679,8 @@ export function MeChatThread({
           const el = e.currentTarget;
           const near = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
           nearBottomRef.current = near;
-          if (near && hasNewBelow) setHasNewBelow(false);
+          if (near && newBelowCount) setNewBelowCount(0);
+          setShowJump(!near); // React bails out when the value hasn't changed
         }}
         className="min-h-0 overflow-y-auto px-3 py-4 md:px-4"
       >
@@ -623,6 +722,22 @@ export function MeChatThread({
                     </span>
                   </div>
                 )}
+                {/* "New" divider — where you left off last visit. Hidden while
+                    searching so filtered results stay clean. */}
+                {firstUnreadId === message.id && !searchQuery.trim() && (
+                  <div
+                    ref={unreadDividerRef}
+                    role="separator"
+                    aria-label="New messages"
+                    className="my-4 flex scroll-mt-3 items-center gap-3"
+                  >
+                    <span className="h-px flex-1 bg-[var(--accent)]/40" aria-hidden="true" />
+                    <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+                      New
+                    </span>
+                    <span className="h-px flex-1 bg-[var(--accent)]/40" aria-hidden="true" />
+                  </div>
+                )}
                 <article
                   data-testid="mechat-message-bubble"
                   className={`group flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"} ${groupedReactions.length > 0 ? "mt-4" : groupedWithPrev ? "mt-0.5" : newDay ? "" : "mt-3"}`}
@@ -639,7 +754,7 @@ export function MeChatThread({
                       />
                     ))}
                   <motion.div
-                    initial={seenIdsRef.current.has(message.id) ? false : { opacity: 0, x: isMine ? 12 : -26, y: 6, scale: 0.965 }}
+                    initial={reduceMotion || seenIdsRef.current.has(message.id) ? false : { opacity: 0, x: isMine ? 12 : -26, y: 6, scale: 0.965 }}
                     animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
                     transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.7 }}
                     className={`relative max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}
@@ -727,7 +842,7 @@ export function MeChatThread({
                             <motion.button
                               key={reaction.emoji}
                               type="button"
-                              initial={{ scale: 0, opacity: 0 }}
+                              initial={reduceMotion ? false : { scale: 0, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
                               whileTap={{ scale: 0.9 }}
                               transition={{ type: "spring", stiffness: 500, damping: 18, mass: 0.6 }}
@@ -850,7 +965,9 @@ export function MeChatThread({
                         {message.metadata.edited && !message.metadata.unsent && <span>· Edited</span>}
                         {readers && (
                           <span className="inline-flex items-center gap-1">
-                            · <CheckCheck size={12} aria-hidden="true" />
+                            · {readers === "Sending"
+                              ? <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                              : <CheckCheck size={12} aria-hidden="true" />}
                             {readers}
                           </span>
                         )}
@@ -920,21 +1037,34 @@ export function MeChatThread({
 
         {/* "New messages" pill — appears only when you've scrolled up and a
             fresh message arrived, sticking to the bottom of the scroll port so
-            it never hijacks your reading position. Tap to jump to the latest. */}
+            it never hijacks your reading position. Tap to jump to the latest.
+            With nothing new, a quieter round arrow offers the same jump. */}
         <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
-          {hasNewBelow && (
+          {newBelowCount > 0 ? (
             <button
               type="button"
               onClick={() => {
-                bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-                setHasNewBelow(false);
+                bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
+                setNewBelowCount(0);
               }}
               className="ds-focus-ring pointer-events-auto flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg transition hover:bg-[var(--accent-hover)]"
             >
-              New messages
+              {newBelowCount > 1 ? `${newBelowCount} new messages` : "New messages"}
               <ArrowDown size={14} aria-hidden="true" />
             </button>
-          )}
+          ) : showJump ? (
+            <button
+              type="button"
+              onClick={() => {
+                bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
+              }}
+              className="ds-focus-ring pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/90 text-[var(--text-secondary)] shadow-lg backdrop-blur transition hover:text-[var(--text-primary)]"
+              aria-label="Jump to latest"
+              title="Jump to latest"
+            >
+              <ArrowDown size={16} aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -1053,11 +1183,8 @@ export function MeChatThread({
               ref={draftRef}
               value={draft}
               onChange={(event) => {
+                draftTouchedRef.current = true;
                 setDraft(event.target.value);
-                // Grow with the draft, up to ~5 lines, then scroll inside.
-                const el = event.currentTarget;
-                el.style.height = "auto";
-                el.style.height = `${Math.min(el.scrollHeight, 132)}px`;
               }}
               onKeyDown={(event) => {
                 // `isComposing` guards IME/CJK input: the Enter that commits a
@@ -1068,7 +1195,8 @@ export function MeChatThread({
                   sendCurrentMessage();
                 } else if (event.key === "Escape") {
                   // Escape backs out of whatever context is open, in order.
-                  if (replyTo) setReplyTo(null);
+                  if (actionsFor) setActionsFor(null);
+                  else if (replyTo) setReplyTo(null);
                   else if (pendingSource) setPendingSource(undefined);
                   else if (showMediaTools) setShowMediaTools(false);
                 }
@@ -1086,6 +1214,7 @@ export function MeChatThread({
             <button
               type="button"
               onClick={() => {
+                draftTouchedRef.current = true;
                 setDraft((current) => `${current}${current ? " " : ""}\uD83D\uDC4D`);
                 draftRef.current?.focus();
               }}
