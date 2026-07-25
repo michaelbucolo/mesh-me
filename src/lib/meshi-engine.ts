@@ -2,6 +2,7 @@
 
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { hasMeshiConsent, meshiConsentWhere, profileDiscoveryConsentWhere } from "./consent";
 import { nsfwHiddenWhere } from "./content-safety";
 import { encodeDeliveryNotificationMessage } from "./notifications";
 import {
@@ -276,6 +277,12 @@ async function resolvePersonForViewer(name: string, viewerId: string) {
         { displayName: { contains: searchTerm } },
       ],
       isSuspended: false,
+      // Someone who switched "Meshi memory" off is not a subject Meshi may
+      // answer about — for anyone. Filtering here (rather than after the read)
+      // means the five person_* intents that share this resolver all fail
+      // closed, and they fail as an ordinary "can't find them", which does not
+      // disclose that the account exists and opted out.
+      ...meshiConsentWhere(),
     },
     select: {
       id: true, username: true, displayName: true, isPublic: true,
@@ -334,6 +341,9 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
           { username: { contains: searchTerm } },
           { displayName: { contains: searchTerm } },
         ],
+        // Following someone does not license Meshi to profile them: the
+        // person's own "Meshi memory" rule still decides.
+        ...meshiConsentWhere(),
       },
     },
     include: {
@@ -400,6 +410,8 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
       isSuspended: false,
       isPublic: true,
       showInDiscovery: true,
+      ...profileDiscoveryConsentWhere(),
+      ...meshiConsentWhere(),
     },
     select: { id: true, username: true, displayName: true, isVerified: true, _count: { select: { followers: true } } },
   });
@@ -711,13 +723,14 @@ async function searchPosts(topic: string): Promise<MeshiAnswer> {
             { authorId: user.id },
             {
               visibility: "public",
-              author: { followers: { some: { followerId: user.id } } },
+              author: { followers: { some: { followerId: user.id } }, ...meshiConsentWhere() },
             },
             {
               visibility: "friends",
               author: {
                 followers: { some: { followerId: user.id } },
                 following: { some: { followingId: user.id } },
+                ...meshiConsentWhere(),
               },
             },
           ],
@@ -1057,6 +1070,8 @@ async function getWhoActive(): Promise<MeshiAnswer> {
       isSuspended: false,
       hideActivityStatus: false,
       id: { notIn: Array.from(blockedIds) },
+      // Presence read out loud by an assistant is still Meshi using their data.
+      ...meshiConsentWhere(),
       OR: [
         { status: "online" },
         { lastSeenAt: { gte: fiveMinAgo } },
@@ -1238,6 +1253,21 @@ async function getPostCount(name?: string): Promise<MeshiAnswer> {
 // ─── Main Engine Entry Point ──────────────────────────────────
 
 export async function meshiQuery(question: string): Promise<MeshiAnswer> {
+  // The caller's "Meshi memory" rule, enforced at the engine door rather than
+  // only in /api/meshi/chat. This module is "use server", so meshiQuery is a
+  // dispatchable Server Action — a client can invoke it directly and skip the
+  // route's check entirely. Repeating it here is what makes the gate
+  // server-authoritative instead of merely well-placed.
+  const viewer = await getCurrentUser();
+  if (!viewer) return { content: "", mood: "thinking" };
+  if (!(await hasMeshiConsent(viewer.id))) {
+    return {
+      content:
+        "Your privacy rules say I should not use your Mesh, so I am not reading it. You can switch Meshi memory back on in your privacy controls.",
+      mood: "thinking",
+    };
+  }
+
   const intent = detectIntent(question);
 
   switch (intent.type) {

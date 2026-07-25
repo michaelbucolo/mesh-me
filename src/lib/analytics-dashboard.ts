@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { hasAnalyticsConsent } from "@/lib/consent";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { prisma } from "@/lib/prisma";
 import { memoizeWithTtl } from "@/lib/ttl-memo";
@@ -119,6 +120,12 @@ function growthDelta(points: Array<{ followerCount: number }>) {
 export async function getAnalyticsDashboardData() {
   const user = await getCurrentUser();
   if (!user) return null;
+  // "Analytics — performance data used inside the private analytics dashboard."
+  // Every figure below is derived from this user's own activity, so the honest
+  // answer to a withdrawn consent is not to compute it at all: no 32-query
+  // scan, nothing memoized. `null` is the shape the page already handles for a
+  // signed-out visitor, so the dashboard renders its empty state.
+  if (!(await hasAnalyticsConsent(user.id))) return null;
   return loadAnalyticsDashboard(user);
 }
 

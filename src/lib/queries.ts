@@ -6,6 +6,7 @@ import { getCurrentUser } from "./auth";
 import { parseMeChatMetadata } from "./mechat-metadata";
 import { getGlobalMeshSelfPreviewCore, type GlobalMeshSelfPreview } from "./global-mesh";
 import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
+import { nativePostDiscoveryConsentWhere, profileDiscoveryConsentWhere } from "./consent";
 import { ABOUT_FIELDS, type AboutField, canSeeAboutField, parseFieldPrivacy } from "./profile-info";
 import {
   areMutualFollowers,
@@ -156,9 +157,11 @@ export async function getExplorePosts(page = 1, limit = 20) {
         ...(blockedIds.length ? { authorId: { notIn: blockedIds } } : {}),
         OR: [
           { authorId: user.id },
-          // Public posts circulate when their author opted into discovery.
+          // Public posts circulate when their author opted into discovery —
+          // both account-wide (showInDiscovery) and for this category (the
+          // privacy centre's "Mesh.me posts" rule).
           {
-            author: { isSuspended: false, showInDiscovery: true },
+            author: { isSuspended: false, showInDiscovery: true, ...nativePostDiscoveryConsentWhere() },
             OR: [{ communityId: null }, { community: { isPublic: true } }],
           },
         ],
@@ -166,7 +169,7 @@ export async function getExplorePosts(page = 1, limit = 20) {
     : {
         isNsfw: false,
         visibility: "public",
-        author: { isSuspended: false, showInDiscovery: true },
+        author: { isSuspended: false, showInDiscovery: true, ...nativePostDiscoveryConsentWhere() },
         OR: [{ communityId: null }, { community: { isPublic: true } }],
       };
 
@@ -981,6 +984,7 @@ export async function searchAll(query: string) {
         id: { notIn: [user.id, ...blocked] },
         isSuspended: false,
         showInDiscovery: true,
+        ...profileDiscoveryConsentWhere(),
       },
       select: {
         id: true,
@@ -1000,10 +1004,11 @@ export async function searchAll(query: string) {
         ...(blockedIds.length ? { authorId: { notIn: blockedIds } } : {}),
         OR: [
           { authorId: user.id },
-          // Strangers only ever match posts published as public.
+          // Strangers only ever match posts published as public, by an author
+          // who opted into discovery for the "Mesh.me posts" category.
           {
             visibility: "public",
-            author: { isSuspended: false, showInDiscovery: true },
+            author: { isSuspended: false, showInDiscovery: true, ...nativePostDiscoveryConsentWhere() },
             OR: [{ communityId: null }, { community: { isPublic: true } }],
           },
         ],
@@ -1215,6 +1220,7 @@ export async function getDiscoverUsers(currentUser?: CurrentUser | null) {
       where: {
         isSuspended: false,
         showInDiscovery: true,
+        ...profileDiscoveryConsentWhere(),
         id: { not: user.id },
         followers: { none: { followerId: user.id } },
       },

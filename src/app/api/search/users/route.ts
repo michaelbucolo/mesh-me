@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { profileDiscoveryConsentWhere } from "@/lib/consent";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
@@ -25,6 +26,7 @@ export async function GET(request: Request) {
       isSuspended: false,
       isPublic: true,
       showInDiscovery: true,
+      ...profileDiscoveryConsentWhere(),
     },
     select: {
       id: true,

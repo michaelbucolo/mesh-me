@@ -188,6 +188,43 @@ try {
     await client.execute("UPDATE User SET hideActivityStatus = 0 WHERE hideActivityStatus = 1 AND isSuspended = 0");
     await client.execute("UPDATE User SET showInDiscovery = 1 WHERE showInDiscovery = 0 AND isSuspended = 0");
   });
+
+  // Permissive backfill for the DataVisibilityPolicy consent flags, mirroring
+  // prisma/migrations/20260725060000_backfill_data_visibility_consent (which
+  // only runs against local/file databases). Until src/lib/consent.ts shipped,
+  // allowDiscovery/allowAnalytics/allowMeshiUse were written but never read, so
+  // a stored `false` recorded no decision — it was simply the column default or
+  // a placeholder the client fills in for categories the switch does not
+  // govern. Bring those up to the permissive value that was genuinely in force,
+  // while leaving the deliberate restrictive choices (a non-public `profile`, a
+  // `hidden` analytics/Meshi rule) intact so the switches finally mean
+  // something. See the migration file for the full reasoning per statement.
+  // This MUST stay in runOnce: replayed on every deploy it would overwrite
+  // every choice users make from here on.
+  await runOnce("data-visibility-consent-backfill-2026", async () => {
+    // Retire the pre-rename 'meshi_ai' category first: /api/data-controls
+    // matches rows by the normalized name, so a legacy row is never updated and
+    // would strand a denial the privacy centre cannot clear.
+    await client.execute(
+      `DELETE FROM DataVisibilityPolicy WHERE entityType = 'meshi_ai' AND EXISTS (
+         SELECT 1 FROM DataVisibilityPolicy AS newer
+         WHERE newer.userId = DataVisibilityPolicy.userId
+           AND newer.entityType = 'meshi_memory'
+           AND newer.entityId IS DataVisibilityPolicy.entityId)`,
+    );
+    await client.execute(
+      "UPDATE DataVisibilityPolicy SET entityType = 'meshi_memory' WHERE entityType = 'meshi_ai'",
+    );
+    await client.execute(
+      "UPDATE DataVisibilityPolicy SET allowDiscovery = 1 WHERE allowDiscovery = 0 AND (visibility = 'public' OR (entityType = 'native_posts' AND visibility NOT IN ('private', 'hidden')))",
+    );
+    await client.execute(
+      "UPDATE DataVisibilityPolicy SET allowAnalytics = 1 WHERE allowAnalytics = 0 AND visibility <> 'hidden'",
+    );
+    await client.execute(
+      "UPDATE DataVisibilityPolicy SET allowAiUse = 1 WHERE allowAiUse = 0 AND visibility <> 'hidden' AND entityType IN ('meshi_memory', 'meshi_ai')",
+    );
+  });
 } finally {
   await client.close?.();
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { hasMeshiConsent } from "@/lib/consent";
 import { meshiQuery } from "@/lib/meshi-engine";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
@@ -555,12 +556,22 @@ export async function POST(req: Request) {
       );
     }
 
+    // The caller's own "Meshi memory" rule. When it is switched off, Meshi must
+    // not read their mesh (no grounding query) and must not ship their mesh
+    // context upstream — the reasoning provider is off-device, so the context
+    // object is the actual egress. Resolved server-side: the client supplies
+    // `context`, so a client-side check would gate nothing.
+    const meshiMayUseCallerData = await hasMeshiConsent(user.id);
+    const groundedContext = meshiMayUseCallerData
+      ? context
+      : (context?.currentPage ? { currentPage: context.currentPage } : undefined);
+
     let databaseAnswer: { content: string; mood: string; action?: MeshiAction } | undefined;
     const openEndedTask = isOpenEndedCreativeTask(message);
-    const focusedContentTask = isFocusedContentTask(message, context);
+    const focusedContentTask = isFocusedContentTask(message, groundedContext);
 
     // Try the smart query engine first — it queries the database for real answers
-    if (!openEndedTask && !focusedContentTask) {
+    if (meshiMayUseCallerData && !openEndedTask && !focusedContentTask) {
       try {
         const engineResult = await meshiQuery(message);
         if (engineResult.content) {
@@ -576,7 +587,7 @@ export async function POST(req: Request) {
     }
 
     if (focusedContentTask && !process.env.OPENAI_API_KEY) {
-      const result = reason(message, context);
+      const result = reason(message, groundedContext);
       return NextResponse.json(createMeshiResponse({
         content: result.content,
         mood: result.mood,
@@ -590,7 +601,7 @@ export async function POST(req: Request) {
     try {
       const engineResult = await callMeshiReasoning({
         message,
-        context,
+        context: groundedContext,
         history,
         databaseAnswer,
         user: {
@@ -628,7 +639,7 @@ export async function POST(req: Request) {
     }
 
     // Fallback to local reasoning only when no engine/database response is available.
-    const result = reason(message, context);
+    const result = reason(message, groundedContext);
 
     return NextResponse.json({
       ...createMeshiResponse({

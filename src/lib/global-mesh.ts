@@ -14,6 +14,7 @@
  */
 
 import { prisma } from "./prisma";
+import { nativePostDiscoveryConsentWhere, policyGrants, profileDiscoveryConsentWhere } from "./consent";
 import { nsfwHiddenWhere } from "./content-safety";
 import { ANONYMOUS_VIEWER, type FeedCurrentUser } from "./feed-data";
 import type { MeshApiResponse } from "@/components/mesh/core/domain";
@@ -59,6 +60,7 @@ function memberWhere(viewer: Viewer) {
       isPublic: true,
       isSuspended: false,
       showInDiscovery: true,
+      ...profileDiscoveryConsentWhere(),
       meshPrivacy: { meshVisibility: "public" },
       blockedBy: { none: { blockerId: viewer.id } }, // the viewer blocked them
       blocks: { none: { blockedId: viewer.id } }, // they blocked the viewer
@@ -140,6 +142,9 @@ export async function getGlobalMeshSupply(viewer: Viewer): Promise<MeshApiRespon
             authorId: { in: postAuthorIds },
             visibility: "public",
             OR: [{ communityId: null }, { community: { isPublic: true } }],
+            // The member gate above clears the PROFILE for discovery; native
+            // posts carry their own category rule, so re-check it here.
+            author: nativePostDiscoveryConsentWhere(),
           },
           select: {
             id: true,
@@ -308,11 +313,27 @@ export async function getGlobalMeshSelfPreviewCore(
   // Eligibility from LIVE rows — the exact memberWhere user-gate.
   const me = await prisma.user.findUnique({
     where: { id: viewer.id },
-    select: { isPublic: true, showInDiscovery: true, isSuspended: true, meshPrivacy: { select: { meshVisibility: true } } },
+    select: {
+      isPublic: true,
+      showInDiscovery: true,
+      isSuspended: true,
+      meshPrivacy: { select: { meshVisibility: true } },
+      // The member gate now also honors the privacy centre's Profile rule, so
+      // the preview has to name it — otherwise a user who switched it off is
+      // told they qualify while the Global supply quietly drops them.
+      dataVisibilityPolicies: {
+        where: { entityType: "profile", entityId: null },
+        select: { allowDiscovery: true },
+        take: 1,
+      },
+    },
   });
   const reasons: string[] = [];
   if (!me?.isPublic) reasons.push("Your profile is private");
   if (!me?.showInDiscovery) reasons.push("You're hidden from discovery");
+  if (!policyGrants(me?.dataVisibilityPolicies?.[0], "allowDiscovery")) {
+    reasons.push("Your privacy rules turn off profile discovery");
+  }
   if (me?.isSuspended) reasons.push("Your account is suspended");
   if (me?.meshPrivacy?.meshVisibility !== "public") reasons.push("Your mesh isn't set to public");
   const qualifies = reasons.length === 0;
@@ -325,7 +346,7 @@ export async function getGlobalMeshSelfPreviewCore(
   const [nativePosts, platformPosts] = await Promise.all([
     selected.has("posts")
       ? prisma.post.findMany({
-          where: { ...guestNsfw, authorId: viewer.id, visibility: "public", OR: [{ communityId: null }, { community: { isPublic: true } }] },
+          where: { ...guestNsfw, authorId: viewer.id, visibility: "public", OR: [{ communityId: null }, { community: { isPublic: true } }], author: nativePostDiscoveryConsentWhere() },
           select: { id: true, content: true, media: { select: { url: true, type: true } } },
           orderBy: { createdAt: "desc" },
           take: 12,
