@@ -1,6 +1,5 @@
-// useMeshFrame — the canvas, the paint engine (with its PR3 kill-switch),
-// the quality governor, and the scheduler's sim + paint phases. Extracted
-// verbatim from the old mesh-scene.tsx. The ONE rAF's ordering contract:
+// useMeshFrame — the canvas, the paint engine, the quality governor, and the
+// scheduler's sim + paint phases. The ONE rAF's ordering contract:
 // sim (physics + camera motion) → paint (hitmap rebuild, canvas draw,
 // governor) → domSync (registered by live/use-meshi-dom-sync).
 
@@ -9,8 +8,7 @@
 import { useEffect, useRef } from "react";
 import { createMeshScheduler, type MeshScheduler } from "../core/scheduler";
 import { createQualityGovernor, probeStartTier, type QualityGovernor } from "../core/motion";
-import { createPaintEngine, resolveMeshEngine, type MeshEngineKind } from "../paint";
-import { drawScene } from "./scene-render";
+import { createPaintEngine } from "../paint";
 import { rebuildHitmap } from "../sim/hitmap";
 import { driftScaleFor, stepScenePhysics } from "../sim/physics";
 import { stepStrum } from "../sim/strum";
@@ -45,19 +43,9 @@ export function useMeshFrame(
 ): void {
   const { viewUserId, viewMode, isOwnMesh, fitToContent, onStrum } = opts;
 
-  // Adaptive rendering budget so the mesh stays smooth on older/slower devices
-  // (LEGACY engine only — the next engine rides the two-way governor).
-  // `frameCost` is a smoothed inter-frame time in ms; `slow` counts consecutive
-  // slow frames; `frames` is a warm-up guard against startup jank.
-  const perfRef = useRef({ tier: 0, frameCost: 16, slow: 0, frames: 0 });
-  // PR3 kill-switch: which paint core this mount renders through, resolved
-  // ONCE (localStorage `mesh_engine`, then ?mesh_engine=, then "next").
-  const engineKindRef = useRef<MeshEngineKind | null>(null);
-  if (engineKindRef.current === null) engineKindRef.current = resolveMeshEngine();
-  // Two-way quality governor (next engine only): startup device probe picks
-  // the tier — and pins its floor — then the frame-budget monitor demotes on
-  // sustained slowness and promotes back on sustained headroom. The legacy
-  // engine keeps its original one-way watchdog (perfRef) untouched.
+  // Two-way quality governor: a startup device probe picks the tier — and
+  // pins its floor — then the frame-budget monitor demotes on sustained
+  // slowness and promotes back on sustained headroom.
   const governorRef = useRef<QualityGovernor | null>(null);
   // THE one rAF: every per-frame system (physics + camera, hitmap + paint,
   // Meshi/hearts DOM sync) rides this scheduler's fixed phases — nothing in
@@ -69,18 +57,13 @@ export function useMeshFrame(
   useEffect(() => {
     const rt = rtRef.current;
     // Created once per mount, on the first effect run (never during render):
-    // the scheduler + (next engine only) the two-way governor.
+    // the scheduler and the two-way quality governor.
     if (schedulerRef.current === null) {
       schedulerRef.current = createMeshScheduler({
-        frameCapMs: () =>
-          engineKindRef.current === "next"
-            ? governorRef.current?.params().frameCapMs ?? 0
-            : perfRef.current.tier >= 2
-              ? 31
-              : 0,
+        frameCapMs: () => governorRef.current?.params().frameCapMs ?? 0,
       });
     }
-    if (governorRef.current === null && engineKindRef.current === "next") {
+    if (governorRef.current === null) {
       governorRef.current = createQualityGovernor({
         startTier: probeStartTier(),
         getStats: () => schedulerRef.current?.getStats() ?? null,
@@ -95,29 +78,18 @@ export function useMeshFrame(
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const perf = perfRef.current;
-    const engineKind = engineKindRef.current ?? "next";
-    if (engineKind === "legacy") {
-      // Legacy watchdog's probe: genuinely weak devices (very few cores /
-      // little memory) start already degraded. (The next engine's richer
-      // probe lives in core/motion.ts and seeded the governor at mount.)
-      const cores = navigator.hardwareConcurrency || 8;
-      const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
-      if (cores <= 2 || mem <= 2) perf.tier = 2;
-    }
-    // Device-pixel-ratio ceiling per tier: full detail, then progressively fewer
-    // pixels to fill (the biggest lever for fill-rate-bound canvas rendering).
-    const dprForTier = (tier: number) =>
-      Math.min(window.devicePixelRatio || 1, tier >= 2 ? 1.3 : tier >= 1 ? 1.5 : 2);
+    // Device-pixel-ratio ceiling comes from the governor's tier: full detail,
+    // then progressively fewer pixels to fill (the biggest lever for
+    // fill-rate-bound canvas rendering).
     const dprNow = () =>
-      engineKind === "next" && governorRef.current
+      governorRef.current
         ? Math.min(window.devicePixelRatio || 1, governorRef.current.params().dprCap)
-        : dprForTier(perf.tier);
+        : Math.min(window.devicePixelRatio || 1, 2);
     let dpr = dprNow();
 
-    // PR3: the layered paint engine (kill-switch "next"). Its caches are
-    // per-mount state — created here, disposed on cleanup, never shared.
-    if (engineKind === "next" && rt.paintEngine === null) {
+    // The layered paint engine. Its caches are per-mount state — created
+    // here, disposed on cleanup, never shared.
+    if (rt.paintEngine === null) {
       rt.paintEngine = createPaintEngine({
         // Image LRU eviction drops the same ids from the id→image map that
         // hitmap + painters read, so paint and hit stay in lockstep.
@@ -127,13 +99,8 @@ export function useMeshFrame(
       });
     }
     rt.paintEngine?.setDpr(dpr);
-    if (process.env.NODE_ENV !== "production") {
-      console.info(
-        `[mesh] paint engine: ${engineKind}` +
-          (engineKind === "next" && governorRef.current
-            ? ` (probe tier T${governorRef.current.tier()})`
-            : ""),
-      );
+    if (process.env.NODE_ENV !== "production" && governorRef.current) {
+      console.info(`[mesh] paint engine ready (probe tier T${governorRef.current.tier()})`);
     }
 
     const resize = () => {
@@ -301,11 +268,8 @@ export function useMeshFrame(
           visuals: rt.proVisuals,
           livePresence: rt.presence.info,
         };
-        const paintEngine = engineKind === "next" ? rt.paintEngine : null;
-        if (paintEngine && governorRef.current) {
-          paintEngine.draw(frame, governorRef.current.tier());
-        } else {
-          drawScene(frame);
+        if (rt.paintEngine && governorRef.current) {
+          rt.paintEngine.draw(frame, governorRef.current.tier());
         }
 
         // Focus = item nearest screen center (the Meshi cursor's target).
@@ -326,43 +290,10 @@ export function useMeshFrame(
           rt.focusId = nearest;
         }
       }
-      // Quality control, per engine. NEXT: the two-way governor judges the
-      // frame against the budget SLO (demotes on sustained slowness,
-      // promotes back on sustained headroom; DPR/fx changes arrive via its
-      // onTierChange hook above). LEGACY: the original one-way watchdog,
-      // untouched.
-      if (engineKind === "next") {
-        governorRef.current?.onFrame(dt);
-        return;
-      }
-      // Adaptive-quality watchdog. `dt` is the true inter-frame interval, so it
-      // reflects the canvas draw, the presence/step loop, and browser paint
-      // together — not just this callback's own span. If a device stays below
-      // ~45fps (dt > 22ms) for a full second of CONSECUTIVE frames, escalate ONE
-      // tier: reduce pixels first (tier 1), and only cap the frame rate (tier 2,
-      // enforced by the scheduler's frame cap) if it's STILL slow afterwards. A
-      // single fast frame resets the counter, so a borderline device is never
-      // nudged down by noise. Skipped once frame-capped (tier 2 is the floor)
-      // and during a brief startup warm-up.
-      perf.frames++;
-      if (perf.tier < 2 && perf.frames > 30) {
-        perf.frameCost = perf.frameCost * 0.9 + dt * 0.1;
-        if (perf.frameCost > 22) {
-          if (++perf.slow > 60) {
-            perf.tier += 1;
-            // If trimming pixels wouldn't change anything (DPR already at/below
-            // the tier-1 ceiling), skip straight to the frame cap rather than
-            // idling a full window at a no-op stage.
-            if (perf.tier === 1 && dprForTier(1) === dpr) perf.tier = 2;
-            dpr = dprForTier(perf.tier);
-            perf.slow = 0;
-            perf.frameCost = 16; // judge the new tier fresh, ignoring the resize hitch
-            resize();
-          }
-        } else {
-          perf.slow = 0;
-        }
-      }
+      // Quality control: the two-way governor judges the frame against the
+      // budget SLO — demoting on sustained slowness, promoting back on
+      // sustained headroom. DPR/fx changes arrive via its onTierChange hook.
+      governorRef.current?.onFrame(dt);
     });
 
     return () => {

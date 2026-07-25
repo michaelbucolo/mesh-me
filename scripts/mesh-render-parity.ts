@@ -1,33 +1,33 @@
-// Renderer-parity gate for the PR3 paint engine (`npm run mesh:render-parity`).
+// The renderer's structural contract (`npm run mesh:render-parity`).
 //
-// A true pixel diff needs a rasterizer, and this repo runs its checks in
-// plain Node with no canvas dependency (no new deps is a PR3 rule). So the
-// gate asserts the strongest node-verifiable property instead: rendering ONE
-// deterministic scene model through BOTH cores — the legacy
-// scene/scene-render.ts painter and the new paint/ engine in direct mode —
-// must issue an IDENTICAL draw-call sequence (op name + rounded args +
-// every style/property set) into a recording 2D-context stub. Identical op
-// streams through the same rasterizer are identical pixels, so this is
-// pixel parity up to the browser's own rasterization.
+// This gate began life proving the new paint engine emitted the same draw-call
+// stream as the legacy immediate-mode painter. That painter is gone — the
+// paint/ engine is now the only renderer — so the dual-core comparison retired
+// with it and what remains is the renderer's own standing contract, asserted
+// in plain Node against a recording 2D-context stub (no canvas dependency):
 //
-// KNOWN COVERAGE GAP (documented, on purpose): the atlas path (sprites
-// rasterized once, then blitted) and the cached background layer change
-// WHERE ops are issued (offscreen surface + drawImage instead of inline
-// ops), which a sequence diff cannot equate to the direct stream. That path
-// is covered structurally below — sprite/blit counts, cache-hit behavior on
-// a repeat frame, memory ceilings, tier knobs — and visually by the PR3
-// parity screenshots on a real browser before the legacy core is deleted.
-// Residual risk: sub-bucket sprite scaling (≤ ~4%) and one-pass compositing
-// of translucent card layers — both antialiasing-order effects.
+//   1. DETERMINISM — one model + one frame → one op stream, every time, across
+//      four scenarios (selection/hover/pulse/birth, the self panel, a
+//      zoomed-out branch focus, Pro visuals). Catches order-dependence,
+//      time-seeding, and state leaking across engine mounts.
+//   2. CACHED MODE  — sprite/blit counts, a repeat frame re-rasterizing
+//      nothing, hover re-rastering only what changed, dispose emptying caches.
+//   3. TIER SEMANTICS — T1 drops shadows, T2 drops fx and freezes the sky,
+//      and every tier still draws the same node population (fidelity changes,
+//      never content).
+//   4. MEMORY CEILINGS — the image/sprite LRUs evict by both count and bytes.
+//   5. GOVERNOR — the ladder demotes and promotes, and never sinks below the
+//      device probe's floor.
+//   6. SPATIAL GRID — strand routing is equivalent to the brute-force scan it
+//      replaced.
 //
-// Also here (node-safe logic tests): the quality governor's two-way ladder
-// and probe floor, the LRU ceilings, and the strand-routing spatial grid's
-// equivalence to the brute-force scan it replaced.
+// Pixel-level fidelity is verified in a real browser (parity screenshots);
+// this gate covers everything a rasterizer-free environment honestly can.
 
 import assert from "node:assert/strict";
 import { createQualityGovernor, TIER_PARAMS, type QualityTier } from "../src/components/mesh/core/motion";
 import type { MeshFrameStats } from "../src/components/mesh/core/scheduler";
-import { drawScene, type RenderOptions } from "../src/components/mesh/scene/scene-render";
+import type { ScenePaintOptions } from "../src/components/mesh/paint/types";
 import type { BranchKey, SceneModel, SceneNode, SceneNodeKind } from "../src/components/mesh/scene/scene-model";
 import { createPaintEngine } from "../src/components/mesh/paint";
 import { LruCache } from "../src/components/mesh/paint/caches";
@@ -308,8 +308,8 @@ function frameOptions(
   ctx: CanvasRenderingContext2D,
   model: SceneModel,
   images: Map<string, HTMLImageElement>,
-  overrides: Partial<RenderOptions> = {},
-): RenderOptions {
+  overrides: Partial<ScenePaintOptions> = {},
+): ScenePaintOptions {
   return {
     ctx,
     model,
@@ -346,14 +346,14 @@ function firstDivergence(a: Op[], b: Op[]): number {
   return a.length === b.length ? -1 : n;
 }
 
-function assertSameOps(legacy: Op[], next: Op[], label: string): void {
-  const at = firstDivergence(legacy, next);
+function assertSameOps(a: Op[], b: Op[], label: string): void {
+  const at = firstDivergence(a, b);
   if (at !== -1) {
     const ctxLines = (ops: Op[]) => ops.slice(Math.max(0, at - 3), at + 4).join("\n    ");
     assert.fail(
       `${label}: draw-call streams diverge at op ${at} ` +
-        `(legacy ${legacy.length} ops, next ${next.length} ops)\n` +
-        `  legacy:\n    ${ctxLines(legacy)}\n  next:\n    ${ctxLines(next)}`,
+        `(run A ${a.length} ops, run B ${b.length} ops)\n` +
+        `  A:\n    ${ctxLines(a)}\n  B:\n    ${ctxLines(b)}`,
     );
   }
 }
@@ -365,31 +365,35 @@ function ok(label: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// 1. T0 op-stream parity: legacy painter vs next engine (direct mode)
+// 1. T0 draw determinism: one model, one frame → one op stream, every time
 // ---------------------------------------------------------------------------
 
-console.log("mesh-render-parity");
+console.log("mesh-render-contract");
 
 {
-  const scenarios: { label: string; overrides: Partial<RenderOptions> }[] = [
+  const scenarios: { label: string; overrides: Partial<ScenePaintOptions> }[] = [
     { label: "resting frame (selection + hover + pulse + birth)", overrides: {} },
     { label: "self panel open", overrides: { selectedId: "self", hoverId: "self", focusId: null } },
     { label: "branch focus, zoomed out (cards collapse to orbs)", overrides: { activeBranch: "posts", hoverId: null, selectedId: null, camera: { panX: 0, panY: 0, zoom: 0.38 } } },
     { label: "pro visuals (atmosphere + node style + thread color)", overrides: { visuals: { connectionColor: "#f43f5e", nodeStyle: "glass", atmosphere: "ember" } } },
   ];
   for (const { label, overrides } of scenarios) {
-    const { model, images } = buildModel();
-    const legacyRec = new RecordingContext("legacy");
-    drawScene(frameOptions(asCtx(legacyRec), model, images, overrides));
-
-    const nextRec = new RecordingContext("next-direct");
-    const engine = createPaintEngine({ cached: false, createSurface: () => null });
-    engine.draw(frameOptions(asCtx(nextRec), model, images, overrides), 0);
-    engine.dispose();
-
-    assertSameOps(legacyRec.ops, nextRec.ops, label);
-    assert.ok(legacyRec.ops.length > 200, `${label}: scene should be non-trivial (got ${legacyRec.ops.length} ops)`);
-    ok(`T0 parity — ${label} (${legacyRec.ops.length} identical ops)`);
+    // Two independent engines, same inputs, direct (un-cached) mode: the op
+    // stream must be byte-identical. Anything order-dependent, time-seeded,
+    // or leaking state across mounts breaks this.
+    const runOnce = () => {
+      const { model, images } = buildModel();
+      const rec = new RecordingContext("direct");
+      const engine = createPaintEngine({ cached: false, createSurface: () => null });
+      engine.draw(frameOptions(asCtx(rec), model, images, overrides), 0);
+      engine.dispose();
+      return rec.ops;
+    };
+    const first = runOnce();
+    const second = runOnce();
+    assertSameOps(first, second, label);
+    assert.ok(first.length > 200, `${label}: scene should be non-trivial (got ${first.length} ops)`);
+    ok(`T0 determinism — ${label} (${first.length} identical ops)`);
   }
 }
 
