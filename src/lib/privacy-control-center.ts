@@ -40,6 +40,8 @@ export async function getPrivacyControlCenter() {
     platformMediaCount,
     platformAnalyticsCount,
     syncJobCount,
+    mirroredThreadCount,
+    feedItemCount,
   ] = await Promise.all([
     prisma.meshPrivacy.findUnique({
       where: { userId: user.id },
@@ -118,6 +120,13 @@ export async function getPrivacyControlCenter() {
     prisma.platformMedia.count({ where: { connectedAccountId: connectedAccountWhere } }),
     prisma.platformAnalytics.count({ where: { connectedAccountId: connectedAccountWhere } }),
     prisma.syncJob.count({ where: { connectedAccountId: connectedAccountWhere } }),
+    // Counted because they are DELETED by "Delete all imported data". They were
+    // neither: the transaction skipped both tables and this accounting skipped
+    // them too, so the "transparent count of what Mesh.me currently stores"
+    // omitted the most sensitive imported category there is — mirrored private
+    // correspondence — and the user had no way to learn it was being kept.
+    prisma.messageThread.count({ where: { connectedAccountId: connectedAccountWhere } }),
+    prisma.platformFeedItem.count({ where: { connectedAccountId: connectedAccountWhere } }),
   ]);
 
   const nativeStored = {
@@ -140,6 +149,8 @@ export async function getPrivacyControlCenter() {
     platformMedia: platformMediaCount,
     platformAnalytics: platformAnalyticsCount,
     syncJobs: syncJobCount,
+    mirroredThreads: mirroredThreadCount,
+    feedItems: feedItemCount,
   };
 
   return {

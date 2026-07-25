@@ -248,6 +248,33 @@ export async function POST(req: NextRequest) {
       const platformAnalytics = await tx.platformAnalytics.deleteMany({ where: { connectedAccountId } });
       const syncJobs = await tx.syncJob.deleteMany({ where: { connectedAccountId } });
       const platformPosts = await tx.platformPost.deleteMany({ where: { connectedAccountId } });
+
+      // THE TWO IMPORTED STORES THIS USED TO LEAVE BEHIND.
+      //
+      // The button says "Delete all imported data" and the confirm says
+      // "Imported Mesh.me copies from all connected platforms will be removed".
+      // Both are unqualified. The transaction deleted six tables and left the
+      // other two children of ConnectedAccount untouched — and it deliberately
+      // keeps the connection row alive (see the updateMany below), so the
+      // schema cascade never fires to catch them either.
+      //
+      // Mirrored DM threads are the sharper one: real correspondence, message
+      // bodies plus the other party's name, handle and avatar in metadata,
+      // stored unencrypted because it arrived from a platform that had already
+      // read it. Correcting the copy instead of the code is not an option here
+      // — private messages are the single most sensitive thing this control
+      // implies it clears, and "except your imported DMs" would make the
+      // control pointless.
+      //
+      // Deleting the thread cascades its Messages and ThreadMembers. These
+      // threads all carry connectedAccountId, so they are the mirrored ones
+      // only; a mesh-native DM carries NULL there and is untouched.
+      const mirroredThreads = await tx.messageThread.deleteMany({ where: { connectedAccountId } });
+      // Imported for-you feed items are read straight back into the feed
+      // (feed-data.ts), so leaving them meant the "deleted" content kept
+      // rendering.
+      const feedItems = await tx.platformFeedItem.deleteMany({ where: { connectedAccountId } });
+
       const visibilityPolicies = await tx.dataVisibilityPolicy.deleteMany({
         where: {
           userId: user.id,
@@ -264,7 +291,8 @@ export async function POST(req: NextRequest) {
       });
 
       const total = platformMedia.count + platformComments.count + platformFollowers.count +
-        platformAnalytics.count + syncJobs.count + platformPosts.count + visibilityPolicies.count;
+        platformAnalytics.count + syncJobs.count + platformPosts.count + visibilityPolicies.count +
+        mirroredThreads.count + feedItems.count;
 
       return {
         platformMedia: platformMedia.count,
@@ -273,6 +301,8 @@ export async function POST(req: NextRequest) {
         platformAnalytics: platformAnalytics.count,
         syncJobs: syncJobs.count,
         platformPosts: platformPosts.count,
+        mirroredThreads: mirroredThreads.count,
+        feedItems: feedItems.count,
         visibilityPolicies: visibilityPolicies.count,
         total,
       };

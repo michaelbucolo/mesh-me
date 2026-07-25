@@ -273,6 +273,51 @@ assert.ok(
     "  regression by the deploy cadence instead of leaving it in place indefinitely.",
 );
 
+// ── 8. THE OTHER CONTROL THAT PROMISES TO DELETE IMPORTED DATA ───────────────
+//
+// Everything above governs DISCONNECT. There is a second control with the same
+// promise and a different code path: "Delete all imported data" in the privacy
+// centre, which removes the copies while KEEPING the connection. It deleted six
+// tables and left the two other children of ConnectedAccount — mirrored DM
+// threads and imported for-you feed items — behind. And because it deliberately
+// keeps the account row alive, the schema cascade never fired to catch them
+// either.
+//
+// The button and its confirm dialog are both unqualified ("Imported Mesh.me
+// copies from all connected platforms will be removed"), and mirrored threads
+// hold real correspondence — message bodies plus the other party's name, handle
+// and avatar. Two controls promising one thing; only one of them was ever
+// taught the full list. Same pattern as the two disconnect paths that started
+// this file.
+const dataControls = read("src/app/api/data-controls/route.ts");
+const syncedDataAt = dataControls.indexOf('action === "delete-synced-data"');
+assert.notEqual(syncedDataAt, -1, 'the "delete-synced-data" action was not found in /api/data-controls.');
+const syncedDataBlock = dataControls.slice(syncedDataAt, dataControls.indexOf("connectedAccount.updateMany", syncedDataAt));
+for (const [table, why] of [
+  ["messageThread", "mirrored DM threads — the most sensitive imported category, and the one the copy most clearly promises to clear"],
+  ["platformFeedItem", "imported for-you feed items, which feed-data.ts reads straight back into the feed, so leaving them means the 'deleted' content keeps rendering"],
+] as const) {
+  assert.match(
+    syncedDataBlock,
+    new RegExp(String.raw`tx\.${table}\.deleteMany\(\{\s*where:\s*\{\s*connectedAccountId`),
+    `"Delete all imported data" must delete ${table} rows: ${why}.\n` +
+      "  The control keeps the ConnectedAccount row alive on purpose, so nothing cascades for it —\n" +
+      "  every imported table has to be named here explicitly.",
+  );
+}
+// And the transparency count has to agree with what the button deletes, or the
+// user cannot even learn the data exists.
+const storedCounts = read("src/lib/privacy-control-center.ts");
+for (const field of ["mirroredThreads", "feedItems"]) {
+  assert.match(
+    storedCounts,
+    new RegExp(String.raw`${field}:\s*\w+Count`),
+    `src/lib/privacy-control-center.ts must count ${field} in importedStored. The panel calls itself\n` +
+      "  \"a transparent count of what Mesh.me currently stores\"; a category that is stored, is deleted\n" +
+      "  by the button beside it, and appears in neither, is the opposite of transparent.",
+  );
+}
+
 console.log(
   "disconnect contract OK — one shared teardown (no path deletes a ConnectedAccount on its\n" +
     "  own), it removes mirrored DM threads and granted scopes, both the Prisma schema and\n" +
