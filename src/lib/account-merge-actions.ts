@@ -32,7 +32,7 @@ const TIMING_EQUALIZER_HASH = "$2b$12$JILRX7bEywWZST6fQ8KKE.X2qB.Xcxi0WubMvIoQVE
 
 function revalidateMergeSurfaces() {
   revalidatePath("/connected-accounts");
-  revalidatePath("/one-account");
+  revalidatePath("/connected-accounts");
   revalidatePath("/notifications");
 }
 

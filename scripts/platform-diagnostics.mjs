@@ -213,7 +213,9 @@ const checks = [
         "src/app/(app)/mesh/page.tsx",
         "src/app/(app)/feed/page.tsx",
         "src/app/(app)/messages/page.tsx",
-        "src/app/(app)/analytics/page.tsx",
+        // Analytics is a tab on the profile, not a top-level route; /analytics
+        // is a permanent alias in next.config redirects().
+        "src/app/(app)/profile/page.tsx",
         "src/app/(app)/settings/page.tsx",
       ];
       const missing = required.filter((file) => !exists(file));

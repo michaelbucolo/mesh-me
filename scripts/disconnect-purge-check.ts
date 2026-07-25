@@ -30,7 +30,7 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -45,6 +45,9 @@ const teardown = read(TEARDOWN_MODULE);
 // for itself what disconnecting means. That is exactly how the two paths drifted.
 const sourceFiles = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
   .split("\n")
+  // `git ls-files` still lists a file deleted but not yet staged, so a gate run
+  // mid-refactor would die on ENOENT instead of reporting anything.
+  .filter((f) => f && existsSync(join(ROOT, f)))
   .filter((f) => (f.endsWith(".ts") || f.endsWith(".tsx")) && !f.startsWith("src/generated/"));
 
 const rogue: string[] = [];
