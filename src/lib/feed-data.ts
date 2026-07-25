@@ -93,6 +93,14 @@ export type FeedCardPost = {
   platform?: string;
   sourceId?: string;
   externalUrl?: string | null;
+  /** The platform's own label for the item ("video" | "reel" | "short" | …).
+   *  It was read by buildExternalMedia to choose video-vs-image and then
+   *  thrown away, so the ranker could not see the one field that says what
+   *  format an item IS. */
+  postType?: string | null;
+  /** Real length in seconds, when the source reports one. The only signal in
+   *  this pipeline that is a measurement rather than a guess about a URL. */
+  durationSeconds?: number | null;
   platformPostId?: string;
   crossPostedTo?: string[];
   meshFriend?: { userId: string; username: string; displayName: string };
@@ -347,6 +355,8 @@ async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20):
       platform: post.connectedAccount.platform,
       sourceId: post.id,
       externalUrl: post.url,
+      postType: post.postType ?? null,
+      durationSeconds: post.durationSeconds ?? null,
       platformPostId: post.platformPostId,
       crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
       isNsfw: post.isNsfw,
@@ -442,6 +452,8 @@ async function getDiscoverPlatformPosts(user: FeedCurrentUser, limit = 60): Prom
         platform: post.connectedAccount.platform,
         sourceId: post.id,
         externalUrl: post.url,
+        postType: post.postType ?? null,
+        durationSeconds: post.durationSeconds ?? null,
         platformPostId: post.platformPostId,
         crossPostedTo: [],
         isNsfw: post.isNsfw,
@@ -505,6 +517,8 @@ export async function getMergedForYouFeedPosts(user: FeedCurrentUser, limit = 40
       platform: item.connectedAccount.platform,
       sourceId: item.id,
       externalUrl: item.url,
+      postType: item.postType ?? null,
+      durationSeconds: item.durationSeconds ?? null,
       platformPostId: item.platformItemId,
       isNsfw: item.isNsfw,
       contentRating: item.contentRating,
@@ -564,6 +578,8 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
         platform: item.connectedAccount.platform,
         sourceId: item.id,
         externalUrl: item.url,
+        postType: item.postType ?? null,
+        durationSeconds: item.durationSeconds ?? null,
         platformPostId: item.platformItemId,
         isNsfw: item.isNsfw,
         contentRating: item.contentRating,
@@ -638,6 +654,8 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
         platform: post.connectedAccount.platform,
         sourceId: post.id,
         externalUrl: post.url,
+        postType: post.postType ?? null,
+        durationSeconds: post.durationSeconds ?? null,
         platformPostId: post.platformPostId,
         crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
         meshFriend: { userId: friend.id, username: friend.username, displayName: friend.displayName },
@@ -735,6 +753,8 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
         platform: post.connectedAccount.platform,
         sourceId: post.id,
         externalUrl: post.url,
+        postType: post.postType ?? null,
+        durationSeconds: post.durationSeconds ?? null,
         platformPostId: post.platformPostId,
         crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
         isNsfw: post.isNsfw,

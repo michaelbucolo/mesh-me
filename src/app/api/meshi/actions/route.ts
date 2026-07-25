@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { canUserInteractWithPost } from "@/lib/privacy-policy";
-import { profileDiscoveryConsentWhere } from "@/lib/consent";
+import { hasMeshiConsent, profileDiscoveryConsentWhere } from "@/lib/consent";
 import { classifyContentSafety } from "@/lib/content-safety";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { findOrCreateDirectThread } from "@/lib/direct-thread";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
@@ -52,11 +53,44 @@ export async function POST(req: Request) {
 
     // Throttle privileged writes (post / follow / message / react) so this
     // action path can't be scripted into mass-follow, mass-DM, or post floods.
+    //
+    // BOTH limiters, matching /api/meshi/chat:533. `rateLimit` is an in-memory
+    // Map and resets on every cold start, so on serverless it cannot bound
+    // anything — and this route WRITES. The durable one is the real ceiling;
+    // the in-memory one just answers faster on the common path.
     if (action !== "suggest") {
       const rl = rateLimit(`meshi-actions:${user.id}`, 30, 60 * 1000);
       if (!rl.allowed) {
         return NextResponse.json({ error: "Meshi is acting too fast. Please slow down." }, { status: 429 });
       }
+      const durableRl = await durableRateLimit(`meshi-actions:${user.id}`, 30, 60 * 1000);
+      if (!durableRl.allowed) {
+        return NextResponse.json({ error: "Meshi is acting too fast. Please slow down." }, { status: 429 });
+      }
+    }
+
+    // THE MESHI MEMORY RULE, on the route that ACTS.
+    //
+    // Two Meshi endpoints, one taught the rule. /api/meshi/chat consults
+    // hasMeshiConsent (chat/route.ts:565) and meshiQuery repeats it at the
+    // engine door (meshi-engine.ts:1261) "so a client cannot skip the route's
+    // check". This route — the one that posts, follows, unfollows, reacts and
+    // sends DMs as the user — consulted it nowhere. So a user who switched
+    // Meshi memory OFF was told "Your privacy rules say I should not use your
+    // Mesh, so I am not reading it" by the assistant, while this endpoint would
+    // still read their communities, their follow graph and their threads, and
+    // write to all three on their behalf.
+    //
+    // Refusal, not degradation. The chat route can drop grounding and still
+    // answer the question that was typed; there is no reduced version of
+    // following someone. Every one of these actions reads the user's mesh to
+    // find its target and writes back into it, which is precisely what the rule
+    // governs. "suggest" is exempt because it is the one branch that neither
+    // reads a target nor writes.
+    if (action !== "suggest" && !(await hasMeshiConsent(user.id))) {
+      return NextResponse.json({
+        error: "Your privacy rules say I should not use your Mesh, so I am not acting on it. You can switch Meshi memory back on in your privacy controls.",
+      }, { status: 403 });
     }
 
     switch (action) {
@@ -152,7 +186,10 @@ export async function POST(req: Request) {
 
         await prisma.message.create({
           data: {
-            content: body.messageContent.trim(),
+            // sanitizeForDisplay, matching the post branch above. This branch
+            // wrote the raw string, so the one Meshi write that lands in another
+            // person's inbox was the one that did not sanitize.
+            content: sanitizeForDisplay(body.messageContent.trim()),
             senderId: user.id,
             threadId,
           },

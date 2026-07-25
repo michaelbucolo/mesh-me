@@ -1038,11 +1038,18 @@ function FlowColdStart({
   people,
   refreshing,
   onLoadFlow,
+  formStats,
 }: {
   people: FlowSuggestedPerson[];
   refreshing: boolean;
   onLoadFlow: () => void;
+  formStats?: { kept: number; long: number; unknown: number };
 }) {
+  // The Flow is shorts and reels only. When the pool was NOT empty but nothing
+  // in it was short-form, saying "follow a few people" is simply wrong advice —
+  // the viewer already has sources. Say what actually happened.
+  const filtered = (formStats?.long ?? 0) + (formStats?.unknown ?? 0);
+  const filteredOnly = filtered > 0 && (formStats?.kept ?? 0) === 0;
   const [followed, setFollowed] = useState<Set<string>>(new Set());
   const [, startFollow] = useTransition();
 
@@ -1068,9 +1075,13 @@ function FlowColdStart({
   return (
     <div className="flex h-full min-h-[60dvh] w-full flex-col items-center justify-center gap-5 overflow-y-auto bg-black px-6 py-10 text-center">
       <div>
-        <p className="text-xl font-semibold text-white">Your Flow is waiting</p>
+        <p className="text-xl font-semibold text-white">
+          {filteredOnly ? "No shorts to play" : "Your Flow is waiting"}
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-white/55">
-          Follow a few people and their posts, videos, and platform content stream here.
+          {filteredOnly
+            ? `Flow plays shorts and reels only. ${filtered} recent ${filtered === 1 ? "item" : "items"} from your sources ${filtered === 1 ? "was" : "were"} long-form or did not report a length, so ${filtered === 1 ? "it is" : "they are"} not shown here — you will still find ${filtered === 1 ? "it" : "them"} in your feed.`
+            : "Follow a few people and their posts, videos, and platform content stream here."}
         </p>
       </div>
 
@@ -1134,6 +1145,7 @@ function FlowColdStart({
 export function FlowClient({
   initialPosts,
   initialHasMore,
+  formStats,
   suggestedPeople = [],
   signedOut = false,
   isPro = false,
@@ -1141,6 +1153,9 @@ export function FlowClient({
 }: {
   initialPosts: FlowPost[];
   initialHasMore: boolean;
+  /** What the shorts-only rule removed from the candidate pool. Lets an empty
+   *  Flow say WHY instead of implying the viewer has no content at all. */
+  formStats?: { kept: number; long: number; unknown: number };
   suggestedPeople?: FlowSuggestedPerson[];
   signedOut?: boolean;
   isPro?: boolean;
@@ -1563,7 +1578,7 @@ export function FlowClient({
   }, [showModes]);
 
   if (posts.length === 0) {
-    return <FlowColdStart people={suggestedPeople} refreshing={refreshing} onLoadFlow={() => void refresh()} />;
+    return <FlowColdStart people={suggestedPeople} refreshing={refreshing} onLoadFlow={() => void refresh()} formStats={formStats} />;
   }
 
   return (

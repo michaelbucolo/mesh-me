@@ -19,6 +19,7 @@ interface PlatformPostData {
   content?: string;
   title?: string;
   url?: string;
+  durationSeconds?: number;
   postType: string;
   likeCount: number;
   commentCount: number;
@@ -59,6 +60,7 @@ interface PlatformFeedItemData {
   url?: string;
   thumbnailUrl?: string;
   mediaUrl?: string;
+  durationSeconds?: number;
   postType: string;
   likeCount: number;
   commentCount: number;
@@ -78,6 +80,21 @@ interface PlatformFollowerData {
   isMutual: boolean;
   relationshipType: string;
   profileUrl?: string;
+}
+
+/**
+ * YouTube reports length as an ISO-8601 duration ("PT58S", "PT1H2M3S"). It is
+ * the only per-item length any connected platform gives us today, and it is
+ * what makes the Flow's shorts-only rule a measurement instead of a guess
+ * about a URL shape.
+ */
+function parseIso8601Duration(value: unknown): number | undefined {
+  if (typeof value !== "string") return undefined;
+  const m = /^P(?:([\d.]+)D)?T(?:([\d.]+)H)?(?:([\d.]+)M)?(?:([\d.]+)S)?$/.exec(value.trim());
+  if (!m) return undefined;
+  const [, d, h, min, sec] = m;
+  const total = (Number(d) || 0) * 86400 + (Number(h) || 0) * 3600 + (Number(min) || 0) * 60 + (Number(sec) || 0);
+  return total > 0 ? Math.round(total) : undefined;
 }
 
 interface PlatformMediaData {
@@ -507,14 +524,17 @@ const youtubeAdapter: PlatformAdapter = {
       const videoIds = videosData.items?.map((v: Record<string, unknown>) => (v.contentDetails as Record<string, unknown>)?.videoId).filter(Boolean).join(",");
       const statsMap: Record<string, Record<string, unknown>> = {};
       const privacyMap: Record<string, string> = {};
+      const durationMap: Record<string, number> = {};
       if (videoIds) {
-        const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,status&id=${videoIds}`, {
+        const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,status,contentDetails&id=${videoIds}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (statsRes.ok) {
           const statsData = await statsRes.json().catch(() => ({}));
           for (const item of statsData.items || []) {
             statsMap[item.id] = item.statistics || {};
+            const seconds = parseIso8601Duration((item.contentDetails as Record<string, unknown> | undefined)?.duration);
+            if (seconds) durationMap[item.id] = seconds;
             const privacy = (item.status as Record<string, unknown> | undefined)?.privacyStatus;
             if (privacy === "private" || privacy === "unlisted" || privacy === "public") {
               privacyMap[item.id] = privacy;
@@ -531,8 +551,14 @@ const youtubeAdapter: PlatformAdapter = {
           platformPostId: videoId,
           content: (snippet?.description as string) || "",
           title: (snippet?.title as string) || "",
+          // The watch URL is canonical and resolves for Shorts too — but it
+          // matches the Flow's LONG_FORM_URL pattern, which is why every
+          // YouTube item, Shorts included, used to be classified long-form.
+          // Duration is now the primary signal, and postType carries the
+          // label as a second, so neither depends on this string.
           url: `https://youtube.com/watch?v=${videoId}`,
-          postType: "video",
+          durationSeconds: durationMap[videoId],
+          postType: durationMap[videoId] && durationMap[videoId] <= 180 ? "short" : "video",
           likeCount: parseInt(stats.likeCount as string || "0"),
           commentCount: parseInt(stats.commentCount as string || "0"),
           shareCount: 0,
@@ -2210,6 +2236,7 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
               // never keeps showing it more broadly than the source allows.
               visibility: post.visibility,
               postType: post.postType,
+              durationSeconds: post.durationSeconds ?? null,
               publishedAt: post.publishedAt,
               watchTimeSeconds: post.watchTimeSeconds,
               ...safety,
@@ -2286,6 +2313,11 @@ export async function syncPlatform(connectedAccountId: string, syncType: "full" 
             likeCount: item.likeCount,
             commentCount: item.commentCount,
             rawMetadata: item.rawMetadata,
+            // Listed explicitly because `create` spreads ...item while `update`
+            // enumerates: without this line an item first seen before the
+            // platform reported a duration would never acquire one, and the
+            // Flow's shorts-only rule would keep excluding it forever.
+            durationSeconds: item.durationSeconds ?? null,
             fetchedAt: new Date(),
             ...safety,
           },
