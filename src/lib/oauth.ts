@@ -32,11 +32,10 @@ export interface OAuthConfig {
   revokeUrl?: string;
 }
 
-function normalizeBaseUrl(url: string): string {
-  return url.replace(/\/$/, "");
-}
-
-export const PRODUCTION_APP_URL = "https://www.meshs.me";
+// Re-exported so existing importers keep working; the value itself now has a
+// single definition in app-url.ts.
+export { PRODUCTION_APP_URL } from "./app-url";
+import { resolveServerOrigin } from "./app-url";
 
 // Descriptive User-Agent for outbound calls to platform APIs. Reddit's API
 // Terms require a unique, descriptive User-Agent (generic ones are aggressively
@@ -48,12 +47,12 @@ export const MESH_API_USER_AGENT =
   process.env.MESH_API_USER_AGENT?.trim() ||
   "web:app.meshs.me:v1.0 (+https://www.meshs.me)";
 
+/**
+ * The origin OAuth callbacks are built from. Server-only, which is what this
+ * module is — it holds every platform's client-secret env key names.
+ */
 export function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
-  if (process.env.NEXTAUTH_URL) return normalizeBaseUrl(process.env.NEXTAUTH_URL);
-  if (process.env.VERCEL_ENV === "production") return PRODUCTION_APP_URL;
-  if (process.env.VERCEL_URL) return normalizeBaseUrl(`https://${process.env.VERCEL_URL}`);
-  return "http://localhost:3000";
+  return resolveServerOrigin();
 }
 
 export function getCallbackUrl(platform: string): string {
