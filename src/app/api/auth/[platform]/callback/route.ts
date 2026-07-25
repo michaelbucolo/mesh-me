@@ -146,7 +146,21 @@ export async function GET(
     const refreshToken = tokenData.refresh_token || null;
     const expiresIn = tokenData.expires_in;
     let expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
-    const grantedScopes = serializeScopes(tokenData.scope || tokenData.scopes || config.scopes);
+    // WHAT THE PROVIDER SAID vs WHAT WE ASKED FOR.
+    //
+    // Most providers return the scopes they actually granted; some return
+    // nothing, and this fell back to config.scopes — the REQUEST — while
+    // recording the result with source "oauth_scope", i.e. "the provider told
+    // us". The connected-accounts card then counted every one of them and said
+    // "N permissions granted". For any provider that omits the field, that
+    // number is what Mesh.me wanted, not what the user authorized, and a user
+    // who unticked a scope on the consent screen was told they had granted it.
+    //
+    // The fallback stays — showing nothing would be its own lie — but it is
+    // labelled for what it is, and the UI stops calling it confirmed.
+    const providerReportedScopes = tokenData.scope || tokenData.scopes;
+    const grantedScopes = serializeScopes(providerReportedScopes || config.scopes);
+    const scopeSource = providerReportedScopes ? "oauth_scope" : "assumed_from_request";
 
     if (!accessToken) {
       return NextResponse.redirect(
@@ -278,6 +292,7 @@ export async function GET(
         platform,
         scopes: grantedScopes,
         isActive: true,
+        source: scopeSource,
       });
 
       return account;

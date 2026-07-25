@@ -445,6 +445,43 @@ assert.match(
     "  delete button stays permanently disabled, which is the same lockout one layer up.",
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. "GRANTED" MEANS THE PROVIDER SAID SO.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The OAuth callback reads the scopes the provider actually granted, and falls
+// back to config.scopes — the REQUEST — when a provider returns no scope field.
+// That fallback is defensible; recording it as source "oauth_scope" was not.
+// syncConnectedAccountPermissions defaults source to "oauth_scope", the callback
+// passed nothing, and the connected-accounts card counted every row as granted.
+// A user who unticked a scope on the consent screen was shown it as granted.
+const callback = read("src/app/api/auth/[platform]/callback/route.ts");
+assert.match(
+  callback,
+  /const providerReportedScopes = tokenData\.scope \|\| tokenData\.scopes;/,
+  "the OAuth callback must distinguish provider-reported scopes from the requested set before\n" +
+    "  falling back — otherwise there is no way to know which it recorded.",
+);
+assert.match(
+  callback,
+  /source: scopeSource/,
+  "the callback must pass the scope source to syncConnectedAccountPermissions. Its default is\n" +
+    "  \"oauth_scope\" — passing nothing asserts the provider confirmed scopes it never mentioned.",
+);
+const accountsCard = read("src/app/(app)/connected-accounts/connected-accounts-client.tsx");
+assert.match(
+  accountsCard,
+  /permission\.state === "granted" && permission\.source === "oauth_scope"/,
+  "the connected-accounts card must count only PROVIDER-CONFIRMED scopes as granted. Counting the\n" +
+    "  assumed ones tells the user they authorized something they may have declined — the one number\n" +
+    "  on this screen whose whole job is to say what they agreed to.",
+);
+assert.ok(
+  !/\{grantedCount\}/.test(accountsCard),
+  "the card still renders a single grantedCount. Confirmed and assumed scopes are different claims\n" +
+    "  and must not be summed into one figure labelled 'granted'.",
+);
+
 console.log(
   `second-writer contract OK — all ${Object.keys(PEOPLE_SEARCHES).length} people searches subtract blocks in each direction\n` +
     "  through one of the two shared mechanisms (none re-spells it inline),\n" +
