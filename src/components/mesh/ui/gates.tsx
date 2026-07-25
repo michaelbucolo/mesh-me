@@ -10,7 +10,7 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { getViewerFollowsUser, toggleFollow } from "@/lib/actions";
-import { MeshiLoader } from "@/components/meshi/meshi-loader";
+import { MeshiWait } from "@/components/loading/meshi-wait";
 import { MeshFormingLoader } from "../scene/mesh-forming-loader";
 import type { MeshApiResponse } from "../core/domain";
 import type { ViewerCaps } from "../core/viewer";
@@ -69,13 +69,23 @@ function MeshLoadingGate({ viewUserId, isGlobal }: { viewUserId?: string; isGlob
   return (
     <div className="absolute inset-0 z-40 overflow-hidden bg-[#04050c]">
       {/* The constellation weaves itself into being behind Meshi, so the
-          loader dissolves straight into the real scene it precedes. */}
+          loader dissolves straight into the real scene it precedes. This is
+          the mesh's own arrival — the one wait long enough for Meshi to be
+          welcome rather than noise. Meshi fades in at 900ms, so a warm cache
+          goes straight to the scene with only the weave in between.
+
+          No count here: the gate runs while the mesh request is still in
+          flight, so nothing has been woven yet to count. A number would be
+          invented, and an invented number costs every later real one. */}
       <MeshFormingLoader backdrop className="opacity-80" />
-      <MeshiLoader
-        title={viewUserId ? "Opening their world…" : isGlobal ? "Weaving the Global Mesh…" : "Weaving your world…"}
-        mode="mesh-building"
-        transparent
-      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <MeshiWait
+          className="meshi-wait-on-dark"
+          headline={
+            viewUserId ? "Opening their world…" : isGlobal ? "Weaving the Global Mesh…" : "Weaving your world…"
+          }
+        />
+      </div>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Eye, KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import { Eye, KeyRound, ShieldCheck } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 
 type ConnectedAnalyticsAccount = {
   id: string;
@@ -144,7 +145,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
                         <p className="text-xs font-semibold text-[var(--text-primary)]">{permission.label}</p>
                         <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">{permission.description}</p>
                         <span className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold ${active ? "text-emerald-400" : "text-[var(--text-muted)]"}`}>
-                          {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {loading && <PaperWait size="sm" />}
                           {active ? "Allowed" : "Not allowed"}
                         </span>
                       </button>

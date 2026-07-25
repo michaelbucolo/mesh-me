@@ -1,5 +1,5 @@
-import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
+import { RouteWait } from "@/components/loading/route-wait";
 
 export default function AppLoading() {
-  return <RouteLoadingPersonality personality="app" />;
+  return <RouteWait shape="page" label="Loading" />;
 }

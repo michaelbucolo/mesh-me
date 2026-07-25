@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Globe, Loader2, Lock, Pencil, Users } from "lucide-react";
+import { Globe, Lock, Pencil, Users } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Button } from "@/components/ui/button";
 import { updateProfileInfo } from "@/lib/actions";
 import {
@@ -160,7 +161,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
           Cancel
         </Button>
         <Button type="button" onClick={save} disabled={isPending}>
-          {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+          {isPending && <PaperWait size="sm" />}
           Save
         </Button>
       </div>

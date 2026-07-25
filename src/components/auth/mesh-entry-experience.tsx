@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
 import {
   MeshiMascot,
@@ -378,7 +379,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 data-testid="entry-continue-button"
               >
                 {identifier.trim() && !reduceMotion && <GoSheen />}
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                {isPending ? <PaperWait size="sm" /> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
             {message ? (
@@ -489,7 +490,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 data-testid="entry-submit-button"
               >
                 {password && !success && !reduceMotion && <GoSheen />}
-                {isPending || success ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                {isPending || success ? <PaperWait size="sm" /> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
             {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
@@ -593,7 +594,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             </label>
             {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
             <button type="submit" className="mesh-gate-primary" disabled={isPending} data-testid="entry-create-account-button">
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create your Mesh"}
+              {isPending ? <PaperWait size="sm" /> : "Create your Mesh"}
             </button>
             <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">
               I already have an account
@@ -630,7 +631,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 </label>
                 {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
                 <button type="submit" className="mesh-gate-primary" disabled={isPending}>
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
+                  {isPending ? <PaperWait size="sm" /> : "Send reset link"}
                 </button>
               </>
             )}

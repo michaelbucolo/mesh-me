@@ -3,29 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState, useTransition } from "react";
-import {
-  AlertTriangle,
-  BarChart3,
-  CheckCircle2,
-  Database,
-  Download,
-  Eye,
-  EyeOff,
-  FileDown,
-  Globe,
-  KeyRound,
-  Loader2,
-  LockKeyhole,
-  Pause,
-  Play,
-  RefreshCw,
-  Search,
-  Server,
-  ShieldCheck,
-  SlidersHorizontal,
-  Trash2,
-  UserRound,
-} from "lucide-react";
+import { AlertTriangle, BarChart3, CheckCircle2, Database, Download, Eye, EyeOff, FileDown, Globe, KeyRound, LockKeyhole, Pause, Play, RefreshCw, Search, Server, ShieldCheck, SlidersHorizontal, Trash2, UserRound } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -396,7 +375,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
                   <ToggleRow label="Read receipts" checked={profilePrivacy.readReceipts} onChange={(value) => setProfilePrivacy((current) => ({ ...current, readReceipts: value }))} />
                 </div>
                 <Button type="button" variant="secondary" className="mt-3 w-full" onClick={saveProfilePrivacy} disabled={isBusy}>
-                  {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                  {isPending && <PaperWait size="sm" />}
                   Save profile privacy
                 </Button>
               </div>
@@ -420,7 +399,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
                   <ToggleRow label="Show stats" checked={meshPrivacy.showStats} onChange={(value) => setMeshPrivacy((current) => ({ ...current, showStats: value }))} />
                 </div>
                 <Button type="button" variant="secondary" className="mt-3 w-full" onClick={saveMeshPrivacy} disabled={isBusy}>
-                  {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                  {isPending && <PaperWait size="sm" />}
                   Save Mesh visibility
                 </Button>
               </div>
@@ -530,7 +509,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
           <Panel icon={Trash2} title="Imported data" description="Remove synced platform copies stored by Mesh.me. Source platforms are not changed.">
             <div className="mt-4 grid gap-2">
               <Button type="button" variant="danger" className="w-full justify-start" onClick={() => setConfirmingImportDelete({ account: null })} disabled={isBusy || accounts.length === 0}>
-                {pendingKey === "delete-import-all" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+                {pendingKey === "delete-import-all" ? <PaperWait size="sm" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
                 Delete all imported data
               </Button>
               <p className="text-xs leading-5 text-[var(--text-muted)]">
@@ -772,7 +751,7 @@ function GlobalMeshCard({
             You&rsquo;re on the Global Mesh
           </div>
           <Button type="button" variant="secondary" className="mt-3 w-full" onClick={leave} disabled={isPending}>
-            {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {isPending && <PaperWait size="sm" />}
             Leave the Global Mesh
           </Button>
         </>
@@ -785,7 +764,7 @@ function GlobalMeshCard({
             </p>
           ) : null}
           <Button type="button" variant="secondary" className="mt-3 w-full" onClick={review} disabled={loadingPreview}>
-            {loadingPreview && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {loadingPreview && <PaperWait size="sm" />}
             Review my public content &amp; join
           </Button>
         </>
@@ -793,7 +772,7 @@ function GlobalMeshCard({
         <div className="mt-3 grid gap-3">
           {loadingPreview && !preview ? (
             <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)]">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Gathering your public content&hellip;
+              <PaperWait size="sm" /> Gathering your public content&hellip;
             </div>
           ) : null}
 
@@ -840,7 +819,7 @@ function GlobalMeshCard({
                 </div>
               ) : null}
               <Button type="button" className="w-full" onClick={join} disabled={isPending}>
-                {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                {isPending && <PaperWait size="sm" />}
                 Join the Global Mesh
               </Button>
             </div>
@@ -898,15 +877,15 @@ function AccountCard({
         </div>
         <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[24rem]">
           <Button type="button" variant={account.isActive ? "secondary" : "default"} onClick={onToggleSync} disabled={Boolean(accountPending)}>
-            {pendingKey === `sync-${account.id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : account.isActive ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
+            {pendingKey === `sync-${account.id}` ? <PaperWait size="sm" /> : account.isActive ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
             {account.isActive ? "Pause" : "Resume"}
           </Button>
           <Button type="button" variant="ghost" onClick={onSyncNow} disabled={!account.isActive || Boolean(accountPending)}>
-            {pendingKey === `sync-now-${account.id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+            {pendingKey === `sync-now-${account.id}` ? <PaperWait size="sm" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
             Sync
           </Button>
           <Button type="button" variant="danger" onClick={onDeleteImportedData} disabled={Boolean(accountPending)}>
-            {pendingKey === `delete-import-${account.id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+            {pendingKey === `delete-import-${account.id}` ? <PaperWait size="sm" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
             Delete copies
           </Button>
         </div>
@@ -976,7 +955,7 @@ function ImportedContentRow({
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-          {pending && <Loader2 className="pointer-events-none absolute right-3 top-3.5 h-4 w-4 animate-spin text-[var(--text-muted)]" aria-hidden="true" />}
+          {pending && <PaperWait size="sm" className="pointer-events-none absolute right-3 top-3.5 text-[var(--text-muted)]" />}
         </span>
       </label>
     </article>
@@ -1015,7 +994,7 @@ function PolicyRow({
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-          {pending && <Loader2 className="pointer-events-none absolute right-3 top-3.5 h-4 w-4 animate-spin text-[var(--text-muted)]" aria-hidden="true" />}
+          {pending && <PaperWait size="sm" className="pointer-events-none absolute right-3 top-3.5 text-[var(--text-muted)]" />}
         </span>
       </label>
     </article>

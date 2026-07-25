@@ -1,10 +1,11 @@
 "use client";
 
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users, BadgeCheck, Ban } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Globe, Lock, Users, BadgeCheck, Ban } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
@@ -511,7 +512,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   <>
                     <span>&middot;</span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <PaperWait size="sm" />
                       Posting
                     </span>
                   </>
@@ -743,7 +744,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             />
             {isOptimistic ? (
               <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <PaperWait size="sm" />
                 Saving to feed
               </p>
             ) : (

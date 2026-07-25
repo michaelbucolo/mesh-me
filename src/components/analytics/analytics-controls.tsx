@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2, Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Status = { type: "success" | "error"; message: string } | null;
@@ -72,7 +73,7 @@ export function AnalyticsControls() {
             Download a JSON copy of your profile, posts, messages, privacy settings, connected-account metadata, and synced platform data.
           </p>
           <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-[var(--accent)]">
-            {busyAction === "export" && <Loader2 className="h-3 w-3 animate-spin" />}
+            {busyAction === "export" && <PaperWait size="sm" />}
             Export
           </span>
         </button>
@@ -88,7 +89,7 @@ export function AnalyticsControls() {
             Remove imported platform content and sync history while keeping your connected-account links intact.
           </p>
           <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-red-400">
-            {busyAction === "delete-synced" && <Loader2 className="h-3 w-3 animate-spin" />}
+            {busyAction === "delete-synced" && <PaperWait size="sm" />}
             Delete synced data
           </span>
         </button>

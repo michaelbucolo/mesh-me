@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
+import { RouteWait } from "@/components/loading/route-wait";
 import { MeChatConversationList } from "@/components/messages/mechat-conversation-list";
 import { MessagesDataProvider } from "@/components/messages/messages-data-context";
 import { getCurrentUser } from "@/lib/auth";
@@ -15,11 +15,29 @@ type MessagesLayoutProps = {
 
 // Stream the whole MeChat shell: the route paints a loading state instantly
 // while thread/member queries resolve, instead of blocking the response.
+//
+// The fallback mirrors MessagesShell's own grid — rail on the left at the same
+// 360px, conversation on the right — so when the data lands nothing shifts. The
+// old fallback was a full-bleed mascot, which meant every visit to /messages
+// blanked the rail and then rebuilt it.
 export default function MessagesLayout({ children }: MessagesLayoutProps) {
   return (
-    <Suspense fallback={<RouteLoadingPersonality personality="messages" />}>
+    <Suspense fallback={<MessagesWait />}>
       <MessagesShell>{children}</MessagesShell>
     </Suspense>
+  );
+}
+
+function MessagesWait() {
+  return (
+    <div className="grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <aside className="hidden min-h-0 border-r border-[var(--border-primary)] lg:block">
+        <RouteWait shape="rail-list" label="Loading your conversations" />
+      </aside>
+      <div className="min-h-0 min-w-0">
+        <RouteWait shape="conversation" label="Loading your messages" />
+      </div>
+    </div>
   );
 }
 

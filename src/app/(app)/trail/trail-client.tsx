@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight, Footprints, Lock, Sparkles } from "lucide-re
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { MeshiLoader } from "@/components/meshi/meshi-loader";
+import { RouteWait } from "@/components/loading/route-wait";
 
 type TrailStep = {
   id: string;
@@ -137,7 +137,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
   if (status === "loading") {
     return (
       <div className="min-h-[70vh]">
-        <MeshiLoader title="Retracing your month…" mode="mesh-building" />
+        <RouteWait shape="page" label="Retracing your month" />
       </div>
     );
   }
@@ -478,7 +478,7 @@ export function TrailClient({ isPro = false }: { isPro?: boolean }) {
     <Suspense
       fallback={
         <div className="min-h-[70vh]">
-          <MeshiLoader title="Retracing your month…" mode="mesh-building" />
+          <RouteWait shape="page" label="Retracing your month" />
         </div>
       }
     >

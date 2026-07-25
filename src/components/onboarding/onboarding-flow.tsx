@@ -2,7 +2,8 @@
 
 import { Children, type CSSProperties, type FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
-import { ArrowLeft, ArrowRight, Bell, Check, LayoutGrid, Loader2, Palette, Shield, Sparkles, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, Check, LayoutGrid, Palette, Shield, Sparkles, UserRound } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -689,7 +690,7 @@ export function OnboardingFlow({
               </Button>
             ) : (
               <Button type="submit" disabled={isPending} data-testid="onboarding-finish">
-                {isPending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+                {isPending ? <PaperWait size="sm" /> : <Check size={16} aria-hidden="true" />}
                 Finish setup
               </Button>
             )}

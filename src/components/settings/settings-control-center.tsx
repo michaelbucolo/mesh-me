@@ -3,69 +3,8 @@
 import Link from "next/link";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Activity,
-  AlignLeft,
-  AtSign,
-  AudioLines,
-  BadgeCheck,
-  Ban,
-  BarChart3,
-  BellRing,
-  CheckCheck,
-  CheckCircle2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Compass,
-  CreditCard,
-  Crown,
-  Database,
-  EyeOff,
-  Fingerprint,
-  Flame,
-  Ghost,
-  Globe,
-  Hash,
-  IdCard,
-  Info,
-  KeyRound,
-  LayoutGrid,
-  Link as LinkIcon,
-  Loader2,
-  Lock,
-  LockKeyhole,
-  LogOut,
-  Mail,
-  MailCheck,
-  MapPin,
-  Megaphone,
-  MessageCircle,
-  MessageSquare,
-  Monitor,
-  MonitorSmartphone,
-  Moon,
-  Palette,
-  Phone,
-  PlugZap,
-  RefreshCw,
-  Search,
-  Settings2,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldOff,
-  Sparkles,
-  Smartphone,
-  Sun,
-  Trash2,
-  UserPlus,
-  UserRound,
-  UsersRound,
-  Volume2,
-  WandSparkles,
-  Waypoints,
-  type LucideIcon,
-} from "lucide-react";
+import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellRing, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
 import { isVolumeNormalizationEnabled, setVolumeNormalizationEnabled } from "@/lib/audio-normalize";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
@@ -917,7 +856,7 @@ function AccountSection({
             disabled={isPending || !settings.email}
             className="mesh-action mesh-action-primary mt-3 px-4 text-sm disabled:opacity-50"
           >
-            {isPending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <MailCheck size={15} aria-hidden="true" />}
+            {isPending ? <PaperWait size="sm" /> : <MailCheck size={15} aria-hidden="true" />}
             Send verification email
           </button>
         )}
@@ -1187,7 +1126,7 @@ function PrivacySection({
                 <span className="block text-xs text-[var(--text-muted)]">A third-party ID check. Mesh.me only stores whether you passed.</span>
               </span>
             </span>
-            {isPending ? <Loader2 size={16} className="shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight size={15} className="shrink-0" aria-hidden="true" />}
+            {isPending ? <PaperWait size="sm" className="shrink-0" /> : <ChevronRight size={15} className="shrink-0" aria-hidden="true" />}
           </button>
         </div>
         <HintDetails label="Why verification is required">
@@ -1248,7 +1187,7 @@ function BlockedAccountsCard({ blockedUsers }: { blockedUsers: BlockedUser[] }) 
                 className="mesh-choice inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-semibold disabled:opacity-50"
               >
                 {pendingId === user.id
-                  ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                  ? <PaperWait size="sm" />
                   : <ShieldOff size={14} aria-hidden="true" />}
                 Unblock
               </button>
@@ -1487,11 +1426,11 @@ function SecurityDevices() {
         </p>
         <div className="flex gap-2">
           <button type="button" onClick={() => void loadSessions()} disabled={loading || busy} className="mesh-action mesh-action-secondary px-3 text-sm disabled:opacity-50">
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} aria-hidden="true" />
+            {loading ? <PaperWait size="sm" /> : <RefreshCw size={15} aria-hidden="true" />}
             Refresh
           </button>
           <button type="button" onClick={revokeOtherSessions} disabled={busy || totalSessions <= 1} className="mesh-action mesh-action-primary px-3 text-sm disabled:opacity-50">
-            {busy ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <LogOut size={15} aria-hidden="true" />}
+            {busy ? <PaperWait size="sm" /> : <LogOut size={15} aria-hidden="true" />}
             Sign out other devices
           </button>
         </div>
@@ -1600,7 +1539,7 @@ function RecoveryMethods() {
             <input value={email} onChange={(event) => setEmail(event.target.value)} className="simple-input h-11 px-3 text-sm" placeholder="you@example.com" type="email" />
           </Field>
           <button type="submit" disabled={busy === "email" || !email.trim()} className="mesh-action mesh-action-primary mt-3 px-3 text-sm disabled:opacity-50">
-            {busy === "email" ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Mail size={15} aria-hidden="true" />}
+            {busy === "email" ? <PaperWait size="sm" /> : <Mail size={15} aria-hidden="true" />}
             Add email
           </button>
         </form>
@@ -1609,7 +1548,7 @@ function RecoveryMethods() {
             <input value={phone} onChange={(event) => setPhone(event.target.value)} className="simple-input h-11 px-3 text-sm" placeholder="+15551234567" type="tel" />
           </Field>
           <button type="submit" disabled={busy === "phone" || !phone.trim()} className="mesh-action mesh-action-primary mt-3 px-3 text-sm disabled:opacity-50">
-            {busy === "phone" ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Phone size={15} aria-hidden="true" />}
+            {busy === "phone" ? <PaperWait size="sm" /> : <Phone size={15} aria-hidden="true" />}
             Add phone
           </button>
         </form>
@@ -1627,7 +1566,7 @@ function RecoveryMethods() {
               <strong>{item.isVerified ? "Verified" : "Unverified"}</strong>
               {!item.isPrimary && (
                 <button type="button" onClick={() => void removeMethod(item.kind, item.id)} disabled={busy === item.id} className="grid h-10 w-10 place-items-center rounded-lg text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label}`}>
-                  {busy === item.id ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
+                  {busy === item.id ? <PaperWait size="sm" /> : <Trash2 size={15} aria-hidden="true" />}
                 </button>
               )}
             </span>
@@ -1718,7 +1657,7 @@ function TwoFactorMethods() {
               onClick={() => void addTwoFactor(method)}
               className="mesh-action mesh-action-secondary px-3 text-sm capitalize disabled:opacity-50"
             >
-              {busy === method ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <MethodIcon size={15} aria-hidden="true" />}
+              {busy === method ? <PaperWait size="sm" /> : <MethodIcon size={15} aria-hidden="true" />}
               {configured.has(method) ? `${method} added` : `Add ${method}`}
             </button>
           );
@@ -1736,7 +1675,7 @@ function TwoFactorMethods() {
             <span className="flex shrink-0 items-center gap-1.5">
               <strong>{item.isEnabled ? "Enabled" : "Pending"}</strong>
               <button type="button" onClick={() => void removeTwoFactor(item.id)} disabled={busy === item.id} className="grid h-10 w-10 place-items-center rounded-lg text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label || item.method}`}>
-                {busy === item.id ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
+                {busy === item.id ? <PaperWait size="sm" /> : <Trash2 size={15} aria-hidden="true" />}
               </button>
             </span>
           </div>
@@ -2260,7 +2199,7 @@ function Field({ label, icon: Icon, children, wide = false }: { label: string; i
 function SaveButton({ label, pending, disabled = false }: { label: string; pending: boolean; disabled?: boolean }) {
   return (
     <button type="submit" disabled={pending || disabled} className="mesh-action mesh-action-primary mt-4 px-4 text-sm disabled:opacity-50">
-      {pending && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
+      {pending && <PaperWait size="sm" />}
       {label}
     </button>
   );

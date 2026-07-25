@@ -29,13 +29,17 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
+// `git ls-files` still lists a file that has been deleted but not yet staged,
+// so a gate run mid-refactor would die on ENOENT instead of reporting anything.
+// This reads source text: a file that is gone has no text to read.
 const files = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
   .split("\n")
-  .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx") || f.endsWith(".css"));
+  .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx") || f.endsWith(".css"))
+  .filter((f) => existsSync(join(ROOT, f)));
 
 /**
  * Blank comments while preserving BOTH offsets and line breaks, so prose about

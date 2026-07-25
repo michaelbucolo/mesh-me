@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CreditCard, Loader2, Sparkles } from "lucide-react";
+import { CreditCard, Sparkles } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Button } from "@/components/ui/button";
 import type { MeshProPlan } from "@/lib/stripe";
 
@@ -56,7 +57,7 @@ export function MeshProCheckoutButton({ plan, children, className, disabled }: C
         onClick={startCheckout}
         disabled={disabled || isPending}
       >
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
+        {isPending ? <PaperWait size="sm" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
         {children}
       </Button>
       {error && <p className="text-xs font-semibold text-[var(--ds-danger)]">{error}</p>}
@@ -92,7 +93,7 @@ export function BillingPortalButton({ children = "Manage billing", className, va
   return (
     <div className="grid gap-2">
       <Button type="button" variant={variant} className={className} onClick={openPortal} disabled={isPending}>
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <CreditCard className="h-4 w-4" aria-hidden="true" />}
+        {isPending ? <PaperWait size="sm" /> : <CreditCard className="h-4 w-4" aria-hidden="true" />}
         {children}
       </Button>
       {error && <p className="text-xs font-semibold text-[var(--ds-danger)]">{error}</p>}

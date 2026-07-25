@@ -3,21 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  ArrowDown,
-  CheckCheck,
-  Image as ImageIcon,
-  Link2,
-  Loader2,
-  MessageCircleReply,
-  Paperclip,
-  Pencil,
-  Search,
-  Send,
-  SmilePlus,
-  Undo2,
-  X,
-} from "lucide-react";
+import { ArrowDown, CheckCheck, Image as ImageIcon, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, Undo2, X } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { attachNormalizer } from "@/lib/audio-normalize";
@@ -968,7 +955,7 @@ export function MeChatThread({
                         {readers && (
                           <span className="inline-flex items-center gap-1">
                             · {readers === "Sending"
-                              ? <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                              ? <PaperWait size="sm" />
                               : <CheckCheck size={12} aria-hidden="true" />}
                             {readers}
                           </span>
@@ -1238,7 +1225,7 @@ export function MeChatThread({
             aria-label="Send message"
             title="Send"
           >
-            {isPending ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : <Send size={17} aria-hidden="true" />}
+            {isPending ? <PaperWait size="sm" /> : <Send size={17} aria-hidden="true" />}
           </button>
         </div>
       </form>
