@@ -128,55 +128,70 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   WORKLIGHT — the same tray on the same bench at night.
-   The mat goes to dark graphite, the ink inverts, THE PLASTICS DO NOT MOVE.
+   WORKLIGHT — the same tray on the same bench with the lights off.
+   The mat goes to BLACK, the ink inverts, THE PLASTICS DO NOT MOVE.
    Selector must stay `.dark {` at the start of a line.
    ───────────────────────────────────────────────────────────────── */
 .dark {
-  /* Near-neutral graphite with a hair of warmth (red >= blue at every step,
-     keeping the previous system's correct rejection of the cold #070912). */
-  --ink-1000: #0a0908;     /* deepest — scrim base */
-  --ink-950: #100e0d;
-  --paper-2: #141312;      /* RECESS: input wells, trays, sunken groups */
-  --paper-0: #1d1b19;      /* THE MAT */
-  --paper-1: #282522;      /* card / sheet / panel */
-  --paper-3: #322e2a;      /* track, disabled body, tray floor */
-  --paper-hover: #302c28;
-  --paper-press: #201d1b;
-  --ink-600: #4a443c;      /* heavy divider, chart gridline */
+  /* TRUE BLACK, AND NEUTRAL. Every paper, face, plinth and ink below is a grey:
+     red === green === blue, exactly. The previous ramp carried "a hair of
+     warmth" (red >= blue at every step) and at scale that hair is not subtle —
+     across a full screen of #1d1b19 mat and #322e2a faces it reads as brown,
+     not as a dark room. Warmth that is invisible in a swatch is the dominant
+     impression in a layout, because a page is 90% surface.
 
-  /* THE FIX FOR DARK DEPTH. A pressable object's face is one paper step
-     ABOVE the card, not equal to it. Face-vs-mat goes 1.13 -> 1.55 and the
-     plinth step goes 1.26 -> 1.47. Every text ink still clears AA on it. */
-  --face: #322e2a;         /* ink-1 11.93 · ink-2 7.22 · ink-3 5.21 */
-  --face-hover: #3a352e;   /* ink-1 10.77 · ink-2 6.52 · ink-3 4.70 */
-  --face-press: #2a2724;   /* ink-1 13.16 · ink-2 7.97 · ink-3 5.75 */
+     Neutral is also the stricter constraint, not the lazier one: with no hue to
+     lean on, every distinction between two surfaces has to be carried by
+     luminance alone, which is the thing WCAG actually measures. Nothing here is
+     eyeballed — the ratios in these comments are computed from these exact
+     values, and scripts/contrast-check.ts recomputes them on every build. */
+  --ink-1000: #000000;     /* deepest — scrim base. Actual black. */
+  --ink-950: #030303;
+  --paper-2: #050505;      /* RECESS: input wells, trays, sunken groups */
+  --paper-0: #0a0a0a;      /* THE MAT */
+  --paper-1: #1a1a1a;      /* card / sheet / panel */
+  --paper-3: #333333;      /* track, disabled body, tray floor (== --face) */
+  --paper-hover: #222222;
+  --paper-press: #141414;
+  --ink-600: #4a4a4a;      /* heavy divider, chart gridline */
 
-  --plinth-1: #0b0a09;     /* under --face. step 1.47 (was 1.26) */
-  --plinth-2: #141210;
-  --plinth-tray: #413b34;  /* INVERTED per the Separation Law. TOYBOX's #0d0c0b
-                              measured 1.05:1 against the well — invisible, and
-                              it hosts every input in the product. A dark recess
-                              cannot get darker, so its inner lip goes UP: 1.68:1. */
+  /* DEPTH IS THE POINT, AND BLACK MAKES IT HARDER. Ratios compress toward the
+     black end — the same hex step buys less separation down here — so the face
+     has to travel further from the mat than the warm ramp needed. It does:
+     face-vs-mat 1.55 -> 1.57, and the plinth step 1.47 -> 1.66. The objects
+     read THICKER on black than they did on brown, which is the opposite of
+     what going darker usually costs you. */
+  --face: #333333;         /* ink-1 11.59 · ink-2 7.09 · ink-3 5.31 · mat 1.57 */
+  --face-hover: #3c3c3c;   /* ink-1 10.12 · ink-2 6.19 · ink-3 4.64 ← the floor */
+  --face-press: #2a2a2a;   /* ink-1 13.17 · ink-2 8.06 · ink-3 6.04 */
 
-  /* ── Ink, against all four papers and all three face states ── */
-  --ink-1: #f4f1ea;        /* p0 15.22 · p1 13.51 · p2 16.45 · p3 11.93 */
-  --ink-2: #c4bdb2;        /* p0  9.21 · p1  8.18 · p2  9.96 · p3  7.22 */
-  --ink-3: #a8a095;        /* p0  6.65 · p1  5.90 · p2  7.18 · p3  5.21 ← text floor.
-                              Raised from #a29a8f, which measured 4.31 on
-                              --face-hover — below AA on a hovered row. */
-  --ink-4: #6b645b;        /* p0  2.94 — under 4.5, stays decorative */
-  --ink-inverse: #171512;
+  --plinth-1: #000000;     /* under --face. step 1.66 (was 1.47) */
+  --plinth-2: #080808;
+  --plinth-tray: #404040;  /* INVERTED per the Separation Law, and the inversion
+                              matters MORE now: against a #050505 well there is
+                              nowhere darker to go at all. Lip goes up — 1.97:1,
+                              from 1.68. Every input in the product sits in it. */
 
-  --edge: #918879;         /* p0 4.91 · p1 4.36 · p2 5.30 · p3 3.85 ·
-                              face 3.85 · hover 3.47 · press 4.24 */
+  /* ── Ink, against all four papers and all three face states ──
+     Worst case for each is --face-hover, the most-read surface in the app. */
+  --ink-1: #f5f5f5;        /* p0 18.16 · p1 15.96 · p2 18.69 · p3 11.59 */
+  --ink-2: #c2c2c2;        /* p0 11.11 · p1  9.77 · p2 11.44 · p3  7.09 */
+  --ink-3: #a8a8a8;        /* p0  8.33 · p1  7.32 · p2  8.57 · p3  5.31 ← text floor,
+                              4.64 on --face-hover. */
+  --ink-4: #6a6a6a;        /* p0  3.66 — under 4.5, stays decorative. Raised from
+                              the warm ramp's 2.94: a divider has to work against
+                              a blacker mat, and there is headroom below AA. */
+  --ink-inverse: #0a0a0a;
 
-  --rule: rgba(244, 241, 234, 0.13);
-  --rule-strong: rgba(244, 241, 234, 0.20);
-  --rule-hover: rgba(244, 241, 234, 0.30);
-  --rule-focus: #f4f1ea;   /* solid hex */
+  --edge: #8e8e8e;         /* p0 6.04 · p1 5.31 · p2 6.22 · p3 3.86 ·
+                              face 3.86 · hover 3.37 · press 4.38 */
 
-  --accent: #93a9ff;       /* 7.65 on --paper-0 · 6.79 on --paper-1 */
+  --rule: rgba(245, 245, 245, 0.13);
+  --rule-strong: rgba(245, 245, 245, 0.20);
+  --rule-hover: rgba(245, 245, 245, 0.30);
+  --rule-focus: #f5f5f5;   /* solid hex */
+
+  --accent: #93a9ff;       /* 8.82 on --paper-0 · 7.76 on --paper-1 */
   --accent-hover: #adbeff;
   --accent-press: #7b93f2;
   --accent-ink: #12131c;   /* 8.24 ON the accent */
@@ -185,11 +200,11 @@
   --accent-line: rgba(147, 169, 255, 0.28);
 
   /* ── INK PIGMENTS — theme-dependent. All four papers. ── */
-  --warm:    #f486b0;      /* p0 7.26 · p1 6.45 · p2 7.85 · p3 5.70 */
-  --success: #5fcb98;      /* p0 8.57 · p1 7.61 · p2 9.26 · p3 6.72 */
-  --warning: #f3be55;      /* p0 10.06 · p1 8.93 · p2 10.88 · p3 7.89 */
-  --danger:  #f58279;      /* p0 6.83 · p1 6.06 · p2 7.38 · p3 5.35 */
-  --info:    #5cc2cc;      /* p0 8.21 · p1 7.29 · p2 8.88 · p3 6.44 */
+  --warm:    #f486b0;      /* p0  8.38 · p1 7.36 · p2  8.62 · p3 5.34 */
+  --success: #5fcb98;      /* p0  9.88 · p1 8.69 · p2 10.17 · p3 6.31 */
+  --warning: #f3be55;      /* p0 11.60 · p1 10.20 · p2 11.94 · p3 7.40 */
+  --danger:  #f58279;      /* p0  7.87 · p1 6.92 · p2  8.11 · p3 5.02 */
+  --info:    #5cc2cc;      /* p0  9.47 · p1 8.32 · p2  9.75 · p3 6.04 */
   --warm-wash: rgba(244, 134, 176, 0.14);
 
   /* ── THE SEVEN PLASTICS ARE DELIBERATELY NOT REDECLARED HERE. ──────────
@@ -198,30 +213,42 @@
      and at 3am. It halves the palette, makes light/dark fill drift
      structurally impossible, and means the gate only verifies each face
      against its own pinned ink (5.09-8.69) rather than two moving grounds.
-     What makes them legal on a dark mat is --edge, not the face:
-     cobalt 2.70 / grape 2.63 / teal 2.86 / crimson 2.39 against the dark
-     card are all under 3:1 as faces, and the 1px --edge ring (4.36 against
-     that same card) is what carries the boundary. An object without --edge
-     is a WCAG 1.4.11 bug, not a style choice. ──────────────────────────── */
+     What makes them legal on a dark mat is --edge, not the face. Against the
+     new black card (#1a1a1a) the plastics measure cobalt 3.09 / grape 3.00 /
+     teal 3.27 / crimson 2.73 — every one of them BETTER than on the warm card
+     (2.70 / 2.63 / 2.86 / 2.39), because a blacker ground separates a
+     saturated fill further. Only crimson is still under 3:1 as a face, down
+     from four of seven. The rule does not change: the 1px --edge ring (5.31
+     against that same card, up from 4.36) is what carries the boundary, and an
+     object without --edge is a WCAG 1.4.11 bug, not a style choice. The margin
+     is simply wider now. ─────────────────────────────────────────────────── */
 
+  /* Shadows go HARDER on black. A shadow is the absence of light, and on a
+     #0a0a0a mat there is almost no light to remove — the warm ramp's 0.55 alpha
+     over a #1d1b19 mat had something to darken, this does not. Compensating
+     with more alpha would be pointless (black on near-black is invisible); what
+     carries elevation here is --edge and the plinth, and the shadows are kept
+     only for the soft occlusion right under an object. */
   --shadow-flat: none;
-  --shadow-rest:   0 3px 6px -2px rgba(0, 0, 0, 0.55);
-  --shadow-raised: 0 6px 12px -4px rgba(0, 0, 0, 0.58);
-  --shadow-lift:   0 12px 22px -8px rgba(0, 0, 0, 0.62);
-  --shadow-float:  0 26px 50px -18px rgba(0, 0, 0, 0.70);
-  --shadow-press:  0 1px 3px -1px rgba(0, 0, 0, 0.60);
+  --shadow-rest:   0 3px 6px -2px rgba(0, 0, 0, 0.70);
+  --shadow-raised: 0 6px 12px -4px rgba(0, 0, 0, 0.74);
+  --shadow-lift:   0 12px 22px -8px rgba(0, 0, 0, 0.78);
+  --shadow-float:  0 26px 50px -18px rgba(0, 0, 0, 0.85);
+  --shadow-press:  0 1px 3px -1px rgba(0, 0, 0, 0.75);
   --edge-light: none;      /* DELETED as a concept. 0 call sites. Superseded by
                               --mould-line, which is a tooling seam, not a light. */
-  --mould-line: inset 0 1px 0 rgba(255, 246, 235, 0.06);
+  --mould-line: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 
-  --scrim: rgba(10, 9, 8, 0.74);
+  --scrim: rgba(0, 0, 0, 0.78);
   --selection: rgba(147, 169, 255, 0.26);
-  --grain-alpha: 0.04;
+  --grain-alpha: 0.03;     /* Lowered from 0.04: grain is far more visible on a
+                              flat black field than on a textured warm one, and
+                              at 0.04 it read as sensor noise. */
   --grain-blend: soft-light;
-  --skeleton-1: #282522;
-  --skeleton-2: #322e2a;
-  --skeleton-3: #3b3630;
-  --canvas-shadow: rgba(0, 0, 0, 0.60);
+  --skeleton-1: #1a1a1a;
+  --skeleton-2: #262626;
+  --skeleton-3: #333333;
+  --canvas-shadow: rgba(0, 0, 0, 0.75);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -235,10 +262,12 @@
    any surface luminance lies between them, max(ratio(a,S), ratio(b,S)) is
    minimised at mid-grey, where it is ~4.6:1. It can never fall below 3:1
    on any surface, including a photo. Measured worst case across all seven
-   plastics and all seven surfaces: 4.72:1 (teal, dark theme).
+   plastics and all seven surfaces: 4.89:1 (teal, dark theme) — improved from
+   4.72 when the dark ring pair went neutral, because #f5f5f5/#0a0a0a are
+   further apart than the warm #f4f1ea/#171512 they replaced.
    ───────────────────────────────────────────────────────────────── */
 :root, .light { --ring-a: #1a1a1d; --ring-b: #fdfbf6; }
-.dark          { --ring-a: #f4f1ea; --ring-b: #171512; }
+.dark          { --ring-a: #f5f5f5; --ring-b: #0a0a0a; }
 :root, .light, .dark {
   --focus-ring: 0 0 0 2px var(--ring-a), 0 0 0 4px var(--ring-b);
   --focus-offset: 2px;
@@ -252,18 +281,24 @@
    now one, and it is theme-invariant because a video is not a theme.
    ───────────────────────────────────────────────────────────────── */
 :root, .light, .dark {
-  --media-chip: #16140f;        /* OPAQUE. Not translucent, not blurred. */
+  /* Neutral for the same reason the dark theme is: these chips float over a
+     photograph, right next to the app's own surfaces, and a warm chip beside a
+     black UI reads as a different product. (They were warm — #16140f / #f7f4ee
+     / #bdb7ad — written against the previous ramp.) Being theme-invariant makes
+     it MORE important, not less: a warm chip is wrong in both themes at once. */
+  --media-chip: #141414;        /* OPAQUE. Not translucent, not blurred. */
   --media-chip-plinth: #000000;
-  --media-ink: #f7f4ee;         /* 16.76:1 on --media-chip */
-  --media-ink-2: #bdb7ad;       /*  9.20:1 on --media-chip */
+  --media-ink: #f5f5f5;         /* 16.90:1 on --media-chip */
+  --media-ink-2: #b8b8b8;       /*  9.29:1 on --media-chip */
   --media-scrim: linear-gradient(to top,
-    rgba(10, 9, 7, 0.86) 0%, rgba(10, 9, 7, 0.70) 34%, rgba(10, 9, 7, 0) 100%);
-  --media-edge: rgba(255, 250, 242, 0.34);
+    rgba(10, 10, 10, 0.86) 0%, rgba(10, 10, 10, 0.70) 34%, rgba(10, 10, 10, 0) 100%);
+  --media-edge: rgba(255, 255, 255, 0.34);
 }
 /* RULE: no text ever sits directly on video. It sits on a --media-chip, or
-   inside the bottom 34% of --media-scrim, where --media-ink measures 6.87:1
-   even against a fully white frame. backdrop-filter is banned here as
-   everywhere; the chip is opaque instead. */
+   inside the bottom 34% of --media-scrim. Worst case is a fully WHITE frame:
+   the chip still measures 18.42:1 against it, so the object never disappears,
+   and --media-ink on the scrim's base over white measures 12.81:1.
+   backdrop-filter is banned here as everywhere; the chip is opaque instead. */
 
 /* ─────────────────────────────────────────────────────────────────
    TYPE — see §4. Only --font-display and four weights change.

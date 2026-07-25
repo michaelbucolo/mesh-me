@@ -1077,10 +1077,14 @@ select:focus-visible {
 .feed-posts-stagger > [data-feed-post-id]:nth-child(10) { --i: 9; }
 
 /* ─── Interactive Press Scale ─── */
+/* `.insta-icon-button` and `.feed-mode-button` used to live here too. They are
+   moulded keys now, and a key answers by bottoming out — the wall collapses and
+   the face travels down by exactly that wall — not by shrinking away from the
+   finger. A shrink and a press are two different depth models; keeping both
+   meant the scale silently survived the `translate`, because they are different
+   properties and compose rather than override. */
 @media (hover: hover) and (pointer: fine) {
-  .mesh-action:active,
-  .insta-icon-button:active,
-  .feed-mode-button:active {
+  .mesh-action:active {
     transform: scale(0.95);
     transition: transform 0.1s ease;
   }
@@ -1934,10 +1938,11 @@ body[data-meshi-panel="open"] .bug-report-widget {
     transform var(--mesh-transition-fast);
 }
 
+/* A row is a place, not a control that travels. The `transform: translateX(2px)`
+   that used to be here made the rail drift sideways under the pointer; a `.leaf`
+   brightens instead. Surface treatment is in the feed block at end of file. */
 .insta-rail-link:hover {
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-secondary) 64%, transparent);
-  transform: translateX(2px);
 }
 
 @media (min-width: 1024px) {
@@ -1992,10 +1997,13 @@ body[data-meshi-panel="open"] .bug-report-widget {
   color: var(--text-muted);
 }
 
+/* `0 0 0 3px <colour>` is a glow and `0 10px 30px rgba(0,0,0,0.16)` is a wide
+   blurred halo under a text field — Law 5, nothing emits. Both replaced by the
+   two-ring focus token. */
 .simple-input:focus {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--bg-input) 82%, var(--accent-subtle));
-  box-shadow: 0 0 0 3px var(--accent-subtle), 0 10px 30px rgba(0, 0, 0, 0.16);
+  border-color: var(--edge);
+  background: var(--bg-input);
+  box-shadow: var(--focus-ring);
   outline: none;
 }
 
@@ -3356,21 +3364,10 @@ body {
   background: var(--bg-hover);
 }
 
-.feed-control-chip:active,
-.feed-mode-button:active,
-.feed-layout-button:active,
-.feed-load-button:active {
-  transform: scale(0.97);
-}
-
-.feed-control-chip-active,
-.feed-mode-button-active,
-.feed-layout-button-active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-subtle);
-  font-weight: 600;
-}
+/* The `transform: scale(0.97)` press and the `--accent-subtle` tint that used to
+   sit here are gone. All four chips press as keys and all three selected states
+   are moulded from cobalt — see the feed block at the end of this file. A tint
+   is "louder = selected", which is exactly the reading Law 2 forbids. */
 
 .feed-control-chip:disabled,
 .feed-mode-button:disabled {
@@ -3508,9 +3505,8 @@ body {
     transform var(--mesh-transition-fast);
 }
 
-.feed-composer-trigger:active {
-  transform: scale(0.995);
-}
+/* `.feed-composer-trigger:active { transform: scale(0.995) }` was here: a 0.5%
+   shrink, below the threshold of perception. It is a `.key` now and presses. */
 
 .feed-composer-media-grid {
   display: grid;
@@ -3876,10 +3872,14 @@ body {
     padding: 0.25rem 0.9rem 0.7rem 4.05rem;
   }
 
+  /* Was 2.1rem (33.6px) with a -0.25rem bleed, which is under the 44px touch
+     target on the one surface that is only ever touched. Now that the action
+     carries a face and a side wall the negative margin would also overlap the
+     neighbouring wall, so it goes: adjacent keys must not share edges. */
   .feed-x-layout .insta-post-action {
-    min-width: 2.1rem;
-    min-height: 2.1rem;
-    margin-inline: -0.25rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    margin-inline: 0;
   }
 
   .feed-like-count {
@@ -4083,11 +4083,13 @@ body,
 .app-command-search,
 .search-result-row,
 .app-profile-dock,
-.app-x-nav-link,
-.feed-composer-trigger {
+.app-x-nav-link {
   transition-duration: 150ms !important;
   transition-timing-function: ease !important;
 }
+/* `.feed-composer-trigger` was in that list. It is a `.key` now, and `.key` owns
+   its own transitions (--dur-press on the down-stroke, --dur-tap on colour); a
+   flat 150ms/ease !important here overrode both and the press lost its give. */
 
 .brand-button,
 .app-compose-button,
@@ -4169,6 +4171,9 @@ body,
   box-shadow: none !important;
 }
 
+/* `--bg-input` is already `--paper-2`, the recess colour, so the well was
+   coloured as a hole and then flattened with `box-shadow: none`. The inner lip
+   is what makes it read as one: same two declarations as `.tray`. */
 .simple-input,
 .glass-input,
 .theme-input,
@@ -4177,9 +4182,11 @@ body,
   border-color: var(--border-primary) !important;
   background: var(--bg-input) !important;
   color: var(--text-primary) !important;
-  box-shadow: none !important;
+  box-shadow: inset 0 2px 0 0 var(--plinth-tray) !important;
 }
 
+/* Was `0 0 0 3px var(--ring-color)` — one ring, one colour, and tokens.css
+   documents that no single ring colour clears 3:1 on every surface. */
 .simple-input:focus,
 .glass-input:focus,
 .theme-input:focus,
@@ -4187,7 +4194,7 @@ body,
 .app-command-search:focus-within,
 .input-glow:focus {
   border-color: var(--border-focus) !important;
-  box-shadow: 0 0 0 3px var(--ring-color) !important;
+  box-shadow: var(--focus-ring) !important;
   transform: none !important;
   outline: none !important;
 }
@@ -4303,13 +4310,19 @@ body,
   color: var(--text-primary);
 }
 
-.settings-traditional-header,
-.settings-traditional-nav,
-.settings-panel,
-.settings-card {
-  background: var(--bg-secondary) !important;
-  box-shadow: var(--shadow-sm);
-}
+/* The four shells used to be painted `--bg-secondary !important` here and the
+   card was then repainted `--bg-primary !important` at the rule below — so the
+   cards on this page were literally the mat colour (`body` is painted the same
+   value), separated from it by one hairline. `--paper-1`, the card colour,
+   appeared nowhere on the surface.
+
+   Each shell now carries the idiom it actually is, from the markup:
+     header  -> .plate   (settings-control-center.tsx:607)
+     nav     -> .plate   holding a .tray of .leaf rows (:682, :696, :708)
+     panel   -> nothing; it is a column, and the .plate cards inside it carry
+                the depth (:723)
+     card    -> .plate   (SettingsCard, :2130)
+   Nothing below repaints them. */
 
 /* Top-align the columns so the sticky sidebar isn't stretched to the panel's
    height (a stretched item can't stick). */
@@ -4326,13 +4339,17 @@ body,
   scrollbar-gutter: stable;
 }
 
+/* The section rail is the brief's named target: a .tray of .leaf rows. The
+   `.tray` sits on the nav element (settings-control-center.tsx:696) and `.leaf`
+   on each button (:708), so the border and radius come from the idioms — a row
+   inside a group has neither of its own. */
 .settings-nav-item {
   display: inline-flex;
   min-width: max-content;
   align-items: center;
   gap: 0.65rem;
-  border: 1px solid transparent;
-  border-radius: 0.6rem;
+  border: 0;
+  border-radius: 0;
   padding: 0.6rem 0.75rem;
   color: var(--text-secondary);
   text-align: left;
@@ -4341,27 +4358,62 @@ body,
     color 120ms ease;
 }
 
-.settings-nav-item:hover,
+.settings-nav-item:hover:not([aria-current="page"]) {
+  background: var(--paper-hover);
+  color: var(--text-primary);
+}
+
 .settings-nav-item:focus-visible {
-  background: var(--bg-hover);
+  outline: none;
+  box-shadow: var(--focus-ring);
   color: var(--text-primary);
 }
 
-.settings-nav-item-active {
-  border-color: transparent;
-  background: var(--bg-hover);
+/* WHICH SECTION YOU ARE ON, said in plastic — the pattern already shipped for
+   the main nav at the end of this file (`.mesh-nav-item[aria-current="page"]`).
+   Ten sections, six plastics, paired the way the component itself pairs them:
+   the file's own comments keep Privacy+Mesh adjacent as the "who can see you"
+   pair and Appearance+Meshi as the "make it yours" pair. Crimson is not here —
+   it is destruction, never a section. */
+.settings-nav-account,
+.settings-nav-profile     { --domain: var(--mould-teal); }
+.settings-nav-privacy,
+.settings-nav-security    { --domain: var(--mould-jade); }
+.settings-nav-mesh        { --domain: var(--mould-tomato); }
+.settings-nav-notifications { --domain: var(--mould-amber); }
+.settings-nav-appearance,
+.settings-nav-meshi       { --domain: var(--mould-grape); }
+.settings-nav-data,
+.settings-nav-billing     { --domain: var(--mould-cobalt); }
+
+.settings-nav-item-active,
+.settings-nav-item[aria-current="page"] {
+  background: color-mix(in srgb, var(--domain, var(--accent)) 18%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--domain, var(--accent));
   color: var(--text-primary);
 }
 
-.settings-summary-pill,
-.settings-quick-link,
-.settings-row,
-.settings-action-row,
-.settings-toggle,
-.settings-muted-box {
-  border: 1px solid var(--border-primary);
-  background: var(--bg-primary);
-}
+/* The icon wears the plastic even when the row is idle, so the rail reads as
+   six things rather than nine greys and a highlight. */
+.settings-nav-item svg:first-of-type { color: var(--domain, currentColor); opacity: 0.85; }
+.settings-nav-item[aria-current="page"] svg:first-of-type,
+.settings-nav-item-active svg:first-of-type { opacity: 1; }
+
+/* THE ONE RULE THAT MADE THIS PAGE "30+ INERT OUTLINED ROWS OF THE SAME VALUE"
+   used to live here: six different kinds of thing — info pills, info rows,
+   pressable rows, toggles, recessed boxes and buttons — all given the same 1px
+   outline and the same `--paper-0` fill as the card they sit on. Nothing
+   carried `--edge`, so none of the pressable ones had a WCAG 1.4.11 boundary.
+
+   It is split by JOB now, and the material comes from the idioms in the markup:
+     .settings-summary-pill  -> .tray  (:2165)   a recess in the header plate
+     .settings-muted-box     -> .tray  (:991 …)  it was always a recess
+     .settings-row           -> .leaf  (:2177)   a place, not a control
+     .settings-action-row    -> .key   where it is a <button>/<Link>; .leaf on
+                                       the one <div> that only looked pressable
+     .settings-toggle        -> .key   (:2261)   14 real switches
+     .settings-quick-link    -> .key   (:645,:650)
+   Everything below is layout only. */
 
 .settings-summary-pill {
   display: flex;
@@ -4386,19 +4438,11 @@ body,
   transition: background-color 120ms ease, color 120ms ease;
 }
 
-.settings-quick-link:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.settings-quick-link-primary {
-  background: var(--accent) !important;
-  color: #ffffff !important;
-}
-
-.settings-card {
-  background: var(--bg-primary) !important;
-}
+/* `.settings-quick-link:hover` and `.settings-quick-link-primary` are gone.
+   Both quick links are `.key` now, so `.key:hover` owns the hover, and the
+   primary one is `.key key-lit` moulded from cobalt — which also kills a
+   hardcoded `#ffffff` ink that was never measured. `.settings-card` no longer
+   repaints itself the mat colour; it is a `.plate`. */
 
 .settings-section-stack,
 .settings-picker-stack {
@@ -4406,9 +4450,14 @@ body,
   gap: 0.75rem;
 }
 
+/* A read-only row group is a RECESS with rows in it, not a 6.4px-gapped stack
+   of outlined boxes. `.tray` rides on the element in the markup (:846, :1173,
+   :1299, :1439, :1557, :1667); the rows are `.leaf`, and `.leaf:last-child`
+   closes the group. */
 .settings-list {
   display: grid;
-  gap: 0.4rem;
+  gap: 0;
+  padding: var(--sp-1);
 }
 
 .settings-row {
@@ -4446,18 +4495,20 @@ body,
   font-weight: 600;
 }
 
-.settings-action-row:hover,
-.settings-action-row:focus-visible,
-.settings-quick-link:hover,
-.settings-quick-link:focus-visible {
-  border-color: var(--border-hover);
-  background: var(--bg-hover);
-}
+/* The hover rules that used to sit here fought a second, later rule for the
+   same property, so half of each was silently dead. Both are gone: every one of
+   these is a `.key` now and `.key:hover` / `.key:active` are the whole answer —
+   one rule per behaviour, and a press that actually happens.
 
+   THE DESTRUCTIVE ACTION. It was three `#ef4444` colour-mixes — a 9% wash of an
+   unmeasured neon red on the one irreversible control in the product. It is
+   moulded from `--mould-crimson` now: the row carries `.key key-lit` and this
+   rule pins the triple, exactly as ui/button.tsx does for `variant="danger"`.
+   Crimson's ink measures 6.37:1 on its own face. Zero hex literals. */
 .settings-action-danger {
-  border-color: color-mix(in srgb, #ef4444 32%, var(--border-primary));
-  background: color-mix(in srgb, #ef4444 9%, var(--bg-primary));
-  color: color-mix(in srgb, #ef4444 88%, var(--text-primary));
+  --mould: var(--mould-crimson);
+  --mould-ink: var(--mould-crimson-ink);
+  --mould-plinth: var(--mould-crimson-plinth);
 }
 
 .settings-toggle {
@@ -4472,11 +4523,14 @@ body,
   text-align: left;
 }
 
-.settings-toggle-on {
-  border-color: color-mix(in srgb, var(--accent) 32%, var(--border-primary));
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-primary));
-}
+/* `.settings-toggle-on` used to be an 8% accent wash on the whole row — a ~1%
+   luminance shift carrying the state of a privacy switch. Law 2: colour is
+   which, never how loud. The row stays a neutral `.key`; the SWITCH carries the
+   state, as a change of material.
 
+   The track is a real recess and the knob is a real object: it is the one thing
+   on this page that literally slides, and it had no thickness at all — no wall,
+   no contact, and `#fff` for its "on" colour. */
 .settings-switch {
   display: inline-flex;
   flex-shrink: 0;
@@ -4484,46 +4538,60 @@ body,
   height: 1.5rem;
   align-items: center;
   border-radius: 999px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-tertiary, var(--bg-hover));
+  border: 0;
+  background: var(--paper-2);
+  box-shadow: inset 0 2px 0 0 var(--plinth-tray);
   padding: 0 0.16rem;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition: background 0.18s ease;
 }
 
 .settings-switch-knob {
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 999px;
-  background: var(--text-muted);
-  transition: transform 0.18s ease, background 0.18s ease;
+  background: var(--face);
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    0 var(--plinth-h-chip) 0 0 var(--plinth-1);
+  transition: transform 0.18s ease;
 }
 
+/* Jade is the pinned "on" plastic. The knob does not change colour — it is the
+   same moulded part, moved. Travel is the full inside width: 2.6rem track less
+   2 x 0.16rem padding less the 1.1rem knob = 1.18rem, and there is no border to
+   subtract now. */
 .settings-switch-on {
-  border-color: var(--accent);
-  background: var(--accent);
+  background: var(--mould-jade);
+  box-shadow: inset 0 2px 0 0 var(--mould-jade-plinth);
 }
 
 .settings-switch-on .settings-switch-knob {
-  background: #fff;
-  transform: translateX(1.06rem);
+  transform: translateX(1.18rem);
 }
 
+/* Fill, rule, radius and shadow come from `.plate` in the markup (:667). What
+   is left here is position and type. The `backdrop-filter: blur(12px)` is gone
+   — Law 5, and it was pointless besides: the background-color underneath it was
+   already fully opaque, so it bought a compositor layer and nothing else. The
+   `rgba(0,0,0,0.25)` shadow fallback is gone with it; the float shadow is
+   applied at the end of this file, after `.plate`. */
 .settings-status-toast {
   position: fixed;
   bottom: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
-  border-radius: 0.85rem;
-  border: 1px solid var(--border-primary);
   padding: 0.7rem 1.1rem;
   font-size: 0.85rem;
   font-weight: 600;
-  backdrop-filter: blur(12px);
-  background-color: var(--bg-secondary);
-  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.25));
   animation: settings-toast-in 0.2s ease;
 }
+
+/* Both states were eight raw Tailwind palette utilities with a hand-branched
+   `dark:` variant. `--success` and `--danger` are theme-aware AND gate-measured
+   on all four papers, so one token per state replaces all of it. */
+.settings-status-toast-success { color: var(--success); }
+.settings-status-toast-error { color: var(--danger); }
 
 @keyframes settings-toast-in {
   from {
@@ -4541,8 +4609,9 @@ body,
   gap: 0.5rem;
 }
 
+/* A recess by intent at all seven call sites, painted `--paper-0` with a 1px
+   rule at all seven. `.tray` rides on the markup; the padding stays here. */
 .settings-muted-box {
-  border-radius: 0.75rem;
   padding: 0.7rem;
 }
 
@@ -4555,23 +4624,40 @@ body,
   font-variant-caps: all-small-caps;
 }
 
-/* Icon-forward control language: every row leads with a small accent tile. */
+/* Every row leads with a small tile, and every one of them used to be tinted
+   with the accent — about 40 of them on one surface. When colour marks
+   everything it marks nothing (Law 2), and a tinted chrome tile at the head of
+   a row outweighs the row's own text (Law 3).
+
+   The default tile is neutral chrome now. It sits on `--paper-3`, not
+   `--paper-2`: the read-only rows live inside a `--paper-2` tray, and a tile the
+   colour of its own tray is not a tile. `--ink-3` is the text floor and clears
+   AA on `--paper-3` in both themes (5.01 / 5.31). */
 .settings-icon-tile {
   display: grid;
   width: 1.9rem;
   height: 1.9rem;
   flex-shrink: 0;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-primary));
+  border: 0;
   border-radius: 0.55rem;
-  background: var(--accent-subtle);
-  color: var(--accent);
+  background: var(--paper-3);
+  color: var(--ink-3);
 }
 
+/* Reserved for what it means: a solid crimson chip, not a 12% wash of a raw
+   `#ef4444`. Three hex literals deleted here, three more at the row rule above. */
 .settings-icon-tile-danger {
-  border-color: color-mix(in srgb, #ef4444 36%, var(--border-primary));
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  color: #ef4444;
+  background: var(--mould-crimson);
+  color: var(--mould-crimson-ink);
+}
+
+/* Inside a moulded row the tile inverts, so it stays visible without inventing
+   a colour: the row's own pinned ink becomes the tile and the row's plastic
+   becomes the glyph. Same measured pair, swapped. */
+.key-lit .settings-icon-tile {
+  background: var(--mould-ink, var(--mould-cobalt-ink));
+  color: var(--mould, var(--mould-cobalt));
 }
 
 /* Section headers recede so the accent row tiles carry the hierarchy. */
@@ -4715,7 +4801,12 @@ body,
   --ds-border: var(--border-primary);
   --ds-border-strong: var(--border-hover);
   --ds-accent-border: color-mix(in srgb, var(--accent) 78%, #000 22%);
-  --ds-focus-ring: 0 0 0 3px var(--ring-color);
+  /* RETARGETED to the two-ring token. A single ring colour can never clear 3:1
+     on every surface in this product — tokens.css measures it — which is why
+     `--focus-ring` is two rings at the extremes of the ramp. This name has ~30
+     call sites, including `.settings-hint summary:focus-visible` on this
+     surface, so retargeting it fixes all of them at once. */
+  --ds-focus-ring: var(--focus-ring);
   --ds-shadow-card: var(--shadow-sm);
   --ds-shadow-floating: var(--shadow-md);
   --ds-duration-fast: 140ms;
@@ -5276,39 +5367,16 @@ body {
   }
 }
 
-/* Zero-clutter app pass: routes stay functional, but chrome and explanatory layers stay quiet. */
-.app-shell-layout-surface .app-route-slot-surface {
-  background: var(--bg-primary);
-}
-
-.app-shell-layout-surface :where(.mesh-surface, .glass-card, .simple-card, .premium-surface, .insta-post-card, .feed-composer-card, .settings-card) {
-  border-color: var(--border-primary) !important;
-  border-radius: 0.75rem !important;
-  background: var(--bg-primary) !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-.app-shell-layout-surface :where(.mesh-surface:hover, .mesh-surface:focus-within, .glass-card:hover, .simple-card:hover, .premium-surface:hover, .insta-post-card:hover, .feed-composer-card:hover, .settings-card:hover) {
-  border-color: var(--border-primary) !important;
-  background: var(--bg-primary) !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-.app-shell-layout-surface .simple-page > :where(section, article, aside, div) {
-  gap: 0.85rem !important;
-}
-
-.app-shell-layout-surface :where(.mesh-action, .mesh-choice, .mesh-link-row, .settings-nav-item, .settings-quick-link, .feed-control-chip, .feed-mode-button, .feed-layout-button, .insta-icon-button) {
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-.app-shell-layout-surface :where(.mesh-action:hover, .mesh-choice:hover, .mesh-link-row:hover, .settings-nav-item:hover, .settings-quick-link:hover, .feed-control-chip:hover, .feed-mode-button:hover, .feed-layout-button:hover, .insta-icon-button:hover) {
-  box-shadow: none !important;
-  transform: none !important;
-}
+/* DELETED: six rule blocks scoped to `.app-shell-layout-surface`, a class that
+   is rendered NOWHERE. `Grep "app-shell-layout-surface" src/` returned exactly
+   one file — this one. Two of them targeted this surface (forcing
+   `.settings-card` to `background: var(--bg-primary) !important; box-shadow:
+   none !important`, and flattening `.settings-nav-item`/`.settings-quick-link`),
+   so anyone reading them would have believed the settings page was already
+   being held flat on purpose. It never was: the live rules are the ones above.
+   This is the same failure mode the comment near the end of this file
+   documents — CSS written against a selector nobody checked, shipping green and
+   changing nothing. */
 
 /* ─── Responsive: Mobile / Tablet / Foldable / iPad ─── */
 
@@ -6867,8 +6935,17 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
    accent carrying hover/active/focus — replacing the old ad-hoc bg-black/45 +
    border-white/12 pills that each looked slightly different and had no focus
    ring. ─────────────────────────────────────────────────────────────────── */
+/* The mesh's own surfaces are ALWAYS dark (they float over the canvas, which has
+   no light mode), so they are written as literal rgba rather than as theme
+   tokens. That is correct — and it is also why they were the last navy left in
+   the product: rgba(9, 12, 22) is a blue-black, and when the dark theme went
+   true-neutral these 26 call sites became the only tinted surfaces on screen.
+   Measured in the browser: 9 instances of rgb(9,12,22) on /mesh against a
+   #0a0a0a mat. Re-set to the same neutral black, keeping the alpha and blur —
+   the mesh should read as the same material as everything else, lit differently,
+   not as a different product. */
 .mesh-glass {
-  background: rgba(9, 12, 22, 0.66);
+  background: rgba(10, 10, 10, 0.66);
   border: 1px solid rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(14px) saturate(1.05);
   -webkit-backdrop-filter: blur(14px) saturate(1.05);
@@ -6876,7 +6953,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 /* Denser sibling of .mesh-glass for modals and drawers: near-opaque so dense
    content stays legible over the busy starfield, same border + accent language. */
 .mesh-panel {
-  background: rgba(11, 16, 32, 0.95);
+  background: rgba(13, 13, 13, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(18px) saturate(1.05);
   -webkit-backdrop-filter: blur(18px) saturate(1.05);
@@ -7198,7 +7275,14 @@ button, [role="button"] {
 
 /* The filter chips — `.feed-mode-button`, the 11 controls above the first post.
    They were hollow 1px outlines on a mat of the same value, which is what made
-   the top of the feed read as a wireframe. */
+   the top of the feed read as a wireframe.
+
+   `.feed-control-chip` was MISSING from this list on the first pass and shares
+   the identical flat base rule with the other three. It is the content-filter
+   row sitting directly above the first post — the most visible chip row on the
+   surface — so the one row this block was written to fix was the one row it
+   skipped. Adding a selector to a block that already exists writes no new CSS. */
+.feed-control-chip,
 .feed-mode-button,
 .feed-layout-button,
 .feed-load-button {
@@ -7213,22 +7297,44 @@ button, [role="button"] {
     box-shadow var(--dur-press) var(--ease-give),
     translate var(--dur-press) var(--ease-give);
 }
+.feed-control-chip:hover,
 .feed-mode-button:hover,
 .feed-layout-button:hover,
-.feed-load-button:hover { background: var(--face-hover); }
+.feed-load-button:hover {
+  background: var(--face-hover);
+  border-color: transparent;
+  color: var(--ink-1);
+}
+.feed-control-chip:active,
 .feed-mode-button:active,
 .feed-layout-button:active,
 .feed-load-button:active {
   background: var(--face-press);
   box-shadow: inset 0 0 0 var(--edge-w) var(--edge), 0 0 0 0 var(--plinth-1);
   translate: 0 var(--plinth-h-chip);
+  transform: none;
+}
+/* A disabled chip has already bottomed out: no wall left to collapse. */
+.feed-control-chip:disabled,
+.feed-mode-button:disabled,
+.feed-layout-button:disabled,
+.feed-load-button:disabled {
+  box-shadow: inset 0 0 0 var(--edge-w) var(--edge), 0 0 0 0 var(--plinth-1);
+  translate: none;
 }
 
 /* SELECTED is moulded from the brand plastic — filled, with its own side wall —
    instead of an outline with a faint tint. This is the one place on the feed
-   where colour says "you are here". */
+   where colour says "you are here".
+
+   Three sibling chip rows sit within 40px of each other. Moulding one and
+   tinting the other two read as half-finished work, so all three selected
+   states are the same plastic now. */
 .feed-mode-button-active,
-.feed-mode-button[aria-pressed="true"] {
+.feed-layout-button-active,
+.feed-control-chip-active,
+.feed-mode-button[aria-pressed="true"],
+.feed-control-chip[aria-pressed="true"] {
   background: var(--mould-cobalt);
   color: var(--mould-cobalt-ink);
   border-color: transparent;
@@ -7236,7 +7342,25 @@ button, [role="button"] {
     inset 0 0 0 var(--edge-w) var(--edge),
     0 var(--plinth-h-chip) 0 0 var(--mould-cobalt-plinth);
 }
-.feed-mode-button-active:hover { background: var(--mould-cobalt); }
+.feed-mode-button-active:hover,
+.feed-layout-button-active:hover,
+.feed-control-chip-active:hover,
+.feed-mode-button[aria-pressed="true"]:hover,
+.feed-control-chip[aria-pressed="true"]:hover {
+  background: var(--mould-cobalt);
+  color: var(--mould-cobalt-ink);
+}
+.feed-mode-button-active:active,
+.feed-layout-button-active:active,
+.feed-control-chip-active:active,
+.feed-mode-button[aria-pressed="true"]:active,
+.feed-control-chip[aria-pressed="true"]:active {
+  background: var(--mould-cobalt);
+  color: var(--mould-cobalt-ink);
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    0 0 0 0 var(--mould-cobalt-plinth);
+}
 
 /* ── 3. COLOUR DOES SOMETHING ─────────────────────────────────────────────── */
 
@@ -7274,11 +7398,15 @@ button, [role="button"] {
    green, changed nothing, and left dead CSS behind — which is the same kind of
    decorative-but-inert work that made the product feel cheap in the first
    place. */
-.settings-action-row:hover,
-.settings-list > a:hover,
-.settings-list > button:hover {
-  background: var(--paper-hover);
-}
+   That pass is superseded by the settings block at the end of this file, and
+   this rule is deleted with it, for two measured reasons. `.settings-list > a`
+   and `.settings-list > button` match nothing — every direct child of a
+   `.settings-list` is a `SettingsRow` <div> or a <p>. And
+   `.settings-action-row:hover` sits AFTER `.key:hover`, so once those rows
+   became keys it was repainting them `--paper-hover` instead of `--face-hover`
+   — which in Worklight is DARKER than the key's own face, so a key would have
+   dimmed under the pointer. A row that cannot be pressed no longer lights up at
+   all; that affordance was a lie. */
 
 /* ── 5. ARRIVAL ───────────────────────────────────────────────────────────── */
 
@@ -7296,3 +7424,286 @@ button, [role="button"] {
 @media (prefers-reduced-motion: reduce) {
   .insta-post-card { animation: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REVIVE — THE FEED, PASS 2
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Pass 1 gave the post card a plate. What it left flat was everything you can
+   actually touch: the action row under every post, the four header controls,
+   the whole composer, and a right rail with no surface at all.
+
+   EVERY SELECTOR BELOW WAS GREPPED IN src/ AND FOUND RENDERED before it was
+   written. That is not a courtesy — the first draft of the pass-1 block styled
+   `.mesh-choice`, `.mesh-action`, `[data-nav-item]` and `.settings-row`, three
+   of which exist nowhere in this codebase. It built clean, passed every gate,
+   changed nothing on screen and left dead rules behind. Looking costs one
+   command; guessing costs a whole pass.
+
+   These rules live at the end of the file on purpose. Almost everything they
+   replace is an earlier rule of equal specificity, so source order does the
+   work and `!important` is used in exactly one place — the composer card, where
+   there is an existing `!important` to beat.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. THE ACTION ROW, AND THE HEADER ────────────────────────────────────────
+
+   `.insta-post-action` (like / comment / share / save, four per post) and
+   `.insta-icon-button` (the four topbar controls and the card's "…" menu) share
+   one base block up at :1868. It gave them no face, no --edge ring, no wall and
+   a 36px box, and pressed them with `transform: scale(0.92)` — the control
+   shrinking AWAY from the finger, which is the precise opposite of a key
+   bottoming out. On the busiest row of the product.
+
+   They get the chip mould: the same 2px wall the filter chips wear, not the 3px
+   object wall, because Law 3 says the chrome on a post must stay quieter than
+   the post. The press conserves height — wall to zero, face down by exactly one
+   wall — so the bottom edge never moves. */
+.insta-icon-button,
+.insta-post-action {
+  min-height: 2.75rem;   /* was 2.25rem — under the 44px touch target */
+  min-width: 2.75rem;
+  border-radius: var(--radius-md);
+  background: var(--face);
+  color: var(--ink-2);
+  --plinth-h: var(--plinth-h-chip);
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    var(--mould-line),
+    0 var(--plinth-h) 0 0 var(--plinth-1),
+    var(--shadow-rest);
+  transition:
+    translate var(--dur-press) var(--ease-give),
+    box-shadow var(--dur-press) var(--ease-give),
+    background-color var(--dur-tap) var(--ease-settle),
+    color var(--dur-tap) var(--ease-settle);
+}
+.insta-icon-button:hover,
+.insta-post-action:hover {
+  background: var(--face-hover);
+  color: var(--ink-1);
+}
+/* `transform: none` is load-bearing. `translate` and `transform` are separate
+   properties that COMPOSE, so the old scale would have survived underneath the
+   new press and the object would have shrunk and dropped at the same time. */
+.insta-icon-button:active,
+.insta-post-action:active {
+  background: var(--face-press);
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    var(--mould-line),
+    0 0 0 0 var(--plinth-1),
+    var(--shadow-press);
+  translate: 0 var(--plinth-h);
+  transform: none;
+}
+.insta-icon-button:focus-visible,
+.insta-post-action:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+/* Already bottomed out: nothing left to press. */
+.insta-icon-button:disabled,
+.insta-post-action:disabled,
+.insta-icon-button[aria-disabled="true"],
+.insta-post-action[aria-disabled="true"] {
+  box-shadow: inset 0 0 0 var(--edge-w) var(--edge), 0 0 0 0 var(--plinth-1);
+  translate: none;
+}
+
+/* LIKED and SAVED are moulded from plastic, not tinted.
+
+   Before this, the entire on/off state of the two stateful controls on a post
+   was a hue swap on a flat glyph — `text-rose-400` for liked, `--accent` for
+   saved. That is Law 2 inverted: colour was carrying "how loud", and an
+   unpinned Tailwind rose was carrying it over an unknown background. The
+   element wears `.key-lit` plus a pinned --mould / --mould-ink / --mould-plinth
+   triple, exactly as ui/button.tsx:26 does, so the ink is contrast-pinned and
+   the state is a material change rather than a brightness change.
+   `.key-lit` is the authored idiom at :4905 — used, not re-declared.
+
+   The compound selector is not belt-and-braces, it is required. `.key-lit` and
+   `.insta-post-action` are both one class, and this block sits LATER in the
+   file, so a bare `.key-lit` would lose its own background and ink to the
+   `--face` rule above on source order alone. Measured by looking, not assumed:
+   equal specificity means position decides. */
+.insta-post-action.key-lit,
+.insta-post-action.key-lit:hover,
+.insta-post-action.key-lit:active {
+  background: var(--mould, var(--mould-cobalt));
+  color: var(--mould-ink, var(--mould-cobalt-ink));
+}
+.insta-post-action.key-lit {
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    var(--mould-line),
+    0 var(--plinth-h) 0 0 var(--mould-plinth, var(--mould-cobalt-plinth)),
+    var(--shadow-rest);
+}
+.insta-post-action.key-lit:active {
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    var(--mould-line),
+    0 0 0 0 var(--mould-plinth, var(--mould-cobalt-plinth)),
+    var(--shadow-press);
+}
+
+/* CREATE POST outranks the three controls beside it.
+
+   Four topbar buttons rendered identically means the header has no rank at all.
+   Rank comes from material, not from size: the primary one is moulded from the
+   feed's own plastic, the other three stay in --face. Attribute selector on the
+   href that is already in the markup — no className change, nothing to drift. */
+.insta-icon-button[href="/feed?compose=true"] {
+  background: var(--mould-cobalt);
+  color: var(--mould-cobalt-ink);
+  --plinth-1: var(--mould-cobalt-plinth);
+}
+.insta-icon-button[href="/feed?compose=true"]:hover {
+  background: var(--mould-cobalt);
+  color: var(--mould-cobalt-ink);
+}
+
+/* ── 2. THE COMPOSER IS A TRAY ────────────────────────────────────────────────
+
+   `.feed-composer-card` was painted `--bg-secondary` — which aliases to
+   --paper-2, the RECESS colour — and simultaneously lit with an OUTWARD
+   `box-shadow: var(--shadow-sm)`. Coloured like a well, lit like a raised card,
+   so it read as neither. It also carried `transform: translateY(-1px)` on
+   hover: a container that bobs when the pointer merely crosses it, which
+   breaks Law 1 — only pressable things move. Pass 1 killed exactly that on
+   `.insta-post-card` and never came back for the composer.
+
+   It is the tray it was already coloured as: three declarations, character for
+   character the body of `.tray` at :4816.
+
+   `!important` is required here and only here — :4030 and :4059 already use it.
+   The `.feed-x-layout` descendant selector is required too: the composer renders
+   INSIDE `<main class="… feed-x-layout …">` (feed-timeline-client.tsx:473, 609)
+   and it also carries `glass-card`, so `.feed-x-layout .glass-card !important`
+   at :4031 outranks a bare `.feed-composer-card !important` on specificity.
+   Matching its specificity is what makes this rule actually land. */
+.feed-composer-card,
+.feed-x-layout .feed-composer-card {
+  background: var(--paper-2) !important;
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: inset 0 2px 0 0 var(--plinth-tray) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.feed-composer-card:hover,
+.feed-x-layout .feed-composer-card:hover {
+  background: var(--paper-2) !important;
+  border: 0 !important;
+  box-shadow: inset 0 2px 0 0 var(--plinth-tray) !important;
+  transform: none !important;
+}
+
+/* The collapsed trigger was painted --bg-secondary too: a control the exact
+   colour of its own container, separated from it by one hairline. It carries
+   `.key` now, so it is --face (a full step lighter than the --paper-2 tray it
+   sits in) with a real wall. Only the pill radius is overridden — a --radius-md
+   trigger next to a --radius-md submit key reads as one row of parts. */
+.feed-composer-trigger {
+  border-radius: var(--radius-md);
+}
+
+/* Over-media chip, same contract as every other one on this surface. The old
+   rule was `rgba(0,0,0,0.58)` + `color: white` + `transform: scale(1.04)` on
+   hover — an object that INFLATES under the pointer. Growth reads as emission;
+   a key answers by pressing in, never by getting bigger. */
+.feed-composer-remove-media {
+  background: var(--media-chip);
+  color: var(--media-ink);
+  box-shadow: 0 var(--plinth-h-chip) 0 0 var(--media-chip-plinth);
+  transition:
+    translate var(--dur-press) var(--ease-give),
+    box-shadow var(--dur-press) var(--ease-give),
+    background-color var(--dur-tap) var(--ease-settle);
+}
+.feed-composer-remove-media:hover {
+  background: var(--media-chip);
+  color: var(--media-ink);
+  transform: none;
+}
+.feed-composer-remove-media:active {
+  box-shadow: 0 0 0 0 var(--media-chip-plinth);
+  translate: 0 var(--plinth-h-chip);
+  transform: none;
+}
+
+/* ── 3. THE RIGHT RAIL GETS A SURFACE ─────────────────────────────────────────
+
+   `.insta-right-rail` had display / position / top / height / padding and
+   nothing else — no background, no border, no radius, no shadow. The whole rail
+   was naked text on the bare mat, which is why it read as unfinished next to
+   plated post cards. Its two groups (feed-timeline-client.tsx:681, 692 — both
+   plain divs, both verified) become plates. NO plinth: Law 1, a panel is
+   information, and the links inside it are the things you press. */
+.insta-right-rail > div {
+  background: var(--paper-1);
+  border: var(--border-w) solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-rest);
+  padding: var(--sp-4);
+}
+
+/* A row inside the plate. `.leaf` — brightens, does not travel. The rule that
+   used to be here slid the row 2px sideways on hover, which is a control that
+   goes somewhere; a row is a place. The padding is new: a hover surface with no
+   padding hugs the glyph and reads as a highlighter, not a target. */
+.insta-rail-link {
+  border-radius: var(--radius-md);
+  padding-inline: 0.55rem;
+  transition:
+    color var(--dur-tap) var(--ease-settle),
+    background-color var(--dur-tap) var(--ease-settle);
+}
+.insta-rail-link:hover {
+  background: var(--paper-hover);
+  transform: none;
+}
+
+/* ── 4. NOTHING EMITS ─────────────────────────────────────────────────────────
+
+   `.glass-dropdown` carried `backdrop-filter: blur(24px) saturate(200%)` and a
+   hardcoded `0 16px 48px -12px rgba(0,0,0,0.4)`. The blur was already being
+   cancelled at :4025, but that same block then repainted it --bg-secondary —
+   --paper-2, the RECESS colour — so a menu floating ABOVE the page was painted
+   the colour of a hole in it.
+
+   A transient overlay is not the topmost modal, so it is not `.floating`: it is
+   a plate that floats. Opaque paper, the standard rule, one shadow. */
+.glass-dropdown {
+  background: var(--paper-1);
+  border: var(--border-w) solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* The empty state's two buttons were `.mesh-action mesh-action-primary`: a
+   hardcoded three-stop gradient on hardcoded ink, an EMITTING coloured shadow
+   (`0 14px 36px rgba(91,141,239,0.18)`), a hover LIFT and a sweeping ::after
+   highlight — four law violations in one control, and the loudest thing on an
+   otherwise empty screen. Both call sites now emit `.key` classes instead
+   (feed-timeline-client.tsx:647, 651). `.mesh-action` itself has 34 references
+   across the whole product, so the shared rule is left exactly as it is; only
+   the two feed call sites changed. */
+
+/* ── 5. THE COMPOSER'S SUB-GROUPS ─────────────────────────────────────────────
+
+   Link tools, visibility options and the cross-post panel were three hand-rolled
+   settings groups, each with its own radius and an OUTWARD border, all painted
+   --bg-tertiary (--paper-3, the TRACK colour) as though it were a card. They
+   carry `.tray` now — unmodified.
+
+   No nested-tray colour is invented here, and that is deliberate. The obvious
+   move is to drop the inner group one step to --paper-3, but --paper-3 is
+   DARKER than --paper-2 in daylight and LIGHTER than it in worklight, so a
+   "one step deeper" override would read as recessed in one theme and raised in
+   the other. The inner lip is what separates a tray from its parent — it is
+   --plinth-tray, the one plinth that inverts precisely so it stays visible in
+   both — so a plain `.tray` inside a `.tray` already reads correctly. */

@@ -644,11 +644,17 @@ export function FeedTimelineClient({
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {contentFilter !== "all" && (
-                  <button type="button" onClick={() => void applyContentFilter("all")} className="mesh-action mesh-action-secondary px-4 text-sm">
+                  <button type="button" onClick={() => void applyContentFilter("all")} className="key inline-flex min-h-11 items-center gap-2 px-4 text-sm font-semibold text-[var(--text-primary)]">
                     Show all posts
                   </button>
                 )}
-                <Link href="/connected-accounts" className="mesh-action mesh-action-primary px-4 text-sm">
+                {/* Was `.mesh-action mesh-action-primary`: a hardcoded three-stop
+                    gradient on hardcoded ink, with an emitting coloured shadow and
+                    a hover lift. These are the classes ui/button.tsx:26 emits. */}
+                <Link
+                  href="/connected-accounts"
+                  className="key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] inline-flex min-h-11 items-center gap-2 px-4 text-sm font-semibold"
+                >
                   Connect platforms
                   <ArrowRight size={15} aria-hidden="true" />
                 </Link>
@@ -731,6 +737,12 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
   const names = presences.map((presence) => presence.displayName || presence.username).join(", ");
   const clamp = (value: number, min = 12, max = 88) => Math.max(min, Math.min(max, value));
 
+  // Both chips below float over whatever the post happens to be — a photo, a
+  // video, or plain text — so they use the media-chip contract from tokens.css:
+  // OPAQUE, never translucent, never blurred. --media-ink-2 is pinned at 9.20:1
+  // on --media-chip, which `text-secondary` over a 90%-alpha backdrop-blur could
+  // not promise on any frame. The blur was also a Law 5 violation: the only
+  // backdrop-filter this system permits is the modal scrim.
   return (
     <>
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[1.5rem]" aria-hidden="true">
@@ -742,18 +754,18 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
           return (
             <span
               key={presence.userId}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/90 px-1.5 py-1 shadow-[var(--shadow-sm)] backdrop-blur"
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--media-chip)] px-1.5 py-1 shadow-[0_var(--plinth-h-chip)_0_0_var(--media-chip-plinth)]"
               style={{ left: `${left}%`, top: `${top}%` }}
             >
               <MeshiMascot size={18} color={presence.meshiColor as MeshiColor} hat={presence.meshiHat as MeshiHat} animate={false} />
-              <span className="max-w-[5.25rem] truncate text-[9px] font-semibold text-[var(--text-secondary)]">
+              <span className="max-w-[5.25rem] truncate text-[9px] font-semibold text-[var(--media-ink-2)]">
                 {label}
               </span>
             </span>
           );
         })}
       </div>
-      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/88 px-2 py-1 shadow-[var(--shadow-sm)] backdrop-blur">
+      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--media-chip)] px-2 py-1 shadow-[0_var(--plinth-h-chip)_0_0_var(--media-chip-plinth)]">
         <div className="flex -space-x-1">
           {presences.slice(0, 3).map((presence) => (
             <MeshiMascot
@@ -766,8 +778,8 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
             />
           ))}
         </div>
-        <Sparkles size={11} aria-hidden="true" className="text-[var(--accent)]" />
-        <span className="max-w-[9rem] truncate text-[10px] font-semibold text-[var(--text-secondary)]">
+        <Sparkles size={11} aria-hidden="true" className="text-[var(--media-ink-2)]" />
+        <span className="max-w-[9rem] truncate text-[10px] font-semibold text-[var(--media-ink-2)]">
           {presences.length === 1 ? `${names} is here` : `${presences.length} Meshis here`}
         </span>
       </div>

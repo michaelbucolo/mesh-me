@@ -107,7 +107,12 @@ export function AutoplayVideo({
           e.stopPropagation();
           setMuted((m) => !m);
         }}
-        className="absolute bottom-2 right-2 rounded-full bg-black/60 p-1.5 text-white/90 backdrop-blur transition active:scale-90"
+        // Was `bg-black/60 … text-white/90 backdrop-blur … active:scale-90`:
+        // translucent, blurred, and shrinking away from the finger. The chip is
+        // opaque now (--media-chip, with --media-ink pinned at 16.76:1 on it)
+        // and the press conserves height — wall to zero, face down by exactly
+        // that wall — so the bottom edge does not move.
+        className="absolute bottom-2 right-2 grid h-11 w-11 place-items-center rounded-full bg-[var(--media-chip)] text-[var(--media-ink)] shadow-[0_var(--plinth-h-chip)_0_0_var(--media-chip-plinth)] transition-[translate,box-shadow] duration-[var(--dur-press)] ease-[var(--ease-give)] active:translate-y-[var(--plinth-h-chip)] active:shadow-[0_0_0_0_var(--media-chip-plinth)]"
       >
         {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
       </button>
