@@ -91,7 +91,6 @@ const RemoteMeshi = memo(function RemoteMeshi({
       style={{ left: "50%", top: "50%", opacity: 0 }}
     >
       <div className="meshi-world-scale">
-        {p.isPro && <span className="meshi-pro-aura" aria-hidden />}
         <MeshiMascot
           size={54}
           color={p.meshiColor as MeshiColor}
@@ -247,7 +246,6 @@ export function MeshiLayer({
             aria-hidden="true"
           >
             <div className="meshi-world-scale">
-              {meshData?.user.isMeshPro && ownerOnline && <span className="meshi-pro-aura" aria-hidden />}
               <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
                 {!ownerOnline && (
                   <>

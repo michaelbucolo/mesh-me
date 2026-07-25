@@ -7170,19 +7170,6 @@ body > * { position: relative; z-index: 1; }
   from { opacity: 0; transform: scale(0.35); }
   to { opacity: 1; transform: scale(1); }
 }
-/* A ring that closes around Meshi the instant he forms. */
-.mesh-gate-ring {
-  position: absolute;
-  inset: -14px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(125, 155, 255, 0.55);
-  animation: meshEntryRing 0.7s ease-out both;
-  pointer-events: none;
-}
-@keyframes meshEntryRing {
-  from { opacity: 0.9; transform: scale(1.7); }
-  to { opacity: 0; transform: scale(1); }
-}
 .mesh-gate-meshi.is-success { animation: meshEntryGather 0.9s ease-in forwards; }
 @keyframes meshEntryGather {
   0% { transform: scale(1); }
@@ -7304,7 +7291,6 @@ body > * { position: relative; z-index: 1; }
   .mesh-gate-form,
   .mesh-gate-meshi,
   .mesh-gate-bubble,
-  .mesh-gate-ring,
   .mesh-gate-leaving { animation: none; }
   .mesh-gate-leaving { opacity: 0; }
 }
@@ -7728,7 +7714,7 @@ body > * { position: relative; z-index: 1; }
 }
 .meshi-leave { animation: meshiLeave 0.7s ease-in forwards; }
 @media (prefers-reduced-motion: reduce) {
-  .meshi-arrive, .meshi-arrive-ring, .meshi-leave { animation-duration: 0.01s; }
+  .meshi-arrive, .meshi-leave { animation-duration: 0.01s; }
 }
 
 /* ── Meshis live IN the world: they scale with the zoom like nodes do. They
@@ -7744,28 +7730,7 @@ body > * { position: relative; z-index: 1; }
 /* Mesh Pro mark — a single discreet gold hairline around a Pro member's
    Meshi. No glow, no shimmer: quiet, like a good watch. Server-authoritative
    (presence carries isPro), purely decorative. */
-.meshi-pro-aura {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 78px;
-  height: 78px;
-  border-radius: 9999px;
-  transform: translate(-50%, -50%);
-  border: 1px solid rgba(212, 175, 55, 0.55);
-  animation: meshiProAura 5.5s ease-in-out infinite;
-  pointer-events: none;
-}
 
-@keyframes meshiProAura {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.85;
-  }
-}
 
 /* ── Precise cursor marker on the mesh (fine pointers) ────────────────── */
 /* The pointer's true position on the mesh: a high-contrast reticle that
