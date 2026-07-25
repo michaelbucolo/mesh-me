@@ -287,17 +287,26 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       className="relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[#04050c] select-none"
       onWheel={input.onWheel}
     >
-      {/* cursor-none lives on the canvas only — there the reticle/Meshi IS the
-          cursor. DOM chrome layered above (tabs, marquee, panels) keeps native
-          cursors, so leaving the play area never strands you cursorless. */}
+      {/* The canvas draws Meshi at the pointer itself, so it owns the BODY
+          layer here and the global DOM sprite stands down over it —
+          `data-meshi-canvas-pointer` is what tells the sprite that.
+
+          It no longer hides the native cursor. That used to read as "the
+          reticle IS the cursor", but the floor image is Meshi's contact shadow
+          and aim dot: keeping it means the exact same two-layer arrangement as
+          every other surface, with the body simply painted by canvas instead of
+          by the DOM. It also means no state anywhere in the product leaves the
+          user without a pointer — including the frames before the scene has
+          drawn anything at all. */}
       <canvas
         ref={(el) => {
           rtRef.current.canvasEl = el;
         }}
         data-testid="mesh-canvas"
+        data-meshi-canvas-pointer={!isCoarsePointer ? "" : undefined}
         role="img"
         aria-label="Your mesh constellation"
-        className={`block h-full w-full ${!isCoarsePointer ? "cursor-none" : ""}`}
+        className="block h-full w-full"
         onPointerDown={input.onPointerDown}
         onPointerMove={input.onPointerMove}
         onPointerUp={input.onPointerUp}
