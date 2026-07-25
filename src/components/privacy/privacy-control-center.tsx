@@ -52,7 +52,17 @@ const defaultPolicyRows = [
   {
     entityType: "meshi_memory",
     label: "Meshi memory",
-    description: "What Meshi can use locally to answer questions about your Mesh.",
+    // NOT "locally". This is the governing statement for the switch a person is
+    // actually operating, and it said Meshi used their mesh "locally" while
+    // src/lib/meshi-reasoning.ts POSTs that context to api.openai.com — the
+    // repo's own consent module says so in as many words ("pasted verbatim into
+    // the OpenAI prompt"). Someone reading "locally" and leaving this on has
+    // been told the opposite of what happens, at the exact moment they decide.
+    //
+    // The copy is what changed, not the code: sending context to a reasoning
+    // provider is what this feature has always been for. The switch itself works
+    // — turning it off genuinely stops the grounding query and the egress.
+    description: "What Meshi may use to answer questions about your Mesh, including sending it to the AI provider that generates Meshi's replies.",
     defaultVisibility: "private",
   },
 ] as const;
