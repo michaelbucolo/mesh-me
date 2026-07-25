@@ -32,6 +32,10 @@ export interface MeshiContext {
     platforms?: number;
   };
   meshEntities?: Array<{
+    /** The subject's user/community id. The client has always sent it (these are
+     *  MeshGraphEntity rows); declaring it is what lets the chat route resolve
+     *  each named third party's own Meshi rule before the entity goes upstream. */
+    id?: string;
     type: string;
     label: string;
     sublabel?: string;

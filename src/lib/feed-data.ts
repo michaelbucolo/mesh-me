@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { nativePostDiscoveryConsentWhere } from "./consent";
 import { nsfwHiddenWhere } from "./content-safety";
 import { buildExternalMedia } from "./external-media";
 import { getFriendPlatformFeedPosts, type FriendPlatformFeedPost } from "./friend-mesh";
@@ -241,8 +242,9 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
         visibility: "public",
         authorId: { notIn: [...followingIds, user.id, ...blockedIds] },
         OR: [{ communityId: null }, { community: { isPublic: true } }],
-        // Public posts circulate when their author opted into discovery.
-        author: { isSuspended: false, showInDiscovery: true },
+        // Public posts circulate when their author opted into discovery —
+        // account-wide, and for the "Mesh.me posts" privacy category.
+        author: { isSuspended: false, showInDiscovery: true, ...nativePostDiscoveryConsentWhere() },
       },
       include: baseInclude,
       orderBy: [

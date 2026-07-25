@@ -450,16 +450,6 @@ select:focus-visible {
   100% { transform: scale(1); }
 }
 
-/* Aurora sweep — a one-pass periwinkle→cyan sheen wiped across freshly
-   revealed content (routes, cards, submittable forms). */
-@keyframes meshAuroraSweep {
-  0% { opacity: 0; transform: translateX(-120%) skewX(-12deg); }
-  30% { opacity: 0.7; }
-  100% { opacity: 0; transform: translateX(120%) skewX(-12deg); }
-}
-/* Living aurora drift — background-position motion for gradient surfaces. */
-@keyframes meshAuroraDrift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
-
 /* Particle burst — one glyph flung outward on a per-particle angle/distance.
    Consumers set --angle and --dist inline; used by reaction/tap bursts. */
 @keyframes meshBurstParticle {
@@ -1059,20 +1049,8 @@ select:focus-visible {
 @media (min-width: 768px) {
   .mesh-continuum-handle-down { bottom: 1.35rem; }
 }
-/* A one-pass aurora sheen threads across freshly committed content. */
-.mesh-route-slot.animate-page-enter::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-  background: linear-gradient(100deg, transparent 30%, rgba(110, 139, 255, 0.10) 48%, rgba(52, 228, 234, 0.08) 56%, transparent 72%);
-  mix-blend-mode: screen;
-  animation: meshAuroraSweep 0.7s var(--mesh-ease-out) 0.05s both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .mesh-route-slot.animate-page-enter::after { display: none; }
-}
+/* Fresh content simply arrives. No sheen is wiped across it — a page that
+   announces itself is a page that gets in the way. */
 
 @keyframes meshChildEnter {
   from { opacity: 0; transform: translateY(12px) scale(0.988); }
@@ -4628,92 +4606,14 @@ body,
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Parallax star field — one element per layer, stars painted with box-shadow,
-   so it stays cheap. Two layers drift opposite ways for depth; each twinkles
-   on its own beat so they never read as synced. */
-.meshi-load-starfield {
-  position: absolute;
-  inset: -8px;
-  overflow: hidden;
-  border-radius: 26px;
-  pointer-events: none;
-}
+/* The loader's sky is gone. Meshi waits on a plain surface — nothing drifts
+   behind it, nothing twinkles, nothing glows. The starfield and the aura
+   elements still mount; they simply draw nothing. */
+.meshi-load-starfield,
 .meshi-load-stars,
-.meshi-load-stars-near {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
-  border-radius: 9999px;
-  background: transparent;
-  will-change: transform, opacity;
-}
-.meshi-load-stars {
-  box-shadow:
-    14px 16px 0 0 rgba(148, 163, 184, 0.45),
-    42px 9px 0 0 rgba(103, 232, 249, 0.35),
-    71px 34px 0 0 rgba(148, 163, 184, 0.4),
-    99px 14px 0 0 rgba(148, 163, 184, 0.32),
-    126px 28px 0 0 rgba(129, 140, 248, 0.38),
-    152px 19px 0 0 rgba(148, 163, 184, 0.34),
-    168px 52px 0 0 rgba(148, 163, 184, 0.4),
-    28px 58px 0 0 rgba(148, 163, 184, 0.3),
-    58px 72px 0 0 rgba(103, 232, 249, 0.32),
-    132px 64px 0 0 rgba(148, 163, 184, 0.38),
-    22px 104px 0 0 rgba(148, 163, 184, 0.34),
-    86px 96px 0 0 rgba(129, 140, 248, 0.3),
-    118px 118px 0 0 rgba(148, 163, 184, 0.4),
-    158px 104px 0 0 rgba(148, 163, 184, 0.3),
-    38px 138px 0 0 rgba(103, 232, 249, 0.34),
-    104px 150px 0 0 rgba(148, 163, 184, 0.36),
-    146px 144px 0 0 rgba(148, 163, 184, 0.3);
-  animation:
-    meshiLoadDriftFar 16s ease-in-out infinite alternate,
-    meshiLoadTwinkleFar 5s ease-in-out infinite;
-}
-.meshi-load-stars-near {
-  box-shadow:
-    30px 30px 0 0.5px rgba(224, 231, 255, 0.85),
-    82px 20px 0 0.5px rgba(165, 243, 252, 0.8),
-    140px 44px 0 0.5px rgba(224, 231, 255, 0.8),
-    50px 96px 0 0.5px rgba(224, 231, 255, 0.75),
-    110px 78px 0 0.5px rgba(199, 210, 254, 0.85),
-    24px 132px 0 0.5px rgba(224, 231, 255, 0.7),
-    156px 120px 0 0.5px rgba(165, 243, 252, 0.8),
-    96px 142px 0 0.5px rgba(224, 231, 255, 0.75);
-  animation:
-    meshiLoadDriftNear 11s ease-in-out infinite alternate,
-    meshiLoadTwinkleNear 5s ease-in-out infinite;
-}
-@keyframes meshiLoadDriftFar { to { transform: translate3d(-6px, -7px, 0); } }
-@keyframes meshiLoadDriftNear { to { transform: translate3d(9px, 6px, 0); } }
-@keyframes meshiLoadTwinkleFar { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.95; } }
-@keyframes meshiLoadTwinkleNear { 0%, 100% { opacity: 0.95; } 50% { opacity: 0.6; } }
-
-/* Soft aura in the mode's palette — additive glow that breathes with Meshi.
-   Sits behind the motif and Meshi; --aura-1/-2 come from the mode palette. */
+.meshi-load-stars-near,
 .meshi-load-aura {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 152px;
-  height: 152px;
-  margin: -76px 0 0 -76px;
-  border-radius: 9999px;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 46%, var(--aura-1) 0%, transparent 60%),
-    radial-gradient(circle at 50% 62%, var(--aura-2) 0%, transparent 72%);
-  opacity: 0.42;
-  filter: blur(9px);
-  mix-blend-mode: screen;
-  will-change: transform, opacity;
-  animation: meshiLoadAura 3.4s ease-in-out infinite;
-}
-@keyframes meshiLoadAura {
-  0%, 100% { transform: scale(0.9); opacity: 0.34; }
-  50% { transform: scale(1.06); opacity: 0.52; }
+  display: none;
 }
 
 /* Thin progress shimmer under the title — a moving highlight, not fake %. */
@@ -4744,9 +4644,6 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .meshi-load-stage { animation: none !important; opacity: 1; transform: none; }
-  .meshi-load-stars,
-  .meshi-load-stars-near { animation: none !important; opacity: 0.7; }
-  .meshi-load-aura { animation: none !important; transform: scale(1); opacity: 0.4; }
   .meshi-load-progress::after {
     animation: none !important;
     transform: none;
@@ -6579,120 +6476,44 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   AURORA MESH — structural enhancement layer (loaded last, wins cascade)
-   Adds depth, luminosity, and glass across every surface app-wide.
+   SURFACE LAYER — loaded last, wins cascade.
+   Paper catches light, it never emits it. Nothing here glows, blurs or
+   drifts: depth is one hairline and one warm shadow, and that is all.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* App-wide aurora: a soft, fixed luminous field behind everything.
-   Purely decorative and GPU-cheap (static gradients, no animation). */
-:root:not(.light) body::before,
-.dark body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(60rem 40rem at 12% -8%, rgba(110, 139, 255, 0.14), transparent 60%),
-    radial-gradient(52rem 38rem at 108% 8%, rgba(168, 85, 247, 0.12), transparent 58%),
-    radial-gradient(48rem 40rem at 50% 118%, rgba(236, 72, 153, 0.08), transparent 60%);
-  opacity: 0.9;
-}
-.light body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(58rem 40rem at 10% -10%, rgba(110, 139, 255, 0.10), transparent 60%),
-    radial-gradient(50rem 36rem at 106% 6%, rgba(168, 85, 247, 0.08), transparent 58%);
-}
-/* Keep real content above the aurora. Body-level fixed layers (toasts, the
-   Meshi float, the bug-report widget) are skipped: this rule is unlayered, so
-   it beat Tailwind's `fixed`/`z-*` utilities and dropped those layers back into
-   flow — full-bleed and pinned to the wrong edge on every viewport. `:where()`
-   keeps this at its original specificity so component rules that position
-   themselves (.mesh-gate) still win. */
+/* Body-level fixed layers (toasts, the Meshi float, the bug-report widget)
+   are skipped: this rule is unlayered, so it beat Tailwind's `fixed`/`z-*`
+   utilities and dropped those layers back into flow — full-bleed and pinned
+   to the wrong edge on every viewport. `:where()` keeps this at its original
+   specificity so component rules that position themselves (.mesh-gate) still
+   win. */
 body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
-/* Gradient wordmark — the brand should shimmer, not sit flat. */
-.brand-wordmark {
-  background: var(--brand-gradient-vibrant);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.brand-wordmark-accent {
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
+/* The wordmark is solid ink. No gradient fill, no shimmer — it is a name,
+   not a light source. (The base rule lives in the type section above; the
+   `.me` keeps the account accent as its one spot of pigment.) */
 
-/* Buttons that carry the accent become a LIVING aurora + glow — the hero CTA.
-   An explicit multi-stop gradient (independent of the flattened --brand-gradient
-   token) slowly drifts, and a diagonal sheen wipes across on hover. */
+/* Accent buttons are one flat pigment that rests. The hover is a shade, not
+   an event: no drift, no sheen wipe, no coloured shadow. */
 .btn-gradient,
 [data-variant="gradient"] {
   position: relative;
-  overflow: hidden;
-  background: linear-gradient(115deg, #5b8def 0%, #8b5cf6 38%, #ec4899 66%, #34e4ea 100%) !important;
-  background-size: 220% 100% !important;
-  color: #fff !important;
-  border: none !important;
-  box-shadow: 0 8px 24px -8px rgba(110, 139, 255, 0.55) !important;
-  transition: filter 160ms var(--mesh-ease-out), transform 160ms var(--mesh-ease-out), box-shadow 160ms var(--mesh-ease-out) !important;
-  animation: meshAuroraDrift 9s linear infinite alternate;
-}
-.btn-gradient > *,
-[data-variant="gradient"] > * { position: relative; z-index: 1; }
-.btn-gradient::after,
-[data-variant="gradient"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0;
-  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.42) 50%, transparent 68%);
-  transform: translateX(-120%) skewX(-14deg);
+  background: var(--accent);
+  color: var(--accent-ink, #fff);
+  border: 1px solid transparent;
+  transition: background-color 200ms var(--mesh-ease-out), transform 140ms var(--mesh-ease-out),
+    box-shadow 180ms var(--mesh-ease-out);
 }
 .btn-gradient:hover,
 [data-variant="gradient"]:hover {
-  filter: brightness(1.1) saturate(1.08);
-  box-shadow: 0 14px 36px -8px rgba(139, 92, 246, 0.62) !important;
-}
-.btn-gradient:hover::after,
-[data-variant="gradient"]:hover::after {
-  animation: meshAuroraSweep 0.62s var(--mesh-ease-out);
-}
-@media (prefers-reduced-motion: reduce) {
-  .btn-gradient,
-  [data-variant="gradient"] { animation: none; }
-  .btn-gradient::after,
-  [data-variant="gradient"]::after { display: none; }
+  background: var(--accent-hover, var(--accent));
 }
 
-/* Focus ring — luminous, on-brand, accessible. */
+/* Focus is one line, everywhere. An outline, never a glow. */
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid transparent;
-  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent), 0 0 18px -2px var(--accent-glow);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
   border-radius: var(--radius-sm);
-}
-
-/* Refined scrollbars to match the new depth. */
-:root:not(.light) *::-webkit-scrollbar { width: 10px; height: 10px; }
-:root:not(.light) *::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(110, 139, 255, 0.35), rgba(139, 92, 246, 0.25));
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-:root:not(.light) *::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(110, 139, 255, 0.55), rgba(139, 92, 246, 0.4));
-  background-clip: padding-box;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -6833,7 +6654,9 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .ds-interactive:hover {
   border-color: var(--ds-border-strong);
   transform: translateY(-2px);
-  box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(110, 139, 255, 0.10);
+  /* Co-variance: the lift and the shadow move together, or it reads as a
+     sticker rather than paper. Warm-black only — shadows never carry a hue. */
+  box-shadow: 0 4px 8px rgba(38, 32, 24, 0.14), 0 18px 32px -12px rgba(24, 20, 15, 0.55);
 }
 .ds-interactive:active {
   transform: translateY(0) scale(0.994);
@@ -6878,76 +6701,30 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
    AURORA INTERACTIONS — seamless navigation + satisfying feedback.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Slim top progress bar for route navigation — makes moving around feel
-   instant and continuous rather than a hard page swap. */
-/* Navigation feedback: a luminous light sweeps across the top edge while a
-   route is loading — energetic and on-brand, not a filling progress bar. */
+/* Navigation feedback: a quiet 2px ink line rests along the top edge while a
+   route is loading, then leaves. It is *present*, not performing — no comet,
+   no trailing ribbon, no glow, and nothing that loops. */
 .nav-sweep {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 200;
-  height: 2.5px;
+  height: 2px;
   overflow: hidden;
   pointer-events: none;
-  animation: navSweepFade 240ms ease;
-  /* Per-route personality tint (navigation-progress stamps --sweep-a/--sweep-b). */
-  --sweep-a: var(--accent);
-  --sweep-b: var(--mesh-cyan);
+  animation: navLineIn 240ms var(--mesh-ease-out);
 }
-/* Lead ribbon — bright, with a glowing comet head. */
 .nav-sweep-line {
   position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 40%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, var(--sweep-a) 34%, #8b5cf6 58%, var(--sweep-b) 82%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--sweep-a) 70%, transparent);
-  animation: navSweep 0.95s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0.9;
 }
-/* The comet head — a soft spark riding the leading edge. */
-.nav-sweep-line::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 4%;
-  width: 8px;
-  height: 8px;
-  transform: translateY(-50%);
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--sweep-b) 85%, #fff);
-}
-/* Trailing parallax ribbon — a fainter echo at a different phase for depth. */
-.nav-sweep::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 28%;
-  border-radius: 999px;
-  opacity: 0.5;
-  background: linear-gradient(90deg, transparent, var(--sweep-b) 50%, transparent);
-  animation: navSweepTrail 1.25s cubic-bezier(0.5, 0, 0.2, 1) infinite;
-}
-@keyframes navSweep {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(340%); }
-}
-@keyframes navSweepTrail {
-  0% { transform: translateX(-160%); }
-  100% { transform: translateX(420%); }
-}
-@keyframes navSweepFade {
+@keyframes navLineIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .nav-sweep-line { animation: none; width: 100%; opacity: 0.6; }
-  .nav-sweep-line::after,
-  .nav-sweep::after { display: none; }
+  .nav-sweep { animation: none; }
 }
 
 /* Satisfying like: twin rings burst outward from the heart on tap. */
@@ -7325,88 +7102,11 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   REACTIVE INTERACTION LAYER — carry the login's alive, springy feel to
-   every surface. A cursor-tracked spotlight on cards, a universal tactile
-   press on anything clickable, and a gentle lift on hover. All motion is
-   guarded behind prefers-reduced-motion.
+   PRESS — the one reactive layer that survives. A surface answers your
+   FINGER, not your cursor's coordinates: there is no spotlight tracking
+   the pointer and no card that leans toward it. Weight is the effect.
    ═══════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: no-preference) {
-  /* Cursor-reactive spotlight. ReactiveSurfaces writes --mx/--my as the
-     pointer moves; a soft brand-tinted glow follows it and the surface
-     lifts, so cards feel responsive the way the sign-in mesh does. */
-  .ds-interactive,
-  .glass-card,
-  .simple-card,
-  .mesh-surface,
-  .premium-surface,
-  .ds-glass-panel,
-  [data-reactive] {
-    position: relative;
-    transform-style: preserve-3d;
-    transition:
-      transform 180ms var(--mesh-ease-out),
-      box-shadow 320ms var(--mesh-ease-out),
-      border-color 320ms ease;
-  }
-  /* Two-stop aurora spotlight: a periwinkle core with a cyan fringe that
-     tracks the cursor, so surfaces feel dimensional rather than flat-lit. */
-  .ds-interactive::after,
-  .glass-card::after,
-  .simple-card::after,
-  .mesh-surface::after,
-  .premium-surface::after,
-  .ds-glass-panel::after,
-  [data-reactive]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 300ms ease;
-    background:
-      radial-gradient(16rem 16rem at var(--mx, 50%) var(--my, 50%), rgba(110, 139, 255, 0.16), transparent 62%),
-      radial-gradient(26rem 26rem at var(--mx, 50%) var(--my, 50%), rgba(52, 228, 234, 0.07), transparent 70%);
-    z-index: 0;
-  }
-  .ds-interactive[data-hot]::after,
-  .glass-card[data-hot]::after,
-  .simple-card[data-hot]::after,
-  .mesh-surface[data-hot]::after,
-  .premium-surface[data-hot]::after,
-  .ds-glass-panel[data-hot]::after,
-  [data-reactive][data-hot]::after {
-    opacity: 1;
-  }
-  /* Magnetic 3D tilt — ReactiveSurfaces emits --tiltX/--tiltY (deg) from the
-     cursor offset; cards lean toward the pointer for real depth. */
-  .ds-interactive[data-hot],
-  .glass-card[data-hot],
-  .simple-card[data-hot],
-  .mesh-surface[data-hot],
-  .premium-surface[data-hot],
-  .ds-glass-panel[data-hot],
-  [data-reactive][data-hot] {
-    transform: perspective(1100px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg)) translateY(-3px);
-    border-color: rgba(125, 155, 255, 0.30);
-  }
-  /* Dialogs, sheets and full-width panels keep the spotlight but skip the 3D
-     tilt — leaning a focused surface reads as jitter, not depth. */
-  .ds-glass-panel[data-hot],
-  [data-reactive="flat"][data-hot] {
-    transform: translateY(-3px);
-  }
-  /* Keep real content above the glow overlay. */
-  .ds-interactive > *,
-  .glass-card > *,
-  .simple-card > *,
-  .mesh-surface > *,
-  .premium-surface > *,
-  .ds-glass-panel > * {
-    position: relative;
-    z-index: 1;
-  }
-
   /* Universal tactile press — every clickable thing springs on tap, the
      way the login's controls do. Transient scale only, so layout is safe. */
   button:not(:disabled):not([data-no-press]),
@@ -7435,7 +7135,8 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-owner-meshi {
   position: relative;
   display: inline-flex;
-  filter: drop-shadow(0 10px 26px rgba(110, 139, 255, 0.35));
+  /* A contact shadow, not an aura — Meshi has weight, it does not glow. */
+  filter: drop-shadow(0 6px 14px rgba(38, 32, 24, 0.45));
 }
 .mesh-owner-meshi.is-online {
   animation: meshOwnerFloat 5s ease-in-out infinite;
@@ -7702,17 +7403,11 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   70% { opacity: 1; transform: scale(1.12); }
   100% { opacity: 1; transform: scale(1); }
 }
-/* ── Ghost Mode: your own Meshi literally becomes a ghost ─────────────── */
-@keyframes meshGhostFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
+/* ── Ghost Mode: your own Meshi goes to tracing paper ─────────────────
+   Faint, drained of colour, and casting almost no shadow — you are still
+   here, you are just not leaving a mark. No hologram, no float loop. */
 .mesh-ghosted {
-  filter: grayscale(0.92) brightness(1.55) opacity(0.52) drop-shadow(0 0 10px rgba(200, 215, 255, 0.35));
-  animation: meshGhostFloat 2.8s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .mesh-ghosted { animation: none; }
+  filter: grayscale(0.85) opacity(0.42) drop-shadow(0 2px 5px rgba(38, 32, 24, 0.22));
 }
 
 /* ── Presence moments: Meshis materialize in and fade out ─────────────── */
@@ -7761,52 +7456,19 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
    (presence carries isPro), purely decorative. */
 
 
-/* ── Precise cursor marker on the mesh (fine pointers) ────────────────── */
-/* The pointer's true position on the mesh: a high-contrast reticle that
-   stays findable on any sky — white core, dark outline (so it survives
-   bright cards), a wide accent ring, and a slow locator pulse. */
+/* ── Pointer anchor on the mesh (fine pointers) ───────────────────────
+   The cursor is the OS cursor. This element is now a pure zero-size
+   position anchor — it still tracks the pointer so the hover preview card
+   has something to hang off, but it draws no reticle, ring or pulse. */
 .mesh-cursor-dot {
   position: absolute;
   left: 0;
   top: 0;
   z-index: 40;
-  width: 11px;
-  height: 11px;
-  border-radius: 9999px;
-  background: #ffffff;
-  box-shadow:
-    0 0 0 2px rgba(4, 6, 14, 0.85),
-    0 0 0 4.5px rgba(122, 163, 255, 0.9),
-    0 0 18px 4px rgba(140, 170, 255, 0.55);
-  opacity: 0;
+  width: 0;
+  height: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease;
   will-change: transform;
-}
-
-.mesh-cursor-dot::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 34px;
-  height: 34px;
-  border-radius: 9999px;
-  border: 1.5px solid rgba(150, 178, 255, 0.55);
-  transform: translate(-50%, -50%);
-  animation: meshCursorPulse 2.2s ease-in-out infinite;
-}
-
-@keyframes meshCursorPulse {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: translate(-50%, -50%) scale(0.82);
-  }
-  50% {
-    opacity: 0.85;
-    transform: translate(-50%, -50%) scale(1.08);
-  }
 }
 
 /* ── Watch glance (/watch) — the smallest mesh.me. Tuned for tiny WebKit

@@ -13,9 +13,9 @@
 // rolling frame-time telemetry that baselines the PR3 frame-budget SLO
 // (physics + paint ≤ 6ms on a 2019 mid-tier phone at tier 0).
 
-export type FramePhase = "sim" | "paint" | "domSync";
+type FramePhase = "sim" | "paint" | "domSync";
 
-export interface FrameTiming {
+interface FrameTiming {
   /** The rAF timestamp of this frame (performance.now() timebase). */
   time: number;
   /** Ms since the previous EXECUTED frame — THE one dt clamp, so a

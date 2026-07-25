@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { profileDiscoveryConsentWhere } from "@/lib/consent";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
@@ -25,6 +26,21 @@ export async function GET(request: Request) {
       isSuspended: false,
       isPublic: true,
       showInDiscovery: true,
+      // The profile rule governs being DISCOVERED — found by someone who does
+      // not know you. It must not sever people you are already connected to:
+      // this endpoint feeds MeChat's new-conversation picker, so gating it
+      // flatly would leave you unable to message, or add to a group, someone
+      // you already follow. An existing follow edge in either direction is the
+      // relationship the rule is explicitly about being "outside" of.
+      AND: [
+        {
+          OR: [
+            profileDiscoveryConsentWhere(),
+            { following: { some: { followingId: user.id } } },
+            { followers: { some: { followerId: user.id } } },
+          ],
+        },
+      ],
     },
     select: {
       id: true,

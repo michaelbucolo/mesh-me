@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { canUserInteractWithPost } from "@/lib/privacy-policy";
+import { profileDiscoveryConsentWhere } from "@/lib/consent";
 import { classifyContentSafety } from "@/lib/content-safety";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
@@ -380,6 +381,7 @@ export async function POST(req: Request) {
               id: { not: user.id },
               isSuspended: false,
               showInDiscovery: true,
+              ...profileDiscoveryConsentWhere(),
               NOT: {
                 followers: { some: { followerId: user.id } },
               },

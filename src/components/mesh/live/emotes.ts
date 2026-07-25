@@ -43,7 +43,7 @@ export function createFunVerbGate(): FunVerbGate {
 }
 
 /** Admit one outgoing fun verb through the courtesy caps (records it). */
-export function admitFunVerb(gate: FunVerbGate, now: number): boolean {
+function admitFunVerb(gate: FunVerbGate, now: number): boolean {
   if (now - gate.lastAt < FUN_VERB_MIN_GAP_MS) return false;
   if (now - gate.windowStart > FUN_VERB_WINDOW_MS) {
     gate.windowStart = now;

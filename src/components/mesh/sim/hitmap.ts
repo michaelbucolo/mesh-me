@@ -18,13 +18,13 @@
 import { projectPoint, type Camera } from "../core/camera";
 import type { BranchKey, SceneModel, SceneNode } from "../scene/scene-model";
 
-export interface HitCircle {
+interface HitCircle {
   x: number;
   y: number;
   r: number;
 }
 
-export interface HitRect {
+interface HitRect {
   x: number;
   y: number;
   w: number;

@@ -29,6 +29,7 @@ import { PostCard } from "@/components/feed/post-card";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { getCurrentUser } from "@/lib/auth";
 import { getAnalyticsDashboardData } from "@/lib/analytics-dashboard";
+import { hasAnalyticsConsent } from "@/lib/consent";
 import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
@@ -108,6 +109,14 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
   const analyticsData =
     isOwnProfile && activeTab === "analytics" ? await getAnalyticsDashboardData() : null;
+  // The loader returns null both for a real failure and for a withdrawn
+  // Analytics consent. Only the second case has a truthful explanation, so
+  // resolve it here rather than telling someone who switched analytics off to
+  // "try again" — that would be a fresh false assurance in place of the old one.
+  const analyticsWithheldByConsent =
+    isOwnProfile && activeTab === "analytics" && !analyticsData
+      ? !(await hasAnalyticsConsent(currentUser.id))
+      : false;
 
   return (
     <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] animate-page-enter">
@@ -449,6 +458,16 @@ export async function InstagramProfileView({ username, tab }: { username: string
         {canViewProfile && activeTab === "analytics" && isOwnProfile && (
           analyticsData ? (
             <AnalyticsDashboard data={analyticsData} embedded />
+          ) : analyticsWithheldByConsent ? (
+            <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
+              <h2 className="text-lg font-bold text-[var(--mesh-text)]">Analytics is switched off</h2>
+              <p className="max-w-md text-sm text-[var(--mesh-text-secondary)]">
+                Your privacy rules say Mesh.me may not process your activity into analytics, so we are not building this dashboard. Change the Analytics rule to turn it back on.
+              </p>
+              <Link href="/privacy-controls" className="text-sm font-semibold text-[var(--accent)] underline underline-offset-4">
+                Open privacy controls
+              </Link>
+            </section>
           ) : (
             <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
               <h2 className="text-lg font-bold text-[var(--mesh-text)]">Analytics unavailable</h2>

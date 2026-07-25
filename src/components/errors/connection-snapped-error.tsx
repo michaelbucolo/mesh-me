@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Home, LifeBuoy, RefreshCw } from "lucide-react";
-import { MeshBackground } from "@/components/mesh-background";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { cn } from "@/lib/utils";
 
@@ -50,8 +49,6 @@ export function ConnectionSnappedError({
       )}
       data-meshi-zone="server-error"
     >
-      <MeshBackground density={fullScreen ? 40 : 28} mouseInfluence={0.18} fixed={fullScreen} className="opacity-20" />
-
       <div
         className={cn(
           "connection-snapped-card relative z-10 mx-auto w-full rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/94 p-5 shadow-[var(--shadow-md)] backdrop-blur-xl sm:p-8",
