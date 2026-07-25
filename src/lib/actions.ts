@@ -13,7 +13,7 @@ import { getBaseUrl, isSupportedPlatform } from "./oauth";
 import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
-import { classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
+import { canViewNsfw, classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
 import { canUserInteractWithPost } from "./privacy-policy";
 import {
   durableRateLimit,
@@ -2331,6 +2331,21 @@ export async function repost(postId: string) {
     return { error: "Only public posts can be reposted." };
   }
 
+  // Reposting cannot LAUNDER an adult post into a general-audience one. Every
+  // viewer-side adult gate in the product is a filter on this one column —
+  // nsfwHiddenWhere() returns `{ isNsfw: false }` for anyone not both opted in
+  // and currently age-verified — so a repost created without it was visible to
+  // everybody, including the accounts the gate exists for. createPost classifies
+  // and stores the pair; this second post-creation path silently took the
+  // schema defaults (`isNsfw false`, `contentRating "general"`).
+  //
+  // And you cannot rebroadcast what you are not allowed to see: a viewer who
+  // fails the gate has no business republishing the post to people who also
+  // fail it. canUserInteractWithPost governs visibility and blocks, not age.
+  if (original.isNsfw && !canViewNsfw(user)) {
+    return { error: "Post not found" };
+  }
+
   await prisma.post.create({
     data: {
       content: original.content,
@@ -2338,6 +2353,8 @@ export async function repost(postId: string) {
       isRepost: true,
       repostId: postId,
       visibility: original.visibility,
+      isNsfw: original.isNsfw,
+      contentRating: original.contentRating,
     },
   });
 
@@ -3106,7 +3123,19 @@ export async function updateMeshPrivacy(data: {
     },
     update: {
       meshVisibility: data.meshVisibility,
-      branchOverrides: JSON.stringify(data.branchOverrides || {}),
+      // An ABSENT branchOverrides means "leave them alone", not "clear them".
+      // It used to mean the latter — `JSON.stringify(data.branchOverrides || {})`
+      // wrote "{}" — and the Privacy Control Center is a caller that never sends
+      // the field, because it has no per-branch editor to send one from. So
+      // pressing "Save Mesh visibility" there wiped every per-branch choice made
+      // in Settings, and the branches then fell through to the OVERALL mesh
+      // visibility. For a public mesh that silently republished the branches the
+      // user had deliberately kept tighter — including the platforms branch that
+      // onboarding seeds to "friends" for exactly this reason.
+      //
+      // updateProfileVisibility directly below already omits the column on
+      // update, and says why. Two writers of one column; only one had been told.
+      ...(data.branchOverrides ? { branchOverrides: JSON.stringify(data.branchOverrides) } : {}),
       showConnections: data.showConnections ?? false,
       showStats: data.showStats ?? false,
     },
