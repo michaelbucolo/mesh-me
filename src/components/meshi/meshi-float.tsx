@@ -32,6 +32,7 @@ import {
 import { impactFeedback } from "@/lib/native/haptics";
 import { MESHI_OPEN_EVENT, type MeshiOpenMode } from "@/lib/meshi-events";
 import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
+import { cursorSpriteOwnsPointer } from "@/lib/pointer-modality";
 import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
 import type { MeshiContext } from "@/lib/meshi-shared";
 
@@ -1092,6 +1093,11 @@ export function MeshiFloat() {
   // Dynamic follow behavior: Meshi trails attention, then docks safely.
   useEffect(() => {
     if (!meshiEnabled || view !== "closed" || isSearching || isDragging || isMeshTransition) return;
+    // On a mouse or trackpad the cursor sprite IS Meshi and is already at the
+    // pointer. Trailing it with a second Meshi is double vision by
+    // construction — two drawings of one character converging on one point.
+    // The companion keeps its dock (and its panels); only the chasing stops.
+    if (cursorSpriteOwnsPointer()) return;
 
     const canFollow = () => view === "closed" && !isSearching && !isDragging && !isMeshTransition;
     const releaseToDock = () => {

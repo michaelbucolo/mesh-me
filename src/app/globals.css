@@ -210,18 +210,58 @@ select:focus-visible {
 ::selection { background: var(--selection-bg); color: var(--text-primary); }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CURSOR SYSTEM — one calm, native baseline for every surface.
-   No overlay gimmicks: the mesh canvas already owns its own bespoke
-   reticle, and everywhere else the OS cursor is the most precise,
-   accessible pointer there is. Tailwind v4's preflight stopped giving
-   <button> a pointer cursor, which left affordances patched per-component
-   and missing on most raw buttons — restored here once, for everything.
-   Declared in @layer base so utilities (cursor-default, cursor-grab, …)
-   and component rules still override, and scoped to fine pointers so
-   touch devices ship zero cursor styling.
+   CURSOR SYSTEM — Meshi is your hand on the page.
+
+   Two layers, and `cursor: none` appears NOWHERE in this product. That is
+   the load-bearing rule: there is no state, on any platform, in which the
+   user has no pointer.
+
+   Layer 0 (here) is the floor — a native `cursor: url()` PNG, present in
+   the very first paint, before any JavaScript. It draws Meshi's contact
+   shadow plus a 1px aim dot at the hotspot (6, 6). Layer 1 is the DOM
+   sprite in meshi-cursor.tsx, which draws Meshi's body up-and-right of
+   that aim point.
+
+   The floor is deliberately a SHADOW and not a second Meshi. If the sprite
+   is missing — over an iframe, behind a modal, before hydration, or if the
+   bundle simply failed — a lone shadow reads as "Meshi stepped away",
+   which is true. Two Meshis disagreeing would read as a rendering fault.
+
+   PNG, not SVG: WebKit does not support SVG cursor images, and this site
+   is shipped inside an iOS WKWebView. 24×24 single resolution, no
+   image-set(): Chrome and Firefox on Windows ignore custom cursors above
+   32×32 device px, so a 2× variant risks no cursor at all. Slight softness
+   on HiDPI is an acceptable cost; a missing pointer is not.
+
+   `--meshi-cursor` is the hook JS uses to swap in a cosmetic-specific
+   variant once preferences are known. Until then the static default
+   applies, which is why the whole thing is pure CSS.
+
+   Tailwind v4's preflight stopped giving <button> a pointer cursor, which
+   left affordances patched per-component; restored here once, for
+   everything. Declared in @layer base so utilities (cursor-default,
+   cursor-grab, …) and component rules still override, and scoped to fine
+   pointers so touch devices ship zero cursor styling.
    ═══════════════════════════════════════════════════════════════════ */
 @media (pointer: fine) {
   @layer base {
+    :root {
+      cursor: var(--meshi-cursor, url("/cursor/meshi-shadow-24.png") 6 6), auto;
+    }
+
+    /* `cursor` INHERITS, so the floor would otherwise reach into text
+       fields and over embedded content. Below, `[contenteditable]` gets an
+       explicit `text` — but `input` and `textarea` only keep the UA I-beam
+       by omission, and omission is not enough once :root sets a cursor.
+       This restores it explicitly. Without this rule, typing surfaces show
+       a mascot shadow instead of an I-beam.
+
+       iframe/embed/object own their own pointer entirely; the DOM sprite is
+       suppressed over them too, since our events stop at their edge. */
+    :is(input, textarea, [contenteditable], [data-native-cursor], iframe, embed, object) {
+      cursor: auto;
+    }
+
     /* Anything interactive advertises itself with a pointer. */
     :is(
       a[href],
@@ -267,6 +307,54 @@ select:focus-visible {
     [contenteditable="plaintext-only"] {
       cursor: text;
     }
+  }
+}
+
+/* Forced colours: the user asked the OS for a specific, high-contrast
+   presentation. A custom cursor image is exactly the kind of decoration that
+   request is meant to switch off. The DOM sprite opts out on the same signal,
+   so the two never disagree. */
+@media (forced-colors: active) {
+  :root {
+    cursor: auto;
+  }
+}
+
+/* ── The DOM sprite ──
+   Above the shortcuts overlay (z-90), the toast stack (z-60) and modals
+   (z-50), because it is the pointer and the pointer is always on top.
+   Never interactive: every event must reach what is underneath. */
+.meshi-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* Zero-size anchor. The body is positioned against this point rather than
+     inside a box, so the geometry does not depend on the mascot's intrinsic
+     height — which is taller than the `size` prop, and drifted the body 6px
+     low when the offset was computed from `size` instead of measured. */
+  width: 0;
+  height: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  /* Only the fade is transitioned. Position is written per frame and must
+     never be eased — an eased pointer is a pointer in the wrong place. */
+  transition: opacity 140ms var(--mesh-ease-out, ease-out);
+  will-change: transform;
+}
+
+/* Bottom-left of the body sits on the anchor, so Meshi stands up-and-right of
+   the aim point with its feet at the offset — never over the target. */
+.meshi-cursor-body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform-origin: 50% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meshi-cursor {
+    transition: none;
   }
 }
 
