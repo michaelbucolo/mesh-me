@@ -410,8 +410,11 @@ async function lookupPerson(name: string): Promise<MeshiAnswer> {
       isSuspended: false,
       isPublic: true,
       showInDiscovery: true,
-      ...profileDiscoveryConsentWhere(),
-      ...meshiConsentWhere(),
+      // Both fragments key on `dataVisibilityPolicies`, so spreading them side
+      // by side would silently drop the first — the profile gate would vanish
+      // and Meshi would answer for accounts that switched discovery off. They
+      // must compose through AND.
+      AND: [profileDiscoveryConsentWhere(), meshiConsentWhere()],
     },
     select: { id: true, username: true, displayName: true, isVerified: true, _count: { select: { followers: true } } },
   });
@@ -805,7 +808,9 @@ async function getFollowerCount(): Promise<MeshiAnswer> {
 
   // Get recent followers
   const recent = await prisma.follow.findMany({
-    where: { followingId: user.id },
+    // The COUNT above is the caller's own number and is always theirs to see.
+    // These NAMES are third parties, and the answer is sent upstream verbatim.
+    where: { followingId: user.id, follower: meshiConsentWhere() },
     include: { follower: { select: { displayName: true, username: true } } },
     orderBy: { createdAt: "desc" },
     take: 3,
@@ -845,6 +850,10 @@ async function getMutualConnections(): Promise<MeshiAnswer> {
     where: {
       followerId: { in: followingIds },
       followingId: user.id,
+      // This answer NAMES third parties, and it is pasted verbatim into the
+      // reasoning provider's request body. Anyone who switched Meshi use off
+      // is counted but never named.
+      follower: meshiConsentWhere(),
     },
     include: { follower: { select: { displayName: true, username: true } } },
   });
@@ -1030,7 +1039,8 @@ async function getRecentActivity(): Promise<MeshiAnswer> {
       select: { content: true, createdAt: true },
     }),
     prisma.follow.findMany({
-      where: { followingId: user.id },
+      // Named third parties again — gate them, the count stays the caller's.
+      where: { followingId: user.id, follower: meshiConsentWhere() },
       orderBy: { createdAt: "desc" },
       take: 3,
       include: { follower: { select: { displayName: true } } },

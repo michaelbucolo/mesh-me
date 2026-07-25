@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { hasMeshiConsent } from "@/lib/consent";
+import { hasMeshiConsent, meshiDeniedUserIds } from "@/lib/consent";
 import { meshiQuery } from "@/lib/meshi-engine";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
@@ -562,9 +562,29 @@ export async function POST(req: Request) {
     // object is the actual egress. Resolved server-side: the client supplies
     // `context`, so a client-side check would gate nothing.
     const meshiMayUseCallerData = await hasMeshiConsent(user.id);
-    const groundedContext = meshiMayUseCallerData
+    let groundedContext = meshiMayUseCallerData
       ? context
       : (context?.currentPage ? { currentPage: context.currentPage } : undefined);
+
+    // `meshEntities` is the one Meshi input the server does not read itself: the
+    // mesh graph is loaded for the mesh UI, handed to the client, and posted
+    // back here — carrying other people's display names, handles and follower
+    // counts straight into the reasoning provider's prompt. The caller's own
+    // consent does not speak for them, so resolve theirs, here at the egress.
+    if (groundedContext?.meshEntities?.length) {
+      const peopleIds = groundedContext.meshEntities
+        .filter((entity) => entity.type === "user" && entity.id)
+        .map((entity) => entity.id as string);
+      const denied = await meshiDeniedUserIds(peopleIds);
+      if (denied.size > 0) {
+        groundedContext = {
+          ...groundedContext,
+          meshEntities: groundedContext.meshEntities.filter(
+            (entity) => entity.type !== "user" || !entity.id || !denied.has(entity.id),
+          ),
+        };
+      }
+    }
 
     let databaseAnswer: { content: string; mood: string; action?: MeshiAction } | undefined;
     const openEndedTask = isOpenEndedCreativeTask(message);
@@ -602,7 +622,11 @@ export async function POST(req: Request) {
       const engineResult = await callMeshiReasoning({
         message,
         context: groundedContext,
-        history,
+        // Prior turns are the same mesh data by another route: earlier answers
+        // quoted the caller's connections, posts and stats, and the client
+        // replays them here. Stripping `context` while forwarding `history`
+        // would ship upstream exactly what the gate just withheld.
+        history: meshiMayUseCallerData ? history : undefined,
         databaseAnswer,
         user: {
           username: user.username,

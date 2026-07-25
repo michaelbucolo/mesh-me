@@ -140,6 +140,39 @@ assert.equal(typeof hasMeshiConsent, "function", "Meshi consent must be resolved
 // 3. Discovery coverage: every showInDiscovery filter carries its category rule.
 // ---------------------------------------------------------------------------
 
+// Only these two govern DISCOVERY. meshiConsentWhere() is a different switch;
+// a discovery read gated solely by it enforces the wrong person's choice.
+const DISCOVERY_FRAGMENTS = [
+  "profileDiscoveryConsentWhere",
+  "nativePostDiscoveryConsentWhere",
+];
+
+// Which discovery rule each gated site must use, pinned by exact count. The
+// Profile rule governs finding a PERSON; the Mesh.me-posts rule governs finding
+// their POSTS. Swapping them compiles, passes types, and silently moves a
+// person onto a switch they did not operate — so it is pinned, not inferred.
+const EXPECTED_GATED: { key: string; count: number }[] = [
+  { key: "src/app/api/meshi/actions/route.ts:profileDiscoveryConsentWhere", count: 1 },
+  // Composed through OR with an existing-follow exemption, not spread flat: the
+  // Profile rule governs being FOUND by someone who does not know you, and this
+  // endpoint also feeds MeChat's new-conversation picker.
+  { key: "src/app/api/search/users/route.ts:profileDiscoveryConsentWhere", count: 1 },
+  // Composed through AND with meshiConsentWhere(): both fragments key on
+  // `dataVisibilityPolicies`, so spreading them side by side would silently drop
+  // the first and Meshi would answer for accounts that switched discovery off.
+  { key: "src/lib/meshi-engine.ts:profileDiscoveryConsentWhere", count: 1 },
+  { key: "src/lib/feed-data.ts:nativePostDiscoveryConsentWhere", count: 1 },
+  { key: "src/lib/global-mesh.ts:profileDiscoveryConsentWhere", count: 1 },
+  { key: "src/lib/queries.ts:nativePostDiscoveryConsentWhere", count: 3 },
+  { key: "src/lib/queries.ts:profileDiscoveryConsentWhere", count: 2 },
+];
+
+const observedGated = new Map<string, number>();
+
+function lineOf(source: string, index: number): number {
+  return source.slice(0, index).split("\n").length;
+}
+
 const CONSENT_FRAGMENTS = [
   "profileDiscoveryConsentWhere",
   "nativePostDiscoveryConsentWhere",
@@ -198,6 +231,16 @@ const EXPECTED_UNGATED: Array<{ file: string; count: number; why: string }> = [
  * enough for the query literals in this repo and deliberately dumb — see the
  * coverage caveats in the header.
  */
+/**
+ * Blank out comments while preserving offsets, so a fragment name quoted in a
+ * `// TODO: re-add ...ConsentWhere()` note can never be mistaken for a live gate.
+ */
+function stripComments(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => " ".repeat(m.length))
+    .replace(/\/\/[^\n]*/g, (m) => " ".repeat(m.length));
+}
+
 function enclosingObjectLiteral(source: string, index: number): string {
   let depth = 0;
   let start = -1;
@@ -247,8 +290,42 @@ for (const file of sourceFiles) {
     const lineText = source.slice(source.lastIndexOf("\n", index) + 1, source.indexOf("\n", index)).trim();
     if (lineText.startsWith("//") || lineText.startsWith("*")) continue;
 
-    const literal = enclosingObjectLiteral(source, index);
-    if (CONSENT_FRAGMENTS.some((fragment) => literal.includes(fragment))) {
+    const literal = stripComments(enclosingObjectLiteral(source, index));
+    // A fragment counts only when it is CALLED in live code — spread into the
+    // filter, or composed through AND:/OR:. Three ways a read used to pass while
+    // enforcing nothing, each reproduced against this repo:
+    //   - the name sitting in a `// TODO: re-add ...ConsentWhere()` comment,
+    //   - a fragment under `NOT: { ... }`, which returns exactly the accounts
+    //     that opted OUT — the precise inverse of the promise,
+    //   - the wrong switch's fragment, e.g. a people-search gated on
+    //     meshiConsentWhere(), so the Profile rule enforces nothing while the
+    //     Meshi rule silently removes people from search.
+    const present = CONSENT_FRAGMENTS.filter((fragment) =>
+      new RegExp(String.raw`\b${fragment}\s*\(`).test(literal),
+    );
+    const inverted = present.some((fragment) =>
+      new RegExp(String.raw`NOT\s*:\s*\{[^{}]*\b${fragment}\s*\(`).test(literal),
+    );
+    assert.ok(
+      !inverted,
+      `${file}:${lineOf(source, index)}: a consent fragment sits under NOT: — that returns ONLY\n` +
+        `  the accounts which opted out, the exact inverse of what the switch promises.`,
+    );
+
+    const discovery = present.filter((fragment) => DISCOVERY_FRAGMENTS.includes(fragment));
+    if (present.length > 0) {
+      assert.ok(
+        discovery.length > 0,
+        `${file}:${lineOf(source, index)}: this discovery read is gated only by ${present.join(" + ")}.\n` +
+          `  meshiConsentWhere() governs the Meshi rule, not discovery — gating a discovery read on\n` +
+          `  it means the switch the person actually operated enforces nothing, while an unrelated\n` +
+          `  one silently filters. Use profileDiscoveryConsentWhere() or nativePostDiscoveryConsentWhere().`,
+      );
+      // Which of the two discovery rules applies is not inferable from the query
+      // shape — `user: {}` means "post author" in a post query and "member" in a
+      // membership query — so it is pinned per site instead of guessed.
+      const key = `${file}:${discovery.slice().sort().join("+")}`;
+      observedGated.set(key, (observedGated.get(key) ?? 0) + 1);
       gatedCount += 1;
     } else {
       ungatedByFile.set(file, (ungatedByFile.get(file) ?? 0) + 1);
@@ -283,13 +360,41 @@ for (const entry of EXPECTED_UNGATED) {
   );
 }
 
-// A floor as well as a ratchet: the per-file loop above catches a gate that was
-// swapped for nothing, this catches a gated read deleted outright (or a rename
-// that quietly stopped matching CONSENT_FRAGMENTS).
+// Gated reads are pinned by EXACT count per (file, rule), not by a floor. A
+// floor only catches deletion; an exact count also catches a gate swapped for
+// the OTHER discovery rule, which compiles and typechecks but moves a person
+// onto a switch they never operated. Both directions must be deliberate.
+const expectedGatedByKey = new Map(EXPECTED_GATED.map((e) => [e.key, e.count]));
+
+for (const [key, count] of [...observedGated].sort()) {
+  const expected = expectedGatedByKey.get(key);
+  const [file, rule] = key.split(/:(?=[a-zA-Z]+ConsentWhere)/);
+  assert.ok(
+    expected !== undefined,
+    `${file} now gates a discovery read with ${rule}, which is not in EXPECTED_GATED.\n` +
+      `  If that is the right rule for this surface, add it to scripts/consent-check.ts.\n` +
+      `  If the read moved between the Profile rule and the Mesh.me-posts rule, that is a\n` +
+      `  change in which switch governs it — say so deliberately.`,
+  );
+  assert.equal(
+    count,
+    expected,
+    `${file}: expected ${expected} discovery read(s) gated by ${rule}, found ${count}.`,
+  );
+}
+
+for (const { key, count } of EXPECTED_GATED) {
+  assert.equal(
+    observedGated.get(key) ?? 0,
+    count,
+    `${key} is pinned at ${count} gated read(s) but ${observedGated.get(key) ?? 0} were found —\n` +
+      "  a gated read was deleted, renamed, or re-pointed at the other discovery rule.",
+  );
+}
+
 assert.ok(
   gatedCount >= 10,
-  `only ${gatedCount} discovery reads still carry a consent fragment (expected at least 10).\n` +
-    "  A gated read was removed or renamed — restore it, or lower this floor deliberately.",
+  `only ${gatedCount} discovery reads still carry a consent fragment (expected at least 10).`,
 );
 
 // ---------------------------------------------------------------------------
@@ -302,8 +407,15 @@ assert.match(
   /hasAnalyticsConsent\(user\.id\)/,
   "the analytics dashboard loader must resolve allowAnalytics before building the dashboard",
 );
+// Anchored on the CALL, not the bare identifier: the identifier's first
+// occurrence is the import on line 2, which made this comparison true no matter
+// where — or whether — the check actually ran.
+const analyticsGateAt = analyticsSource.indexOf("hasAnalyticsConsent(user.id)");
+const analyticsScanAt = analyticsSource.indexOf("loadAnalyticsDashboard(user)");
+assert.ok(analyticsGateAt !== -1, "analytics consent gate call site not found");
+assert.ok(analyticsScanAt !== -1, "loadAnalyticsDashboard(user) call site not found");
 assert.ok(
-  analyticsSource.indexOf("hasAnalyticsConsent") < analyticsSource.indexOf("loadAnalyticsDashboard(user)"),
+  analyticsGateAt < analyticsScanAt,
   "the analytics consent check must precede (and skip) the 30+ query scan, not filter its output",
 );
 

@@ -155,3 +155,29 @@ export function meshiConsentWhere() {
     },
   };
 }
+
+/**
+ * Which of these user ids switched Meshi use OFF. Absent row = permissive, the
+ * same rule the fragments above encode; the query asks only for denials.
+ *
+ * This exists because one Meshi path does not reach its subjects through a
+ * Prisma query the server controls: the mesh graph is loaded for the mesh UI,
+ * handed to the client, and posted back as `context.meshEntities`, which is
+ * rendered into the reasoning provider's prompt. Gating the graph read itself
+ * would be wrong — it also draws the person's own mesh, and someone who
+ * declined Meshi should still appear there. The consent question is only about
+ * EGRESS, so it is answered here, at the egress.
+ */
+export async function meshiDeniedUserIds(userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const denials = await prisma.dataVisibilityPolicy.findMany({
+    where: {
+      userId: { in: userIds },
+      entityType: { in: MESHI_CATEGORIES },
+      entityId: null,
+      allowMeshiUse: false,
+    },
+    select: { userId: true },
+  });
+  return new Set(denials.map((d) => d.userId));
+}
