@@ -31,6 +31,7 @@ import {
 } from "@/lib/meshi-knowledge";
 import { impactFeedback } from "@/lib/native/haptics";
 import { MESHI_OPEN_EVENT, type MeshiOpenMode } from "@/lib/meshi-events";
+import { reactionFor, subscribeMeshiCause } from "@/lib/meshi-bus";
 import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
 import { cursorSpriteOwnsPointer } from "@/lib/pointer-modality";
 import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
@@ -82,20 +83,6 @@ function isMeshSurfacePath(pathname: string) {
 }
 
 const SEARCH_TRIGGERS = ["search", "find", "look for", "where", "show me"];
-
-const PAGE_AMBIENT_MOODS: Record<string, MeshiMood[]> = {
-  "/mesh": ["excited", "happy", "cool"],
-  "/feed": ["happy", "love", "wink"],
-  "/messages": ["love", "happy", "wink"],
-  "/explore": ["excited", "cool", "happy"],
-  "/settings": ["thinking", "happy", "cool"],
-  "/analytics": ["thinking", "cool", "happy"],
-  "/connected-accounts": ["cool", "thinking", "happy"],
-  "/profile": ["wink", "happy", "love"],
-  "/meshpro": ["excited", "cool", "happy"],
-  "/notifications": ["thinking", "surprised", "happy"],
-  "/communities": ["excited", "love", "happy"],
-};
 
 type MeshiView = "closed" | "actions" | "speech" | "chat";
 
@@ -1164,18 +1151,36 @@ export function MeshiFloat() {
     };
   }, [meshiEnabled, view, isSearching, isDragging, isMeshTransition, meshiX, meshiY, pathname]);
 
-  // Ambient mood cycling
+  // Meshi reacts to things that actually happened.
+  //
+  // This replaced an eight-second `setInterval` that cycled a per-route list of
+  // moods — a character pulling faces on a timer while the user sat still,
+  // which is what made Meshi read as decoration rather than as representing
+  // anyone. Nothing here fires unless the product published a cause, so the
+  // answer to "whose hand caused this?" is always a real one.
   useEffect(() => {
-    if (!meshiEnabled || view !== "closed" || isIdle || isTyping || isDragging) return;
-    const matchedKey = Object.keys(PAGE_AMBIENT_MOODS)
-      .sort((a, b) => b.length - a.length)
-      .find((key) => pathname.startsWith(key));
-    if (!matchedKey) return;
-    const moods = PAGE_AMBIENT_MOODS[matchedKey];
-    let idx = 0;
-    const interval = setInterval(() => { idx = (idx + 1) % moods.length; setMood(moods[idx]); }, 8000);
-    return () => clearInterval(interval);
-  }, [pathname, meshiEnabled, view, isIdle, isTyping, isDragging]);
+    if (!meshiEnabled) return;
+    let settle: ReturnType<typeof setTimeout> | null = null;
+
+    const unsubscribe = subscribeMeshiCause((cause) => {
+      // A reaction is only legible on a Meshi the user can see doing nothing
+      // else. While a panel is open, or Meshi is being dragged, the face is not
+      // what the user is looking at.
+      if (view !== "closed" || isDragging) return;
+
+      const { mood: next, holdMs } = reactionFor(cause.kind);
+      setMood(next);
+      if (settle) clearTimeout(settle);
+      // Return to itself afterwards. A face that holds an expression is posing,
+      // not reacting.
+      settle = setTimeout(() => setMood("happy"), holdMs);
+    });
+
+    return () => {
+      unsubscribe();
+      if (settle) clearTimeout(settle);
+    };
+  }, [meshiEnabled, view, isDragging]);
 
   // Scroll reaction
   useEffect(() => {
