@@ -2409,13 +2409,34 @@ export async function deleteAccount(formData: FormData) {
     return { error: "Type DELETE to confirm account deletion." };
   }
 
-  if (!currentPassword) {
-    return { error: "Enter your current password before deleting this account." };
-  }
+  // AN ACCOUNT THAT CANNOT BE DELETED IS NOT A PRIVACY CONTROL.
+  //
+  // This required a password unconditionally. Accounts created through Google
+  // or Apple do not have one: identity-auth.ts stores a hash of 48 random bytes
+  // precisely so password sign-in can never succeed for them, and says so in a
+  // comment. verifyPassword against that hash can never return true — so a
+  // federated account could not delete itself at all, by any route, ever. That
+  // is a GDPR Article 17 erasure failure, not an inconvenience, and the Privacy
+  // Policy promises deletion without qualification.
+  //
+  // Re-authentication still happens; it just has to be the kind the account
+  // actually possesses. A federated account proves itself by holding a live
+  // session created through its provider, plus the typed DELETE confirmation
+  // above. A password account keeps the password check unchanged — this must
+  // not become a way to skip it, so the branch is chosen by whether an
+  // AuthIdentity row exists, never by what the client sends.
+  const federatedIdentities = await prisma.authIdentity.count({ where: { userId: user.id } });
+  const hasUsablePassword = federatedIdentities === 0;
 
-  const passwordMatches = await verifyPassword(currentPassword, user.passwordHash);
-  if (!passwordMatches) {
-    return { error: "Current password is incorrect." };
+  if (hasUsablePassword) {
+    if (!currentPassword) {
+      return { error: "Enter your current password before deleting this account." };
+    }
+
+    const passwordMatches = await verifyPassword(currentPassword, user.passwordHash);
+    if (!passwordMatches) {
+      return { error: "Current password is incorrect." };
+    }
   }
 
   if (user.isAdmin) {

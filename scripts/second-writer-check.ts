@@ -396,6 +396,55 @@ for (const file of VISIBILITY_LABELS) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. EVERY ACCOUNT CAN DELETE ITSELF.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// deleteAccount required a password unconditionally. Accounts created through
+// Google or Apple do not have one: identity-auth.ts stores a hash of 48 random
+// bytes so "password sign-in can never succeed for them" — its own words — so
+// verifyPassword could never return true and those accounts could not be
+// deleted by any route, ever. A GDPR Article 17 failure, under a Privacy Policy
+// that promises deletion without qualification.
+//
+// The rule has TWO halves and both must hold: the password check still applies
+// to accounts that HAVE a password (this must never become a way to skip it),
+// and it must not apply to accounts that cannot. The branch is chosen by
+// whether an AuthIdentity row exists — server-side, never from client input.
+const actionsSrc = read("src/lib/actions.ts");
+const deleteStart = actionsSrc.indexOf("export async function deleteAccount(");
+assert.notEqual(deleteStart, -1, "deleteAccount not found in src/lib/actions.ts");
+const nextExportAfterDelete = actionsSrc.indexOf("\nexport ", deleteStart + 1);
+const deleteFn = actionsSrc.slice(deleteStart, nextExportAfterDelete === -1 ? undefined : nextExportAfterDelete);
+
+assert.match(
+  deleteFn,
+  /authIdentity\.count\(\{\s*where:\s*\{\s*userId:\s*user\.id/,
+  "deleteAccount must decide the re-authentication method from the AuthIdentity table.\n" +
+    "  Federated accounts hold an unusable password hash by design, so a password check is not a\n" +
+    "  weaker path for them — it is an impossible one, and it locked them out of erasure entirely.",
+);
+assert.match(
+  deleteFn,
+  /if \(hasUsablePassword\)\s*\{[\s\S]*?verifyPassword\(currentPassword/,
+  "the password check must stay INSIDE the hasUsablePassword branch. Accounts that have a password\n" +
+    "  must still prove it — the fix for the locked-out case must not become a way around it for\n" +
+    "  everyone else.",
+);
+assert.ok(
+  !/^\s*const hasUsablePassword = .*(formData|body|request)/m.test(deleteFn),
+  "hasUsablePassword must be derived from the database, never from the request. A client-supplied\n" +
+    "  flag would let anyone skip re-authentication by sending it.",
+);
+// And the form must not demand what the account cannot have — the UI half of
+// the same lockout.
+assert.match(
+  read("src/app/(app)/settings/tabs/delete-account-tab.tsx"),
+  /!hasPassword \|\| currentPassword\.length > 0/,
+  "the delete form must not require a password from an account that has none — otherwise its own\n" +
+    "  delete button stays permanently disabled, which is the same lockout one layer up.",
+);
+
 console.log(
   `second-writer contract OK — all ${Object.keys(PEOPLE_SEARCHES).length} people searches subtract blocks in each direction\n` +
     "  through one of the two shared mechanisms (none re-spells it inline),\n" +
