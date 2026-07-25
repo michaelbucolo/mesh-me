@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldAlert, ShieldCheck } from "lucide-react";
 import { DeleteAccountTab } from "@/app/(app)/settings/tabs";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Delete Account",
@@ -20,6 +21,13 @@ export default async function DeleteAccountPage() {
   if (!user.onboarded) {
     redirect("/onboarding");
   }
+
+  // Accounts created through Google or Apple have no password — identity-auth
+  // stores an unusable random hash so password sign-in can never succeed. The
+  // form used to require one anyway, which made its own delete button
+  // permanently un-pressable for them. Same signal the server uses.
+  const federatedIdentities = await prisma.authIdentity.count({ where: { userId: user.id } });
+  const hasPassword = federatedIdentities === 0;
 
   return (
     <main className="simple-page grid gap-5">
@@ -52,7 +60,7 @@ export default async function DeleteAccountPage() {
       </header>
 
       <section className="mesh-surface rounded-lg p-4 md:p-5">
-        <DeleteAccountTab />
+        <DeleteAccountTab hasPassword={hasPassword} />
       </section>
     </main>
   );
