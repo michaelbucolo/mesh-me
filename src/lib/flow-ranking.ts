@@ -79,8 +79,6 @@ const LANGUAGE_BOOST = 1.6;
 // short-form (Shorts, Reels, TikToks, clips) over full-length video. Short-form
 // gets a real lift; long-form is nudged DOWN (never filtered, so a strong-match
 // long video still surfaces). Anything we can't classify is neutral.
-const SHORT_FORM_BOOST = 1.5;
-const LONG_FORM_PENALTY = 0.9;
 
 // URL shapes that are unambiguously short-form containers…
 const SHORT_FORM_URL =
@@ -91,22 +89,91 @@ const SHORT_FORM_URL =
 const LONG_FORM_URL = /youtube\.com\/watch|twitch\.tv\/videos\//i;
 
 /**
- * Classify a candidate as short-form, long-form, or neutral. Reads the
- * strongest signal available — native media hints, then the source URL's
- * shape, then the platform — and treats anything unrecognized as neutral so
- * the Flow never empties out.
+ * The Flow shows shorts and reels. Nothing else.
+ *
+ * ── WHY THIS IS AN EXCLUSION AND NOT A NUDGE ────────────────────────────────
+ *
+ * It used to be a bias: +1.5 for short, -0.9 for long, with a comment saying
+ * "never filtered". A penalty does not keep long-form out, it just puts it
+ * further down — and a surface you scroll forever reaches "further down" in
+ * about a minute.
+ *
+ * ── WHY DURATION IS FIRST ───────────────────────────────────────────────────
+ *
+ * Every previous signal was a guess about a container. Three of them were
+ * outright broken:
+ *
+ *   - `item.type === "short" || "reel"` was DEAD CODE. Media types are built
+ *     by buildExternalMedia, which emits only "video" | "image", so that branch
+ *     could never fire on any item from any platform.
+ *   - Every YouTube item was classified LONG, including actual Shorts, because
+ *     the adapter hardcoded `youtube.com/watch?v=` (platform-sync.ts) and that
+ *     matches LONG_FORM_URL. The one platform where "short vs long" is the
+ *     whole question got it exactly backwards.
+ *   - `youtu.be` was left neutral on purpose because it fronts both.
+ *
+ * `durationSeconds` is a number, and it is the thing the user actually means.
+ * The adapter now populates it. URL shape and platform stay as fallbacks for
+ * items whose source cannot tell us, not as the primary rule.
+ *
+ * ── WHAT HAPPENS TO "UNKNOWN" ───────────────────────────────────────────────
+ *
+ * It is excluded. That is the strict direction, and it is deliberate: the
+ * request was "no long form content", and a permissive fallback is precisely
+ * how long-form gets in. An unknown-duration video from a source with no
+ * short-form marker could be forty seconds or four hours, and admitting it
+ * means admitting the four-hour one.
+ *
+ * The cost is real and it is not hidden: items we cannot classify do not
+ * appear, so a mesh whose platforms report no duration will have a thin Flow
+ * until sync fills it in. `flowFormStats` exists so a caller can SAY that
+ * rather than silently show an empty screen.
  */
-function flowFormClass(post: FeedCardPost): "short" | "long" | "neutral" {
-  for (const item of post.media) {
-    const type = item.type.toLowerCase();
-    if (type === "short" || type === "reel") return "short";
+const SHORT_FORM_MAX_SECONDS = 180;
+
+function flowFormClass(post: FeedCardPost): "short" | "long" | "unknown" {
+  // 1. A real number beats every guess.
+  const seconds = post.durationSeconds;
+  if (typeof seconds === "number" && seconds > 0) {
+    return seconds <= SHORT_FORM_MAX_SECONDS ? "short" : "long";
   }
+
+  // 2. The source labelled it. postType now reaches the ranker (it used to be
+  //    read by buildExternalMedia and discarded), so "short"/"reel"/"clip"
+  //    from the platform is usable at last.
+  const postType = (post.postType || "").toLowerCase();
+  if (postType === "short" || postType === "shorts" || postType === "reel" || postType === "clip") return "short";
+
+  // 3. Container shapes that only ever hold short-form.
   const url = post.externalUrl || "";
   if (SHORT_FORM_URL.test(url)) return "short";
-  // TikTok is inherently short-form regardless of URL shape.
   if ((post.platform || "").toLowerCase() === "tiktok") return "short";
   if (LONG_FORM_URL.test(url)) return "long";
-  return "neutral";
+
+  return "unknown";
+}
+
+/** True when an item belongs on a shorts-and-reels surface. Module-private:
+ *  callers get the rule by going through rankFlowPosts / rankRelatedPosts, so
+ *  there is no way to build a Flow list that skipped it. */
+function isFlowEligible(post: FeedCardPost): boolean {
+  return flowFormClass(post) === "short";
+}
+
+/**
+ * What the shorts-only rule removed, so a caller can explain an empty Flow
+ * instead of just rendering one. Silent truncation reads as "there is nothing
+ * to show" when the truth is "we could not tell what these were".
+ */
+export function flowFormStats(posts: FeedCardPost[]): { kept: number; long: number; unknown: number } {
+  let kept = 0, long = 0, unknown = 0;
+  for (const post of posts) {
+    const cls = flowFormClass(post);
+    if (cls === "short") kept += 1;
+    else if (cls === "long") long += 1;
+    else unknown += 1;
+  }
+  return { kept, long, unknown };
 }
 
 /**
@@ -475,9 +542,11 @@ function scoreFlowPost(
   // Favor short-form: the Flow showcases quick vertical content over
   // full-length video. Additive, like the language boost, so it shifts the
   // ranking without ever hard-filtering long-form out.
-  const formClass = flowFormClass(post);
-  if (formClass === "short") score += SHORT_FORM_BOOST;
-  else if (formClass === "long") score -= LONG_FORM_PENALTY;
+  // No form-class term here any more. Ranking cannot express "never" — only
+  // "later" — and the surface is shorts-only now, so eligibility is decided by
+  // isFlowEligible BEFORE anything is scored. Leaving a +1.5/-0.9 nudge in
+  // place would also have been dishonest: it implies long-form is still in the
+  // pool, ordered lower, when in fact it is gone.
 
   // Proportional jitter, applied BEFORE the fatigue crush so it scales with the
   // score and survives the ×0.06 at the same ratio — a real score gap is never
@@ -530,11 +599,20 @@ export function rankFlowPosts(
   const mode = opts.mode ?? "balanced";
   const limit = opts.limit ?? posts.length;
 
+  // SHORTS AND REELS ONLY — before the mode branches, deliberately.
+  //
+  // The old short-form bias lived inside scoreFlowPost, which chronological
+  // mode returns before ever reaching (see the early return below), and which
+  // the related lane never calls at all. So the one rule that decides what
+  // this surface IS applied in some modes and not others. It is a filter on
+  // the pool now, so every mode inherits it and no mode can opt out by
+  // taking a different path through the scorer.
+  let candidates = posts.filter(isFlowEligible);
+
   // Following mode narrows the candidate pool to people the viewer explicitly
   // follows (native posts and friends' platform content) before ranking.
-  let candidates = posts;
   if (mode === "following") {
-    candidates = posts.filter(
+    candidates = candidates.filter(
       (post) =>
         (!post.externalAuthor && profile.followingIds.has(post.author.id)) ||
         Boolean(post.meshFriend),
@@ -668,6 +746,9 @@ export function rankRelatedPosts(
   const anchorTags = new Set(anchor.tags.map(({ tag }) => tag.toLowerCase()));
 
   return candidates
+    // The sideways "more like this" lane had no form-class term at all, so
+    // long-form could enter the Flow through it even from a short anchor.
+    .filter(isFlowEligible)
     .filter((post) => post.id !== anchor.id && !opts.exclude?.has(post.id))
     .map((post) => {
       let score = 0;

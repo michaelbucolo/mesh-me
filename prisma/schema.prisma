@@ -533,6 +533,10 @@ model PlatformPost {
   // Direct URL to the post on the platform
   url                String?
   // Post type: "text" | "image" | "video" | "story" | "reel" | "short" | "tweet" | "thread" | "article" | "pin" | "snap"
+  // Real length of the item in seconds, when the platform reports one. The
+  // Flow is shorts-and-reels only and this is the sole signal in the pipeline
+  // that is a measurement rather than a guess about a URL shape.
+  durationSeconds Int?
   postType           String    @default("text")
   // Engagement metrics
   likeCount          Int       @default(0)
@@ -594,6 +598,7 @@ model PlatformFeedItem {
   thumbnailUrl       String?
   mediaUrl           String?
   // "post" | "video" | "image" | "link" | "stream" | "activity"
+  durationSeconds Int?
   postType           String    @default("post")
   likeCount          Int       @default(0)
   commentCount       Int       @default(0)

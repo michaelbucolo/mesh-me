@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { parseAcceptLanguage } from "@/lib/language";
-import { applyWatchSignal, explainFlowPost, getFlowCandidates, getViewerTasteProfile, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
+import { applyWatchSignal, explainFlowPost, flowFormStats, getFlowCandidates, getViewerTasteProfile, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
 import { getDiscoverUsers } from "@/lib/queries";
 import { FlowClient, type FlowPost, type FlowSuggestedPerson } from "./flow-client";
 
@@ -71,6 +71,15 @@ export default async function FlowPage() {
     whyThis: explainFlowPost(post, profile),
   })) as unknown as FlowPost[];
 
+  // WHY the Flow is empty, when it is. The surface is shorts-and-reels only and
+  // excludes anything it cannot positively classify as short — so "no posts"
+  // has two very different causes: the viewer genuinely has no sources, or
+  // their sources have plenty of content and none of it is short-form (or none
+  // of it reports a duration yet). Rendering the same empty screen for both is
+  // the silent-truncation failure: it reads as "there is nothing" when the
+  // truth is "we filtered it and here is how much".
+  const formStats = flowFormStats(candidates);
+
   // Cold start: an empty Flow becomes a people-discovery moment instead of a
   // dead end — suggest real accounts to follow, then the feed fills itself.
   let suggestedPeople: FlowSuggestedPerson[] = [];
@@ -90,6 +99,7 @@ export default async function FlowPage() {
     <FlowClient
       initialPosts={posts}
       initialHasMore={candidates.length > posts.length}
+      formStats={formStats}
       suggestedPeople={suggestedPeople}
       signedOut={!user}
       isPro={Boolean(user?.isMeshPro)}

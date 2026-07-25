@@ -191,6 +191,8 @@ export async function getFriendPlatformFeedPosts(user: FriendMeshCurrentUser, li
       platform: post.connectedAccount.platform,
       sourceId: post.id,
       externalUrl: post.url,
+      postType: post.postType ?? null,
+      durationSeconds: post.durationSeconds ?? null,
       platformPostId: post.platformPostId,
       crossPostedTo: post.isFromMesh ? [post.connectedAccount.platform] : [],
       meshFriend: {
