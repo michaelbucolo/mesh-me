@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { hasMeshiConsent, meshiDeniedUserIds } from "@/lib/consent";
+import { prisma } from "@/lib/prisma";
 import { meshiQuery } from "@/lib/meshi-engine";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
@@ -583,6 +584,46 @@ export async function POST(req: Request) {
             (entity) => entity.type !== "user" || !entity.id || !denied.has(entity.id),
           ),
         };
+      }
+    }
+
+    // `focusedContent` is the post the caller is currently looking at, scraped
+    // from the card in the DOM — and it carries that post's AUTHOR HANDLE and
+    // its FULL TEXT. Usually someone else's.
+    //
+    // The gate directly above resolves consent for `meshEntities` (names,
+    // handles, follower counts) and states the principle plainly: "The caller's
+    // own consent does not speak for them, so resolve theirs, here at the
+    // egress." That principle was never applied to this field, which ships
+    // strictly more of a third party than meshEntities does — the post body
+    // itself, not just a display name.
+    //
+    // Resolved by POST ID rather than by the author string: `author` is a
+    // display name or handle, and matching a person by fuzzy name is exactly
+    // how you strip the wrong record or quietly fail to strip the right one.
+    // Only native posts are gated — content mirrored from another platform has
+    // no mesh account whose consent we hold, and the caller is already looking
+    // at it.
+    if (groundedContext?.focusedContent?.id && (groundedContext.focusedContent.platform ?? "meshme") === "meshme") {
+      const post = await prisma.post.findUnique({
+        where: { id: groundedContext.focusedContent.id },
+        select: { authorId: true },
+      });
+      if (post && post.authorId !== user.id) {
+        const denied = await meshiDeniedUserIds([post.authorId]);
+        if (denied.has(post.authorId)) {
+          // Keep the non-identifying signals — media types, rating, provenance
+          // cues — so "is this video real?" still works. Drop who wrote it and
+          // what they said.
+          groundedContext = {
+            ...groundedContext,
+            focusedContent: {
+              ...groundedContext.focusedContent,
+              author: undefined,
+              text: undefined,
+            },
+          };
+        }
       }
     }
 
