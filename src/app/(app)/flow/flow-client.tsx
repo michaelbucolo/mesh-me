@@ -59,7 +59,10 @@ function textStageFor(id: string) {
 type BurstParticle = { angle: string; dist: string; color: string; size: number; kind: "heart" | "spark" };
 type HeartBurst = { id: number; x: number; y: number; particles: BurstParticle[] };
 
-const HEART_BURST_COLORS = ["#f43f5e", "#ec4899", "#6e8bff"];
+// The warm plastics, not the rejected hot-pink triple (#f43f5e/#ec4899/#6e8bff).
+// A heart burst is tomato and crimson — the brand plastic and the one next to
+// it — so a like reads as part of the same moulded object family.
+const HEART_BURST_COLORS = ["#ee6238", "#b81f3a", "#f2b23c"];
 function makeHeartBurst(): BurstParticle[] {
   const parts: BurstParticle[] = [];
   const hearts = 5;
@@ -75,7 +78,7 @@ function makeHeartBurst(): BurstParticle[] {
   }
   for (let i = 0; i < 2; i += 1) {
     const base = i === 0 ? -30 : 30;
-    parts.push({ angle: `${base + (Math.random() * 14 - 7)}deg`, dist: `${58 + Math.random() * 26}px`, color: "#34e4ea", size: 5, kind: "spark" });
+    parts.push({ angle: `${base + (Math.random() * 14 - 7)}deg`, dist: `${58 + Math.random() * 26}px`, color: "#f2b23c", size: 5, kind: "spark" });
   }
   return parts;
 }
@@ -763,7 +766,10 @@ function ReelContent({
                     height: p.size,
                     margin: `${-p.size / 2}px 0 0 ${-p.size / 2}px`,
                     background: p.color,
-                    boxShadow: p.kind === "spark" ? "0 0 6px #34e4ea" : "0 0 5px rgba(244, 63, 94, 0.55)",
+                    // No boxShadow. Both of these were glows — `0 0 6px` of the
+                    // particle's own colour — and nothing in this system emits
+                    // light. A burst is bits of plastic flying off, and plastic
+                    // is lit by the room, not from inside.
                   } as React.CSSProperties}
                   aria-hidden
                 />

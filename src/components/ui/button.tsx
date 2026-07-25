@@ -4,22 +4,44 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { cn } from "@/lib/utils";
 
+// THE BUTTON IS THE KEY. `.key` supplies the moulded silhouette — the --edge
+// ring that carries the boundary, the side wall, and the press that conserves
+// total height. Variants supply only the material.
+//
+// `ghost` and `link` are deliberately NOT keys: a ghost button has no face, so
+// giving it a side wall would draw a wall around nothing. They keep the flat
+// treatment and the plain focus ring.
+// NOT `ds-interactive`. That class is the OLD paper depth model — it lifts the
+// element 2px on hover and swaps in a wide blurred shadow. A `.key` presses INTO
+// a plinth. An element carrying both has two depth models fighting, and because
+// `.ds-interactive:hover` sits later in globals.css it wins on source order: the
+// side wall never collapses, the bottom edge moves, and height conservation —
+// the entire point of the press — silently stops happening. Caught by measuring
+// the bottom edge in a real browser, not by reading the CSS.
 const buttonVariants = cva(
-  "ds-interactive ds-focus-ring inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-[var(--ds-radius-pill)] border text-sm font-semibold tracking-[0] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+  "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold tracking-[0] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
   {
     variants: {
       variant: {
-        default: "border-[var(--ds-accent-border)] bg-[var(--accent)] text-[var(--accent-contrast,#ffffff)] hover:bg-[var(--accent-hover)]",
-        secondary: "border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
-        ghost: "border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
-        outline: "border-[var(--ds-border)] bg-transparent text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
-        glass: "border-[var(--ds-border)] bg-[var(--ds-surface-glass)] text-[var(--text-primary)] backdrop-blur-md hover:bg-[var(--bg-hover)]",
-        danger: "border-[var(--ds-danger-border)] bg-[var(--ds-danger)] text-white hover:bg-red-500",
-        destructive: "border-[var(--ds-danger-border)] bg-[var(--ds-danger)] text-white hover:bg-red-500",
-        success: "border-[var(--ds-success-border)] bg-[var(--ds-success)] text-white hover:bg-emerald-500",
-        warning: "border-[var(--ds-warning-border)] bg-[var(--ds-warning-bg)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
-        link: "h-auto border-transparent bg-transparent p-0 text-[var(--accent)] underline-offset-4 hover:underline",
-        gradient: "btn-gradient border-transparent text-white",
+        default: "key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]",
+        secondary: "key",
+        ghost: "ds-focus-ring rounded-[var(--radius-md)] border border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
+        outline: "key bg-transparent text-[var(--text-primary)]",
+        // `glass` keeps its name for the ~30 call sites, but there is no glass in
+        // this system — backdrop-filter is banned everywhere but the modal scrim.
+        // It is a plain secondary key.
+        glass: "key",
+        // Destruction is crimson, not a paler tomato. The old --mould-red sat 27°
+        // from the brand plastic and read as a washed-out danger; crimson is
+        // unmistakable next to it. Both names kept: 2 variants, many call sites.
+        danger: "key key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]",
+        destructive: "key key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]",
+        success: "key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]",
+        warning: "key key-lit [--mould:var(--mould-amber)] [--mould-ink:var(--mould-amber-ink)] [--mould-plinth:var(--mould-amber-plinth)]",
+        link: "ds-focus-ring h-auto rounded-[var(--radius-xs)] border-transparent bg-transparent p-0 text-[var(--accent)] underline-offset-4 hover:underline",
+        // No gradients in a moulded system — a plastic is one colour through.
+        // The brand plastic is tomato.
+        gradient: "key key-lit [--mould:var(--mould-tomato)] [--mould-ink:var(--mould-tomato-ink)] [--mould-plinth:var(--mould-tomato-plinth)]",
       },
       size: {
         default: "h-[var(--ds-control-height)] px-4 py-2",
