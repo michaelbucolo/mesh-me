@@ -407,7 +407,7 @@ export function MeshFormingLoader({
       <canvas ref={canvasRef} aria-hidden className="absolute inset-0 h-full w-full" />
       {label ? (
         <div className="relative z-10 mb-[15vh] flex flex-col items-center gap-2 px-6 text-center">
-          <p className="mesh-forming-caption text-sm font-medium tracking-wide">{label}</p>
+          <p className="mesh-forming-caption text-sm font-medium ">{label}</p>
           <span className="flex gap-1" aria-hidden>
             <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[#8aa1ff]" />
             <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[#8aa1ff]" style={{ animationDelay: "0.18s" }} />

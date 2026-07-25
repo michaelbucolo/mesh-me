@@ -288,7 +288,7 @@ export function OnboardingFlow({
               />
             </motion.div>
             <div>
-              <p className="text-sm font-bold">Mesh.me setup</p>
+              <p className="text-sm font-semibold">Mesh.me setup</p>
               <p className="text-xs text-[var(--text-muted)]">{progress}% complete</p>
             </div>
           </div>
@@ -323,7 +323,7 @@ export function OnboardingFlow({
                     setStep(index);
                   }}
                   className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-sm font-bold transition",
+                    "flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-sm font-semibold transition",
                     index === step ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
                   )}
                   data-testid={`onboarding-step-${item.id}`}
@@ -342,16 +342,16 @@ export function OnboardingFlow({
         <section className="mesh-surface onboarding-card flex min-h-0 flex-col overflow-hidden rounded-lg p-4 md:p-5" data-testid="onboarding-flow">
           <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border-primary)] pb-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Your World, Your Way</p>
-              <h1 className="mt-2 text-3xl font-bold tracking-[0] md:text-5xl">{currentStep.label}</h1>
+              <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">Your World, Your Way</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-[0] md:text-5xl">{currentStep.label}</h1>
             </div>
-            <div className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
+            <div className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-semibold text-[var(--text-secondary)]">
               {user.email}
             </div>
           </header>
 
           {status && (
-            <div className="mt-4 rounded-md border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100" role="alert">
+            <div className="mt-4 rounded-md border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100" role="alert">
               {status}
             </div>
           )}
@@ -369,7 +369,7 @@ export function OnboardingFlow({
             {currentStep.id === "account" && (
               <StepShell title="Start with the basics" body="Pick the public identity people will recognize. You can change this later.">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="grid gap-2 text-sm font-bold">
+                  <label className="grid gap-2 text-sm font-semibold">
                     Username
                     <Input
                       value={account.username}
@@ -377,15 +377,15 @@ export function OnboardingFlow({
                       data-testid="onboarding-username"
                     />
                   </label>
-                  <label className="grid gap-2 text-sm font-bold">
+                  <label className="grid gap-2 text-sm font-semibold">
                     Display name
                     <Input value={account.displayName} onChange={(event) => setAccount((current) => ({ ...current, displayName: event.target.value }))} />
                   </label>
-                  <label className="grid gap-2 text-sm font-bold md:col-span-2">
+                  <label className="grid gap-2 text-sm font-semibold md:col-span-2">
                     Bio
                     <Textarea value={account.bio} onChange={(event) => setAccount((current) => ({ ...current, bio: event.target.value }))} maxLength={160} rows={3} />
                   </label>
-                  <label className="grid gap-2 text-sm font-bold">
+                  <label className="grid gap-2 text-sm font-semibold">
                     Location
                     <Input value={account.location} onChange={(event) => setAccount((current) => ({ ...current, location: event.target.value }))} placeholder="Optional" />
                   </label>
@@ -579,7 +579,7 @@ export function OnboardingFlow({
                       onClick={() => setPrivacy((current) => ({ ...current, meshVisibility: option.id }))}
                       className={cn("mesh-choice rounded-md p-4 text-left", privacy.meshVisibility === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
                     >
-                      <span className="block text-base font-bold">{option.title}</span>
+                      <span className="block text-base font-semibold">{option.title}</span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
                     </motion.button>
                   ))}
@@ -605,7 +605,7 @@ export function OnboardingFlow({
                   <Toggle label="Product updates" value={notifications.productUpdates} onChange={(value) => setNotifications((current) => ({ ...current, productUpdates: value }))} />
                 </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem]">
-                  <label className="grid gap-2 text-sm font-bold">
+                  <label className="grid gap-2 text-sm font-semibold">
                     Email digest
                     <select value={notifications.emailDigest} onChange={(event) => setNotifications((current) => ({ ...current, emailDigest: event.target.value }))} className="simple-input h-11 px-3 text-sm">
                       <option value="off">Off</option>
@@ -631,7 +631,7 @@ export function OnboardingFlow({
                       onClick={() => setInterfaceStyle(option.id)}
                       className={cn("mesh-choice rounded-md p-4 text-left", interfaceStyle === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
                     >
-                      <span className="block text-base font-bold">{option.title}</span>
+                      <span className="block text-base font-semibold">{option.title}</span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
                     </motion.button>
                   ))}
@@ -655,7 +655,7 @@ export function OnboardingFlow({
                         data-testid={`onboarding-app-${platform.id}`}
                       >
                         <span className="flex items-center justify-between gap-2">
-                          <span className="block text-sm font-bold">{platform.name}</span>
+                          <span className="block text-sm font-semibold">{platform.name}</span>
                           {active && <Check size={15} className="animate-mesh-pop text-[var(--accent)]" aria-hidden="true" />}
                         </span>
                         <span className="mt-1 block text-xs text-[var(--text-muted)]">
@@ -707,7 +707,7 @@ function StepShell({ title, body, children }: { title: string; body: string; chi
   return (
     <div className="mesh-cascade-soft grid gap-5">
       <div style={{ "--i": 0 } as CSSProperties}>
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-semibold">{title}</h2>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
       </div>
       {blocks.map((block, index) => (
@@ -722,7 +722,7 @@ function StepShell({ title, body, children }: { title: string; body: string; chi
 function PickerGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid gap-2">
-      <p className="text-sm font-bold">{label}</p>
+      <p className="text-sm font-semibold">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -736,7 +736,7 @@ function ChoiceButton({ active, onClick, children }: { active: boolean; onClick:
       whileTap={{ scale: 0.94 }}
       animate={active ? { scale: [1, 1.09, 1] } : { scale: 1 }}
       transition={{ duration: 0.34, ease: SPRING_LUSH }}
-      className={cn("mesh-choice rounded-full px-3 py-2 text-sm font-bold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+      className={cn("mesh-choice rounded-full px-3 py-2 text-sm font-semibold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
     >
       {children}
     </motion.button>
@@ -749,7 +749,7 @@ function GraphicChoice({ active, label, onClick, children }: { active: boolean; 
       type="button"
       onClick={onClick}
       whileTap={{ scale: 0.92 }}
-      className={cn("mesh-choice relative grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-bold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+      className={cn("mesh-choice relative grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-semibold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
       aria-pressed={active}
     >
       {/* Selected-pop: the preview springs with an overshoot and a brand ring
@@ -789,7 +789,7 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
       aria-pressed={value}
     >
       <span>
-        <span className="block text-sm font-bold">{label}</span>
+        <span className="block text-sm font-semibold">{label}</span>
         <span className="block text-xs text-[var(--text-muted)]">{value ? "On" : "Off"}</span>
       </span>
       {/* Real sliding knob: track fills accent-green with a glow when on, knob

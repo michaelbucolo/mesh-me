@@ -56,7 +56,7 @@ export function MeshGates({
             className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(110,139,255,0.32),rgba(4,5,12,0.97)_72%)]"
             style={{ animation: "meshTravelVeil .72s ease-in forwards" }}
           />
-          <p className="relative text-sm font-semibold tracking-wide text-white" style={{ animation: "meshTravelText .72s ease-in forwards" }}>
+          <p className="relative text-sm font-semibold text-white" style={{ animation: "meshTravelText .72s ease-in forwards" }}>
             Entering {traveling.label}&apos;s mesh…
           </p>
         </div>
@@ -149,7 +149,7 @@ function MeshPrivateGate({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={user.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/15" />
       ) : (
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-xl font-bold text-white">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-xl font-semibold text-white">
           {(user?.displayName || user?.username || "?").slice(0, 1).toUpperCase()}
         </span>
       )}
@@ -177,7 +177,7 @@ function MeshPrivateGate({
         )}
         <Link
           href={`/profile/${user?.username}`}
-          className="mesh-bubble-btn rounded-full bg-white px-5 py-2 text-sm font-bold text-black hover:bg-white/90"
+          className="mesh-bubble-btn rounded-full bg-white px-5 py-2 text-sm font-semibold text-black hover:bg-white/90"
         >
           View profile
         </Link>

@@ -30,7 +30,7 @@ export function LegalDocumentPage({
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">{title}</h1>
         </div>
         <div className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{updatedLabel}</p>
+          <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">{updatedLabel}</p>
           <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{summary}</p>
         </div>
       </section>
@@ -39,7 +39,7 @@ export function LegalDocumentPage({
         <aside className="h-fit rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 lg:sticky lg:top-24">
           <div className="mb-4 flex items-center gap-2">
             <FileCheck2 className="h-4 w-4 text-[var(--accent)]" />
-            <p className="text-sm font-bold text-[var(--text-primary)]">On this page</p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">On this page</p>
           </div>
           <nav className="grid gap-1.5">
             {sections.map((section, index) => (
@@ -61,8 +61,8 @@ export function LegalDocumentPage({
               id={section.id}
               className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 md:p-6"
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Section {index + 1}</p>
-              <h2 className="mt-2 text-xl font-bold text-[var(--text-primary)]">{section.title}</h2>
+              <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">Section {index + 1}</p>
+              <h2 className="mt-2 text-xl font-semibold text-[var(--text-primary)]">{section.title}</h2>
               <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--text-secondary)]">{section.content}</div>
             </section>
           ))}
@@ -73,7 +73,7 @@ export function LegalDocumentPage({
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-1 h-5 w-5 text-emerald-400" />
           <div>
-            <h2 className="text-base font-bold text-[var(--text-primary)]">Need the product controls too?</h2>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Need the product controls too?</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
               The policy pages explain the rules. The Trust Center and in-app controls show how the product exposes them.
             </p>

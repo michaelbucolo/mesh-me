@@ -61,7 +61,7 @@ function ShareBar({ row }: { row: MixRow }) {
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-xs font-semibold text-[var(--text-secondary)]">{row.title}</p>
-        <p className="text-xs font-bold text-[var(--text-primary)]">{fmt(row.total)}</p>
+        <p className="text-xs font-semibold text-[var(--text-primary)]">{fmt(row.total)}</p>
       </div>
       <div ref={ref} className="mt-1.5 flex h-3 w-full overflow-hidden rounded-full bg-[var(--bg-primary)]/70">
         {visible.length > 0 ? (
@@ -102,13 +102,13 @@ function LeaderCard({ icon: Icon, title, platform, stat, detail, index }: { icon
       className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3.5"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
-      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         {title}
       </p>
       {platform ? (
         <>
-          <p className="mt-1.5 flex items-center gap-2 text-base font-bold text-[var(--text-primary)]">
+          <p className="mt-1.5 flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tone(platform) }} />
             {label(platform)}
           </p>
@@ -141,7 +141,7 @@ function PerPostBar({ platform, epp, maxEpp, index }: { platform: string; epp: n
           transition={{ duration: reduce ? 0 : 0.75, delay: reduce ? 0 : index * 0.07, ease: [0.16, 1, 0.3, 1] }}
         />
       </div>
-      <span className="w-14 shrink-0 text-right text-xs font-bold text-[var(--text-primary)]">{fmt(epp)}</span>
+      <span className="w-14 shrink-0 text-right text-xs font-semibold text-[var(--text-primary)]">{fmt(epp)}</span>
     </div>
   );
 }
@@ -155,11 +155,11 @@ function PerPostBar({ platform, epp, maxEpp, index }: { platform: string; epp: n
 function CrossPlatformFans({ overlap }: { overlap: AnalyticsDashboardData["audienceOverlap"] }) {
   return (
     <div className="mt-4 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-4">
-      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
         <Fingerprint size={12} aria-hidden="true" />
         Your true fans
       </p>
-      <h3 className="mt-1 text-sm font-bold text-[var(--text-primary)]">Who follows you everywhere</h3>
+      <h3 className="mt-1 text-sm font-semibold text-[var(--text-primary)]">Who follows you everywhere</h3>
 
       {!overlap.hasEnoughData ? (
         <p className="mt-2 text-xs text-[var(--text-secondary)]">
@@ -173,7 +173,7 @@ function CrossPlatformFans({ overlap }: { overlap: AnalyticsDashboardData["audie
       ) : (
         <>
           <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
-            <span className="text-base font-bold text-[var(--text-primary)]">{fmt(overlap.multiPlatformCount)}</span>{" "}
+            <span className="text-base font-semibold text-[var(--text-primary)]">{fmt(overlap.multiPlatformCount)}</span>{" "}
             {overlap.multiPlatformCount === 1 ? "person follows" : "people follow"} you on more than one platform.
           </p>
           {overlap.superfans.length > 0 && (
@@ -185,7 +185,7 @@ function CrossPlatformFans({ overlap }: { overlap: AnalyticsDashboardData["audie
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={fan.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                     ) : (
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg-secondary)] text-xs font-bold text-[var(--text-muted)]">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg-secondary)] text-xs font-semibold text-[var(--text-muted)]">
                         {(fan.name || "?").charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -282,11 +282,11 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
     <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
             <Layers size={12} aria-hidden="true" />
             Only on mesh.me
           </p>
-          <h2 className="mt-1 text-lg font-bold text-[var(--text-primary)]">Your whole internet, side by side</h2>
+          <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">Your whole internet, side by side</h2>
           <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
             Every platform reports its own numbers. This is the only view where they meet.
           </p>

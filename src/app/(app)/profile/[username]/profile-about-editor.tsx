@@ -51,7 +51,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
     return (
       <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-[var(--mesh-text)]">About</h2>
+          <h2 className="text-lg font-semibold text-[var(--mesh-text)]">About</h2>
           <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(true)} leftIcon={<Pencil className="h-4 w-4" aria-hidden="true" />}>
             Edit details
           </Button>
@@ -67,7 +67,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
               if (!groupFields.length) return null;
               return (
                 <div key={group.key}>
-                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--mesh-text-muted)]">{group.label}</h3>
+                  <h3 className="text-xs font-semibold mesh-eyebrow text-[var(--mesh-text-muted)]">{group.label}</h3>
                   <dl className="mt-2 grid gap-2">
                     {groupFields.map((f) => {
                       const level = privacy[f] ?? "friends";
@@ -98,7 +98,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
   return (
     <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-[var(--mesh-text)]">Edit About</h2>
+        <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Edit About</h2>
       </div>
       {error && (
         <p className="mt-3 rounded-md border border-[var(--ds-danger-border)] bg-[var(--bg-primary)]/60 px-3 py-2 text-xs font-semibold text-[var(--mesh-text)]">{error}</p>
@@ -108,7 +108,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
           const groupFields = ABOUT_FIELDS.filter((f) => ABOUT_FIELD_META[f].group === group.key);
           return (
             <div key={group.key}>
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--mesh-text-muted)]">{group.label}</h3>
+              <h3 className="text-xs font-semibold mesh-eyebrow text-[var(--mesh-text-muted)]">{group.label}</h3>
               <div className="mt-2 grid gap-3">
                 {groupFields.map((f) => {
                   const meta = ABOUT_FIELD_META[f];

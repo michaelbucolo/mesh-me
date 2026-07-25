@@ -128,7 +128,7 @@ function RouteCard({ route, reduce }: { route: Route; reduce: boolean }) {
             style={{ transitionTimingFunction: POP_EASE }}
           />
         </div>
-        <h3 className="relative text-base font-bold text-[var(--text-primary)]">{route.title}</h3>
+        <h3 className="relative text-base font-semibold text-[var(--text-primary)]">{route.title}</h3>
         <p className="relative mt-2 text-sm leading-6 text-[var(--text-secondary)]">{route.description}</p>
       </Link>
     </motion.div>
@@ -154,7 +154,7 @@ export function SiteRouteMap({
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <p className="mesh-kicker mb-3">Route by route</p>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] md:text-3xl">{title}</h2>
+        <h2 className="text-2xl font-semibold text-[var(--text-primary)] md:text-3xl">{title}</h2>
         <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)] md:text-base">{description}</p>
       </motion.div>
 
@@ -180,7 +180,7 @@ export function SiteRouteMap({
         <div className="flex items-start gap-3">
           <MessageCircle className="mt-1 h-5 w-5 text-[var(--accent)]" />
           <div>
-            <h3 className="text-sm font-bold text-[var(--text-primary)]">Launch UX rule</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Launch UX rule</h3>
             <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
               Every route should answer three questions quickly: where the user is, what they can do here, and what the next best path is.
             </p>

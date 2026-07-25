@@ -483,10 +483,10 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 md:gap-2">
-                  <h1 className="truncate text-base font-bold text-[var(--mesh-text)] md:text-2xl">{conversationTitle}</h1>
+                  <h1 className="truncate text-base font-semibold text-[var(--mesh-text)] md:text-2xl">{conversationTitle}</h1>
                   {!isGroupThread && recipient?.isVerified && <BadgeCheck size={16} className="shrink-0 text-[var(--accent)]" />}
                   {(isExternalThread || threadPlatform !== "mesh") && (
-                    <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
+                    <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
                       {sourceLabel(threadPlatform)}
                     </span>
                   )}

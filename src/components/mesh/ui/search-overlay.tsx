@@ -127,7 +127,7 @@ export function MeshSearchOverlay({
                     <span className="block truncate text-sm text-white">{node.label}</span>
                     {node.sublabel && <span className="block truncate text-[11px] text-white/50">{node.sublabel}</span>}
                   </span>
-                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-white/35">{node.kind}</span>
+                  <span className="shrink-0 text-[10px] mesh-eyebrow text-white/35">{node.kind}</span>
                 </button>
               </li>
             ))}
@@ -135,7 +135,7 @@ export function MeshSearchOverlay({
         )}
         {discoverUsers.length > 0 && (
           <div className="border-t border-white/8 pt-1">
-            <p className="px-3 pt-1.5 pb-0.5 text-[10px] uppercase tracking-wide text-white/35">Across mesh.me</p>
+            <p className="px-3 pt-1.5 pb-0.5 text-[10px] mesh-eyebrow text-white/35">Across mesh.me</p>
             <ul className="max-h-48 overflow-y-auto">
               {discoverUsers.map((u) => (
                 <li key={u.id}>
@@ -156,7 +156,7 @@ export function MeshSearchOverlay({
                       <span className="block truncate text-sm text-white">{u.displayName || u.username}</span>
                       <span className="block truncate text-[11px] text-white/50">@{u.username}</span>
                     </span>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-white/35">Visit mesh</span>
+                    <span className="shrink-0 text-[10px] mesh-eyebrow text-white/35">Visit mesh</span>
                   </button>
                 </li>
               ))}

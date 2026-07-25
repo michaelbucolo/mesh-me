@@ -176,7 +176,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             <Footprints size={20} />
           </span>
           <div>
-            <h1 className="text-xl font-bold text-white">Your Trail</h1>
+            <h1 className="text-xl font-semibold text-white">Your Trail</h1>
             <p className="text-xs text-white/50">{data.label}{data.isCurrentMonth ? " — so far" : ""}</p>
           </div>
         </div>
@@ -261,13 +261,13 @@ function TrailInner({ isPro }: { isPro: boolean }) {
                 key={s.label}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70"
               >
-                <span className="font-bold text-white">{s.value}</span> {s.label}
+                <span className="font-semibold text-white">{s.value}</span> {s.label}
               </span>
             ))}
             {summary.busiestDay && (
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70">
                 busiest:{" "}
-                <span className="font-bold text-white">
+                <span className="font-semibold text-white">
                   {new Date(summary.busiestDay + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>{" "}
                 ({summary.busiestCount} moments)
@@ -461,7 +461,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
 function TrailLabel({ step, align }: { step: TrailStep; align: "left" | "right" }) {
   return (
     <span className={`inline-block max-w-full ${align === "right" ? "text-right" : "text-left"}`}>
-      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[8.5px] font-bold uppercase tracking-[0.12em]" style={{ color: step.color, background: `${step.color}1f` }}>
+      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[8.5px] font-semibold mesh-eyebrow " style={{ color: step.color, background: `${step.color}1f` }}>
         {TYPE_LABELS[step.type]}
       </span>
       <span className="block truncate text-[11.5px] font-medium leading-snug text-white/85 group-hover:text-white">{step.title}</span>

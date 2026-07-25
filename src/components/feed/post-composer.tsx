@@ -390,7 +390,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
 
           {showLinkTools && (
             <div className="mt-3 grid gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-tertiary)] p-3">
-              <label className="grid gap-1 text-[11px] font-bold text-[var(--text-secondary)]">
+              <label className="grid gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
                 Link preview
                 <input
                   value={linkUrl}
@@ -399,7 +399,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                   className="theme-input min-h-10 rounded-lg px-3 text-sm"
                 />
               </label>
-              <label className="grid gap-1 text-[11px] font-bold text-[var(--text-secondary)]">
+              <label className="grid gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
                 Image or video URL
                 <input
                   value={mediaUrl}
@@ -423,7 +423,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     onClick={() => setVisibility(option.id)}
                     className={`rounded-lg border px-3 py-2 text-left transition ${active ? "border-[var(--accent-muted)] bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]"}`}
                   >
-                    <span className="flex items-center gap-2 text-xs font-bold">
+                    <span className="flex items-center gap-2 text-xs font-semibold">
                       <Icon className="h-3.5 w-3.5" />
                       {option.label}
                     </span>
@@ -474,7 +474,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                       )}
                       style={selectedPlatforms.has(p.id) ? { backgroundColor: p.color } : undefined}
                     >
-                      <span className={"w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold " + (
+                      <span className={"w-4 h-4 rounded flex items-center justify-center text-[8px] font-semibold " + (
                         selectedPlatforms.has(p.id) ? "bg-white/20 text-white" : "text-white"
                       )} style={!selectedPlatforms.has(p.id) ? { backgroundColor: p.color } : undefined}>
                         {p.icon}
@@ -577,7 +577,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <span className="hidden text-xs font-bold text-[var(--text-muted)] sm:inline">
+              <span className="hidden text-xs font-semibold text-[var(--text-muted)] sm:inline">
                 {visibilityOptions.find((option) => option.id === visibility)?.label}
               </span>
               {content.length > 0 && (

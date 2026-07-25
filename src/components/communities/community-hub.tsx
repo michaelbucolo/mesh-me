@@ -26,7 +26,7 @@ function CommunityAvatar({ name, iconUrl, size = "md" }: { name: string; iconUrl
       {iconUrl ? (
         <Image src={iconUrl} alt="" fill sizes="64px" className="object-cover" />
       ) : (
-        <span className={`grid h-full w-full place-items-center ${textSize} font-bold text-[var(--accent)]`}>{initial}</span>
+        <span className={`grid h-full w-full place-items-center ${textSize} font-semibold text-[var(--accent)]`}>{initial}</span>
       )}
     </div>
   );
@@ -46,13 +46,13 @@ function FeaturedCard({ community }: { community: Community }) {
             <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="lg" />
           </div>
         )}
-        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${community.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
+        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-semibold ${community.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
           {community.isPublic ? "Public" : "Private"}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center gap-2">
-          <h3 className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</h3>
+          <h3 className="truncate text-sm font-semibold text-[var(--mesh-text)]">{community.name}</h3>
           <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
         </div>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--mesh-text-muted)]">
@@ -89,7 +89,7 @@ function CommunityRow({ community, selected, onSelect, index }: { community: Com
         <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="sm" />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
-            <span className="truncate text-sm font-bold text-[var(--mesh-text)]">{community.name}</span>
+            <span className="truncate text-sm font-semibold text-[var(--mesh-text)]">{community.name}</span>
             <ShieldCheck className="h-3 w-3 shrink-0 text-[var(--accent)]" />
           </span>
           <span className="block text-xs text-[var(--mesh-text-muted)]">
@@ -97,7 +97,7 @@ function CommunityRow({ community, selected, onSelect, index }: { community: Com
           </span>
         </span>
         <span className="shrink-0 text-right">
-          <span className="block text-sm font-bold text-[var(--mesh-text)]">{formatCount(community._count.members)}</span>
+          <span className="block text-sm font-semibold text-[var(--mesh-text)]">{formatCount(community._count.members)}</span>
           <span className="block text-[10px] text-[var(--mesh-text-muted)]">members</span>
         </span>
         <span className="hidden shrink-0 text-right sm:block">
@@ -147,7 +147,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
         {/* Featured communities carousel */}
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-[var(--mesh-text)]">Featured communities</h2>
+            <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Featured communities</h2>
             <div className="flex items-center gap-2">
               <Link href="/communities?view=featured" className="inline-flex items-center gap-1 text-xs text-[var(--accent)] hover:underline">
                 View all
@@ -220,7 +220,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
         {/* All communities directory */}
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-[var(--mesh-text)]">All communities</h2>
+            <h2 className="text-lg font-semibold text-[var(--mesh-text)]">All communities</h2>
             <div className="flex items-center gap-4 text-xs text-[var(--mesh-text-muted)]">
               <span>Members</span>
               <span>Activity</span>
@@ -264,7 +264,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 {selectedCommunity.iconUrl && (
                   <Image src={selectedCommunity.iconUrl} alt="" fill sizes="380px" className="object-cover opacity-50" />
                 )}
-                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-bold ${selectedCommunity.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
+                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-semibold ${selectedCommunity.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
                   {selectedCommunity.isPublic ? "Public" : "Private"}
                 </span>
                 <div className="absolute -bottom-8 left-5">
@@ -274,7 +274,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
 
               <div className="px-5 pt-12 pb-5">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-[var(--mesh-text)]">{selectedCommunity.name}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--mesh-text)]">{selectedCommunity.name}</h2>
                   <ShieldCheck className="h-4 w-4 text-[var(--accent)]" />
                 </div>
                 <p className="mt-0.5 text-xs text-[var(--mesh-text-muted)]">
@@ -322,13 +322,13 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
             <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--mesh-text-muted)] mb-2">About this community</h4>
+                  <h4 className="text-xs font-semibold text-[var(--mesh-text-muted)] mb-2">About this community</h4>
                   <p className="text-xs leading-relaxed text-[var(--mesh-text-secondary)]">
                     {selectedCommunity.description || "A space for sharing ideas and building meaningful projects."}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--mesh-text-muted)] mb-2">Community rules</h4>
+                  <h4 className="text-xs font-semibold text-[var(--mesh-text-muted)] mb-2">Community rules</h4>
                   <ol className="space-y-1 text-xs text-[var(--mesh-text-secondary)]">
                     <li>1. Be respectful and kind.</li>
                     <li>2. Share openly, give credit.</li>

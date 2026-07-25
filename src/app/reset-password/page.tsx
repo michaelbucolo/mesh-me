@@ -62,7 +62,7 @@ function ResetPasswordForm() {
     return (
       <div className="w-full max-w-sm mx-auto text-center">
         <MeshiMascot size={64} mood="thinking" animate />
-        <h1 className="mt-4 text-2xl font-bold text-[var(--text-primary)]">Invalid reset link</h1>
+        <h1 className="mt-4 text-2xl font-semibold text-[var(--text-primary)]">Invalid reset link</h1>
         <p className="mt-2 text-sm text-[var(--text-tertiary)]">This reset link is missing or expired.</p>
         <Link href="/login" className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white">
           Back to login <ArrowRight className="h-4 w-4" />
@@ -134,7 +134,7 @@ function ResetPasswordForm() {
             />
           </motion.svg>
         </div>
-        <h1 className="mt-4 text-2xl font-bold text-[var(--text-primary)]">Password updated</h1>
+        <h1 className="mt-4 text-2xl font-semibold text-[var(--text-primary)]">Password updated</h1>
         <p className="mt-2 text-sm text-[var(--text-tertiary)]">Your password has been reset. Sign in with the new one.</p>
         <Link href="/login" className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white">
           Sign in <ArrowRight className="h-4 w-4" />
@@ -147,7 +147,7 @@ function ResetPasswordForm() {
     <div className="w-full max-w-sm mx-auto text-center">
       <div className="mb-8">
         <MeshiMascot size={56} mood="happy" animate />
-        <h1 className="mt-4 text-2xl font-bold text-[var(--text-primary)]">Set a new password</h1>
+        <h1 className="mt-4 text-2xl font-semibold text-[var(--text-primary)]">Set a new password</h1>
         <p className="mt-2 text-sm text-[var(--text-tertiary)]">Choose a strong password with at least 12 characters.</p>
       </div>
       <div className="rounded-2xl p-6 space-y-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>

@@ -92,7 +92,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
       <section className="mesh-section rounded-3xl p-5">
         <div className="mb-4 flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-[var(--accent)]" />
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">Privacy tab: app access + data inventory</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Privacy tab: app access + data inventory</h2>
         </div>
         <p className="text-xs leading-5 text-[var(--text-secondary)]">
           Review exactly which apps are connected, what data Mesh.me is currently reading, and adjust permissions with one tap.
@@ -111,7 +111,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
               <div key={account.id} className="mesh-panel rounded-2xl p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold capitalize text-[var(--text-primary)]">{account.platform}</p>
+                    <p className="text-sm font-semibold capitalize text-[var(--text-primary)]">{account.platform}</p>
                     <p className="text-xs text-[var(--text-muted)]">{account.platformUsername || "No username"}</p>
                   </div>
                   <button
@@ -141,7 +141,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
                         disabled={loading}
                         className={`rounded-xl border p-3 text-left transition ${active ? "border-emerald-500/35 bg-emerald-500/10" : "border-[var(--border-primary)] bg-[var(--bg-secondary)]"}`}
                       >
-                        <p className="text-xs font-bold text-[var(--text-primary)]">{permission.label}</p>
+                        <p className="text-xs font-semibold text-[var(--text-primary)]">{permission.label}</p>
                         <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">{permission.description}</p>
                         <span className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold ${active ? "text-emerald-400" : "text-[var(--text-muted)]"}`}>
                           {loading && <Loader2 className="h-3 w-3 animate-spin" />}
@@ -163,7 +163,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="mesh-stat-card">
-      <p className="text-2xl font-bold text-[var(--text-primary)]">{value.toLocaleString()}</p>
+      <p className="text-2xl font-semibold text-[var(--text-primary)]">{value.toLocaleString()}</p>
       <p className="mt-1 text-xs text-[var(--text-muted)]">{label}</p>
     </div>
   );
@@ -173,7 +173,7 @@ function MiniStat({ icon: Icon, label, value }: { icon: typeof Eye; label: strin
   return (
     <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
       <Icon className="mb-2 h-4 w-4 text-[var(--accent)]" />
-      <p className="text-lg font-bold text-[var(--text-primary)]">{value.toLocaleString()}</p>
+      <p className="text-lg font-semibold text-[var(--text-primary)]">{value.toLocaleString()}</p>
       <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
     </div>
   );

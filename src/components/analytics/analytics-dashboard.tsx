@@ -175,11 +175,11 @@ function Stat({
       className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
-      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         {label}
       </p>
-      <p className="mt-1.5 text-2xl font-bold leading-none text-[var(--text-primary)]">
+      <p className="mt-1.5 text-2xl font-semibold leading-none text-[var(--text-primary)]">
         {rawValue !== undefined && format ? <AnimatedNumber value={value} target={rawValue} format={format} /> : value}
       </p>
       {sub && <p className="mt-1 text-[11px] text-[var(--text-muted)]">{sub}</p>}
@@ -196,7 +196,7 @@ function SectionTitle({ icon: Icon, title, sub, action }: { icon: LucideIcon; ti
   return (
     <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
       <div>
-        <h2 className="flex items-center gap-2 text-base font-bold text-[var(--text-primary)]">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
           <Icon size={16} className="text-[var(--accent)]" aria-hidden="true" />
           {title}
         </h2>
@@ -227,10 +227,10 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tone }} />
-        <p className="text-sm font-bold text-[var(--text-primary)]">{labelFor(account.platform)}</p>
+        <p className="text-sm font-semibold text-[var(--text-primary)]">{labelFor(account.platform)}</p>
         {account.platformUsername && <p className="text-xs text-[var(--text-muted)]">@{account.platformUsername}</p>}
         <span
-          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold ${
+          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${
             account.syncStatus === "error"
               ? "bg-red-500/15 text-red-300"
               : account.isActive
@@ -241,7 +241,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
           {account.syncStatus === "error" ? "Sync error" : account.isActive ? "Synced" : "Paused"}
         </span>
         {account.followerGrowth !== 0 && (
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${account.followerGrowth > 0 ? "bg-emerald-500/12 text-emerald-300" : "bg-red-500/12 text-red-300"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${account.followerGrowth > 0 ? "bg-emerald-500/12 text-emerald-300" : "bg-red-500/12 text-red-300"}`}>
             {account.followerGrowth > 0 ? "+" : ""}
             {compact(account.followerGrowth)} this month
           </span>
@@ -250,8 +250,8 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
       <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[400px]:grid-cols-4 sm:grid-cols-8">
         {cells.map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
-            <p className="truncate text-sm font-bold text-[var(--text-primary)]">{value}</p>
+            <p className="truncate text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
+            <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{value}</p>
           </div>
         ))}
       </div>
@@ -263,7 +263,7 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
   const tone = toneFor(post.platform);
   const inner = (
     <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 transition hover:border-[var(--accent)]/40">
-      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${rank === 1 ? "bg-gradient-to-br from-amber-300 to-amber-500 text-white" : "bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"}`}>
+      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${rank === 1 ? "bg-gradient-to-br from-amber-300 to-amber-500 text-white" : "bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"}`}>
         {rank}
       </span>
       {post.thumbnailUrl ? (
@@ -314,7 +314,7 @@ function TrendCard({ title, points, tone, index }: { title: string; points: Char
     >
       <div className="flex items-baseline justify-between">
         <p className="text-xs font-semibold text-[var(--text-secondary)]">{title}</p>
-        <p className="text-sm font-bold text-[var(--text-primary)]">{compact(total)}</p>
+        <p className="text-sm font-semibold text-[var(--text-primary)]">{compact(total)}</p>
       </div>
       <div className="mt-2">
         <Sparkline points={points} tone={tone} />
@@ -344,8 +344,8 @@ function StandoutPlatform({ best, avgRate }: { best: AnalyticsDashboardData["cre
           <Crown size={16} style={{ color: tone }} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Your strongest platform</p>
-          <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-[var(--text-primary)]">
+          <p className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">Your strongest platform</p>
+          <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tone }} />
             {labelFor(best.platform)}
             {best.platformUsername && <span className="text-xs font-normal text-[var(--text-muted)]">@{best.platformUsername}</span>}
@@ -355,13 +355,13 @@ function StandoutPlatform({ best, avgRate }: { best: AnalyticsDashboardData["cre
       <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[420px]:grid-cols-4">
         {cells.map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
-            <p className="truncate text-base font-bold text-[var(--text-primary)]">{value}</p>
+            <p className="truncate text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
+            <p className="truncate text-base font-semibold text-[var(--text-primary)]">{value}</p>
           </div>
         ))}
       </div>
       <p className="mt-2.5 text-[11px] text-[var(--text-secondary)]">
-        <span className="font-bold text-[var(--text-primary)]">{pct(avgRate)}</span> overall engagement across every platform.
+        <span className="font-semibold text-[var(--text-primary)]">{pct(avgRate)}</span> overall engagement across every platform.
       </p>
     </div>
   );
@@ -375,11 +375,11 @@ function FootprintTile({ icon: Icon, label, value, index }: { icon: LucideIcon; 
       className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/55 p-3"
       style={{ ["--i" as string]: index } as CSSProperties}
     >
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         <span className="truncate">{label}</span>
       </p>
-      <p className="mt-1 text-lg font-bold leading-none text-[var(--text-primary)]">
+      <p className="mt-1 text-lg font-semibold leading-none text-[var(--text-primary)]">
         <AnimatedNumber value={compact(value)} target={value} format={compact} />
       </p>
     </div>
@@ -498,7 +498,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
       {/* Header — quiet, product-like */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Heading className="text-2xl font-bold text-[var(--text-primary)]">Analytics</Heading>
+          <Heading className="text-2xl font-semibold text-[var(--text-primary)]">Analytics</Heading>
           <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
             Every platform you&apos;ve connected, measured in one place.
           </p>
@@ -510,7 +510,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
           </span>
           <Link
             href="/connected-accounts"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-bold text-white transition hover:brightness-110"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
           >
             <PlugZap size={13} aria-hidden="true" />
             Connect platforms
@@ -609,7 +609,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
 
         {data.recentActivity.length > 0 && (
           <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 p-3 md:p-4">
-            <p className="mb-1 flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            <p className="mb-1 flex items-center gap-2 px-2 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
               <Activity size={13} aria-hidden="true" />
               Recent activity
             </p>
@@ -625,12 +625,12 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
       {/* Data controls, tucked at the end where they belong */}
       <section className="mt-10 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4 md:p-5" aria-label="Data and privacy">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
             <ShieldCheck size={15} className="text-emerald-400" aria-hidden="true" />
             Data &amp; privacy
           </h2>
           <span className="text-xs text-[var(--text-secondary)]">
-            Privacy health <span className="font-bold text-[var(--text-primary)]">{data.privacy.score}%</span> · {data.privacy.sessions} active sessions
+            Privacy health <span className="font-semibold text-[var(--text-primary)]">{data.privacy.score}%</span> · {data.privacy.sessions} active sessions
           </span>
         </div>
 
@@ -654,7 +654,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
         {/* Security checklist + where your content actually lives. */}
         <div className="mt-4 grid gap-4 @3xl:grid-cols-2">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
               <ShieldCheck size={13} className="text-emerald-400" aria-hidden="true" />
               Security checklist
             </p>
@@ -665,7 +665,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
             </div>
           </div>
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
               <Eye size={13} aria-hidden="true" />
               Where your content is visible
             </p>

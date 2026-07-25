@@ -182,7 +182,7 @@ export function OneMeshHub({
             }
           >
             <span
-              className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold shadow-sm ${
+              className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold shadow-sm ${
                 isNew ? "ring-2 ring-[var(--accent)]" : "ring-2 ring-[var(--ds-surface)]"
               }`}
               style={{ backgroundColor: acct.bg, color: acct.fg ?? "#ffffff" }}
@@ -211,14 +211,14 @@ export function OneMeshHub({
           {identity.avatarUrl ? (
             <Avatar src={identity.avatarUrl} alt={identity.username} size="lg" />
           ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xl font-black text-[var(--accent)]">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xl font-semibold text-[var(--accent)]">
               {initials}
             </span>
           )}
         </div>
         <div className="mt-2 flex flex-col items-center">
-          <span className="text-sm font-bold text-[var(--text-primary)]">@{identity.username}</span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+          <span className="text-sm font-semibold text-[var(--text-primary)]">@{identity.username}</span>
+          <span className="text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
             one mesh.me account
           </span>
         </div>

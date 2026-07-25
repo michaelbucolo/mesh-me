@@ -81,7 +81,7 @@ export function SupportTicketForm() {
           <LifeBuoy className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">Submit a support ticket</h2>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">Submit a support ticket</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
             Include the account email and what happened. Browser details are attached automatically.
           </p>
@@ -89,7 +89,7 @@ export function SupportTicketForm() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-bold text-[var(--text-primary)]">
+        <label className="grid gap-2 text-sm font-semibold text-[var(--text-primary)]">
           Account email
           <input
             name="accountEmail"
@@ -101,7 +101,7 @@ export function SupportTicketForm() {
           />
         </label>
 
-        <label className="grid gap-2 text-sm font-bold text-[var(--text-primary)]">
+        <label className="grid gap-2 text-sm font-semibold text-[var(--text-primary)]">
           Priority
           <select
             name="priority"
@@ -117,7 +117,7 @@ export function SupportTicketForm() {
         </label>
       </div>
 
-      <label className="mt-4 grid gap-2 text-sm font-bold text-[var(--text-primary)]">
+      <label className="mt-4 grid gap-2 text-sm font-semibold text-[var(--text-primary)]">
         Category
         <select
           name="category"
@@ -132,7 +132,7 @@ export function SupportTicketForm() {
         </select>
       </label>
 
-      <label className="mt-4 grid gap-2 text-sm font-bold text-[var(--text-primary)]">
+      <label className="mt-4 grid gap-2 text-sm font-semibold text-[var(--text-primary)]">
         Message
         <textarea
           name="message"
@@ -150,7 +150,7 @@ export function SupportTicketForm() {
       <div className="mt-4 rounded-2xl border border-dashed border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-[var(--text-primary)]">Optional screenshot</p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">Optional screenshot</p>
             <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">PNG, JPG, WebP, or GIF. Max 2 MB. Avoid sharing passwords or private tokens.</p>
           </div>
           <label className="mesh-action mesh-action-secondary cursor-pointer px-4 text-sm">

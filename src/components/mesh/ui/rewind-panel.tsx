@@ -71,7 +71,7 @@ export function MeshRewindPanel({
           onChange={(e) => onInput(Number(e.target.value))}
           className="w-full accent-amber-300"
         />
-        <div className="flex justify-between text-[9px] font-medium uppercase tracking-wide text-white/35">
+        <div className="flex justify-between text-[9px] font-medium mesh-eyebrow text-white/35">
           <span>{new Date(oldestMoment).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>
           <span>Now</span>
         </div>

@@ -67,7 +67,7 @@ function StatusBadge({ status }: { status: SystemServiceStatus }) {
   const Icon = style.icon;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${style.className}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${style.className}`}>
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
       {style.label}
     </span>
@@ -86,8 +86,8 @@ function ServiceCard({ check }: { check: SystemStatusCheck }) {
             <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="text-base font-bold text-[var(--text-primary)]">{check.label}</h2>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{check.latencyMs} ms check</p>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">{check.label}</h2>
+            <p className="mt-1 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">{check.latencyMs} ms check</p>
           </div>
         </div>
         <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${style.dotClassName}`} aria-hidden="true" />
@@ -95,7 +95,7 @@ function ServiceCard({ check }: { check: SystemStatusCheck }) {
 
       <div className="mt-4">
         <StatusBadge status={check.status} />
-        <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">{check.summary}</p>
+        <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{check.summary}</p>
         <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{check.detail}</p>
       </div>
     </article>
@@ -118,7 +118,7 @@ export default async function StatusPage() {
             <span className={`h-3 w-3 rounded-full ${overallStyle.dotClassName}`} aria-hidden="true" />
             <StatusBadge status={status.overallStatus} />
           </div>
-          <p className="mt-4 text-lg font-bold text-[var(--text-primary)]">{status.summary}</p>
+          <p className="mt-4 text-lg font-semibold text-[var(--text-primary)]">{status.summary}</p>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
             Last checked {formatCheckedAt(status.generatedAt)} UTC. This page checks public app health without exposing account data or secrets.
           </p>
@@ -133,7 +133,7 @@ export default async function StatusPage() {
 
       <section className="mt-5 grid gap-3 rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 md:grid-cols-[1fr_auto] md:items-center">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
             <Clock3 className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
             Public monitoring endpoint
           </div>

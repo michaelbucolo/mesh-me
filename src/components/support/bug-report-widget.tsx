@@ -128,7 +128,7 @@ export function BugReportWidget() {
                 <Bug className="h-4 w-4" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="text-base font-bold">Report a bug</h2>
+                <h2 className="text-base font-semibold">Report a bug</h2>
                 <p className="text-xs text-[var(--text-muted)]">Diagnostics are attached automatically.</p>
               </div>
             </div>
@@ -138,7 +138,7 @@ export function BugReportWidget() {
           </div>
 
           <form onSubmit={submitBugReport} className="mt-4 space-y-3">
-            <label className="grid gap-2 text-sm font-bold">
+            <label className="grid gap-2 text-sm font-semibold">
               What happened?
               <textarea
                 value={message}
@@ -152,7 +152,7 @@ export function BugReportWidget() {
               />
             </label>
 
-            <label className="grid gap-2 text-sm font-bold">
+            <label className="grid gap-2 text-sm font-semibold">
               Email, optional
               <input
                 value={contactEmail}
@@ -167,23 +167,23 @@ export function BugReportWidget() {
             {details && (
               <dl className="grid gap-1 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 p-3 text-xs leading-5 text-[var(--text-secondary)]">
                 <div className="flex justify-between gap-3">
-                  <dt className="font-bold text-[var(--text-primary)]">Page</dt>
+                  <dt className="font-semibold text-[var(--text-primary)]">Page</dt>
                   <dd className="truncate text-right">{details.pageUrl}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="font-bold text-[var(--text-primary)]">Device</dt>
+                  <dt className="font-semibold text-[var(--text-primary)]">Device</dt>
                   <dd>{details.deviceType}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="font-bold text-[var(--text-primary)]">Browser</dt>
+                  <dt className="font-semibold text-[var(--text-primary)]">Browser</dt>
                   <dd>{details.browser}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="font-bold text-[var(--text-primary)]">Screen</dt>
+                  <dt className="font-semibold text-[var(--text-primary)]">Screen</dt>
                   <dd className="text-right">{details.screenSize}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="font-bold text-[var(--text-primary)]">Version</dt>
+                  <dt className="font-semibold text-[var(--text-primary)]">Version</dt>
                   <dd>{details.appVersion}</dd>
                 </div>
               </dl>

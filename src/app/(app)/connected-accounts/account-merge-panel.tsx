@@ -183,7 +183,7 @@ export function AccountMergePanel({
     <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <h2 className="inline-flex items-center gap-2 text-lg font-bold">
+          <h2 className="inline-flex items-center gap-2 text-lg font-semibold">
             <Combine className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
             Merge another mesh.me account
           </h2>
@@ -212,7 +212,7 @@ export function AccountMergePanel({
               <div className="flex items-start gap-3">
                 <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ds-warning)]" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-[var(--text-primary)]">
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">
                     @{request.requester.username} wants to merge this account into theirs
                   </p>
                   <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
@@ -263,7 +263,7 @@ export function AccountMergePanel({
 
       {summary && (
         <div className="grid gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-success-border)] bg-[var(--ds-success-bg)] p-4">
-          <p className="inline-flex items-center gap-2 text-sm font-bold text-[var(--ds-success)]">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ds-success)]">
             <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
             @{summary.mergedUsername} is now part of @{identity.username}
           </p>
@@ -334,7 +334,7 @@ export function AccountMergePanel({
               className="flex flex-wrap items-center gap-3 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/55 p-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-[var(--text-primary)]">{request.target}</p>
+                <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{request.target}</p>
                 <p className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
                   <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   Requested {formatDay(request.createdAt)} · expires {formatDay(request.expiresAt)}

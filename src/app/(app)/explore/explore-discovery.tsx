@@ -384,7 +384,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           >
             <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
               <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
+                <span className="text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
                 {contentFilters.map((filter, filterIndex) => (
                   <FilterChip
                     key={filter.id}
@@ -395,7 +395,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                   />
                 ))}
                 <span className="mx-1 h-4 w-px bg-[var(--border-secondary)]" aria-hidden style={{ "--i": contentFilters.length + 1 } as React.CSSProperties} />
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]" style={{ "--i": contentFilters.length + 2 } as React.CSSProperties}>Sort</span>
+                <span className="text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": contentFilters.length + 2 } as React.CSSProperties}>Sort</span>
                 <FilterChip
                   label="Top"
                   icon={<TrendingUp className="h-3 w-3" aria-hidden />}
@@ -413,7 +413,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               </div>
               {availablePlatforms.length > 1 && (
                 <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
+                  <span className="text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
                   {availablePlatforms.map((platform, platformIndex) => {
                     const chip = PLATFORM_CHIP[platform];
                     const selected = activePlatform === platform;
@@ -908,7 +908,7 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
                       ? { type: "spring", stiffness: 520, damping: 13, delay: 0.06 * index + 0.16 }
                       : { type: "spring", stiffness: 380, damping: 22, delay: 0.06 * index + 0.12 }
                   }
-                  className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-black text-white shadow-lg ${
+                  className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold text-white shadow-lg ${
                     index === 0 ? "bg-gradient-to-br from-[var(--accent)] to-violet-500" : "bg-black/60 backdrop-blur"
                   }`}
                 >
@@ -921,7 +921,7 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
                     <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent)]" /> {formatCount(post._count.reactions)}</span>
                     <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
                     {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
-                      <span className="uppercase tracking-wide">{post.platform}</span>
+                      <span className="mesh-eyebrow ">{post.platform}</span>
                     )}
                   </p>
                 </div>

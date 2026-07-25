@@ -42,7 +42,7 @@ export function IdentityProviderButtons({ providers, next, className }: Identity
 
   return (
     <div className={className}>
-      <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
+      <div className="flex items-center gap-3 text-xs mesh-eyebrow text-[var(--text-muted)]">
         <span className="h-px flex-1 bg-[var(--glass-card-border)]" />
         or
         <span className="h-px flex-1 bg-[var(--glass-card-border)]" />

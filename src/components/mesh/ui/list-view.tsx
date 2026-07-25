@@ -55,7 +55,7 @@ export function MeshListView({
           <span className="flex items-center gap-1.5">
             <span className="truncate text-sm text-white">{node.label}</span>
             {node.isNew && (
-              <span className="shrink-0 rounded-full bg-cyan-400/15 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-cyan-200">
+              <span className="shrink-0 rounded-full bg-cyan-400/15 px-1.5 py-px text-[9px] font-semibold mesh-eyebrow text-cyan-200">
                 New
               </span>
             )}
@@ -99,7 +99,7 @@ export function MeshListView({
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-6 pt-1">
           {people.length > 0 && (
             <>
-              <p className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="px-2.5 pb-1 pt-3 text-[10px] font-semibold mesh-eyebrow text-white/40">
                 {copy.listPeopleHeading}
               </p>
               <ul>
@@ -144,7 +144,7 @@ export function MeshListView({
 
           {nativePosts.length > 0 && (
             <>
-              <p className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="px-2.5 pb-1 pt-4 text-[10px] font-semibold mesh-eyebrow text-white/40">
                 {copy.listMadeByHeading}
               </p>
               <ul>
@@ -157,7 +157,7 @@ export function MeshListView({
 
           {platforms.length > 0 && (
             <>
-              <p className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="px-2.5 pb-1 pt-4 text-[10px] font-semibold mesh-eyebrow text-white/40">
                 {copy.listPlatformsHeading}
               </p>
               <ul>

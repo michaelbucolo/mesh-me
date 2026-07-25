@@ -40,7 +40,7 @@ function BrandContents({
 }
 
 export function MeshiBrandLockup({ href, className, ...props }: MeshiBrandLockupProps) {
-  const classes = cn("mesh-brand-lockup mesh-pressable inline-flex items-center gap-3 rounded-md text-left font-bold", className);
+  const classes = cn("mesh-brand-lockup mesh-pressable inline-flex items-center gap-3 rounded-md text-left font-semibold", className);
 
   if (href) {
     return (
@@ -87,7 +87,7 @@ export function UserMeshiBadge({
       </span>
       {!compact && (
         <span className="min-w-0">
-          <span className="block truncate text-sm font-bold text-[var(--text-primary)]">Your Meshi</span>
+          <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">Your Meshi</span>
           <span className="block truncate text-xs text-[var(--text-muted)]">{meshiLabel}</span>
         </span>
       )}

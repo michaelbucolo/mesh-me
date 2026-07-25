@@ -204,7 +204,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               {post.isNsfw && (
                 <>
                   <span>&middot;</span>
-                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">NSFW</span>
+                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">NSFW</span>
                 </>
               )}
               {post.community && (
@@ -267,7 +267,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                   <ExternalLink className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
+                  <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
                   <span className="block truncate text-xs text-[var(--text-muted)]">{media.url}</span>
                 </span>
               </a>
@@ -389,7 +389,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
           </p>
           <Link
             href="/login"
-            className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white transition hover:opacity-90"
+            className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
           >
             Sign in
           </Link>

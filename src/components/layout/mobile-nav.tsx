@@ -83,7 +83,7 @@ function MobileNavItem({
           initial={{ scale: 0.4 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 520, damping: 18 }}
-          className="absolute right-2 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[8px] font-bold text-white"
+          className="absolute right-2 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[8px] font-semibold text-white"
         >
           {badgeCount > 99 ? "99+" : badgeCount}
         </motion.span>

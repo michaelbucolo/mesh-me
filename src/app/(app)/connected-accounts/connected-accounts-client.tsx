@@ -100,7 +100,7 @@ function PlatformAvatar({ platform, name, size = "md" }: { platform: string; nam
   return (
     <div
       aria-hidden="true"
-      className={cn("flex shrink-0 items-center justify-center rounded-full font-bold", dimensions)}
+      className={cn("flex shrink-0 items-center justify-center rounded-full font-semibold", dimensions)}
       style={{
         backgroundColor: brand?.bg ?? "var(--accent-subtle)",
         color: brand ? brand.fg ?? "#ffffff" : "var(--accent)",
@@ -214,7 +214,7 @@ function AccountCard({
         <PlatformAvatar platform={account.platform} name={account.platformName} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-base font-bold text-[var(--text-primary)]">{account.platformName}</p>
+            <p className="truncate text-base font-semibold text-[var(--text-primary)]">{account.platformName}</p>
             <Badge variant={statusVariant(account)}>{account.healthLabel}</Badge>
           </div>
           <p className="truncate text-sm text-[var(--text-secondary)]">
@@ -272,8 +272,8 @@ function AccountCard({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {countItems.map(([label, value]) => (
               <div key={label} className="rounded-[var(--ds-radius-sm)] bg-[var(--bg-primary)]/55 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
-                <p className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">{formatCount(Number(value))}</p>
+                <p className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
+                <p className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">{formatCount(Number(value))}</p>
               </div>
             ))}
           </div>
@@ -378,7 +378,7 @@ function PlatformCard({
         <PlatformAvatar platform={platform.id} name={platform.name} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-bold text-[var(--text-primary)]">{platform.name}</p>
+            <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{platform.name}</p>
             {platform.activeCount > 0 && <Badge variant="success">Connected</Badge>}
             {!canConnect && <Badge variant="outline">Coming soon</Badge>}
           </div>
@@ -668,7 +668,7 @@ export function ConnectedAccountsClient({
     <main data-testid="connected-accounts-center" className="ds-page-shell animate-page-enter grid gap-6">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div className="max-w-2xl">
-          <h1 className="text-3xl font-bold tracking-[0] sm:text-4xl">One Account</h1>
+          <h1 className="text-3xl font-semibold tracking-[0] sm:text-4xl">One Account</h1>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">
             Every platform, threading back to one mesh.me identity. One tap to connect — you approve every permission, and Mesh.me never sees your passwords.
           </p>
@@ -707,7 +707,7 @@ export function ConnectedAccountsClient({
       {personas.length > 0 && (
         <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/30 bg-[var(--accent-subtle)] p-5">
           <div>
-            <h2 className="text-lg font-bold">Bring your other identities home</h2>
+            <h2 className="text-lg font-semibold">Bring your other identities home</h2>
             <p className="text-sm leading-6 text-[var(--text-secondary)]">
               Fold a separate persona’s connections into your one mesh.me account — nothing stays split off.
             </p>
@@ -720,7 +720,7 @@ export function ConnectedAccountsClient({
               >
                 <PlatformAvatar platform="mesh" name={persona.displayName || persona.username} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">@{persona.username}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--text-primary)]">@{persona.username}</p>
                   <p className="truncate text-xs text-[var(--text-muted)]">
                     {persona.accountCount} connection{persona.accountCount === 1 ? "" : "s"}
                   </p>
@@ -743,7 +743,7 @@ export function ConnectedAccountsClient({
       {dashboard.accounts.length > 0 && (
         <section className="grid gap-3">
           <div>
-            <h2 className="text-xl font-bold">Your connections</h2>
+            <h2 className="text-xl font-semibold">Your connections</h2>
             <p className="text-sm text-[var(--text-secondary)]">
               {dashboard.summary.active} of {dashboard.summary.connected} syncing
               {dashboard.summary.syncErrors > 0 && ` · ${dashboard.summary.syncErrors} need${dashboard.summary.syncErrors === 1 ? "s" : ""} attention`}
@@ -772,7 +772,7 @@ export function ConnectedAccountsClient({
 
       <section className="grid gap-3">
         <div>
-          <h2 className="text-xl font-bold">{dashboard.accounts.length > 0 ? "Add more platforms" : "Connect your first platform"}</h2>
+          <h2 className="text-xl font-semibold">{dashboard.accounts.length > 0 ? "Add more platforms" : "Connect your first platform"}</h2>
           <p className="text-sm text-[var(--text-secondary)]">
             One-tap connect where platforms support it, or link a public handle for the rest.
           </p>
