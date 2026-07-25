@@ -45,6 +45,7 @@ import {
   wrapTwoLines,
 } from "./shared";
 import type { SceneNode, ScenePaintOptions } from "./types";
+import { paintTheme } from "./theme";
 
 // ---------------------------------------------------------------------------
 // Verbatim node-body painters (legacy scene-render.ts math). Each paints at
@@ -101,7 +102,7 @@ function paintOrbInitial(
   emph: number,
 ): void {
   const initial = (label || "?").trim().charAt(0).toUpperCase();
-  ctx.fillStyle = withAlpha("#ffffff", 0.96 * emph + 0.08);
+  ctx.fillStyle = withAlpha(paintTheme().ink1, 0.96 * emph + 0.08);
   ctx.font = `600 ${Math.round(r * 0.85)}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -184,7 +185,7 @@ function paintPostCard(
   const y = cy - h / 2;
   const radius = 16 * scale;
   const alpha = (0.4 + 0.6 * emph) * (0.62 + 0.38 * (node.freshness ?? 1));
-  const bodyFill = "rgba(13, 17, 30, 0.94)";
+  const bodyFill = paintTheme().paper1;
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -192,7 +193,7 @@ function paintPostCard(
   // Card body with soft, layered shadow (T1+ trims the shadow — the single
   // most expensive canvas op — but the card itself is identical).
   if (shadows) {
-    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowColor = paintTheme().shadow;
     ctx.shadowBlur = 22 * scale;
     ctx.shadowOffsetY = 8 * scale;
   }
@@ -219,7 +220,7 @@ function paintPostCard(
   ctx.font = `700 ${headFont}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "#eef2ff";
+  ctx.fillStyle = paintTheme().ink1;
   const platform = node.sublabel || "Mesh.me";
   const headLabel = fitText(ctx, platform, w - pad * 2 - 44 * scale);
   ctx.fillText(headLabel, x + pad + 12 * scale, headCy + 0.5);
@@ -228,13 +229,13 @@ function paintPostCard(
     const bx = x + pad + 12 * scale + headLabelW + 6 * scale;
     ctx.beginPath();
     ctx.arc(bx, headCy, 3.4 * scale, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha("#6e8bff", 0.9);
+    ctx.fillStyle = withAlpha(paintTheme().accent, 0.9);
     ctx.fill();
   }
   const timeText = metaValue(node, "Time") || metaValue(node, "Ago") || node.status || "";
   if (timeText) {
     ctx.font = `500 ${Math.max(7.5, 8.5 * scale)}px ui-sans-serif, system-ui, sans-serif`;
-    ctx.fillStyle = withAlpha("#9aa3bc", 0.9);
+    ctx.fillStyle = withAlpha(paintTheme().ink3, 0.9);
     ctx.textAlign = "right";
     ctx.fillText(fitText(ctx, timeText, w * 0.32), x + w - pad, headCy + 0.5);
   }
@@ -254,8 +255,8 @@ function paintPostCard(
       ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, mediaY, w, imgH);
     }
     const fade = ctx.createLinearGradient(0, mediaY + imgH - 22 * scale, 0, mediaY + imgH);
-    fade.addColorStop(0, "rgba(13,17,30,0)");
-    fade.addColorStop(1, "rgba(13,17,30,0.9)");
+    fade.addColorStop(0, withAlpha(paintTheme().paper1, 0));
+    fade.addColorStop(1, withAlpha(paintTheme().paper1, 0.9));
     ctx.fillStyle = fade;
     ctx.fillRect(x, mediaY + imgH - 22 * scale, w, 22 * scale);
     ctx.restore();
@@ -266,11 +267,11 @@ function paintPostCard(
   ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillStyle = "#eef2ff";
+  ctx.fillStyle = paintTheme().ink1;
   const lines = wrapTwoLines(ctx, node.content || node.label, w - pad * 2);
   ctx.fillText(lines[0], x + pad, textY);
   if (lines[1]) {
-    ctx.fillStyle = withAlpha("#c8cfe6", 0.8);
+    ctx.fillStyle = withAlpha(paintTheme().ink2, 0.8);
     ctx.fillText(lines[1], x + pad, textY + fontSize + 3 * scale);
   }
 
@@ -282,12 +283,12 @@ function paintPostCard(
   ctx.textBaseline = "middle";
   const likes = metaValue(node, "Likes");
   const comments = metaValue(node, "Comments");
-  const metaColor = withAlpha("#9aa3bc", 0.95);
+  const metaColor = withAlpha(paintTheme().ink3, 0.95);
   const gsz = Math.max(6, 7.5 * scale);
   const gap = 5 * scale;
   let mx = x + pad;
   if (likes != null) {
-    drawGlyphHeart(ctx, mx, footY, gsz, withAlpha("#fb7185", 0.95));
+    drawGlyphHeart(ctx, mx, footY, gsz, withAlpha(paintTheme().warm, 0.95));
     mx += gsz + gap * 0.7;
     ctx.fillStyle = metaColor;
     const s = String(likes);
@@ -311,12 +312,12 @@ function paintPostCard(
   const chipX = x + w - pad - chipW;
   const chipY = footY - chipH / 2;
   roundRectPath(ctx, chipX, chipY, chipW, chipH, chipH / 2);
-  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  ctx.fillStyle = withAlpha(paintTheme().ink1, 0.06);
   ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.16)";
+  ctx.strokeStyle = withAlpha(paintTheme().ink1, 0.16);
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = withAlpha("#9aa3bc", 0.95);
+  ctx.fillStyle = withAlpha(paintTheme().ink3, 0.95);
   ctx.textAlign = "center";
   ctx.fillText(chipText, chipX + chipW / 2, footY + 0.5);
 
@@ -324,15 +325,15 @@ function paintPostCard(
   ctx.textAlign = "left";
   roundRectPath(ctx, x, y, w, h, radius);
   ctx.strokeStyle = isSelected || isHover
-    ? withAlpha("#6e8bff", isSelected ? 0.95 : 0.75)
-    : withAlpha("#ffffff", 0.10 + 0.10 * emph);
+    ? withAlpha(paintTheme().accent, isSelected ? 0.95 : 0.75)
+    : withAlpha(paintTheme().ink1, 0.10 + 0.10 * emph);
   ctx.lineWidth = isSelected || isHover ? 1.8 : 1.1;
   ctx.stroke();
 
   // Arrived since your last visit — a bright, unmissable mark.
   if (node.isNew) {
     ctx.globalAlpha = 1;
-    drawPill(ctx, x + 26 * scale, y, "New", "rgba(34,211,238,0.94)", "rgba(165,243,252,0.9)", "#032830", Math.max(8, 9 * scale), 7);
+    drawPill(ctx, x + 26 * scale, y, "New", withAlpha(paintTheme().warm, 0.94), withAlpha(paintTheme().warm, 0.9), paintTheme().inkInverse, Math.max(8, 9 * scale), 7);
   }
 
   ctx.restore();
@@ -349,6 +350,7 @@ function paintSelfProfile(
   emph: number,
   isHover: boolean,
   isSelected: boolean,
+  shadows: boolean,
 ): void {
   const { ctx } = o;
   const zoomScale = Math.max(0.68, Math.min(1.18, o.camera.zoom * 1.08));
@@ -362,35 +364,44 @@ function paintSelfProfile(
 
   ctx.save();
 
-  const glow = ctx.createRadialGradient(x, y, 0, x, y, avatarR * 2.15);
-  glow.addColorStop(0, withAlpha('#8aa1ff', 0.55 * emph));
-  glow.addColorStop(0.52, withAlpha('#6e8bff', 0.18 * emph));
-  glow.addColorStop(1, 'rgba(47,124,255,0)');
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(x, y, avatarR * 2.15, 0, Math.PI * 2);
-  ctx.fill();
-
-  const ring = ctx.createRadialGradient(x, y, avatarR * 0.52, x, y, avatarR * 1.38);
-  ring.addColorStop(0, 'rgba(255,255,255,0.1)');
-  ring.addColorStop(0.5, withAlpha('#8aa1ff', 0.65 * emph));
-  ring.addColorStop(1, withAlpha('#8b5cf6', 0.14 * emph));
-  ctx.fillStyle = ring;
-  ctx.beginPath();
-  ctx.arc(x, y, avatarR * 1.34, 0, Math.PI * 2);
-  ctx.fill();
+  // A person sitting on the table has WEIGHT, not an aura. What was a
+  // periwinkle radial self-glow plus a violet halo ring is now one downward
+  // contact shadow: emphasis comes from depth and scale, never from light.
+  //
+  // T1 and T2 set `shadows: false` and the render contract asserts they issue
+  // ZERO ctx.shadow* calls — that is the single most expensive canvas op. So
+  // depth degrades rather than disappearing: the lower tiers paint a soft
+  // offset disc under the avatar, which costs one fill and still reads as
+  // something resting ON the surface instead of floating in it.
+  const th = paintTheme();
+  ctx.save();
+  if (shadows) {
+    ctx.shadowColor = th.shadow;
+    ctx.shadowBlur = (6 + 0.09 * avatarR) * (0.7 + 0.5 * emph);
+    ctx.shadowOffsetY = 2 + 0.03 * avatarR;
+    ctx.beginPath();
+    ctx.arc(x, y, avatarR * 1.02, 0, Math.PI * 2);
+    ctx.fillStyle = th.paper1;
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(x, y + avatarR * 0.14, avatarR * 1.05, 0, Math.PI * 2);
+    ctx.fillStyle = withAlpha(th.dark ? "#000000" : "#261e14", 0.18 + 0.1 * emph);
+    ctx.fill();
+  }
+  ctx.restore();
 
   const img = node.avatarUrl ? o.images.get(node.id) : undefined;
   if (img) {
     roundedImage(ctx, img, x, y, avatarR);
     ctx.beginPath();
     ctx.arc(x, y, avatarR, 0, Math.PI * 2);
-    ctx.strokeStyle = withAlpha('#c7d2fe', 0.5 + 0.35 * emph);
+    ctx.strokeStyle = withAlpha(paintTheme().ink2, 0.5 + 0.35 * emph);
     ctx.lineWidth = Math.max(1.8, 2.2 * zoomScale);
     ctx.stroke();
   } else {
     const fallback = ctx.createRadialGradient(x - avatarR * 0.18, y - avatarR * 0.18, 0, x, y, avatarR);
-    fallback.addColorStop(0, '#ffffff');
+    fallback.addColorStop(0, withAlpha(node.color, 0.35));
     fallback.addColorStop(0.45, node.color);
     fallback.addColorStop(1, withAlpha(node.color, 0.4));
     ctx.fillStyle = fallback;
@@ -448,15 +459,15 @@ function paintSelfProfile(
   };
 
   roundRectPath(ctx, panelRect.x, panelRect.y, panelRect.w, panelRect.h, 22 * zoomScale);
-  ctx.fillStyle = 'rgba(7, 11, 22, 0.42)';
+  ctx.fillStyle = withAlpha(paintTheme().paper2, 0.86);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+  ctx.strokeStyle = withAlpha(paintTheme().ink4, 0.3);
   ctx.lineWidth = 1;
   ctx.stroke();
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = '#f2f5ff';
+  ctx.fillStyle = paintTheme().ink1;
   ctx.font = `700 ${nameFont}px ui-sans-serif, system-ui, sans-serif`;
   ctx.fillText(nameText, x, nameY);
   if (node.isVerified) {
@@ -464,14 +475,14 @@ function paintSelfProfile(
     const badgeY = nameY + nameFont * 0.53;
     ctx.beginPath();
     ctx.arc(badgeX, badgeY, 7 * zoomScale, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha('#60a5fa', 0.18 + 0.48 * emph);
+    ctx.fillStyle = withAlpha(paintTheme().accent, 0.18 + 0.48 * emph);
     ctx.fill();
     ctx.lineWidth = 1.2;
-    ctx.strokeStyle = withAlpha('#93c5fd', 0.8);
+    ctx.strokeStyle = withAlpha(paintTheme().accent, 0.8);
     ctx.stroke();
     // Vector checkmark (never a font glyph).
     const cr = 3.4 * zoomScale;
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = paintTheme().inkInverse;
     ctx.lineWidth = Math.max(1.2, 1.6 * zoomScale);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -483,12 +494,12 @@ function paintSelfProfile(
     ctx.textBaseline = 'top';
   }
 
-  ctx.fillStyle = withAlpha('#d2d9ff', 0.88);
+  ctx.fillStyle = withAlpha(paintTheme().ink2, 0.88);
   ctx.font = `500 ${handleFont}px ui-sans-serif, system-ui, sans-serif`;
   ctx.fillText(node.sublabel || '', x, handleY);
 
   if (bioLines.length > 0) {
-    ctx.fillStyle = withAlpha('#e4e8ff', 0.84);
+    ctx.fillStyle = withAlpha(paintTheme().ink2, 0.84);
     ctx.font = `500 ${bioFont}px ui-sans-serif, system-ui, sans-serif`;
     bioLines.forEach((line, index) => {
       ctx.fillText(line, x, bioY + index * (bioFont + 4 * zoomScale));
@@ -502,12 +513,12 @@ function paintSelfProfile(
     h: buttonH,
   };
   roundRectPath(ctx, buttonRect.x, buttonRect.y, buttonRect.w, buttonRect.h, buttonH / 2);
-  ctx.fillStyle = isSelected || isHover ? 'rgba(69,126,255,0.34)' : 'rgba(69,126,255,0.22)';
+  ctx.fillStyle = withAlpha(paintTheme().accent, isSelected || isHover ? 0.34 : 0.22);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(124,172,255,0.45)';
+  ctx.strokeStyle = paintTheme().accentLine;
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = paintTheme().ink1;
   ctx.font = `600 ${buttonFont}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textBaseline = 'middle';
   // sim/hitmap mirrors this button's rect exactly.
@@ -518,12 +529,12 @@ function paintSelfProfile(
     const chipW = chipWidths[index];
     const chipRect = { x: chipCursor, y: chipsY, w: chipW, h: chipH };
     roundRectPath(ctx, chipRect.x, chipRect.y, chipRect.w, chipRect.h, chipH / 2);
-    ctx.fillStyle = chip === 'Verified' ? 'rgba(74,144,255,0.16)' : 'rgba(255,255,255,0.05)';
+    ctx.fillStyle = chip === 'Verified' ? withAlpha(paintTheme().accent, 0.16) : withAlpha(paintTheme().ink1, 0.05);
     ctx.fill();
-    ctx.strokeStyle = chip === 'Verified' ? 'rgba(114,174,255,0.42)' : 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = chip === 'Verified' ? paintTheme().accentLine : withAlpha(paintTheme().ink1, 0.08);
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = '#f3f6ff';
+    ctx.fillStyle = paintTheme().ink1;
     ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.fillText(chip, chipRect.x + chipRect.w / 2, chipRect.y + chipRect.h / 2 + 0.5);
@@ -718,7 +729,7 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
         if (isSelected || isFocus || isHover) {
           ctx.beginPath();
           ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
-          ctx.strokeStyle = withAlpha("#ffffff", isSelected ? 0.95 : isHover ? 0.65 : 0.4);
+          ctx.strokeStyle = withAlpha(paintTheme().ink1, isSelected ? 0.95 : isHover ? 0.65 : 0.4);
           ctx.lineWidth = isSelected ? 2 : 1.4;
           ctx.stroke();
         }
@@ -784,13 +795,13 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
       const breathe = 0.5 + 0.5 * Math.sin(time * 0.0035 + node.x * 0.05);
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 5 + 3 * breathe, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha("#22c55e", 0.18 + 0.2 * (1 - breathe));
+      ctx.strokeStyle = withAlpha(paintTheme().success, 0.18 + 0.2 * (1 - breathe));
       ctx.lineWidth = 1.4;
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(p.x + r * 0.72, p.y + r * 0.72, Math.max(2.5, r * 0.28), 0, Math.PI * 2);
-      ctx.fillStyle = "#22c55e";
-      ctx.strokeStyle = "#04050c";
+      ctx.fillStyle = paintTheme().success;
+      ctx.strokeStyle = paintTheme().paper0;
       ctx.lineWidth = 1.5;
       ctx.fill();
       ctx.stroke();
@@ -825,16 +836,16 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
       const cx0 = p.x - w / 2;
       const cy0 = p.y - r - h - 9;
       roundRectPath(ctx, cx0, cy0, w, h, h / 2);
-      ctx.fillStyle = "rgba(6, 10, 20, 0.78)";
+      ctx.fillStyle = withAlpha(paintTheme().paper2, 0.86);
       ctx.fill();
-      ctx.strokeStyle = "rgba(74, 222, 128, 0.35)";
+      ctx.strokeStyle = withAlpha(paintTheme().success, 0.35);
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(cx0 + padX + dotR, cy0 + h / 2, dotR, 0, Math.PI * 2);
-      ctx.fillStyle = "#4ade80";
+      ctx.fillStyle = paintTheme().success;
       ctx.fill();
-      ctx.fillStyle = "rgba(226, 236, 255, 0.92)";
+      ctx.fillStyle = withAlpha(paintTheme().ink1, 0.92);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText(label, cx0 + padX + dotR * 2 + 5, cy0 + h / 2 + 0.5);
@@ -845,7 +856,7 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
       // Selection is unmistakable: a bright ring plus a slow color pulse.
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha("#ffffff", 0.95);
+      ctx.strokeStyle = withAlpha(paintTheme().ink1, 0.95);
       ctx.lineWidth = 2;
       ctx.stroke();
       const selPulse = 0.5 + 0.5 * Math.sin(time * 0.005);
@@ -857,7 +868,7 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
     } else if (isFocus || isHover) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha("#ffffff", isHover ? 0.65 : 0.4);
+      ctx.strokeStyle = withAlpha(paintTheme().ink1, isHover ? 0.65 : 0.4);
       ctx.lineWidth = isHover ? 1.6 : 1.2;
       ctx.stroke();
     }
@@ -900,7 +911,7 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
       }
     }
     if (isBranch || isSelf) {
-      ctx.fillStyle = withAlpha("#0b1020", 0.7);
+      ctx.fillStyle = withAlpha(paintTheme().paper2, 0.8);
       const padX = 7;
       const h = fontSize + 7;
       ctx.beginPath();
@@ -917,12 +928,12 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
       ctx.strokeStyle = withAlpha(node.color, 0.5);
       ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.fillStyle = "#eef1ff";
+      ctx.fillStyle = paintTheme().ink1;
       ctx.fillText(label, lx, ly + 3.5);
     } else {
-      ctx.fillStyle = withAlpha("#e7ebff", 0.7 + 0.3 * emph);
+      ctx.fillStyle = withAlpha(paintTheme().ink1, 0.7 + 0.3 * emph);
       if (rc.params.shadows) {
-        ctx.shadowColor = "#04050c";
+        ctx.shadowColor = paintTheme().paper0;
         ctx.shadowBlur = 4;
         ctx.fillText(label, x, ly);
         ctx.shadowBlur = 0;
@@ -933,6 +944,6 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
   }
 
   for (const item of selfQueue) {
-    paintSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected);
+    paintSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected, rc.params.shadows);
   }
 }

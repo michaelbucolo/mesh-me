@@ -107,6 +107,23 @@ export class GradientCache {
     return g;
   }
 
+  linear(
+    ctx: CanvasRenderingContext2D,
+    key: string,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    stops: readonly (readonly [number, string])[],
+  ): CanvasGradient {
+    const hit = this.cache.get(key);
+    if (hit) return hit;
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    for (const [off, color] of stops) g.addColorStop(off, color);
+    this.cache.set(key, g, 0);
+    return g;
+  }
+
   clear(): void {
     this.cache.clear();
   }

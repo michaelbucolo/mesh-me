@@ -16,6 +16,7 @@ import { STRUM_WAVE_MS } from "../sim/strum";
 import { drawStrandPulse, drawStrandStrum } from "./fx";
 import { drawPill, strandLabelFor, withAlpha } from "./shared";
 import type { SceneNode, ScenePaintOptions } from "./types";
+import { paintTheme } from "./theme";
 
 export interface EdgePassKnobs {
   liveStrands: boolean;
@@ -101,9 +102,9 @@ export function drawEdges(ctx: CanvasRenderingContext2D, o: ScenePaintOptions, k
         mx,
         my,
         label,
-        "rgba(8, 12, 24, 0.82)",
+        withAlpha(paintTheme().paper2, 0.82),
         withAlpha(node.color, 0.56),
-        "#f3f6ff",
+        paintTheme().ink1,
         Math.max(9, 9.5 * o.camera.zoom),
         8,
       );
