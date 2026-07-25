@@ -327,9 +327,13 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
   const connectedButNotPublishable = CROSS_POST_PLATFORMS.filter((p) => connectedAccounts.includes(p.id) && !publishableAccounts.includes(p.id));
 
   return (
-    <div className="feed-composer-card rounded-2xl glass-card p-3 sm:p-4">
+    // `rounded-2xl glass-card` is gone. The composer is a TRAY — the recess its
+    // colour already claimed it was — and `glass-card` only pulled it into the
+    // `.feed-x-layout .glass-card !important` block at globals.css:4031, which
+    // is what forced the outward shadow onto a well in the first place.
+    <div className="feed-composer-card p-3 sm:p-4">
       {(successMessage || errorMessage) && (
-        <div className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${successMessage ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400" : "border border-red-500/20 bg-red-500/10 text-red-500 dark:text-red-400"}`} role="status">
+        <div className={`tray mb-3 flex items-center gap-2 px-3 py-2 text-xs font-semibold ${successMessage ? "text-[var(--success)]" : "text-[var(--danger)]"}`} role="status">
           {successMessage ? (
             isPending ? <PaperWait size="sm" /> : <CheckCircle2 className="h-3.5 w-3.5" />
           ) : (
@@ -345,7 +349,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           <button
             type="button"
             onClick={openComposer}
-            className="feed-composer-trigger flex min-h-11 min-w-0 flex-1 items-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-4 text-left text-sm font-semibold text-[var(--text-muted)] transition hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+            className="feed-composer-trigger key flex min-h-11 min-w-0 flex-1 items-center px-4 text-left text-sm font-semibold text-[var(--text-muted)]"
           >
             What&apos;s happening?
           </button>
@@ -398,7 +402,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           )}
 
           {showLinkTools && (
-            <div className="mt-3 grid gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-tertiary)] p-3">
+            <div className="tray mt-3 grid gap-2 p-3">
               <label className="grid gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
                 Link preview
                 <input
@@ -421,7 +425,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           )}
 
           {showVisibility && (
-            <div className="mt-3 grid gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-tertiary)] p-2 sm:grid-cols-3">
+            <div className="tray mt-3 grid gap-2 p-2 sm:grid-cols-3">
               {visibilityOptions.map((option) => {
                 const Icon = option.icon;
                 const active = visibility === option.id;
@@ -430,13 +434,16 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     key={option.id}
                     type="button"
                     onClick={() => setVisibility(option.id)}
-                    className={`rounded-lg border px-3 py-2 text-left transition ${active ? "border-[var(--accent-muted)] bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]"}`}
+                    className={`key px-3 py-2 text-left ${active ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]" : "text-[var(--text-secondary)]"}`}
                   >
                     <span className="flex items-center gap-2 text-xs font-semibold">
                       <Icon className="h-3.5 w-3.5" />
                       {option.label}
                     </span>
-                    <span className="mt-1 block text-[10px] text-[var(--text-muted)]">{option.copy}</span>
+                    {/* On the lit key the copy has to ride --mould-cobalt-ink,
+                        not --text-muted: --ink-3 over cobalt is not a ratio
+                        anyone has measured, and the pinned ink is. */}
+                    <span className={`mt-1 block text-[10px] ${active ? "opacity-90" : "text-[var(--text-muted)]"}`}>{option.copy}</span>
                   </button>
                 );
               })}
@@ -460,7 +467,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
 
           {/* Cross-post platform selector */}
           {showCrossPost && (
-            <div className="mt-3 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-primary)]">
+            <div className="tray mt-3 p-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
                   <Share2 className="h-3 w-3" />
@@ -476,18 +483,21 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     <button
                       key={p.id}
                       onClick={() => togglePlatform(p.id)}
-                      className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border " + (
+                      className={"key flex min-h-11 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold " + (
                         selectedPlatforms.has(p.id)
-                          ? "border-transparent text-white shadow-sm"
-                          : "border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                          ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                          : "text-[var(--text-secondary)]"
                       )}
-                      style={selectedPlatforms.has(p.id) ? { backgroundColor: p.color } : undefined}
+                      aria-pressed={selectedPlatforms.has(p.id)}
                     >
-                      <span className={"w-4 h-4 rounded flex items-center justify-center text-[8px] font-semibold " + (
-                        selectedPlatforms.has(p.id) ? "bg-white/20 text-white" : "text-white"
-                      )} style={!selectedPlatforms.has(p.id) ? { backgroundColor: p.color } : undefined}>
-                        {p.icon}
-                      </span>
+                      {/* The brand hex was the button's whole fill when selected,
+                          with `text-white` on top of it — #0085FF and #000000 in
+                          the same list, one ink assumed for both. It is a
+                          decorative swatch now, carrying no text, and SELECTED is
+                          the same cobalt plastic every other selected thing on
+                          this surface wears. Brand colour says which platform;
+                          the plastic says which are on. */}
+                      <span className="h-4 w-4 rounded" style={{ backgroundColor: p.color }} aria-hidden="true" />
                       {p.name}
                     </button>
                   ))}
@@ -526,7 +536,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 title="Add images or videos"
               >
                 <ImageIcon className="h-4 w-4" />
@@ -534,7 +544,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 title="Add video"
               >
                 <Video className="h-4 w-4" />
@@ -542,10 +552,10 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               <button
                 type="button"
                 onClick={() => setShowLinkTools(!showLinkTools)}
-                className={"p-2 rounded-lg transition-colors " + (
+                className={"key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
                   showLinkTools || linkUrl || mediaUrl
-                    ? "text-[var(--accent)] bg-[var(--accent)]/10"
-                    : "text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
+                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                    : ""
                 )}
                 title="Add link"
               >
@@ -554,7 +564,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               <button
                 type="button"
                 onClick={() => setShowTags(!showTags)}
-                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 title="Add tags"
               >
                 <Hash className="h-4 w-4" />
@@ -562,10 +572,10 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               <button
                 type="button"
                 onClick={() => setShowVisibility(!showVisibility)}
-                className={"p-2 rounded-lg transition-colors " + (
+                className={"key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
                   showVisibility || visibility !== "public"
-                    ? "text-[var(--accent)] bg-[var(--accent)]/10"
-                    : "text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
+                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                    : ""
                 )}
                 title="Post visibility"
               >
@@ -574,10 +584,10 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               <button
                 type="button"
                 onClick={() => setShowCrossPost(!showCrossPost)}
-                className={"p-2 rounded-lg transition-colors " + (
+                className={"key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
                   showCrossPost || selectedPlatforms.size > 0
-                    ? "text-[var(--accent)] bg-[var(--accent)]/10"
-                    : "text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-tertiary)]"
+                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                    : ""
                 )}
                 title="Cross-post to connected platforms"
               >
@@ -590,7 +600,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                 {visibilityOptions.find((option) => option.id === visibility)?.label}
               </span>
               {content.length > 0 && (
-                <span className={`text-xs ${content.length > 500 ? "text-red-400" : "text-[var(--text-muted)]"}`}>
+                <span className={`text-xs ${content.length > 500 ? "font-semibold text-[var(--danger)]" : "text-[var(--text-muted)]"}`}>
                   {content.length}/500
                 </span>
               )}

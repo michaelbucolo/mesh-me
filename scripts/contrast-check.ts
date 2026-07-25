@@ -251,11 +251,90 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. THE DARK THEME IS NEUTRAL. Not "near-neutral". Neutral.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The previous dark ramp carried "a hair of warmth" — red >= blue at every step,
+// written down as a deliberate choice. At swatch size it is invisible. At page
+// size it is the only thing you see: a screen is ~90% surface, and a #1d1b19 mat
+// under #322e2a faces reads, plainly, as brown. The judgement that shipped it
+// was made looking at the values, not at the product.
+//
+// So the rule is now mechanical rather than a matter of taste: every structural
+// surface and ink in .dark must have red === green === blue, exactly. A hue that
+// cannot be introduced cannot creep back one step at a time, which is precisely
+// how the warmth accumulated the first time.
+//
+// The accent and the five pigments are exempt BY NAME, not by tolerance — they
+// are chromatic on purpose and their contrast is already asserted above. The
+// exemption is a list you have to edit, so adding a coloured surface is a
+// visible act rather than a side effect.
+const CHROMATIC_BY_DESIGN = new Set([
+  "--accent", "--accent-hover", "--accent-press", "--accent-ink", "--accent-plinth",
+  "--warm", "--success", "--warning", "--danger", "--info",
+]);
+const NEUTRAL_TOKENS = [
+  ...PAPERS, ...FACES, ...HOVER_SURFACES, ...TEXT_INKS,
+  "--ink-4", "--ink-600", "--ink-950", "--ink-1000", "--ink-inverse",
+  "--edge", "--plinth-1", "--plinth-2", "--plinth-tray",
+  "--skeleton-1", "--skeleton-2", "--skeleton-3",
+  // The media contract too. These are theme-INVARIANT — they float over a
+  // photograph, where there is no theme — and that makes neutrality more
+  // important rather than less: a warm chip is wrong in both themes at once,
+  // and it sits inches from the app's own surfaces. They shipped warm
+  // (#16140f / #f7f4ee / #bdb7ad) in the same change that first defined them.
+  "--media-chip", "--media-chip-plinth", "--media-ink", "--media-ink-2",
+] as const;
+
+/**
+ * The value a token resolves to in Worklight.
+ *
+ * Three blocks can declare one: `.dark`, the `:root, .light` pair it inherits
+ * from, and the theme-INVARIANT `:root, .light, .dark` block that holds the
+ * media contract. Reading only `.dark` reports the media tokens as missing —
+ * which is exactly what this check did on its first run, and it would have been
+ * easy to "fix" by dropping them from the list instead of by reading the third
+ * block. A single-declaration assertion keeps the fallback honest: if a token
+ * is ever declared twice outside `.dark`, this stops rather than guessing.
+ */
+function darkValue(name: string): string {
+  if (LAMPLIGHT[name]) return LAMPLIGHT[name];
+  if (DAYLIGHT[name]) return DAYLIGHT[name];
+  const declarations = [...source.matchAll(new RegExp(String.raw`${name}\s*:\s*([^;]+);`, "g"))];
+  assert.equal(
+    declarations.length,
+    1,
+    `${name} is declared ${declarations.length} times outside .dark — cannot resolve one value for it.`,
+  );
+  return declarations[0][1].trim();
+}
+
+for (const name of NEUTRAL_TOKENS) {
+  assert.ok(!CHROMATIC_BY_DESIGN.has(name), `${name} is both required-neutral and exempt — pick one`);
+  const value = darkValue(name);
+  assert.ok(value, `${name} is not declared in any theme block`);
+  const h = value.replace("#", "").trim();
+  assert.match(h, /^[0-9a-fA-F]{6}$/, `.dark ${name} must be a 6-digit hex to be checked for neutrality, got "${value}"`);
+  const [r, g, b] = [h.slice(0, 2), h.slice(2, 4), h.slice(4, 6)].map((c) => parseInt(c, 16));
+  assert.ok(
+    r === g && g === b,
+    `.dark ${name} is ${value} — rgb(${r}, ${g}, ${b}), which carries a hue.\n` +
+      "  Every structural surface and ink in the dark theme must be a true grey (r === g === b).\n" +
+      "  The previous ramp allowed 'a hair of warmth' at each step; summed across a full screen\n" +
+      "  that hair is the entire impression, and the product read as brown rather than as dark.\n" +
+      "  If this token genuinely needs a hue, add it to CHROMATIC_BY_DESIGN and say why —\n" +
+      "  deliberately, in a diff someone reviews, not by nudging a channel two points.",
+  );
+  checks += 1;
+}
+
 console.log(
   `contrast OK — ${checks} ratios measured across both themes: every text ink clears AA on all four\n` +
     "  papers AND on every face/hover/press state, --ink-4 stays decorative, the accent works as\n" +
     "  text and as a surface, every pigment is readable on all four papers, --edge clears 3:1 on\n" +
     "  every surface it can ring, each moulded plastic carries a readable pinned ink, and each is\n" +
-    "  visibly thicker than its own plinth.\n" +
+    "  visibly thicker than its own plinth. Every structural surface and ink in .dark is a true\n" +
+    "  grey (r === g === b); only the accent and the five pigments carry a hue, by name.\n" +
     "  Does NOT cover: colours hardcoded in components — only the palette itself.",
 );

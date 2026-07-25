@@ -479,13 +479,22 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {platformBadge && (
                   <>
                     <span>&middot;</span>
-                    <span
-                      className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[10px] font-medium"
-                      style={{ backgroundColor: platformBadge.color + "18", color: platformBadge.color }}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-sm flex items-center justify-center text-[7px] font-semibold text-white" style={{ backgroundColor: platformBadge.color }}>
-                        {platformBadge.abbr[0]}
-                      </span>
+                    {/* The brand hex stays — it identifies a third party, not a
+                        mesh.me surface, so it is legitimately WHICH-not-how-loud.
+                        What goes is text on top of it. The label used to be set
+                        in the brand colour over a 10%-alpha wash of itself
+                        (#1DB954 measures ~2.3:1, #69C9D0 ~1.9:1) and the glyph
+                        was 7px `text-white` on the raw hex. Neither ink was
+                        pinned, which is exactly the failure the --mould-*-ink
+                        triples exist to prevent. The brand colour is now a
+                        decorative swatch carrying NO text — --ink-4-class usage —
+                        and the label rides --ink-2, which contrast:check owns. */}
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[10px] font-medium text-[var(--ink-2)]">
+                      <span
+                        className="w-2.5 h-2.5 rounded-sm"
+                        style={{ backgroundColor: platformBadge.color }}
+                        aria-hidden="true"
+                      />
                       {platformBadge.label}
                     </span>
                   </>
@@ -520,7 +529,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {post.isNsfw && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-semibold text-rose-300 bg-rose-500/10">
+                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-semibold text-[var(--mould-crimson-ink)] bg-[var(--mould-crimson)]">
                       NSFW
                     </span>
                   </>
@@ -547,18 +556,22 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
 
           {!isOptimistic && (
+          /* The "…" button was a raw `rounded-full p-1.5` with an inline colour:
+             no --edge ring, no side wall, no press, and a ~28px target on the
+             only affordance in the card header. `.insta-icon-button` is the
+             shared class the four topbar controls already use, and it is
+             moulded at the end of globals.css. */
           <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setShowMenu(!showMenu)}
               aria-label="More post options"
-              className="rounded-full p-1.5 transition-colors opacity-100 hover:bg-[var(--bg-hover)]"
-              style={{ color: "var(--text-muted)" }}
+              className="insta-icon-button"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-8 w-48 rounded-xl shadow-xl z-20 py-1 glass-dropdown animate-smooth-reveal">
+              <div className="absolute right-0 top-8 w-48 z-20 py-1 glass-dropdown animate-smooth-reveal">
                 <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
@@ -590,7 +603,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   </button>
                 )}
                 {isOwner && (
-                  <button onClick={handleDelete} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                  <button onClick={handleDelete} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[var(--danger)] hover:bg-[var(--paper-hover)] transition-colors">
                     <Trash2 className="h-4 w-4" /> Delete post
                   </button>
                 )}
@@ -648,9 +661,13 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={visualMedia[0].url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                 )}
-                <span className="absolute inset-0 flex items-center justify-center bg-black/25 transition group-hover/embed:bg-black/35">
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur transition group-hover/embed:scale-105">
-                    <Play size={28} className="ml-1 text-white" fill="currentColor" />
+                {/* The puck was `bg-black/60 backdrop-blur` and GREW on hover.
+                    Growth is emission, not response — a control answers by
+                    pressing in. Opaque --media-chip, --media-ink pinned at
+                    16.76:1 on it, and the hover is a face change. */}
+                <span className="absolute inset-0 flex items-center justify-center [background:var(--media-scrim)]">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--media-chip)] shadow-[0_var(--plinth-h-object)_0_0_var(--media-chip-plinth)] transition-[translate,box-shadow] duration-[var(--dur-press)] ease-[var(--ease-give)] group-active/embed:translate-y-[var(--plinth-h-object)] group-active/embed:shadow-[0_0_0_0_var(--media-chip-plinth)]">
+                    <Play size={28} className="ml-1 text-[var(--media-ink)]" fill="currentColor" />
                   </span>
                 </span>
               </button>
@@ -710,8 +727,8 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   />
                 )}
                 {idx === 3 && visualMedia.length > 4 && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-white font-semibold text-lg">+{visualMedia.length - 4}</span>
+                  <div className="absolute inset-0 flex items-center justify-center [background:var(--media-scrim)]">
+                    <span className="rounded-[var(--radius-md)] bg-[var(--media-chip)] px-2.5 py-1 text-lg font-semibold text-[var(--media-ink)]">+{visualMedia.length - 4}</span>
                   </div>
                 )}
               </div>
@@ -763,7 +780,16 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               onClick={() => handleLike()}
               disabled={isPending || isOptimistic}
               aria-label={liked ? "Unlike post" : "Like post"}
-              className={cn("insta-post-action relative", liked ? "text-rose-400" : "text-[var(--text-primary)] hover:text-rose-400")}
+              className={cn(
+                "insta-post-action relative",
+                // ON is a material change, not a hue swap. `.key-lit` + the
+                // pinned crimson triple is the idiom ui/button.tsx:26 uses; the
+                // ink that rides with it is contrast-verified, which the old
+                // `text-rose-400` over an unknown background was not.
+                liked
+                  ? "key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]"
+                  : "hover:text-[var(--mould-crimson)]",
+              )}
             >
               <span className={cn("like-burst", likeAnimating && "like-burst-active")} aria-hidden="true" />
               <Heart className={cn("h-5 w-5 transition-transform", liked && "fill-current", likeAnimating && "animate-heart-bounce")} />
@@ -792,7 +818,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
           <div className="relative" ref={shareRef}>
             {showShareMenu && (
-              <div className="absolute right-0 top-9 z-20 w-52 rounded-xl py-1 shadow-xl glass-dropdown animate-smooth-reveal">
+              <div className="absolute right-0 top-9 z-20 w-52 py-1 glass-dropdown animate-smooth-reveal">
                 <Link href={meChatShareHref} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
                   <MessageCircle className="h-4 w-4" /> Share in MeChat
                 </Link>
@@ -801,7 +827,16 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 </button>
               </div>
             )}
-            <button type="button" onClick={handleSave} disabled={isOptimistic} aria-label={saved ? "Unsave post" : "Save post"} className={cn("insta-post-action", saved && "text-[var(--accent)]")}>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isOptimistic}
+              aria-label={saved ? "Unsave post" : "Save post"}
+              className={cn(
+                "insta-post-action",
+                saved && "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]",
+              )}
+            >
               <Bookmark className={cn("h-5 w-5 transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />
             </button>
           </div>
@@ -814,14 +849,14 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         {requiresSourceAccount && !hasSourceAccount && (
           <Link
             href={`/connected-accounts?platform=${encodeURIComponent(originPlatform || "")}&next=/feed`}
-            className="mt-2 block rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition hover:border-[var(--accent-muted)] hover:text-[var(--text-primary)]"
+            className="key mt-2 flex min-h-11 items-center px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
           >
             Connect {platformLabel || post.platform} to like, comment, and sync actions back to the source.
           </Link>
         )}
 
         {platformActionMessage && (
-          <p className="mt-2 rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs font-semibold leading-5 text-amber-100" role="status">
+          <p className="tray mt-2 px-3 py-2 text-xs font-semibold leading-5 text-[var(--warning)]" role="status">
             {platformActionMessage}
           </p>
         )}
@@ -840,12 +875,12 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 setPlatformActionMessage("Comment syncing for this source is not available with the current provider permissions. Open the source post to comment there.");
               }
             }}
-            className="hover:text-[var(--text-primary)]"
+            className="inline-flex min-h-11 items-center hover:text-[var(--text-primary)]"
           >
             View {formatCount(post._count.comments)} comments
           </Link>
           {repostCount > 0 && (
-            <button type="button" onClick={handleRepost} disabled={isPending || isOptimistic} className="hover:text-[var(--accent)]">
+            <button type="button" onClick={handleRepost} disabled={isPending || isOptimistic} className="inline-flex min-h-11 items-center hover:text-[var(--text-primary)]">
               {formatCount(repostCount)} reposts
             </button>
           )}
@@ -855,7 +890,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           <div className="mt-3 flex flex-wrap gap-1.5">
             {post.tags.map((tag) => (
               <Link key={tag.id} href={`/search?q=${encodeURIComponent(tag.tag)}`}>
-                <Badge variant="secondary" className="cursor-pointer text-xs transition-colors hover:bg-zinc-700">
+                <Badge variant="secondary" className="cursor-pointer text-xs transition-colors hover:bg-[var(--paper-hover)]">
                   #{tag.tag}
                 </Badge>
               </Link>
@@ -872,8 +907,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           className="pointer-events-none absolute z-10 flex items-center justify-center"
           style={{ left: `${burst.x}%`, top: `${burst.y}%`, width: 0, height: 0 }}
         >
-          <span className="mesh-burst-ring" style={{ borderColor: "rgba(251,113,133,0.85)" }} />
-          <Heart size={104} fill="currentColor" className="flow-heart-burst text-rose-500" />
+          {/* Was `rgba(251,113,133,0.85)` and `text-rose-500` — two literals off
+              the palette that tracked neither theme. A burst is bits of the same
+              plastic the product is moulded from. */}
+          <span className="mesh-burst-ring" style={{ borderColor: "var(--mould-crimson)" }} />
+          <Heart size={104} fill="currentColor" className="flow-heart-burst text-[var(--mould-crimson)]" />
         </span>
       ))}
     </article>
