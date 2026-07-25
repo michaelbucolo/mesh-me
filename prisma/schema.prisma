@@ -421,6 +421,12 @@ model Block {
   blocked User @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+  // Blocks are stored one-directional but enforced symmetrically, so every
+  // read path also looks the pair up from the blocked side. The unique index
+  // above only serves blockerId-leading queries; this one keeps the mirrored
+  // half off a table scan on the app's hottest reads (feed, explore, search,
+  // permalinks, communities).
+  @@index([blockedId])
 }
 
 model Mute {

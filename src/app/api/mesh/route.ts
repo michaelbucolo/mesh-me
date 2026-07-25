@@ -538,7 +538,23 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
   // whole graph via isPublic. Gate with canViewMesh, not canViewProfile.
   const viewerIsAdmin = Boolean(viewer?.isAdmin);
   const viewerIsOwner = viewerId === targetUserId;
-  const isFriend = await areMutualFollowers(viewerId, targetUserId);
+  const [isFriend, blockBetween] = await Promise.all([
+    areMutualFollowers(viewerId, targetUserId),
+    // Blocking is mutual, so this matches from either side. It is checked here
+    // rather than folded into canViewMesh because that helper is pure/sync and
+    // shared with the privacy-policy contract checks.
+    viewerIsOwner
+      ? Promise.resolve(null)
+      : prisma.block.findFirst({
+          where: {
+            OR: [
+              { blockerId: viewerId, blockedId: targetUserId },
+              { blockerId: targetUserId, blockedId: viewerId },
+            ],
+          },
+          select: { id: true },
+        }),
+  ]);
   const meshVisibility = normalizeMeshVisibility(
     targetUser.meshPrivacy?.meshVisibility,
     "private",
@@ -556,6 +572,12 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     });
   // Suspended accounts stay locked to everyone but the owner and admins.
   if (targetUser.isSuspended && !viewerIsOwner && !viewerIsAdmin) {
+    return lockedMeshResponse();
+  }
+  // A block locks the mesh in both directions and outranks admin review — the
+  // same locked payload a private mesh returns, so it never discloses that a
+  // block is what closed it.
+  if (blockBetween) {
     return lockedMeshResponse();
   }
   if (!canViewMesh({ id: viewerId, isAdmin: viewerIsAdmin }, targetUserId, meshVisibility, isFriend)) {

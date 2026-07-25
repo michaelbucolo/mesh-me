@@ -9,6 +9,7 @@ import {
   AtSign,
   AudioLines,
   BadgeCheck,
+  Ban,
   BarChart3,
   BellRing,
   CheckCheck,
@@ -52,6 +53,7 @@ import {
   Settings2,
   ShieldAlert,
   ShieldCheck,
+  ShieldOff,
   Sparkles,
   Smartphone,
   Sun,
@@ -91,6 +93,7 @@ import {
   updateMeshiPreference,
   updateNsfwPreference,
   updateNotificationPreferences,
+  unblockUser,
   updatePrivacy,
   updateProfile,
   updateProfileVisibility,
@@ -173,12 +176,21 @@ type PrivacySummary = {
   };
 };
 
+// Everyone this account has blocked, newest first — the review-and-undo list
+// for a control that is otherwise invisible once used.
+type BlockedUser = {
+  id: string;
+  username: string;
+  displayName: string;
+};
+
 type SettingsControlCenterProps = {
   settings: SettingsSnapshot;
   meshPrivacy: MeshPrivacySnapshot;
   meshi: MeshiSnapshot;
   meshCosmetics: Array<{ type: string; value: string; isActive: boolean }>;
   privacySummary: PrivacySummary;
+  blockedUsers: BlockedUser[];
 };
 
 type SettingsSectionId =
@@ -265,7 +277,7 @@ const sectionOrder: Array<{
   { id: "account", label: "Account", description: "Email, sign out, delete", icon: Settings2, keywords: ["email", "username", "sign out", "logout", "delete account", "verification"] },
   { id: "profile", label: "Profile", description: "Name, bio, links", icon: UserRound, keywords: ["display name", "bio", "location", "website", "interests", "tags", "accent color"] },
   // Privacy + The Mesh are the two "who can see you" sections — keep them adjacent.
-  { id: "privacy", label: "Privacy", description: "Who can see you, and sensitive content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "nsfw", "sensitive", "adult"] },
+  { id: "privacy", label: "Privacy", description: "Who can see you, blocked accounts, and sensitive content", icon: LockKeyhole, keywords: ["public", "private", "discovery", "activity status", "read receipts", "block", "blocked", "unblock", "nsfw", "sensitive", "adult"] },
   { id: "mesh", label: "The Mesh", description: "Map visibility and style", icon: Waypoints, keywords: ["graph", "nodes", "connections", "branches", "visibility", "motion", "atmosphere", "sky", "pro"] },
   { id: "notifications", label: "Notifications", description: "Alerts and digest", icon: BellRing, keywords: ["push", "email digest", "messages", "comments", "follows", "alerts"] },
   { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
@@ -316,6 +328,7 @@ export function SettingsControlCenter({
   meshi,
   meshCosmetics,
   privacySummary,
+  blockedUsers,
 }: SettingsControlCenterProps) {
   const router = useRouter();
   const { mode, setMode, preset, setPreset, customTheme, setCustomTheme, clearCustomTheme } = useTheme();
@@ -816,6 +829,7 @@ export function SettingsControlCenter({
                 adultVerified={adultVerified}
                 nsfwPolicy={nsfwPolicy}
                 startAdultVerification={startAdultVerification}
+                blockedUsers={blockedUsers}
                 isPending={isPending}
               />
             )}
@@ -1072,6 +1086,7 @@ function PrivacySection({
   adultVerified,
   nsfwPolicy,
   startAdultVerification,
+  blockedUsers,
   isPending,
 }: {
   privacy: { isPublic: boolean; showInDiscovery: boolean; hideActivityStatus: boolean; readReceipts: boolean };
@@ -1085,6 +1100,7 @@ function PrivacySection({
   adultVerified: boolean;
   nsfwPolicy: { reason: string; minAge: number };
   startAdultVerification: () => void;
+  blockedUsers: BlockedUser[];
   isPending: boolean;
 }) {
   return (
@@ -1127,6 +1143,8 @@ function PrivacySection({
           Ghost Mode follows you across devices, and you can flip it anytime from the ghost button in the top bar.
         </HintDetails>
       </SettingsCard>
+
+      <BlockedAccountsCard blockedUsers={blockedUsers} />
 
       <SettingsCard title="Sensitive content" icon={Flame}>
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
@@ -1177,6 +1195,73 @@ function PrivacySection({
         </HintDetails>
       </SettingsCard>
     </div>
+  );
+}
+
+/**
+ * Review-and-undo for blocks. A block is deliberately silent everywhere else in
+ * the product — the blocked account simply stops existing for you — so this is
+ * the only place the list can be seen and reversed. Rows disappear optimistically
+ * and come back if the server refuses.
+ */
+function BlockedAccountsCard({ blockedUsers }: { blockedUsers: BlockedUser[] }) {
+  const [blocked, setBlocked] = useState(blockedUsers);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  function unblock(user: BlockedUser) {
+    setPendingId(user.id);
+    setError(null);
+    startTransition(async () => {
+      const result = await unblockUser(user.id);
+      setPendingId(null);
+      if (result && "error" in result) {
+        setError(String(result.error));
+        return;
+      }
+      setBlocked((current) => current.filter((entry) => entry.id !== user.id));
+    });
+  }
+
+  return (
+    <SettingsCard title="Blocked accounts" icon={Ban}>
+      {blocked.length === 0 ? (
+        <p className="text-sm text-[var(--text-muted)]">
+          You haven&apos;t blocked anyone. Block someone from their profile or the &ldquo;…&rdquo; menu on any of their posts.
+        </p>
+      ) : (
+        <div className="settings-toggle-grid">
+          {blocked.map((user) => (
+            <div key={user.id} className="settings-action-row">
+              <span className="flex min-w-0 items-center gap-2.5">
+                <IconTile icon={UserRound} danger />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold">{user.displayName}</span>
+                  <span className="block truncate text-xs text-[var(--text-muted)]">@{user.username}</span>
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => unblock(user)}
+                disabled={pendingId === user.id}
+                className="mesh-choice inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-bold disabled:opacity-50"
+              >
+                {pendingId === user.id
+                  ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                  : <ShieldOff size={14} aria-hidden="true" />}
+                Unblock
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <p className="mt-3 text-xs font-bold text-[var(--ds-danger)]">{error}</p>}
+      <HintDetails label="What blocking does">
+        Blocked accounts can&apos;t see your posts, profile, or Mesh, can&apos;t message you, and don&apos;t appear in your feed, search, or live rooms — in both directions.
+        Blocking also removes any follow between you, in both directions. Unblocking does not restore those follows, and no one is ever told they were blocked.
+      </HintDetails>
+    </SettingsCard>
   );
 }
 

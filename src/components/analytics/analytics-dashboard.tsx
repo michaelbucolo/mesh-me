@@ -262,7 +262,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
 function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestContent"][number]; rank: number }) {
   const tone = toneFor(post.platform);
   const inner = (
-    <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 transition hover:border-[var(--accent)]/40">
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 transition hover:border-[var(--accent)]/40">
       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${rank === 1 ? "bg-gradient-to-br from-amber-300 to-amber-500 text-white" : "bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"}`}>
         {rank}
       </span>
@@ -288,11 +288,15 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
       </div>
     </div>
   );
+  // min-w-0 on the grid item: without it the row's automatic minimum size is
+  // the untruncated title, so the whole column blew past the viewport.
   return post.href ? (
     post.href.startsWith("/") ? (
-      <Link href={post.href}>{inner}</Link>
+      <Link href={post.href} className="min-w-0">
+        {inner}
+      </Link>
     ) : (
-      <a href={post.href} target="_blank" rel="noreferrer">
+      <a href={post.href} target="_blank" rel="noreferrer" className="min-w-0">
         {inner}
       </a>
     )

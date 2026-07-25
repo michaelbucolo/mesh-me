@@ -178,13 +178,13 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
       </button>
 
       {/* Post content */}
-      <article className="rounded-2xl glass-card p-6 mb-6">
+      <article className="rounded-2xl glass-card p-4 sm:p-6 mb-6">
         {/* Author header */}
         <div className="flex items-start gap-3 mb-4">
-          <Link href={`/profile/${post.author.username}`}>
+          <Link href={`/profile/${post.author.username}`} className="shrink-0">
             <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size="md" />
           </Link>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <Link href={`/profile/${post.author.username}`} className="font-semibold hover:underline text-[var(--text-primary)]">
                 {post.author.displayName}
@@ -195,7 +195,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                 </svg>
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+            <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-[var(--text-muted)]">
               <span>@{post.author.username}</span>
               <span>&middot;</span>
               <span>{formatRelativeTime(post.createdAt)}</span>
@@ -289,20 +289,21 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
         )}
 
         {/* Engagement stats */}
-        <div className="flex items-center gap-4 py-3 text-sm text-[var(--text-muted)] border-y border-[var(--border-primary)]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-sm text-[var(--text-muted)] border-y border-[var(--border-primary)]">
           <span><strong className="text-[var(--text-primary)]">{formatCount(likeCount)}</strong> likes</span>
           <span><strong className="text-[var(--text-primary)]">{formatCount(post._count.comments)}</strong> comments</span>
           <span><strong className="text-[var(--text-primary)]">{formatCount(repostCount)}</strong> reposts</span>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-2">
+        {/* Actions — the labelled row is wider than a 360px card, so it wraps
+            instead of pushing the save/copy pair off the edge. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 py-2">
+          <div className="flex items-center gap-0.5 sm:gap-2">
             <button
               onClick={handleLike}
               disabled={isPending}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all",
+                "flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all sm:px-3",
                 liked ? "text-rose-400" : "text-[var(--text-muted)] hover:text-rose-400"
               )}
             >
@@ -314,7 +315,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                 setReplyingTo(null);
                 commentInputRef.current?.focus();
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+              className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors sm:px-3"
             >
               <MessageCircle className="h-5 w-5" />
               Comment
@@ -322,13 +323,13 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
             <button
               onClick={handleRepost}
               disabled={isPending}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-emerald-400 transition-colors"
+              className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-emerald-400 transition-colors sm:px-3"
             >
               <Repeat2 className="h-5 w-5" />
               Repost
             </button>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1">
             <button onClick={handleCopyLink} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors" title={copied ? "Copied!" : "Copy link"}>
               {copied ? <Link2 className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </button>

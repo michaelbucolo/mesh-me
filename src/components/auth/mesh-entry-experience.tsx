@@ -415,7 +415,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
         {stage === "password" && (
           <form key="password" onSubmit={submitPassword} className="mesh-gate-focus" data-testid="entry-password-form" noValidate>
             <div ref={anchorRef} className={`mesh-gate-meshi${success ? " is-success" : ""}`}>
-              <span className="mesh-gate-ring" aria-hidden="true" />
               <MeshiMascot
                 size={96}
                 color={preview?.meshi.color}

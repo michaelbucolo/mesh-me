@@ -4,13 +4,14 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users, BadgeCheck } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Loader2, Globe, Lock, Users, BadgeCheck, Ban } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost, reportPost } from "@/lib/actions";
+import { BlockAuthorConfirmDialog } from "@/components/privacy/block-controls";
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { Play } from "lucide-react";
@@ -167,13 +168,14 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const [repostCount, setRepostCount] = useState(post._count.reposts);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [confirmingBlock, setConfirmingBlock] = useState(false);
   const [copied, setCopied] = useState(false);
   const [platformActionMessage, setPlatformActionMessage] = useState("");
   const { addToast } = useToast();
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [bursts, setBursts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [saveAnimating, setSaveAnimating] = useState(false);
-  const [deleted, setDeleted] = useState(false);
+  const [removedFromView, setRemovedFromView] = useState(false);
   const [isPending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
   const shareRef = useRef<HTMLDivElement>(null);
@@ -355,7 +357,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     startTransition(async () => {
       const result = await deletePost(post.id);
       if (result?.success) {
-        setDeleted(true);
+        setRemovedFromView(true);
       }
     });
     setShowMenu(false);
@@ -385,8 +387,12 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   };
 
   const isOwner = currentUserId === post.author.id && !requiresSourceAccount && !isExternalFeedItem;
+  // Blocking targets a mesh.me account, so it is only offered where the byline
+  // IS one: external feed items carry a synthetic `external-…` author id with
+  // no User row behind it.
+  const canBlockAuthor = Boolean(currentUserId) && !isExternalFeedItem && post.author.id !== currentUserId;
 
-  if (deleted) return null;
+  if (removedFromView) return null;
 
   return (
     <article
@@ -569,12 +575,38 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                     <Flag className="h-4 w-4" /> Report post
                   </button>
                 )}
+                {canBlockAuthor && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setConfirmingBlock(true);
+                    }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <Ban className="h-4 w-4" /> Block @{post.author.username}
+                  </button>
+                )}
                 {isOwner && (
                   <button onClick={handleDelete} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
                     <Trash2 className="h-4 w-4" /> Delete post
                   </button>
                 )}
               </div>
+            )}
+            {/* Outside the menu: opening the dialog closes the menu, which would
+                otherwise unmount the dialog along with it. */}
+            {canBlockAuthor && (
+              <BlockAuthorConfirmDialog
+                open={confirmingBlock}
+                onClose={() => setConfirmingBlock(false)}
+                userId={post.author.id}
+                username={post.author.username}
+                // The block already hid this author server-side; drop the card
+                // now so the post doesn't sit there until the next revalidation.
+                onBlocked={() => setRemovedFromView(true)}
+              />
             )}
           </div>
           )}

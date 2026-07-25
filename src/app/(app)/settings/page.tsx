@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { SettingsControlCenter } from "@/components/settings/settings-control-center";
 import { getCurrentUser } from "@/lib/auth";
 import { getMeshCosmetics, getMeshiPreference } from "@/lib/actions";
-import { getMeshPrivacy, getPrivacyTransparencyData, getUserSettings } from "@/lib/queries";
+import { getBlockedUsers, getMeshPrivacy, getPrivacyTransparencyData, getUserSettings } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -15,7 +15,7 @@ export default async function SettingsPage() {
   if (!user) redirect("/login?next=/settings");
   if (!user.onboarded) redirect("/onboarding");
 
-  const [settings, meshPrivacy, meshiPreference, meshCosmetics, privacyData] = await Promise.all([
+  const [settings, meshPrivacy, meshiPreference, meshCosmetics, privacyData, blockedUsers] = await Promise.all([
     getUserSettings(),
     getMeshPrivacy().catch((error) => {
       console.error("[settings] Mesh privacy unavailable", error);
@@ -46,6 +46,10 @@ export default async function SettingsPage() {
     getPrivacyTransparencyData().catch((error) => {
       console.error("[settings] Privacy transparency data unavailable", error);
       return null;
+    }),
+    getBlockedUsers().catch((error) => {
+      console.error("[settings] Blocked users unavailable", error);
+      return [];
     }),
   ]);
 
@@ -105,6 +109,11 @@ export default async function SettingsPage() {
         dataStored: privacyData?.dataStored ?? {},
         connections: privacyData?.connections ?? { followers: 0, following: 0, communities: 0 },
       }}
+      blockedUsers={blockedUsers.map((block) => ({
+        id: block.blocked.id,
+        username: block.blocked.username,
+        displayName: block.blocked.displayName,
+      }))}
     />
   );
 }

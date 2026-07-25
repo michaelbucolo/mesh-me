@@ -434,7 +434,9 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
 
   return (
     <div className="h-full min-h-0 overflow-hidden text-[var(--mesh-text)] animate-page-enter">
-      <div className="grid h-full min-h-0 gap-0 px-0 py-0 md:gap-4 md:px-5 md:py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      {/* minmax(0,1fr) on the single-column tier too: an implicit `auto` track
+          takes the thread's min-content width, which ran past narrow phones. */}
+      <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] gap-0 px-0 py-0 md:gap-4 md:px-5 md:py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className="mesh-surface mesh-pop-in flex min-h-0 flex-col overflow-hidden rounded-none border-0 md:rounded-[32px] md:border md:border-[var(--mesh-border)] md:shadow-[var(--shadow-lg)]">
           <header className="border-b border-[var(--mesh-border)] px-2 py-2 md:px-5 md:py-4">
             <div className="flex items-center gap-2 md:gap-4">
@@ -445,10 +447,15 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
               >
                 <ArrowLeft size={20} aria-hidden="true" />
               </Link>
-              <Link href="/messages" className="mesh-action mesh-action-secondary mesh-pressable hidden px-3 text-sm md:inline-flex">
-                <ArrowLeft size={15} aria-hidden="true" />
-                MeChat
-              </Link>
+              {/* Wrapper carries the breakpoint: `.mesh-action` sets display in
+                  unlayered CSS, which outranks Tailwind's `hidden` utility, so
+                  the desktop pill used to double up with the mobile arrow. */}
+              <span className="hidden md:inline-flex">
+                <Link href="/messages" className="mesh-action mesh-action-secondary mesh-pressable px-3 text-sm">
+                  <ArrowLeft size={15} aria-hidden="true" />
+                  MeChat
+                </Link>
+              </span>
 
               <div className="relative shrink-0">
                 {isGroupThread ? (

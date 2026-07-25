@@ -1042,6 +1042,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "UserNotificationPreference_userId_key" ON "Us
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "Block_blockerId_blockedId_key" ON "Block"("blockerId", "blockedId");
+CREATE INDEX IF NOT EXISTS "Block_blockedId_idx" ON "Block"("blockedId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "Mute_muterId_mutedId_key" ON "Mute"("muterId", "mutedId");
