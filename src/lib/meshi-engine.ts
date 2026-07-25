@@ -283,6 +283,26 @@ async function resolvePersonForViewer(name: string, viewerId: string) {
       // closed, and they fail as an ordinary "can't find them", which does not
       // disclose that the account exists and opted out.
       ...meshiConsentWhere(),
+      // A block, in either direction, ends the conversation about that person.
+      //
+      // This gate was missing entirely, and `isPublic` made it exploitable:
+      // `canSeeContent` below is `isSelf || person.isPublic || isMutual`, so
+      // someone with a public profile who blocked you was still fully readable
+      // through Meshi — posts, activity and connected channels — simply by
+      // asking. Blocking is the strongest control a member has; routing around
+      // it through the assistant makes every other privacy setting negotiable.
+      //
+      // Filtered in the query, like the consent rule above, so the five
+      // person_* intents fail identically and as an ordinary "can't find
+      // them" — never a message that confirms the account exists.
+      NOT: {
+        OR: [
+          // They blocked the viewer.
+          { blocks: { some: { blockedId: viewerId } } },
+          // The viewer blocked them.
+          { blockedBy: { some: { blockerId: viewerId } } },
+        ],
+      },
     },
     select: {
       id: true, username: true, displayName: true, isPublic: true,
