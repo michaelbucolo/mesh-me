@@ -151,9 +151,65 @@ assert.match(
     "  fresh deployment reintroduces the leak.",
 );
 
+// ── 5. The remediation reaches the database it was written for ───────────────
+//
+// Items 1-4 all passed while the leak was still live in production, which is the
+// most useful thing this gate has ever taught. The purge of already-orphaned
+// threads shipped as a migration, and PRODUCTION NEVER RUNS MIGRATIONS: the
+// remote database is provisioned with `prisma db push` and kept current by
+// scripts/ensure-remote-schema.mjs, which is strictly additive. So a gate that
+// reads prisma/migrations was reporting a guarantee about a file, and the file
+// was not the thing that governs the live data.
+//
+// One fact — "orphaned mirrored threads are deleted" — needs a statement in each
+// place that can enact it, and this pins the second one.
+const remote = read("scripts/ensure-remote-schema.mjs");
+assert.match(
+  remote,
+  /DELETE FROM "MessageThread"[\s\S]{0,200}?"connectedAccountId" NOT IN \(SELECT "id" FROM "ConnectedAccount"\)/,
+  "scripts/ensure-remote-schema.mjs must purge mirrored threads whose connection is gone.\n" +
+    "  The migration that does this NEVER RUNS in production — the remote database is synced by\n" +
+    "  this script, not by prisma migrate. Without the sweep here, the purge exists only in a file\n" +
+    "  no deployment executes, and the correspondence stays in the live database.",
+);
+for (const table of ["Message", "ThreadMember"]) {
+  assert.match(
+    remote,
+    new RegExp(String.raw`DELETE FROM "${table}" WHERE "threadId" IN`),
+    `scripts/ensure-remote-schema.mjs must also purge "${table}" rows of orphaned threads.\n` +
+      "  Production's MessageThread has no foreign key, so nothing cascades for us — every table\n" +
+      "  has to be named, deepest first. Message rows are the message bodies themselves.",
+  );
+}
+// Deepest first: deleting the thread before its children would leave the
+// children permanently unreachable, since the subquery that identifies them
+// resolves through the thread row.
+const orderOf = (needle: string) => remote.indexOf(needle);
+assert.ok(
+  orderOf('DELETE FROM "Message" WHERE "threadId" IN') <
+    orderOf('DELETE FROM "MessageThread"\n       WHERE "connectedAccountId"'),
+  "the orphan purge must delete Message rows BEFORE the MessageThread rows that identify them —\n" +
+    "  the reverse order strands the message bodies with nothing able to find them again.",
+);
+// Not runOnce: replaying it can only remove rows that are unreachable by
+// definition, and a standing sweep bounds any future regression by the deploy
+// cadence instead of leaving it in place indefinitely.
+assert.ok(
+  !/runOnce\(\s*["'][^"']*(orphan|mirrored|thread)[^"']*["']/i.test(remote),
+  "the orphan purge must NOT be wrapped in runOnce. runOnce exists for normalizations that would\n" +
+    "  clobber user choices on replay; this one has nothing to overwrite, and running it every\n" +
+    "  deploy is what makes it a standing sweep rather than a one-time repair.",
+);
+
 console.log(
   "disconnect contract OK — one shared teardown (no path deletes a ConnectedAccount on its\n" +
-    "  own), it removes mirrored DM threads and granted scopes, and both the Prisma schema\n" +
-    "  and ensure-schema.sql back it with ON DELETE CASCADE.\n" +
-    "  Does NOT cover: whether the cascade fires at runtime — that needs a live database.",
+    "  own), it removes mirrored DM threads and granted scopes, both the Prisma schema and\n" +
+    "  ensure-schema.sql back it with ON DELETE CASCADE, and the remote sync sweeps orphaned\n" +
+    "  threads on every deploy so the remediation reaches production and not just the repo.\n" +
+    "  Does NOT cover: whether the cascade fires at runtime — that needs a live database.\n" +
+    "  KNOWN GAP, deliberate: production's existing MessageThread table carries NO foreign key.\n" +
+    "  Adding it means a SQLite table rebuild, and both Message and ThreadMember cascade off\n" +
+    "  MessageThread, so a DROP without a reliable PRAGMA foreign_keys=OFF deletes every message\n" +
+    "  in the product. The enforcing path there is the application-level teardown above; the\n" +
+    "  cascade protects freshly provisioned databases. See the note in ensure-remote-schema.mjs.",
 );
