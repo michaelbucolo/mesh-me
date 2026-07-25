@@ -1,0 +1,291 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PAPER & LAMPLIGHT — the one token file.
+   Imported first by globals.css; everything downstream reads from here.
+
+   The product is one material — paper with a faint tooth — under two
+   lights. Daylight is the room in late morning; Lamplight is the same
+   room, at night, lit by one lamp. Nothing emits light; things catch it,
+   and cast a soft warm shadow because they have weight.
+
+   Colour is rare and always means something: a stamp, a mark, a warning,
+   a heart. Ink is the default; pigment is the exception.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────
+   DAYLIGHT — the light theme
+   ───────────────────────────────────────────────────────────────── */
+:root,
+.light {
+  /* Paper — surfaces */
+  --paper-0: #fbf8f2; /* page */
+  --paper-1: #fffdf8; /* card / sheet */
+  --paper-2: #f4efe6; /* sunken, input well */
+  --paper-3: #eae3d6; /* rule fill, track, disabled surface */
+  --paper-hover: #f7f2e9;
+  --paper-press: #f1ebe0;
+
+  /* Ink — text. Every value below --ink-4 is measured against --paper-0. */
+  --ink-1: #1b1a17; /* primary    16.1:1 */
+  --ink-2: #4a463f; /* secondary   9.0:1 */
+  --ink-3: #6b655b; /* tertiary    5.45:1 on paper-0, 4.52:1 on paper-3 — the floor for body and caption */
+  --ink-4: #948c7f; /* 3.1:1 — NON-TEXT ONLY: borders, dividers, disabled glyphs */
+  --ink-inverse: #fffdf8;
+
+  /* Lines */
+  --rule: rgba(27, 26, 23, 0.1);
+  --rule-strong: rgba(27, 26, 23, 0.18);
+  --rule-hover: rgba(27, 26, 23, 0.26);
+  --rule-focus: rgba(47, 75, 124, 0.55);
+
+  /* Accent — pen ink (iron-gall blue-black). A pigment, never a light source. */
+  --accent: #2f4b7c; /* 8.2:1 on --paper-0 */
+  --accent-hover: #24406e;
+  --accent-press: #1d3660;
+  --accent-ink: #fffdf8; /* text ON the accent */
+  --accent-wash: rgba(47, 75, 124, 0.08);
+  --accent-line: rgba(47, 75, 124, 0.22);
+
+  /* Pigments — meaning only, never decoration */
+  --warm: #b05939; /* terracotta: hearts, affection, Meshi, strum */
+  --warm-wash: rgba(176, 89, 57, 0.1);
+  --success: #4a7c59; /* moss */
+  --warning: #976925; /* ochre */
+  --danger: #a8443a; /* rust */
+  --info: #3f5d77; /* riverstone */
+
+  /* System */
+  --scrim: rgba(38, 32, 24, 0.32);
+  --selection: rgba(47, 75, 124, 0.2);
+  --grain-alpha: 0.035;
+  --grain-blend: multiply;
+
+  /* Skeletons */
+  --skeleton-1: #f1ebe0;
+  --skeleton-2: #e9e1d4;
+  --skeleton-3: #f6f1e8;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   LAMPLIGHT — the dark theme.
+   Warm walnut: the red channel is >= the blue channel at every step,
+   the exact inverse of the old #070912 (blue 1.7x red). This is a room
+   at night, not space.
+   ───────────────────────────────────────────────────────────────── */
+.dark {
+  /* Ink ramp — surfaces */
+  --ink-1000: #0e0b09; /* deepest — scrim base */
+  --ink-950: #141110;
+  --paper-2: #141210; /* sunken / input well */
+  --paper-0: #1a1714; /* page */
+  --paper-1: #211d19; /* card / sheet */
+  --paper-3: #272320; /* rule fill, track */
+  --paper-hover: #262119;
+  --paper-press: #2e2822;
+  --ink-600: #4a3d31; /* heavy divider, chart gridline */
+
+  /* Paper ramp — text, measured against --paper-0 */
+  --ink-1: #f2ede4; /* primary    13.9:1 */
+  --ink-2: #c0b8ab; /* secondary   8.4:1 */
+  --ink-3: #948c80; /* tertiary    5.0:1 — the floor for text */
+  --ink-4: #6e6559; /* 2.8:1 — NON-TEXT ONLY */
+  --ink-inverse: #141210;
+
+  --rule: rgba(242, 237, 228, 0.1);
+  --rule-strong: rgba(242, 237, 228, 0.18);
+  --rule-hover: rgba(242, 237, 228, 0.26);
+  --rule-focus: rgba(143, 176, 224, 0.55);
+
+  --accent: #8fb0e0; /* 8.7:1 on --paper-0 */
+  --accent-hover: #a9c4ec;
+  --accent-press: #7b9fd4;
+  --accent-ink: #141210;
+  --accent-wash: rgba(143, 176, 224, 0.1);
+  --accent-line: rgba(143, 176, 224, 0.26);
+
+  --warm: #e08a5f;
+  --warm-wash: rgba(224, 138, 95, 0.12);
+  --success: #8cbe97;
+  --warning: #e0b252;
+  --danger: #e0827a;
+  --info: #8fb3ce;
+
+  --scrim: rgba(14, 11, 9, 0.72);
+  --selection: rgba(143, 176, 224, 0.26);
+  --grain-alpha: 0.05;
+  --grain-blend: soft-light;
+
+  --skeleton-1: #211d19;
+  --skeleton-2: #2b241d;
+  --skeleton-3: #382e25;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   SHADOW & ELEVATION
+   Depth is one hairline plus one warm shadow. Never blur, never light.
+   A hover that translates must change its shadow in the same
+   transition, or it reads as a sticker rather than paper.
+   ───────────────────────────────────────────────────────────────── */
+:root {
+  --shadow-flat: none;
+  --shadow-rest: 0 1px 1px rgba(38, 32, 24, 0.04), 0 2px 4px rgba(38, 32, 24, 0.05);
+  --shadow-raised: 0 2px 4px rgba(38, 32, 24, 0.05), 0 8px 16px -6px rgba(38, 32, 24, 0.1);
+  --shadow-lift: 0 4px 8px rgba(38, 32, 24, 0.06), 0 18px 32px -12px rgba(38, 32, 24, 0.14);
+  --shadow-float: 0 12px 24px rgba(38, 32, 24, 0.1), 0 40px 72px -24px rgba(38, 32, 24, 0.22);
+  --edge-light: none;
+}
+
+/* Same geometry in the dark, warm-black, plus one lit top edge. That inset
+   hairline is the ENTIRE luminosity budget of the product. */
+.dark {
+  --shadow-rest: 0 1px 1px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.34);
+  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.38), 0 8px 18px -6px rgba(0, 0, 0, 0.46);
+  --shadow-lift: 0 4px 8px rgba(0, 0, 0, 0.4), 0 18px 34px -12px rgba(0, 0, 0, 0.52);
+  --shadow-float: 0 12px 24px rgba(0, 0, 0, 0.44), 0 40px 78px -24px rgba(0, 0, 0, 0.6);
+  --edge-light: inset 0 1px 0 rgba(255, 248, 235, 0.05);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   SPACE, SHAPE, SIZE
+   ───────────────────────────────────────────────────────────────── */
+:root {
+  /* 4px grid */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 28px;
+  --sp-7: 40px;
+  --sp-8: 64px;
+
+  /* Radii — five, plus one reserved */
+  --r-xs: 4px; /* chips, badges, inner inputs */
+  --r-sm: 6px; /* inputs, small buttons */
+  --r-md: 10px; /* buttons, list rows, menu items */
+  --r-lg: 14px; /* cards, sheets */
+  --r-xl: 20px; /* modals, drawers, hero */
+  --r-round: 999px; /* RESERVED: avatars, presence dots, count badges, knobs, Meshi */
+
+  /* Control heights */
+  --h-sm: 32px;
+  --h-md: 40px;
+  --h-lg: 48px;
+
+  /* Layout */
+  --gutter: 24px;
+  --measure-prose: 66ch;
+  --measure-feed: 60ch;
+  --col-feed: 680px;
+  --row-min: 56px;
+  --card-pad: 20px;
+  --section-gap: 28px;
+  --border-w: 1px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --gutter: 16px;
+    --card-pad: 16px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MOTION
+   Six easings named for physics. Durations are derived, not asserted:
+   t ~= 120ms + 0.28ms x (largest dimension in px), capped at 560.
+   ───────────────────────────────────────────────────────────────── */
+:root {
+  --ease-settle: cubic-bezier(0.22, 0.61, 0.36, 1); /* anything that moves and stops */
+  --ease-lift: cubic-bezier(0.32, 0.72, 0, 1); /* panels, sheets, pages */
+  --ease-give: cubic-bezier(0.2, 0.8, 0.2, 1); /* press and release */
+  --ease-anticipate: cubic-bezier(0.45, -0.12, 0.2, 1.05); /* the ONE overshoot */
+  --ease-fall: cubic-bezier(0.4, 0, 1, 0.6); /* exits, gravity, going slack */
+  --ease-breath: cubic-bezier(0.45, 0.05, 0.55, 0.95); /* the only loop */
+
+  --dur-tap: 120ms; /* <=40px  — icon, dot, knob */
+  --dur-chip: 160ms; /* ~80px  — chip, badge, toggle */
+  --dur-item: 200ms; /* ~280px — row, control, menu item */
+  --dur-card: 320ms; /* ~680px — card, feed row, popover */
+  --dur-panel: 420ms; /* ~900px — sheet, drawer, rail */
+  --dur-page: 520ms; /* full   — route transition */
+  --dur-breath: 5200ms;
+
+  /* THE MASS CONTRACT. Every interactive component declares its mass once,
+     which is what stops a universal -2px hover from creeping back in. */
+  --mass: 1; /* 1 chip · 2 row/card · 3 sheet/hero */
+  --mass-k: 1; /* .8 | 1 | 1.3 */
+  --lift: calc(-1px * var(--mass));
+  --dur: calc(var(--dur-item) * var(--mass-k));
+  --press-sm: 0.96; /* <= 120px wide */
+  --press-lg: 0.985; /* > 120px wide */
+  --stagger: 34ms; /* cap 8 items */
+  --phase: calc(var(--i, 0) * 137ms); /* golden angle — provably never re-syncs */
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   ALIASES — retarget, do not delete.
+   ~3,100 existing call sites read these names. Retargeting them is what
+   lets the whole product move materials in one commit instead of thirty.
+   This block is deleted in the final slice, once every call site has
+   been rewritten to the names above.
+   ───────────────────────────────────────────────────────────────── */
+:root,
+.light,
+.dark {
+  --bg-primary: var(--paper-0);
+  --bg-secondary: var(--paper-2);
+  --bg-tertiary: var(--paper-3);
+  --bg-card: var(--paper-1);
+  --bg-elevated: var(--paper-1);
+  --bg-hover: var(--paper-hover);
+  --bg-input: var(--paper-2);
+  --bg-overlay: var(--scrim);
+
+  --text-primary: var(--ink-1);
+  --text-secondary: var(--ink-2);
+  --text-tertiary: var(--ink-3);
+  --text-muted: var(--ink-3);
+  --text-inverse: var(--ink-inverse);
+
+  --border-primary: var(--rule);
+  --border-secondary: var(--rule-strong);
+  --border-hover: var(--rule-hover);
+  --border-focus: var(--rule-focus);
+
+  /* Glass is retargeted to opaque matte, NOT deleted — 86 call sites keep
+     compiling, and every one of them silently stops frosting. */
+  --glass-bg: var(--paper-1);
+  --glass-border: var(--rule);
+  --glass-blur: none;
+  --glass-highlight: transparent;
+
+  --shimmer-1: var(--skeleton-1);
+  --shimmer-2: var(--skeleton-2);
+  --shimmer-3: var(--skeleton-3);
+
+  /* Accent satellites. `--accent-glow` keeps its name because 3 call sites read
+     it, but it is no longer a glow — it resolves to the same faint wash as any
+     other accent tint, so nothing in the product can emit light through it. */
+  --accent-glow: var(--accent-wash);
+  --accent-muted: var(--accent-wash);
+  --accent-subtle: var(--accent-wash);
+  --accent-contrast: var(--accent-ink);
+  --ring-color: var(--rule-focus);
+  --brand-gradient: var(--accent);
+  --brand-gradient-vibrant: var(--accent);
+
+  /* The old three-step shadow scale, retargeted onto the paper elevations so
+     the ~53 existing `--shadow-*` call sites move material with everything
+     else instead of keeping their cold black. */
+  --shadow-sm: var(--shadow-rest);
+  --shadow-md: var(--shadow-raised);
+  --shadow-lg: var(--shadow-float);
+
+  --scrollbar-thumb: var(--paper-3);
+  --scrollbar-hover: var(--ink-4);
+
+  /* Declared at last: referenced 16 times across /admin, /community-space,
+     /communities/[slug] and /community-create, and never defined — every one
+     of those surfaces has been rendering flat. */
+  --shadow-soft: var(--shadow-rest);
+}
