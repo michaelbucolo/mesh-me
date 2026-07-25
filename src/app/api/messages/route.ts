@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { directMessagingBlocked, directThreadWhere } from "@/lib/direct-thread";
 import { buildLinkPreview, normalizeAttachments, serializeMeChatMetadata } from "@/lib/mechat-metadata";
 import { prisma } from "@/lib/prisma";
 import { getMessageThreads } from "@/lib/queries";
@@ -101,28 +102,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "One or more people could not be added." }, { status: 400 });
   }
 
-  const blockExists = await prisma.block.findFirst({
-    where: {
-      OR: [
-        { blockerId: user.id, blockedId: { in: memberIds } },
-        { blockerId: { in: memberIds }, blockedId: user.id },
-      ],
-    },
-    select: { id: true },
-  });
-  if (blockExists) {
+  // Both rules come from src/lib/direct-thread.ts — the one definition of who
+  // may share a conversation and of which thread is "the" 1:1 one.
+  if (await directMessagingBlocked(user.id, memberIds)) {
     return NextResponse.json({ error: "One or more people cannot be added to this chat." }, { status: 403 });
   }
 
   if (memberIds.length === 1) {
     const existing = await prisma.messageThread.findFirst({
-      where: {
-        threadType: "direct",
-        AND: [
-          { members: { some: { userId: user.id } } },
-          { members: { some: { userId: memberIds[0] } } },
-        ],
-      },
+      where: directThreadWhere(user.id, memberIds[0]),
       select: { id: true },
     });
 

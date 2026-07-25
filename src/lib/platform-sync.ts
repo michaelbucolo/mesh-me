@@ -8,6 +8,7 @@ import { selectPrunablePostIds } from "./platform-sync-reconcile";
 import { refreshConnectedAccountToken } from "./oauth-token-refresh";
 import { getPlatformActionCapability, getPlatformImportCapability, getPlatformMessagingCapability } from "./platform-capabilities";
 import { serializeMeChatMetadata } from "./mechat-metadata";
+import { findOrCreateDirectThread } from "./direct-thread";
 import { classifyContentSafety, nsfwHiddenWhere } from "./content-safety";
 import { rateLimit } from "./security";
 
@@ -1868,32 +1869,18 @@ async function migratePlatformCommentsIntoMeChat(account: {
     const sender = userByUsername.get(username);
     if (!sender || sender.id === account.userId) continue;
 
-    const existingThread = await prisma.messageThread.findFirst({
-      where: {
-        AND: [
-          { members: { some: { userId: account.userId } } },
-          { members: { some: { userId: sender.id } } },
-        ],
-      },
-      select: { id: true },
-    });
-
-    const thread = existingThread || await prisma.messageThread.create({
-      data: {
-        members: {
-          create: [
-            { userId: account.userId },
-            { userId: sender.id },
-          ],
-        },
-      },
-      select: { id: true },
-    });
+    // The one definition of "the DM between these two people" — see
+    // src/lib/direct-thread.ts. This used to match on membership alone, which
+    // selected a GROUP or COMMUNITY thread whenever the pair shared one and
+    // published the imported comment to everybody in it; and it ran with no
+    // block check, so blocking someone did nothing to this path.
+    const { threadId } = await findOrCreateDirectThread(account.userId, sender.id);
+    if (!threadId) continue;
 
     const marker = `[${account.platform}:${comment.platformCommentId}]`;
     const alreadyImported = await prisma.message.findFirst({
       where: {
-        threadId: thread.id,
+        threadId,
         OR: [
           { platformCommentId: comment.platformCommentId },
           { content: { startsWith: marker } },
@@ -1910,7 +1897,7 @@ async function migratePlatformCommentsIntoMeChat(account: {
       data: {
         content: importedContent,
         senderId: sender.id,
-        threadId: thread.id,
+        threadId,
         sourcePlatform: account.platform,
         messageType: "imported_comment",
         sourceUrl,
@@ -1919,7 +1906,7 @@ async function migratePlatformCommentsIntoMeChat(account: {
       },
     });
     await prisma.messageThread.update({
-      where: { id: thread.id },
+      where: { id: threadId },
       data: { updatedAt: comment.publishedAt || new Date() },
     });
     imported++;

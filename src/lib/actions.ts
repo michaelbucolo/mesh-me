@@ -14,6 +14,7 @@ import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { canViewNsfw, classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
+import { findOrCreateDirectThread } from "./direct-thread";
 import { claimEmailAddress } from "./email-claim";
 import { canUserInteractWithPost } from "./privacy-policy";
 import {
@@ -1775,48 +1776,18 @@ async function sendMessage(formData: FormData) {
   let finalThreadId = threadId;
 
   if (!finalThreadId && recipientId) {
-    if (recipientId === user.id) return { error: "Cannot message yourself" };
-
-    // Check if either user has blocked the other
-    const blockExists = await prisma.block.findFirst({
-      where: {
-        OR: [
-          { blockerId: user.id, blockedId: recipientId },
-          { blockerId: recipientId, blockedId: user.id },
-        ],
-      },
-    });
-    if (blockExists) return { error: "Cannot send message to this user" };
-
-    // Find or create thread
-    const existingThread = await prisma.messageThread.findFirst({
-      where: {
-        threadType: "direct",
-        AND: [
-          { members: { some: { userId: user.id } } },
-          { members: { some: { userId: recipientId } } },
-        ],
-      },
-    });
-
-    if (existingThread) {
-      finalThreadId = existingThread.id;
-    } else {
-      const thread = await prisma.messageThread.create({
-        data: {
-          threadType: "direct",
-          sourcePlatform: "mesh",
-          isEncrypted: true,
-          members: {
-            create: [
-              { userId: user.id, role: "owner" },
-              { userId: recipientId, role: "member" },
-            ],
-          },
-        },
-      });
-      finalThreadId = thread.id;
+    // Direct-only lookup, block check and canonical create all live in
+    // src/lib/direct-thread.ts — the one definition. See the header there for
+    // what happened to the third caller that restated a subset of it.
+    const opened = await findOrCreateDirectThread(user.id, recipientId);
+    if (!opened.threadId) {
+      return {
+        error: opened.reason === "self"
+          ? "Cannot message yourself"
+          : "Cannot send message to this user",
+      };
     }
+    finalThreadId = opened.threadId;
   }
 
   if (!finalThreadId) return { error: "No thread specified" };

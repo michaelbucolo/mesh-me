@@ -55,7 +55,7 @@ export async function disconnectConnectedAccount(
   }
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    await purgeConnectedAccountRows(tx, accountId, userId);
+    await purgeConnectedAccountRows(tx, accountId, userId, platform);
   });
 
   clearMeshCache(userId);
@@ -80,10 +80,73 @@ async function purgeConnectedAccountRows(
   tx: Prisma.TransactionClient,
   accountId: string,
   userId: string,
+  platform: string,
 ): Promise<void> {
   // Granted scopes: a record of what the user allowed. Meaningless, and
   // misleading, once the connection is gone.
   await tx.platformPermission.deleteMany({ where: { userId, connectedAccountId: accountId } });
+
+  // Imported platform comments, which do NOT live in mirrored threads.
+  //
+  // The deleteMany below catches everything the mirrored-DM sync wrote, because
+  // that sync stamps `connectedAccountId` on the threads it creates. The
+  // comment import (migratePlatformCommentsIntoMeChat) does not: it writes into
+  // the ordinary mesh-native DM between the two people, which carries a NULL
+  // there by design and must survive the disconnect intact — it holds their own
+  // correspondence. So the thread-level purge could never reach these rows, and
+  // every imported comment stayed in MeChat after the connection was revoked:
+  // the other party's handle, the comment text, and a link back to the platform
+  // post. Same leak as the orphaned mirrored threads, one table lower down.
+  //
+  // Scoped by the platform-issued comment ids of THIS account rather than by
+  // "anything imported from this platform". The same 1:1 thread can hold
+  // comments imported under the OTHER person's connection — those came from
+  // their authorization, not ours, and are not ours to delete. Read before the
+  // account row goes, since PlatformComment cascades with it.
+  const importedIds = (await tx.platformComment.findMany({
+    where: { connectedAccountId: accountId },
+    select: { platformCommentId: true },
+  })).map((row) => row.platformCommentId);
+
+  if (importedIds.length > 0) {
+    const importedMessages = await tx.message.findMany({
+      where: {
+        messageType: "imported_comment",
+        sourcePlatform: platform,
+        platformCommentId: { in: importedIds },
+        thread: { members: { some: { userId } } },
+      },
+      select: { id: true, threadId: true },
+    });
+
+    if (importedMessages.length > 0) {
+      await tx.message.deleteMany({
+        where: { id: { in: importedMessages.map((m) => m.id) } },
+      });
+
+      // A thread that held NOTHING but imported comments was created by the
+      // import itself, and an empty one still asserts a fact that came from the
+      // connection: that these two people know each other on that platform.
+      // Restricted to the threads we just emptied — a thread the user opened
+      // and never wrote in looks identical from the outside, and is theirs.
+      const emptied = await tx.messageThread.findMany({
+        where: {
+          id: { in: [...new Set(importedMessages.map((m) => m.threadId))] },
+          connectedAccountId: null,
+          messages: { none: {} },
+        },
+        select: { id: true },
+      });
+      if (emptied.length > 0) {
+        const huskIds = emptied.map((t) => t.id);
+        // Members named explicitly: production's MessageThread table carries no
+        // foreign key at all (see scripts/ensure-remote-schema.mjs), so nothing
+        // is guaranteed to cascade for us there.
+        await tx.threadMember.deleteMany({ where: { threadId: { in: huskIds } } });
+        await tx.messageThread.deleteMany({ where: { id: { in: huskIds } } });
+      }
+    }
+  }
 
   // Mirrored DM threads, and by cascade their messages and membership rows.
   // These hold real correspondence — including the other party's name, handle
