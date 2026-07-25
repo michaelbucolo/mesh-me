@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "./prisma";
+import { claimEmailAddress } from "./email-claim";
 
 /**
  * Two-party account merge (One Account).
@@ -304,8 +305,13 @@ export async function performAccountMerge(
       data: { userId: primary.id, isPrimary: false },
     });
     let aliasLinked = 0;
-    const aliasRow = await tx.userEmail.findUnique({ where: { email: secondary.email }, select: { id: true } });
-    if (!aliasRow) {
+    // Through the shared claim rule, on the transaction client so it sees the
+    // reassignment above. A merge is a strong claim — it takes approval from
+    // both accounts' logins — so a third party's bare unverified reservation on
+    // this address must not silently cost the person their alias. A verified
+    // row, or anyone's primary, still holds and the alias is simply skipped.
+    const aliasClaim = await claimEmailAddress(secondary.email, primary.id, tx);
+    if (!aliasClaim.held) {
       await tx.userEmail.create({
         data: { userId: primary.id, email: secondary.email, isPrimary: false, isVerified: secondary.emailVerified },
       });

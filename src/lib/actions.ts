@@ -14,6 +14,7 @@ import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { canViewNsfw, classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
+import { claimEmailAddress } from "./email-claim";
 import { canUserInteractWithPost } from "./privacy-policy";
 import {
   durableRateLimit,
@@ -339,16 +340,23 @@ export async function signUp(formData: FormData) {
   // its own global unique constraint. Without this pre-check the collision only
   // surfaces from the nested create below — which on production's remote libSQL
   // throws a raw DriverAdapterError (no P2002 code), escaping as a 500.
-  let existingEmailRecord;
+  //
+  // Through claimEmailAddress, because "already in use" was too blunt: a bare
+  // unverified secondary — which anyone can add to their own account in one
+  // request, with no token and no proof — was answering for the address
+  // permanently, so squatting victim@example.com locked the real owner out of
+  // ever signing up. A verified row or anyone's primary still blocks; an
+  // unproven reservation is cleared and signup proceeds.
+  let claim;
   try {
-    existingEmailRecord = await prisma.userEmail.findUnique({ where: { email }, select: { id: true } });
+    claim = await claimEmailAddress(email);
   } catch (error) {
     if (isAccountStorageUnavailable(error)) {
       return { error: accountStorageUnavailableMessage() };
     }
     throw error;
   }
-  if (existingEmailRecord) {
+  if (claim.held) {
     return { error: "Email already in use" };
   }
 
