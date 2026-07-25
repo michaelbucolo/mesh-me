@@ -43,6 +43,20 @@ import { broadcastGhostMode, GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode
 import { broadcastWhereShare, readWhereShare, WHERE_SHARE_EVENT } from "@/lib/where-share";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
 
+/* TOYBOX — the two moulded plastics this surface uses.
+   `.key-lit` (globals.css:4996) reads a PINNED TRIPLE off the element: face, ink
+   and plinth move together or they do not move at all. Writing the three arbitrary
+   properties out is the idiom already shipped on the feed
+   (feed-timeline-client.tsx:656, post-card.tsx:790/837); they are named here only
+   because this surface repeats them eleven times.
+   Cobalt is "this is the primary action", crimson is "this destroys something".
+   Neither is a volume knob — a neutral `.key` and a lit one differ in WHICH
+   plastic, never in how loud. */
+const KEY_COBALT =
+  "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]";
+const KEY_CRIMSON =
+  "key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]";
+
 type SettingsSnapshot = {
   email: string | null | undefined;
   emailVerified: boolean;
@@ -639,13 +653,20 @@ export function SettingsControlCenter({
               <p className="truncate text-sm text-[var(--text-muted)]">@{settings.username}</p>
             </div>
           </div>
+          {/* Both header controls were bare `.settings-quick-link`, which is layout
+              only (globals.css:4427 — display, height, padding, colour). No face, no
+              --edge ring, no side wall: two of the three most-reached buttons on the
+              page had no material at all. They are keys now; `.key` (globals.css:4942)
+              carries all three. `.settings-quick-link-primary` goes with the change —
+              it was deleted from the stylesheet at :4441 and rendered here only, so it
+              was styling nothing; cobalt is what makes this one primary. */}
           <div className="flex items-center gap-2">
-            <Link href="/connected-accounts" className="settings-quick-link">
+            <Link href="/connected-accounts" className="key settings-quick-link">
               <PlugZap size={15} aria-hidden="true" />
               One Account
             </Link>
             <form action={signOut}>
-              <button type="submit" className="settings-quick-link settings-quick-link-primary w-full">
+              <button type="submit" className={`key ${KEY_COBALT} settings-quick-link w-full`}>
                 <LogOut size={15} aria-hidden="true" />
                 Sign out
               </button>
@@ -869,20 +890,34 @@ function AccountSection({
           <SettingsRow icon={MailCheck} label="Email verification" value={settings.emailVerified ? "Verified" : "Not verified"} />
           <SettingsRow icon={Crown} label="Mesh Pro" value={settings.isMeshPro ? "Active" : "Free"} />
         </div>
+        {/* `.mesh-action` is the OLD paper model: it LIFTS on hover (globals.css:2293,
+            and again at :4130), presses by SHRINKING away from the finger (:2298),
+            and in its primary form is painted with a hardcoded `#ffffff` ink over an
+            !important accent fill (:4114). No --edge ring, no side wall. The feed
+            retired the pair at its two call sites for exactly this reason
+            (globals.css:7687); this surface had nine of them, six primary. `.key`
+            supplies the material, the utilities supply the geometry `.mesh-action`
+            used to — min-height 2.75rem is min-h-11, the 44px touch target. */}
         {!settings.emailVerified && (
           <button
             type="button"
             onClick={sendEmailVerification}
             disabled={isPending || !settings.email}
-            className="mesh-action mesh-action-primary mt-3 px-4 text-sm disabled:opacity-50"
+            className={`key ${KEY_COBALT} mt-3 inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold disabled:opacity-50`}
           >
             {isPending ? <PaperWait size="sm" /> : <MailCheck size={15} aria-hidden="true" />}
             Send verification email
           </button>
         )}
+        {/* `.settings-action-row` (globals.css:4485) is layout only too. Where the row
+            is a <button> or a <Link> it is a real control and gets the wall; the one
+            row on this page that is a <div> stays flat, because a plinth means you
+            can press THIS thing. Delete account keeps `.settings-action-danger`
+            (:4508), which pins the crimson triple `.key-lit` reads — the same pairing
+            ui/button.tsx uses for variant="danger". */}
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <form action={signOut}>
-            <button type="submit" className="settings-action-row w-full">
+            <button type="submit" className="key settings-action-row w-full">
               <span className="flex min-w-0 items-center gap-2.5">
                 <IconTile icon={LogOut} />
                 Sign out
@@ -890,7 +925,7 @@ function AccountSection({
               <span className="text-xs text-[var(--text-muted)]">This device</span>
             </button>
           </form>
-          <Link href="/account/delete" className="settings-action-row settings-action-danger">
+          <Link href="/account/delete" className="key key-lit settings-action-row settings-action-danger">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={Trash2} danger />
               Delete account
@@ -998,7 +1033,8 @@ function ProfileSection({
 
       <SettingsCard title="Preview" icon={AtSign}>
         <div className="grid gap-2">
-          <Link href={`/profile/${settings.username}`} className="settings-action-row">
+          {/* A row you can open is a key; see the AccountSection note above. */}
+          <Link href={`/profile/${settings.username}`} className="key settings-action-row">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={AtSign} />
               <span className="min-w-0">
@@ -1138,7 +1174,7 @@ function PrivacySection({
             disabled={!adultVerified}
             onChange={(value) => applySensitive({ ...sensitive, nsfwEnabled: adultVerified ? value : false })}
           />
-          <button type="button" onClick={startAdultVerification} disabled={isPending} className="settings-action-row text-left">
+          <button type="button" onClick={startAdultVerification} disabled={isPending} className="key settings-action-row text-left">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={IdCard} />
               <span className="min-w-0">
@@ -1192,6 +1228,9 @@ function BlockedAccountsCard({ blockedUsers }: { blockedUsers: BlockedUser[] }) 
       ) : (
         <div className="settings-toggle-grid">
           {blocked.map((user) => (
+            /* The row itself is the one `.settings-action-row` on this page that is a
+               <div>. It stays flat deliberately — it is a place, and the thing you
+               press is the button inside it. */
             <div key={user.id} className="settings-action-row">
               <span className="flex min-w-0 items-center gap-2.5">
                 <IconTile icon={UserRound} danger />
@@ -1204,7 +1243,7 @@ function BlockedAccountsCard({ blockedUsers }: { blockedUsers: BlockedUser[] }) 
                 type="button"
                 onClick={() => unblock(user)}
                 disabled={pendingId === user.id}
-                className="mesh-choice inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-semibold disabled:opacity-50"
+                className="key inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-50"
               >
                 {pendingId === user.id
                   ? <PaperWait size="sm" />
@@ -1370,14 +1409,14 @@ function SecuritySection({
 
       <SettingsCard title="Security shortcuts" icon={LockKeyhole}>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Link href="/trust" className="settings-action-row">
+          <Link href="/trust" className="key settings-action-row">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={BadgeCheck} />
               Verify your identity
             </span>
             <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
           </Link>
-          <Link href="/privacy-controls" className="settings-action-row">
+          <Link href="/privacy-controls" className="key settings-action-row">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={ShieldCheck} />
               Privacy controls
@@ -1445,11 +1484,13 @@ function SecurityDevices() {
           {loading ? "Checking active sessions..." : `${totalSessions.toLocaleString()} active session${totalSessions === 1 ? "" : "s"}.`}
         </p>
         <div className="flex gap-2">
-          <button type="button" onClick={() => void loadSessions()} disabled={loading || busy} className="mesh-action mesh-action-secondary px-3 text-sm disabled:opacity-50">
+          {/* Secondary keys stay in --face; only the destructive-adjacent primary is
+              moulded. Rank is which plastic and how deep the wall, never saturation. */}
+          <button type="button" onClick={() => void loadSessions()} disabled={loading || busy} className="key inline-flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold text-[var(--text-primary)] disabled:opacity-50">
             {loading ? <PaperWait size="sm" /> : <RefreshCw size={15} aria-hidden="true" />}
             Refresh
           </button>
-          <button type="button" onClick={revokeOtherSessions} disabled={busy || totalSessions <= 1} className="mesh-action mesh-action-primary px-3 text-sm disabled:opacity-50">
+          <button type="button" onClick={revokeOtherSessions} disabled={busy || totalSessions <= 1} className={`key ${KEY_COBALT} inline-flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold disabled:opacity-50`}>
             {busy ? <PaperWait size="sm" /> : <LogOut size={15} aria-hidden="true" />}
             Sign out other devices
           </button>
@@ -1558,7 +1599,7 @@ function RecoveryMethods() {
           <Field label="Add recovery email">
             <input value={email} onChange={(event) => setEmail(event.target.value)} className="simple-input h-11 px-3 text-sm" placeholder="you@example.com" type="email" />
           </Field>
-          <button type="submit" disabled={busy === "email" || !email.trim()} className="mesh-action mesh-action-primary mt-3 px-3 text-sm disabled:opacity-50">
+          <button type="submit" disabled={busy === "email" || !email.trim()} className={`key ${KEY_COBALT} mt-3 inline-flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold disabled:opacity-50`}>
             {busy === "email" ? <PaperWait size="sm" /> : <Mail size={15} aria-hidden="true" />}
             Add email
           </button>
@@ -1567,7 +1608,7 @@ function RecoveryMethods() {
           <Field label="Add recovery phone">
             <input value={phone} onChange={(event) => setPhone(event.target.value)} className="simple-input h-11 px-3 text-sm" placeholder="+15551234567" type="tel" />
           </Field>
-          <button type="submit" disabled={busy === "phone" || !phone.trim()} className="mesh-action mesh-action-primary mt-3 px-3 text-sm disabled:opacity-50">
+          <button type="submit" disabled={busy === "phone" || !phone.trim()} className={`key ${KEY_COBALT} mt-3 inline-flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold disabled:opacity-50`}>
             {busy === "phone" ? <PaperWait size="sm" /> : <Phone size={15} aria-hidden="true" />}
             Add phone
           </button>
@@ -1585,7 +1626,11 @@ function RecoveryMethods() {
             <span className="flex shrink-0 items-center gap-1.5">
               <strong>{item.isVerified ? "Verified" : "Unverified"}</strong>
               {!item.isPrimary && (
-                <button type="button" onClick={() => void removeMethod(item.kind, item.id)} disabled={busy === item.id} className="grid h-10 w-10 place-items-center rounded-lg text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label}`}>
+                /* Was `text-red-500` on `hover:bg-red-500/10` — a raw Tailwind palette
+                   red, unmeasured against either theme's paper, on a naked 40px box
+                   with no face, no ring and no wall. Removal is destruction, so it is
+                   moulded from crimson, whose ink is pinned at 6.37:1 on its own face. */
+                <button type="button" onClick={() => void removeMethod(item.kind, item.id)} disabled={busy === item.id} className={`key ${KEY_CRIMSON} grid h-10 w-10 place-items-center disabled:opacity-50`} aria-label={`Remove ${item.label}`}>
                   {busy === item.id ? <PaperWait size="sm" /> : <Trash2 size={15} aria-hidden="true" />}
                 </button>
               )}
@@ -1675,7 +1720,7 @@ function TwoFactorMethods() {
               type="button"
               disabled={busy !== null || configured.has(method)}
               onClick={() => void addTwoFactor(method)}
-              className="mesh-action mesh-action-secondary px-3 text-sm capitalize disabled:opacity-50"
+              className="key inline-flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold capitalize text-[var(--text-primary)] disabled:opacity-50"
             >
               {busy === method ? <PaperWait size="sm" /> : <MethodIcon size={15} aria-hidden="true" />}
               {configured.has(method) ? `${method} added` : `Add ${method}`}
@@ -1694,7 +1739,7 @@ function TwoFactorMethods() {
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               <strong>{item.isEnabled ? "Enabled" : "Pending"}</strong>
-              <button type="button" onClick={() => void removeTwoFactor(item.id)} disabled={busy === item.id} className="grid h-10 w-10 place-items-center rounded-lg text-red-500 transition hover:bg-red-500/10 disabled:opacity-50" aria-label={`Remove ${item.label || item.method}`}>
+              <button type="button" onClick={() => void removeTwoFactor(item.id)} disabled={busy === item.id} className={`key ${KEY_CRIMSON} grid h-10 w-10 place-items-center disabled:opacity-50`} aria-label={`Remove ${item.label || item.method}`}>
                 {busy === item.id ? <PaperWait size="sm" /> : <Trash2 size={15} aria-hidden="true" />}
               </button>
             </span>
@@ -1773,6 +1818,11 @@ function MeshSection({
             <Link href="/meshpro" className="text-xs font-semibold text-[var(--accent)]">Upgrade</Link>
           </div>
         )}
+        {/* `.mesh-choice` (globals.css:2338) is a 1px outline on a fill one step from
+            the card, with a hover LIFT (:2354) and a shrink-press (:2358) — the paper
+            model, not the moulded one. Every picker on this surface is a key now, and
+            SELECTED is a change of plastic rather than a 12% accent wash: the same
+            move the feed's chips made at globals.css:7333. */}
         <PickerGroup label="Atmosphere — your mesh's sky">
           {meshAtmospheres.map((sky) => (
             <button
@@ -1780,7 +1830,7 @@ function MeshSection({
               type="button"
               disabled={!isMeshPro}
               onClick={() => applyMeshVisuals({ ...meshVisuals, atmosphere: sky.id })}
-              className={`mesh-choice inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold ${meshVisuals.atmosphere === sky.id ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
+              className={`key inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold ${meshVisuals.atmosphere === sky.id ? KEY_COBALT : "text-[var(--text-primary)]"} ${!isMeshPro ? "opacity-55" : ""}`}
               aria-pressed={meshVisuals.atmosphere === sky.id}
             >
               <span
@@ -1798,7 +1848,7 @@ function MeshSection({
               type="button"
               disabled={!isMeshPro}
               onClick={() => applyMeshVisuals({ ...meshVisuals, connectionColor: color })}
-              className={`mesh-choice inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold ${meshVisuals.connectionColor === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${!isMeshPro ? "opacity-55" : ""}`}
+              className={`key inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold ${meshVisuals.connectionColor === color ? KEY_COBALT : "text-[var(--text-primary)]"} ${!isMeshPro ? "opacity-55" : ""}`}
               aria-pressed={meshVisuals.connectionColor === color}
             >
               <span className="h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
@@ -1890,7 +1940,7 @@ function MeshiSection({
                   type="button"
                   disabled={locked}
                   onClick={() => setMeshiState((current) => ({ ...current, colorTheme: color }))}
-                  className={`mesh-choice inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold capitalize ${meshiState.colorTheme === color ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${locked ? "cursor-not-allowed opacity-55" : ""}`}
+                  className={`key inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold capitalize ${meshiState.colorTheme === color ? KEY_COBALT : "text-[var(--text-primary)]"} ${locked ? "cursor-not-allowed opacity-55" : ""}`}
                   aria-pressed={meshiState.colorTheme === color}
                 >
                   <span className="h-4 w-4 rounded-full" style={{ backgroundColor: colorHex[color] || "#3b82f6" }} />
@@ -2014,10 +2064,10 @@ function AppearanceSection({
             ))}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="submit" disabled={!isMeshPro} className="mesh-action mesh-action-primary px-4 text-sm disabled:opacity-50">
+            <button type="submit" disabled={!isMeshPro} className={`key ${KEY_COBALT} inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold disabled:opacity-50`}>
               Apply custom theme
             </button>
-            <button type="button" disabled={!isMeshPro || !hasCustomTheme} onClick={clearCustomTheme} className="mesh-action mesh-action-secondary px-4 text-sm disabled:opacity-50">
+            <button type="button" disabled={!isMeshPro || !hasCustomTheme} onClick={clearCustomTheme} className="key inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold text-[var(--text-primary)] disabled:opacity-50">
               Reset custom colors
             </button>
           </div>
@@ -2037,14 +2087,14 @@ function BillingSection({ isMeshPro }: { isMeshPro: boolean }) {
             : "Mesh Pro unlocks deeper analytics, custom Mesh visuals, Meshi cosmetics, badges, and themes."}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <Link href="/meshpro" className="settings-action-row">
+          <Link href="/meshpro" className="key settings-action-row">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={Crown} />
               {isMeshPro ? "View Pro features" : "Upgrade to Mesh Pro"}
             </span>
             <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
           </Link>
-          <Link href="/billing" className="settings-action-row">
+          <Link href="/billing" className="key settings-action-row">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={CreditCard} />
               Billing
@@ -2070,7 +2120,7 @@ function DataSection({ privacySummary, storedTotal }: { privacySummary: PrivacyS
           <MetricTile label="Followers" value={privacySummary.connections.followers.toLocaleString()} />
           <MetricTile label="Following" value={privacySummary.connections.following.toLocaleString()} />
         </div>
-        <Link href="/privacy-controls" className="settings-action-row mt-3">
+        <Link href="/privacy-controls" className="key settings-action-row mt-3">
           <span className="flex min-w-0 items-center gap-2.5">
             <IconTile icon={ShieldCheck} />
             Privacy control center
@@ -2216,9 +2266,11 @@ function Field({ label, icon: Icon, children, wide = false }: { label: string; i
   );
 }
 
+/* The submit key for three forms — profile, password, Meshi. One call site, so
+   moulding it here moulds all three. */
 function SaveButton({ label, pending, disabled = false }: { label: string; pending: boolean; disabled?: boolean }) {
   return (
-    <button type="submit" disabled={pending || disabled} className="mesh-action mesh-action-primary mt-4 px-4 text-sm disabled:opacity-50">
+    <button type="submit" disabled={pending || disabled} className={`key ${KEY_COBALT} mt-4 inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold disabled:opacity-50`}>
       {pending && <PaperWait size="sm" />}
       {label}
     </button>
@@ -2272,13 +2324,21 @@ function Toggle({
   disabled?: boolean;
   locked?: boolean;
 }) {
+  /* Fourteen real switches, and the row they sit in had no material: a
+     `.settings-toggle` (globals.css:4514) is display, height and padding. It is a
+     key now — face, --edge ring, and a wall that bottoms out when you flip it.
+     `settings-toggle-on` goes: the stylesheet deleted that rule at :4526 (it was
+     an 8% accent wash carrying the state of a privacy switch, a ~1% luminance
+     shift doing a boolean's job) and this was its only call site, so it has been
+     styling nothing since. The SWITCH carries the state, as jade plastic —
+     `.settings-switch-on` at :4563, untouched below. */
   return (
     <button
       type="button"
       role="switch"
       disabled={disabled}
       onClick={() => onChange(!value)}
-      className={`settings-toggle ${value ? "settings-toggle-on" : ""} ${disabled ? "cursor-not-allowed opacity-65" : ""}`}
+      className={`key settings-toggle ${disabled ? "cursor-not-allowed opacity-65" : ""}`}
       aria-checked={value}
     >
       {icon && <IconTile icon={icon} />}
@@ -2323,7 +2383,7 @@ function ChoiceButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`mesh-choice inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold capitalize ${active ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""} ${disabled ? "opacity-55" : ""}`}
+      className={`key inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold capitalize ${active ? KEY_COBALT : "text-[var(--text-primary)]"} ${disabled ? "opacity-55" : ""}`}
       aria-pressed={active}
     >
       {Icon && <Icon size={14} aria-hidden="true" />}
@@ -2352,8 +2412,8 @@ function GraphicOptionButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`mesh-choice grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-semibold capitalize ${
-        active ? "border-[var(--accent)] bg-[var(--accent-subtle)]" : ""
+      className={`key grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-semibold capitalize ${
+        active ? KEY_COBALT : "text-[var(--text-primary)]"
       } ${disabled ? "cursor-not-allowed opacity-55" : ""}`}
       aria-pressed={active}
     >

@@ -753,14 +753,24 @@ export function MeChatThread({
                         {externalSender?.name || message.sender.displayName}
                       </p>
                     )}
-                    {/* Floating action bar: hover on desktop, tap-to-pin on touch */}
+                    {/* Floating action bar: hover on desktop, tap-to-pin on touch.
+                        The bar itself is a plate that floats — it holds keys, it is
+                        not one. It was `bg-[var(--bg-primary)]/95` + `backdrop-blur`,
+                        so the four controls inside had no stable ground to carry an
+                        --edge ring against; backdrop-filter is banned everywhere in
+                        this system but the modal scrim, and `.glass-dropdown`
+                        (globals.css:7678) is the precedent for making a transient
+                        overlay opaque paper instead. */}
                     {!message.metadata.unsent && (
                       <div
                         onClick={(event) => event.stopPropagation()}
-                        className={`absolute top-1/2 z-10 -translate-y-1/2 items-center gap-0.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/95 px-1.5 py-1 shadow-lg backdrop-blur ${
+                        className={`absolute top-1/2 z-10 -translate-y-1/2 items-center gap-0.5 rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--paper-1)] px-1.5 py-1 shadow-[var(--shadow-float)] ${
                           isMine ? "right-full mr-2" : "left-full ml-2"
                         } ${pinnedActions ? "flex" : "hidden md:group-hover:flex"}`}
                       >
+                        {/* `hover:scale-125` — the control GROWING under the pointer.
+                            Growth is emission; a key answers by pressing in. Chip
+                            wall, because these sit on chrome, not on the message. */}
                         {QUICK_REACTIONS.map((emoji) => (
                           <button
                             key={emoji}
@@ -769,7 +779,7 @@ export function MeChatThread({
                               toggleReaction(message.id, emoji);
                               setActionsFor(null);
                             }}
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-sm transition-transform hover:scale-125"
+                            className="mechat-key mechat-key-chip key flex h-8 w-8 items-center justify-center text-sm"
                             aria-label={`React ${emoji}`}
                           >
                             {emoji}
@@ -782,7 +792,7 @@ export function MeChatThread({
                             setActionsFor(null);
                             draftRef.current?.focus();
                           }}
-                          className="ds-focus-ring flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                          className="mechat-key mechat-key-chip key flex h-8 w-8 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                           aria-label="Reply"
                           title="Reply"
                         >
@@ -795,7 +805,7 @@ export function MeChatThread({
                               beginEdit(message);
                               setActionsFor(null);
                             }}
-                            className="ds-focus-ring flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                            className="mechat-key mechat-key-chip key flex h-8 w-8 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             aria-label="Edit"
                             title="Edit"
                           >
@@ -809,7 +819,7 @@ export function MeChatThread({
                               unsendMessage(message.id);
                               setActionsFor(null);
                             }}
-                            className="ds-focus-ring flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--mesh-danger)]"
+                            className="mechat-key mechat-key-chip key flex h-8 w-8 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--mesh-danger)]"
                             aria-label="Unsend"
                             title="Unsend"
                           >
@@ -827,19 +837,23 @@ export function MeChatThread({
                     } ${!groupedWithNext ? `mechat-tail ${isMine ? "mechat-tail-mine" : "mechat-tail-theirs"}` : ""}`}>
                       {groupedReactions.length > 0 && (
                         <span className={`mechat-tapbacks ${isMine ? "mechat-tapbacks-mine" : "mechat-tapbacks-theirs"}`}>
+                          {/* `whileTap={{ scale: 0.9 }}` wrote an INLINE transform, so
+                              no stylesheet could have replaced the shrink with a
+                              press — inline style beats every rule. The tapback is
+                              moulded in the mechat block appended to globals.css;
+                              the landing spring stays, the shrink goes. */}
                           {groupedReactions.map((reaction) => (
                             <motion.button
                               key={reaction.emoji}
                               type="button"
                               initial={reduceMotion ? false : { scale: 0, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
-                              whileTap={{ scale: 0.9 }}
                               transition={{ type: "spring", stiffness: 500, damping: 18, mass: 0.6 }}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 toggleReaction(message.id, reaction.emoji);
                               }}
-                              className={`mechat-tapback ${reaction.mine ? "is-mine" : ""}`}
+                              className={`mechat-key mechat-tapback ${reaction.mine ? "is-mine" : ""}`}
                               aria-pressed={reaction.mine}
                             >
                               {reaction.emoji}
@@ -858,11 +872,17 @@ export function MeChatThread({
                         </p>
                       ) : null}
 
+                      {/* A real control — it jumps you to the quoted message — drawn
+                          as a translucent wash of whatever bubble it happened to
+                          land in: `bg-white/10` over the accent gradient on one
+                          side, --bg-secondary (the RECESS colour) on the other, and
+                          no --edge ring in either. One key, one face, one pinned
+                          ink, the same in both bubbles. */}
                       {message.replyTo && (
                         <button
                           type="button"
                           onClick={() => setSearchQuery(message.replyTo?.content || "")}
-                          className={`mb-2 w-full rounded-xl border-l-4 px-3 py-2 text-left text-xs ${isMine ? "border-white/60 bg-white/10 text-white/80" : "border-[var(--accent)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]"}`}
+                          className="mechat-key key mb-2 block w-full px-3 py-2 text-left text-xs text-[var(--text-secondary)]"
                         >
                           <span className="block font-semibold">{message.replyTo.senderName}</span>
                           <span className="line-clamp-2">{message.replyTo.content}</span>
@@ -892,9 +912,13 @@ export function MeChatThread({
                             autoFocus
                             className={`w-full resize-none rounded-xl px-3 py-2 text-sm outline-none ${isMine ? "bg-white/15 text-white placeholder:text-white/60" : "border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
                           />
+                          {/* Save was `bg-white/20` in one bubble and an --accent fill
+                              in the other; Cancel had no face at all. Neither had a
+                              ring or a wall. Jade commit key, --face cancel key —
+                              the same pair everywhere on this surface. */}
                           <div className="flex gap-2">
-                            <button type="button" onClick={() => saveEdit(message.id)} disabled={isPending} className={`rounded-full px-3 py-1 text-[11px] font-semibold ${isMine ? "bg-white/20 text-white" : "bg-[var(--accent)] text-white"}`}>Save</button>
-                            <button type="button" onClick={() => { setEditingId(null); setEditDraft(""); }} className={`rounded-full px-3 py-1 text-[11px] font-semibold ${isMine ? "text-white/80" : "text-[var(--text-secondary)]"}`}>Cancel</button>
+                            <button type="button" onClick={() => saveEdit(message.id)} disabled={isPending} className="mechat-key mechat-key-chip key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] inline-flex min-h-8 items-center px-3 py-1 text-[11px] font-semibold disabled:opacity-50">Save</button>
+                            <button type="button" onClick={() => { setEditingId(null); setEditDraft(""); }} className="mechat-key mechat-key-chip key inline-flex min-h-8 items-center px-3 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">Cancel</button>
                           </div>
                         </div>
                       ) : (
@@ -909,19 +933,24 @@ export function MeChatThread({
                         </div>
                       )}
 
+                      {/* `hover:translate-y-[-1px]` — the card LIFTING off the bubble
+                          under the pointer. A control answers by pressing in, never
+                          by rising. Same fix as the quoted reply above: one key with
+                          a real face, so the three inks stop being white-alpha over
+                          an unknown ground and become the pinned ramp. */}
                       {message.metadata.linkPreview && (
                         <a
                           href={message.metadata.linkPreview.url}
                           target="_blank"
                           rel="noreferrer"
-                          className={`mt-3 block rounded-xl border p-3 transition hover:translate-y-[-1px] ${isMine ? "border-white/20 bg-white/10 text-white" : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
+                          className="mechat-key key mt-3 block p-3 text-[var(--text-primary)]"
                         >
-                          <span className={`text-[10px] font-semibold mesh-eyebrow ${isMine ? "text-white/70" : "text-[var(--text-muted)]"}`}>
+                          <span className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
                             {message.metadata.linkPreview.host}
                           </span>
                           <span className="mt-1 block text-sm font-semibold">{message.metadata.linkPreview.title}</span>
                           {message.metadata.linkPreview.description && (
-                            <span className={`mt-1 block text-xs ${isMine ? "text-white/70" : "text-[var(--text-secondary)]"}`}>
+                            <span className="mt-1 block text-xs text-[var(--text-secondary)]">
                               {message.metadata.linkPreview.description}
                             </span>
                           )}
@@ -1027,7 +1056,14 @@ export function MeChatThread({
         {/* "New messages" pill — appears only when you've scrolled up and a
             fresh message arrived, sticking to the bottom of the scroll port so
             it never hijacks your reading position. Tap to jump to the latest.
-            With nothing new, a quieter round arrow offers the same jump. */}
+            With nothing new, a quieter round arrow offers the same jump.
+
+            Both float over live message text, which is the one place a control
+            MUST carry its own boundary, and neither did: an --accent fill with
+            unpinned white ink, and a `bg-[var(--bg-primary)]/90` + `backdrop-blur`
+            disc. Jade key for the one that reports news, --face key for the one
+            that only navigates — rank by material. The arrow's target goes 36 ->
+            44px on the way past. */}
         <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
           {newBelowCount > 0 ? (
             <button
@@ -1036,7 +1072,7 @@ export function MeChatThread({
                 bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
                 setNewBelowCount(0);
               }}
-              className="ds-focus-ring pointer-events-auto flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg transition hover:bg-[var(--accent-hover)]"
+              className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] pointer-events-auto flex min-h-9 items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold"
             >
               {newBelowCount > 1 ? `${newBelowCount} new messages` : "New messages"}
               <ArrowDown size={14} aria-hidden="true" />
@@ -1047,7 +1083,7 @@ export function MeChatThread({
               onClick={() => {
                 bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
               }}
-              className="ds-focus-ring pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/90 text-[var(--text-secondary)] shadow-lg backdrop-blur transition hover:text-[var(--text-primary)]"
+              className="mechat-key key pointer-events-auto flex h-11 w-11 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               aria-label="Jump to latest"
               title="Jump to latest"
             >
@@ -1083,7 +1119,14 @@ export function MeChatThread({
               <span className="block font-semibold">Replying to {replyTo.sender.displayName}</span>
               <span className="block truncate text-[var(--text-muted)]">{replyTo.content}</span>
             </span>
-            <button type="button" onClick={() => setReplyTo(null)} className="mesh-choice rounded-full p-1" aria-label="Cancel reply">
+            {/* `.mesh-choice` is the old paper model and it is FLATTENED: the
+                override at globals.css:4150 sets `box-shadow: none !important`, so
+                this control could never have carried a wall, and :4161 lifts it 1px
+                on hover. That class has call sites across the whole product, so the
+                shared rule stays exactly as it is and only this site moves to
+                `.key` — the same containment the feed pass used for `.mesh-action`
+                (globals.css:7692). */}
+            <button type="button" onClick={() => setReplyTo(null)} className="mechat-key mechat-key-chip key inline-flex h-8 w-8 items-center justify-center text-[var(--text-secondary)]" aria-label="Cancel reply">
               <X size={14} aria-hidden="true" />
             </button>
           </div>
@@ -1094,7 +1137,7 @@ export function MeChatThread({
             <span className="min-w-0 font-semibold text-[var(--text-secondary)]">
               Sharing from {pendingSource.sourcePlatform}. Source credit stays attached.
             </span>
-            <button type="button" onClick={() => setPendingSource(undefined)} className="mesh-choice rounded-full p-1" aria-label="Remove shared source">
+            <button type="button" onClick={() => setPendingSource(undefined)} className="mechat-key mechat-key-chip key inline-flex h-8 w-8 items-center justify-center text-[var(--text-secondary)]" aria-label="Remove shared source">
               <X size={14} aria-hidden="true" />
             </button>
           </div>
@@ -1108,7 +1151,7 @@ export function MeChatThread({
                 type="button"
                 onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
                 aria-label={`Remove ${attachment.name || attachmentLabel(attachment.type)}`}
-                className="ds-focus-ring inline-flex items-center gap-1 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)]"
+                className="mechat-key mechat-key-chip key inline-flex min-h-9 items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)]"
               >
                 <Paperclip size={12} aria-hidden="true" />
                 {attachment.name || attachmentLabel(attachment.type)}
@@ -1146,20 +1189,27 @@ export function MeChatThread({
               className="simple-input h-10 px-3 text-sm"
               placeholder="Name"
             />
-            <button type="button" onClick={addAttachment} className="mesh-action mesh-action-secondary px-3 text-sm">
+            {/* `.mesh-action mesh-action-secondary` — flattened by the same
+                `box-shadow: none !important` block (globals.css:4150) and lifted
+                3px on hover by `.mesh-action:hover` (:2293). Call site only. */}
+            <button type="button" onClick={addAttachment} className="mechat-key key inline-flex min-h-11 items-center justify-center px-3 text-sm font-semibold text-[var(--text-primary)]">
               Add
             </button>
           </div>
         )}
 
         <div className="flex items-end gap-2">
+          {/* ON was an --accent-subtle wash behind --accent glyph and OFF was
+              --bg-secondary, the RECESS colour, on a control that is not a well.
+              Neither carried a ring or a wall. ON is a material change now:
+              moulded jade with its pinned ink, OFF is --face. */}
           <button
             type="button"
             onClick={() => setShowMediaTools((current) => !current)}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition ${
+            className={`mechat-key key flex h-11 w-11 shrink-0 items-center justify-center ${
               showMediaTools
-                ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)]"
-                : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
             aria-pressed={showMediaTools}
             aria-label="Add media or link"
@@ -1207,21 +1257,28 @@ export function MeChatThread({
                 setDraft((current) => `${current}${current ? " " : ""}\uD83D\uDC4D`);
                 draftRef.current?.focus();
               }}
-              className="mb-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+              className="mechat-key mechat-key-chip key mb-1.5 flex h-9 w-9 shrink-0 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               aria-label="Add thumbs up to message"
               title="Add thumbs up"
             >
               <SmilePlus size={17} aria-hidden="true" />
             </button>
           </div>
+          {/* Send is the last control in the product's most-used loop and it had
+              the loudest non-material: an --accent disc under `shadow-lg`, unpinned
+              white ink, `hover:brightness-110`, `active:scale-90`, and — worst —
+              `scale-100` vs `scale-95` to signal readiness. Size was carrying
+              state, which is Law 2 in the size dimension. Armed is a jade key with
+              its pinned ink; empty is --face, and `.key:disabled` (globals.css:4984)
+              already draws a key that is bottomed out with nothing left to press. */}
           <button
             type="submit"
             disabled={isPending || (!draft.trim() && attachments.length === 0 && !pendingSource?.sourceUrl)}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-lg transition-all duration-150 ${
+            className={`mechat-key key flex h-11 w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed ${
               draft.trim() || attachments.length > 0 || pendingSource?.sourceUrl
-                ? "scale-100 bg-[var(--accent)] hover:brightness-110 active:scale-90"
-                : "scale-95 bg-[var(--bg-secondary)] text-[var(--text-muted)]"
-            } disabled:cursor-not-allowed`}
+                ? "key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]"
+                : "text-[var(--text-muted)]"
+            }`}
             aria-label="Send message"
             title="Send"
           >

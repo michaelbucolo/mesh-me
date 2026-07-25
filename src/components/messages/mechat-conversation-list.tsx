@@ -304,10 +304,15 @@ export function MeChatConversationList({
             suppressHydrationWarning
           />
         </label>
+        {/* Compose is the primary action of the whole surface and it had no
+            material: `.mesh-pressable` lifts on hover, the fill was raw --accent
+            under an emitting `0 4px 18px var(--accent-glow)`, and the press was
+            `active:scale-95`. Moulded from jade — --domain-messages, tokens.css:102
+            — with the pinned ink `.key-lit` carries. */}
         <button
           type="button"
           onClick={openCompose}
-          className="mesh-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[0_4px_18px_var(--accent-glow)] transition hover:brightness-110 active:scale-95"
+          className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] inline-flex h-11 w-11 shrink-0 items-center justify-center"
           aria-label="Compose new message"
           title="Compose new message"
         >
@@ -321,19 +326,25 @@ export function MeChatConversationList({
             const selected = activeFilter === filter.key;
             const count = filter.key === "all" ? filterCounts.all : filterCounts[filter.key];
             return (
+              // SELECTED is a material change, not a tint. It was an --accent fill
+              // plus an emitting `0 2px 12px var(--accent-glow)` — brightness
+              // carrying "which one", which Law 2 forbids. Both states are keys;
+              // the selected one is moulded from jade and the unselected one keeps
+              // --face. Chip wall (2px), not the 3px object wall: a filter strip is
+              // chrome and must stay quieter than the conversations under it.
               <button
                 key={filter.key}
                 type="button"
                 onClick={() => setActiveFilter(filter.key)}
-                className={`mesh-pressable inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                className={`mechat-key mechat-key-chip key inline-flex min-h-8 items-center gap-1.5 px-3 py-1 text-xs font-semibold ${
                   selected
-                    ? "bg-[var(--accent)] text-white shadow-[0_2px_12px_var(--accent-glow)]"
-                    : "bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text)]"
+                    ? "key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]"
+                    : "text-[var(--mesh-text-secondary)]"
                 }`}
               >
                 <span>{filter.label}</span>
                 {count > 0 && (
-                  <span className={`text-[10px] ${selected ? "text-white/80" : "text-[var(--mesh-text-muted)]"}`}>{count}</span>
+                  <span className={`text-[10px] ${selected ? "" : "text-[var(--mesh-text-muted)]"}`}>{count}</span>
                 )}
               </button>
             );
@@ -541,11 +552,15 @@ export function MeChatConversationList({
                 placeholder="Search people"
                 suppressHydrationWarning
               />
+              {/* Was a bare `rounded-lg p-1.5` with an inline colour: no face, no
+                  --edge ring, no wall and a ~26px target. Same chip mould the
+                  filter strip wears. */}
               <button
                 type="button"
                 onClick={searchPeople}
                 disabled={isPending}
-                className="shrink-0 rounded-lg p-1.5 text-[var(--accent)] hover:bg-[var(--mesh-panel)]"
+                aria-label="Search people"
+                className="mechat-key mechat-key-chip key inline-flex h-9 w-9 shrink-0 items-center justify-center text-[var(--mesh-text)] disabled:opacity-50"
               >
                 {isPending ? <PaperWait size="sm" /> : <Search size={16} />}
               </button>
@@ -604,11 +619,14 @@ export function MeChatConversationList({
             )}
 
             <div className="-mx-5 border-t border-[var(--mesh-border)] px-5 pt-3">
+              {/* The modal's commit action: an --accent fill with unpinned white
+                  ink, no --edge ring, no wall, and "hover:opacity-90" as its only
+                  answer to a pointer. Jade key, pinned ink. */}
               <button
                 type="button"
                 onClick={startConversation}
                 disabled={isPending || selectedMembers.length === 0}
-                className="w-full rounded-2xl bg-[var(--accent)] py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] flex min-h-11 w-full items-center justify-center py-2.5 text-sm font-semibold disabled:opacity-40"
               >
                 {isPending ? "Starting..." : "Chat"}
               </button>
@@ -646,13 +664,16 @@ export function MeChatConversationList({
               className="h-10 w-full bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
             />
           </div>
+          {/* Two bare rectangles: one with no face at all, one an --accent fill on
+              unpinned white with no ring and no wall. Secondary is --face, primary
+              is jade — rank comes from material, not from saturation. */}
           <div className="mt-4 flex items-center gap-2">
             {myNote && (
               <button
                 type="button"
                 onClick={clearNote}
                 disabled={isPending}
-                className="rounded-xl px-3 py-2 text-xs font-medium text-[var(--mesh-text-secondary)] hover:text-[var(--mesh-danger)] disabled:opacity-50"
+                className="mechat-key key inline-flex min-h-11 items-center px-3 py-2 text-xs font-semibold text-[var(--mesh-text-secondary)] hover:text-[var(--mesh-danger)] disabled:opacity-50"
               >
                 Clear note
               </button>
@@ -661,7 +682,7 @@ export function MeChatConversationList({
               type="button"
               onClick={saveNote}
               disabled={isPending}
-              className="ml-auto rounded-xl bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] ml-auto inline-flex min-h-11 items-center px-5 py-2 text-sm font-semibold disabled:opacity-50"
             >
               {isPending ? "Sharing..." : "Share"}
             </button>
