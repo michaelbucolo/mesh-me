@@ -1314,6 +1314,15 @@ body[data-meshi-panel="open"] .bug-report-widget {
   margin-inline: auto;
 }
 
+/* Every .simple-page is a grid, and a grid item's automatic minimum size is
+   its min-content width — which pushed cards past the page padding on narrow
+   phones and cover screens. Items that ask for a min-width of their own keep
+   it. */
+.simple-page > *,
+.simple-page .grid > *:not([class*="min-w-"]) {
+  min-width: 0;
+}
+
 .themed-error-screen {
   background: linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 94%, var(--bg-secondary)), var(--bg-primary));
 }
@@ -2102,6 +2111,10 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 
 .meshi-float-shell {
+  /* Hug the 48px Meshi body: the shell's popovers anchor to its right edge,
+     and a stretched shell threw them off-screen. Matches MESHI_SIZE, which the
+     float's own viewport clamping already assumes. */
+  width: max-content;
   will-change: left, top, transform, opacity;
 }
 
@@ -5910,7 +5923,9 @@ body {
   }
 
   .mesh-sidebar .mesh-brand-lockup .mesh-brand-wordmark-wrap,
-  .mesh-sidebar .mesh-nav-item span:not(.sr-only),
+  /* Only the text label collapses — the icon wrapper and the active indicator
+     are also spans, and hiding them left the rail with no icons at all. */
+  .mesh-sidebar .mesh-nav-item span[data-nav-label],
   .mesh-sidebar .mesh-privacy-card,
   .mesh-sidebar .mesh-user-dock .min-w-0.flex-1,
   .mesh-sidebar .mesh-user-dock svg,
@@ -6593,8 +6608,13 @@ body {
     radial-gradient(58rem 40rem at 10% -10%, rgba(110, 139, 255, 0.10), transparent 60%),
     radial-gradient(50rem 36rem at 106% 6%, rgba(168, 85, 247, 0.08), transparent 58%);
 }
-/* Keep real content above the aurora. */
-body > * { position: relative; z-index: 1; }
+/* Keep real content above the aurora. Body-level fixed layers (toasts, the
+   Meshi float, the bug-report widget) are skipped: this rule is unlayered, so
+   it beat Tailwind's `fixed`/`z-*` utilities and dropped those layers back into
+   flow — full-bleed and pinned to the wrong edge on every viewport. `:where()`
+   keeps this at its original specificity so component rules that position
+   themselves (.mesh-gate) still win. */
+body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
 /* Gradient wordmark — the brand should shimmer, not sit flat. */
 .brand-wordmark {
@@ -7275,12 +7295,21 @@ body > * { position: relative; z-index: 1; }
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   gap: clamp(0.9rem, 4vw, 1.6rem);
   font-size: clamp(0.76rem, 2.6vw, 0.84rem);
   font-weight: 600;
   color: rgba(179, 190, 220, 0.72);
 }
-.mesh-gate-links > * { transition: color 150ms ease; }
+.mesh-gate-links > * {
+  /* The coarse-pointer 44px min touch target stretches these items. Buttons
+     centre their label but links render theirs at the top, so the four
+     essentials sat on two different baselines on phones. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease;
+}
 .mesh-gate-links > *:hover { color: #ffffff; }
 
 /* Success: fade the focal element as Meshi becomes the mesh and we hand off. */

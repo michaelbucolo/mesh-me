@@ -145,7 +145,7 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
       <motion.span animate={iconControls} className="relative flex shrink-0">
         <Icon className={`h-[20px] w-[20px] shrink-0 ${active ? "stroke-[2px]" : "stroke-[1.5px]"}`} aria-hidden="true" />
       </motion.span>
-      <span className="truncate">{item.label}</span>
+      <span data-nav-label className="truncate">{item.label}</span>
     </Link>
   );
 }
