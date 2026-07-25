@@ -514,7 +514,12 @@ const checks = [
     fix: "Check the failing public route and shared public shell components.",
     run: async () => {
       if (!httpReachable) return { skip: true, evidence: "Server not reachable" };
-      const routes = ["/", "/login", "/verify-email", "/about", "/features", "/privacy", "/terms", "/trust", "/roadmap", "/vision"];
+      // /roadmap and /vision are NOT here: next.config.ts redirects both to
+      // /about with `permanent: true`, so probing them for a 200 reported a
+      // permanent P1 warning for behaviour that is intentional. Same staleness
+      // as the /api/feedback probe below — a check that can never go green
+      // teaches people to scroll past the whole report.
+      const routes = ["/", "/login", "/verify-email", "/about", "/features", "/privacy", "/terms", "/trust"];
       const failures = [];
       for (const route of routes) {
         try {
@@ -564,13 +569,24 @@ const checks = [
     fix: "Check src/proxy.ts and src/lib/request-guard.ts.",
     run: async () => {
       if (!httpReachable) return { skip: true, evidence: "Server not reachable" };
-      const response = await get("/api/feedback", {
+      // /api/bug-reports, not /api/feedback. The feedback route was deleted in
+      // c3803e1 ("no leftover wings") and this probe kept pointing at it, so a
+      // P0 that exists to prove the origin guard works was really only proving
+      // that a 404 is not a 403. It went unnoticed because the check SKIPS when
+      // no server is reachable, which is the usual state in CI.
+      //
+      // The replacement has to satisfy two conditions, and most guarded routes
+      // fail the second: it uses isSameOriginRequest, AND it is not listed in
+      // proxy.ts's protectedApiPrefixes — otherwise the proxy answers 401 first
+      // and the route's own 403 never runs, so the guard would go untested while
+      // the assertion still passed for the wrong reason.
+      const response = await get("/api/bug-reports", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ message: "diagnostics" }),
       });
-      assert(response.status === 403, `/api/feedback returned ${response.status}, expected 403`);
-      return { evidence: "POST /api/feedback returned 403 without same-origin headers" };
+      assert(response.status === 403, `/api/bug-reports returned ${response.status}, expected 403`);
+      return { evidence: "POST /api/bug-reports returned 403 without same-origin headers" };
     },
   },
   {

@@ -526,7 +526,11 @@ function getPageArrivalPosition(pathname: string): MeshiPoint {
 type MeshiBurstParticle = { id: string; dx: number; dy: number; color: string; size: number; heart: boolean };
 type MeshiTapBurst = { id: string; particles: MeshiBurstParticle[] };
 
-const MESHI_BURST_COLORS = ["#6e8bff", "#34e4ea", "#8b5cf6"];
+// Moulded plastics, not the rejected neon triple (#6e8bff/#34e4ea/#8b5cf6).
+// A burst is bits of the same plastic the product is made of, so these are the
+// mould faces — which is also why they need no theme variant: plastic does not
+// change colour when the lamp goes off.
+const MESHI_BURST_COLORS = ["#3b5ae0", "#157681", "#7448d4"];
 const MESHI_HEART_COLOR = "#ec4899";
 
 function createMeshiBurst(count: number): MeshiTapBurst {

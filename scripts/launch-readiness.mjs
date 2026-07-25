@@ -107,11 +107,15 @@ const checks = [
     fix: "Create /api/health so uptime checks do not depend on an authenticated route.",
   },
   {
-    id: "api-feedback",
-    description: "Feedback endpoint exists",
+    // Renamed from api-feedback. /api/feedback was deleted in c3803e1 and the
+    // product captures user issues through /api/bug-reports instead, so this
+    // had been reporting a permanent WARN for a route nobody intends to build.
+    // A check that can never go green is one people learn to scroll past.
+    id: "api-bug-reports",
+    description: "User-issue capture endpoint exists",
     severity: "P1",
-    run: () => fs.existsSync(path.join(root, "src", "app", "api", "feedback", "route.ts")),
-    fix: "Create /api/feedback to capture user issues.",
+    run: () => fs.existsSync(path.join(root, "src", "app", "api", "bug-reports", "route.ts")),
+    fix: "Create /api/bug-reports to capture user issues.",
   },
   {
     id: "payments-webhook",
