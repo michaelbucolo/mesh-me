@@ -1,4 +1,12 @@
 import { prisma } from "./prisma";
+// NOTE: effectiveProfileVisibility — "what this profile's visibility amounts
+// to, for showing the user" — lives in ./profile-visibility.ts, NOT here.
+// It is derived from the canViewProfile expression below and belongs beside it,
+// but both screens that render the label are client components and this file
+// imports Prisma; importing it into a browser bundle pulls node:async_hooks in
+// and fails the build. The rule is a pure function, so it moved rather than
+// being copied. Change canViewProfile's first clause and change it there too —
+// scripts/second-writer-check.ts asserts the two agree.
 
 type Viewer = {
   id: string;

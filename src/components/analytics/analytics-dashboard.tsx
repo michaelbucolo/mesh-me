@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { effectiveProfileVisibility } from "@/lib/profile-visibility";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { motion, useInView, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
@@ -644,7 +645,11 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
           />
           <StatusPill label={data.user.isMeshPro ? "Mesh Pro" : "Free plan"} ok={data.user.isMeshPro} />
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">
-            {data.user.isPublic ? "Public profile" : "Private profile"}
+            {effectiveProfileVisibility(data.user.isPublic, data.user.meshVisibility) === "public"
+              ? "Public profile"
+              : effectiveProfileVisibility(data.user.isPublic, data.user.meshVisibility) === "friends"
+                ? "Friends only"
+                : "Private profile"}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">
             {data.user.showInDiscovery ? "In discovery" : "Hidden from discovery"}

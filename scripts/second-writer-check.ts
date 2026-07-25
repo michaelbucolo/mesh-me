@@ -327,6 +327,75 @@ for (const file of DIRECT_THREAD_CALLERS) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. A PROFILE'S VISIBILITY IS DESCRIBED THE SAME WAY EVERYWHERE IT IS SHOWN.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// `User.isPublic` is NOT the gate. canViewProfile grants access when
+// `isPublic !== false || meshVisibility === "public"`, so a profile with
+// isPublic=false and mesh visibility "public" is world-readable. Two screens —
+// the Settings header pill and the Analytics privacy row — read the raw column
+// and both printed "Private profile" over exactly that profile.
+//
+// It is not a corner case. /privacy-controls writes User.isPublic and
+// MeshPrivacy.meshVisibility through two independent actions, neither touching
+// the other column, and the schema default for isPublic is false — so choosing
+// "public" for the mesh alone produces the state. Settings even disagreed with
+// ITSELF: the "Who can see your profile" picker on the same screen showed
+// Public while the header pill said Private.
+// The rule and the gate it describes must stay the SAME expression. Pinning
+// only WHERE the rule lives leaves it free to drift from canViewProfile — a
+// mutation that changed the shared rule to `isPublic === true` passed until
+// this compared the two predicates directly.
+const gateClause = /subject\.isPublic !== false \|\| visibility === "public"/;
+const ruleClause = /isPublic !== false \|\| visibility === "public"/;
+const gateSrc = read("src/lib/privacy-policy.ts");
+const gateStart = gateSrc.indexOf("export function canViewProfile(");
+assert.notEqual(gateStart, -1, "canViewProfile not found in src/lib/privacy-policy.ts");
+const gateBody = gateSrc.slice(gateSrc.indexOf("{", gateStart));
+assert.match(
+  gateBody,
+  gateClause,
+  "canViewProfile's public clause changed shape. If the gate moved, the label rule in\n" +
+    "  src/lib/profile-visibility.ts has to move with it — update BOTH and this assertion.",
+);
+// Matched against the FUNCTION BODY, not the file. The file's header comment
+// quotes the predicate to explain itself, so a whole-file match is satisfied by
+// the prose while the code says something else entirely — mutation-tested:
+// rewriting the rule to `isPublic === true` passed until this sliced the body.
+const ruleSrc = read("src/lib/profile-visibility.ts");
+const ruleStart = ruleSrc.indexOf("export function effectiveProfileVisibility(");
+assert.notEqual(ruleStart, -1, "effectiveProfileVisibility not found in src/lib/profile-visibility.ts");
+const ruleBody = ruleSrc.slice(ruleSrc.indexOf("{", ruleStart));
+assert.match(
+  ruleBody,
+  ruleClause,
+  "effectiveProfileVisibility no longer uses the same predicate as canViewProfile.\n" +
+    "  The label exists to describe that gate; the moment the two expressions differ, the label is\n" +
+    "  wrong again in exactly the way it was wrong before — silently, and about privacy.",
+);
+
+const VISIBILITY_LABELS = [
+  "src/components/settings/settings-control-center.tsx",
+  "src/components/analytics/analytics-dashboard.tsx",
+];
+for (const file of VISIBILITY_LABELS) {
+  const body = read(file);
+  assert.match(
+    body,
+    /effectiveProfileVisibility\(/,
+    `${file} must derive the profile-visibility label from effectiveProfileVisibility()\n` +
+      "  in src/lib/profile-visibility.ts, derived from the same expression canViewProfile uses\n" +
+      "  expression — so a label cannot drift from the gate it claims to describe.",
+  );
+  assert.ok(
+    !/isPublic\s*\?\s*"Public profile"/.test(body),
+    `${file} still branches a visibility label on the raw isPublic column. That column is not the\n` +
+      "  gate: a profile with isPublic=false and meshVisibility \"public\" is world-readable, and this\n" +
+      "  is exactly the shape that labelled it \"Private profile\".",
+  );
+}
+
 console.log(
   `second-writer contract OK — all ${Object.keys(PEOPLE_SEARCHES).length} people searches subtract blocks in each direction\n` +
     "  through one of the two shared mechanisms (none re-spells it inline),\n" +

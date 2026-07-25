@@ -706,6 +706,10 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
       phoneVerified: user.phoneVerified,
       isMeshPro: user.isMeshPro,
       isPublic: user.isPublic,
+      // Carried so the dashboard can show the EFFECTIVE profile visibility
+      // rather than the raw isPublic column, which is not the gate — see
+      // effectiveProfileVisibility in privacy-policy.ts.
+      meshVisibility: meshPrivacy?.meshVisibility ?? null,
       showInDiscovery: user.showInDiscovery,
       hideActivityStatus: user.hideActivityStatus,
       readReceipts: user.readReceipts,

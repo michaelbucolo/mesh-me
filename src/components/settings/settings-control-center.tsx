@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { effectiveProfileVisibility } from "@/lib/profile-visibility";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellRing, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
@@ -506,12 +507,9 @@ export function SettingsControlCenter({
   // access is public when isPublic !== false OR meshVisibility === "public".
   // Otherwise friends vs private comes from meshVisibility ("partial" with
   // isPublic=false is hidden by canViewProfile, so it reads as private here).
-  const profileVisibilityLevel: "private" | "friends" | "public" =
-    privacy.isPublic !== false || mesh.meshVisibility === "public"
-      ? "public"
-      : mesh.meshVisibility === "friends"
-        ? "friends"
-        : "private";
+  // The one definition lives beside canViewProfile in privacy-policy.ts, so a
+  // label can never drift from the gate it describes. This was a local copy.
+  const profileVisibilityLevel = effectiveProfileVisibility(privacy.isPublic, mesh.meshVisibility);
 
   function applyMeshVisuals(next: typeof meshVisuals) {
     setMeshVisuals(next);
@@ -657,7 +655,29 @@ export function SettingsControlCenter({
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryPill label="Email" value={settings.emailVerified ? "Verified" : "Needs review"} icon={MailCheck} />
           <SummaryPill label="Platforms" value={`${connectedCount} connected`} icon={PlugZap} />
-          <SummaryPill label="Privacy" value={settings.isPublic ? "Public profile" : "Private profile"} icon={LockKeyhole} />
+          {/* Reads the EFFECTIVE gate, not the raw isPublic column.
+              canViewProfile (privacy-policy.ts) returns true when
+              `isPublic !== false || meshVisibility === "public"`, so a profile
+              with isPublic=false and mesh visibility "public" is world-readable
+              — and this pill said "Private profile" over it. That state is one
+              click away: /privacy-controls writes User.isPublic and
+              MeshPrivacy.meshVisibility through two independent actions, so
+              choosing "public" for the mesh alone produces it, and the schema
+              default for isPublic is false.
+              profileVisibilityLevel (computed above, and already feeding the
+              "Who can see your profile" picker on this same screen) mirrors the
+              real gate — so the header pill and the picker stop disagreeing. */}
+          <SummaryPill
+            label="Privacy"
+            value={
+              profileVisibilityLevel === "public"
+                ? "Public profile"
+                : profileVisibilityLevel === "friends"
+                  ? "Friends only"
+                  : "Private profile"
+            }
+            icon={LockKeyhole}
+          />
           <SummaryPill label="Plan" value={settings.isMeshPro ? "Mesh Pro" : "Free"} icon={Crown} />
         </div>
       </header>
