@@ -225,6 +225,81 @@ try {
       "UPDATE DataVisibilityPolicy SET allowAiUse = 1 WHERE allowAiUse = 0 AND visibility <> 'hidden' AND entityType IN ('meshi_memory', 'meshi_ai')",
     );
   });
+
+  // ── Orphaned mirrored DMs — swept on EVERY deploy, not once ─────────────
+  //
+  // `MessageThread.connectedAccountId` was a bare TEXT column with no foreign
+  // key for the whole life of the mirrored-DM feature. Disconnecting a platform
+  // deleted the ConnectedAccount row and left every mirrored thread behind
+  // pointing at an id that no longer existed: unreachable from any surface,
+  // deleted by nothing, and still present after a GDPR erasure request or
+  // Meta's data-deletion callback. Those rows hold real correspondence —
+  // message bodies, plus the other party's name, handle and avatar in
+  // metadata — stored unencrypted because it arrived from a platform that had
+  // already read it.
+  //
+  // The remediation shipped as a migration
+  // (20260725093000_message_thread_connected_account_cascade). PRODUCTION NEVER
+  // RUNS MIGRATIONS — see the header of this file — so the purge never
+  // executed against the live database, and neither did the ON DELETE CASCADE:
+  // `CREATE TABLE IF NOT EXISTS "MessageThread"` no-ops against the existing
+  // table, and the column catch-up loop above skips table-level constraints by
+  // construction (`if (!col) continue`). The fix was real in the repo and inert
+  // where the data actually lives. That is the same failure the leak itself
+  // came from — two statements of one fact, only one of them maintained.
+  //
+  // NOT runOnce, deliberately. Replaying this can only ever delete rows that are
+  // already unreachable by definition, so re-running it is free, and running it
+  // every deploy makes it a standing sweep rather than a one-time repair: if any
+  // future path ever orphans a mirrored thread again, the next deploy takes it
+  // out instead of leaving it there for another year. The one-time blocks above
+  // are runOnce because replaying THEM would overwrite choices users have since
+  // made; this one has nothing to overwrite. Deepest table first — the FK that
+  // would cascade for us is exactly the one production lacks.
+  const ORPHANED_THREADS = `SELECT "id" FROM "MessageThread"
+     WHERE "connectedAccountId" IS NOT NULL
+       AND "connectedAccountId" NOT IN (SELECT "id" FROM "ConnectedAccount")`;
+  // A NULL connectedAccountId is a mesh-native thread and is never touched.
+  const orphanCount = await client.execute(
+    `SELECT COUNT(*) AS n FROM (${ORPHANED_THREADS})`,
+  );
+  const orphans = Number(orphanCount.rows[0]?.n ?? 0);
+  if (orphans > 0) {
+    await client.execute(`DELETE FROM "Message" WHERE "threadId" IN (${ORPHANED_THREADS})`);
+    await client.execute(`DELETE FROM "ThreadMember" WHERE "threadId" IN (${ORPHANED_THREADS})`);
+    await client.execute(
+      `DELETE FROM "MessageThread"
+       WHERE "connectedAccountId" IS NOT NULL
+         AND "connectedAccountId" NOT IN (SELECT "id" FROM "ConnectedAccount")`,
+    );
+    console.log(
+      `[ensure-schema] Purged ${orphans} mirrored DM thread(s) belonging to revoked connections.`,
+    );
+  }
+
+  // WHAT IS DELIBERATELY NOT DONE HERE: adding the ON DELETE CASCADE to the
+  // live table.
+  //
+  // SQLite cannot add a foreign key in place, so it means the twelve-step table
+  // rebuild — create, copy, DROP TABLE "MessageThread", rename. Both "Message"
+  // and "ThreadMember" hold `ON DELETE CASCADE` foreign keys REFERENCING
+  // MessageThread, so that DROP deletes every message in the product unless
+  // `PRAGMA foreign_keys=OFF` is genuinely in force. A Prisma migration gets
+  // that guarantee. This script does not: it speaks to Turso over HTTP, where
+  // PRAGMA is per-connection and ignored inside a transaction, and there is no
+  // atomic boundary around DROP-then-RENAME — a failure between them leaves the
+  // product with no MessageThread table at all.
+  //
+  // That is a catastrophic, irreversible downside in exchange for defence in
+  // depth, on an operation that cannot be rehearsed against the real database.
+  // The enforcing path in production is the application-level teardown in
+  // src/lib/connected-account-deletion.ts, which deletes mirrored threads
+  // explicitly, and scripts/disconnect-purge-check.ts holds it as the single
+  // definition every disconnect path must use. The cascade still ships in
+  // ensure-schema.sql, so every freshly provisioned database gets it.
+  //
+  // Do not "just add the rebuild" without a tested backup-and-restore for the
+  // live database. The sweep above is what closes the leak.
 } finally {
   await client.close?.();
 }
