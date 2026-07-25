@@ -531,10 +531,37 @@ function Reel({
   // click doesn't also pause/like. Lives here so it survives the content swap.
   const suppressTapRef = useRef(false);
 
+  // GROUNDED CONTEXT — the same attribute contract the mesh's ContentLens and
+  // the feed's PostCard emit, so Meshi can see what you are watching here too.
+  // /flow had none of these, which is why asking Meshi about the reel on
+  // screen produced an answer about nothing: getVisibleFocusedContent matched
+  // no element and focusedContent was always null on this surface.
+  //
+  // Only the ACTIVE reel is announced. Marking every mounted slide would hand
+  // Meshi three cards at once and let it answer about one already scrolled past.
+  //
+  // data-meshi-content-id carries the NATIVE post id only. The egress gate in
+  // /api/meshi/chat resolves the author by this id to check THEIR Meshi memory
+  // rule before any of their text reaches the provider; a platform-prefixed id
+  // finds no Post row and the gate fails open. That is exactly the hole that
+  // had to be fixed in ContentLens.
+  const isNativePost = !post.platform || post.platform.toLowerCase() === "meshme";
+
   return (
     <section
       className="relative h-full w-full snap-start snap-always"
       data-flow-reel={String(slotIndex)}
+      {...(active
+        ? {
+            "data-meshi-content-card": "true",
+            "data-meshi-content-id": isNativePost ? post.id : "",
+            "data-meshi-content-platform": (post.platform || "meshme").toLowerCase(),
+            "data-meshi-content-author": post.author?.displayName ?? "",
+            "data-meshi-content-text": (post.content || "").slice(0, 900),
+            "data-meshi-content-url": post.externalUrl ?? "",
+            "data-meshi-content-media": "video",
+          }
+        : {})}
       onTouchStart={(e) => {
         swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       }}

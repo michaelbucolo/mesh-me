@@ -7,13 +7,14 @@ import { canUserInteractWithPost } from "@/lib/privacy-policy";
 import { hasMeshiConsent, profileDiscoveryConsentWhere } from "@/lib/consent";
 import { classifyContentSafety } from "@/lib/content-safety";
 import { durableRateLimit } from "@/lib/durable-rate-limit";
+import { clearMeshCache } from "@/lib/mesh-cache";
 import { findOrCreateDirectThread } from "@/lib/direct-thread";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
 // Meshi Vessel Actions — Meshi can act on behalf of the user
 // These are explicit user-triggered actions through the Meshi interface
 
-type MeshiAction = "post" | "message" | "follow" | "unfollow" | "react" | "suggest";
+type MeshiAction = "post" | "message" | "follow" | "unfollow" | "react" | "comment" | "suggest";
 
 interface MeshiActionRequest {
   action: MeshiAction;
@@ -26,9 +27,10 @@ interface MeshiActionRequest {
   messageContent?: string;
   // For "follow" / "unfollow"
   targetUserId?: string;
-  // For "react"
+  // For "react" / "comment"
   postId?: string;
   reactionType?: string;
+  commentContent?: string;
   // For "suggest"
   suggestionType?: "people" | "communities" | "content";
 }
@@ -319,6 +321,65 @@ export async function POST(req: Request) {
         });
       }
 
+      case "comment": {
+        // Meshi could like a post but not say anything about one. The action
+        // existed nowhere — no MeshiAction member, no branch, no intent — so
+        // "comment on this" was the one obvious thing it could not do on a
+        // surface built for reacting to what you are watching.
+        //
+        // Every guard the react branch carries applies here and one more: a
+        // comment is CONTENT, so it is sanitized and classified exactly as
+        // createPost does. An unsanitized string authored by an assistant and
+        // published under the user's name is the worst shape this route could
+        // take.
+        if (!body.postId) {
+          return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+        }
+        const text = (body.commentContent ?? "").trim();
+        if (!text) {
+          return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
+        }
+        if (text.length > 1200) {
+          return NextResponse.json({ error: "Comment is too long (max 1200 chars)" }, { status: 400 });
+        }
+
+        const target = await prisma.post.findUnique({
+          where: { id: body.postId },
+          select: { id: true, authorId: true, content: true, visibility: true, communityId: true },
+        });
+        if (!target || !(await canUserInteractWithPost(user.id, target))) {
+          return NextResponse.json({ error: "Post not found" }, { status: 404 });
+        }
+
+        const comment = await prisma.comment.create({
+          data: {
+            postId: target.id,
+            authorId: user.id,
+            content: sanitizeForDisplay(text).slice(0, 1200),
+          },
+          select: { id: true },
+        });
+
+        if (target.authorId !== user.id) {
+          await prisma.notification.create({
+            data: { type: "comment", recipientId: target.authorId, actorId: user.id, postId: target.id },
+          });
+        }
+
+        // Same reason as the react branch: the comment count is part of what
+        // the mesh draws, and it reads a cached payload.
+        clearMeshCache(user.id);
+        revalidatePath("/feed");
+        revalidatePath("/mesh");
+
+        return NextResponse.json({
+          success: true,
+          message: "Commented for you.",
+          data: { commentId: comment.id, postId: target.id },
+          mood: "happy",
+        });
+      }
+
       case "react": {
         if (!body.postId) {
           return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
@@ -341,6 +402,12 @@ export async function POST(req: Request) {
 
         if (existingReaction) {
           await prisma.reaction.delete({ where: { id: existingReaction.id } });
+          // The mesh reads a cached payload; without this the un-like is
+          // invisible there for up to 45s. Same call every other reaction path
+          // in the product already makes.
+          clearMeshCache(user.id);
+          revalidatePath("/feed");
+          revalidatePath("/mesh");
           return NextResponse.json({
             success: true,
             message: "Reaction removed.",
@@ -355,6 +422,18 @@ export async function POST(req: Request) {
             type: body.reactionType || "like",
           },
         });
+
+        // THE FLOW IS THE MESH IN A DIFFERENT FORM FACTOR.
+        //
+        // A like has to be true on both surfaces at once, and this branch wrote
+        // the Reaction row and stopped. The mesh does not read that row live —
+        // it serves a per-process cached payload (mesh-cache.ts) refreshed by a
+        // 25s poll — so a like Meshi placed in the Flow stayed invisible on the
+        // mesh until the cache aged out. Clearing it here is what makes the two
+        // views one thing rather than two copies that agree eventually.
+        clearMeshCache(user.id);
+        revalidatePath("/feed");
+        revalidatePath("/mesh");
 
         // Notification if not self-react
         if (post.authorId !== user.id) {
