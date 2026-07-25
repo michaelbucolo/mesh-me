@@ -1,337 +1,429 @@
 /* ═══════════════════════════════════════════════════════════════════
-   PAPER & LAMPLIGHT — the one token file.
+   TOYBOX — the one token file.
    Imported first by globals.css; everything downstream reads from here.
 
-   The product is one material — paper with a faint tooth — under two
-   lights. Daylight is the room in late morning; Lamplight is the same
-   room, at night, lit by one lamp. Nothing emits light; things catch it,
-   and cast a soft warm shadow because they have weight.
+   The product is a rubber tray with moulded plastic objects in it.
+   Objects have a side wall (the plinth) and rest on the mat. Nothing
+   emits; things have thickness and cast a contact shadow.
 
-   Colour is rare and always means something: a stamp, a mark, a warning,
-   a heart. Ink is the default; pigment is the exception.
+   Colour is what a thing is MADE OF, not how loud it is. Emphasis is
+   plinth depth and size, never saturation.
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────
-   DAYLIGHT — the light theme
+   DAYLIGHT — the tray on a bench at midday
    ───────────────────────────────────────────────────────────────── */
 :root,
 .light {
-  /* Paper — surfaces */
-  --paper-0: #fbf8f2; /* page */
-  --paper-1: #fffdf8; /* card / sheet */
-  --paper-2: #f4efe6; /* sunken, input well */
-  --paper-3: #eae3d6; /* rule fill, track, disabled surface */
-  --paper-hover: #f7f2e9;
-  --paper-press: #f1ebe0;
+  /* ── The mat and the neutral plastics ────────────────────────── */
+  --paper-0: #efeae1;      /* THE MAT. Warm grey-beige, deliberately not white —
+                              a white page cannot host a white object. */
+  --paper-1: #fdfbf6;      /* card / sheet / panel */
+  --paper-2: #e5dfd4;      /* RECESS: input wells, trays, sunken groups */
+  --paper-3: #d9d2c6;      /* track, disabled body, tray floor */
+  --paper-hover: #fffefb;  /* a surface brightens ~1% under the pointer */
+  --paper-press: #f2ede4;
 
-  /* Ink — text. Every value below --ink-4 is measured against --paper-0. */
-  --ink-1: #1b1a17; /* primary    16.1:1 */
-  --ink-2: #4a463f; /* secondary   9.0:1 */
-  --ink-3: #6b655b; /* tertiary    5.45:1 on paper-0, 4.52:1 on paper-3 — the floor for body and caption */
-  --ink-4: #948c7f; /* 3.1:1 — NON-TEXT ONLY: borders, dividers, disabled glyphs */
-  --ink-inverse: #fffdf8;
+  /* NEW. The top face of a PRESSABLE object, split from --paper-1 so the
+     plinth has somewhere to step to. In Daylight it equals --paper-1; in
+     Worklight it does not, and that split is what raises the dark plinth
+     step from 1.26 (judge-measured, too weak) to 1.47. */
+  --face: #fdfbf6;
+  --face-hover: #fffefb;
+  --face-press: #f2ede4;   /* the face under a collapsed plinth, in shadow */
 
-  /* Lines */
-  --rule: rgba(27, 26, 23, 0.1);
-  --rule-strong: rgba(27, 26, 23, 0.18);
-  --rule-hover: rgba(27, 26, 23, 0.26);
-  --rule-focus: rgba(47, 75, 124, 0.55);
+  /* Neutral plinths — the side wall of an uncoloured object. */
+  --plinth-1: #cbc2b1;     /* under --face.  face:plinth 1.71:1 */
+  --plinth-2: #bdb2a0;     /* under a lifted / dragged object */
+  --plinth-tray: #bdb39f;  /* the inner lip of a recess. WAS #c6bdac (1.40:1
+                              against the well); raised to 1.57:1 so a tray
+                              actually reads as a recess. */
 
-  /* Accent — pen ink (iron-gall blue-black). A pigment, never a light source. */
-  --accent: #2f4b7c; /* 8.2:1 on --paper-0 */
-  --accent-hover: #24406e;
-  --accent-press: #1d3660;
-  --accent-ink: #fffdf8; /* text ON the accent */
-  --accent-wash: rgba(47, 75, 124, 0.08);
-  --accent-line: rgba(47, 75, 124, 0.22);
+  /* ── Ink. Measured against ALL FOUR papers AND all three face states ── */
+  --ink-1: #1a1a1d;        /* p0 14.49 · p1 16.79 · p2 13.09 · p3 11.56 */
+  --ink-2: #46454c;        /* p0  7.91 · p1  9.16 · p2  7.15 · p3  6.31 */
+  --ink-3: #57535a;        /* p0  6.28 · p1  7.28 · p2  5.68 · p3  5.01 ← text floor */
+  --ink-4: #9a948a;        /* p0  2.51 — MUST stay under 4.5; the gate asserts it.
+                              Non-text only: rules, dividers, disabled glyphs. */
+  --ink-inverse: #fdfbf6;
 
-  /* Pigments — meaning only, never decoration */
-  --warm: #b05939; /* terracotta: hearts, affection, Meshi, strum */
-  --warm-wash: rgba(176, 89, 57, 0.1);
-  --success: #4a7c59; /* moss */
-  --warning: #976925; /* ochre */
-  --danger: #a8443a; /* rust */
-  --info: #3f5d77; /* riverstone */
+  /* ── THE EDGE. One token, one job: every pressable object carries a 1px
+        inset ring in this colour, and that ring is the WCAG 1.4.11 boundary.
+        Clears 3:1 on every surface it can sit on:
+        p0 4.12 · p1 4.77 · p2 3.72 · p3 3.29 · face 4.77 · hover 4.89 · press 4.23 */
+  --edge: #786f64;
 
-  /* System */
-  --scrim: rgba(38, 32, 24, 0.32);
-  --selection: rgba(47, 75, 124, 0.2);
-  --grain-alpha: 0.035;
-  --grain-blend: multiply;
+  /* ── Rules. Heavier than the old hairlines — a moulded edge is visible. ── */
+  --rule: rgba(26, 26, 29, 0.14);          /* was .10 */
+  --rule-strong: rgba(26, 26, 29, 0.22);   /* was .18 */
+  --rule-hover: rgba(26, 26, 29, 0.32);    /* was .26 */
+  --rule-focus: #1a1a1d;   /* NOW A SOLID HEX, not a 55%-alpha blue. See --focus-ring. */
 
-  /* Skeletons */
-  --skeleton-1: #f1ebe0;
-  --skeleton-2: #e9e1d4;
-  --skeleton-3: #f6f1e8;
+  /* ── Accent: cobalt. Same family as the old iron-gall blue, 3x the chroma.
+        This is the product's own plastic, and it is NEVER re-pointed by a
+        domain — globals.css:108-146 ships five persisted accent presets
+        (instagram/ocean/sunset/forest/mono) that already own this name. ── */
+  --accent: #2b45c4;       /* 6.37 on --paper-0 · 7.38 on --paper-1 */
+  --accent-hover: #3552d6;
+  --accent-press: #22369e;
+  --accent-ink: #ffffff;   /* 7.63 ON the accent */
+  --accent-plinth: #22369e;/* NEW */
+  --accent-wash: rgba(43, 69, 196, 0.10);
+  --accent-line: rgba(43, 69, 196, 0.26);
+
+  /* ── INK PIGMENTS — text, icons, strokes. Never a fill.
+        ALL FIVE NOW CLEAR AA ON ALL FOUR PAPERS, not just p0/p1. TOYBOX's
+        values fell to 3.88–4.51 on --paper-2/--paper-3, which is exactly
+        where a validation message under an input actually lives. Darkened. ── */
+  --warm:    #992756;      /* p0 6.31 · p1 7.31 · p2 5.70 · p3 5.03 — deep rose */
+  --success: #155839;      /* p0 7.05 · p1 8.17 · p2 6.37 · p3 5.62 */
+  --warning: #754c08;      /* p0 6.27 · p1 7.27 · p2 5.67 · p3 5.01 */
+  --danger:  #9e2c23;      /* p0 6.17 · p1 7.15 · p2 5.58 · p3 4.93 */
+  --info:    #0b5a61;      /* p0 6.62 · p1 7.66 · p2 5.98 · p3 5.28 */
+  --warm-wash: rgba(153, 39, 86, 0.10);
+
+  /* ── MOULDED PLASTICS — fills only. Each has a PINNED ink and a PINNED
+        plinth. THESE SEVEN TRIPLES ARE NOT REDECLARED IN .dark. ── */
+  --mould-cobalt: #3b5ae0;  --mould-cobalt-ink: #ffffff;  --mould-cobalt-plinth: #22369e;  /* ink 5.64 · step 1.78 */
+  --mould-tomato: #ee6238;  --mould-tomato-ink: #26100a;  --mould-tomato-plinth: #b8421f;  /* ink 5.55 · step 1.68 */
+  --mould-jade:   #2e9e70;  --mould-jade-ink:   #042019;  --mould-jade-plinth:   #186e4c;  /* ink 5.09 · step 1.85 */
+  --mould-amber:  #f2b23c;  --mould-amber-ink:  #2b1e04;  --mould-amber-plinth:  #bc8117;  /* ink 8.69 · step 1.78 */
+  --mould-teal:   #157681;  --mould-teal-ink:   #ffffff;  --mould-teal-plinth:   #0e5860;  /* ink 5.33 · step 1.53 */
+  --mould-grape:  #7448d4;  --mould-grape-ink:  #ffffff;  --mould-grape-plinth:  #4e2c99;  /* ink 5.80 · step 1.69 */
+  --mould-crimson:#b81f3a;  --mould-crimson-ink:#ffffff;  --mould-crimson-plinth:#84142a;  /* ink 6.37 · step 1.56 */
+
+  /* --mould-red (#c63628) IS DELETED. It sat 27deg from --mould-tomato (the
+     brand) and read as a paler --danger. --mould-crimson replaces it as the
+     destructive FILL and is unmistakable next to tomato. */
+
+  /* Domain assignment — colour is WHICH, never HOW LOUD. Six domains,
+     six plastics. Crimson is not a domain; it is destruction. */
+  --domain-feed: var(--mould-cobalt);
+  --domain-messages: var(--mould-jade);
+  --domain-communities: var(--mould-grape);
+  --domain-mesh: var(--mould-tomato);
+  --domain-notifications: var(--mould-amber);
+  --domain-you: var(--mould-teal);
+
+  /* ── Contact shadows. Warm-black, always DOWNWARD, never blurred wide. ── */
+  --shadow-flat: none;                                              /* unchanged */
+  --shadow-rest:   0 3px 5px -2px rgba(40, 32, 22, 0.16);
+  --shadow-raised: 0 6px 10px -4px rgba(40, 32, 22, 0.18);
+  --shadow-lift:   0 12px 18px -8px rgba(40, 32, 22, 0.22);
+  --shadow-float:  0 26px 44px -18px rgba(40, 32, 22, 0.30);
+  --shadow-press:  0 1px 2px -1px rgba(40, 32, 22, 0.20);           /* NEW */
+  --edge-light: none;      /* unchanged in light. 0 call sites today. */
+  --mould-line: none;      /* NEW: the top-face seam. Light needs none. */
+
+  /* ── System ── */
+  --scrim: rgba(34, 28, 20, 0.44);   /* was .32 — see the media contract */
+  --selection: rgba(43, 69, 196, 0.20);
+  --grain-alpha: 0.022;              /* was .035 — the matte finish, nothing more */
+  --grain-blend: multiply;           /* unchanged */
+  --skeleton-1: #e5dfd4;
+  --skeleton-2: #dcd5c8;
+  --skeleton-3: #eee9e0;
+  --canvas-shadow: rgba(40, 32, 22, 0.26);  /* MOVED here from the alias block:
+                                               it is theme-dependent now. */
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   LAMPLIGHT — the dark theme.
-   Warm walnut: the red channel is >= the blue channel at every step,
-   the exact inverse of the old #070912 (blue 1.7x red). This is a room
-   at night, not space.
+   WORKLIGHT — the same tray on the same bench at night.
+   The mat goes to dark graphite, the ink inverts, THE PLASTICS DO NOT MOVE.
+   Selector must stay `.dark {` at the start of a line.
    ───────────────────────────────────────────────────────────────── */
 .dark {
-  /* Ink ramp — surfaces */
-  --ink-1000: #0e0b09; /* deepest — scrim base */
-  --ink-950: #141110;
-  --paper-2: #141210; /* sunken / input well */
-  --paper-0: #1a1714; /* page */
-  --paper-1: #211d19; /* card / sheet */
-  --paper-3: #272320; /* rule fill, track */
-  --paper-hover: #262119;
-  --paper-press: #2e2822;
-  --ink-600: #4a3d31; /* heavy divider, chart gridline */
+  /* Near-neutral graphite with a hair of warmth (red >= blue at every step,
+     keeping the previous system's correct rejection of the cold #070912). */
+  --ink-1000: #0a0908;     /* deepest — scrim base */
+  --ink-950: #100e0d;
+  --paper-2: #141312;      /* RECESS: input wells, trays, sunken groups */
+  --paper-0: #1d1b19;      /* THE MAT */
+  --paper-1: #282522;      /* card / sheet / panel */
+  --paper-3: #322e2a;      /* track, disabled body, tray floor */
+  --paper-hover: #302c28;
+  --paper-press: #201d1b;
+  --ink-600: #4a443c;      /* heavy divider, chart gridline */
 
-  /* Paper ramp — text, measured against --paper-0 */
-  --ink-1: #f2ede4; /* primary    13.9:1 */
-  --ink-2: #c0b8ab; /* secondary   8.4:1 */
-  --ink-3: #948c80; /* tertiary    5.0:1 — the floor for text */
-  --ink-4: #6e6559; /* 2.8:1 — NON-TEXT ONLY */
-  --ink-inverse: #141210;
+  /* THE FIX FOR DARK DEPTH. A pressable object's face is one paper step
+     ABOVE the card, not equal to it. Face-vs-mat goes 1.13 -> 1.55 and the
+     plinth step goes 1.26 -> 1.47. Every text ink still clears AA on it. */
+  --face: #322e2a;         /* ink-1 11.93 · ink-2 7.22 · ink-3 5.21 */
+  --face-hover: #3a352e;   /* ink-1 10.77 · ink-2 6.52 · ink-3 4.70 */
+  --face-press: #2a2724;   /* ink-1 13.16 · ink-2 7.97 · ink-3 5.75 */
 
-  --rule: rgba(242, 237, 228, 0.1);
-  --rule-strong: rgba(242, 237, 228, 0.18);
-  --rule-hover: rgba(242, 237, 228, 0.26);
-  --rule-focus: rgba(143, 176, 224, 0.55);
+  --plinth-1: #0b0a09;     /* under --face. step 1.47 (was 1.26) */
+  --plinth-2: #141210;
+  --plinth-tray: #413b34;  /* INVERTED per the Separation Law. TOYBOX's #0d0c0b
+                              measured 1.05:1 against the well — invisible, and
+                              it hosts every input in the product. A dark recess
+                              cannot get darker, so its inner lip goes UP: 1.68:1. */
 
-  --accent: #8fb0e0; /* 8.7:1 on --paper-0 */
-  --accent-hover: #a9c4ec;
-  --accent-press: #7b9fd4;
-  --accent-ink: #141210;
-  --accent-wash: rgba(143, 176, 224, 0.1);
-  --accent-line: rgba(143, 176, 224, 0.26);
+  /* ── Ink, against all four papers and all three face states ── */
+  --ink-1: #f4f1ea;        /* p0 15.22 · p1 13.51 · p2 16.45 · p3 11.93 */
+  --ink-2: #c4bdb2;        /* p0  9.21 · p1  8.18 · p2  9.96 · p3  7.22 */
+  --ink-3: #a8a095;        /* p0  6.65 · p1  5.90 · p2  7.18 · p3  5.21 ← text floor.
+                              Raised from #a29a8f, which measured 4.31 on
+                              --face-hover — below AA on a hovered row. */
+  --ink-4: #6b645b;        /* p0  2.94 — under 4.5, stays decorative */
+  --ink-inverse: #171512;
 
-  --warm: #e08a5f;
-  --warm-wash: rgba(224, 138, 95, 0.12);
-  --success: #8cbe97;
-  --warning: #e0b252;
-  --danger: #e0827a;
-  --info: #8fb3ce;
+  --edge: #918879;         /* p0 4.91 · p1 4.36 · p2 5.30 · p3 3.85 ·
+                              face 3.85 · hover 3.47 · press 4.24 */
 
-  --scrim: rgba(14, 11, 9, 0.72);
-  --selection: rgba(143, 176, 224, 0.26);
-  --grain-alpha: 0.05;
-  --grain-blend: soft-light;
+  --rule: rgba(244, 241, 234, 0.13);
+  --rule-strong: rgba(244, 241, 234, 0.20);
+  --rule-hover: rgba(244, 241, 234, 0.30);
+  --rule-focus: #f4f1ea;   /* solid hex */
 
-  --skeleton-1: #211d19;
-  --skeleton-2: #2b241d;
-  --skeleton-3: #382e25;
+  --accent: #93a9ff;       /* 7.65 on --paper-0 · 6.79 on --paper-1 */
+  --accent-hover: #adbeff;
+  --accent-press: #7b93f2;
+  --accent-ink: #12131c;   /* 8.24 ON the accent */
+  --accent-plinth: #5a70d6;
+  --accent-wash: rgba(147, 169, 255, 0.12);
+  --accent-line: rgba(147, 169, 255, 0.28);
 
-  --canvas-shadow: rgba(0, 0, 0, 0.55);
-}
+  /* ── INK PIGMENTS — theme-dependent. All four papers. ── */
+  --warm:    #f486b0;      /* p0 7.26 · p1 6.45 · p2 7.85 · p3 5.70 */
+  --success: #5fcb98;      /* p0 8.57 · p1 7.61 · p2 9.26 · p3 6.72 */
+  --warning: #f3be55;      /* p0 10.06 · p1 8.93 · p2 10.88 · p3 7.89 */
+  --danger:  #f58279;      /* p0 6.83 · p1 6.06 · p2 7.38 · p3 5.35 */
+  --info:    #5cc2cc;      /* p0 8.21 · p1 7.29 · p2 8.88 · p3 6.44 */
+  --warm-wash: rgba(244, 134, 176, 0.14);
 
-/* ─────────────────────────────────────────────────────────────────
-   TYPE
-   The `-loaded` variables come from next/font in layout.tsx. The stacks
-   below name the fallback explicitly rather than trusting a bare
-   `sans-serif`, so the shape of the page is close before the webfont
-   arrives and the swap is not a jolt.
-   ───────────────────────────────────────────────────────────────── */
-:root {
-  --font-display: var(--font-display-loaded), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-sans-loaded), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-mono-loaded), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* ── THE SEVEN PLASTICS ARE DELIBERATELY NOT REDECLARED HERE. ──────────
+     The --mould-* triples and the six --domain-* names inherit from :root
+     unchanged. This is the whole conceit: the toys are the same toys at 3pm
+     and at 3am. It halves the palette, makes light/dark fill drift
+     structurally impossible, and means the gate only verifies each face
+     against its own pinned ink (5.09-8.69) rather than two moving grounds.
+     What makes them legal on a dark mat is --edge, not the face:
+     cobalt 2.70 / grape 2.63 / teal 2.86 / crimson 2.39 against the dark
+     card are all under 3:1 as faces, and the 1px --edge ring (4.36 against
+     that same card) is what carries the boundary. An object without --edge
+     is a WCAG 1.4.11 bug, not a style choice. ──────────────────────────── */
 
-  /* The scale. Weight never exceeds 600, tracking never exceeds +0.02em, and
-     the only labelling device is small caps — uppercase reads as a HUD. */
-  --t-display: 600 3rem/1.06 var(--font-display);
-  --t-h1: 600 2.375rem/1.12 var(--font-display);
-  --t-h2: 600 1.875rem/1.18 var(--font-display);
-  --t-h3: 600 1.5rem/1.25 var(--font-display);
-  --t-h4: 600 1.25rem/1.35 var(--font-sans);
-  --t-title: 600 1.0625rem/1.4 var(--font-sans);
-  --t-lead: 400 1.0625rem/1.6 var(--font-sans);
-  --t-body: 400 0.9375rem/1.55 var(--font-sans);
-  --t-small: 400 0.84375rem/1.45 var(--font-sans);
-  --t-label: 500 0.8125rem/1.4 var(--font-sans);
-  --t-caption: 400 0.78125rem/1.4 var(--font-sans);
-  --t-eyebrow: 600 0.8125rem/1.3 var(--font-sans);
-
-  --track-display: -0.028em;
-  --track-h1: -0.022em;
-  --track-h2: -0.018em;
-  --track-h3: -0.014em;
-  --track-h4: -0.01em;
-  --track-title: -0.006em;
-  --track-label: 0.005em;
-  --track-eyebrow: 0.02em;
-
-  --weight-max: 600;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   SHADOW & ELEVATION
-   Depth is one hairline plus one warm shadow. Never blur, never light.
-   A hover that translates must change its shadow in the same
-   transition, or it reads as a sticker rather than paper.
-   ───────────────────────────────────────────────────────────────── */
-:root {
   --shadow-flat: none;
-  --shadow-rest: 0 1px 1px rgba(38, 32, 24, 0.04), 0 2px 4px rgba(38, 32, 24, 0.05);
-  --shadow-raised: 0 2px 4px rgba(38, 32, 24, 0.05), 0 8px 16px -6px rgba(38, 32, 24, 0.1);
-  --shadow-lift: 0 4px 8px rgba(38, 32, 24, 0.06), 0 18px 32px -12px rgba(38, 32, 24, 0.14);
-  --shadow-float: 0 12px 24px rgba(38, 32, 24, 0.1), 0 40px 72px -24px rgba(38, 32, 24, 0.22);
-  --edge-light: none;
+  --shadow-rest:   0 3px 6px -2px rgba(0, 0, 0, 0.55);
+  --shadow-raised: 0 6px 12px -4px rgba(0, 0, 0, 0.58);
+  --shadow-lift:   0 12px 22px -8px rgba(0, 0, 0, 0.62);
+  --shadow-float:  0 26px 50px -18px rgba(0, 0, 0, 0.70);
+  --shadow-press:  0 1px 3px -1px rgba(0, 0, 0, 0.60);
+  --edge-light: none;      /* DELETED as a concept. 0 call sites. Superseded by
+                              --mould-line, which is a tooling seam, not a light. */
+  --mould-line: inset 0 1px 0 rgba(255, 246, 235, 0.06);
+
+  --scrim: rgba(10, 9, 8, 0.74);
+  --selection: rgba(147, 169, 255, 0.26);
+  --grain-alpha: 0.04;
+  --grain-blend: soft-light;
+  --skeleton-1: #282522;
+  --skeleton-2: #322e2a;
+  --skeleton-3: #3b3630;
+  --canvas-shadow: rgba(0, 0, 0, 0.60);
 }
 
-/* Same geometry in the dark, warm-black, plus one lit top edge. That inset
-   hairline is the ENTIRE luminosity budget of the product. */
-.dark {
-  --shadow-rest: 0 1px 1px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.34);
-  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.38), 0 8px 18px -6px rgba(0, 0, 0, 0.46);
-  --shadow-lift: 0 4px 8px rgba(0, 0, 0, 0.4), 0 18px 34px -12px rgba(0, 0, 0, 0.52);
-  --shadow-float: 0 12px 24px rgba(0, 0, 0, 0.44), 0 40px 78px -24px rgba(0, 0, 0, 0.6);
-  --edge-light: inset 0 1px 0 rgba(255, 248, 235, 0.05);
+/* ─────────────────────────────────────────────────────────────────
+   FOCUS — theme-invariant, and provably universal.
+   [GRAFT: ZINE's registration-target ring, reduced to two rings.]
+
+   No single ring colour clears 3:1 on every surface in this product. I
+   measured it: a dark ring fails on grape (2.99), a light ring fails on
+   tomato (2.89), jade (2.98) and amber (1.66). Two rings solve it for all
+   time. Because --ring-a and --ring-b are the two extremes of the ramp and
+   any surface luminance lies between them, max(ratio(a,S), ratio(b,S)) is
+   minimised at mid-grey, where it is ~4.6:1. It can never fall below 3:1
+   on any surface, including a photo. Measured worst case across all seven
+   plastics and all seven surfaces: 4.72:1 (teal, dark theme).
+   ───────────────────────────────────────────────────────────────── */
+:root, .light { --ring-a: #1a1a1d; --ring-b: #fdfbf6; }
+.dark          { --ring-a: #f4f1ea; --ring-b: #171512; }
+:root, .light, .dark {
+  --focus-ring: 0 0 0 2px var(--ring-a), 0 0 0 4px var(--ring-b);
+  --focus-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MEDIA — the contract for text over arbitrary user video.
+   /flow (src/app/(app)/flow/flow-client.tsx, 1,792 lines) is bg-black +
+   object-cover with 6 backdrop-blur chips. Three judges flagged that the
+   depth model is plinth-on-mat and over video there is no mat. There is
+   now one, and it is theme-invariant because a video is not a theme.
+   ───────────────────────────────────────────────────────────────── */
+:root, .light, .dark {
+  --media-chip: #16140f;        /* OPAQUE. Not translucent, not blurred. */
+  --media-chip-plinth: #000000;
+  --media-ink: #f7f4ee;         /* 16.76:1 on --media-chip */
+  --media-ink-2: #bdb7ad;       /*  9.20:1 on --media-chip */
+  --media-scrim: linear-gradient(to top,
+    rgba(10, 9, 7, 0.86) 0%, rgba(10, 9, 7, 0.70) 34%, rgba(10, 9, 7, 0) 100%);
+  --media-edge: rgba(255, 250, 242, 0.34);
+}
+/* RULE: no text ever sits directly on video. It sits on a --media-chip, or
+   inside the bottom 34% of --media-scrim, where --media-ink measures 6.87:1
+   even against a fully white frame. backdrop-filter is banned here as
+   everywhere; the chip is opaque instead. */
+
+/* ─────────────────────────────────────────────────────────────────
+   TYPE — see §4. Only --font-display and four weights change.
+   ───────────────────────────────────────────────────────────────── */
+:root {
+  --font-display: var(--font-display-loaded), "Archivo", Helvetica, Arial, sans-serif;
+  --font-sans: var(--font-sans-loaded), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;                                  /* unchanged */
+  --font-mono: var(--font-mono-loaded), ui-monospace, SFMono-Regular, Menlo, monospace; /* unchanged */
+
+  --t-display: 700 3.25rem/1.02 var(--font-display);
+  --t-h1:      700 2.5rem/1.08 var(--font-display);
+  --t-h2:      700 1.9375rem/1.14 var(--font-display);
+  --t-h3:      600 1.5rem/1.24 var(--font-display);
+  --t-h4:      600 1.25rem/1.34 var(--font-sans);      /* unchanged */
+  --t-title:   600 1.0625rem/1.4 var(--font-sans);     /* unchanged */
+  --t-lead:    400 1.0625rem/1.6 var(--font-sans);     /* unchanged */
+  --t-body:    400 0.9375rem/1.55 var(--font-sans);    /* unchanged */
+  --t-small:   400 0.84375rem/1.45 var(--font-sans);   /* unchanged */
+  --t-label:   500 0.8125rem/1.4 var(--font-sans);     /* unchanged */
+  --t-caption: 400 0.78125rem/1.4 var(--font-sans);    /* unchanged */
+  --t-eyebrow: 600 0.8125rem/1.3 var(--font-sans);     /* unchanged */
+  --t-descriptor: italic 400 0.8125rem/1.4 var(--font-sans);  /* NEW — see §4 */
+  --t-count:   600 0.8125rem/1 var(--font-mono);              /* NEW — tabular */
+
+  --track-display: -0.030em;   /* was -0.028 */
+  --track-h1: -0.026em;        /* was -0.022 */
+  --track-h2: -0.020em;        /* was -0.018 */
+  --track-h3: -0.014em;        /* unchanged */
+  --track-h4: -0.010em;        /* unchanged */
+  --track-title: -0.006em;     /* unchanged */
+  --track-label: 0.005em;      /* unchanged */
+  --track-eyebrow: 0.02em;     /* unchanged */
+
+  --weight-max: 600;           /* kept: the ceiling for --font-sans */
+  --weight-max-display: 700;   /* NEW: the ceiling for --font-display */
+  --wdth-display: 112;         /* Archivo width axis */
 }
 
 /* ─────────────────────────────────────────────────────────────────
    SPACE, SHAPE, SIZE
    ───────────────────────────────────────────────────────────────── */
 :root {
-  /* 4px grid */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 28px;
-  --sp-7: 40px;
-  --sp-8: 64px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 28px; --sp-7: 40px; --sp-8: 64px;   /* all unchanged */
 
-  /* Radii — five, plus one reserved */
-  --r-xs: 4px; /* chips, badges, inner inputs */
-  --r-sm: 6px; /* inputs, small buttons */
-  --r-md: 10px; /* buttons, list rows, menu items */
-  --r-lg: 14px; /* cards, sheets */
-  --r-xl: 20px; /* modals, drawers, hero */
-  --r-round: 999px; /* RESERVED: avatars, presence dots, count badges, knobs, Meshi */
+  --r-xs: 8px;      /* was 4  — inner chips, tag pills */
+  --r-sm: 10px;     /* was 6  — inputs, small buttons, toggle track */
+  --r-md: 14px;     /* was 10 — buttons, list rows, menu items, nav items */
+  --r-lg: 20px;     /* was 14 — cards, feed posts, panels */
+  --r-xl: 28px;     /* was 20 — modals, drawers, hero, tray corners. HARD CAP. */
+  --r-round: 999px; /* unchanged, still reserved */
 
-  /* Control heights */
-  --h-sm: 32px;
-  --h-md: 40px;
-  --h-lg: 48px;
+  --plinth-h-chip:   2px;   /* NEW — chips, badges, count keycaps, toggle knob */
+  --plinth-h-object: 3px;   /* NEW — buttons, menu items, nav items */
+  --plinth-h-heavy:  4px;   /* NEW — hero CTA, the topmost modal, Meshi */
 
-  /* Layout */
-  --gutter: 24px;
-  --measure-prose: 66ch;
-  --measure-feed: 60ch;
-  --col-feed: 680px;
-  --row-min: 56px;
-  --card-pad: 20px;
-  --section-gap: 28px;
-  --border-w: 1px;
+  --h-sm: 34px;   /* was 32 */
+  --h-md: 44px;   /* was 40 — also lands the 44px iOS target exactly [GRAFT: ARCADE] */
+  --h-lg: 52px;   /* was 48 */
+
+  --gutter: 24px;          /* unchanged */
+  --measure-prose: 66ch;   /* unchanged */
+  --measure-feed: 60ch;    /* unchanged */
+  --col-feed: 680px;       /* unchanged */
+  --row-min: 56px;         /* UNCHANGED — see §3 density */
+  --card-pad: 20px;        /* unchanged */
+  --section-gap: 40px;     /* was 28 — see §3 density contrast */
+  --border-w: 1px;         /* unchanged */
+  --edge-w: 1px;           /* NEW — the --edge ring */
 }
 
 @media (max-width: 767px) {
-  :root {
-    --gutter: 16px;
-    --card-pad: 16px;
-  }
+  :root { --gutter: 16px; --card-pad: 16px; --section-gap: 28px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────
    MOTION
-   Six easings named for physics. Durations are derived, not asserted:
-   t ~= 120ms + 0.28ms x (largest dimension in px), capped at 560.
    ───────────────────────────────────────────────────────────────── */
 :root {
-  --ease-settle: cubic-bezier(0.22, 0.61, 0.36, 1); /* anything that moves and stops */
-  --ease-lift: cubic-bezier(0.32, 0.72, 0, 1); /* panels, sheets, pages */
-  --ease-give: cubic-bezier(0.2, 0.8, 0.2, 1); /* press and release */
-  --ease-anticipate: cubic-bezier(0.45, -0.12, 0.2, 1.05); /* the ONE overshoot */
-  --ease-fall: cubic-bezier(0.4, 0, 1, 0.6); /* exits, gravity, going slack */
-  --ease-breath: cubic-bezier(0.45, 0.05, 0.55, 0.95); /* the only loop */
+  --ease-settle: cubic-bezier(0.22, 0.61, 0.36, 1);       /* unchanged */
+  --ease-lift: cubic-bezier(0.32, 0.72, 0, 1);            /* unchanged */
+  --ease-give: cubic-bezier(0.2, 0.8, 0.2, 1);            /* unchanged — the down-stroke */
+  --ease-anticipate: cubic-bezier(0.45, -0.12, 0.2, 1.05);/* unchanged */
+  --ease-fall: cubic-bezier(0.4, 0, 1, 0.6);              /* unchanged */
+  --ease-detent: cubic-bezier(0.3, 1.4, 0.4, 1);          /* NEW — see the mass rule in §5 */
+  /* --ease-breath: DELETED (0 call sites). Breath is deleted; see §5. */
 
-  --dur-tap: 120ms; /* <=40px  — icon, dot, knob */
-  --dur-chip: 160ms; /* ~80px  — chip, badge, toggle */
-  --dur-item: 200ms; /* ~280px — row, control, menu item */
-  --dur-card: 320ms; /* ~680px — card, feed row, popover */
-  --dur-panel: 420ms; /* ~900px — sheet, drawer, rail */
-  --dur-page: 520ms; /* full   — route transition */
-  --dur-breath: 5200ms;
+  --dur-press: 90ms;    /* NEW — the down-stroke. Nothing is faster. */
+  --dur-tap: 120ms;     /* unchanged */
+  --dur-chip: 160ms;    /* unchanged */
+  --dur-item: 200ms;    /* unchanged */
+  --dur-card: 320ms;    /* unchanged */
+  --dur-panel: 420ms;   /* unchanged */
+  --dur-page: 520ms;    /* unchanged */
+  /* --dur-breath: DELETED (0 call sites). */
 
-  /* THE MASS CONTRACT. Every interactive component declares its mass once,
-     which is what stops a universal -2px hover from creeping back in. */
-  --mass: 1; /* 1 chip · 2 row/card · 3 sheet/hero */
-  --mass-k: 1; /* .8 | 1 | 1.3 */
-  --lift: calc(-1px * var(--mass));
-  --dur: calc(var(--dur-item) * var(--mass-k));
-  --press-sm: 0.96; /* <= 120px wide */
-  --press-lg: 0.985; /* > 120px wide */
-  --stagger: 34ms; /* cap 8 items */
-  --phase: calc(var(--i, 0) * 137ms); /* golden angle — provably never re-syncs */
+  --mass: 1;            /* unchanged */
+  --mass-k: 1;          /* unchanged */
+  --lift: calc(-1px * var(--mass));  /* unchanged */
+  --dur: calc(var(--dur-item) * var(--mass-k));  /* unchanged */
+  --press-sm: 0.96;     /* unchanged — still used by non-plinth surfaces */
+  --press-lg: 0.985;    /* unchanged */
+  --stagger: 34ms;      /* unchanged */
+  --phase: calc(var(--i, 0) * 137ms);  /* unchanged, now used only by staggers */
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   ALIASES — retarget, do not delete.
-   ~3,100 existing call sites read these names. Retargeting them is what
-   lets the whole product move materials in one commit instead of thirty.
-   This block is deleted in the final slice, once every call site has
-   been rewritten to the names above.
+   ALIASES — retarget, do not delete. Unchanged in structure; every
+   name below keeps its identity and moves material with the tokens above.
    ───────────────────────────────────────────────────────────────── */
-:root,
-.light,
-.dark {
-  --bg-primary: var(--paper-0);
-  --bg-secondary: var(--paper-2);
-  --bg-tertiary: var(--paper-3);
-  --bg-card: var(--paper-1);
-  --bg-elevated: var(--paper-1);
-  --bg-hover: var(--paper-hover);
-  --bg-input: var(--paper-2);
-  --bg-overlay: var(--scrim);
+:root, .light, .dark {
+  --bg-primary: var(--paper-0);        /* unchanged */
+  --bg-secondary: var(--paper-2);      /* unchanged */
+  --bg-tertiary: var(--paper-3);       /* unchanged */
+  --bg-card: var(--paper-1);           /* unchanged */
+  --bg-elevated: var(--paper-1);       /* unchanged */
+  --bg-hover: var(--paper-hover);      /* unchanged */
+  --bg-input: var(--paper-2);          /* unchanged */
+  --bg-overlay: var(--scrim);          /* unchanged */
 
-  --text-primary: var(--ink-1);
-  --text-secondary: var(--ink-2);
-  --text-tertiary: var(--ink-3);
-  --text-muted: var(--ink-3);
-  --text-inverse: var(--ink-inverse);
+  --text-primary: var(--ink-1);        /* unchanged */
+  --text-secondary: var(--ink-2);      /* unchanged */
+  --text-tertiary: var(--ink-3);       /* unchanged */
+  --text-muted: var(--ink-3);          /* unchanged */
+  --text-inverse: var(--ink-inverse);  /* unchanged */
 
-  --border-primary: var(--rule);
-  --border-secondary: var(--rule-strong);
-  --border-hover: var(--rule-hover);
-  --border-focus: var(--rule-focus);
+  --border-primary: var(--rule);       /* unchanged */
+  --border-secondary: var(--rule-strong); /* unchanged */
+  --border-hover: var(--rule-hover);   /* unchanged */
+  --border-focus: var(--edge);         /* RETARGETED: --rule-focus is now a solid
+                                          hex for the ring, so the 25 call sites
+                                          reading --border-hover/--border-focus as
+                                          a BORDER get --edge, which is legal. */
 
-  /* Glass is retargeted to opaque matte, NOT deleted — 86 call sites keep
-     compiling, and every one of them silently stops frosting. */
-  --glass-bg: var(--paper-1);
-  --glass-border: var(--rule);
-  --glass-blur: none;
-  --glass-highlight: transparent;
+  --glass-bg: var(--paper-1);          /* unchanged */
+  --glass-border: var(--rule);         /* unchanged */
+  --glass-blur: none;                  /* unchanged */
+  --glass-highlight: transparent;      /* unchanged */
 
-  --shimmer-1: var(--skeleton-1);
-  --shimmer-2: var(--skeleton-2);
-  --shimmer-3: var(--skeleton-3);
+  --shimmer-1: var(--skeleton-1);      /* unchanged */
+  --shimmer-2: var(--skeleton-2);      /* unchanged */
+  --shimmer-3: var(--skeleton-3);      /* unchanged */
 
-  /* Accent satellites. `--accent-glow` keeps its name because 3 call sites read
-     it, but it is no longer a glow — it resolves to the same faint wash as any
-     other accent tint, so nothing in the product can emit light through it. */
-  --accent-glow: var(--accent-wash);
-  --accent-muted: var(--accent-wash);
-  --accent-subtle: var(--accent-wash);
-  --accent-contrast: var(--accent-ink);
-  --ring-color: var(--rule-focus);
-  --brand-gradient: var(--accent);
-  --brand-gradient-vibrant: var(--accent);
+  --accent-glow: var(--accent-wash);   /* unchanged */
+  --accent-muted: var(--accent-wash);  /* unchanged */
+  --accent-subtle: var(--accent-wash); /* unchanged */
+  --accent-contrast: var(--accent-ink);/* unchanged */
+  --ring-color: var(--ring-a);         /* RETARGETED — 4 call sites */
+  --brand-gradient: var(--mould-tomato);        /* RETARGETED to the brand plastic */
+  --brand-gradient-vibrant: var(--mould-tomato);/* RETARGETED */
 
-  /* The old three-step shadow scale, retargeted onto the paper elevations so
-     the ~53 existing `--shadow-*` call sites move material with everything
-     else instead of keeping their cold black. */
-  --shadow-sm: var(--shadow-rest);
-  --shadow-md: var(--shadow-raised);
-  --shadow-lg: var(--shadow-float);
+  --shadow-sm: var(--shadow-rest);     /* unchanged — 18 call sites */
+  --shadow-md: var(--shadow-raised);   /* unchanged — 12 call sites */
+  --shadow-lg: var(--shadow-float);    /* unchanged —  4 call sites */
+  --shadow-soft: var(--shadow-rest);   /* unchanged — 16 call sites */
 
-  /* The contact shadow the CANVAS paints beneath a node. Warm-black, and read
-     through paint/theme.ts so the mesh and the DOM share one shadow colour. */
-  --canvas-shadow: rgba(38, 32, 24, 0.22);
-
-  --scrollbar-thumb: var(--paper-3);
-  --scrollbar-hover: var(--ink-4);
-
-  /* Declared at last: referenced 16 times across /admin, /community-space,
-     /communities/[slug] and /community-create, and never defined — every one
-     of those surfaces has been rendering flat. */
-  --shadow-soft: var(--shadow-rest);
+  --scrollbar-thumb: var(--paper-3);   /* unchanged */
+  --scrollbar-hover: var(--ink-4);     /* unchanged */
 }
+/* --canvas-shadow MOVED OUT of this block into both theme blocks: it is
+   theme-dependent now, and paint/theme.ts:101 reads it off the root, so a
+   theme-invariant value would have painted a light shadow in Worklight. */
