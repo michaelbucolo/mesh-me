@@ -60,6 +60,38 @@ export async function getBlockedUserIdSet(viewerId: string): Promise<Set<string>
 }
 
 /**
+ * The same rule as `getBlockedUserIdSet`, expressed as a Prisma filter fragment
+ * on User instead of a set to subtract — for reads that are already a single
+ * query and should stay one.
+ *
+ * Two mechanisms, deliberately, because the surfaces genuinely differ: a list
+ * read fetches the set once and reuses it across several queries, while a single
+ * `findFirst` should not pay a second round trip to learn something the database
+ * can answer inline. What is NOT deliberate is a third, fourth and fifth
+ * hand-rolled spelling of "in either direction" — that is how the rule ends up
+ * enforced in some places and not others, which is exactly what happened here:
+ * searchAll subtracted blocks, /api/search/users did not, and Meshi's resolver
+ * grew its own copy. Both mechanisms now live in this file, next to each other,
+ * and scripts/second-writer-check.ts requires every people search to use one.
+ *
+ * Spread into a `where`. Composes with AND:/OR: like any fragment — but note it
+ * contributes a top-level `NOT`, so spreading it beside another fragment that
+ * also has one silently drops the first.
+ */
+export function blockedUserWhere(viewerId: string) {
+  return {
+    NOT: {
+      OR: [
+        // They blocked the viewer.
+        { blocks: { some: { blockedId: viewerId } } },
+        // The viewer blocked them.
+        { blockedBy: { some: { blockerId: viewerId } } },
+      ],
+    },
+  };
+}
+
+/**
  * Is there a block between these two users, in EITHER direction? Block stores
  * one directional row (blockerId = whoever pressed the button), but its effect
  * is symmetric, so every point check must match both orientations. Use this

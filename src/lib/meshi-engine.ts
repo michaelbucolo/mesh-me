@@ -8,6 +8,7 @@ import { encodeDeliveryNotificationMessage } from "./notifications";
 import {
   areMutualFollowers,
   getBlockedUserIdSet,
+  blockedUserWhere,
   canSeeMeshBranch,
   canSeeMeshStats,
   canViewProfile,
@@ -295,14 +296,12 @@ async function resolvePersonForViewer(name: string, viewerId: string) {
       // Filtered in the query, like the consent rule above, so the five
       // person_* intents fail identically and as an ordinary "can't find
       // them" — never a message that confirms the account exists.
-      NOT: {
-        OR: [
-          // They blocked the viewer.
-          { blocks: { some: { blockedId: viewerId } } },
-          // The viewer blocked them.
-          { blockedBy: { some: { blockerId: viewerId } } },
-        ],
-      },
+      //
+      // Through the shared fragment rather than an inline NOT/OR: this was the
+      // third hand-rolled spelling of "a block, in either direction" in the
+      // codebase, and the second one — /api/search/users — was the one that
+      // turned out not to have it at all.
+      ...blockedUserWhere(viewerId),
     },
     select: {
       id: true, username: true, displayName: true, isPublic: true,

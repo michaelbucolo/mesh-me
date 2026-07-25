@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { profileDiscoveryConsentWhere } from "@/lib/consent";
 import { prisma } from "@/lib/prisma";
+import { getBlockedUserIdSet } from "@/lib/privacy-policy";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -16,13 +17,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ users: [] });
   }
 
+  // Search must never cross a block in either direction. Settings states it
+  // without qualification — blocked accounts "don't appear in your feed, search,
+  // or live rooms — in both directions" — and searchAll (/api/search) enforces
+  // it. This endpoint, the OTHER people search, did not: it is the MeChat
+  // new-conversation picker, so the person you blocked stayed one keystroke from
+  // being messaged, on the surface where that matters most.
+  //
+  // The follow-based exemptions below cannot rescue it either: blockUser deletes
+  // the follow edges in both directions, so a blocked pair falls through to the
+  // bare consent branch, which passes.
+  const blocked = await getBlockedUserIdSet(user.id);
+
   const users = await prisma.user.findMany({
     where: {
       OR: [
         { username: { contains: q.trim() } },
         { displayName: { contains: q.trim() } },
       ],
-      id: { not: user.id },
+      id: { notIn: [user.id, ...blocked] },
       isSuspended: false,
       isPublic: true,
       showInDiscovery: true,
