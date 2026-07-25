@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Home, LifeBuoy, Search } from "lucide-react";
-import { MeshBackground } from "@/components/mesh-background";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +38,6 @@ export function LostMeshNotFound({
       )}
       data-meshi-zone="not-found"
     >
-      <MeshBackground density={fullScreen ? 46 : 34} mouseInfluence={0.24} fixed={fullScreen} className="opacity-25" />
-
       <div className="lost-mesh-card relative z-10 mx-auto w-full max-w-3xl rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/92 p-5 shadow-[var(--shadow-md)] backdrop-blur-xl sm:p-8">
         <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
           <span className="h-2 w-2 rounded-full bg-red-400" aria-hidden="true" />

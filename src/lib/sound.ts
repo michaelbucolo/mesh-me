@@ -29,21 +29,6 @@ export function isSoundEnabled(): boolean {
   }
 }
 
-/**
- * Whether the user has ever made an EXPLICIT sound choice (settings toggle or
- * the mesh's one-time "Sound on?" opt-in). The mesh's playful layer treats an
- * unset preference as quiet-by-default while the rest of the app keeps its
- * historical default — one preference, two defaults, zero extra toggles.
- */
-export function hasSoundPreference(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return localStorage.getItem(SOUND_KEY) !== null;
-  } catch {
-    return false;
-  }
-}
-
 export function setSoundEnabled(on: boolean): void {
   try {
     localStorage.setItem(SOUND_KEY, on ? "1" : "0");

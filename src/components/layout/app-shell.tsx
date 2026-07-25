@@ -24,11 +24,9 @@ import { readWhereShare } from "@/lib/where-share";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
-import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
 import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { ReactiveSurfaces } from "@/components/layout/reactive-surfaces";
 import { sidebarNavItems, resolveNavHref, isNavItemActive, type NavItem } from "@/components/layout/navigation-config";
 
 const CommandPalette = dynamic(
@@ -135,10 +133,7 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
           layoutId="sidebar-nav-indicator"
           transition={SIDEBAR_INDICATOR_SPRING}
           className="pointer-events-none absolute bottom-[19%] left-0 top-[19%] w-[3px] rounded-r-full"
-          style={{
-            background: "var(--accent)",
-            boxShadow: "0 0 12px color-mix(in srgb, var(--accent) 55%, transparent)",
-          }}
+          style={{ background: "var(--accent)" }}
           aria-hidden="true"
         />
       )}
@@ -454,17 +449,6 @@ export function AppShell({ children, user }: AppShellProps) {
           indicator rendered inside the active SidebarNavItem. */}
       <style>{`.mesh-sidebar .mesh-nav-item-active::before { display: none !important; }`}</style>
 
-      {!isMeshSurface && !isFlowSurface && (
-        <DeferredMeshBackground
-          fixed
-          interactive
-          density={26}
-          mouseInfluence={0.3}
-          className="mesh-field-app"
-          delayMs={640}
-        />
-      )}
-
       {/* Sidebar */}
       <aside className="mesh-sidebar hidden h-dvh flex-col border-r border-[var(--mesh-border)] bg-[var(--mesh-bg)] md:flex">
         {/* Brand */}
@@ -583,7 +567,6 @@ export function AppShell({ children, user }: AppShellProps) {
         </Link>
       )}
 
-      <ReactiveSurfaces />
       <MobileNav username={user.username} unreadMessages={unreadCounts.unreadMessages} unreadNotifications={unreadCounts.unreadNotifications} />
       <CommandPalette username={user.username} />
       <KeyboardShortcutsOverlay username={user.username} />

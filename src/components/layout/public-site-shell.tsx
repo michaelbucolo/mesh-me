@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type React from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import { meshBrand } from "@/lib/brand";
 
@@ -30,7 +29,6 @@ export function PublicSiteShell({
 }) {
   return (
     <div className="mesh-aurora public-site-shell relative isolate flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden text-[var(--text-primary)]">
-      <DeferredMeshBackground fixed interactive density={30} mouseInfluence={0.42} className="mesh-field-public" delayMs={520} />
       <div className="pointer-events-none fixed inset-0 mesh-soft-grid mesh-soft-grid-elegant" aria-hidden="true" />
       <div className="pointer-events-none fixed inset-0 mesh-shell-vignette" aria-hidden="true" />
       <header className="relative z-40 shrink-0 border-b border-[var(--border-primary)] bg-[var(--bg-primary)]/86 backdrop-blur-xl">

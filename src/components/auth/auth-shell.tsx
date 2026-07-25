@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
-import { DeferredMeshBackground } from "@/components/deferred-mesh-background";
 import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import { meshBrand } from "@/lib/brand";
 
@@ -17,7 +16,6 @@ export function AuthShell({
 }) {
   return (
     <main className="mesh-aurora auth-shell relative isolate h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--text-primary)]">
-      <DeferredMeshBackground fixed interactive density={34} mouseInfluence={0.48} className="mesh-field-auth" delayMs={420} />
       <div className="pointer-events-none fixed inset-0 mesh-soft-grid mesh-soft-grid-elegant" aria-hidden="true" />
       <div className="pointer-events-none fixed inset-0 mesh-shell-vignette" aria-hidden="true" />
       <div className="auth-shell-grid relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl grid-cols-1 content-center gap-4 overflow-hidden px-4 py-3 sm:gap-5 md:grid-cols-[0.68fr_1fr] md:items-center md:px-6 lg:grid-cols-[0.78fr_1fr] lg:gap-10 xl:px-8">
