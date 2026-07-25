@@ -5,9 +5,7 @@ import { isSameOriginRequest } from "@/lib/request-guard";
 import { normalizeScopes, syncConnectedAccountPermissions } from "@/lib/platform-permissions";
 import { getDefaultPermissionKeysForPlatform } from "@/lib/platform-adapters";
 import { clearMeshCache } from "@/lib/mesh-cache";
-import { OAUTH_CONFIGS, isPlatformOAuth, revokeOAuthToken } from "@/lib/oauth";
-import { decryptSecret } from "@/lib/secret-store";
-import { purgeConnectedAccountRows } from "@/lib/connected-account-deletion";
+import { disconnectConnectedAccount } from "@/lib/connected-account-deletion";
 
 // PATCH — update alter ego association or label
 export async function PATCH(
@@ -150,24 +148,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  if (isPlatformOAuth(account.platform) && account.accessToken) {
-    const config = OAUTH_CONFIGS[account.platform];
-    if (config.revokeUrl) {
-      const accessToken = decryptSecret(account.accessToken);
-      if (accessToken) {
-        await revokeOAuthToken(config, accessToken).catch(() => false);
-      }
-    }
-  }
+  // The one disconnect path, shared with Meta's deauthorize / data-deletion
+  // callbacks: revoke, tear down, clear cache.
+  //
+  // This route used to inline the revoke, and its `decryptSecret` call was NOT
+  // wrapped — so a malformed token, or any token written before an encryption
+  // key rotation, threw and became a 500 BEFORE the teardown ran. The user
+  // could not disconnect, and the account plus its mirrored DMs stayed in the
+  // database, permanently and silently. The shared function has always guarded
+  // that; only this copy did not.
+  await disconnectConnectedAccount(id, user.id, account.platform, account.accessToken);
 
-  // Same teardown Meta's deauthorize / data-deletion callbacks run. Disconnect
-  // from the UI and disconnect by platform request must remove the same rows —
-  // when they were written separately they drifted, and mirrored DMs survived
-  // both.
-  await prisma.$transaction(async (tx) => {
-    await purgeConnectedAccountRows(tx, id, user.id);
-  });
-
-  clearMeshCache(user.id);
   return NextResponse.json({ success: true });
 }

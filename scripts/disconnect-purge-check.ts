@@ -66,12 +66,46 @@ assert.deepEqual(
     `  separately they drifted, and mirrored DMs survived both.`,
 );
 
+// ── 1b. One revoke, too ──────────────────────────────────────────────────────
+//
+// #370 unified WHAT gets deleted. The revoke stayed duplicated, and that half
+// drifted the same way: the shared function wraps `decryptSecret` in a
+// try/catch — it throws on malformed ciphertext and on AES-GCM auth failure
+// after a key rotation — and the interactive route's copy did not. The throw
+// escaped as a 500 BEFORE the teardown ran, so the user could not disconnect
+// and the account plus its mirrored DMs were retained, permanently and
+// silently. A privacy control that fails that way is worse than none.
+// `(?<!function\s)` so the declaration in oauth.ts is not mistaken for a call —
+// the helper has to be defined somewhere, and that somewhere is not a violation.
+const revokers: string[] = [];
+for (const file of sourceFiles) {
+  if (file === TEARDOWN_MODULE || !existsSync(join(ROOT, file))) continue;
+  if (/(?<!function\s)\brevokeOAuthToken\s*\(/.test(readFileSync(join(ROOT, file), "utf8"))) {
+    revokers.push(file);
+  }
+}
+assert.deepEqual(
+  revokers,
+  [],
+  "These files revoke a provider token outside the shared disconnect path:\n" +
+    revokers.map((f) => `    ${f}`).join("\n") +
+    `\n  Call disconnectConnectedAccount() from ${TEARDOWN_MODULE} instead. It guards the\n` +
+    "  decryptSecret call, so an unreadable token cannot abort the teardown that follows it.",
+);
+assert.match(
+  teardown,
+  /export async function disconnectConnectedAccount\b/,
+  `${TEARDOWN_MODULE} must export disconnectConnectedAccount — the one disconnect path,\n` +
+    "  revoke and teardown together.",
+);
+
 // ── 2. The teardown removes mirrored threads ─────────────────────────────────
 assert.match(
   teardown,
-  /export async function purgeConnectedAccountRows\b/,
-  `${TEARDOWN_MODULE} must export purgeConnectedAccountRows — it is the one definition of\n` +
-    "  what disconnecting deletes, and the disconnect route imports it by name.",
+  /async function purgeConnectedAccountRows\b/,
+  `${TEARDOWN_MODULE} must define purgeConnectedAccountRows — the one definition of what\n` +
+    "  disconnecting deletes. It is deliberately NOT exported: callers go through\n" +
+    "  disconnectConnectedAccount(), which pairs it with the guarded provider revoke.",
 );
 assert.match(
   teardown,

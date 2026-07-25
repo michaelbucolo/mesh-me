@@ -14,7 +14,28 @@ import { clearMeshCache } from "./mesh-cache";
 // The Meta products that share a data-deletion / deauthorize surface.
 const META_PLATFORMS = ["facebook", "instagram", "threads"] as const;
 
-async function tearDownAccount(accountId: string, userId: string, platform: string, encryptedAccessToken: string | null) {
+/**
+ * THE one way to disconnect a connected account: best-effort provider revoke,
+ * then the row teardown, then cache invalidation.
+ *
+ * #370 gave the two disconnect paths one definition of WHAT GETS DELETED. They
+ * still each wrote their own REVOKE, and that half drifted too: this function
+ * wraps `decryptSecret` in a try/catch (see below) and the interactive route
+ * did not. `decryptSecret` throws on malformed ciphertext and on AES-GCM auth
+ * failure after an encryption-key rotation, so on that route the throw escaped
+ * as a 500 — and because the teardown ran after it, the account and its
+ * mirrored DMs were retained. A privacy control that fails permanently and
+ * silently is worse than one that was never offered.
+ *
+ * The caller must have authorized the account first: the route matches it to
+ * the signed-in user, Meta's callback matches it by platform-issued id.
+ */
+export async function disconnectConnectedAccount(
+  accountId: string,
+  userId: string,
+  platform: string,
+  encryptedAccessToken: string | null,
+) {
   // Best-effort provider revoke. decryptSecret throws on malformed ciphertext or
   // after an encryption-key rotation (AES-GCM auth failure); that must never stop
   // the DB teardown below, or a data-deletion request would be acknowledged while
@@ -42,9 +63,9 @@ async function tearDownAccount(accountId: string, userId: string, platform: stri
 
 /**
  * Everything that must go when a connection is revoked — the single definition
- * of that, shared by the interactive disconnect and by Meta's deauthorize /
- * data-deletion callbacks. Both used to inline their own version and had
- * drifted: neither removed mirrored DMs.
+ * of that. Not exported: callers go through disconnectConnectedAccount(), which
+ * pairs this with the guarded provider revoke. Exporting the purge alone is how
+ * a caller ends up doing half a disconnect.
  *
  * Caller supplies the transaction, because the interactive route has already
  * authorized the account against the signed-in user and Meta's callback has
@@ -55,7 +76,7 @@ async function tearDownAccount(accountId: string, userId: string, platform: stri
  * are NOT, or that are worth stating explicitly because losing them silently
  * would be a compliance failure rather than a bug.
  */
-export async function purgeConnectedAccountRows(
+async function purgeConnectedAccountRows(
   tx: Prisma.TransactionClient,
   accountId: string,
   userId: string,
@@ -97,7 +118,7 @@ export async function deleteConnectedAccountsByPlatformId(
   let removed = 0;
   for (const account of accounts) {
     try {
-      await tearDownAccount(account.id, account.userId, account.platform, account.accessToken);
+      await disconnectConnectedAccount(account.id, account.userId, account.platform, account.accessToken);
       removed += 1;
     } catch {
       // Keep going; a partial failure must not block acknowledging the request.
