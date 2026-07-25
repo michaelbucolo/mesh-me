@@ -209,7 +209,14 @@ export function ContentLens({
         // The lens speaks Meshi's focused-content contract, so asking Meshi
         // about "this post" works on the mesh exactly like it does on the feed.
         data-meshi-content-card="true"
-        data-meshi-content-id={node.id}
+        // The NATIVE post id, not the scene id. Scene ids are prefixed
+        // (`post:abc`, `friend-post:person:abc`) and the server resolves this
+        // field against the Post table to check the author's Meshi consent
+        // before their handle and post body go to a model. A prefixed id finds
+        // no row, and a gate that finds no row lets everything through — so the
+        // lens speaks the same id the feed card does, through the one helper
+        // that knows the prefix format.
+        data-meshi-content-id={nativePostId(node) ?? node.id}
         data-meshi-content-platform={isExternal ? node.sublabel || "external" : "meshme"}
         data-meshi-content-author={node.label}
         data-meshi-content-text={(node.content || node.label).slice(0, 900)}
