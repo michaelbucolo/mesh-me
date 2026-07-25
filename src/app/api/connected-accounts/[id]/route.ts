@@ -7,6 +7,7 @@ import { getDefaultPermissionKeysForPlatform } from "@/lib/platform-adapters";
 import { clearMeshCache } from "@/lib/mesh-cache";
 import { OAUTH_CONFIGS, isPlatformOAuth, revokeOAuthToken } from "@/lib/oauth";
 import { decryptSecret } from "@/lib/secret-store";
+import { purgeConnectedAccountRows } from "@/lib/connected-account-deletion";
 
 // PATCH — update alter ego association or label
 export async function PATCH(
@@ -159,11 +160,12 @@ export async function DELETE(
     }
   }
 
+  // Same teardown Meta's deauthorize / data-deletion callbacks run. Disconnect
+  // from the UI and disconnect by platform request must remove the same rows —
+  // when they were written separately they drifted, and mirrored DMs survived
+  // both.
   await prisma.$transaction(async (tx) => {
-    await tx.platformPermission.deleteMany({
-      where: { userId: user.id, connectedAccountId: id },
-    });
-    await tx.connectedAccount.delete({ where: { id } });
+    await purgeConnectedAccountRows(tx, id, user.id);
   });
 
   clearMeshCache(user.id);

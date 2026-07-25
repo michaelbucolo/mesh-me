@@ -34,11 +34,49 @@ async function tearDownAccount(accountId: string, userId: string, platform: stri
   }
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    await tx.platformPermission.deleteMany({ where: { userId, connectedAccountId: accountId } });
-    await tx.connectedAccount.delete({ where: { id: accountId } });
+    await purgeConnectedAccountRows(tx, accountId, userId);
   });
 
   clearMeshCache(userId);
+}
+
+/**
+ * Everything that must go when a connection is revoked — the single definition
+ * of that, shared by the interactive disconnect and by Meta's deauthorize /
+ * data-deletion callbacks. Both used to inline their own version and had
+ * drifted: neither removed mirrored DMs.
+ *
+ * Caller supplies the transaction, because the interactive route has already
+ * authorized the account against the signed-in user and Meta's callback has
+ * matched it by platform-issued id; this function does not re-authorize.
+ *
+ * Most platform data (posts, comments, media, followers, analytics, sync jobs,
+ * feed items) is removed by database cascade. Listed here are the rows that
+ * are NOT, or that are worth stating explicitly because losing them silently
+ * would be a compliance failure rather than a bug.
+ */
+export async function purgeConnectedAccountRows(
+  tx: Prisma.TransactionClient,
+  accountId: string,
+  userId: string,
+): Promise<void> {
+  // Granted scopes: a record of what the user allowed. Meaningless, and
+  // misleading, once the connection is gone.
+  await tx.platformPermission.deleteMany({ where: { userId, connectedAccountId: accountId } });
+
+  // Mirrored DM threads, and by cascade their messages and membership rows.
+  // These hold real correspondence — including the other party's name, handle
+  // and avatar in message metadata — stored unencrypted because it arrived
+  // from a platform that had already read it. It is a copy, and revoking the
+  // connection ends our claim to it.
+  //
+  // Done explicitly rather than left to the ConnectedAccount cascade: this is
+  // the path that answers a data-deletion request, and it should say what it
+  // deletes rather than depend on a schema line that a future migration could
+  // quietly weaken.
+  await tx.messageThread.deleteMany({ where: { connectedAccountId: accountId } });
+
+  await tx.connectedAccount.delete({ where: { id: accountId } });
 }
 
 // Remove every connected account matching a platform-issued user id across the

@@ -14,7 +14,6 @@ export type PlatformCapability = {
   name: string;
   authType: "oauth" | "manual";
   importContent: boolean;
-  messageSync: boolean;
   notificationSync: boolean;
   crossPost: boolean;
   interactionSync: boolean;
@@ -38,7 +37,6 @@ const manualSource = (id: string, name = id.charAt(0).toUpperCase() + id.slice(1
   name,
   authType: "manual",
   importContent: false,
-  messageSync: false,
   notificationSync: false,
   crossPost: false,
   interactionSync: false,
@@ -55,7 +53,6 @@ const oauthShell = (
   name,
   authType: "oauth",
   importContent: false,
-  messageSync: false,
   notificationSync: false,
   crossPost: false,
   interactionSync: false,

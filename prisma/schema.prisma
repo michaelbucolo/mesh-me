@@ -304,10 +304,20 @@ model MessageThread {
   updatedAt              DateTime       @updatedAt
   members                ThreadMember[]
   messages               Message[]
+  // This was a bare String? for its whole life, so disconnecting a platform
+  // left every mirrored DM body sitting in the database with a dangling id —
+  // unreachable from any surface, deleted by nothing, and still there after a
+  // GDPR erasure or Meta's data-deletion callback. Cascade is the right action
+  // and not merely the convenient one: these rows are a COPY of correspondence
+  // that lives on the platform. Revoking our access to the platform is exactly
+  // the moment our copy stops being ours to keep. Mesh-native threads carry a
+  // null here and are untouched.
+  connectedAccount       ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
 
   @@unique([connectedAccountId, externalConversationId])
   @@index([threadType])
   @@index([sourcePlatform])
+  @@index([connectedAccountId])
 }
 
 model ThreadMember {
@@ -500,6 +510,9 @@ model ConnectedAccount {
   contentSources      ContentSource[]
   platformPermissions PlatformPermission[]
   platformFeedItems   PlatformFeedItem[]
+  // DM threads mirrored from this connection. Cascade: revoking a platform
+  // must take the copied correspondence with it.
+  mirroredThreads     MessageThread[]
 
   @@index([userId, platform])
   @@index([platform])

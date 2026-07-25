@@ -6,7 +6,7 @@ import {
   getOAuthMissingEnv,
   isPlatformOAuth,
 } from "@/lib/oauth";
-import { getPlatformCapability, normalizePlatformId } from "@/lib/platform-capabilities";
+import { getPlatformCapability, getPlatformMessagingCapability, normalizePlatformId } from "@/lib/platform-capabilities";
 
 export type PlatformAdapterCategory =
   | "social"
@@ -208,7 +208,13 @@ function getCapabilities(platform: string): Record<PlatformAdapterCapabilityKey,
   return {
     profile: true,
     content: Boolean(capability?.importContent),
-    messages: Boolean(capability?.messageSync),
+    // Read from the messaging table rather than a second boolean kept beside
+    // it. There used to be a `messageSync` flag here, and it said `false` for
+    // X and Reddit while `syncDirectMessagesIntoMeChat` was actively mirroring
+    // their DMs — because the sync path gates on the messaging table and this
+    // badge gated on the flag. Two sources of truth, disagreeing, and the one
+    // the user could see was the wrong one. There is now only the table.
+    messages: getPlatformMessagingCapability(platform).supported,
     notifications: Boolean(capability?.notificationSync),
     analytics: Boolean(capability?.importContent),
     posting: Boolean(capability?.crossPost),

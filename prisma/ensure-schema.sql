@@ -170,7 +170,10 @@ CREATE TABLE IF NOT EXISTS "MessageThread" (
     "connectedAccountId" TEXT,
     "externalConversationId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "updatedAt" DATETIME NOT NULL,
+    -- Mirrored DMs are a copy of correspondence that lives on the platform.
+    -- Revoking the connection is the moment our copy stops being ours to keep.
+    CONSTRAINT "MessageThread_connectedAccountId_fkey" FOREIGN KEY ("connectedAccountId") REFERENCES "ConnectedAccount" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -999,6 +1002,7 @@ CREATE INDEX IF NOT EXISTS "MessageThread_threadType_idx" ON "MessageThread"("th
 CREATE INDEX IF NOT EXISTS "MessageThread_sourcePlatform_idx" ON "MessageThread"("sourcePlatform");
 
 -- CreateIndex
+CREATE INDEX IF NOT EXISTS "MessageThread_connectedAccountId_idx" ON "MessageThread"("connectedAccountId");
 CREATE UNIQUE INDEX IF NOT EXISTS "MessageThread_connectedAccountId_externalConversationId_key" ON "MessageThread"("connectedAccountId", "externalConversationId");
 
 -- CreateIndex
