@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { COMMUNITY_SPACE_TYPES, communityThreadTitle } from "@/lib/community-constants";
 import { canViewNsfw, nsfwHiddenWhere } from "@/lib/content-safety";
 import { prisma } from "@/lib/prisma";
+import { getBlockedUserIdSet } from "@/lib/privacy-policy";
 
 function communityVisibilityWhere(userId: string) {
   return {
@@ -137,9 +138,21 @@ export async function getCommunitySpaceData(slug: string) {
     };
   }
 
+  // A shared community is the one place a block could stay a live two-way
+  // channel: co-membership is its own audience clause, so without this the
+  // blocked party keeps authoring into C and the blocker keeps reading it,
+  // complete with byline, avatar and a member-list row. The feed already holds
+  // the line ("a block outranks every audience clause — including shared
+  // community membership"); these are the same posts on their other page.
+  const blockedIds = Array.from(await getBlockedUserIdSet(user.id));
+  const notBlockedAuthor = blockedIds.length ? { authorId: { notIn: blockedIds } } : {};
+
   const [members, posts, reports, thread] = await Promise.all([
     prisma.communityMember.findMany({
-      where: { communityId: community.id },
+      where: {
+        communityId: community.id,
+        ...(blockedIds.length ? { userId: { notIn: blockedIds } } : {}),
+      },
       include: {
         user: {
           select: {
@@ -163,6 +176,7 @@ export async function getCommunitySpaceData(slug: string) {
         // must not retroactively leak to non-members — so a non-member only
         // ever sees posts explicitly published as public. Members see all.
         ...(membership ? {} : { visibility: "public" }),
+        ...notBlockedAuthor,
       },
       include: {
         author: {
@@ -207,6 +221,9 @@ export async function getCommunitySpaceData(slug: string) {
           },
           include: {
             messages: {
+              // The community chat is the live half of that same two-way
+              // channel, so it takes the same block filter as the post list.
+              where: blockedIds.length ? { senderId: { notIn: blockedIds } } : {},
               include: {
                 sender: {
                   select: {

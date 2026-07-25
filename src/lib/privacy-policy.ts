@@ -60,6 +60,27 @@ export async function getBlockedUserIdSet(viewerId: string): Promise<Set<string>
 }
 
 /**
+ * Is there a block between these two users, in EITHER direction? Block stores
+ * one directional row (blockerId = whoever pressed the button), but its effect
+ * is symmetric, so every point check must match both orientations. Use this
+ * whenever the surface is a single known pair; use getBlockedUserIdSet when the
+ * surface is a list that needs an id filter.
+ */
+export async function isBlockedBetween(userId: string, otherUserId: string): Promise<boolean> {
+  if (userId === otherUserId) return false;
+  const blocked = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: userId, blockedId: otherUserId },
+        { blockerId: otherUserId, blockedId: userId },
+      ],
+    },
+    select: { id: true },
+  });
+  return Boolean(blocked);
+}
+
+/**
  * Can this user see — and therefore interact with (react/comment) — the given
  * post? Mirrors the feed's read-side audience clause so a user who only knows
  * a post's id cannot react to or comment on a private/friends-only post they
@@ -76,16 +97,7 @@ export async function canUserInteractWithPost(
   // your public posts, and you get the same protection from them. This is the
   // write-side twin of the feed's block filter — without it, knowing a post id
   // is enough to keep interacting straight through a block.
-  const blocked = await prisma.block.findFirst({
-    where: {
-      OR: [
-        { blockerId: userId, blockedId: post.authorId },
-        { blockerId: post.authorId, blockedId: userId },
-      ],
-    },
-    select: { id: true },
-  });
-  if (blocked) return false;
+  if (await isBlockedBetween(userId, post.authorId)) return false;
 
   if (post.communityId) {
     const membership = await prisma.communityMember.findUnique({

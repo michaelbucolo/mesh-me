@@ -673,9 +673,13 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
         include: platformInclude,
       });
       // Discover fallback: a PUBLIC post from any discoverable member — the same
-      // gate getDiscoverPlatformPosts applies, so this exposes nothing new, and
-      // it lets a like on a discover reel (or the related lane) resolve.
+      // gate getDiscoverPlatformPosts applies, block clause included, so this
+      // exposes nothing new, and it lets a like on a discover reel (or the
+      // related lane) resolve. Drop the block filter here and /feed/platform-<id>
+      // becomes the permalink back door for imported content, and
+      // /api/flow/related?anchor=platform-<id> starts seeding off blocked posts.
       if (!post) {
+        const { blockedIds } = await getViewerSocialGraph(user.id);
         post = await prisma.platformPost.findFirst({
           where: {
             id: rawId,
@@ -683,6 +687,7 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
             visibility: "public",
             connectedAccount: {
               isActive: true,
+              userId: { notIn: blockedIds },
               user: { isSuspended: false, showInDiscovery: true },
             },
           },

@@ -14,6 +14,7 @@ import {
   canUserInteractWithPost,
   canViewProfile,
   getBlockedUserIdSet,
+  isBlockedBetween,
   normalizeMeshVisibility,
   parseBranchOverrides,
   type BranchVisibility,
@@ -143,10 +144,16 @@ async function searchWikipedia(query: string) {
 
 export async function getExplorePosts(page = 1, limit = 20) {
   const user = await getCurrentUser();
+  // Explore is discovery, and discovery never crosses a block in either
+  // direction — the People rail already subtracts this set via
+  // getDiscoverUsers, so the Posts grid must too, or the blocked author's
+  // display name, avatar and profile link stay one scroll away.
+  const blockedIds = user ? Array.from(await getBlockedUserIdSet(user.id)) : [];
   const visibilityFilter = user
     ? {
         ...nsfwHiddenWhere(user),
         visibility: "public",
+        ...(blockedIds.length ? { authorId: { notIn: blockedIds } } : {}),
         OR: [
           { authorId: user.id },
           // Public posts circulate when their author opted into discovery.
@@ -215,6 +222,14 @@ export async function getExplorePosts(page = 1, limit = 20) {
 
 export async function getPostById(postId: string) {
   const user = await getCurrentUser();
+  // Native permalinks resolve HERE, not through getFeedPostById (that one only
+  // handles the "platform-"/"feeditem-" prefixes), so the permalink block gate
+  // has to be repeated on this path. Both directions: the row is directional
+  // but its effect is not. The same set filters the comment tree below — a
+  // blocked account's comments and replies must not render on a third party's
+  // post either.
+  const blockedIds = user ? Array.from(await getBlockedUserIdSet(user.id)) : [];
+  const notBlockedAuthor = blockedIds.length ? { authorId: { notIn: blockedIds } } : {};
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -246,6 +261,7 @@ export async function getPostById(postId: string) {
             },
           },
           replies: {
+            where: notBlockedAuthor,
             include: {
               author: {
                 select: {
@@ -259,7 +275,7 @@ export async function getPostById(postId: string) {
             orderBy: { createdAt: "asc" },
           },
         },
-        where: { parentId: null },
+        where: { parentId: null, ...notBlockedAuthor },
         orderBy: { createdAt: "desc" },
       },
       _count: {
@@ -282,6 +298,11 @@ export async function getPostById(postId: string) {
   // the feed audience clause, so a direct /feed/[postId] link can't surface it.
   // (A suspended user can't be the viewer, since getCurrentUser rejects them.)
   if (post.author.isSuspended && !user?.isAdmin) return null;
+  // Permalinks are the back door around a filtered feed: a blocked author's
+  // post must 404 here too, or /feed/<id> — the exact URL the app's own
+  // Share/copy-link produces — would still serve the content, byline, media and
+  // comment thread the block was meant to remove. Mirrors feed-data.ts.
+  if (blockedIds.includes(post.authorId)) return null;
   if (!(await canCurrentUserViewNativePost(post, user))) return null;
 
   return post;
@@ -566,6 +587,11 @@ export async function getProfileConnections(
   // to them under the target's own mesh-privacy settings.
   const isSelf = currentUser.id === target.id;
   if (!isSelf && !currentUser.isAdmin) {
+    // The rows below already drop blocked people FROM the list; this drops the
+    // list itself when the CALLER is the blocked party. Same reason the gate is
+    // in-function at all — the page hides the tab, but a direct Server Action
+    // invocation would otherwise still enumerate the target's social graph.
+    if (await isBlockedBetween(currentUser.id, target.id)) return [];
     const meshVisibility = normalizeMeshVisibility(
       target.meshPrivacy?.meshVisibility,
       target.isPublic ? "public" : "private",
@@ -937,8 +963,13 @@ export async function searchAll(query: string) {
 
   const q = query.trim();
   const wikipediaPromise = searchWikipedia(q);
-  // People search must never cross a block in either direction.
+  // Search must never cross a block in either direction — people OR content.
+  // Search is also the id-discovery path into /feed/<id>, so a post lane that
+  // ignores blocks turns every other permalink gate into a two-click bypass,
+  // and it contradicts the settings copy verbatim ("don't appear in your feed,
+  // search, or live rooms — in both directions").
   const blocked = await getBlockedUserIdSet(user.id);
+  const blockedIds = Array.from(blocked);
 
   const [users, posts, communities, platformPosts, platformPeople, connectedSocialSources, messages] = await Promise.all([
     prisma.user.findMany({
@@ -966,6 +997,7 @@ export async function searchAll(query: string) {
       where: {
         ...nsfwHiddenWhere(user),
         content: { contains: q },
+        ...(blockedIds.length ? { authorId: { notIn: blockedIds } } : {}),
         OR: [
           { authorId: user.id },
           // Strangers only ever match posts published as public.
@@ -1025,6 +1057,11 @@ export async function searchAll(query: string) {
               },
             ],
           },
+          // Imported content is still that member's content, so the block
+          // applies to it exactly as it does to a native post.
+          ...(blockedIds.length
+            ? [{ connectedAccount: { userId: { notIn: blockedIds } } }]
+            : []),
         ],
         OR: [
           { title: { contains: q } },
@@ -1264,6 +1301,11 @@ export async function getUserCommunities(username: string) {
   // community memberships past their connections privacy control.
   const isSelf = !!currentUser && currentUser.id === user.id;
   if (!isSelf && !currentUser?.isAdmin) {
+    // Blocked in either direction: no memberships, whatever the branch says.
+    // Repeated here for the same reason the branch gate is — a "use server"
+    // export is directly invocable, so the page hiding the section is not a
+    // gate.
+    if (currentUser && (await isBlockedBetween(currentUser.id, user.id))) return [];
     const meshVisibility = normalizeMeshVisibility(
       user.meshPrivacy?.meshVisibility,
       user.isPublic ? "public" : "private",
