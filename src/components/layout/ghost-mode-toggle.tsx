@@ -83,21 +83,34 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
       aria-pressed={ghost}
       aria-label={ghost ? "Ghost Mode is on — tap to become visible" : "Turn on Ghost Mode"}
       title={ghost ? "Ghost Mode on: others can't see you live" : "Ghost Mode: hide your live presence"}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 transition ${
+      /* ON was `border-violet-400/50 bg-violet-500/20 text-violet-300`: three
+         raw Tailwind palette steps, two of them translucent, over an unknown
+         background — the state of a privacy control carried by a tint. OFF was a
+         --paper-1 fill inside a 1px --rule border with no --edge ring and no
+         wall. It is a `.key` in both states now, and ON is a MATERIAL change:
+         `.key-lit` (globals.css:4996) moulded from --mould-grape, the purple
+         plastic, whose ink and plinth are pinned together in tokens.css:92 and
+         verified by contrast:check. Same idiom as the liked/saved controls in
+         feed/post-card.tsx:790,837. */
+      className={`key inline-flex items-center gap-1.5 px-3 ${
         compact ? "h-9 justify-center" : "h-9"
       } ${
         ghost
-          ? "border-violet-400/50 bg-violet-500/20 text-violet-300"
-          : "border-[var(--mesh-border)] bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text)]"
+          ? "key-lit [--mould:var(--mould-grape)] [--mould-ink:var(--mould-grape-ink)] [--mould-plinth:var(--mould-grape-plinth)]"
+          : "text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text)]"
       }`}
     >
       <span className="relative inline-flex h-[15px] w-[15px] items-center justify-center" aria-hidden="true">
         {/* Dematerialize burst: a soft ripple + drifting violet after-images */}
         {motionEnabled && dematerializing && (
           <>
+            {/* The burst plays on the way ON, by which point the face is already
+                grape — so the ripple and the after-images are drawn in the
+                plastic's own PINNED ink (tokens.css:92), not in a violet from
+                Tailwind's palette that would have vanished into the fill. */}
             <motion.span
               key={`ripple-${burst}`}
-              className="pointer-events-none absolute inset-0 rounded-full border border-violet-400/60"
+              className="pointer-events-none absolute inset-0 rounded-full border border-[var(--mould-grape-ink)] opacity-60"
               initial={{ opacity: 0.5, scale: 0.5 }}
               animate={{ opacity: 0, scale: 2.6 }}
               transition={{ duration: 0.55, ease: "easeOut" }}
@@ -105,7 +118,7 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
             {[0, 1, 2].map((i) => (
               <motion.span
                 key={`afterimage-${burst}-${i}`}
-                className="pointer-events-none absolute inset-0 flex items-center justify-center text-violet-300"
+                className="pointer-events-none absolute inset-0 flex items-center justify-center text-[var(--mould-grape-ink)]"
                 initial={{ opacity: 0.55, y: 0, scale: 1 }}
                 animate={{ opacity: 0, y: -10 - i * 4, scale: 1.15 + i * 0.08 }}
                 transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.06 }}
@@ -119,16 +132,17 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
         {/* Resting icon */}
         {motionEnabled ? (
           ghost ? (
-            // Lit + spectral breathing float
+            // Lands lit. The `y: [0, -1.6, 0]` float on `repeat: Infinity` is
+            // deleted: it moved forever with nothing happening, which is the
+            // definition of ambient motion. The material says "on" now.
             <motion.span
               key="ghost-lit"
               className="inline-flex"
               initial={{ scale: 0.7, opacity: 0.3 }}
-              animate={{ scale: 1, opacity: 1, y: [0, -1.6, 0] }}
+              animate={{ scale: 1, opacity: 1 }}
               transition={{
                 scale: { type: "spring", stiffness: 360, damping: 20 },
                 opacity: { duration: 0.25 },
-                y: { duration: 2.8, repeat: Infinity, ease: "easeInOut" },
               }}
             >
               <Ghost size={15} />

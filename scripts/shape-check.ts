@@ -234,6 +234,58 @@ assert.deepEqual(
     "\n  A burst is bits of the same plastic the product is made of. Use the --mould-* faces.",
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// A LIT KEY KEEPS ITS PLASTIC UNDER THE POINTER.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// contrast-check proves the PALETTE. It cannot catch this, because nothing in
+// the palette is wrong — the failure is in the CASCADE. `.key:hover` is a
+// two-class selector (0,2,0) and `.key-lit` is one class (0,1,0), so hover
+// repainted every moulded primary and Delete button to --face-hover while it
+// kept its PINNED ink. --mould-cobalt-ink and --mould-crimson-ink are both
+// #ffffff: 5.64 and 6.37 on their own faces, and 1.01:1 on --face-hover in
+// Daylight. The label on a hovered primary button was not dim, it was gone.
+//
+// Two assertions, because either alone passes the broken file: the override
+// must EXIST, and it must come after the rule it is tying with — at equal
+// specificity source order is the only tiebreak.
+// Comments STRIPPED and selectors anchored to a line start before searching.
+// This file's prose quotes `.key:hover` and `.key-lit` constantly to explain
+// itself, and there is also a compound `.insta-post-action.key-lit:hover` rule
+// which CONTAINS the substring we are looking for. A bare indexOf matched both:
+// mutation-tested, deleting the real override entirely still passed, because the
+// compound rule satisfied the search. Third time this class of bug has appeared
+// in a gate in this repo — assume it now.
+const cssOnly = globals.replace(/\/\*[\s\S]*?\*\//g, "");
+const litHover = cssOnly.search(/^\.key-lit:hover\b/m);
+const keyHover = cssOnly.search(/^\.key:hover\b/m);
+assert.ok(
+  litHover !== -1,
+  "globals.css must define a standalone `.key-lit:hover` rule. Without it, `.key:hover` wins on\n" +
+    "  specificity and a moulded button changes MATERIAL on contact — repainted to --face-hover\n" +
+    "  while keeping the white ink pinned to its plastic. That measures 1.01:1 in Daylight: the\n" +
+    "  label on a hovered primary or Delete button is not dim, it is gone.\n" +
+    "  A compound rule like `.insta-post-action.key-lit:hover` does NOT satisfy this — it fixes one\n" +
+    "  surface and leaves every other lit key broken.",
+);
+assert.ok(
+  keyHover !== -1 && litHover > keyHover,
+  "the `.key-lit:hover` override must come AFTER `.key:hover` in globals.css. They tie on\n" +
+    "  specificity (both 0,2,0), so source order is the only tiebreak and earlier means it loses.",
+);
+// And it must restore BOTH halves. Either alone leaves a mismatched pair that
+// nobody has measured — the pinned inks are verified against their own plastic
+// and against nothing else.
+const litBlock = cssOnly.slice(litHover, cssOnly.indexOf("}", litHover));
+for (const prop of ["background", "color"]) {
+  assert.match(
+    litBlock,
+    new RegExp(String.raw`${prop}:\s*var\(--mould`),
+    `.key-lit:hover must restore ${prop} from the pinned --mould triple. Restoring only one of face\n` +
+      "  and ink leaves a pairing nobody measured.",
+  );
+}
+
 console.log(
   `shape contract OK — the radius scale is monotonic and capped at ${RADIUS_CAP_REM * 16}px, the press\n` +
     "  conserves total height (wall to zero, face down exactly one wall, via `translate` so the\n" +

@@ -255,19 +255,32 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             suppressHydrationWarning
           />
           {query && (
+            /* Was a bare glyph in a 24px box: no face, no --edge ring, no wall,
+               and `hover:bg-white/5` — a hardcoded white that tracks neither
+               theme. It is a `.key` now, wearing the chip wall via
+               `.explore-chip` because the search chrome must stay quieter than
+               the results it filters. Sized 28px square — exactly the height of
+               the Deep search key beside it, so the two read as one row of parts
+               and the bar does not jump when the first character is typed. */
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+              className="key explore-chip inline-flex h-7 w-7 shrink-0 items-center justify-center text-[var(--text-muted)]"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
           )}
           {query.trim() && (
+            /* The one primary action in the bar. It was --accent at 15% alpha
+               carrying --accent as its own ink — a wash reading as "how loud",
+               with unpinned text on it. Moulded from cobalt with its PINNED ink
+               instead, character for character the idiom at
+               feed-timeline-client.tsx:656. Object wall, not chip: it outranks
+               everything else in the bar. */
             <button
               type="submit"
-              className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent)]/15 px-3 py-1 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/25"
+              className="key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] inline-flex shrink-0 items-center gap-1 px-3 py-1.5 text-xs font-semibold"
             >
               Deep search <ArrowUpRight className="h-3 w-3" aria-hidden />
             </button>
@@ -282,6 +295,14 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           role="tablist"
           aria-label="Explore sections"
         >
+          {/* Three tabs with no material at all: no face, no --edge ring, no
+              wall. The selected one was a translucent `--accent`/12 pill sliding
+              underneath on a layoutId — a TINT standing in for state, which is
+              Law 2 inverted (colour reading as "how loud"). Every tab is a `.key`
+              now and the selected one is moulded from cobalt with its pinned ink,
+              the same answer globals.css:3367 records for the feed's four chips:
+              "all three selected states are moulded from cobalt … a tint is
+              'louder = selected', which is exactly the reading Law 2 forbids." */}
           {TABS.map((item) => {
             const selected = tab === item.id;
             const Icon = item.icon;
@@ -292,38 +313,36 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 role="tab"
                 aria-selected={selected}
                 onClick={() => setTab(item.id)}
-                className={`relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
-                  selected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                className={`key inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2 text-xs font-semibold ${
+                  selected
+                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                    : "text-[var(--text-secondary)]"
                 }`}
               >
-                {selected && (
-                  <motion.span
-                    layoutId="explore-tab-pill"
-                    transition={spring}
-                    className="absolute inset-0 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/12"
-                    aria-hidden
-                  />
-                )}
-                <Icon className={`relative h-3.5 w-3.5 ${selected ? "text-[var(--accent)]" : ""}`} aria-hidden />
-                <span className="relative">{item.label}</span>
+                <Icon className="h-3.5 w-3.5" aria-hidden />
+                <span>{item.label}</span>
               </button>
             );
           })}
           {isPostTab && (
+            /* Same treatment. The "on" state was --accent ink on nothing; it is
+               the cobalt plastic now, and the active-filter dot rides that
+               plastic's PINNED ink instead of --accent, which would have been
+               near-invisible against a cobalt face. */
             <button
               type="button"
               onClick={() => setShowFilters((value) => !value)}
-              className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+              className={`key ml-auto inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-semibold ${
                 showFilters || hasActiveFilters
-                  ? "text-[var(--accent)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                  : "text-[var(--text-secondary)]"
               }`}
               aria-expanded={showFilters}
               aria-label="Toggle filters"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
               Filters
-              {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+              {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-[var(--mould-cobalt-ink)]" aria-hidden />}
             </button>
           )}
         </motion.div>
@@ -336,6 +355,10 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             role="tablist"
             aria-label="Discover feed mode"
           >
+            {/* Second strip, identical failure to the first: three faceless
+                buttons and an --accent/12 pill for state. Keys, chip wall — this
+                row is chrome about the chrome, so it stays a step quieter than
+                the section tabs above it (Law 3). */}
             {FEED_MODES.map((mode) => {
               const selected = feedMode === mode.id;
               const Icon = mode.icon;
@@ -349,20 +372,14 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                     setFeedMode(mode.id);
                     if (mode.id === "media" && mediaFilter === "text") setMediaFilter("all");
                   }}
-                  className={`relative flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    selected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
+                    selected
+                      ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                      : "text-[var(--text-secondary)]"
                   }`}
                 >
-                  {selected && (
-                    <motion.span
-                      layoutId="explore-feed-mode-pill"
-                      transition={spring}
-                      className="absolute inset-0 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/12"
-                      aria-hidden
-                    />
-                  )}
-                  <Icon className={`relative h-3.5 w-3.5 ${selected ? "text-[var(--accent)]" : ""}`} aria-hidden />
-                  <span className="relative">{mode.label}</span>
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                  <span>{mode.label}</span>
                 </button>
               );
             })}
@@ -414,6 +431,16 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               {availablePlatforms.length > 1 && (
                 <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
                   <span className="text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
+                  {/* The brand hex stays — it identifies a third party, so it is
+                      legitimately WHICH-not-how-loud. What goes is the hex as a
+                      SURFACE with its own colour as ink: selected was
+                      `backgroundColor: ${chip.color}22` under `color: chip.color`,
+                      an unpinned ink on a 13%-alpha wash of itself, which is the
+                      exact failure the --mould-*-ink triples exist to prevent.
+                      Same fix post-card.tsx:482 already landed: the brand colour
+                      becomes a decorative swatch carrying NO text, the label rides
+                      a pinned ink, and selection is a material change — the cobalt
+                      plastic — not a tint. */}
                   {availablePlatforms.map((platform, platformIndex) => {
                     const chip = PLATFORM_CHIP[platform];
                     const selected = activePlatform === platform;
@@ -422,14 +449,15 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                         key={platform}
                         type="button"
                         onClick={() => setActivePlatform(selected ? null : platform)}
-                        className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-                          selected ? "" : "border-[var(--border-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        className={`key explore-chip inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold ${
+                          selected
+                            ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                            : "text-[var(--text-secondary)]"
                         }`}
-                        style={{
-                          "--i": platformIndex + 1,
-                          ...(selected ? { borderColor: chip.color, backgroundColor: `${chip.color}22`, color: chip.color } : {}),
-                        } as React.CSSProperties}
+                        style={{ "--i": platformIndex + 1 } as React.CSSProperties}
+                        aria-pressed={selected}
                       >
+                        <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: chip.color }} aria-hidden />
                         {chip.label}
                       </button>
                     );
@@ -437,10 +465,12 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 </div>
               )}
               {hasActiveFilters && (
+                /* Naked text pretending to be a control — no face, no ring, no
+                   wall, and the only feedback was an ink change. A key. */
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="animate-mesh-rise-soft flex items-center gap-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                  className="key explore-chip animate-mesh-rise-soft inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]"
                 >
                   <X className="h-3 w-3" aria-hidden /> Clear all filters
                 </button>
@@ -455,23 +485,37 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           {trendingTags.map((tag, index) => {
             const selected = activeTag === tag.tag;
             return (
+              /* `bg-white/[0.03]` for the resting face and `--accent`/15 for the
+                 selected one: a hardcoded white that tracks neither theme, and a
+                 tint doing the job of a material. Both replaced by the shared key
+                 — --face at rest, the cobalt plastic when selected.
+
+                 `whileTap={{ scale: 0.94 }}` is deleted, and that deletion is
+                 load-bearing rather than tidying. `transform` and `translate` are
+                 separate properties that COMPOSE, so framer's inline scale would
+                 have survived underneath `.key:active`'s translate and the chip
+                 would have shrunk AND dropped at once — the exact bug
+                 globals.css:1080 and :7486 both record. A key answers by
+                 bottoming out, never by shrinking away from the finger. */
               <motion.button
                 key={tag.tag}
                 type="button"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...spring, delay: 0.03 * index }}
-                whileTap={{ scale: 0.94 }}
                 onClick={() => setActiveTag(selected ? null : tag.tag)}
-                className={`flex shrink-0 items-center gap-1 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                aria-pressed={selected}
+                className={`key explore-chip inline-flex shrink-0 items-center gap-1 px-3.5 py-1.5 text-xs font-semibold ${
                   selected
-                    ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
-                    : "border-[var(--border-secondary)] bg-white/[0.03] text-[var(--text-secondary)] hover:border-[var(--border-primary)] hover:text-[var(--text-primary)]"
+                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                    : "text-[var(--text-secondary)]"
                 }`}
               >
                 <Hash className="h-3 w-3" aria-hidden />
                 {tag.tag}
-                <span className="text-[10px] text-[var(--text-muted)]">{formatCount(tag.count)}</span>
+                {/* On the cobalt face the count inherits the plastic's pinned ink;
+                    on --face it drops to --text-muted, which clears AA there. */}
+                <span className={selected ? "text-[10px]" : "text-[10px] text-[var(--text-muted)]"}>{formatCount(tag.count)}</span>
               </motion.button>
             );
           })}
@@ -607,16 +651,21 @@ function SectionHeader({ title, action }: { title: string; action?: { label: str
   );
 }
 
+// Six of these render at once (four content filters, two sort modes) and not one
+// of them had a face, an --edge ring or a wall — a 1px --border-secondary hairline
+// is a rule, not a legal boundary. They are keys now, chip wall, and the selected
+// one is moulded from cobalt rather than washed in 15% accent.
 function FilterChip({ label, selected, onClick, icon, style }: { label: string; selected: boolean; onClick: () => void; icon?: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <button
       type="button"
       onClick={onClick}
       style={style}
-      className={`flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
+      aria-pressed={selected}
+      className={`key explore-chip inline-flex items-center gap-1 px-3 py-1 text-[11px] font-semibold ${
         selected
-          ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
-          : "border-[var(--border-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+          : "text-[var(--text-secondary)]"
       }`}
     >
       {icon}

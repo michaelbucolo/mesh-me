@@ -250,21 +250,41 @@ function ShellTopBar({
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
         <GhostModeToggle compact initialGhost={user.ghostMode} />
-        <button type="button" onClick={shareCurrent} className="mesh-topbar-btn hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
+        {/* Three topbar controls, all of them flat before this: `.mesh-topbar-btn`
+            was a 1px border over `background: transparent` (globals.css:712-730)
+            and `.mesh-topbar-icon` had no background at all (globals.css:694-704)
+            — no face, no --edge ring, no side wall, and a hover that only tinted.
+            `.key` is added, not substituted: the existing classes still carry the
+            geometry (display, gap, padding, size, type) and `.key` at
+            globals.css:4942 sits later in the file, so its face / ring / wall /
+            press win on source order without one line of new CSS. */}
+        <button type="button" onClick={shareCurrent} className="mesh-topbar-btn key hidden items-center gap-2 lg:inline-flex" aria-label="Share this page">
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
         </button>
-        <Link href="/notifications" className="mesh-topbar-icon relative" aria-label="Notifications" title="Notifications">
+        <Link href="/notifications" className="mesh-topbar-icon key relative" aria-label="Notifications" title="Notifications">
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCounts.unreadNotifications > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-semibold text-white">
+            /* `text-white` on `bg-[var(--accent)]` was a real contrast failure,
+               not a style tic: in Worklight --accent is #93a9ff (tokens.css:194)
+               and white on it measures ~1.9:1. --accent-ink is the PINNED ink for
+               that fill (tokens.css:69, 197) and is contrast-verified in both
+               themes. */
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-semibold text-[var(--accent-ink)]">
               {unreadCounts.unreadNotifications > 99 ? "99+" : unreadCounts.unreadNotifications}
             </span>
           )}
         </Link>
 
         <details ref={accountMenuRef} className="relative">
-          <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-full border-0 p-0 text-sm font-semibold text-[var(--mesh-text)] transition-colors lg:rounded-xl lg:border lg:border-[var(--mesh-border)] lg:px-3 lg:py-1.5 lg:hover:bg-[var(--mesh-panel-hover)] [&::-webkit-details-marker]:hidden" aria-label="Account menu">
+          {/* The account trigger is a real control and had a border on desktop
+              and nothing at all on mobile. The Tailwind radius / border / hover
+              utilities are DELETED rather than left in place: this file's rules
+              are unlayered and Tailwind's utilities live in `@layer utilities`
+              (globals.css:1 `@import "tailwindcss"`), so unlayered `.key` beats
+              every one of them — leaving them would be dead markup that reads as
+              if it still did something. */}
+          <summary className="mesh-topbar-owner key flex cursor-pointer list-none items-center gap-2 p-0 text-sm font-semibold text-[var(--mesh-text)] lg:px-3 lg:py-1.5 [&::-webkit-details-marker]:hidden" aria-label="Account menu">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--accent)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
             <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
             <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
@@ -487,9 +507,15 @@ export function AppShell({ children, user }: AppShellProps) {
 
         {/* User Dock */}
         <div className="mx-3 mb-3">
+          {/* The user dock navigates to your profile, so it is a key, not a card.
+              It was a --paper-1 fill inside a 1px --rule border: no --edge ring
+              (so no WCAG 1.4.11 boundary), no wall, and `.mesh-user-dock:hover`
+              (globals.css:684) only swapped the fill. The Tailwind fill / border
+              / radius utilities are removed for the same reason as above — `.key`
+              (globals.css:4942) already owns all three. */}
           <Link
             href={`/profile/${user.username}`}
-            className="mesh-user-dock flex items-center gap-2.5 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3.5 py-3 transition-colors hover:bg-[var(--mesh-panel-hover)]"
+            className="mesh-user-dock key flex items-center gap-2.5 px-3.5 py-3"
             aria-label="Open your profile"
           >
             {user.avatarUrl ? (
@@ -523,17 +549,25 @@ export function AppShell({ children, user }: AppShellProps) {
             <p suppressHydrationWarning>© {new Date().getFullYear()} Mesh.me</p>
             <p>All rights reserved</p>
           </div>
+          {/* Two footer controls. The theme toggle carried `.mesh-pressable`,
+              which is the OLD paper model: `translateY(-2px)` plus a wide blurred
+              shadow on hover (globals.css:2201-2204). It is REMOVED, not joined
+              by `.key` — `.mesh-pressable:hover` sets `box-shadow`, so keeping it
+              would have overridden the key's own side wall the moment the pointer
+              arrived, and the object would have grown instead of pressing in. The
+              settings link had no class at all beyond a radius and a text colour.
+              Both are keys now. */}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setMode(theme === "dark" ? "light" : "dark")}
-              className="mesh-pressable rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors"
+              className="key inline-flex items-center justify-center p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
               aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
               title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <Link href="/settings" className="rounded-lg p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)] transition-colors" aria-label="Settings">
+            <Link href="/settings" className="key inline-flex items-center justify-center p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]" aria-label="Settings">
               <Settings className="h-4 w-4" />
             </Link>
           </div>
@@ -554,14 +588,24 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* The Mesh and the Flow are one vertical space. A quiet handle on each
           dives down into the Flow / rises back up to the Mesh; the route slot
           animates vertically to match (see data-nav-dir dive/rise). */}
+      {/* The two continuum handles are the only way in and out of the Flow, and
+          they were a translucent `color-mix` pill with `backdrop-filter:
+          blur(10px)` and a hardcoded `0 8px 24px rgba(0,0,0,0.28)`
+          (globals.css:1005-1030) — a banned blur, a hardcoded shadow, no --edge
+          ring and no wall. `.key` supplies all of it; the three declarations that
+          `.key` does not reach (the blur, the pill radius, and the hover
+          `translateY` that made the handle drift under the pointer) are in the
+          CSS this pass hands back. The centering `transform: translateX(-50%)`
+          survives untouched, which is exactly why `.key:active` uses `translate`
+          and never `transform`. */}
       {isMeshSurface && (
-        <Link href="/flow" className="mesh-continuum-handle mesh-continuum-handle-down" aria-label="Dive into the Flow">
+        <Link href="/flow" className="mesh-continuum-handle mesh-continuum-handle-down key" aria-label="Dive into the Flow">
           <span>Flow</span>
           <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
       )}
       {isFlowSurface && (
-        <Link href="/mesh" className="mesh-continuum-handle mesh-continuum-handle-up" aria-label="Back to the Mesh">
+        <Link href="/mesh" className="mesh-continuum-handle mesh-continuum-handle-up key" aria-label="Back to the Mesh">
           <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Mesh</span>
         </Link>

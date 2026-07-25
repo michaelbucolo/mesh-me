@@ -129,11 +129,20 @@ function ShortcutRow({ shortcut, onAction }: { shortcut: Shortcut; onAction: (ac
   }
 
   return (
+    /* An actionable shortcut row stays a ROW — it sits in a --bg-secondary group
+       card with two to five siblings, and a list of rows is a place, not a rack
+       of keys (globals.css:4894-4897 is explicit about this: rows are `.leaf`,
+       and that is what keeps a viewport under the plinth cap).
+       What is removed is the two bits of motion that contradicted the press
+       model in the rest of the product: `whileHover={{ x: 2 }}` slid the row
+       sideways when the pointer merely crossed it — the same 2px sideways slide
+       globals.css:7654-7656 deleted from `.insta-rail-link` for being "a control
+       that goes somewhere; a row is a place" — and `whileTap={{ scale: 0.98 }}`
+       shrank it AWAY from the finger, the precise opposite of a key bottoming
+       out (globals.css:7466-7469). The row still answers, by brightening. */
     <motion.button
       type="button"
       onClick={() => onAction(shortcut.action as ShortcutAction)}
-      whileHover={{ x: 2 }}
-      whileTap={{ scale: 0.98 }}
       transition={OVERLAY_SPRING}
       className="keyboard-shortcut-row keyboard-shortcut-row-action"
     >

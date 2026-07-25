@@ -26,9 +26,17 @@ export function MessagesIndexPane() {
           <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[var(--mesh-text-secondary)]">
             Every conversation — from mesh.me and all your connected platforms — lives here. Pick one on the left, or start something new.
           </p>
+          {/* The one action on an otherwise empty screen, and it had no material:
+              `.mesh-pressable` (globals.css:2192) LIFTS 2px on hover and swaps in a
+              wide blurred shadow, the fill was raw --accent under an EMITTING glow
+              (`0 4px 20px var(--accent-glow)`), and the press was `active:scale-95`
+              — the control shrinking away from the finger. It is the shared key
+              now, moulded from jade because --domain-messages is jade
+              (tokens.css:102). `.key-lit` supplies the pinned --mould-jade-ink, so
+              the unpinned `text-white` goes with it. */}
           <Link
             href="/messages?compose=true"
-            className="mesh-pressable mt-6 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_4px_20px_var(--accent-glow)] transition hover:brightness-110 active:scale-95"
+            className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] mt-6 inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-semibold"
           >
             Start a conversation
           </Link>

@@ -7707,3 +7707,27 @@ button, [role="button"] {
    the other. The inner lip is what separates a tray from its parent — it is
    --plinth-tray, the one plinth that inverts precisely so it stays visible in
    both — so a plain `.tray` inside a `.tray` already reads correctly. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   A MOULDED PART DOES NOT CHANGE MATERIAL WHEN YOU TOUCH IT.
+
+   `.key:hover` and `.key:active` are two-class selectors (0,2,0). `.key-lit`
+   is one (0,1,0). Specificity decides, not source order — so every lit key in
+   the product was repainted `--face-hover` the instant it was hovered, while
+   KEEPING its pinned ink. Both --mould-cobalt-ink and --mould-crimson-ink are
+   #ffffff: measured 5.64 and 6.37 on their own faces, and 1.01:1 on
+   --face-hover in Daylight. The label on a hovered primary or Delete button
+   was not merely low-contrast, it was gone.
+
+   Face and ink only. The wall still comes from --plinth-1, which `.key-lit`
+   re-points to the pinned plinth, so `.key:active` goes on collapsing the
+   COLOURED wall and travelling exactly one wall-height. Height conservation is
+   untouched and no new colour is invented — these are the same pinned values
+   the element already carries at rest, which is the whole point: a piece of
+   moulded plastic is the same plastic under your finger.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.key-lit:hover,
+.key-lit:active {
+  background: var(--mould, var(--mould-cobalt));
+  color: var(--mould-ink, var(--mould-cobalt-ink));
+}
