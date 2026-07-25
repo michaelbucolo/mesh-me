@@ -5,6 +5,7 @@ import {
   exchangeIdentityCode,
   isIdentityProvider,
   signInWithIdentity,
+  IDENTITY_USER_FACING_ERRORS,
   type FederatedIdentity,
 } from "@/lib/identity-auth";
 import { safeInternalPath } from "@/lib/request-guard";
@@ -86,7 +87,21 @@ async function handleCallback(
     const destination = result.onboarded ? nextPath || "/mesh" : "/onboarding";
     return NextResponse.redirect(new URL(destination, origin));
   } catch (error) {
-    return failure(error instanceof Error ? error.message : `Could not sign in with ${config.name}`);
+    // `failure` puts this string in `?error=` and /login renders it to the
+    // visitor. signInWithIdentity throws two KINDS of Error: deliberate,
+    // written-for-a-human refusals ("An account already uses this email…"), and
+    // whatever the database happened to raise. Forwarding `error.message`
+    // unconditionally shipped the second kind to the login screen — on
+    // production's remote libSQL, a UserEmail collision arrives as a raw
+    // DriverAdapterError, so the visitor was shown driver internals for a
+    // situation they could do nothing about.
+    //
+    // Only messages this module authored are safe to show, so they are the ones
+    // that get shown. Anything else is logged and reported generically.
+    const message = error instanceof Error ? error.message : "";
+    if (IDENTITY_USER_FACING_ERRORS.has(message)) return failure(message);
+    console.error(`[identity:${provider}] sign-in failed`, error);
+    return failure(`Could not sign in with ${config.name}`);
   }
 }
 

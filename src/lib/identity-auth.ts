@@ -7,9 +7,22 @@ import { createSign, randomBytes } from "crypto";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "./prisma";
 import { createSession, hashPassword } from "./auth";
+import { claimEmailAddress } from "./email-claim";
 import { getBaseUrl } from "./oauth";
 
 export type IdentityProvider = "google" | "apple";
+
+// The two refusals signInWithIdentity authors FOR A HUMAN. Exported as a set so
+// the callback route can tell them apart from whatever the database happened to
+// raise: it renders the error string on the login page, and forwarding
+// `error.message` unconditionally put driver internals in front of visitors.
+const ACCOUNT_UNAVAILABLE = "This account is unavailable";
+const EMAIL_ALREADY_CLAIMED =
+  "An account already uses this email. Sign in with your password and verify your email, then link this provider from Settings.";
+export const IDENTITY_USER_FACING_ERRORS: ReadonlySet<string> = new Set([
+  ACCOUNT_UNAVAILABLE,
+  EMAIL_ALREADY_CLAIMED,
+]);
 
 export interface IdentityProviderConfig {
   provider: IdentityProvider;
@@ -274,7 +287,7 @@ export async function signInWithIdentity(
   });
 
   if (existingLink?.user) {
-    if (existingLink.user.isSuspended) throw new Error("This account is unavailable");
+    if (existingLink.user.isSuspended) throw new Error(ACCOUNT_UNAVAILABLE);
     await createSession(existingLink.user.id);
     return { userId: existingLink.user.id, onboarded: existingLink.user.onboarded, created: false };
   }
@@ -285,7 +298,7 @@ export async function signInWithIdentity(
       select: { id: true, onboarded: true, isSuspended: true, emailVerified: true },
     });
     if (byEmail) {
-      if (byEmail.isSuspended) throw new Error("This account is unavailable");
+      if (byEmail.isSuspended) throw new Error(ACCOUNT_UNAVAILABLE);
       // Account pre-hijacking guard: only auto-link when the *local* account's
       // email is itself verified. Signup creates users with emailVerified=false,
       // so without this an attacker could pre-register victim@example.com
@@ -294,15 +307,34 @@ export async function signInWithIdentity(
       // unverified, refuse and require the owner to verify via password sign-in
       // first, then link the provider from settings.
       if (!byEmail.emailVerified) {
-        throw new Error(
-          "An account already uses this email. Sign in with your password and verify your email, then link this provider from Settings.",
-        );
+        throw new Error(EMAIL_ALREADY_CLAIMED);
       }
       await prisma.authIdentity.create({
         data: { userId: byEmail.id, provider, providerAccountId: identity.providerAccountId, email: identity.email },
       });
       await createSession(byEmail.id);
       return { userId: byEmail.id, onboarded: byEmail.onboarded, created: false };
+    }
+  }
+
+  // No account matched by primary email, so we are about to CREATE one — and
+  // the nested `emails: { create: ... }` below writes into the globally unique
+  // UserEmail namespace. Nothing checked that namespace here, so a bare
+  // unverified secondary row on someone else's account made the create throw,
+  // and the callback rendered the raw database error on the login page. One
+  // squatted address permanently broke Sign in with Google/Apple for its real
+  // owner, who had no mesh account and therefore no way to clear it.
+  //
+  // The provider asserting the address (identity.emailVerified, checked above)
+  // is the strongest claim available, so it outranks an unproven reservation.
+  // A verified row is a real claim and still refuses — deliberately with the
+  // same instruction as the pre-hijack guard rather than auto-linking, since
+  // that guard's caution about silently attaching to an account applies here
+  // too.
+  if (identity.email) {
+    const claim = await claimEmailAddress(identity.email);
+    if (claim.held) {
+      throw new Error(EMAIL_ALREADY_CLAIMED);
     }
   }
 

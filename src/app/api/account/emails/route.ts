@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
+import { emailClaimHeldBy } from "@/lib/email-claim";
 
 const MAX_EMAILS_PER_ACCOUNT = 10;
 
@@ -47,13 +48,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "You've reached the maximum number of emails on this account." }, { status: 409 });
   }
 
-  // Check if email already exists in UserEmail table or as a primary User email
-  const existing = await prisma.userEmail.findUnique({ where: { email: normalized } });
-  if (existing) {
-    return NextResponse.json({ error: "Email already in use" }, { status: 409 });
-  }
-  const existingPrimary = await prisma.user.findUnique({ where: { email: normalized } });
-  if (existingPrimary) {
+  // Refuses on ANY existing row, including an unverified one — deliberately the
+  // read-only half of the claim rule, not the clearing half.
+  //
+  // Signup and federated sign-in DO clear an unverified reservation, because
+  // there the person is establishing an account or has had the address asserted
+  // by Google/Apple, and a bare secondary row must not outrank that. Here nobody
+  // is proving anything either: this endpoint writes `isVerified: false` with no
+  // token. Letting it displace someone else's pending row would only make the
+  // squatting mutual, so it keeps its 409 and the address is settled by whoever
+  // completes verification.
+  if (await emailClaimHeldBy(normalized, session.userId)) {
     return NextResponse.json({ error: "Email already in use" }, { status: 409 });
   }
 
