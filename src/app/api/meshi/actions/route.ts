@@ -6,6 +6,7 @@ import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { canUserInteractWithPost } from "@/lib/privacy-policy";
 import { profileDiscoveryConsentWhere } from "@/lib/consent";
 import { classifyContentSafety } from "@/lib/content-safety";
+import { findOrCreateDirectThread } from "@/lib/direct-thread";
 import { rateLimit, sanitizeForDisplay } from "@/lib/security";
 
 // Meshi Vessel Actions — Meshi can act on behalf of the user
@@ -137,61 +138,30 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Recipient not found" }, { status: 404 });
         }
 
-        // Check for blocks
-        const blockExists = await prisma.block.findFirst({
-          where: {
-            OR: [
-              { blockerId: user.id, blockedId: body.recipientId },
-              { blockerId: body.recipientId, blockedId: user.id },
-            ],
-          },
-        });
-        if (blockExists) {
+        // Find or create the 1:1 DM thread, blocks included — src/lib/direct-thread.ts.
+        // This used to carry its own copy of both rules, with a comment saying it
+        // "mirrors the messages route". Mirrors drift; the rule now has one home.
+        const opened = await findOrCreateDirectThread(user.id, body.recipientId);
+        if (opened.reason === "blocked") {
           return NextResponse.json({ error: "Cannot message this user" }, { status: 403 });
         }
-
-        // Find or create the 1:1 DM thread. Constrain to threadType "direct" so
-        // a shared *group* thread the two users happen to belong to is never
-        // selected — otherwise the private message would be written into the
-        // group and exposed to every other member (mirrors the messages route).
-        let thread = await prisma.messageThread.findFirst({
-          where: {
-            threadType: "direct",
-            AND: [
-              { members: { some: { userId: user.id } } },
-              { members: { some: { userId: body.recipientId } } },
-            ],
-          },
-          include: { members: true },
-        });
-
-        if (!thread) {
-          thread = await prisma.messageThread.create({
-            data: {
-              threadType: "direct",
-              members: {
-                create: [
-                  { userId: user.id },
-                  { userId: body.recipientId },
-                ],
-              },
-            },
-            include: { members: true },
-          });
+        if (!opened.threadId) {
+          return NextResponse.json({ error: "Cannot message this user" }, { status: 400 });
         }
+        const threadId = opened.threadId;
 
         await prisma.message.create({
           data: {
             content: body.messageContent.trim(),
             senderId: user.id,
-            threadId: thread.id,
+            threadId,
           },
         });
 
         // Update thread timestamp and notify the recipient, matching every other
         // message-send path (a Meshi DM should ring the bell like any other).
         await prisma.messageThread.update({
-          where: { id: thread.id },
+          where: { id: threadId },
           data: { updatedAt: new Date() },
         });
         await prisma.notification.create({
@@ -207,7 +177,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           success: true,
           message: `Message sent to ${recipient.displayName}!`,
-          data: { threadId: thread.id, recipientName: recipient.displayName },
+          data: { threadId, recipientName: recipient.displayName },
           mood: "love",
         });
       }

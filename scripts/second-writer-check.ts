@@ -240,11 +240,100 @@ assert.match(
     "  who fails the age gate can still republish the post to people who also fail it.",
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. EVERY 1:1 CONVERSATION IS FOUND AND CREATED IN ONE PLACE.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Three callers opened a DM. Two stated both rules — the thread must be
+// `threadType: "direct"`, and neither party may have blocked the other. The
+// third, the platform-comment import, stated neither:
+//
+//   - It matched on membership alone. A community thread holds EVERY member of
+//     the community, so for any two people who shared one, "the thread with A
+//     and B in it" was the community room, and a comment addressed to one
+//     person was posted in front of all of them.
+//   - It ran with no block check, so blocking someone on Mesh.me did nothing to
+//     the path that turns their platform comment into a message in your MeChat.
+//
+// The lookup shape is what carries the defect, so the gate bans the shape
+// everywhere but the one module — a caller that re-types the three clauses is
+// free to omit `threadType` again, and that omission is invisible at review.
+const DIRECT_THREAD_MODULE = "src/lib/direct-thread.ts";
+const inlineDirectLookups = sourceFiles.filter((f) => {
+  if (f === DIRECT_THREAD_MODULE) return false;
+  const body = read(f);
+  // Two `members: { some: { userId … } }` clauses inside one messageThread
+  // query: the "find the thread these two people share" shape, whatever the
+  // surrounding code calls it.
+  return /messageThread\s*\.\s*(findFirst|findMany|findUnique)\s*\(\{[\s\S]{0,400}?members:\s*\{\s*some:[\s\S]{0,200}?members:\s*\{\s*some:/.test(body);
+});
+assert.deepEqual(
+  inlineDirectLookups,
+  [],
+  "These files hand-roll the 'thread shared by these two people' lookup:\n" +
+    inlineDirectLookups.map((f) => `    ${f}`).join("\n") +
+    `\n  Use directThreadWhere() or findOrCreateDirectThread() from ${DIRECT_THREAD_MODULE}.\n` +
+    "  Written inline, the filter is one missing line away from matching a group or community\n" +
+    "  thread — which is exactly how an imported platform comment got delivered to a whole\n" +
+    "  community room.",
+);
+
+const directThread = read(DIRECT_THREAD_MODULE);
+// The shared definition must actually carry both rules; a shared helper that
+// dropped one would pass the ban above while reintroducing the defect in every
+// caller at once.
+assert.match(
+  directThread,
+  /export function directThreadWhere[\s\S]{0,400}?threadType:\s*"direct"/,
+  `${DIRECT_THREAD_MODULE}: directThreadWhere must filter on threadType: "direct". Membership is\n` +
+    "  not sufficient — group and community threads contain arbitrarily many people, and both of\n" +
+    '  the two people you are looking for can be inside a room of two hundred. "direct" is the\n' +
+    "  only marker of a two-person conversation.",
+);
+assert.match(
+  directThread,
+  /export async function findOrCreateDirectThread[\s\S]{0,600}?directMessagingBlocked\(/,
+  `${DIRECT_THREAD_MODULE}: findOrCreateDirectThread must consult directMessagingBlocked before\n` +
+    "  returning or creating a thread. Settings promises blocks work in both directions without\n" +
+    "  qualification; a conversation opened around that check makes the promise false.",
+);
+assert.match(
+  directThread,
+  /prisma\.messageThread\.create\(\{[\s\S]{0,200}?threadType:\s*"direct"/,
+  `${DIRECT_THREAD_MODULE}: the thread it CREATES must be marked threadType: "direct" too.\n` +
+    "  The schema default is \"direct\", but relying on a default means the next person to change\n" +
+    "  it silently un-marks every DM in the product, and the lookup above would stop finding them.",
+);
+// Every caller goes through it — including the ones that only need the fragment.
+// FIVE, not the three the defect report named. The ban above is what found the
+// other two: `/api/meshi/actions` carried a hand-fixed copy of both rules with a
+// comment saying it "mirrors the messages route", and meshi-engine's "Meshi,
+// send a message to X" intent had a FOURTH spelling — `every` over the pair plus
+// two `some` clauses, and no threadType at all. Listing them here is what makes
+// the removal of any one of them a build failure rather than a silent regression.
+const DIRECT_THREAD_CALLERS = [
+  "src/app/(app)/messages/[threadId]/page.tsx",
+  "src/app/api/meshi/actions/route.ts",
+  "src/app/api/messages/route.ts",
+  "src/lib/actions.ts",
+  "src/lib/meshi-engine.ts",
+  "src/lib/platform-sync.ts",
+];
+for (const file of DIRECT_THREAD_CALLERS) {
+  assert.match(
+    read(file),
+    /\b(findOrCreateDirectThread|directThreadWhere|directMessagingBlocked)\b/,
+    `${file} opens 1:1 conversations and must import them from ${DIRECT_THREAD_MODULE}.`,
+  );
+}
+
 console.log(
   `second-writer contract OK — all ${Object.keys(PEOPLE_SEARCHES).length} people searches subtract blocks in each direction\n` +
     "  through one of the two shared mechanisms (none re-spells it inline),\n" +
     `  branchOverrides is opt-in on update across all ${meshPrivacyCallers.length} callers, and all ` +
-    `${postCreates.length} post-creation\n  paths carry isNsfw + contentRating.\n` +
-    "  Does NOT cover: a fourth instance of the pattern nobody has listed here yet — this is a\n" +
-    "  ratchet on three known pairs, not a search for new ones.",
+    `${postCreates.length} post-creation\n  paths carry isNsfw + contentRating, and all ` +
+    `${DIRECT_THREAD_CALLERS.length} callers open a 1:1 conversation through the one\n  module that states both` +
+    " the direct-only and the block rule (none re-spells the lookup).\n" +
+    "  Does NOT cover: a fifth instance of the pattern nobody has listed here yet — this is a\n" +
+    "  ratchet on four known pairs, not a search for new ones.",
 );

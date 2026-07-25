@@ -201,11 +201,86 @@ assert.ok(
     "  deploy is what makes it a standing sweep rather than a one-time repair.",
 );
 
+// ── 6. The teardown also removes what does NOT live in a mirrored thread ─────
+//
+// Items 1-5 are all expressed in terms of `MessageThread.connectedAccountId`,
+// and that is the whole of their reach. The comment import writes into the
+// ordinary mesh-native DM between two people, which carries NULL there by
+// design — that thread holds their own correspondence and must survive the
+// disconnect. So a purge that deletes by thread could never touch the imported
+// rows, and every one of them stayed in MeChat after the connection was
+// revoked: the other party's handle, the comment text, and a link back to the
+// platform post the user had just withdrawn our access to.
+assert.match(
+  teardown,
+  /platformComment\s*\.\s*findMany\s*\(\s*\{\s*where:\s*\{\s*connectedAccountId/,
+  "purgeConnectedAccountRows must read this account's platform-issued comment ids BEFORE the\n" +
+    "  ConnectedAccount row goes — PlatformComment cascades with it, and after that there is\n" +
+    "  nothing left to identify which imported messages came from this authorization.",
+);
+assert.match(
+  teardown,
+  /messageType:\s*"imported_comment"/,
+  "purgeConnectedAccountRows must delete the imported_comment Messages this connection created.\n" +
+    "  They sit in mesh-native threads (connectedAccountId NULL), so the thread-level deleteMany\n" +
+    "  above cannot see them, and no other path deletes them at all.",
+);
+// Scoped by comment id, not by platform: the same 1:1 thread can hold comments
+// imported under the OTHER person's connection, and those are not ours to take.
+assert.match(
+  teardown,
+  /platformCommentId:\s*\{\s*in:\s*importedIds\s*\}/,
+  "the imported-comment purge must be scoped to THIS account's platformCommentIds. Deleting\n" +
+    "  every imported_comment for the platform would also delete the ones the other party's own\n" +
+    "  connection imported into the same thread — their authorization, still in force.",
+);
+assert.match(
+  teardown,
+  /messages:\s*\{\s*none:\s*\{\}\s*\}/,
+  "purgeConnectedAccountRows must delete threads left holding nothing once the imported\n" +
+    "  comments are gone. A thread the import created is empty afterwards, and an empty thread\n" +
+    "  still asserts that these two people are connected on the platform just disconnected.\n" +
+    "  It must be bounded to the threads just emptied — a thread someone opened and never wrote\n" +
+    "  in is indistinguishable from the outside, and it is theirs.",
+);
+
+// ── 7. And the residue already in the live database is swept ─────────────────
+//
+// Same lesson as item 5: a fix that only governs new disconnects leaves every
+// past one exactly as it was. Both sweeps live in the remote sync because that
+// is the script production actually runs.
+assert.match(
+  remote,
+  /DELETE FROM "Message"\s*\n?\s*WHERE "messageType" = 'imported_comment'\s*\n?\s*AND "threadId" IN \(SELECT "id" FROM "MessageThread" WHERE "threadType" <> 'direct'\)/,
+  "scripts/ensure-remote-schema.mjs must remove imported comments that were delivered into\n" +
+    "  group or community threads. The import matched its thread on membership alone, so for any\n" +
+    "  two people who shared a community it selected the community room and published the comment\n" +
+    "  to everyone in it. The code path is fixed; these rows are what it already did.",
+);
+assert.match(
+  remote,
+  /messageType" = 'imported_comment'[\s\S]{0,400}?NOT EXISTS \([\s\S]{0,300}?"ConnectedAccount"[\s\S]{0,200}?ca\."platform" = m\."sourcePlatform"/,
+  "scripts/ensure-remote-schema.mjs must also purge imported comments whose authorizing\n" +
+    "  connection is already gone — the disconnects that happened before the teardown learned to\n" +
+    "  do it. The import only runs for the account that owns the commented-on post, so the thread\n" +
+    "  member who is not the sender is that account holder; if nobody but the sender still has\n" +
+    "  that platform connected, the authorization these rows depend on has been revoked.",
+);
+assert.ok(
+  !/runOnce\(\s*["'][^"']*(imported|comment)[^"']*["']/i.test(remote),
+  "the imported-comment sweeps must NOT be wrapped in runOnce, for the same reason as the orphan\n" +
+    "  sweep: there is no user choice to overwrite, and running them every deploy bounds any future\n" +
+    "  regression by the deploy cadence instead of leaving it in place indefinitely.",
+);
+
 console.log(
   "disconnect contract OK — one shared teardown (no path deletes a ConnectedAccount on its\n" +
     "  own), it removes mirrored DM threads and granted scopes, both the Prisma schema and\n" +
     "  ensure-schema.sql back it with ON DELETE CASCADE, and the remote sync sweeps orphaned\n" +
     "  threads on every deploy so the remediation reaches production and not just the repo.\n" +
+    "  It also removes the imported platform comments that live in mesh-native threads, which no\n" +
+    "  thread-level purge could ever reach, and sweeps both residues (delivered-to-a-room, and\n" +
+    "  connection-already-revoked) out of the live database on every deploy.\n" +
     "  Does NOT cover: whether the cascade fires at runtime — that needs a live database.\n" +
     "  KNOWN GAP, deliberate: production's existing MessageThread table carries NO foreign key.\n" +
     "  Adding it means a SQLite table rebuild, and both Message and ThreadMember cascade off\n" +

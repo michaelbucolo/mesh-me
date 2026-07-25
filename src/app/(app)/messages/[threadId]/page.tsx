@@ -8,6 +8,7 @@ import { MeChatInfoRail } from "@/components/messages/mechat-info-rail";
 import { MeChatThread, type MeChatSerializedMessage } from "@/components/messages/mechat-thread";
 import { getCurrentUser } from "@/lib/auth";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
+import { directThreadWhere } from "@/lib/direct-thread";
 import { parseMeChatMetadata } from "@/lib/mechat-metadata";
 import { prisma } from "@/lib/prisma";
 import { getPostById, getThreadMessages } from "@/lib/queries";
@@ -264,14 +265,11 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
           readReceipts: true,
         },
       }),
+      // `threadId` is a USER id on this branch — /messages/<userId> opens the
+      // conversation with that person. src/lib/direct-thread.ts holds what "the
+      // conversation with that person" means.
       prisma.messageThread.findFirst({
-        where: {
-          threadType: "direct",
-          AND: [
-            { members: { some: { userId: user.id } } },
-            { members: { some: { userId: threadId } } },
-          ],
-        },
+        where: directThreadWhere(user.id, threadId),
       }),
     ]);
     recipient = foundRecipient;

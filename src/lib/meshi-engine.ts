@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { hasMeshiConsent, meshiConsentWhere, profileDiscoveryConsentWhere } from "./consent";
 import { nsfwHiddenWhere } from "./content-safety";
+import { findOrCreateDirectThread } from "./direct-thread";
 import { encodeDeliveryNotificationMessage } from "./notifications";
 import {
   areMutualFollowers,
@@ -1190,54 +1191,22 @@ async function sendMeshiMessage(recipient: string, message: string): Promise<Mes
     return { content: "You can't send a message to yourself! Try sending to a friend instead.", mood: "thinking" };
   }
 
-  // Check if either user has blocked the other
-  const blockExists = await prisma.block.findFirst({
-    where: {
-      OR: [
-        { blockerId: user.id, blockedId: recipientUser.id },
-        { blockerId: recipientUser.id, blockedId: user.id },
-      ],
-    },
-  });
-
-  if (blockExists) {
+  // Find or create the 1:1 thread — block check included, and constrained to
+  // threadType "direct". See src/lib/direct-thread.ts. The copy that lived here
+  // filtered on membership only (`every` over the pair, plus two `some`
+  // clauses), which is a fourth spelling of a rule that has one correct form.
+  const opened = await findOrCreateDirectThread(user.id, recipientUser.id);
+  if (opened.reason === "blocked" || !opened.threadId) {
     return { content: `I wasn't able to deliver that message. There may be a connection issue between you and ${recipientUser.displayName}.`, mood: "thinking" };
   }
-
-  // Find or create thread
-  let thread = await prisma.messageThread.findFirst({
-    where: {
-      members: {
-        every: { userId: { in: [user.id, recipientUser.id] } },
-      },
-      AND: [
-        { members: { some: { userId: user.id } } },
-        { members: { some: { userId: recipientUser.id } } },
-      ],
-    },
-    select: { id: true },
-  });
-
-  if (!thread) {
-    thread = await prisma.messageThread.create({
-      data: {
-        members: {
-          create: [
-            { userId: user.id },
-            { userId: recipientUser.id },
-          ],
-        },
-      },
-      select: { id: true },
-    });
-  }
+  const threadId = opened.threadId;
 
   // Create the message
   const carried = await prisma.message.create({
     data: {
       content: message,
       senderId: user.id,
-      threadId: thread.id,
+      threadId,
     },
     select: { id: true },
   });

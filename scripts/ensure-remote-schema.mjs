@@ -277,6 +277,104 @@ try {
     );
   }
 
+  // ── Imported platform comments — swept on EVERY deploy, same reasoning ──
+  //
+  // migratePlatformCommentsIntoMeChat turns comments on your connected-platform
+  // posts into MeChat messages. It wrote them into MESH-NATIVE threads, which
+  // carry a NULL connectedAccountId — so neither the cascade nor the sweep above
+  // has ever been able to see them, and neither could the disconnect teardown,
+  // which deletes by thread. Two separate residues are left in the live data.
+  //
+  // (a) Comments delivered to a GROUP OR COMMUNITY thread. The import matched
+  //     its thread on membership alone — "has member A and has member B" — with
+  //     no threadType filter. A community thread holds every member of the
+  //     community, so for any two people who shared one, that lookup selected
+  //     the community room and published the imported comment to all of it. The
+  //     import now goes through findOrCreateDirectThread (src/lib/direct-thread.ts)
+  //     and cannot do this again; these rows are what it already did. An
+  //     imported comment in a non-direct thread is never intentional, so the
+  //     rule needs no judgement call.
+  //
+  // (b) Comments whose authorizing connection is already gone. The import only
+  //     ever runs for the account that OWNS the post being commented on, so the
+  //     thread member who is not the sender is that account holder. If nobody in
+  //     the thread besides the sender still has that platform connected, the
+  //     authorization these rows depend on has been revoked — and until now
+  //     nothing deleted them. Reconnecting re-imports them on the next sync, so
+  //     removal costs nothing that consent does not restore.
+  //
+  // Standing rather than runOnce for the same reason as the block above: there
+  // is no user choice here to overwrite, and a sweep every deploy bounds any
+  // future regression instead of leaving it in place indefinitely.
+  const chunked = async (values, run) => {
+    for (let i = 0; i < values.length; i += 400) {
+      const slice = values.slice(i, i + 400);
+      await run(slice, slice.map(() => "?").join(", "));
+    }
+  };
+
+  const leakedToRooms = await client.execute(
+    `SELECT COUNT(*) AS n FROM "Message"
+      WHERE "messageType" = 'imported_comment'
+        AND "threadId" IN (SELECT "id" FROM "MessageThread" WHERE "threadType" <> 'direct')`,
+  );
+  const leaked = Number(leakedToRooms.rows[0]?.n ?? 0);
+  if (leaked > 0) {
+    await client.execute(
+      `DELETE FROM "Message"
+        WHERE "messageType" = 'imported_comment'
+          AND "threadId" IN (SELECT "id" FROM "MessageThread" WHERE "threadType" <> 'direct')`,
+    );
+    console.log(
+      `[ensure-schema] Removed ${leaked} imported platform comment(s) that had been delivered into group/community threads.`,
+    );
+  }
+
+  // The thread is NOT deleted here, only the message: a group or community
+  // thread is a real conversation that happens to have been polluted.
+  const stranded = await client.execute(
+    `SELECT m."id" AS id, m."threadId" AS threadId FROM "Message" m
+      WHERE m."messageType" = 'imported_comment'
+        AND NOT EXISTS (
+          SELECT 1 FROM "ThreadMember" tm
+            JOIN "ConnectedAccount" ca
+              ON ca."userId" = tm."userId" AND ca."platform" = m."sourcePlatform"
+           WHERE tm."threadId" = m."threadId" AND tm."userId" <> m."senderId")`,
+  );
+  if (stranded.rows.length > 0) {
+    const messageIds = stranded.rows.map((r) => String(r.id));
+    const threadIds = [...new Set(stranded.rows.map((r) => String(r.threadId)))];
+    await chunked(messageIds, (args, placeholders) =>
+      client.execute({ sql: `DELETE FROM "Message" WHERE "id" IN (${placeholders})`, args }));
+
+    // Threads left holding nothing are the ones the import created. An empty
+    // thread still states that these two people are connected on a platform
+    // whose authorization is gone. Bounded to the threads just emptied — a
+    // thread someone opened and never wrote in is indistinguishable otherwise,
+    // and it is theirs.
+    let husks = 0;
+    await chunked(threadIds, async (args, placeholders) => {
+      const empty = await client.execute({
+        sql: `SELECT "id" FROM "MessageThread"
+               WHERE "id" IN (${placeholders})
+                 AND "connectedAccountId" IS NULL
+                 AND NOT EXISTS (
+                   SELECT 1 FROM "Message" WHERE "Message"."threadId" = "MessageThread"."id")`,
+        args,
+      });
+      const ids = empty.rows.map((r) => String(r.id));
+      if (ids.length === 0) return;
+      husks += ids.length;
+      const marks = ids.map(() => "?").join(", ");
+      await client.execute({ sql: `DELETE FROM "ThreadMember" WHERE "threadId" IN (${marks})`, args: ids });
+      await client.execute({ sql: `DELETE FROM "MessageThread" WHERE "id" IN (${marks})`, args: ids });
+    });
+    console.log(
+      `[ensure-schema] Purged ${messageIds.length} imported platform comment(s) whose connection was revoked` +
+        `${husks ? `, and ${husks} thread(s) left empty by them` : ""}.`,
+    );
+  }
+
   // WHAT IS DELIBERATELY NOT DONE HERE: adding the ON DELETE CASCADE to the
   // live table.
   //
