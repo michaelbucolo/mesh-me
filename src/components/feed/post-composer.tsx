@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRef, useState, useTransition, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPost } from "@/lib/actions";
+import { publishMeshiCause } from "@/lib/meshi-bus";
 import { playSound } from "@/lib/sound";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
 
@@ -264,6 +265,9 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
         const result = await createPost(formData);
         if (result?.success) {
           playSound("chime");
+          // Meshi celebrates AFTER the server confirmed it — publishing on
+          // submit would have Meshi cheering for posts that failed.
+          publishMeshiCause({ kind: "post:published" });
           const crossPostResults = result.crossPostResults ? Object.entries(result.crossPostResults) : [];
           const failedCrossPosts = crossPostResults.filter(([, value]) => !value.success);
           if (result.post) {
@@ -304,11 +308,15 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           onPostFailed?.(optimisticId || undefined);
           setSuccessMessage("");
           setErrorMessage(result?.error || "Could not create post");
+          // Meshi represents the user, and the user is not delighted that it
+          // failed. A mascot that only ever reacts to success is decoration.
+          publishMeshiCause({ kind: "action:failed" });
         }
       } catch {
         onPostFailed?.(optimisticId || undefined);
         setSuccessMessage("");
         setErrorMessage("Could not create post");
+        publishMeshiCause({ kind: "action:failed" });
       } finally {
         setSubmitting(false);
       }

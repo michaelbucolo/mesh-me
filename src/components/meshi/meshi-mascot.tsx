@@ -1165,12 +1165,19 @@ export function MeshiMascot({
   };
 
   const renderedMood = getCurrentMood();
+  // The mood Meshi is actually IN, with the blink override excluded. Exposed as
+  // an attribute because "did Meshi's expression change?" is otherwise
+  // impossible to observe from outside: blinking rewrites the eye paths every
+  // few seconds, so diffing the SVG cannot tell a real reaction from a blink.
+  // That distinction is exactly what the no-ambient-motion rule turns on.
+  const intendedMood = interactive ? localMood || mood : mood;
 
   return (
     <motion.div
       ref={containerRef}
       className={`inline-flex items-center justify-center cursor-pointer select-none ${className}`}
       data-meshi-mascot="true"
+      data-meshi-mood={intendedMood}
       style={{
         width: size, height: size,
         scaleX: interactive ? squishX : undefined,

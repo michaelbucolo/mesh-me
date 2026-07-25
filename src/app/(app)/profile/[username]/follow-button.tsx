@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { toggleFollow } from "@/lib/actions";
+import { publishMeshiCause } from "@/lib/meshi-bus";
 import { useState, useTransition } from "react";
 import { UserPlus, UserCheck } from "lucide-react";
 
@@ -22,9 +23,15 @@ export function FollowButton({ userId, isFollowing: initialFollowing }: FollowBu
         const result = await toggleFollow(userId);
         if (result && 'error' in result) {
           setIsFollowing(previous);
+          publishMeshiCause({ kind: "action:failed" });
+        } else if (!previous) {
+          // Only a NEW follow is worth a reaction. Unfollowing is not a
+          // celebration, and this is a toggle.
+          publishMeshiCause({ kind: "follow:added" });
         }
       } catch {
         setIsFollowing(previous);
+        publishMeshiCause({ kind: "action:failed" });
       }
     });
   };

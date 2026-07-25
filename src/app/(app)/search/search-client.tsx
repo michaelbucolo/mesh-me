@@ -17,6 +17,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
+import { publishMeshiCause } from "@/lib/meshi-bus";
 import { Avatar } from "@/components/ui/avatar";
 import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
 
@@ -239,6 +240,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
     event.preventDefault();
     const nextQuery = query.trim();
     setSubmittedQuery(nextQuery);
+    if (nextQuery) publishMeshiCause({ kind: "search:started" });
     router.replace(nextQuery ? `/search?q=${encodeURIComponent(nextQuery)}` : "/search", { scroll: false });
   }
 
