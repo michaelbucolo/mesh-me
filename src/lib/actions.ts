@@ -830,7 +830,19 @@ export async function completeOnboarding(formData: FormData) {
       bio: bio || null,
       location: location || null,
       isPublic: meshVisibility === "public",
-      showInDiscovery: bool("showInDiscovery", true) && meshVisibility !== "private",
+      // Being FINDABLE and being PUBLIC are different questions, and this line
+      // used to conflate them. `meshVisibility` defaults to "private", so
+      // `showInDiscovery && meshVisibility !== "private"` evaluated to
+      // `true && false` for every account that took the default — silently
+      // removing every new user from discovery the moment they finished
+      // onboarding. onboarding-flow.tsx:142 already carries a comment saying
+      // this was fixed; it was fixed on the client, and then undone here.
+      //
+      // getDiscoverUsers states the intended rule outright (queries.ts:1213):
+      // a private account can still opt in to being found, and then approve
+      // its followers. Content visibility stays governed by `isPublic` and by
+      // the per-post checks; it is not this switch's job.
+      showInDiscovery: bool("showInDiscovery", true),
       hideActivityStatus: bool("hideActivityStatus", false),
       readReceipts: bool("readReceipts", false),
       onboarded: true,
