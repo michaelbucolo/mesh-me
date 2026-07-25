@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTrustedClientIp } from "@/lib/client-ip";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/security";
 
@@ -33,7 +34,15 @@ function normalizeUsername(value: string | null) {
 export async function GET(request: Request) {
   const clientIp = getTrustedClientIp(request.headers);
   // Requests already rejected per-IP must not consume the shared budget.
-  const rl = rateLimit(`meshi-preview:${clientIp}`, 30, 60 * 1000);
+  //
+  // DURABLE, not the in-memory limiter. This endpoint is unauthenticated by
+  // design — the entry screen draws your Meshi as you type your username, before
+  // there is any session — so its rate limit IS the enumeration budget. The
+  // in-memory limiter is a per-process Map that resets on every serverless cold
+  // start, which on Vercel means the budget resets far more often than the
+  // window it claims to enforce. The sibling entry-flow lookup already uses the
+  // cross-instance limiter for exactly this reason.
+  const rl = await durableRateLimit(`meshi-preview:ip:${clientIp}`, 60, 15 * 60 * 1000);
   if (!rl.allowed || !rateLimit("meshi-preview:global", 600, 60 * 1000).allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
@@ -48,11 +57,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ found: false }, { headers: NO_STORE_HEADERS });
   }
 
+  // NO displayName. This endpoint answers anyone, with no session, for any
+  // username they can guess — and the entry screen rendered what it returned as
+  // "You're {displayName}. What's your password?", so guessing a username handed
+  // an anonymous visitor a real name. Every other user lookup in the product
+  // requires a session and filters on isPublic / showInDiscovery / discovery
+  // consent; this one is deliberately outside that, so what it returns has to be
+  // the minimum the screen needs to draw a Meshi and nothing more.
+  //
+  // The greeting now uses the username the visitor typed, which they already
+  // know, so nothing is lost.
   const user = await prisma.user.findUnique({
     where: { username },
     select: {
       username: true,
-      displayName: true,
       isSuspended: true,
       meshiPreference: {
         select: {
@@ -79,7 +97,6 @@ export async function GET(request: Request) {
     {
       found: true,
       username: user.username,
-      displayName: user.displayName,
       meshi: {
         color: preference?.colorTheme ?? DEFAULT_MESHI.color,
         hat: preference?.hatStyle ?? DEFAULT_MESHI.hat,

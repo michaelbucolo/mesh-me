@@ -1402,7 +1402,7 @@ export function MeshiFloat() {
       setView("closed");
       setActiveProp("magnifying-glass");
       setTimeout(() => {
-        setSearchingText(isFocusedContentQuery ? "Reviewing source and media clues..." : "Reasoning privately...");
+        setSearchingText(isFocusedContentQuery ? "Reviewing source and media clues..." : "Reasoning...");
         setActiveProp(isFocusedContentQuery ? "notebook" : PAGE_PROPS["/mesh"] || "compass");
         setMood("learning" as MeshiMood);
       }, 700);

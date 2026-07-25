@@ -34,7 +34,6 @@ type MeshEntryExperienceProps = {
 
 type MeshiPreview = {
   username: string;
-  displayName: string;
   meshi: {
     color: MeshiColor;
     hat: MeshiHat;
@@ -153,7 +152,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       if (!data?.found) return null;
       return {
         username: data.username,
-        displayName: data.displayName,
         meshi: {
           color: data.meshi.color,
           hat: data.meshi.hat,
@@ -284,7 +282,12 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     fx.current.phase = "idle";
   };
 
-  const displayName = preview?.displayName?.trim() || preview?.username || "there";
+  // The USERNAME, not the display name. /api/auth/meshi-preview is
+  // unauthenticated — it has to be, it draws your Meshi before you have a
+  // session — and it used to return displayName, so this greeting handed a real
+  // name to anyone who guessed a username. The username is what the visitor just
+  // typed, so greeting them with it costs nothing and discloses nothing.
+  const greetingName = preview?.username?.trim() || "";
 
   // The halo warms — periwinkle deepens, a magenta undertone rises — as the
   // signup fields fill and Meshi comes to life.
@@ -452,8 +455,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                     ? "Eyes closed. Promise."
                     : password && showPassword
                       ? "Peeking, since you asked."
-                      : preview
-                        ? `You're ${displayName}. What's your password?`
+                      : greetingName
+                        ? `You're @${greetingName}. What's your password?`
                         : "Welcome back. What's your password?"}
             </p>
             <div className={`mesh-gate-inputwrap${shaking ? " mesh-gate-shake" : ""}`}>
