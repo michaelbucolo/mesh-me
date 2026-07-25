@@ -5,21 +5,21 @@
  * natively inside mesh.me instead of sitting there as a thumbnail.
  */
 
-// The host to hand Twitch as the required `parent`. Read from the build-inlined
-// NEXT_PUBLIC_APP_URL so it's identical on the server and client renders (no
-// hydration mismatch) and Twitch clips embed in server components too; fall back
-// to the live location, then localhost for dev.
+import { publicAppHost } from "./app-url";
+
+// The host to hand Twitch as the required `parent`. It must be byte-identical
+// on the server and client renders, which is why it comes from `publicAppHost()`
+// and not from an ad-hoc chain here.
+//
+// This used to fall back to `window.location.hostname`, then to `"localhost"`.
+// With NEXT_PUBLIC_APP_URL unset that meant the server rendered
+// `parent=localhost` while the client rendered the real host: a hydration
+// mismatch, AND a player Twitch refuses to load, because `localhost` is not the
+// domain the page is served from. The comment above that fallback said it
+// existed to keep the two renders identical — the fallback was the thing
+// breaking it.
 function embedParentHost(): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL;
-  if (configured) {
-    try {
-      return new URL(configured).hostname;
-    } catch {
-      // ignore malformed config and fall through
-    }
-  }
-  if (typeof window !== "undefined") return window.location.hostname;
-  return "localhost";
+  return publicAppHost();
 }
 
 const YT_PATTERNS = [
