@@ -83,16 +83,36 @@ function ratio(a: string, b: string): number {
 }
 
 const AA = 4.5;
+/** WCAG 1.4.11 — non-text contrast, the floor for a boundary you must be able to see. */
+const NON_TEXT = 3;
 const PAPERS = ["--paper-0", "--paper-1", "--paper-2", "--paper-3"] as const;
+/** The three states of a PRESSABLE object's top face. Split from --paper-1 so the
+ *  plinth has somewhere to step to; in Worklight they differ, and text sits on
+ *  them constantly — a hovered row is the single most-read surface in the app. */
+const FACES = ["--face", "--face-hover", "--face-press"] as const;
+/** Surfaces text lands on that are neither paper nor face. */
+const HOVER_SURFACES = ["--paper-hover", "--paper-press"] as const;
 const TEXT_INKS = ["--ink-1", "--ink-2", "--ink-3"] as const;
 const PIGMENTS = ["--warm", "--success", "--warning", "--danger", "--info"] as const;
+/** The seven moulded plastics. Each is a triple: face, its pinned ink, its plinth. */
+const MOULDS = ["cobalt", "tomato", "jade", "amber", "teal", "grape", "crimson"] as const;
+/**
+ * The plinth is the object's own side wall, so it darkens in BOTH themes — which
+ * is exactly why it may never be the legal boundary (that is --edge's job). It
+ * still has to be visible as a wall, or the object has no thickness.
+ */
+const PLINTH_STEP = 1.4;
 
 let checks = 0;
 
 for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]] as const) {
   const at = (name: string): string => {
-    const value = tokens[name];
-    assert.ok(value, `${theme} is missing ${name}`);
+    // `.dark` INHERITS from `:root` — the seven plastics are deliberately not
+    // redeclared there, because a toy is the same colour at 3pm and at 3am.
+    // Reading only the .dark block would report them as missing and make the
+    // gate demand a redeclaration the design specifically rejects.
+    const value = tokens[name] ?? DAYLIGHT[name];
+    assert.ok(value, `${theme} is missing ${name} (and it is not inherited from :root)`);
     return value;
   };
 
@@ -127,23 +147,115 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
   assert.ok(inkOnAccent >= AA, `${theme}: --accent-ink on --accent is ${inkOnAccent.toFixed(2)}:1`);
   checks += 2;
 
-  // 4. Pigments carry meaning, so they must be readable where they are allowed.
+  // 4 + 9. Pigments carry meaning, so they must be readable where they are
+  // allowed — and that is all FOUR papers, not the two they were measured
+  // against. A validation message under an input sits on --paper-2, which is
+  // precisely where the original values fell to 3.88.
   for (const pigment of PIGMENTS) {
-    for (const paper of ["--paper-0", "--paper-1"] as const) {
+    for (const paper of PAPERS) {
       const r = ratio(at(pigment), at(paper));
       assert.ok(
         r >= AA,
         `${theme}: ${pigment} on ${paper} is ${r.toFixed(2)}:1, below AA ${AA}:1.\n` +
-          "  Pigments mean something — a warning nobody can read is not a warning.",
+          "  Pigments mean something — a warning nobody can read is not a warning.\n" +
+          "  --paper-2/--paper-3 are the recess surfaces: a field error lives there.",
       );
       checks += 1;
     }
   }
+
+  // 5. THE EDGE clears non-text contrast on every surface it can ring.
+  //
+  // This is the assertion the whole Separation Law rests on. The plinth darkens
+  // in both themes, so on a dark mat it SUBTRACTS separation — four of seven
+  // plastics measure under 3:1 as faces against the dark card. What makes an
+  // object legal is the 1px --edge ring, not its fill. An object without --edge
+  // is a WCAG 1.4.11 bug, not a style choice.
+  // Hover/press surfaces included: a button sits inside a hovered row constantly,
+  // and that is a different ground from the resting paper.
+  for (const surface of [...PAPERS, ...FACES, ...HOVER_SURFACES]) {
+    const r = ratio(at("--edge"), at(surface));
+    assert.ok(
+      r >= NON_TEXT,
+      `${theme}: --edge on ${surface} is ${r.toFixed(2)}:1, below ${NON_TEXT}:1.\n` +
+        "  --edge is the only thing carrying the object boundary — the plinth cannot, because\n" +
+        "  it darkens in both themes and vanishes against a dark mat. If the ring fails here,\n" +
+        "  every pressable object on this surface has no legal edge at all.",
+    );
+    checks += 1;
+  }
+
+  // 6. Every plastic's PINNED ink clears AA on that plastic.
+  //
+  // Pinned, not computed: the seven faces do not move between themes, so each
+  // one's ink is decided once and can be verified against a single ground
+  // rather than two moving ones.
+  for (const mould of MOULDS) {
+    const r = ratio(at(`--mould-${mould}-ink`), at(`--mould-${mould}`));
+    assert.ok(
+      r >= AA,
+      `${theme}: --mould-${mould}-ink on --mould-${mould} is ${r.toFixed(2)}:1, below AA.\n` +
+        "  Each plastic carries its own pinned ink precisely so this can be guaranteed.",
+    );
+    checks += 1;
+  }
+
+  // 7. Text inks clear AA on the FACE states too.
+  //
+  // The assertion that would have caught the real failure: --ink-3 measured
+  // 4.31:1 on --face-hover, below AA on a hovered row — the most-read surface
+  // in the product, and one no paper-only check ever looks at.
+  for (const ink of TEXT_INKS) {
+    for (const surface of [...FACES, ...HOVER_SURFACES]) {
+      const r = ratio(at(ink), at(surface));
+      assert.ok(
+        r >= AA,
+        `${theme}: ${ink} on ${surface} is ${r.toFixed(2)}:1, below AA ${AA}:1.\n` +
+          "  Hover and press states are surfaces text sits on. Checking only the resting\n" +
+          "  paper is how a hovered row shipped below AA.",
+      );
+      checks += 1;
+    }
+  }
+
+  // 8a. The RECESS reads as a recess.
+  //
+  // --plinth-tray is the inner lip of a sunken group, and every input in the
+  // product sits in one. It is the one plinth that must INVERT in dark: a dark
+  // recess cannot get darker, so its lip goes up instead of down. The original
+  // dark value measured 1.05:1 against the well — invisible — which is why this
+  // is asserted separately from the moulds rather than assumed to follow.
+  const trayStep = ratio(at("--plinth-tray"), at("--paper-2"));
+  assert.ok(
+    trayStep >= PLINTH_STEP,
+    `${theme}: --plinth-tray against --paper-2 is ${trayStep.toFixed(2)}:1, below ${PLINTH_STEP}:1.\n` +
+      "  Every input in the product sits in this recess. Below this step it is not a recess, it\n" +
+      "  is a flat patch of a slightly different colour. In dark the lip must go UP, not down —\n" +
+      "  a dark well has nowhere darker to go.",
+  );
+  checks += 1;
+
+  // 8. Every plastic is visibly thicker than its own plinth.
+  //
+  // Not a legibility floor — a *thickness* floor. A plinth you cannot see is
+  // not a side wall, and the entire depth model is the side wall.
+  for (const mould of MOULDS) {
+    const r = ratio(at(`--mould-${mould}`), at(`--mould-${mould}-plinth`));
+    assert.ok(
+      r >= PLINTH_STEP,
+      `${theme}: --mould-${mould} against its plinth is ${r.toFixed(2)}:1, below ${PLINTH_STEP}:1.\n` +
+        "  The plinth is the object's side wall. Below this step it reads as a flat swatch and\n" +
+        "  the press animation — face travels down exactly one wall-height — has nothing to show.",
+    );
+    checks += 1;
+  }
 }
 
 console.log(
-  `contrast OK — ${checks} ratios measured across both themes: every text ink clears AA on every\n` +
-    "  paper, --ink-4 stays decorative, the accent works as text and as a surface, and every\n" +
-    "  pigment is readable on --paper-0/1.\n" +
+  `contrast OK — ${checks} ratios measured across both themes: every text ink clears AA on all four\n` +
+    "  papers AND on every face/hover/press state, --ink-4 stays decorative, the accent works as\n" +
+    "  text and as a surface, every pigment is readable on all four papers, --edge clears 3:1 on\n" +
+    "  every surface it can ring, each moulded plastic carries a readable pinned ink, and each is\n" +
+    "  visibly thicker than its own plinth.\n" +
     "  Does NOT cover: colours hardcoded in components — only the palette itself.",
 );
