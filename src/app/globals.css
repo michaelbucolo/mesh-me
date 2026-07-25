@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
 @theme inline {
   --color-background: var(--bg-primary);
@@ -9,66 +10,20 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   AURORA MESH — bold, luminous, glass-first design language
-   Signature: electric periwinkle → violet → magenta on a deep,
-   blue-violet near-black. Real depth, soft glows, crisp contrast.
+   NON-COLOUR TOKENS — motion curves, glass geometry, layout metrics.
+   Every colour, radius, shadow and spacing token now lives in
+   tokens.css; what remains here is behaviour, and it is retired slice
+   by slice as the motion and shape passes land.
    ═══════════════════════════════════════════════════════════════════ */
 :root, .dark {
   --font-inter: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
-  /* Surfaces — deep near-black with a cool blue-violet undertone */
-  --bg-primary: #070912;
-  --bg-secondary: #0c0f1a;
-  --bg-tertiary: #141827;
-  --bg-elevated: #10141f;
-  --bg-card: #0d111b;
-  --bg-hover: #171c2b;
-  --bg-input: #0a0d16;
-  --bg-overlay: rgba(4, 6, 14, 0.82);
-
-  /* Borders — cool, hairline, more presence on hover/focus */
-  --border-primary: rgba(148, 163, 210, 0.10);
-  --border-secondary: rgba(148, 163, 210, 0.16);
-  --border-hover: rgba(148, 163, 210, 0.30);
-  --border-focus: rgba(110, 139, 255, 0.55);
-
-  /* Text — brighter, higher contrast */
-  --text-primary: #f3f5fb;
-  --text-secondary: #9aa3bc;
-  --text-tertiary: #7e869e;
-  --text-muted: #737c96;
-  --text-inverse: #070912;
-
-  /* Accent — electric periwinkle, the new signature */
-  --accent: #6e8bff;
-  --accent-hover: #8aa1ff;
-  --accent-muted: rgba(110, 139, 255, 0.16);
-  --accent-subtle: rgba(110, 139, 255, 0.08);
-  --accent-glow: rgba(110, 139, 255, 0.22);
-  --brand-gradient: linear-gradient(135deg, #5b8def 0%, #8b5cf6 52%, #ec4899 100%);
-  --brand-gradient-vibrant: linear-gradient(120deg, #38bdf8 0%, #6e8bff 38%, #a855f7 72%, #ec4899 100%);
-
-  /* Shadows — deeper, softer, luminous */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.42);
-  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.50);
-  --shadow-glow: 0 0 32px rgba(110, 139, 255, 0.22);
-
-  --ring-color: rgba(110, 139, 255, 0.32);
-  --scrollbar-thumb: #1c2233;
-  --scrollbar-hover: #2a3145;
-  --selection-bg: rgba(110, 139, 255, 0.34);
-
-  --shimmer-1: #0a0d16;
-  --shimmer-2: #141827;
-  --shimmer-3: #1f2436;
+  /* Not a glow any more: the name has call sites, the light does not. */
+  --shadow-glow: var(--shadow-raised);
+  --selection-bg: var(--selection);
 
   /* Glass — real backdrop blur with a subtle top highlight */
-  --glass-bg: rgba(16, 20, 32, 0.72);
-  --glass-border: rgba(148, 163, 210, 0.14);
-  --glass-blur: blur(20px) saturate(160%);
-  --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, transparent 46%);
   --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --glass-card-bg: rgba(15, 19, 30, 0.68);
   --glass-card-border: rgba(148, 163, 210, 0.12);
@@ -91,29 +46,43 @@
   --mesh-hover-y: -3px;                 /* a touch more lift than before */
   --mesh-press-scale: 0.97;             /* crisper press than the old 0.985 */
   --mesh-stagger: 46ms;                 /* base cascade step for lists/grids */
-  /* Living aurora ribbon used by motion surfaces (progress, loaders, reveals) */
-  --mesh-aurora-line: linear-gradient(90deg, transparent, #5b8def 22%, #8b5cf6 46%, #34e4ea 72%, transparent);
+  /* Was a periwinkle→cyan ribbon behind progress and loader surfaces. Now one
+     flat pigment: the surfaces that read it stay, the aurora does not. */
+  --mesh-aurora-line: var(--accent);
 
-  /* ─── Mesh spatial tokens (aligned to Aurora) ─── */
-  --mesh-bg-deep: #04060e;
-  --mesh-bg: #070b15;
-  --mesh-bg-elevated: #0c1120;
-  --mesh-panel: rgba(12, 17, 30, 0.86);
-  --mesh-panel-solid: #0c1120;
-  --mesh-panel-hover: rgba(20, 27, 45, 0.92);
-  --mesh-blue: #6e8bff;
-  --mesh-cyan: #34e4ea;
-  --mesh-ice: #a8d8ff;
-  --mesh-text: #f3f5fb;
-  --mesh-text-secondary: #9aa3bc;
-  --mesh-text-muted: #737c96;
-  --mesh-border: rgba(130, 150, 255, 0.16);
-  --mesh-border-active: rgba(110, 139, 255, 0.70);
-  --mesh-green: #34d399;
-  --mesh-danger: #fb7185;
+  /* ─── Mesh chrome — aliases of the paper tokens, not a second palette ───
+     688 call sites read these names, so they keep them; what changes is where
+     the colour comes from. Both themes resolve through tokens.css, which is why
+     this block is now theme-independent. */
+  --mesh-bg-deep: var(--paper-2);
+  --mesh-bg: var(--paper-0);
+  --mesh-bg-elevated: var(--paper-1);
+  --mesh-panel: var(--paper-1);
+  --mesh-panel-solid: var(--paper-1);
+  --mesh-panel-hover: var(--paper-hover);
+  --mesh-blue: var(--accent);
+  --mesh-cyan: var(--accent);
+  --mesh-ice: var(--accent-hover);
+  --mesh-text: var(--ink-1);
+  --mesh-text-secondary: var(--ink-2);
+  --mesh-text-muted: var(--ink-3);
+  --mesh-border: var(--rule);
+  --mesh-border-active: var(--rule-focus);
+  --mesh-green: var(--success);
+  --mesh-danger: var(--danger);
+  --mesh-glow-blue: var(--accent-wash);
+  --compose-fg: var(--ink-1);
   --mesh-sidebar-width: 16rem;
-  --mesh-glow-blue: rgba(110, 139, 255, 0.18);
-  --compose-fg: #ffffff;
+
+  /* Glass is matte paper now. The blur is gone; the names remain so the 86
+     surfaces reading them move material without 86 edits. */
+  --glass-shadow: var(--shadow-rest);
+  --glass-card-bg: var(--paper-1);
+  --glass-card-border: var(--rule);
+  --glass-card-hover: var(--paper-hover);
+  --glass-elevated: var(--paper-1);
+  --glass-surface: var(--paper-1);
+  --glass-input: var(--paper-2);
 
   /* Radius scale — generous, modern */
   --radius-sm: 0.625rem;
@@ -125,88 +94,13 @@
 
 /* ─── Light Theme ─── */
 .light {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f4f4f5;
-  --bg-tertiary: #e4e4e7;
-  --bg-elevated: rgba(255, 255, 255, 0.9);
-  --bg-card: rgba(250, 250, 250, 0.8);
-  --bg-hover: rgba(244, 244, 245, 0.8);
-  --bg-input: rgba(244, 244, 245, 0.6);
-  --bg-overlay: rgba(0, 0, 0, 0.3);
 
-  --border-primary: rgba(228, 228, 231, 0.8);
-  --border-secondary: rgba(228, 228, 231, 0.4);
-  --border-hover: rgba(212, 212, 216, 0.8);
-  --border-focus: rgba(59, 130, 246, 0.5);
-
-  --text-primary: #18181b;
-  --text-secondary: #52525b;
-  --text-tertiary: #71717a;
-  --text-muted: #a1a1aa;
-  --text-inverse: #fafafa;
-
-  --accent: #5b6dff;
-  --accent-hover: #4453f5;
-  --accent-muted: rgba(91, 109, 255, 0.12);
-  --accent-subtle: rgba(91, 109, 255, 0.06);
-  --accent-glow: rgba(139, 92, 246, 0.22);
-  --brand-gradient: linear-gradient(135deg, #5b8def 0%, #8b5cf6 52%, #ec4899 100%);
-  --brand-gradient-vibrant: linear-gradient(120deg, #38bdf8 0%, #6e8bff 38%, #a855f7 72%, #ec4899 100%);
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
   --shadow-glow: 0 0 20px rgba(45, 127, 249, 0.1);
 
-  --ring-color: rgba(91, 109, 255, 0.30);
-  --scrollbar-thumb: linear-gradient(180deg, #a5b4fc 0%, #e4e4e7 100%);
-  --scrollbar-hover: linear-gradient(180deg, #818cf8 0%, #d4d4d8 100%);
   --selection-bg: rgba(139, 92, 246, 0.20);
 
-  --shimmer-1: #f4f4f5;
-  --shimmer-2: #e4e4e7;
-  --shimmer-3: #d4d4d8;
-
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-blur: blur(24px) saturate(180%);
-  --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 50%);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  --glass-card-bg: rgba(255, 255, 255, 0.55);
-  --glass-card-border: rgba(0, 0, 0, 0.06);
-  --glass-card-hover: rgba(255, 255, 255, 0.7);
-  --glass-elevated: rgba(255, 255, 255, 0.75);
-  --glass-surface: rgba(255, 255, 255, 0.6);
-  --glass-input: rgba(244, 244, 245, 0.5);
-
-  --mesh-bg-deep: #f0f4f9;
-  --mesh-bg: #f7f9fc;
-  --mesh-bg-elevated: #ffffff;
-  --mesh-panel: rgba(255, 255, 255, 0.92);
-  --mesh-panel-solid: #ffffff;
-  --mesh-panel-hover: rgba(237, 244, 251, 0.96);
-  --mesh-blue: #5b6dff;
-  --mesh-cyan: #7c3aed;
-  --mesh-ice: #6366f1;
-  --mesh-text: #0f172a;
-  --mesh-text-secondary: #475569;
-  --mesh-text-muted: #94a3b8;
-  --mesh-border: rgba(15, 23, 42, 0.12);
-  --mesh-border-active: rgba(91, 109, 255, 0.48);
-  --mesh-green: #16a34a;
-  --mesh-danger: #dc2626;
-  --mesh-glow-blue: rgba(139, 92, 246, 0.10);
 }
 
-/* ─── Brand Palette Presets ─── */
-:root[data-theme="default"] {
-  --accent: #6e8bff;
-  --accent-hover: #8aa1ff;
-  --accent-muted: rgba(110, 139, 255, 0.16);
-  --accent-subtle: rgba(110, 139, 255, 0.08);
-  --brand-gradient: linear-gradient(135deg, #5b8def 0%, #8b5cf6 52%, #ec4899 100%);
-  --brand-gradient-vibrant: linear-gradient(120deg, #38bdf8 0%, #6e8bff 38%, #a855f7 72%, #ec4899 100%);
-}
 
 :root[data-theme="instagram"] {
   --accent: #ff2d55;
@@ -271,17 +165,6 @@ body {
   overflow-x: hidden;
 }
 
-/* ─── Global declutter pass ─── */
-:root, .dark, .light {
-  --brand-gradient: var(--accent);
-  --brand-gradient-vibrant: var(--accent);
-  --glass-bg: var(--bg-primary);
-  --glass-border: var(--border-primary);
-  --glass-card-bg: var(--bg-secondary);
-  --glass-card-border: var(--border-primary);
-  --glass-card-hover: var(--bg-secondary);
-  --glass-shadow: var(--shadow-sm);
-}
 
 /* ─── Display Font for Headings ─── */
 h1, h2, h3, .font-display {
@@ -1093,12 +976,6 @@ select:focus-visible {
   animation: meshChildEnter 0.32s var(--mesh-ease-out) both;
 }
 
-@media (min-width: 640px) {
-}
-
-@media (max-width: 420px) {
-}
-
 /* ─── Content Fade (lighter variant for sections) ─── */
 
 /* ─── Stagger Children ─── */
@@ -1868,9 +1745,6 @@ body[data-meshi-panel="open"] .bug-report-widget {
   }
 }
 
-@media (max-width: 640px) {
-}
-
 .simple-card {
   border-radius: 1rem;
   border: 1px solid var(--glass-card-border);
@@ -2086,7 +1960,6 @@ body[data-meshi-panel="open"] .bug-report-widget {
 .mesh-glow-border:focus-within::before {
   opacity: 0.8;
 }
-
 
 .meshi-float-shell {
   /* Hug the 48px Meshi body: the shell's popovers anchor to its right edge,
@@ -2364,12 +2237,6 @@ select {
   }
 }
 
-@media (min-width: 640px) {
-}
-
-@media (min-width: 1024px) {
-}
-
 .scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -2383,9 +2250,6 @@ select {
 .card-responsive {
   width: 100%;
   border-radius: 1rem;
-}
-
-@media (min-width: 640px) {
 }
 
 /* Prevent layout shift from scrollbar */
@@ -2792,9 +2656,6 @@ html {
   }
 }
 
-@media (max-width: 640px) {
-}
-
 @media (prefers-reduced-motion: reduce) {
   .mesh-entry-edge-line,
   .mesh-entry-sweep-line,
@@ -2815,85 +2676,18 @@ html {
   }
 }
 
-@media (max-width: 767px) {
-}
-
 /* Calm UI pass: soft contrast, fewer competing glows, cleaner reading surfaces. */
 :root:not(.light),
 .dark {
   color-scheme: dark;
-  --bg-primary: #0d1117;
-  --bg-secondary: #121821;
-  --bg-tertiary: #182230;
-  --bg-elevated: #151d29;
-  --bg-card: #151d29;
-  --bg-hover: #1a2432;
-  --bg-input: #0f151e;
-  --border-primary: rgba(142, 157, 180, 0.18);
-  --border-secondary: rgba(142, 157, 180, 0.24);
-  --border-hover: rgba(142, 157, 180, 0.34);
-  --text-primary: #f2f5f8;
-  --text-secondary: #b4bfcd;
-  --text-tertiary: #96a3b3;
-  --text-muted: #828d9b;
-  --accent: #8bc8ff;
-  --accent-hover: #add8ff;
-  --accent-muted: rgba(139, 200, 255, 0.18);
-  --accent-subtle: rgba(139, 200, 255, 0.1);
-  --accent-glow: rgba(139, 200, 255, 0.16);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18);
-  --shadow-md: 0 10px 26px rgba(0, 0, 0, 0.22);
-  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.28);
   --mesh-hover-y: -1px;
 }
 
 :root.light,
 .light {
   color-scheme: light;
-  --bg-primary: #f7f9fc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #eef3f8;
-  --bg-elevated: #ffffff;
-  --bg-card: #ffffff;
-  --bg-hover: #edf4fb;
-  --bg-input: #ffffff;
-  --bg-overlay: rgba(15, 23, 42, 0.38);
-  --border-primary: rgba(36, 54, 78, 0.14);
-  --border-secondary: rgba(36, 54, 78, 0.2);
-  --border-hover: rgba(36, 54, 78, 0.32);
-  --border-focus: rgba(37, 99, 235, 0.34);
-  --text-primary: #0f172a;
-  --text-secondary: #42526a;
-  --text-tertiary: #64748b;
-  --text-muted: #8290a3;
-  --text-inverse: #f8fafc;
-  --accent: #2f7dd1;
-  --accent-hover: #1d64b4;
-  --accent-muted: rgba(47, 125, 209, 0.14);
-  --accent-subtle: rgba(47, 125, 209, 0.08);
-  --accent-glow: rgba(47, 125, 209, 0.14);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 10px 26px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.12);
   --mesh-hover-y: -1px;
 
-  --mesh-bg-deep: #f0f4f9;
-  --mesh-bg: #f7f9fc;
-  --mesh-bg-elevated: #ffffff;
-  --mesh-panel: rgba(255, 255, 255, 0.92);
-  --mesh-panel-solid: #ffffff;
-  --mesh-panel-hover: rgba(237, 244, 251, 0.96);
-  --mesh-blue: #5b6dff;
-  --mesh-cyan: #7c3aed;
-  --mesh-ice: #6366f1;
-  --mesh-text: #0f172a;
-  --mesh-text-secondary: #475569;
-  --mesh-text-muted: #94a3b8;
-  --mesh-border: rgba(15, 23, 42, 0.12);
-  --mesh-border-active: rgba(91, 109, 255, 0.48);
-  --mesh-green: #16a34a;
-  --mesh-danger: #dc2626;
-  --mesh-glow-blue: rgba(139, 92, 246, 0.10);
 }
 
 @media (prefers-color-scheme: light) {
@@ -2926,35 +2720,9 @@ html {
     --shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.12);
     --mesh-hover-y: -1px;
 
-    --mesh-bg-deep: #f0f4f9;
-    --mesh-bg: #f7f9fc;
-    --mesh-bg-elevated: #ffffff;
-    --mesh-panel: rgba(255, 255, 255, 0.92);
-    --mesh-panel-solid: #ffffff;
-    --mesh-panel-hover: rgba(237, 244, 251, 0.96);
-    --mesh-blue: #2563eb;
-    --mesh-cyan: #0284c7;
-    --mesh-ice: #0369a1;
-    --mesh-text: #0f172a;
-    --mesh-text-secondary: #475569;
-    --mesh-text-muted: #94a3b8;
-    --mesh-border: rgba(15, 23, 42, 0.12);
-    --mesh-border-active: rgba(37, 99, 235, 0.48);
-    --mesh-green: #16a34a;
-    --mesh-danger: #dc2626;
-    --mesh-glow-blue: rgba(37, 99, 235, 0.08);
   }
 }
 
-:root[data-theme="default"] {
-  --accent: #6e8bff;
-  --accent-hover: #8aa1ff;
-  --accent-muted: rgba(110, 139, 255, 0.16);
-  --accent-subtle: rgba(110, 139, 255, 0.08);
-  --accent-glow: rgba(110, 139, 255, 0.22);
-  --brand-gradient: linear-gradient(135deg, #5b8def 0%, #8b5cf6 52%, #ec4899 100%);
-  --brand-gradient-vibrant: linear-gradient(120deg, #38bdf8 0%, #6e8bff 38%, #a855f7 72%, #ec4899 100%);
-}
 
 :root[data-theme="instagram"] {
   --accent: #ff2d55;
@@ -3013,9 +2781,6 @@ body {
 .mesh-aurora {
   background: var(--bg-primary);
   animation: none;
-}
-
-@media (min-width: 1024px) {
 }
 
 .app-compose-button,
@@ -3276,9 +3041,6 @@ body {
     radial-gradient(circle at 50% 40%, rgba(147, 197, 253, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(2, 6, 23, 0.9)),
     linear-gradient(90deg, rgba(37, 99, 235, 0.13), transparent 24%, transparent 76%, rgba(56, 189, 248, 0.11));
-}
-
-@media (max-width: 640px) {
 }
 
 /* X-like consumption flow: fewer panels, clearer timeline, faster scanning. */
@@ -3927,17 +3689,11 @@ body {
   }
 }
 
-@media (max-width: 767px) {
-}
-
 html[data-mesh-locked="true"],
 html[data-mesh-locked="true"] body {
   height: 100%;
   overflow: hidden !important;
   overscroll-behavior: none;
-}
-
-@media (max-width: 767px) {
 }
 
 .search-result-row {
@@ -3978,102 +3734,11 @@ html[data-mesh-locked="true"] body {
 /* Aurora Mesh — active dark theme pass (bold, luminous, glass-first). */
 :root:not(.light),
 .dark {
-  --bg-primary: #070912;
-  --bg-secondary: #0c0f1a;
-  --bg-tertiary: #141827;
-  --bg-elevated: #10141f;
-  --bg-card: #0d111b;
-  --bg-hover: #171c2b;
-  --bg-input: #0a0d16;
-  --border-primary: rgba(148, 163, 210, 0.10);
-  --border-secondary: rgba(148, 163, 210, 0.16);
-  --border-hover: rgba(148, 163, 210, 0.30);
-  --border-focus: rgba(110, 139, 255, 0.55);
-  --text-primary: #f3f5fb;
-  --text-secondary: #9aa3bc;
-  --text-tertiary: #7e869e;
-  --text-muted: #737c96;
-  --accent: #6e8bff;
-  --accent-hover: #8aa1ff;
-  --accent-contrast: #ffffff;
-  --accent-muted: rgba(110, 139, 255, 0.16);
-  --accent-subtle: rgba(110, 139, 255, 0.08);
-  --accent-glow: rgba(110, 139, 255, 0.22);
-  --brand-gradient: linear-gradient(135deg, #5b8def 0%, #8b5cf6 52%, #ec4899 100%);
-  --brand-gradient-vibrant: linear-gradient(120deg, #38bdf8 0%, #6e8bff 38%, #a855f7 72%, #ec4899 100%);
-  --ring-color: rgba(110, 139, 255, 0.32);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.42);
-  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.50);
-  --glass-bg: rgba(16, 20, 32, 0.72);
-  --glass-elevated: rgba(18, 23, 36, 0.82);
-  --glass-surface: rgba(14, 18, 28, 0.72);
-  --glass-card-bg: rgba(15, 19, 30, 0.68);
-  --glass-card-border: rgba(148, 163, 210, 0.12);
-  --glass-card-hover: rgba(22, 28, 43, 0.80);
-  --glass-input: rgba(10, 13, 22, 0.78);
-  --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --mesh-hover-y: -2px;
   --mesh-press-scale: 0.985;
 }
 
 :root.light,
-.light {
-  --bg-primary: #f7f8fa;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #eef1f5;
-  --bg-elevated: #ffffff;
-  --bg-card: #ffffff;
-  --bg-hover: #f0f4f8;
-  --bg-input: #ffffff;
-  --border-primary: rgba(15, 23, 42, 0.12);
-  --border-secondary: rgba(15, 23, 42, 0.17);
-  --border-hover: rgba(15, 23, 42, 0.28);
-  --border-focus: rgba(91, 109, 255, 0.40);
-  --text-primary: #101828;
-  --text-secondary: #475467;
-  --text-tertiary: #667085;
-  --text-muted: #8a95a5;
-  --text-inverse: #ffffff;
-  --accent: #5b6dff;
-  --accent-hover: #4453f5;
-  --accent-contrast: #ffffff;
-  --accent-muted: rgba(91, 109, 255, 0.12);
-  --accent-subtle: rgba(91, 109, 255, 0.06);
-  --accent-glow: rgba(139, 92, 246, 0.14);
-  --brand-gradient: linear-gradient(135deg, #5b8def 0%, #8b5cf6 52%, #ec4899 100%);
-  --brand-gradient-vibrant: linear-gradient(120deg, #38bdf8 0%, #6e8bff 38%, #a855f7 72%, #ec4899 100%);
-  --ring-color: rgba(91, 109, 255, 0.18);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 10px 24px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 18px 42px rgba(15, 23, 42, 0.12);
-  --glass-bg: var(--bg-secondary);
-  --glass-elevated: var(--bg-elevated);
-  --glass-surface: var(--bg-secondary);
-  --glass-card-bg: var(--bg-secondary);
-  --glass-card-border: var(--border-primary);
-  --glass-card-hover: var(--bg-hover);
-  --glass-input: var(--bg-input);
-  --glass-shadow: var(--shadow-sm);
-
-  --mesh-bg-deep: #f0f4f9;
-  --mesh-bg: #f7f9fc;
-  --mesh-bg-elevated: #ffffff;
-  --mesh-panel: rgba(255, 255, 255, 0.92);
-  --mesh-panel-solid: #ffffff;
-  --mesh-panel-hover: rgba(237, 244, 251, 0.96);
-  --mesh-blue: #5b6dff;
-  --mesh-cyan: #7c3aed;
-  --mesh-ice: #6366f1;
-  --mesh-text: #0f172a;
-  --mesh-text-secondary: #475569;
-  --mesh-text-muted: #94a3b8;
-  --mesh-border: rgba(15, 23, 42, 0.12);
-  --mesh-border-active: rgba(91, 109, 255, 0.48);
-  --mesh-green: #16a34a;
-  --mesh-danger: #dc2626;
-  --mesh-glow-blue: rgba(139, 92, 246, 0.10);
-}
 
 @media (prefers-color-scheme: light) {
   :root:not(.dark):not(.light) {
@@ -4106,31 +3771,7 @@ html[data-mesh-locked="true"] body {
     --shadow-md: 0 10px 24px rgba(15, 23, 42, 0.08);
     --shadow-lg: 0 18px 42px rgba(15, 23, 42, 0.12);
     --glass-bg: var(--bg-secondary);
-    --glass-elevated: var(--bg-elevated);
-    --glass-surface: var(--bg-secondary);
-    --glass-card-bg: var(--bg-secondary);
-    --glass-card-border: var(--border-primary);
-    --glass-card-hover: var(--bg-hover);
-    --glass-input: var(--bg-input);
-    --glass-shadow: var(--shadow-sm);
 
-    --mesh-bg-deep: #f0f4f9;
-    --mesh-bg: #f7f9fc;
-    --mesh-bg-elevated: #ffffff;
-    --mesh-panel: rgba(255, 255, 255, 0.92);
-    --mesh-panel-solid: #ffffff;
-    --mesh-panel-hover: rgba(237, 244, 251, 0.96);
-    --mesh-blue: #2563eb;
-    --mesh-cyan: #0284c7;
-    --mesh-ice: #0369a1;
-    --mesh-text: #0f172a;
-    --mesh-text-secondary: #475569;
-    --mesh-text-muted: #94a3b8;
-    --mesh-border: rgba(15, 23, 42, 0.12);
-    --mesh-border-active: rgba(37, 99, 235, 0.48);
-    --mesh-green: #16a34a;
-    --mesh-danger: #dc2626;
-    --mesh-glow-blue: rgba(37, 99, 235, 0.08);
   }
 }
 
@@ -5225,9 +4866,6 @@ body,
   }
 }
 
-@media (max-width: 420px) {
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-page-enter,
   .app-route-progress::before,
@@ -5537,9 +5175,6 @@ body,
   }
 }
 
-@media (max-width: 767px) {
-}
-
 /* Viewport-locked product frame: the window stays still; dense content lives inside contained panels. */
 html,
 body {
@@ -5562,15 +5197,6 @@ body {
   max-height: 100dvh;
   min-height: 0;
   overflow: hidden;
-}
-
-@media (max-width: 767px) {
-}
-
-@media (min-width: 768px) {
-}
-
-@media (max-width: 767px) {
 }
 
 .public-site-main,
@@ -5676,9 +5302,6 @@ body {
   overscroll-behavior: contain;
 }
 
-@media (min-width: 768px) {
-}
-
 @media (max-width: 767px) {
 
   .feed-consumption-stack {
@@ -5749,9 +5372,6 @@ body {
 .app-shell-layout-surface :where(.mesh-action:hover, .mesh-choice:hover, .mesh-link-row:hover, .settings-nav-item:hover, .settings-quick-link:hover, .feed-control-chip:hover, .feed-mode-button:hover, .feed-layout-button:hover, .insta-icon-button:hover) {
   box-shadow: none !important;
   transform: none !important;
-}
-
-@media (max-width: 767px) {
 }
 
 /* ─── Responsive: Mobile / Tablet / Foldable / iPad ─── */
@@ -5904,9 +5524,6 @@ body {
   .mechat-detail-panel {
     display: none !important;
   }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
 }
 
 /* --- Settings: mobile improvements --- */
@@ -6347,7 +5964,7 @@ body {
   inset: 0;
   z-index: 90;
   background:
-    radial-gradient(110% 70% at 50% 0%, rgba(110, 139, 255, 0.18), transparent 60%),
+    radial-gradient(110% 70% at 50% 0%, var(--accent-wash), transparent 60%),
     radial-gradient(90% 60% at 50% 100%, rgba(168, 85, 247, 0.12), transparent 62%),
     #05060f;
   animation: flow-reels-in 0.22s ease both;
@@ -6437,8 +6054,8 @@ body {
   font-weight: 600;
   letter-spacing: 0.02em;
   color: #dfe4ff;
-  background: rgba(110, 139, 255, 0.18);
-  border: 1px solid rgba(110, 139, 255, 0.42);
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-line);
   white-space: nowrap;
 }
 
@@ -6746,7 +6363,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   position: absolute;
   inset: -3px;
   border-radius: 999px;
-  border: 1.5px solid rgba(110, 139, 255, 0.8);
+  border: 1.5px solid var(--accent);
   opacity: 0;
 }
 .like-burst-active {
@@ -6815,7 +6432,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(42% 34% at 50% 46%, rgba(110, 139, 255, 0.10), transparent 72%);
+  background: var(--accent-wash);
 }
 
 .mesh-gate-core {
@@ -6907,7 +6524,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   background: var(--brand-gradient);
   opacity: 0;
   pointer-events: none;
-  box-shadow: 0 8px 22px -10px rgba(110, 139, 255, 0.8);
+  box-shadow: var(--shadow-raised);
   transition: opacity 200ms ease, transform 200ms ease, filter 150ms ease;
 }
 .mesh-gate-go.is-ready { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
@@ -6985,7 +6602,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   background: rgba(14, 19, 34, 0.72);
   border: 1px solid rgba(125, 155, 255, 0.24);
   backdrop-filter: blur(12px);
-  box-shadow: 0 16px 40px -20px rgba(110, 139, 255, 0.55);
+  box-shadow: var(--shadow-lift);
   animation: meshEntryIn 0.45s ease 0.12s both;
 }
 .mesh-gate-bubble::after {
@@ -7031,7 +6648,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 16px 36px -14px rgba(110, 139, 255, 0.6);
+  box-shadow: var(--shadow-lift);
   transition: filter 150ms ease, transform 120ms ease;
   margin-top: 0.3rem;
 }
@@ -7454,7 +7071,6 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 /* Mesh Pro mark — a single discreet gold hairline around a Pro member's
    Meshi. No glow, no shimmer: quiet, like a good watch. Server-authoritative
    (presence carries isPro), purely decorative. */
-
 
 /* ── Pointer anchor on the mesh (fine pointers) ───────────────────────
    The cursor is the OS cursor. This element is now a pure zero-size
