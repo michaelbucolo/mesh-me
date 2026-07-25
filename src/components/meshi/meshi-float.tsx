@@ -1114,7 +1114,9 @@ export function MeshiFloat() {
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse" || window.innerWidth < 900 || !canFollow()) return;
+      // Gated on pointer TYPE, not viewport width: a 900px floor also excluded
+      // small laptops, and width was never the right proxy for "has a mouse".
+      if (event.pointerType !== "mouse" || !canFollow()) return;
       const last = lastFollowPointRef.current;
       const movedEnough = !last || Math.hypot(event.clientX - last.x, event.clientY - last.y) > 140;
       if (!movedEnough || followFrameRef.current !== null) return;
@@ -1135,7 +1137,7 @@ export function MeshiFloat() {
     };
 
     const handleClick = (event: MouseEvent) => {
-      if (!canFollow() || window.innerWidth < 768) return;
+      if (!canFollow()) return;
       const target = event.target as HTMLElement | null;
       const isInteractive = Boolean(target?.closest("button, a, input, textarea, select, [role='button'], [data-meshi-follow]"));
       if (!isInteractive) return;
@@ -1668,7 +1670,7 @@ export function MeshiFloat() {
           data-meshi-instance-id={instanceId}
           data-meshi-owned="true"
           data-meshi-avoiding={isAvoidingUi ? "true" : undefined}
-          className="meshi-float-shell fixed z-40 hidden md:block"
+          className="meshi-float-shell fixed z-40"
           style={{ left: springX, top: springY }}
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{
