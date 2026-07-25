@@ -2,7 +2,8 @@
 
 import { useId, useMemo, useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { deleteAccount } from "@/lib/actions";
@@ -110,7 +111,7 @@ export function DeleteAccountTab({ showError }: DeleteAccountTabProps) {
         variant="danger"
         className="disabled:opacity-50"
       >
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+        {isPending ? <PaperWait size="sm" /> : null}
         {isPending ? "Deleting account..." : "Delete account permanently"}
       </Button>
     </motion.div>

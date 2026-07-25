@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { signUp } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,7 @@ export function SignupForm() {
       ) : null}
 
       <Button type="submit" className="w-full" size="lg" disabled={isPending}>
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {isPending ? <PaperWait size="sm" /> : null}
         Create account
       </Button>
 

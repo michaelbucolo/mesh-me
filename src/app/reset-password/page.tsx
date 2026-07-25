@@ -4,7 +4,8 @@ import { useState, useTransition, Suspense, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { resetPassword } from "@/lib/actions";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
@@ -195,7 +196,7 @@ function ResetPasswordForm() {
             disabled={isPending}
             className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Reset password</span><ArrowRight className="h-4 w-4" /></>}
+            {isPending ? <PaperWait size="sm" /> : <><span>Reset password</span><ArrowRight className="h-4 w-4" /></>}
           </motion.button>
         </form>
       </div>

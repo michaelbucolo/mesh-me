@@ -1,12 +1,13 @@
 "use client";
 
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRef, useState, useTransition, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPost } from "@/lib/actions";
 import { playSound } from "@/lib/sound";
-import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Loader2, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
+import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
 
 // Connected platforms for cross-posting
 const CROSS_POST_PLATFORMS = [
@@ -322,7 +323,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
       {(successMessage || errorMessage) && (
         <div className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${successMessage ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400" : "border border-red-500/20 bg-red-500/10 text-red-500 dark:text-red-400"}`} role="status">
           {successMessage ? (
-            isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />
+            isPending ? <PaperWait size="sm" /> : <CheckCircle2 className="h-3.5 w-3.5" />
           ) : (
             <AlertTriangle className="h-3.5 w-3.5" />
           )}

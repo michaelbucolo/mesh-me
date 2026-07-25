@@ -943,38 +943,6 @@ select:focus-visible {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes appRouteProgress {
-  0% { transform: translateX(-112%) scaleX(0.45); opacity: 0; }
-  16% { opacity: 1; }
-  72% { transform: translateX(-12%) scaleX(0.92); opacity: 0.88; }
-  100% { transform: translateX(105%) scaleX(0.18); opacity: 0; }
-}
-
-.app-route-progress {
-  position: fixed;
-  z-index: 80;
-  top: 0;
-  left: 0;
-  height: 2px;
-  width: 100%;
-  pointer-events: none;
-  overflow: hidden;
-  opacity: 1;
-}
-
-.app-route-progress::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, var(--accent), #ffffff, #b8f7d4, transparent);
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 58%, transparent));
-  transform-origin: left center;
-}
-
-.app-route-progress::before {
-  animation: appRouteProgress 560ms var(--mesh-ease-out) both;
-}
-
 .app-command-bar {
   animation: meshChildEnter 0.32s var(--mesh-ease-out) both;
 }
@@ -1022,34 +990,173 @@ select:focus-visible {
   }
 }
 
-/* ─── Shimmer Loading — an aurora sweep, not a grey wipe ─── */
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+/* ─── Waiting ──────────────────────────────────────────────────────────────
+   One well, one indicator, one ladder.
 
-/* Reusable brand-tinted skeleton: a diagonal periwinkle→cyan highlight drifts
-   across the surface so loading reads as "the mesh is forming". */
-.mesh-skeleton {
+   `.paper-well` is the empty block a route paints where content will land.
+   It does NOT move for the first 600ms: the shimmer carries a 600ms
+   `animation-delay`, so a fast navigation shows flat paper and is gone before
+   anything animates. That is the whole trick — no timers, no state, no client
+   component, and no indicator during the waits that are too short to warrant
+   one. Past 600ms the sweep begins and the page reads as working.
+
+   The sweep is a light gradient over paper, never a glow: paper catches light,
+   it does not emit it. */
+
+@keyframes paperWellSweep {
+  from { background-position: 180% 0; }
+  to   { background-position: -80% 0; }
+}
+
+.paper-well {
+  display: block;
   position: relative;
   overflow: hidden;
-  background: var(--shimmer-1);
+  flex: none;
+  background-color: var(--skeleton-1);
   border-radius: var(--radius-md, 0.875rem);
-}
-.mesh-skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 20%,
-    color-mix(in srgb, var(--accent) 22%, transparent) 42%,
-    color-mix(in srgb, var(--mesh-cyan) 20%, transparent) 54%,
-    transparent 78%
+  background-image: linear-gradient(
+    92deg,
+    transparent 28%,
+    var(--skeleton-3) 46%,
+    var(--skeleton-3) 54%,
+    transparent 72%
   );
-  background-size: 220% 100%;
-  animation: shimmer 1.6s var(--mesh-ease-out) infinite;
+  background-size: 240% 100%;
+  background-repeat: no-repeat;
+  background-position: 180% 0;
+  animation: paperWellSweep 1.5s var(--mesh-ease-out, ease-out) 600ms infinite;
 }
+
+/* Square tiles without a wrapper element. */
+.paper-well-tile {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+
+/* ── The one indeterminate indicator: three ink dots rising in sequence ──
+   For a wait inside a surface that already exists. Nothing rotates. */
+
+@keyframes paperWaitDot {
+  0%, 70%, 100% { transform: translateY(0); opacity: 0.32; }
+  35%           { transform: translateY(-0.28em); opacity: 0.9; }
+}
+
+.paper-wait {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.paper-wait-dot {
+  display: block;
+  width: 0.34em;
+  height: 0.34em;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.32;
+  animation: paperWaitDot 1.15s var(--mesh-ease-out, ease-out) infinite;
+}
+
+.paper-wait-dot:nth-child(2) { animation-delay: 0.13s; }
+.paper-wait-dot:nth-child(3) { animation-delay: 0.26s; }
+
+.paper-wait-sm { font-size: 0.8125rem; }
+.paper-wait-md { font-size: 1rem; }
+
+/* ── Route-level wait: the page's own furniture, drawn empty ── */
+
+.paper-wait-route {
+  display: block;
+  min-height: 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.paper-wait-column {
+  width: 100%;
+  max-width: var(--wait-column-max, 42rem);
+  margin-inline: auto;
+  padding: 1rem;
+}
+
+.paper-wait-card {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg, 1rem);
+  background: var(--bg-secondary, var(--bg-primary));
+  padding: 1rem;
+}
+
+.paper-wait-row {
+  padding: 0.625rem 0.25rem;
+}
+
+/* ── Meshi's wait: the two long ones, and nowhere else ──
+   Meshi is transparent for the first 900ms and fades in only if the wait is
+   still going. The delay is on the transition, not a timer, so a fast resolve
+   never shows a mascot and there is no shift when a slow one does. */
+
+@keyframes meshiWaitArrive {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.meshi-wait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  width: 100%;
+  padding: 2rem 1.5rem;
+}
+
+.meshi-wait-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  opacity: 0;
+  animation: meshiWaitArrive 420ms var(--mesh-ease-out, ease-out) 900ms forwards;
+}
+
+.meshi-wait-headline {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* The mesh canvas is dark in both themes, so text over it cannot use the
+   theme's ink or it disappears in Daylight. */
+.meshi-wait-on-dark .meshi-wait-headline { color: #f4efe6; }
+.meshi-wait-on-dark .meshi-wait-detail { color: rgb(244 239 230 / 0.62); }
+
+.meshi-wait-detail {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary, var(--text-secondary));
+  /* Holds its line whether or not there is a number to show. */
+  min-height: 1.2em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion: the wells stay, the sweep stops. A still block still
+   communicates "content goes here"; a moving one adds nothing for someone who
+   asked for less movement. Meshi still waits out the 900ms — that delay is
+   about not interrupting a short wait, which has nothing to do with motion. */
 @media (prefers-reduced-motion: reduce) {
-  .mesh-skeleton::after { animation: none; opacity: 0.4; }
+  .paper-well { animation: none; background-image: none; }
+  .paper-wait-dot { animation: none; opacity: 0.55; }
+  .meshi-wait-body { animation-name: meshiWaitArriveStill; }
 }
+
+@keyframes meshiWaitArriveStill {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 
 /* ── Mesh-forming loader caption ── */
 .mesh-forming-caption {
@@ -4002,427 +4109,7 @@ body,
   border-color: var(--border-primary) !important;
 }
 
-.app-route-progress {
-  height: 2px;
-  opacity: 0.85;
-}
 
-.app-route-progress::before {
-  background: var(--accent) !important;
-  filter: none !important;
-}
-
-.app-route-progress[data-loading-personality="secure"]::before,
-.app-route-progress[data-loading-personality="connected-accounts"]::before,
-.app-route-progress[data-loading-personality="settings"]::before,
-.app-route-progress[data-loading-personality="notifications"]::before {
-  background: color-mix(in srgb, #22c55e 72%, var(--accent)) !important;
-}
-
-.app-route-progress[data-loading-personality="mesh"]::before,
-.app-route-progress[data-loading-personality="search"]::before,
-.app-route-progress[data-loading-personality="explore"]::before {
-  background: color-mix(in srgb, #38bdf8 68%, var(--accent)) !important;
-}
-
-.app-route-progress[data-loading-personality="feed"]::before,
-.app-route-progress[data-loading-personality="messages"]::before,
-.app-route-progress[data-loading-personality="communities"]::before,
-.app-route-progress[data-loading-personality="profile"]::before {
-  background: color-mix(in srgb, #f472b6 58%, var(--accent)) !important;
-}
-
-.app-route-progress[data-loading-personality="content-hub"]::before,
-.app-route-progress[data-loading-personality="innovation"]::before,
-.app-route-progress[data-loading-personality="meshpro"]::before {
-  background: color-mix(in srgb, #f59e0b 52%, var(--accent)) !important;
-}
-
-.loading-personality-shell {
-  isolation: isolate;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent-subtle) 18%, transparent), transparent 38%),
-    var(--bg-primary);
-}
-
-.loading-personality-shell::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--border-primary) 42%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--border-primary) 42%, transparent) 1px, transparent 1px);
-  background-size: 4rem 4rem;
-  -webkit-mask-image: radial-gradient(circle at center, transparent 0%, black 62%, black 100%);
-  mask-image: radial-gradient(circle at center, transparent 0%, black 62%, black 100%);
-  opacity: 0.2;
-}
-
-.loading-personality-shell > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── Meshi loader: bouncing Meshi + orbiting motes, pure CSS ─────────────── */
-
-.meshi-load-stage {
-  position: relative;
-  width: 180px;
-  height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: meshiLoadStageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.meshi-load-orbit {
-  position: absolute;
-  inset: 0;
-  animation: meshiLoadOrbit 7s linear infinite;
-}
-
-@keyframes meshiLoadOrbit {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.meshi-load-mote-arm {
-  position: absolute;
-  inset: 0;
-  display: block;
-}
-
-.meshi-load-mote {
-  position: absolute;
-  left: 50%;
-  top: 4px;
-  width: 9px;
-  height: 9px;
-  margin-left: -4.5px;
-  border-radius: 9999px;
-  transform: scale(0);
-  animation: meshiLoadMotePop 0.5s cubic-bezier(0.34, 1.6, 0.64, 1) forwards;
-}
-
-@keyframes meshiLoadMotePop {
-  to {
-    transform: scale(1);
-  }
-}
-
-/* Meshi doesn't bounce while things load — it DOES the thing that's loading,
-   holding a relevant prop and moving with a calm, purposeful motion (search =
-   scanning lean, MeChat = writing focus, mesh = exploring tilt, and so on).
-   Every motion is small, slow and eased so it reads as intent, never a hop. */
-.meshi-load-actor {
-  position: relative;
-  transform-origin: 50% 100%;
-  will-change: transform;
-}
-
-.la-idle { animation: laIdle 3.2s ease-in-out infinite; }
-.la-navigate { animation: laNavigate 3s ease-in-out infinite; }
-.la-write { animation: laWrite 2s ease-in-out infinite; }
-.la-peer { animation: laPeer 2.6s ease-in-out infinite; }
-.la-watch { animation: laWatch 3s ease-in-out infinite; }
-.la-guard { animation: laGuard 2.8s ease-in-out infinite; }
-.la-craft { animation: laCraft 2.6s ease-in-out infinite; }
-
-/* Calm presence — a barely-there float. */
-@keyframes laIdle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-/* Exploring the web — a slow left/right survey. */
-@keyframes laNavigate {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(3deg); }
-}
-/* Writing — a small heads-down focus dip with a gentle nib sway. */
-@keyframes laWrite {
-  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
-  50% { transform: translateY(1.5px) rotate(1.5deg); }
-}
-/* Searching — leaning to scan the glass across the scene. */
-@keyframes laPeer {
-  0%, 100% { transform: translateX(-3px) rotate(-3deg); }
-  50% { transform: translateX(3px) rotate(3deg); }
-}
-/* Watching the feed — a soft breathe. */
-@keyframes laWatch {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.035); }
-}
-/* Guarding — a steady protective settle, no vertical hop. */
-@keyframes laGuard {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.025) translateY(-1px); }
-}
-/* Creating — a gentle expressive sway. */
-@keyframes laCraft {
-  0%, 100% { transform: rotate(-2.5deg) translateY(0); }
-  50% { transform: rotate(2.5deg) translateY(-2px); }
-}
-
-.meshi-load-body {
-  width: 74px;
-  height: 74px;
-  display: block;
-}
-
-.meshi-load-eyes {
-  animation: meshiLoadBlink 3.4s infinite;
-  transform-origin: 0 -1px;
-}
-
-@keyframes meshiLoadBlink {
-  0%,
-  93%,
-  100% {
-    transform: scaleY(1);
-  }
-  95.5% {
-    transform: scaleY(0.08);
-  }
-}
-
-.meshi-load-shadow {
-  position: absolute;
-  bottom: 30px;
-  width: 58px;
-  height: 12px;
-  border-radius: 9999px;
-  filter: blur(5px);
-  animation: meshiLoadShadow 3s ease-in-out infinite;
-}
-
-/* A soft grounding shadow that breathes gently — decoupled from any hop. */
-@keyframes meshiLoadShadow {
-  0%,
-  100% {
-    transform: scaleX(1);
-    opacity: 0.55;
-  }
-  50% {
-    transform: scaleX(0.9);
-    opacity: 0.4;
-  }
-}
-
-.meshi-load-title {
-  animation: meshiLoadTitleIn 0.4s ease-out both;
-}
-
-@keyframes meshiLoadTitleIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .meshi-load-orbit,
-  .meshi-load-actor,
-  .la-idle,
-  .la-navigate,
-  .la-write,
-  .la-peer,
-  .la-watch,
-  .la-guard,
-  .la-craft,
-  .meshi-load-shadow,
-  .meshi-load-eyes {
-    animation: none !important;
-  }
-  .meshi-load-actor {
-    transform: none !important;
-  }
-  .meshi-load-mote {
-    transform: scale(1);
-    animation: none !important;
-  }
-}
-
-/* ── Ambient loader detail: entrance, parallax stars, aura, shimmer ───────── */
-
-@keyframes meshiLoadStageIn {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-/* The loader's sky is gone. Meshi waits on a plain surface — nothing drifts
-   behind it, nothing twinkles, nothing glows. The starfield and the aura
-   elements still mount; they simply draw nothing. */
-.meshi-load-starfield,
-.meshi-load-stars,
-.meshi-load-stars-near,
-.meshi-load-aura {
-  display: none;
-}
-
-/* Thin progress shimmer under the title — a moving highlight, not fake %. */
-.meshi-load-progress {
-  position: relative;
-  margin-top: 13px;
-  width: 116px;
-  height: 3px;
-  border-radius: 9999px;
-  overflow: hidden;
-  background: rgba(148, 163, 184, 0.16);
-}
-.meshi-load-progress::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 42%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, transparent, var(--pf), transparent);
-  animation: meshiLoadShimmer 1.5s ease-in-out infinite;
-}
-@keyframes meshiLoadShimmer {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(320%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .meshi-load-stage { animation: none !important; opacity: 1; transform: none; }
-  .meshi-load-progress::after {
-    animation: none !important;
-    transform: none;
-    width: 34%;
-    opacity: 0.6;
-  }
-}
-
-/* ── Per-mode loader motifs — each mirrors what's being loaded ───────────── */
-@keyframes meshiLoadSpin { to { transform: rotate(360deg); } }
-@keyframes meshiLoadSpinRev { to { transform: rotate(-360deg); } }
-
-/* Mesh — a constellation weaving itself: strands draw out from the centre to
-   nodes that pop in, the whole web turning slowly. */
-.meshi-load-constellation { position: absolute; inset: 0; animation: meshiLoadSpin 16s linear infinite; }
-.meshi-load-carm { position: absolute; inset: 0; }
-.meshi-load-strand {
-  position: absolute; left: 50%; top: 14px; width: 2px; height: 76px; margin-left: -1px;
-  border-radius: 2px; transform-origin: 50% 100%; transform: scaleY(0); opacity: 0;
-  animation: meshiLoadStrand 2.6s ease-in-out infinite;
-}
-@keyframes meshiLoadStrand {
-  0%, 100% { transform: scaleY(0); opacity: 0; }
-  22% { opacity: 0.55; }
-  42%, 72% { transform: scaleY(1); opacity: 0.55; }
-  92% { transform: scaleY(1); opacity: 0; }
-}
-.meshi-load-cnode {
-  position: absolute; left: 50%; top: 8px; width: 8px; height: 8px; margin-left: -4px;
-  border-radius: 9999px; transform: scale(0);
-  animation: meshiLoadCnode 2.6s ease-in-out infinite;
-}
-@keyframes meshiLoadCnode {
-  0%, 100% { transform: scale(0); }
-  20% { transform: scale(1.35); }
-  40%, 74% { transform: scale(1); }
-  93% { transform: scale(0); }
-}
-
-/* MeChat — envelopes rise past Meshi and settle: your letters being sorted. */
-.meshi-load-letters { position: absolute; inset: 0; }
-.meshi-load-letter {
-  position: absolute; left: 50%; bottom: 40px; width: 34px; height: 23px; margin-left: -17px;
-  border-radius: 4px; opacity: 0; animation: meshiLoadLetter 2.4s ease-in-out infinite;
-}
-.meshi-load-letter::before {
-  content: ""; position: absolute; inset: 0; border-radius: 4px;
-  background: linear-gradient(130deg, rgba(255, 255, 255, 0.28) 0 46%, rgba(0, 0, 0, 0.22) 46% 54%, rgba(255, 255, 255, 0.14) 54%);
-}
-@keyframes meshiLoadLetter {
-  0% { transform: translate(var(--dx), 34px) rotate(var(--r)) scale(0.85); opacity: 0; }
-  20% { opacity: 1; }
-  55% { transform: translate(var(--dx), -10px) rotate(var(--r)) scale(1); opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translate(var(--dx), -40px) rotate(var(--r)) scale(0.92); opacity: 0; }
-}
-
-/* Search — a magnifying glass sweeps around Meshi while a scan pulse rings out. */
-.meshi-load-search { position: absolute; inset: 0; }
-.meshi-load-scan {
-  position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px;
-  border: 2px solid; border-radius: 9999px; opacity: 0; animation: meshiLoadScan 2s ease-out infinite;
-}
-@keyframes meshiLoadScan {
-  0% { transform: scale(0.4); opacity: 0.7; }
-  100% { transform: scale(4.2); opacity: 0; }
-}
-.meshi-load-glass-arm { position: absolute; inset: 0; animation: meshiLoadSpin 3s linear infinite; }
-.meshi-load-glass {
-  position: absolute; left: 50%; top: 8px; width: 20px; height: 20px; margin-left: -10px;
-  border: 3px solid; border-radius: 9999px; animation: meshiLoadSpinRev 3s linear infinite;
-}
-.meshi-load-glass::after {
-  content: ""; position: absolute; right: -5px; bottom: -5px; width: 9px; height: 3px;
-  background: currentColor; border-radius: 2px; transform: rotate(45deg);
-}
-
-/* Social — little companions slide in from the edges and gather round Meshi. */
-.meshi-load-social { position: absolute; inset: 0; }
-.meshi-load-buddy {
-  position: absolute; left: 50%; top: 50%; width: 15px; height: 15px; margin: -7.5px 0 0 -7.5px;
-  border-radius: 9999px; opacity: 0; animation: meshiLoadGather 2.4s ease-in-out infinite;
-}
-@keyframes meshiLoadGather {
-  0% { transform: translate(var(--fx), var(--fy)) scale(0.5); opacity: 0; }
-  25% { opacity: 1; }
-  55% { transform: translate(calc(var(--fx) * 0.28), calc(var(--fy) * 0.28)) scale(1); opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translate(0, 0) scale(0.5); opacity: 0; }
-}
-
-/* Secure — a shield settles behind Meshi and breathes: safe and sound. */
-.meshi-load-secure { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.meshi-load-shield {
-  position: absolute; width: 122px; height: 136px;
-  clip-path: polygon(50% 0, 100% 15%, 100% 54%, 50% 100%, 0 54%, 0 15%);
-  background: linear-gradient(160deg, var(--shield), transparent 78%);
-  opacity: 0.2; animation: meshiLoadShield 2.6s ease-in-out infinite;
-}
-@keyframes meshiLoadShield {
-  0%, 100% { transform: scale(0.9); opacity: 0.14; }
-  50% { transform: scale(1.02); opacity: 0.32; }
-}
-
-/* Creator — sparkles twinkle around Meshi: a little polish and shine. */
-.meshi-load-creator { position: absolute; inset: 0; }
-.meshi-load-spark {
-  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px;
-  clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
-  transform: scale(0); opacity: 0; animation: meshiLoadSpark 2.2s ease-in-out infinite;
-}
-@keyframes meshiLoadSpark {
-  0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
-  45% { transform: scale(var(--s)) rotate(35deg); opacity: 1; }
-  70% { transform: scale(calc(var(--s) * 0.7)) rotate(55deg); opacity: 0.6; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .meshi-load-constellation,
-  .meshi-load-glass-arm,
-  .meshi-load-glass { animation: none !important; }
-  .meshi-load-strand { transform: scaleY(1); opacity: 0.4; animation: none !important; }
-  .meshi-load-cnode { transform: scale(1); animation: none !important; }
-  .meshi-load-letter { transform: translate(var(--dx), -6px) rotate(var(--r)); opacity: 1; animation: none !important; }
-  .meshi-load-scan { display: none; }
-  .meshi-load-buddy { transform: translate(calc(var(--fx) * 0.28), calc(var(--fy) * 0.28)); opacity: 1; animation: none !important; }
-  .meshi-load-shield { transform: scale(1); opacity: 0.28; animation: none !important; }
-  .meshi-load-spark { transform: scale(var(--s)); opacity: 0.9; animation: none !important; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-page-enter,
@@ -4877,7 +4564,6 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .animate-page-enter,
-  .app-route-progress::before,
   .mesh-action,
   .mesh-choice,
   .brand-button,
@@ -5331,7 +5017,6 @@ body {
   .ds-interactive,
   .ds-glass-panel,
   .ds-surface,
-  .ds-skeleton::after,
   .app-topbar-search,
   .app-topbar-icon,
   .app-topbar-link,

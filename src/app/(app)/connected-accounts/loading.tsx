@@ -1,5 +1,5 @@
-import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
+import { RouteWait } from "@/components/loading/route-wait";
 
 export default function Loading() {
-  return <RouteLoadingPersonality personality="connected-accounts" />;
+  return <RouteWait shape="list" label="Loading your connected accounts" />;
 }

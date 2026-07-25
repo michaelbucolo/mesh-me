@@ -60,8 +60,6 @@ const DEFAULTS: MeshiPreferences = {
   title: "",
 };
 
-/** Stable, SSR-safe default prefs — use as the useSyncExternalStore server snapshot. */
-export const MESHI_PREFERENCE_DEFAULTS: MeshiPreferences = DEFAULTS;
 
 function canUseStorage() {
   return typeof window !== "undefined";
@@ -221,8 +219,4 @@ export function useMeshiPreferences(): MeshiPreferences & { refresh: () => void 
   }, []);
 
   return { ...prefs, refresh };
-}
-
-export function getMeshiPrefsStatic(): MeshiPreferences {
-  return readMeshiPreferencesFromStorage();
 }

@@ -1,5 +1,5 @@
-import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
+import { RouteWait } from "@/components/loading/route-wait";
 
 export default function Loading() {
-  return <RouteLoadingPersonality personality="meshpro" />;
+  return <RouteWait shape="page" label="Loading Mesh Pro" />;
 }

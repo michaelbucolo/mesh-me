@@ -3,18 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import {
-  BadgeCheck,
-  Check,
-  Loader2,
-  MessageCircle,
-  Music,
-  PenSquare,
-  Plus,
-  Search,
-  Users,
-  X,
-} from "lucide-react";
+import { BadgeCheck, Check, MessageCircle, Music, PenSquare, Plus, Search, Users, X } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { Modal } from "@/components/ui/modal";
 import { useContactPresence } from "./use-contact-presence";
@@ -557,7 +547,7 @@ export function MeChatConversationList({
                 disabled={isPending}
                 className="shrink-0 rounded-lg p-1.5 text-[var(--accent)] hover:bg-[var(--mesh-panel)]"
               >
-                {isPending ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                {isPending ? <PaperWait size="sm" /> : <Search size={16} />}
               </button>
             </div>
 

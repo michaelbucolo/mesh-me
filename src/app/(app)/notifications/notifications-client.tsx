@@ -3,24 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion, type Transition } from "framer-motion";
-import {
-  AlertTriangle,
-  AtSign,
-  Bell,
-  Check,
-  Heart,
-  Loader2,
-  LockKeyhole,
-  MessageCircle,
-  RefreshCw,
-  Repeat,
-  Search,
-  ShieldCheck,
-  Trash2,
-  UserPlus,
-  Users,
-  X,
-} from "lucide-react";
+import { AlertTriangle, AtSign, Bell, Check, Heart, LockKeyhole, MessageCircle, RefreshCw, Repeat, Search, ShieldCheck, Trash2, UserPlus, Users, X } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -204,7 +188,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
               Settings
             </Link>
             <button type="button" onClick={refresh} disabled={isPending} className="mesh-action mesh-action-secondary px-3 text-sm">
-              {isPending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={15} aria-hidden="true" />}
+              {isPending ? <PaperWait size="sm" /> : <RefreshCw size={15} aria-hidden="true" />}
               Refresh
             </button>
             <button

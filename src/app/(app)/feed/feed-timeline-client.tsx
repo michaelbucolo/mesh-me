@@ -3,28 +3,9 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowRight,
-  BarChart3,
-  Bell,
-  Camera,
-  GalleryVerticalEnd,
-  Grid3X3,
-  Image as ImageIcon,
-  LayoutList,
-  Link2,
-  Loader2,
-  Minimize2,
-  MessageCircle,
-  Play,
-  PlusSquare,
-  Rows3,
-  Search,
-  Sparkles,
-  Type,
-  Video,
-} from "lucide-react";
+import { ArrowRight, BarChart3, Bell, Camera, GalleryVerticalEnd, Grid3X3, Image as ImageIcon, LayoutList, Link2, Minimize2, MessageCircle, Play, PlusSquare, Rows3, Search, Sparkles, Type, Video } from "lucide-react";
 import { FlowReels } from "./flow-reels";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
 import { UserMeshiBadge } from "@/components/meshi/meshi-identity";
@@ -635,7 +616,7 @@ export function FeedTimelineClient({
 
           {loadingFilter && (
             <div className="feed-loading-row" role="status">
-              <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+              <PaperWait size="sm" />
               Updating feed
             </div>
           )}
@@ -682,7 +663,7 @@ export function FeedTimelineClient({
               </button>
             ) : loadingMore ? (
               <span className="feed-loading-row">
-                <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+                <PaperWait size="sm" />
                 Loading more posts
               </span>
             ) : hasMore ? (

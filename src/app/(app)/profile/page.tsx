@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { RouteLoadingPersonality } from "@/components/loading/route-loading-personality";
+import { RouteWait } from "@/components/loading/route-wait";
 import { getCurrentUser } from "@/lib/auth";
 import { InstagramProfileView } from "./profile-view";
 
@@ -21,7 +21,7 @@ export default async function ProfileIndexPage({
   // Stream the profile: the shell paints instantly and the data-heavy view
   // arrives as it resolves, instead of blocking the whole response.
   return (
-    <Suspense fallback={<RouteLoadingPersonality personality="profile" />}>
+    <Suspense fallback={<RouteWait shape="profile" label="Loading your profile" />}>
       <InstagramProfileView username={user.username} tab={tab} />
     </Suspense>
   );
