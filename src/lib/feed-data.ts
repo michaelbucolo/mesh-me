@@ -6,9 +6,9 @@ import { prisma } from "./prisma";
 
 // The viewer's follow/community graph is stable within a request, but the feed
 // builds several candidate passes (all + discover + per-platform) that each
-// need it. Request-level cache() collapses those into one 3-query batch.
+// need it. Request-level cache() collapses those into one 4-query batch.
 const getViewerSocialGraph = cache(async (userId: string) => {
-  const [following, communityMemberships, followers] = await Promise.all([
+  const [following, communityMemberships, followers, blocks] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: userId },
       select: { followingId: true },
@@ -21,14 +21,25 @@ const getViewerSocialGraph = cache(async (userId: string) => {
       where: { followingId: userId },
       select: { followerId: true },
     }),
+    // A block is mutually invisible, so this unions BOTH directions — whichever
+    // side pressed Block, neither party's posts may reach the other. Blocking
+    // already severs the follow edges, but the union is what keeps a stranger
+    // who blocked the viewer out of discover.
+    prisma.block.findMany({
+      where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+      select: { blockerId: true, blockedId: true },
+    }),
   ]);
 
   const followingIds = following.map((follow) => follow.followingId);
   const communityIds = communityMemberships.map((membership) => membership.communityId);
   const followerIds = new Set(followers.map((follow) => follow.followerId));
   const friendIds = followingIds.filter((id) => followerIds.has(id));
+  const blockedIds = Array.from(
+    new Set(blocks.map((block) => (block.blockerId === userId ? block.blockedId : block.blockerId))),
+  );
 
-  return { followingIds, communityIds, followerIds, friendIds };
+  return { followingIds, communityIds, followerIds, friendIds, blockedIds };
 });
 
 export type FeedSource = "all" | "following" | "discover";
@@ -167,7 +178,7 @@ export function toFeedCardPost(post: NativeFeedPost): FeedCardPost {
 }
 
 async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSource, take: number) {
-  const { followingIds, communityIds, friendIds } = await getViewerSocialGraph(user.id);
+  const { followingIds, communityIds, friendIds, blockedIds } = await getViewerSocialGraph(user.id);
   const safetyWhere = nsfwHiddenWhere(user);
   const audienceWhere = {
     AND: [
@@ -191,6 +202,10 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
       // their own posts via the first clause. (The discover branch already
       // filters author.isSuspended in its own where.)
       { OR: [{ authorId: user.id }, { author: { isSuspended: false } }] },
+      // A block outranks every audience clause above — including shared
+      // community membership, which would otherwise keep serving a blocked
+      // author's posts straight into the viewer's feed.
+      ...(blockedIds.length ? [{ authorId: { notIn: blockedIds } }] : []),
     ],
   };
 
@@ -224,7 +239,7 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
       where: {
         ...safetyWhere,
         visibility: "public",
-        authorId: { notIn: [...followingIds, user.id] },
+        authorId: { notIn: [...followingIds, user.id, ...blockedIds] },
         OR: [{ communityId: null }, { community: { isPublic: true } }],
         // Public posts circulate when their author opted into discovery.
         author: { isSuspended: false, showInDiscovery: true },
@@ -351,13 +366,16 @@ async function getConnectedPlatformFeedPosts(user: FeedCurrentUser, limit = 20):
  */
 async function getDiscoverPlatformPosts(user: FeedCurrentUser, limit = 60): Promise<FeedCardPost[]> {
   try {
+    // Imported platform content is still *their* content on someone's mesh.me
+    // account, so it obeys the same mutual block as native posts.
+    const { blockedIds } = await getViewerSocialGraph(user.id);
     const platformPosts = await prisma.platformPost.findMany({
       where: {
         ...nsfwHiddenWhere(user),
         visibility: "public",
         connectedAccount: {
           isActive: true,
-          userId: { not: user.id },
+          userId: { not: user.id, notIn: blockedIds },
           user: { isSuspended: false, showInDiscovery: true },
         },
       },
@@ -722,7 +740,7 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
     }
   }
 
-  const { communityIds, friendIds } = await getViewerSocialGraph(user.id);
+  const { communityIds, friendIds, blockedIds } = await getViewerSocialGraph(user.id);
 
   const post = await prisma.post.findFirst({
     where: {
@@ -746,6 +764,10 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
         },
         // A suspended author's post is locked to owner + admin.
         { OR: [{ authorId: user.id }, { author: { isSuspended: false } }] },
+        // Permalinks are the back door around a filtered feed: a blocked
+        // author's post must 404 here too, or /feed/<id> and the Flow's related
+        // lane would still serve exactly what the block was meant to remove.
+        ...(blockedIds.length ? [{ authorId: { notIn: blockedIds } }] : []),
       ],
     },
     include: {

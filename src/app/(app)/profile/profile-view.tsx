@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
+  Ban,
   BarChart3,
   Bookmark,
   ExternalLink,
@@ -32,6 +33,7 @@ import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
+import { BlockUserButton } from "@/components/privacy/block-controls";
 import { ProfileAboutEditor } from "./[username]/profile-about-editor";
 import { Button } from "@/components/ui/button";
 import { ABOUT_FIELDS, ABOUT_FIELD_META, ABOUT_GROUPS, type AboutField } from "@/lib/profile-info";
@@ -88,10 +90,12 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const communityCount = memberships.length;
   const collectionCount = savedPostCount;
 
-  // Presence line: live now, else the privacy-gated last-online time, else null.
-  // profile.lastSeenAt is already null for anyone who hides their activity or
-  // whose profile isn't visible to this viewer, so the label self-hides.
-  const presenceLabel = isLiveNow
+  // Live-now is presence data, so it obeys the same gate as the last-online
+  // timestamp: a profile the viewer can't open — private, or either side of a
+  // block — must not pulse "Active now" at them. profile.lastSeenAt is already
+  // nulled server-side under the same conditions, so the label self-hides.
+  const showLive = isLiveNow && canViewProfile;
+  const presenceLabel = showLive
     ? "Active now"
     : profile.lastSeenAt
       ? formatLastActive(profile.lastSeenAt)
@@ -179,8 +183,8 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     for hidden-activity or non-visible profiles (presenceLabel null). */}
                 {!isOwnProfile && presenceLabel && (
                   <div className="mt-1.5 flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 rounded-full ${isLiveNow ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
-                    <span className={`text-xs ${isLiveNow ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${showLive ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
+                    <span className={`text-xs ${showLive ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
                       {presenceLabel}
                     </span>
                   </div>
@@ -294,8 +298,8 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     {isOwnProfile ? "How the mesh sees you" : "How they roam the mesh"}
                   </p>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 rounded-full ${isLiveNow ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
-                    <span className={`text-[10px] ${isLiveNow ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${showLive ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
+                    <span className={`text-[10px] ${showLive ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
                       {presenceLabel ?? "Away"}
                     </span>
                   </div>
@@ -317,6 +321,11 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     </Link>
                   </Button>
                 </>
+              ) : profile.viewerHasBlocked ? (
+                // Blocking severs follow and messaging entirely, so those
+                // actions would only be rejected by the server — Unblock is the
+                // one thing left to offer.
+                <BlockUserButton userId={profile.id} username={profile.username} isBlocked />
               ) : (
                 <>
                   <FollowButton userId={profile.id} isFollowing={profile.isFollowing} />
@@ -326,6 +335,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                       Message
                     </Link>
                   </Button>
+                  <BlockUserButton userId={profile.id} username={profile.username} isBlocked={false} />
                 </>
               )}
 
@@ -481,10 +491,26 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
         {/* Posts list */}
         {activeTab !== "posts" && canViewProfile ? null : !canViewProfile ? (
+          // Two ways to land here. If the viewer is the blocker, say so plainly
+          // — the Unblock button above is the way out. Otherwise this is the
+          // ordinary private-profile wall, which is also what the *other* side
+          // of a block sees: blocking is never announced to the blocked party.
           <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-            <EyeOff className="h-10 w-10 text-[var(--mesh-text-muted)]" aria-hidden="true" />
-            <h2 className="text-lg font-bold text-[var(--mesh-text)]">Private profile</h2>
-            <p className="text-sm text-[var(--mesh-text-secondary)]">Follow each other to unlock shared profile sections.</p>
+            {profile.viewerHasBlocked ? (
+              <>
+                <Ban className="h-10 w-10 text-[var(--mesh-text-muted)]" aria-hidden="true" />
+                <h2 className="text-lg font-bold text-[var(--mesh-text)]">You blocked @{profile.username}</h2>
+                <p className="text-sm text-[var(--mesh-text-secondary)]">
+                  Their posts, profile, and Meshi stay hidden from you, and yours from them. Unblock to undo this — following each other does not come back.
+                </p>
+              </>
+            ) : (
+              <>
+                <EyeOff className="h-10 w-10 text-[var(--mesh-text-muted)]" aria-hidden="true" />
+                <h2 className="text-lg font-bold text-[var(--mesh-text)]">Private profile</h2>
+                <p className="text-sm text-[var(--mesh-text-secondary)]">Follow each other to unlock shared profile sections.</p>
+              </>
+            )}
           </section>
         ) : posts.length > 0 ? (
           <div className="space-y-4">

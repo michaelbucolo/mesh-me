@@ -363,12 +363,17 @@ export async function getUserProfile(username: string) {
   const isOwnProfile = currentUser?.id === user.id;
   let isFollowing = false;
   let isFriend = false;
+  // Split by direction: the viewer needs to know they are the blocker (so the
+  // page can offer Unblock), but is never told that the *other* side blocked
+  // them — that reads as an ordinary private profile.
+  let viewerHasBlocked = false;
+  let blockedEitherWay = false;
   let mutualFollowers: Array<{ follower: { id: string; username: string; displayName: string; avatarUrl: string | null } }> = [];
 
   if (currentUser) {
     // One parallel round: mutuals are "people I follow who follow them",
     // expressed relationally so it doesn't need my following list first.
-    const [followToUser, followFromUser, mutuals] = await Promise.all([
+    const [followToUser, followFromUser, mutuals, blocks] = await Promise.all([
       prisma.follow.findUnique({
         where: {
           followerId_followingId: {
@@ -397,10 +402,21 @@ export async function getUserProfile(username: string) {
         },
         take: 5,
       }),
+      prisma.block.findMany({
+        where: {
+          OR: [
+            { blockerId: currentUser.id, blockedId: user.id },
+            { blockerId: user.id, blockedId: currentUser.id },
+          ],
+        },
+        select: { blockerId: true },
+      }),
     ]);
 
     isFollowing = Boolean(followToUser);
     isFriend = Boolean(followToUser && followFromUser);
+    viewerHasBlocked = blocks.some((block) => block.blockerId === currentUser.id);
+    blockedEitherWay = blocks.length > 0;
     mutualFollowers = mutuals;
   }
 
@@ -410,7 +426,12 @@ export async function getUserProfile(username: string) {
     userIsPublic ? "public" : "private"
   );
   const branchOverrides = parseBranchOverrides(user.meshPrivacy?.branchOverrides);
-  const profileVisible = canViewProfile(currentUser, user, meshVisibility, isFriend);
+  // A block closes the profile from BOTH sides and outranks every visibility
+  // setting, admin included — the whole point is that the two accounts stop
+  // seeing each other. The header still renders (name, avatar, action row) so
+  // the blocker keeps a place to press Unblock; everything gated on
+  // profileVisible — bio, links, posts, about, counts, last-seen — goes dark.
+  const profileVisible = !blockedEitherWay && canViewProfile(currentUser, user, meshVisibility, isFriend);
   const profileUserId = user.id;
   const showConnections = user.meshPrivacy?.showConnections;
 
@@ -498,6 +519,7 @@ export async function getUserProfile(username: string) {
     isFollowing,
     isOwnProfile,
     isFriend,
+    viewerHasBlocked,
     privacyLevel: profileVisible ? meshVisibility : "private",
     sectionVisibility,
     mutualFollowers: sectionVisibility.people ? mutualFollowers.map((f) => f.follower) : [],
@@ -645,7 +667,7 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
   const isOwnProfile = currentUser?.id === user.id;
   let isFriend = false;
   if (currentUser && !isOwnProfile) {
-    const [followToUser, followFromUser] = await Promise.all([
+    const [followToUser, followFromUser, blocked] = await Promise.all([
       prisma.follow.findUnique({
         where: {
           followerId_followingId: {
@@ -662,8 +684,21 @@ export async function getUserPosts(username: string, page = 1, limit = 20) {
           },
         },
       }),
+      prisma.block.findFirst({
+        where: {
+          OR: [
+            { blockerId: currentUser.id, blockedId: user.id },
+            { blockerId: user.id, blockedId: currentUser.id },
+          ],
+        },
+        select: { id: true },
+      }),
     ]);
     isFriend = Boolean(followToUser && followFromUser);
+    // The profile grid is fetched independently of getUserProfile, so the block
+    // gate has to be repeated here — mirroring the mesh-visibility guard below,
+    // which is duplicated for the same reason.
+    if (blocked) return [];
   }
 
   const meshVisibility = normalizeMeshVisibility(

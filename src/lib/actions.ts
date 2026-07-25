@@ -1914,6 +1914,124 @@ void sharePostViaMeChatLegacy;
 
 // ─── Block/Mute Actions ─────────────────────────────────────
 
+/**
+ * A Block row is directional in storage (blockerId → blockedId) but MUTUAL in
+ * effect: every read site in the app — feed, presence, mesh, messages, MeChat,
+ * search, discovery, connections — matches a block from EITHER side and hides
+ * both parties from each other. So one row is all that's ever written; there is
+ * no "reciprocal" row to create, and unblocking only removes the row the
+ * blocker owns (the other person's own block, if any, must survive).
+ */
+function revalidateBlockSurfaces(viewerUsername: string, targetUsername: string) {
+  revalidatePath("/feed");
+  revalidatePath("/mesh");
+  revalidatePath("/messages");
+  revalidatePath("/notifications");
+  revalidatePath("/search");
+  revalidatePath("/settings");
+  revalidatePath(`/profile/${viewerUsername}`);
+  revalidatePath(`/profile/${targetUsername}`);
+}
+
+/**
+ * Block someone. Beyond writing the Block row this severs the relationship in
+ * BOTH directions — a person you blocked must not keep following you, and the
+ * mesh "friend" connection (which mesh.me models as a mutual follow, see
+ * toggleFollow) has to come apart with it. The pending half of that connection
+ * is a one-way follow, so deleting both follow edges drops it too. The
+ * follow/mesh_friend notifications that advertised the connection go with it,
+ * otherwise the blocked name keeps surfacing in the notifications tab.
+ */
+export async function blockUser(targetUserId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (user.id === targetUserId) return { error: "Cannot block yourself" };
+
+  // Blocking cascades follows and invalidates several cached surfaces, so it is
+  // throttled on the same shared bucket as unblocking — block/unblock churn is
+  // both a griefing vector and needless revalidation.
+  const rl = rateLimit(`block:${user.id}`, 20, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "You're changing blocks too fast. Please slow down." };
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, username: true, isAdmin: true },
+  });
+  if (!target) return { error: "User not found" };
+  // Mirrors adminSuspendUser's guard: admins run moderation and have to stay
+  // reachable, so they can't be walled off by the accounts they moderate.
+  if (target.isAdmin) return { error: "Cannot block admin users" };
+
+  await prisma.$transaction(async (tx) => {
+    // Idempotent: re-blocking someone already blocked keeps the original row
+    // (and its createdAt) instead of throwing on @@unique([blockerId, blockedId]).
+    await tx.block.upsert({
+      where: { blockerId_blockedId: { blockerId: user.id, blockedId: target.id } },
+      create: { blockerId: user.id, blockedId: target.id },
+      update: {},
+    });
+
+    await tx.follow.deleteMany({
+      where: {
+        OR: [
+          { followerId: user.id, followingId: target.id },
+          { followerId: target.id, followingId: user.id },
+        ],
+      },
+    });
+
+    await tx.notification.deleteMany({
+      where: {
+        type: { in: ["follow", "mesh_friend"] },
+        OR: [
+          { recipientId: user.id, actorId: target.id },
+          { recipientId: target.id, actorId: user.id },
+        ],
+      },
+    });
+  });
+
+  revalidateBlockSurfaces(user.username, target.username);
+  clearMeshCache(user.id);
+  clearMeshCache(target.id);
+  return { success: true, blocked: true };
+}
+
+/**
+ * Undo a block. Deliberately NOT symmetrical with blockUser: the severed follows
+ * are not restored — re-following is the other person's decision to make again,
+ * and silently resurrecting a follow edge would leak that you had blocked them.
+ */
+export async function unblockUser(targetUserId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (user.id === targetUserId) return { error: "Cannot unblock yourself" };
+
+  const rl = rateLimit(`block:${user.id}`, 20, 60 * 1000);
+  if (!rl.allowed) {
+    return { error: "You're changing blocks too fast. Please slow down." };
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, username: true },
+  });
+  if (!target) return { error: "User not found" };
+
+  // deleteMany, not delete: unblocking someone who isn't blocked is a no-op
+  // rather than a "record not found" throw. Scoped to rows this user owns, so a
+  // block held against them is untouched.
+  await prisma.block.deleteMany({
+    where: { blockerId: user.id, blockedId: target.id },
+  });
+
+  revalidateBlockSurfaces(user.username, target.username);
+  clearMeshCache(user.id);
+  clearMeshCache(target.id);
+  return { success: true, blocked: false };
+}
 
 // ─── Save Post Actions ───────────────────────────────────────
 

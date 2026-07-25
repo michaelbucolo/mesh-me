@@ -71,6 +71,22 @@ export async function canUserInteractWithPost(
 ): Promise<boolean> {
   if (post.authorId === userId) return true;
 
+  // A block outranks every clause below, in either direction: the person you
+  // blocked must not be able to react to, comment on, save, repost or share
+  // your public posts, and you get the same protection from them. This is the
+  // write-side twin of the feed's block filter — without it, knowing a post id
+  // is enough to keep interacting straight through a block.
+  const blocked = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: userId, blockedId: post.authorId },
+        { blockerId: post.authorId, blockedId: userId },
+      ],
+    },
+    select: { id: true },
+  });
+  if (blocked) return false;
+
   if (post.communityId) {
     const membership = await prisma.communityMember.findUnique({
       where: { userId_communityId: { userId, communityId: post.communityId } },
