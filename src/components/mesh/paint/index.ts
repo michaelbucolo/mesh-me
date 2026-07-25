@@ -1,5 +1,5 @@
-// The layered paint engine — PR3's renderer behind the `mesh_engine`
-// kill-switch. One engine per mounted mesh surface. Layers, in draw order:
+// The layered paint engine — the mesh's renderer.
+// One engine per mounted mesh surface. Layers, in draw order:
 //
 //   background — offscreen-cached sky (stars/nebulae/vignette), blitted
 //   edges      — strands (physics control points ride sim's spatial grid)
@@ -24,7 +24,6 @@ import { drawReactionTrails } from "./fx";
 import { createNodePassResources, drawNodesPass, type NodePassResources } from "./nodes";
 import { domSurface, type CreateSurface, type ScenePaintOptions } from "./types";
 
-export { resolveMeshEngine, type MeshEngineKind } from "./engine-flag";
 
 export interface PaintEngineOptions {
   /** Offscreen surface factory — injectable for the node parity harness. */

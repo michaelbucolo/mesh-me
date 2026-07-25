@@ -1,7 +1,7 @@
 // Shared drawing vocabulary for the layered painter — ported VERBATIM from
 // scene/scene-render.ts so the new engine's T0 output is pixel-equivalent to
 // the legacy painter's (the PR3 parity gate). The legacy file is retained
-// untouched behind the `mesh_engine` kill-switch until PR4 deletes it; these
+// (now deleted — this module is the single source of these ops); these
 // helpers become the only copy then.
 
 import { platformLogoDataUri } from "@/components/platform/platform-logo";

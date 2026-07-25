@@ -1,8 +1,7 @@
-// The layered painter's per-frame inputs — structurally identical to the
-// legacy renderer's RenderOptions (scene/scene-render.ts) so the scene can
-// build ONE options object and hand it to whichever engine the `mesh_engine`
-// kill-switch selected. Declared independently (not imported from the legacy
-// module) so paint/ survives the legacy painter's PR4 deletion untouched.
+// The layered painter's per-frame inputs. The scene builds ONE options
+// object per frame and hands it to the paint engine. These types were
+// declared independently of the (now-deleted) legacy renderer, which is why
+// paint/ survived its removal untouched.
 
 import type { Camera } from "../core/camera";
 import type { BranchKey, SceneModel, SceneNode } from "../scene/scene-model";
