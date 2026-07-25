@@ -110,7 +110,11 @@ export function createMeshiResponse(
 
 export function createMeshiOfflineResponse(): MeshiResponse {
   return createMeshiResponse({
-    content: "I could not reach my private reasoning engine right now. Your data stayed protected. Try again in a moment.",
+    // Not "my private reasoning engine". It is a third-party AI provider, and
+    // this is the message shown at the exact moment it could not be reached —
+    // "your data stayed protected" implied the protection was the point rather
+    // than an accident of the request failing.
+    content: "I could not reach the AI provider that generates my replies. Nothing was sent. Try again in a moment.",
     mood: "thinking",
     source: "offline",
     engineReady: false,
