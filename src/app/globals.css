@@ -7110,3 +7110,189 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REVIVE — the design system reaches the product
+
+   TOYBOX's palette and its moulded key landed in the token file and in
+   ui/button.tsx. Measured on the live feed: 62 pressable elements, ONE of them
+   moulded. The six domain plastics appeared in exactly two files — the one that
+   defines them and button.tsx. A design system that reaches 1.6% of the
+   interface is not a design system, it is a swatch.
+
+   The single worst offender, and the reason the feed reads as dead:
+
+       .insta-post-card { background: var(--bg-primary); border-radius: 0;
+                          box-shadow: none; border: 0; }
+
+   The post card was painted THE SAME COLOUR AS THE PAGE, with no radius and no
+   shadow, forced by an !important block. The content — the entire point of the
+   product — had no material presence at all. Everything else on screen was an
+   outlined rectangle of the same value, so the whole interface read as a
+   wireframe of itself.
+
+   This block reaches the markup that already exists, through the class names it
+   already has, so nothing here requires editing 232 call sites.
+
+   ON MOTION. DO-NOT #9 bans motion "that happens with nothing happening" — no
+   whole-canvas sway, no drifting particles. It does NOT ban RESPONSE, and the
+   two get confused. A surface that does not answer the pointer is not calm, it
+   is unresponsive. Everything below is reactive: it fires because the user did
+   something, and it stops when they stop.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. CONTENT GETS MATERIAL ─────────────────────────────────────────────── */
+
+/* The feed post is a PLATE: it sits on the mat, it is lighter than the mat, and
+   it casts a contact shadow. `!important` matches the override at :4039 that
+   forced it flat — that rule is what has to be beaten, not the base. */
+.insta-post-card,
+.feed-x-layout .insta-post-card {
+  border: var(--border-w) solid var(--rule) !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--paper-1) !important;
+  box-shadow: var(--shadow-rest) !important;
+  margin-block: var(--sp-3);
+  transition:
+    background-color var(--dur-tap) var(--ease-settle),
+    border-color var(--dur-tap) var(--ease-settle),
+    box-shadow var(--dur-item) var(--ease-lift) !important;
+}
+/* Hover lifts the shadow, not the element: a card is not pressable, so it must
+   not travel. Depth answers, position does not. */
+.insta-post-card:hover,
+.feed-x-layout .insta-post-card:hover {
+  background: var(--paper-hover) !important;
+  border-color: var(--rule-strong) !important;
+  box-shadow: var(--shadow-raised) !important;
+  transform: none !important;
+}
+
+/* The text-only post had a hardcoded slate gradient fighting the palette. */
+.insta-text-post {
+  border-block: 0;
+  background: var(--paper-1);
+}
+
+/* Panels and cards elsewhere get the same plate treatment. */
+.mesh-panel,
+.mesh-stat-card,
+.glass-card {
+  background: var(--paper-1);
+  border: var(--border-w) solid var(--rule);
+  box-shadow: var(--shadow-rest);
+}
+
+/* ── 2. EVERY PRESSABLE ANSWERS ───────────────────────────────────────────── */
+
+/* The moulded press for the 231 raw <button>s that never got `.key`. Applies to
+   every button, because a press response needs no background to read — it is
+   the object acknowledging you, not decoration. */
+button:not(.key):not(:disabled):active,
+[role="button"]:not(.key):not([aria-disabled="true"]):active {
+  translate: 0 1px;
+}
+button, [role="button"] {
+  transition: translate var(--dur-press) var(--ease-give);
+}
+
+/* The filter chips — `.feed-mode-button`, the 11 controls above the first post.
+   They were hollow 1px outlines on a mat of the same value, which is what made
+   the top of the feed read as a wireframe. */
+.feed-mode-button,
+.feed-layout-button,
+.feed-load-button {
+  background: var(--face);
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    0 var(--plinth-h-chip) 0 0 var(--plinth-1);
+  transition:
+    background-color var(--dur-tap) var(--ease-settle),
+    box-shadow var(--dur-press) var(--ease-give),
+    translate var(--dur-press) var(--ease-give);
+}
+.feed-mode-button:hover,
+.feed-layout-button:hover,
+.feed-load-button:hover { background: var(--face-hover); }
+.feed-mode-button:active,
+.feed-layout-button:active,
+.feed-load-button:active {
+  background: var(--face-press);
+  box-shadow: inset 0 0 0 var(--edge-w) var(--edge), 0 0 0 0 var(--plinth-1);
+  translate: 0 var(--plinth-h-chip);
+}
+
+/* SELECTED is moulded from the brand plastic — filled, with its own side wall —
+   instead of an outline with a faint tint. This is the one place on the feed
+   where colour says "you are here". */
+.feed-mode-button-active,
+.feed-mode-button[aria-pressed="true"] {
+  background: var(--mould-cobalt);
+  color: var(--mould-cobalt-ink);
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 var(--edge-w) var(--edge),
+    0 var(--plinth-h-chip) 0 0 var(--mould-cobalt-plinth);
+}
+.feed-mode-button-active:hover { background: var(--mould-cobalt); }
+
+/* ── 3. COLOUR DOES SOMETHING ─────────────────────────────────────────────── */
+
+/* Six domains, six plastics. Colour is WHICH, never HOW LOUD: it marks the
+   surface you are on and nothing else competes for it. The nav already carries
+   aria-current="page", so this needs no markup change. */
+.mesh-nav-item[href="/mesh"]     { --domain: var(--mould-tomato); }
+.mesh-nav-item[href="/flow"]     { --domain: var(--mould-cobalt); }
+.mesh-nav-item[href="/messages"] { --domain: var(--mould-jade); }
+.mesh-nav-item[href="/explore"]  { --domain: var(--mould-grape); }
+.mesh-nav-item[href="/profile"]  { --domain: var(--mould-teal); }
+.mesh-nav-item[href="/feed"]     { --domain: var(--mould-amber); }
+
+.mesh-nav-item[aria-current="page"],
+.mesh-nav-item-active {
+  background: color-mix(in srgb, var(--domain, var(--accent)) 18%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--domain, var(--accent));
+}
+/* The icon wears the plastic even when the row is not active, so the sidebar
+   reads as six things rather than five greys and a highlight. */
+.mesh-nav-item svg { color: var(--domain, currentColor); opacity: 0.85; }
+.mesh-nav-item[aria-current="page"] svg,
+.mesh-nav-item-active svg { opacity: 1; }
+.mesh-nav-item:hover:not([aria-current="page"]):not(.mesh-nav-item-active) {
+  background: var(--paper-hover);
+}
+
+/* ── 4. ROWS ANSWER ───────────────────────────────────────────────────────── */
+
+/* A settings page of thirty inert rows is the definition of dead. A row is a
+   `.leaf`, so it brightens rather than lifting — no travel, no shadow.
+   These class names were READ OFF THE RENDERED DOM, not guessed: the first pass
+   of this block styled `.mesh-choice`, `.mesh-action`, `[data-nav-item]` and
+   `.settings-row`, three of which exist nowhere in this codebase. It shipped
+   green, changed nothing, and left dead CSS behind — which is the same kind of
+   decorative-but-inert work that made the product feel cheap in the first
+   place. */
+.settings-action-row:hover,
+.settings-list > a:hover,
+.settings-list > button:hover {
+  background: var(--paper-hover);
+}
+
+/* ── 5. ARRIVAL ───────────────────────────────────────────────────────────── */
+
+/* Content entering IS something happening, so it may move. One pass, on mount,
+   never looping — the distinction DO-NOT #9 actually draws. */
+@keyframes plate-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.insta-post-card {
+  animation: plate-arrive var(--dur-card) var(--ease-settle) both;
+  animation-iteration-count: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insta-post-card { animation: none; }
+}
