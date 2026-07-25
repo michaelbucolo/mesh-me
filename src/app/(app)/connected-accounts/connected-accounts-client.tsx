@@ -200,7 +200,18 @@ function AccountCard({
   const isBusy = busyKey?.endsWith(account.id) ?? false;
   const canSync = Boolean(account.adapter?.canSync && account.hasCredential && account.isActive);
   const needsReconnect = account.authType === "oauth" && account.health === "needs_reconnect";
-  const grantedCount = account.permissions.filter((permission) => permission.state === "granted").length;
+  // "Granted" means the PROVIDER told us it granted this scope. When a provider
+  // returns no scope field the OAuth callback falls back to what we requested,
+  // and this card used to count those too — so a user who unticked a scope on
+  // the consent screen was still shown it as granted. Only provider-confirmed
+  // scopes are counted; the rest are reported as requested, which is the true
+  // statement we can make about them.
+  const confirmedCount = account.permissions.filter(
+    (permission) => permission.state === "granted" && permission.source === "oauth_scope",
+  ).length;
+  const assumedCount = account.permissions.filter(
+    (permission) => permission.state === "granted" && permission.source !== "oauth_scope",
+  ).length;
   const countItems: [string, number][] = [
     ["Posts", account.counts.posts],
     ["Comments", account.counts.comments],
@@ -265,7 +276,14 @@ function AccountCard({
         </summary>
         <div className="grid gap-3 border-t border-[var(--ds-border)] px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
-            <span>{grantedCount} permission{grantedCount === 1 ? "" : "s"} granted</span>
+            <span>
+              {confirmedCount > 0
+                ? `${confirmedCount} permission${confirmedCount === 1 ? "" : "s"} granted`
+                : `${assumedCount} permission${assumedCount === 1 ? "" : "s"} requested`}
+              {confirmedCount > 0 && assumedCount > 0
+                ? ` · ${assumedCount} requested`
+                : ""}
+            </span>
             <span>Last synced {formatDate(account.lastSyncAt)}</span>
           </div>
 
