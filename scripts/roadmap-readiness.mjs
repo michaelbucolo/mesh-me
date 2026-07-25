@@ -63,8 +63,11 @@ const checks = [
   {
     phase: "Phase 3: Analytics Control Center",
     id: "analytics-page",
-    description: "Analytics app page exists",
-    run: () => exists("src/app/(app)/analytics/page.tsx"),
+    description: "Analytics surface exists (profile tab)",
+    // Analytics was folded into the profile as a tab; /analytics is now a
+    // permanent alias in next.config. The dashboard component IS the surface,
+    // so check for that rather than a route file that no longer exists.
+    run: () => exists("src/components/analytics/analytics-dashboard.tsx"),
   },
   {
     phase: "Phase 3: Analytics Control Center",

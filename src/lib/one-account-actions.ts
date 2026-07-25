@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { clearMeshCache } from "@/lib/mesh-cache";
 
 function revalidateIdentitySurfaces(username: string) {
-  revalidatePath("/one-account");
+  revalidatePath("/connected-accounts");
   revalidatePath("/connected-accounts");
   revalidatePath("/profile");
   revalidatePath(`/profile/${username}`);

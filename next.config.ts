@@ -23,6 +23,22 @@ const nextConfig: NextConfig = {
   // Retired experiment-era surfaces land somewhere real instead of 404ing.
   async redirects() {
     return [
+      // These two were `page.tsx` files that called `redirect()` in a server
+      // component. That renders the route — layout, client boundary and all —
+      // and only then throws, and doing it during the initial RSC render made
+      // Next's own app-router change its hook count between renders:
+      // "Rendered more hooks than during the previous render" (React #310), on
+      // both hard and soft navigation, every time. The stack was entirely
+      // inside next/dist/client/components/app-router.js, with nothing of ours
+      // in it, and the destinations were clean when visited directly.
+      //
+      // A config redirect answers at the routing layer, before React renders
+      // anything, which is what the other eleven aliases here already do. It is
+      // also simply better: a real 308, no wasted render, no flash of the
+      // loading boundary on the way through.
+      { source: "/analytics", destination: "/profile?tab=analytics", permanent: true },
+      { source: "/one-account", destination: "/connected-accounts", permanent: true },
+
       { source: "/marketplace", destination: "/meshpro", permanent: true },
       { source: "/content-hub", destination: "/connected-accounts", permanent: true },
       { source: "/spaces", destination: "/communities", permanent: true },

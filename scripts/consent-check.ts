@@ -56,7 +56,7 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   hasAnalyticsConsent,
@@ -271,6 +271,9 @@ function enclosingObjectLiteral(source: string, index: number): string {
 
 const sourceFiles = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
   .split("\n")
+  // `git ls-files` still lists a file deleted but not yet staged, so a gate run
+  // mid-refactor would die on ENOENT instead of reporting anything.
+  .filter((f) => f && existsSync(join(ROOT, f)))
   .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
 
 const ungatedByFile = new Map<string, number>();

@@ -162,13 +162,62 @@ addCheck("Routing", "app-routes", "Authenticated app routes exist", () => {
     "src/app/(app)/mesh/page.tsx",
     "src/app/(app)/feed/page.tsx",
     "src/app/(app)/messages/page.tsx",
-    "src/app/(app)/analytics/page.tsx",
+    // /analytics is not a page: it is a permanent alias handled by
+    // next.config redirects(). It used to be a server component that called
+    // redirect(), which rendered the whole route and only then threw — and
+    // during the initial RSC render that made Next's own app-router change its
+    // hook count between renders (React #310) on every visit.
     "src/app/(app)/search/page.tsx",
     "src/app/(app)/notifications/page.tsx",
     "src/app/(app)/profile/page.tsx",
     "src/app/(app)/settings/page.tsx",
     "src/app/(app)/account/delete/page.tsx",
   ]);
+});
+
+addCheck("Routing", "redirect-aliases-in-config", "URL aliases redirect in config, not by rendering a page", () => {
+  // A `page.tsx` whose entire body is `redirect(...)` renders the route —
+  // layout, client boundary and all — and only then throws. Doing that during
+  // the initial RSC render made Next's own app-router change its hook count
+  // between renders: "Rendered more hooks than during the previous render"
+  // (React #310), on both hard and soft navigation, every single visit. The
+  // stack was entirely inside next/dist/client/components/app-router.js, with
+  // nothing of ours in it, and the destinations were clean visited directly.
+  //
+  // next.config `redirects()` answers at the routing layer before React renders
+  // anything, and issues a real 308. Aliases belong there.
+  const offenders = [];
+
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (entry.name !== "page.tsx") continue;
+      const body = fs
+        .readFileSync(full, "utf8")
+        // Drop comments, so prose about redirect() is not a violation of it.
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/[^\n]*$/gm, "");
+      if (!/\bredirect\s*\(/.test(body)) continue;
+      // Only flag pages that do NOTHING but redirect. A page that redirects
+      // conditionally — unauthenticated, not onboarded, wrong owner — is doing
+      // real work and must stay a page.
+      const doesRealWork = /\breturn\s*\(|<[A-Z]|\bawait\b|\bif\s*\(/.test(body);
+      if (!doesRealWork) offenders.push(path.relative(root, full));
+    }
+  };
+  walk(relativePath("src", "app"));
+
+  assert(
+    offenders.length === 0,
+    `These pages exist only to redirect and belong in next.config redirects(): ${offenders.join(", ")}. ` +
+      "Rendering a route in order to throw a redirect triggers React #310 in Next's app-router.",
+  );
+
+  return "no redirect-only pages; URL aliases live in next.config";
 });
 
 addCheck("Routing", "api-routes", "Core API routes exist", () => {
