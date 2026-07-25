@@ -65,7 +65,18 @@ const CLAIM_WORDS = /\b(private|privately|privacy|locally|local|on-device|never 
 const MESHI_SURFACES = [
   "src/components/meshi/meshi-chat.tsx",
   "src/components/meshi/meshi-float.tsx",
+  "src/components/meshi/meshi-actions-menu.tsx",
   "src/components/privacy/privacy-control-center.tsx",
+  // Copy does not only live in components. These two carry user-visible
+  // strings that this gate's first version could not see, and its header said
+  // so — "copy ... living in a file not listed below is invisible to it". A
+  // later sweep found exactly that: meshi-shared.ts called the provider "my
+  // private reasoning engine" in the offline message, and meshi-reasoning.ts
+  // instructed the MODEL to describe itself as a "private companion", so the
+  // falsehood was being generated rather than merely displayed. A stated
+  // limitation is a to-do, not an excuse.
+  "src/lib/meshi-shared.ts",
+  "src/lib/meshi-reasoning.ts",
 ];
 
 // Every string literal in those files that contains one of the words above, and
@@ -84,6 +95,12 @@ const SIGNED_OFF: Record<string, string> = {
   "Performance data used inside the private analytics dashboard.":
     "the analytics dashboard genuinely is private to its owner — hasAnalyticsConsent gates the whole loader",
   "private": "a DataVisibilityPolicy enum value, not prose",
+  "local": "a MeshiSource union member (engine|database|local|offline), not prose",
+  "Privacy control center": "the page title — names the topic, asserts no mechanism",
+  "Opt in to appear in the world mesh anyone can explore. Only your already-public content is\n            ever shown, and going private removes you automatically.":
+    "both halves verified: every Global Mesh supply query in src/lib/global-mesh.ts filters " +
+    "visibility:'public' behind isPublic + showInDiscovery, and updateMeshPrivacy flips " +
+    "GlobalMeshMember.isActive to false whenever meshVisibility leaves 'public'",
   "Local safety fallback":
     "true: source === 'local' is precisely the path where no provider was called",
   "Profile privacy saved.": "a save toast naming the setting; asserts no mechanism",
@@ -107,28 +124,50 @@ function stripComments(text: string): string {
 }
 
 const offenders: Array<{ file: string; text: string }> = [];
+
+/**
+ * Every user-readable string in a file: quoted literals, template literals, AND
+ * JSX text nodes.
+ *
+ * The first version read quoted literals only, and skipped any string containing
+ * a colon or a slash to avoid class lists and paths. Both choices hid real copy:
+ *
+ *   - "Private first" sat as bare JSX text between tags, so it was never a
+ *     literal at all. That is where most visible copy in a React app lives.
+ *   - The Meshi system prompt is a multi-line template full of "Identity:" and
+ *     "no ads/no selling", so the colon-and-slash skip discarded the one string
+ *     that tells the MODEL to call itself a private companion — copy that is
+ *     generated rather than displayed, and therefore the hardest to notice.
+ *
+ * Now the only things skipped are single tokens with no whitespace (class names,
+ * paths, enum values) and anything mentioning a CSS custom property.
+ */
+function readableStrings(source: string): string[] {
+  const out: string[] = [];
+  for (const m of source.matchAll(/"((?:[^"\\\n]|\\.)*)"/g)) out.push(m[1]);
+  for (const m of source.matchAll(/'((?:[^'\\\n]|\\.)*)'/g)) out.push(m[1]);
+  for (const m of source.matchAll(/`([^`]*)`/g)) out.push(m[1]);
+  // JSX text: between a tag close and the next tag open, with at least one letter.
+  for (const m of source.matchAll(/>([^<>{}]*[A-Za-z][^<>{}]*)</g)) out.push(m[1]);
+  return out;
+}
+
 for (const file of MESHI_SURFACES) {
   const source = stripComments(read(file));
-  // Double- and single-quoted literals plus non-interpolated template strings.
-  // Deliberately dumb: it will not see a sentence built from variables, which is
-  // stated as a limitation in the header rather than pretended away.
-  const literals = [
-    ...source.matchAll(/"((?:[^"\\\n]|\\.)*)"/g),
-    ...source.matchAll(/'((?:[^'\\\n]|\\.)*)'/g),
-    ...source.matchAll(/`([^`$\\]*)`/g),
-  ].map((m) => m[1]);
-
-  for (const raw of literals) {
+  // The Meshi system prompt is excluded here and checked separately in 2a. It is
+  // not copy SHOWN to a user — it is the instruction that shapes what the model
+  // SAYS, a different thing with a different failure mode. Signing off two
+  // kilobytes of prose as one string would also make every unrelated prompt
+  // tweak look like a privacy review.
+  const scannable = source.replace(/const MESHI_SYSTEM_PROMPT = `[\s\S]*?`;/, "");
+  for (const raw of readableStrings(scannable)) {
     const text = raw.trim();
-    // Skip class names, import paths, css vars, data attributes and enum-ish
-    // fragments — none of these are read by a human as a sentence.
-    if (!text || text.length < 4) continue;
-    if (/^[\w./@-]+$/.test(text) && !SIGNED_OFF[text]) {
-      if (/^(private|local)$/i.test(text)) {
-        // fall through: these ARE meaningful as visible labels, check them
-      } else continue;
-    }
-    if (text.includes("var(--") || text.includes("/") || text.includes(":")) continue;
+    if (text.length < 4) continue;
+    // A single token with no spaces is a class name, a path, or an enum value —
+    // never a sentence someone reads. Two exceptions kept deliberately: the
+    // bare words that ARE meaningful as visible labels.
+    if (!/\s/.test(text) && !/^(private|local|encrypted)$/i.test(text)) continue;
+    if (text.includes("var(--")) continue;
     if (!CLAIM_WORDS.test(text)) continue;
     if (text in SIGNED_OFF) continue;
     offenders.push({ file, text });
@@ -146,13 +185,15 @@ assert.deepEqual(
     "  with the reason it is actually true.",
 );
 
-// The specific four that were wrong, pinned so they cannot come back by hand.
-// Comment-stripped, for the same reason as above: each of these lines now has a
-// comment above it quoting the wording it replaced, and that is documentation,
-// not copy. A gate that cannot tell the two apart forbids explaining itself.
+// The specific wordings that were wrong, pinned so they cannot come back by
+// hand. Comment-stripped, because each of these lines now has a comment above it
+// quoting the wording it replaced — a gate that cannot tell prose about copy
+// from copy forbids explaining itself.
 const chat = stripComments(read("src/components/meshi/meshi-chat.tsx"));
 const float = stripComments(read("src/components/meshi/meshi-float.tsx"));
 const centre = stripComments(read("src/components/privacy/privacy-control-center.tsx"));
+const menu = stripComments(read("src/components/meshi/meshi-actions-menu.tsx"));
+const shared = stripComments(read("src/lib/meshi-shared.ts"));
 assert.ok(
   !/Reasoning privately/.test(float),
   '"Reasoning privately..." is shown WHILE the request is in flight to the provider — the one\n' +
@@ -167,14 +208,102 @@ assert.ok(
   'the Meshi memory rule must not say "locally" — it is the governing statement for the switch\n' +
     "  a person is operating, and the context goes to a provider.",
 );
-// The pill: no emerald + pulse. That combination is read as a security state,
-// independent of the word inside it.
 assert.ok(
-  !/bg-emerald-500\/10[^"]*"[\s\S]{0,200}?animate-pulse[\s\S]{0,120}?Private/.test(chat),
-  "the chat header must not render an emerald, pulsing 'Private' pill. That is the visual\n" +
-    "  grammar of a padlock, and it sits directly above the input whose contents are sent\n" +
-    "  to a third-party provider.",
+  !/private reasoning engine/.test(shared),
+  'the offline message must not call the provider "my private reasoning engine". It is a\n' +
+    "  third-party AI provider, and that message is shown at the exact moment it was contacted.",
 );
+// The emerald + pulse combination is read as a security state independent of the
+// word inside it, so it is banned on every Meshi surface, not just the chat.
+// Both orders, and both shapes: the two class names may sit in ONE className
+// (a self-contained pill) or in a parent/child pair a couple of elements apart.
+// The first version required a closing quote between them, so it missed the
+// single-attribute form entirely — which is the more natural way to write it.
+for (const [name, body] of [["chat header", chat], ["actions menu", menu]] as const) {
+  const emeraldThenPulse = /bg-emerald-500[\s\S]{0,220}?animate-pulse/.test(body);
+  const pulseThenEmerald = /animate-pulse[\s\S]{0,220}?bg-emerald-500/.test(body);
+  assert.ok(
+    !emeraldThenPulse && !pulseThenEmerald,
+    `the ${name} must not render an emerald, pulsing status pill. That is the visual grammar of\n` +
+      "  a padlock, and it sits where someone decides what to type. Colour and pulse are read as a\n" +
+      "  security state regardless of the word inside them.",
+  );
+}
+
+// ── 2a. THE PROMPT DOES NOT TEACH THE MODEL TO CLAIM PRIVACY ─────────────────
+//
+// The system prompt described Meshi as a "private companion". That is worse than
+// a label in the UI: the model generates the falsehood itself, in its own words,
+// in whatever phrasing the conversation invites — so it cannot be found by
+// grepping for a fixed string, and it arrives with the authority of the
+// assistant rather than of a badge.
+const prompt = /const MESHI_SYSTEM_PROMPT = `([\s\S]*?)`;/.exec(read("src/lib/meshi-reasoning.ts"))?.[1];
+assert.ok(prompt, "MESHI_SYSTEM_PROMPT not found in src/lib/meshi-reasoning.ts");
+const FORBIDDEN_IN_PROMPT = [
+  /private companion/i,
+  /\bprivate\b[^.\n]{0,40}\b(assistant|engine|reasoning|model)\b/i,
+  /\b(runs?|processed|processing|stays?|stored)\b[^.\n]{0,30}\b(locally|on-device|on your device)\b/i,
+  /never leaves/i,
+  /end-to-end encrypted/i,
+];
+for (const pattern of FORBIDDEN_IN_PROMPT) {
+  assert.ok(
+    !pattern.test(prompt),
+    `the Meshi system prompt matches ${pattern} — it is teaching the model to describe itself\n` +
+      "  as private or local. The replies are generated by a third-party provider, and a falsehood\n" +
+      "  the model states in its own words is harder to find and more convincing than a badge.",
+  );
+}
+
+// ── 2b. THE PRIVACY POLICY NAMES EVERY PROVIDER THE CODE SENDS TO ────────────
+//
+// The policy's subprocessor list is an EXHAUSTIVE claim — "We share data only
+// with service providers (subprocessors) ...: Vercel, Turso, Stripe, Resend" —
+// and OpenAI was not among them, while meshi-reasoning.ts POSTs the caller's
+// mesh context and the visible post's author and text to api.openai.com. A legal
+// document making a closed-set claim the code contradicts is the highest-stakes
+// version of this defect class: it is the document a regulator, an app-store
+// reviewer, or a user reads to decide whether to trust the product.
+//
+// Keyed off the actual fetch, so it can never be satisfied by editing prose
+// alone — remove the egress and the requirement lifts; add a provider and the
+// gate demands it be disclosed.
+const policy = read("src/app/privacy/page.tsx");
+const EGRESS_DISCLOSURE = [
+  { host: /api\.openai\.com/, module: "src/lib/meshi-reasoning.ts", name: "OpenAI" },
+];
+// Scoped to the SUBPROCESSOR SENTENCE, not the whole document. Checking
+// `policy.includes("OpenAI")` anywhere passed while the name sat only in the
+// AI-processing section and had been deleted from the closed list — which is
+// precisely the false state this exists to prevent, since it is the word "only"
+// in that one sentence that the code contradicts.
+const subprocessorSentence = /We share data only with service providers[^.]*\./.exec(policy)?.[0];
+assert.ok(
+  subprocessorSentence,
+  "the privacy policy's subprocessor sentence was not found. It is the closed-set claim this\n" +
+    "  gate is anchored on — if its wording changed, re-read it and update the pattern.",
+);
+for (const { host, module, name } of EGRESS_DISCLOSURE) {
+  if (!host.test(read(module))) continue; // egress gone — nothing left to disclose
+  assert.ok(
+    subprocessorSentence.includes(name),
+    `${module} sends user data to ${host} but the privacy policy's subprocessor list does not\n` +
+      `  name ${name}. That sentence says data is shared ONLY with the providers it lists, so an\n` +
+      "  omission there is not a gap — it makes the sentence false. Add it and describe what is\n" +
+      "  sent, or stop sending it.",
+  );
+}
+// Naming it is not enough: a reader must be able to find out how to stop it, and
+// the control has to be named in the section that describes the transfer.
+if (EGRESS_DISCLOSURE.some(({ host, module }) => host.test(read(module)))) {
+  const aiSection = /5a\. Meshi and AI processing[\s\S]*?(?=\{\s*$|id: ")/.exec(policy)?.[0] ?? "";
+  assert.match(
+    aiSection,
+    /Meshi memory/,
+    "the AI-processing section must name the control that governs the transfer. Naming a\n" +
+      "  subprocessor without naming the switch is disclosure without agency.",
+  );
+}
 
 // ── 3. The unauthenticated preview endpoint discloses the minimum ────────────
 //
@@ -186,8 +315,7 @@ assert.ok(
   !/displayName/.test(preview),
   "src/app/api/auth/meshi-preview/route.ts must not select or return displayName.\n" +
     "  It is unauthenticated by construction — it draws your Meshi before there is a session —\n" +
-    "  so guessing a username handed an anonymous visitor a real name. The entry screen greets\n" +
-    "  with the username the visitor typed instead, which they already know.",
+    "  so guessing a username handed an anonymous visitor a real name.",
 );
 assert.match(
   preview,
@@ -195,9 +323,8 @@ assert.match(
   "the preview endpoint's rate limit IS its enumeration budget, so it must be the DURABLE one.\n" +
     "  The in-memory limiter is a per-process Map that resets on every serverless cold start.",
 );
-const entry = stripComments(read("src/components/auth/mesh-entry-experience.tsx"));
 assert.ok(
-  !/preview\?\.displayName/.test(entry),
+  !/preview\?\.displayName/.test(stripComments(read("src/components/auth/mesh-entry-experience.tsx"))),
   "the entry screen must not read displayName off the unauthenticated preview response.",
 );
 
