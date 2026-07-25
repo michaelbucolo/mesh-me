@@ -174,12 +174,12 @@ export async function InstagramProfileView({ username, tab }: { username: string
               <div className="min-w-0 flex-1">
                 {/* Name row */}
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="profile-name text-2xl font-bold text-[var(--mesh-text)]">{profile.displayName}</h1>
+                  <h1 className="profile-name text-2xl font-semibold text-[var(--mesh-text)]">{profile.displayName}</h1>
                   {profile.isVerified && (
                     <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-label="Verified" />
                   )}
                   {!isOwnProfile && !profile.isPublic && (
-                    <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-400">
+                    <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
                       Private by default
                     </span>
                   )}
@@ -205,24 +205,24 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 {profile.sectionVisibility.stats && (
                   <div className="mt-3 flex items-center gap-6">
                     <span className="text-sm text-[var(--mesh-text-secondary)]">
-                      <span className="font-bold text-[var(--mesh-text)]">{profile._count.posts}</span> posts
+                      <span className="font-semibold text-[var(--mesh-text)]">{profile._count.posts}</span> posts
                     </span>
                     {profile.sectionVisibility.people ? (
                       <>
                         <Link href={`/profile/${profile.username}/connections?tab=followers`} className="text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
-                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
+                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
                         </Link>
                         <Link href={`/profile/${profile.username}/connections?tab=following`} className="text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
-                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.following}</span> following
+                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.following}</span> following
                         </Link>
                       </>
                     ) : (
                       <>
                         <span className="text-sm text-[var(--mesh-text-secondary)]">
-                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
+                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
                         </span>
                         <span className="text-sm text-[var(--mesh-text-secondary)]">
-                          <span className="font-bold text-[var(--mesh-text)]">{profile._count.following}</span> following
+                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.following}</span> following
                         </span>
                       </>
                     )}
@@ -269,7 +269,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     {connectedAccounts.length > 4 && (
                       <Link
                         href="/connected-accounts"
-                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-panel)] text-xs font-bold text-[var(--mesh-text-muted)]"
+                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-panel)] text-xs font-semibold text-[var(--mesh-text-muted)]"
                       >
                         +{connectedAccounts.length - 4}
                       </Link>
@@ -300,7 +300,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   showGlow={false}
                 />
                 <div>
-                  <p className="text-sm font-bold text-[var(--mesh-text)]">
+                  <p className="text-sm font-semibold text-[var(--mesh-text)]">
                     {isOwnProfile ? "Your Meshi" : `${profile.displayName.split(" ")[0]}'s Meshi`}
                   </p>
                   <p className="text-xs text-[var(--mesh-text-muted)]">
@@ -376,7 +376,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
             <AboutReadOnly about={profile.about} />
           ) : (
             <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-              <h2 className="text-lg font-bold text-[var(--mesh-text)]">No details yet</h2>
+              <h2 className="text-lg font-semibold text-[var(--mesh-text)]">No details yet</h2>
               <p className="text-sm text-[var(--mesh-text-secondary)]">{profile.displayName} hasn&apos;t shared any About details.</p>
             </section>
           )
@@ -392,19 +392,19 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   className="flex items-center justify-between rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-5 py-4 transition-colors hover:border-[var(--mesh-border-active)]"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-[var(--mesh-text)]">{m.community.name}</p>
+                    <p className="text-sm font-semibold text-[var(--mesh-text)]">{m.community.name}</p>
                     <p className="mt-0.5 text-xs text-[var(--mesh-text-muted)]">
                       {formatCount(m.community._count.members)} members · {formatCount(m.community._count.posts)} posts
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
+                  <span className="shrink-0 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
                     {m.role === "admin" ? "Admin" : m.role === "moderator" ? "Moderator" : "Joined"}
                   </span>
                 </Link>
               ))
             ) : (
               <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-                <h2 className="text-lg font-bold text-[var(--mesh-text)]">No communities yet</h2>
+                <h2 className="text-lg font-semibold text-[var(--mesh-text)]">No communities yet</h2>
                 <p className="text-sm text-[var(--mesh-text-secondary)]">
                   {isOwnProfile ? "Join communities to see them here." : `${profile.displayName} hasn't joined any communities.`}
                 </p>
@@ -431,7 +431,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size="md" className="h-10 w-10 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[var(--mesh-text)]">{post.author.displayName}</span>
+                        <span className="text-sm font-semibold text-[var(--mesh-text)]">{post.author.displayName}</span>
                         <span className="text-xs text-[var(--mesh-text-muted)]">@{post.author.username}</span>
                         <span className="text-xs text-[var(--mesh-text-muted)]">·</span>
                         <span className="text-xs text-[var(--mesh-text-muted)]">{formatRelativeTime(post.createdAt)}</span>
@@ -448,7 +448,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               ))
             ) : (
               <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-                <h2 className="text-lg font-bold text-[var(--mesh-text)]">No saved posts yet</h2>
+                <h2 className="text-lg font-semibold text-[var(--mesh-text)]">No saved posts yet</h2>
                 <p className="text-sm text-[var(--mesh-text-secondary)]">Bookmark posts in the Flow to collect them here.</p>
               </section>
             )}
@@ -460,7 +460,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
             <AnalyticsDashboard data={analyticsData} embedded />
           ) : analyticsWithheldByConsent ? (
             <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-              <h2 className="text-lg font-bold text-[var(--mesh-text)]">Analytics is switched off</h2>
+              <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Analytics is switched off</h2>
               <p className="max-w-md text-sm text-[var(--mesh-text-secondary)]">
                 Your privacy rules say Mesh.me may not process your activity into analytics, so we are not building this dashboard. Change the Analytics rule to turn it back on.
               </p>
@@ -470,7 +470,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
             </section>
           ) : (
             <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-              <h2 className="text-lg font-bold text-[var(--mesh-text)]">Analytics unavailable</h2>
+              <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Analytics unavailable</h2>
               <p className="text-sm text-[var(--mesh-text-secondary)]">We couldn&apos;t load your analytics right now. Please try again.</p>
             </section>
           )
@@ -499,7 +499,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               ))
             ) : (
               <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-                <h2 className="text-lg font-bold text-[var(--mesh-text)]">No creator links yet</h2>
+                <h2 className="text-lg font-semibold text-[var(--mesh-text)]">No creator links yet</h2>
                 <p className="text-sm text-[var(--mesh-text-secondary)]">
                   {isOwnProfile ? "Add links to your channels from Settings." : `${profile.displayName} hasn't added any links.`}
                 </p>
@@ -518,7 +518,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
             {profile.viewerHasBlocked ? (
               <>
                 <Ban className="h-10 w-10 text-[var(--mesh-text-muted)]" aria-hidden="true" />
-                <h2 className="text-lg font-bold text-[var(--mesh-text)]">You blocked @{profile.username}</h2>
+                <h2 className="text-lg font-semibold text-[var(--mesh-text)]">You blocked @{profile.username}</h2>
                 <p className="text-sm text-[var(--mesh-text-secondary)]">
                   Their posts, profile, and Meshi stay hidden from you, and yours from them. Unblock to undo this — following each other does not come back.
                 </p>
@@ -526,7 +526,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
             ) : (
               <>
                 <EyeOff className="h-10 w-10 text-[var(--mesh-text-muted)]" aria-hidden="true" />
-                <h2 className="text-lg font-bold text-[var(--mesh-text)]">Private profile</h2>
+                <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Private profile</h2>
                 <p className="text-sm text-[var(--mesh-text-secondary)]">Follow each other to unlock shared profile sections.</p>
               </>
             )}
@@ -539,7 +539,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
           </div>
         ) : (
           <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-            <h2 className="text-lg font-bold text-[var(--mesh-text)]">No posts yet</h2>
+            <h2 className="text-lg font-semibold text-[var(--mesh-text)]">No posts yet</h2>
             <p className="text-sm text-[var(--mesh-text-secondary)]">
               {isOwnProfile ? "Share your first post from Home." : `${profile.displayName} has not posted yet.`}
             </p>
@@ -557,7 +557,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         {/* Communities */}
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-[var(--mesh-text)]">Communities</h3>
+            <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Communities</h3>
             <Link href="/communities" className="text-xs font-medium text-[var(--accent)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
@@ -568,7 +568,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     <p className="truncate font-medium text-[var(--mesh-text)]">{m.community.name}</p>
                     <p className="text-xs text-[var(--mesh-text-muted)]">{formatCount(m.community._count.members)} members</p>
                   </div>
-                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">Joined</span>
+                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Joined</span>
                 </Link>
               ))
             ) : (
@@ -583,7 +583,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         {isOwnProfile && (
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-[var(--mesh-text)]">Collections</h3>
+            <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Collections</h3>
             <Link href="?tab=collections" className="text-xs font-medium text-[var(--accent)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
@@ -607,7 +607,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         {links.length > 0 && (
           <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[var(--mesh-text)]">Creator Links</h3>
+              <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Creator Links</h3>
               <Link href="?tab=links" className="text-xs text-[var(--accent)] hover:underline">View all</Link>
             </div>
             <div className="space-y-2.5">
@@ -633,7 +633,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         {/* Connected platform links for sidebar */}
         {connectedAccounts.length > 0 && (
           <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
-            <h3 className="mb-4 text-sm font-bold text-[var(--mesh-text)]">Platform Links</h3>
+            <h3 className="mb-4 text-sm font-semibold text-[var(--mesh-text)]">Platform Links</h3>
             <div className="space-y-2.5">
               {connectedAccounts.map((account) => (
                 <div key={account.id} className="flex items-center gap-3 text-sm">
@@ -681,14 +681,14 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
 function AboutReadOnly({ about }: { about: Partial<Record<AboutField, string>> }) {
   return (
     <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
-      <h2 className="text-lg font-bold text-[var(--mesh-text)]">About</h2>
+      <h2 className="text-lg font-semibold text-[var(--mesh-text)]">About</h2>
       <div className="mt-4 grid gap-5">
         {ABOUT_GROUPS.map((group) => {
           const groupFields = ABOUT_FIELDS.filter((f) => ABOUT_FIELD_META[f].group === group.key && about[f]);
           if (!groupFields.length) return null;
           return (
             <div key={group.key}>
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--mesh-text-muted)]">{group.label}</h3>
+              <h3 className="text-xs font-semibold mesh-eyebrow text-[var(--mesh-text-muted)]">{group.label}</h3>
               <dl className="mt-2 grid gap-2">
                 {groupFields.map((f) => (
                   <div key={f}>

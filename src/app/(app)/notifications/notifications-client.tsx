@@ -189,9 +189,9 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold md:text-2xl">Notifications</h1>
+              <h1 className="text-xl font-semibold md:text-2xl">Notifications</h1>
               {payload.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-white">{payload.unreadCount} new</span>
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-semibold text-white">{payload.unreadCount} new</span>
               )}
             </div>
             {payload.smartSummary && (
@@ -261,7 +261,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                     key={category}
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className={`mesh-choice relative shrink-0 rounded-full px-3 py-2 text-xs font-bold ${active ? "border-[var(--accent)]" : "text-[var(--text-secondary)]"}`}
+                    className={`mesh-choice relative shrink-0 rounded-full px-3 py-2 text-xs font-semibold ${active ? "border-[var(--accent)]" : "text-[var(--text-secondary)]"}`}
                     aria-pressed={active}
                   >
                     {active && (
@@ -383,14 +383,14 @@ function NotificationGroupCard({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="min-w-0 truncate text-base font-bold text-[var(--text-primary)]">{group.title}</h2>
+              <h2 className="min-w-0 truncate text-base font-semibold text-[var(--text-primary)]">{group.title}</h2>
               {group.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold text-white">
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
                   {group.unreadCount} unread
                 </span>
               )}
               {group.priority === "high" && (
-                <span className="rounded-full border border-[var(--mesh-danger)]/30 px-2 py-0.5 text-[10px] font-bold text-[var(--mesh-danger)]">
+                <span className="rounded-full border border-[var(--mesh-danger)]/30 px-2 py-0.5 text-[10px] font-semibold text-[var(--mesh-danger)]">
                   Priority
                 </span>
               )}
@@ -440,7 +440,7 @@ function NotificationGroupCard({
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${notification.read ? "bg-[var(--border-primary)]" : "bg-[var(--accent)]"}`} />
                 <span className="min-w-0">
-                  <span className="block truncate font-bold text-[var(--text-primary)]">{notification.message}</span>
+                  <span className="block truncate font-semibold text-[var(--text-primary)]">{notification.message}</span>
                   <span className="block text-xs text-[var(--text-muted)]">{formatRelativeTime(notification.createdAt)}</span>
                 </span>
               </div>

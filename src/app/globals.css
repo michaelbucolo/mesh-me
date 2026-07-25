@@ -4,9 +4,11 @@
 @theme inline {
   --color-background: var(--bg-primary);
   --color-foreground: var(--text-primary);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-display);
-  --font-mono: var(--font-geist-mono);
+  /* Tailwind's font-sans / font-display / font-mono utilities resolve to the
+     three loaded families. Declared in tokens.css, which imports above this. */
+  --font-sans: var(--font-sans-loaded), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-loaded), Georgia, serif;
+  --font-mono: var(--font-mono-loaded), ui-monospace, Menlo, monospace;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -16,8 +18,9 @@
    by slice as the motion and shape passes land.
    ═══════════════════════════════════════════════════════════════════ */
 :root, .dark {
-  --font-inter: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Kept only because ~40 rules still spell `--font-inter`; it resolves to the
+     real interface face now instead of to whatever the OS supplied. */
+  --font-inter: var(--font-sans);
 
   /* Not a glow any more: the name has call sites, the light does not. */
   --shadow-glow: var(--shadow-raised);
@@ -146,7 +149,7 @@
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -168,14 +171,14 @@ body {
 
 /* ─── Display Font for Headings ─── */
 h1, h2, h3, .font-display {
-  font-family: var(--font-display), var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0;
 }
 
 /* ─── Brand Wordmark ─── */
 .brand-wordmark {
-  font-family: var(--font-display), var(--font-inter), sans-serif;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -916,7 +919,7 @@ select:focus-visible {
   background: color-mix(in srgb, var(--mesh-panel) 82%, transparent);
   padding: 0.34rem 0.85rem;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--mesh-text-secondary);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
@@ -1281,7 +1284,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 600;
   transition:
     transform 180ms var(--mesh-ease-out),
     border-color 180ms var(--mesh-ease-out),
@@ -1444,7 +1447,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   padding: 0.7rem 1rem;
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
 
@@ -1459,7 +1462,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 600;
   transition:
     transform 180ms var(--mesh-ease-out),
     border-color 180ms var(--mesh-ease-out),
@@ -1496,7 +1499,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   padding: 0.65rem 0.75rem;
   color: var(--text-secondary);
   font-size: 0.86rem;
-  font-weight: 700;
+  font-weight: 600;
   text-align: left;
   transition:
     transform 180ms var(--mesh-ease-out),
@@ -1637,7 +1640,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.01em;
   transition:
     color 150ms ease,
@@ -1651,7 +1654,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 .insta-feed-tab-active {
   border-bottom-color: var(--accent);
   color: var(--text-primary);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .insta-feed-tab:active,
@@ -1721,7 +1724,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   border-radius: 0.7rem;
   color: var(--text-secondary);
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 600;
   transition:
     color var(--mesh-transition-fast),
     background-color var(--mesh-transition-fast),
@@ -2064,7 +2067,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   gap: 0.5rem;
   min-height: 2.75rem;
   border-radius: 0.5rem;
-  font-weight: 700;
+  font-weight: 600;
   overflow: hidden;
   transform: translateZ(0);
   transition:
@@ -2331,17 +2334,23 @@ html {
   }
 }
 
+/* The one labelling device. Small caps give a section a lead-in without the HUD
+   read that uppercase + wide tracking always produces — the letters keep their
+   lowercase shapes and their rhythm, they just stand up. Budget: at most one per
+   screen region. */
+.mesh-eyebrow,
 .mesh-kicker {
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: var(--t-eyebrow);
+  font-variant-caps: all-small-caps;
+  letter-spacing: var(--track-eyebrow);
+  text-transform: none;
+  color: var(--ink-3);
 }
+.mesh-kicker { color: var(--accent); }
 
 .mesh-title {
   color: var(--text-primary);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.02;
 }
 
@@ -2863,7 +2872,7 @@ body {
 
 .mesh-action {
   border-radius: 0.65rem;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .mesh-action:hover,
@@ -3117,7 +3126,7 @@ body {
   color: var(--text-muted);
   background: transparent;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   transition:
     border-color var(--mesh-transition-fast),
@@ -3157,7 +3166,7 @@ body {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-subtle);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .feed-control-chip:disabled,
@@ -3239,14 +3248,14 @@ body {
 .feed-creator-stat span {
   color: var(--text-muted);
   font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
+  font-variant-caps: all-small-caps;
 }
 
 .feed-creator-stat strong {
   color: var(--text-primary);
   font-size: 1rem;
-  font-weight: 950;
+  font-weight: 600;
 }
 
 .feed-post-list {
@@ -3276,7 +3285,7 @@ body {
   min-height: 3.5rem;
   color: var(--text-muted);
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .feed-load-button {
@@ -4629,7 +4638,7 @@ body,
   padding: 0.4rem 0.6rem;
   color: var(--text-secondary);
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .settings-row strong {
@@ -4651,7 +4660,7 @@ body,
   padding: 0.5rem 0.65rem;
   color: var(--text-primary);
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .settings-action-row:hover,
@@ -4726,7 +4735,7 @@ body,
   border: 1px solid var(--border-primary);
   padding: 0.7rem 1.1rem;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
   backdrop-filter: blur(12px);
   background-color: var(--bg-secondary);
   box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.25));
@@ -4758,9 +4767,9 @@ body,
   display: block;
   color: var(--text-muted);
   font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-caps: all-small-caps;
 }
 
 /* Icon-forward control language: every row leads with a small accent tile. */
@@ -4794,9 +4803,9 @@ body,
 .settings-card-heading h3 {
   color: var(--text-secondary);
   font-size: 0.7rem;
-  font-weight: 750;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-caps: all-small-caps;
 }
 
 /* Collapsed helper copy — a quiet native disclosure under a control group. */
@@ -4813,7 +4822,7 @@ body,
   padding: 0.25rem 0.4rem;
   color: var(--text-muted);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -5141,7 +5150,7 @@ body,
   padding-top: 0.75rem;
   color: var(--text-muted);
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .command-palette-footer span {
@@ -6465,7 +6474,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 /* The question. */
 .mesh-gate-q {
   font-size: clamp(2.2rem, 8vw, 3.6rem);
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.02;
 }
@@ -6544,7 +6553,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-gate-hint {
   font-size: 0.82rem;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.55);
 }
 .mesh-gate-msg {
@@ -6643,7 +6652,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   border-radius: 999px;
   background: var(--brand-gradient);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1rem;
   display: inline-flex;
   align-items: center;
@@ -6777,7 +6786,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   top: -10px;
   right: -6px;
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 600;
   color: rgba(190, 205, 255, 0.9);
   animation: meshOwnerZzz 3s ease-in-out infinite;
 }
@@ -6908,7 +6917,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 @keyframes meshTravelText {
   0% { opacity: 0; transform: scale(0.86); letter-spacing: 0.02em; }
   40% { opacity: 1; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1.08); letter-spacing: 0.1em; }
+  100% { opacity: 1; transform: scale(1.08); letter-spacing: 0.02em; }
 }
 .mesh-rail-btn {
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
@@ -7104,7 +7113,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
 .watch-brand {
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
@@ -7156,7 +7165,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   background: #fff;
   color: #000;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ── Reduced motion, everywhere ─────────────────────────────────────────

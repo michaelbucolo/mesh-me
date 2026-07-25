@@ -57,19 +57,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NativeInit />
           <div className="flex h-dvh min-h-0 flex-col bg-[#05070f]">
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur">
-              <Link href="/" className="text-sm font-extrabold tracking-tight text-white">
+              <Link href="/" className="text-sm font-semibold tracking-tight text-white">
                 mesh.me
               </Link>
               <div className="flex items-center gap-2">
                 <Link
                   href={`/login?next=${encodeURIComponent(nextPath)}`}
-                  className="rounded-full border border-white/20 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-white/10"
+                  className="rounded-full border border-white/20 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
                 >
                   Sign in
                 </Link>
                 <Link
                   href="/signup"
-                  className="rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-black transition hover:bg-white/90"
+                  className="rounded-full bg-white px-3.5 py-1.5 text-xs font-semibold text-black transition hover:bg-white/90"
                 >
                   Create account
                 </Link>

@@ -335,7 +335,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               Privacy control center
             </Badge>
-            <h1 className="mt-3 text-3xl font-bold leading-tight text-[var(--text-primary)] md:text-5xl">
+            <h1 className="mt-3 text-3xl font-semibold leading-tight text-[var(--text-primary)] md:text-5xl">
               Own every copy of your world.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
@@ -388,7 +388,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
           >
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
               <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/55 p-3">
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">Profile</h3>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Profile</h3>
                 <div className="mt-3 grid gap-2">
                   <ToggleRow label="Public profile" checked={profilePrivacy.isPublic} onChange={(value) => setProfilePrivacy((current) => ({ ...current, isPublic: value }))} />
                   <ToggleRow label="Show in discovery" checked={profilePrivacy.showInDiscovery} onChange={(value) => setProfilePrivacy((current) => ({ ...current, showInDiscovery: value }))} />
@@ -402,8 +402,8 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
               </div>
 
               <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/55 p-3">
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">The Mesh</h3>
-                <label className="mt-3 grid gap-2 text-sm font-bold text-[var(--text-primary)]">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">The Mesh</h3>
+                <label className="mt-3 grid gap-2 text-sm font-semibold text-[var(--text-primary)]">
                   Overall visibility
                   <select
                     value={meshPrivacy.meshVisibility}
@@ -611,11 +611,11 @@ function LinkButton({
 function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Server; label: string; value: string; detail: string }) {
   return (
     <div className="mesh-surface rounded-lg p-4">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+      <div className="flex items-center gap-2 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
         <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
         {label}
       </div>
-      <p className="mt-3 text-3xl font-bold text-[var(--text-primary)]">{value}</p>
+      <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{value}</p>
       <p className="mt-1 text-xs font-semibold text-[var(--text-muted)]">{detail}</p>
     </div>
   );
@@ -639,7 +639,7 @@ function Panel({
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">{title}</h2>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">{title}</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{description}</p>
         </div>
       </div>
@@ -659,8 +659,8 @@ function ToggleRow({ label, checked, onChange }: { label: string; checked: boole
       )}
       aria-pressed={checked}
     >
-      <span className="text-sm font-bold text-[var(--text-primary)]">{label}</span>
-      <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-muted)]">
+      <span className="text-sm font-semibold text-[var(--text-primary)]">{label}</span>
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-muted)]">
         {checked ? <Eye className="h-3.5 w-3.5" aria-hidden="true" /> : <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />}
         {checked ? "On" : "Off"}
       </span>
@@ -750,7 +750,7 @@ function GlobalMeshCard({
           <Globe className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-[var(--text-primary)]">Global Mesh</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Global Mesh</h3>
           <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
             Opt in to appear in the world mesh anyone can explore. Only your already-public content is
             ever shown, and going private removes you automatically.
@@ -767,7 +767,7 @@ function GlobalMeshCard({
 
       {isActive ? (
         <>
-          <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-3 py-2 text-xs font-bold text-[var(--text-primary)]">
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
             You&rsquo;re on the Global Mesh
           </div>
@@ -799,7 +799,7 @@ function GlobalMeshCard({
 
           {preview && !preview.qualifies ? (
             <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 p-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--ds-warning-border,#f59e0b)]" aria-hidden="true" />
                 You can&rsquo;t join the Global Mesh yet
               </div>
@@ -827,13 +827,13 @@ function GlobalMeshCard({
                 <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-2">
                   {preview.posts.map((post) => (
                     <div key={post.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
-                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">Post</span>
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">Post</span>
                       <span className="truncate">{post.content || "Media post"}</span>
                     </div>
                   ))}
                   {preview.platforms.map((platform) => (
                     <div key={platform.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
-                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-bold uppercase capitalize tracking-wide text-[var(--accent)]">{platform.platform}</span>
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-semibold mesh-eyebrow capitalize text-[var(--accent)]">{platform.platform}</span>
                       <span className="truncate">{platform.title}</span>
                     </div>
                   ))}
@@ -887,7 +887,7 @@ function AccountCard({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-base font-bold text-[var(--text-primary)]">{account.platformName}</h3>
+            <h3 className="truncate text-base font-semibold text-[var(--text-primary)]">{account.platformName}</h3>
             <Badge variant={account.isActive ? "success" : "warning"}>{account.healthLabel}</Badge>
             <Badge variant="outline">{account.authType}</Badge>
           </div>
@@ -920,7 +920,7 @@ function AccountCard({
       </div>
 
       <div className="mt-3 rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-3">
-        <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Permissions</p>
+        <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">Permissions</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {permissionPreview.length > 0 ? permissionPreview.map((permission) => (
             <Badge
@@ -953,7 +953,7 @@ function ImportedContentRow({
           <Badge variant={post.visibility === "hidden" ? "danger" : "secondary"}>{post.visibility}</Badge>
           {post.isNsfw && <Badge variant="danger">Sensitive</Badge>}
         </div>
-        <h3 className="mt-2 truncate text-base font-bold text-[var(--text-primary)]">
+        <h3 className="mt-2 truncate text-base font-semibold text-[var(--text-primary)]">
           {post.title || post.content || "Untitled imported post"}
         </h3>
         <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">
@@ -963,7 +963,7 @@ function ImportedContentRow({
           {post.postType} from {post.account.platformUsername || post.account.accountLabel || post.account.platform} - updated {formatDate(post.updatedAt)}
         </p>
       </div>
-      <label className="grid gap-2 text-sm font-bold text-[var(--text-primary)]">
+      <label className="grid gap-2 text-sm font-semibold text-[var(--text-primary)]">
         Visibility
         <span className="relative">
           <select
@@ -999,10 +999,10 @@ function PolicyRow({
   return (
     <article className="grid gap-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/55 p-3 md:grid-cols-[minmax(0,1fr)_12rem] md:items-center">
       <div>
-        <h3 className="text-sm font-bold text-[var(--text-primary)]">{label}</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{label}</h3>
         <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{description}</p>
       </div>
-      <label className="grid gap-2 text-sm font-bold text-[var(--text-primary)]">
+      <label className="grid gap-2 text-sm font-semibold text-[var(--text-primary)]">
         Default
         <span className="relative">
           <select
@@ -1025,10 +1025,10 @@ function PolicyRow({
 function MiniStat({ label, value, tone }: { label: string; value: number; tone?: "imported" }) {
   return (
     <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 px-3 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+      <p className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
         {label.replace(/([A-Z])/g, " $1").trim()}
       </p>
-      <p className={cn("mt-1 text-sm font-bold text-[var(--text-primary)]", tone === "imported" && "text-[var(--accent)]")}>
+      <p className={cn("mt-1 text-sm font-semibold text-[var(--text-primary)]", tone === "imported" && "text-[var(--accent)]")}>
         {formatCount(value)}
       </p>
     </div>

@@ -51,14 +51,14 @@ function CommunityHero({ data }: { data: CommunityReadyData }) {
               {community.iconUrl ? (
                 <Image src={community.iconUrl} alt="" fill sizes="80px" className="object-cover" />
               ) : (
-                <span className="grid h-full w-full place-items-center text-3xl font-bold text-[var(--accent)]">
+                <span className="grid h-full w-full place-items-center text-3xl font-semibold text-[var(--accent)]">
                   {community.name.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
             <div className="min-w-0 pb-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-2xl font-bold tracking-[0] text-[var(--text-primary)] sm:text-3xl">{community.name}</h1>
+                <h1 className="truncate text-2xl font-semibold tracking-[0] text-[var(--text-primary)] sm:text-3xl">{community.name}</h1>
                 <Badge variant={community.isPublic ? "outline" : "warning"}>{community.isPublic ? "Public" : "Private"}</Badge>
                 {membership ? <Badge variant="accent">{membership.role}</Badge> : null}
               </div>
@@ -120,7 +120,7 @@ function CommunityComposer({ community, canPost }: { community: CommunityReadyDa
 function CommunityChat({ data }: { data: CommunityReadyData }) {
   return (
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-      <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
         <MessageCircle className="h-5 w-5 text-[var(--accent)]" />
         Community chat
       </h2>
@@ -135,7 +135,7 @@ function CommunityChat({ data }: { data: CommunityReadyData }) {
               />
               <div className="min-w-0 rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-[var(--text-primary)]">
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">
                     {message.sender.displayName || message.sender.username}
                   </span>
                   <span className="text-xs text-[var(--text-tertiary)]">{formatRelativeTime(message.createdAt)}</span>
@@ -167,7 +167,7 @@ function CommunityChat({ data }: { data: CommunityReadyData }) {
 function MembersPanel({ data }: { data: CommunityReadyData }) {
   return (
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-      <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
         <Users className="h-5 w-5 text-[var(--accent)]" />
         Members
       </h2>
@@ -181,7 +181,7 @@ function MembersPanel({ data }: { data: CommunityReadyData }) {
                 size="sm"
               />
               <div className="min-w-0 flex-1">
-                <Link href={`/profile/${member.user.username}`} className="truncate text-sm font-bold text-[var(--text-primary)] hover:underline">
+                <Link href={`/profile/${member.user.username}`} className="truncate text-sm font-semibold text-[var(--text-primary)] hover:underline">
                   {member.user.displayName || member.user.username}
                 </Link>
                 <p className="truncate text-xs text-[var(--text-tertiary)]">@{member.user.username}</p>
@@ -222,19 +222,19 @@ function ModerationPanel({ data }: { data: CommunityReadyData }) {
 
   return (
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-      <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--text-primary)]">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
         <Shield className="h-5 w-5 text-[var(--accent)]" />
         Moderation
       </h2>
       <div className="mt-4 grid gap-3">
         <div className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
-          <p className="text-sm font-bold text-[var(--text-primary)]">{data.reports.length} open reports</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">{data.reports.length} open reports</p>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">Review reported posts, comments, and community issues.</p>
         </div>
         {data.reports.length ? (
           data.reports.map((report) => (
             <div key={report.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                 <Flag className="h-4 w-4 text-[var(--ds-danger)]" />
                 {report.reason}
               </div>
@@ -259,7 +259,7 @@ function SettingsPanel({ data }: { data: CommunityReadyData }) {
 
   return (
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-      <h2 className="text-lg font-bold text-[var(--text-primary)]">Settings</h2>
+      <h2 className="text-lg font-semibold text-[var(--text-primary)]">Settings</h2>
       <form action={updateCommunityFromForm} className="mt-4 grid gap-3">
         <input type="hidden" name="communityId" value={data.community.id} />
         <label className="grid gap-2">
@@ -303,7 +303,7 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
         <CommunityComposer community={data.community} canPost={data.canPost} />
 
         <section className="space-y-3">
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">Posts</h2>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">Posts</h2>
           {data.posts.length ? (
             data.posts.map((post) => (
               <div key={post.id} className="space-y-2">
@@ -345,7 +345,7 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
           ) : (
             <div className="mesh-surface rounded-[24px] border border-dashed border-[var(--ds-border)] p-8 text-center">
               <MessageCircle className="mx-auto h-8 w-8 text-[var(--accent)]" />
-              <h3 className="mt-3 text-lg font-bold text-[var(--text-primary)]">No posts yet</h3>
+              <h3 className="mt-3 text-lg font-semibold text-[var(--text-primary)]">No posts yet</h3>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">Start the conversation with a post or link.</p>
             </div>
           )}
@@ -354,11 +354,11 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
 
       <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
         <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">Rules</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Rules</h2>
           <ol className="mt-4 space-y-3">
             {rulesList(data.community.rules).map((rule, index) => (
               <li key={`${rule}-${index}`} className="flex gap-3 text-sm text-[var(--text-secondary)]">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-xs font-bold text-[var(--accent)]">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-xs font-semibold text-[var(--accent)]">
                   {index + 1}
                 </span>
                 <span>{rule}</span>

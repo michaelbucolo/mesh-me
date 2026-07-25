@@ -172,7 +172,7 @@ function ResultEmpty({ query }: { query: string }) {
   return (
     <div className="mesh-surface rounded-2xl p-8 text-center">
       <Search className="mx-auto h-7 w-7 text-[var(--accent)]" aria-hidden="true" />
-      <h2 className="mt-3 text-xl font-bold text-[var(--text-primary)]">
+      <h2 className="mt-3 text-xl font-semibold text-[var(--text-primary)]">
         {query.length > 1 ? "No results yet" : "Search your connected internet"}
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
@@ -334,13 +334,13 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       </header>
 
       {isPending && submittedQuery.length > 1 ? (
-        <div className="mesh-surface rounded-lg p-4 text-sm font-bold text-[var(--text-secondary)]">
+        <div className="mesh-surface rounded-lg p-4 text-sm font-semibold text-[var(--text-secondary)]">
           Searching Mesh.me, synced social sources, MeChat, and Wikipedia...
         </div>
       ) : null}
 
       {error ? (
-        <div className="rounded-lg border border-red-400/25 bg-red-500/10 p-4 text-sm font-bold text-red-100">
+        <div className="rounded-lg border border-red-400/25 bg-red-500/10 p-4 text-sm font-semibold text-red-100">
           {error}
         </div>
       ) : null}
@@ -361,7 +361,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             <div className="mesh-cascade-soft grid gap-0 md:grid-cols-2">
               {results.sourceIndex.map((source, index) => (
                 <div key={source.id} style={rowStyle(index)} className="search-result-row search-row-magnetic">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-bold text-[var(--accent)]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-semibold text-[var(--accent)]">
                     {source.name.slice(0, 2)}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -427,7 +427,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                   <span className="block text-sm font-semibold text-[var(--text-primary)]">{post.author.displayName}</span>
                   <span className="block text-xs text-[var(--text-muted)]">@{post.author.username} · {formatRelativeTime(post.createdAt)}</span>
                   <span className="mt-1 block line-clamp-3 text-sm text-[var(--text-secondary)]">{post.content}</span>
-                  <span className="mt-2 block text-xs font-bold text-[var(--text-muted)]">
+                  <span className="mt-2 block text-xs font-semibold text-[var(--text-muted)]">
                     {formatCount(post._count?.reactions || 0)} likes · {formatCount(post._count?.comments || 0)} comments
                   </span>
                 </span>
@@ -446,7 +446,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     {thumbnail ? <Image src={thumbnail} alt="" fill sizes="64px" className="object-cover" /> : <Globe2 className="m-auto mt-5 h-6 w-6 text-[var(--accent)]" aria-hidden="true" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--accent)]">
+                    <span className="block text-xs font-semibold mesh-eyebrow text-[var(--accent)]">
                       {platformLabel(post.connectedAccount.platform)} - @{post.connectedAccount.platformUsername || "connected"}
                     </span>
                     {post.connectedAccount.user && (
@@ -456,7 +456,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     )}
                     <span className="mt-1 block line-clamp-2 text-sm font-semibold text-[var(--text-primary)]">{post.title || post.content || "Connected post"}</span>
                     {post.content && post.title && <span className="mt-1 block line-clamp-2 text-sm text-[var(--text-secondary)]">{post.content}</span>}
-                    <span className="mt-2 block text-xs font-bold text-[var(--text-muted)]">
+                    <span className="mt-2 block text-xs font-semibold text-[var(--text-muted)]">
                       {formatCount(post.likeCount)} likes · {formatCount(post.commentCount)} comments · {formatCount(post.viewCount)} views
                     </span>
                   </span>
@@ -487,7 +487,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     <span className="block truncate text-xs text-[var(--text-muted)]">
                       {platformLabel(person.connectedAccount.platform)} · @{person.username || person.connectedAccount.platformUsername || "connected"} · {formatCount(person.followerCount || 0)}
                     </span>
-                    <span className="mt-1 block text-xs font-bold text-[var(--accent)]">{person.relationshipType}</span>
+                    <span className="mt-1 block text-xs font-semibold text-[var(--accent)]">{person.relationshipType}</span>
                   </span>
                 </>
               );
@@ -508,7 +508,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           <ResultSection title="Communities" icon={Hash}>
             {results.communities.map((community, index) => (
               <Link key={community.id} style={rowStyle(index)} href={`/communities/${community.slug}`} className="search-result-row search-row-magnetic">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-subtle)] text-lg font-bold text-[var(--accent)]">#</span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-subtle)] text-lg font-semibold text-[var(--accent)]">#</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{community.name}</span>
                   <span className="block truncate text-xs text-[var(--text-muted)]">/{community.slug} · {formatCount(community._count?.members || 0)} members</span>
@@ -542,7 +542,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                   {page.thumbnailUrl ? <Image src={page.thumbnailUrl} alt="" fill sizes="56px" className="object-cover" /> : <Globe2 className="m-auto mt-4 h-6 w-6 text-[var(--accent)]" aria-hidden="true" />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--accent)]">{page.source}</span>
+                  <span className="block text-xs font-semibold mesh-eyebrow text-[var(--accent)]">{page.source}</span>
                   <span className="mt-1 block truncate text-sm font-semibold text-[var(--text-primary)]">{page.title}</span>
                   <span className="mt-1 block line-clamp-2 text-sm text-[var(--text-secondary)]">{page.extract}</span>
                 </span>

@@ -157,7 +157,7 @@ export function PlatformLogo({
   if (!tile) {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-md bg-[var(--mesh-panel-solid,#1c2333)] font-bold text-white ${className ?? ""}`}
+        className={`inline-flex items-center justify-center rounded-md bg-[var(--mesh-panel-solid,#1c2333)] font-semibold text-white ${className ?? ""}`}
         style={{ width: size, height: size, fontSize: Math.max(9, size * 0.48) }}
         title={platform}
         aria-label={platform}

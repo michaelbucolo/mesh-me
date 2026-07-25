@@ -151,7 +151,7 @@ function ExpandablePostText({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="mt-1 text-xs font-bold text-[var(--text-primary)] transition hover:text-[var(--accent)]"
+          className="mt-1 text-xs font-semibold text-[var(--text-primary)] transition hover:text-[var(--accent)]"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -444,15 +444,15 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1.5">
                 {isExternalFeedItem && externalAuthor?.profileUrl ? (
-                  <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
+                  <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="truncate text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
                     {post.author.displayName}
                   </a>
                 ) : isExternalFeedItem ? (
-                  <span className="truncate text-[0.9rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                  <span className="truncate text-[0.9rem] font-semibold" style={{ color: "var(--text-primary)" }}>
                     {post.author.displayName}
                   </span>
                 ) : (
-                  <Link href={`/profile/${post.author.username}`} className="truncate text-[0.9rem] font-bold hover:underline" style={{ color: "var(--text-primary)" }}>
+                  <Link href={`/profile/${post.author.username}`} className="truncate text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
                     {post.author.displayName}
                   </Link>
                 )}
@@ -482,7 +482,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                       className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[10px] font-medium"
                       style={{ backgroundColor: platformBadge.color + "18", color: platformBadge.color }}
                     >
-                      <span className="w-2.5 h-2.5 rounded-sm flex items-center justify-center text-[7px] font-bold text-white" style={{ backgroundColor: platformBadge.color }}>
+                      <span className="w-2.5 h-2.5 rounded-sm flex items-center justify-center text-[7px] font-semibold text-white" style={{ backgroundColor: platformBadge.color }}>
                         {platformBadge.abbr[0]}
                       </span>
                       {platformBadge.label}
@@ -510,7 +510,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {isOptimistic && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent)]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       Posting
                     </span>
@@ -519,7 +519,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {post.isNsfw && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-bold text-rose-300 bg-rose-500/10">
+                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-semibold text-rose-300 bg-rose-500/10">
                       NSFW
                     </span>
                   </>
@@ -710,7 +710,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 )}
                 {idx === 3 && visualMedia.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">+{visualMedia.length - 4}</span>
+                    <span className="text-white font-semibold text-lg">+{visualMedia.length - 4}</span>
                   </div>
                 )}
               </div>
@@ -726,7 +726,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   <ExternalLink className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
+                  <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{getLinkHost(media.url)}</span>
                   <span className="block truncate text-xs text-[var(--text-muted)]">{media.url}</span>
                 </span>
               </a>
@@ -742,12 +742,12 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               className="text-[1.05rem] font-semibold leading-7 text-[var(--text-primary)]"
             />
             {isOptimistic ? (
-              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Saving to feed
               </p>
             ) : (
-              <Link href={postHref} className="mt-3 inline-flex text-xs font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+              <Link href={postHref} className="mt-3 inline-flex text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
                 Open post
               </Link>
             )}
@@ -806,14 +806,14 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
         </div>
 
-        <p className="feed-like-count mt-1.5 text-[0.82rem] font-bold text-[var(--text-primary)]">
+        <p className="feed-like-count mt-1.5 text-[0.82rem] font-semibold text-[var(--text-primary)]">
           <span key={likeCount} className="mesh-roll-in tabular-nums">{formatCount(likeCount)}</span> likes
         </p>
 
         {requiresSourceAccount && !hasSourceAccount && (
           <Link
             href={`/connected-accounts?platform=${encodeURIComponent(originPlatform || "")}&next=/feed`}
-            className="mt-2 block rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-muted)] hover:text-[var(--text-primary)]"
+            className="mt-2 block rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition hover:border-[var(--accent-muted)] hover:text-[var(--text-primary)]"
           >
             Connect {platformLabel || post.platform} to like, comment, and sync actions back to the source.
           </Link>

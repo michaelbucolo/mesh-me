@@ -288,7 +288,7 @@ export function ContentLens({
               <p className="truncate text-sm font-semibold text-white">{node.label}</p>
               {node.sublabel && <p className="truncate text-xs text-white/50">{node.sublabel}</p>}
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/45">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2.5 py-1 text-[10px] font-medium mesh-eyebrow text-white/45">
               <Sparkles size={11} />
               {node.kind === "activity" ? "Activity" : "Post"}
             </span>
@@ -419,11 +419,11 @@ export function ContentLens({
                 ))}
               </div>
             ) : (
-              <span className="text-[11px] font-semibold tracking-wide text-cyan-100/80">
+              <span className="text-[11px] font-semibold text-cyan-100/80">
                 {catchup.index + 1} / {catchup.total}
               </span>
             )}
-            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-cyan-100/50">
+            <span className="text-[10px] font-medium mesh-eyebrow text-cyan-100/50">
               {catchup.paused ? "Paused" : "Catch-up"}
             </span>
           </div>
@@ -440,7 +440,7 @@ export function ContentLens({
               <ChevronLeft size={15} />
               Prev
             </button>
-            <span className="text-[11px] font-medium tracking-wide text-white/40">
+            <span className="text-[11px] font-medium text-white/40">
               {index >= 0 ? index + 1 : 1} / {total} {streamLabel}
             </span>
             <button

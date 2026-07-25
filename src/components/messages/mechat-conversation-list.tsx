@@ -474,7 +474,7 @@ export function MeChatConversationList({
                         </span>
                       )}
                       {unread && thread.unread > 1 && (
-                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-lg">
+                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-lg">
                           {thread.unread > 99 ? "99+" : thread.unread}
                         </span>
                       )}
@@ -482,12 +482,12 @@ export function MeChatConversationList({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-1.5">
-                        <span className={`truncate text-sm ${unread ? "font-bold text-[var(--mesh-text)]" : "font-semibold text-[var(--mesh-text)]"}`}>
+                        <span className={`truncate text-sm ${unread ? "font-semibold text-[var(--mesh-text)]" : "font-semibold text-[var(--mesh-text)]"}`}>
                           {threadDisplay(thread)}
                         </span>
                         {isVerified && <BadgeCheck size={14} className="shrink-0 self-center text-[var(--accent)]" />}
                         {isSyncedThread(thread) && (
-                          <span className={`shrink-0 self-center rounded px-1 py-0.5 text-[9px] font-bold ${platformBadgeClass(thread.platform)}`}>
+                          <span className={`shrink-0 self-center rounded px-1 py-0.5 text-[9px] font-semibold ${platformBadgeClass(thread.platform)}`}>
                             {platformLabel(thread.platform)}
                           </span>
                         )}
@@ -618,7 +618,7 @@ export function MeChatConversationList({
                 type="button"
                 onClick={startConversation}
                 disabled={isPending || selectedMembers.length === 0}
-                className="w-full rounded-2xl bg-[var(--accent)] py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="w-full rounded-2xl bg-[var(--accent)] py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
               >
                 {isPending ? "Starting..." : "Chat"}
               </button>
@@ -636,7 +636,7 @@ export function MeChatConversationList({
         >
           <div className="mb-3 flex items-center gap-3">
             <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-12 w-12" />
-            <p className="text-sm font-bold text-[var(--mesh-text)]">{currentUser.displayName}</p>
+            <p className="text-sm font-semibold text-[var(--mesh-text)]">{currentUser.displayName}</p>
           </div>
           <input
             value={noteText}
@@ -671,7 +671,7 @@ export function MeChatConversationList({
               type="button"
               onClick={saveNote}
               disabled={isPending}
-              className="ml-auto rounded-xl bg-[var(--accent)] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+              className="ml-auto rounded-xl bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
               {isPending ? "Sharing..." : "Share"}
             </button>
@@ -689,7 +689,7 @@ export function MeChatConversationList({
         >
           <div className="mb-3 flex items-center gap-3">
             <Avatar src={activeNote.user.avatarUrl} alt={activeNote.user.displayName} size="md" className="h-12 w-12" />
-            <p className="text-sm font-bold text-[var(--mesh-text)]">{activeNote.user.displayName}</p>
+            <p className="text-sm font-semibold text-[var(--mesh-text)]">{activeNote.user.displayName}</p>
           </div>
           <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{activeNote.text || "No note text"}</p>
           {activeNote.songTitle && (

@@ -82,7 +82,7 @@ export default function TrustCenterPage() {
           <article key={pillar.title} className="mesh-section p-5">
             <div className="mb-3 flex items-center gap-2">
               <pillar.icon className="h-5 w-5 text-[var(--accent)]" />
-              <h2 className="text-base font-bold text-[var(--text-primary)]">{pillar.title}</h2>
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">{pillar.title}</h2>
             </div>
             <p className="text-sm leading-6 text-[var(--text-secondary)]">{pillar.description}</p>
           </article>
@@ -93,14 +93,14 @@ export default function TrustCenterPage() {
         <article className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
           <div className="mb-4 flex items-center gap-2">
             <FileCheck2 className="h-5 w-5 text-[var(--accent)]" />
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">How the trust model shows up in product</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">How the trust model shows up in product</h2>
           </div>
           <div className="space-y-3">
             {controlRows.map((row) => (
               <div key={row.title} className="rounded-2xl border border-[var(--border-primary)] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <row.icon className="h-4 w-4 text-[var(--accent)]" />
-                  <h3 className="text-sm font-bold text-[var(--text-primary)]">{row.title}</h3>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">{row.title}</h3>
                 </div>
                 <p className="text-sm leading-6 text-[var(--text-secondary)]">{row.copy}</p>
               </div>
@@ -109,7 +109,7 @@ export default function TrustCenterPage() {
         </article>
 
         <article className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          <p className="mb-3 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
             Source-respecting platform model
           </p>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
@@ -125,7 +125,7 @@ export default function TrustCenterPage() {
       <section className="mt-12 rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
         <div className="mb-4 flex items-center gap-2">
           <FileCheck2 className="h-5 w-5 text-[var(--accent)]" />
-          <h2 className="text-base font-bold text-[var(--text-primary)]">Policy and launch references</h2>
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">Policy and launch references</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {[

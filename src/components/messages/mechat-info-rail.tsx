@@ -102,7 +102,7 @@ export function MeChatInfoRail({
           </div>
 
           <div className="mt-4 flex items-center gap-1.5">
-            <h2 className="truncate text-2xl font-bold text-[var(--mesh-text)]">{title}</h2>
+            <h2 className="truncate text-2xl font-semibold text-[var(--mesh-text)]">{title}</h2>
             {isVerified && <BadgeCheck size={18} className="shrink-0 text-[var(--accent)]" />}
           </div>
           <p className="mt-1 text-sm text-[var(--mesh-text-secondary)]">{subtitle}</p>
@@ -121,7 +121,7 @@ export function MeChatInfoRail({
               >
                 <item.icon size={15} className="text-[var(--mesh-text-secondary)]" />
                 <span className="text-[11px] font-semibold text-[var(--mesh-text-secondary)]">{item.label}</span>
-                <span className="text-xs font-bold text-[var(--mesh-text)]">{item.value}</span>
+                <span className="text-xs font-semibold text-[var(--mesh-text)]">{item.value}</span>
               </div>
             ))}
           </div>
@@ -131,7 +131,7 @@ export function MeChatInfoRail({
       <section className="mesh-surface rounded-[24px] border border-[var(--mesh-border)] p-5">
         <div className="mb-3 flex items-center gap-2">
           <ShieldCheck size={16} className="text-[var(--accent)]" />
-          <h3 className="text-sm font-bold text-[var(--mesh-text)]">About</h3>
+          <h3 className="text-sm font-semibold text-[var(--mesh-text)]">About</h3>
         </div>
         <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{description}</p>
         <div className="mt-4 space-y-2 text-xs text-[var(--mesh-text-secondary)]">
@@ -164,14 +164,14 @@ export function MeChatInfoRail({
       <section className="mesh-surface rounded-[24px] border border-[var(--mesh-border)] p-5">
         <div className="mb-3 flex items-center gap-2">
           <ImageIcon size={16} className="text-[var(--accent)]" />
-          <h3 className="text-sm font-bold text-[var(--mesh-text)]">Shared Sources</h3>
+          <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Shared Sources</h3>
         </div>
         {sourceSummaries.length > 0 ? (
           <div className="space-y-2">
             {sourceSummaries.map((source) => (
               <div key={source.platform} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-2">
                 <span className={`text-sm font-medium ${platformColor(source.platform)}`}>{source.label}</span>
-                <span className="rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-xs font-bold text-[var(--accent)]">
+                <span className="rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">
                   {source.count}
                 </span>
               </div>
@@ -187,7 +187,7 @@ export function MeChatInfoRail({
       <section className="mesh-surface rounded-[24px] border border-[var(--mesh-border)] p-5">
         <div className="mb-3 flex items-center gap-2">
           <LockKeyhole size={16} className="text-[var(--accent)]" />
-          <h3 className="text-sm font-bold text-[var(--mesh-text)]">Privacy</h3>
+          <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Privacy</h3>
         </div>
         <div className="space-y-3 text-sm text-[var(--mesh-text-secondary)]">
           <div className="flex items-center gap-2 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-2">

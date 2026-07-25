@@ -226,7 +226,7 @@ function ShellTopBar({
       `}</style>
       <div className="min-w-0 flex-1 lg:flex-none">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-[19px] font-bold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
+          <h1 className="truncate text-[19px] font-semibold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
         </div>
         {routeInfo.description && (
           <p className="mt-0.5 hidden text-sm text-[var(--mesh-text-muted)] lg:block">{routeInfo.description}</p>
@@ -257,7 +257,7 @@ function ShellTopBar({
         <Link href="/notifications" className="mesh-topbar-icon relative" aria-label="Notifications" title="Notifications">
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCounts.unreadNotifications > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-semibold text-white">
               {unreadCounts.unreadNotifications > 99 ? "99+" : unreadCounts.unreadNotifications}
             </span>
           )}
@@ -265,7 +265,7 @@ function ShellTopBar({
 
         <details ref={accountMenuRef} className="relative">
           <summary className="mesh-topbar-owner flex cursor-pointer list-none items-center gap-2 rounded-full border-0 p-0 text-sm font-semibold text-[var(--mesh-text)] transition-colors lg:rounded-xl lg:border lg:border-[var(--mesh-border)] lg:px-3 lg:py-1.5 lg:hover:bg-[var(--mesh-panel-hover)] [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-bold text-[var(--accent)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--accent)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
             <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
             <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
           </summary>
@@ -273,7 +273,7 @@ function ShellTopBar({
             <div className="flex items-center gap-3 rounded-lg bg-[var(--mesh-bg-elevated)] p-3">
               <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={34} />
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-[var(--mesh-text)]">{user.displayName}</p>
+                <p className="truncate text-sm font-semibold text-[var(--mesh-text)]">{user.displayName}</p>
                 <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{user.username}</p>
               </div>
             </div>
@@ -503,7 +503,7 @@ export function AppShell({ children, user }: AppShellProps) {
               />
             ) : (
               <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-bold text-[var(--accent)] ring-1 ring-[var(--mesh-border)]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--accent)] ring-1 ring-[var(--mesh-border)]"
                 aria-hidden="true"
               >
                 {userInitials}

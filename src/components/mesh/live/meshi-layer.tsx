@@ -60,7 +60,7 @@ function HoverPreviewCard({ node }: { node: SceneNode }) {
           </div>
         )}
       </div>
-      <p className="border-t border-white/8 bg-white/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/45">
+      <p className="border-t border-white/8 bg-white/[0.04] px-3 py-1.5 text-[9px] font-semibold mesh-eyebrow text-white/45">
         {node.kind === "person"
           ? "Click to visit their mesh"
           : node.kind === "post" && node.href?.startsWith("/feed/")

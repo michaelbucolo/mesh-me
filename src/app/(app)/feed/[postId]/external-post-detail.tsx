@@ -88,7 +88,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
           <header className="flex items-center gap-3">
             <Avatar src={author.avatarUrl ?? null} alt={author.name} size="md" className="h-11 w-11" />
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 truncate text-sm font-bold">
+              <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                 {author.name}
                 {!post.externalAuthor && post.author.isVerified && (
                   <BadgeCheck size={14} className="shrink-0 text-[var(--accent)]" aria-hidden="true" />
@@ -99,11 +99,11 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
                 {formatRelativeTime(String(post.createdAt))}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
+            <span className="shrink-0 rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
               {source}
             </span>
             {post.visibility && post.visibility !== "public" && (
-              <span className="shrink-0 rounded-full border border-[var(--mesh-border)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--mesh-text-muted)]">
+              <span className="shrink-0 rounded-full border border-[var(--mesh-border)] px-2 py-1 text-[10px] font-semibold mesh-eyebrow text-[var(--mesh-text-muted)]">
                 {post.visibility}
               </span>
             )}
@@ -132,7 +132,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={shareHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
             >
               <Send size={15} aria-hidden="true" />
               Share in MeChat

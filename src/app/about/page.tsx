@@ -34,7 +34,7 @@ export default function AboutPage() {
           <div className="mb-6 flex items-center gap-3">
             <MeshiLogo size={54} color="blue" mood="happy" />
             <div>
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">{meshBrand.meshi.name} stays {meshBrand.meshi.name}</h2>
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">{meshBrand.meshi.name} stays {meshBrand.meshi.name}</h2>
               <p className="text-sm text-[var(--text-secondary)]">{meshBrand.meshi.visualRule}</p>
             </div>
           </div>
@@ -52,7 +52,7 @@ export default function AboutPage() {
         ].map((item) => (
           <article key={item.title} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
             <item.icon className="mb-4 h-5 w-5 text-[var(--accent)]" />
-            <h2 className="text-base font-bold text-[var(--text-primary)]">{item.title}</h2>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">{item.title}</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{item.copy}</p>
           </article>
         ))}

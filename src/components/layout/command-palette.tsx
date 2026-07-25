@@ -337,7 +337,7 @@ function createCommands(username: string): CommandItem[] {
 
 function CommandKey({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-1.5 text-[10px] font-bold text-[var(--text-muted)]">
+    <kbd className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)] px-1.5 text-[10px] font-semibold text-[var(--text-muted)]">
       {children}
     </kbd>
   );
@@ -500,7 +500,7 @@ export function CommandPalette({ username }: { username: string }) {
               setSelectedIndex(0);
             }}
             onKeyDown={onPaletteKeyDown}
-            className="min-w-0 flex-1 bg-transparent text-base font-bold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+            className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
             placeholder="Where do you want to go?"
             role="combobox"
             aria-expanded={open}
@@ -550,7 +550,7 @@ export function CommandPalette({ username }: { username: string }) {
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
                 <span className="relative z-[1] min-w-0 flex-1 text-left">
-                  <span className="block truncate text-sm font-bold text-[var(--text-primary)]">{command.title}</span>
+                  <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{command.title}</span>
                   <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--text-muted)]">{command.description}</span>
                 </span>
                 <Badge variant={command.category === "Action" ? "accent" : "secondary"} className="command-palette-badge relative z-[1]">

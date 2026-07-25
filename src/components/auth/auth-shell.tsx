@@ -21,13 +21,13 @@ export function AuthShell({
       <div className="auth-shell-grid relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl grid-cols-1 content-center gap-4 overflow-hidden px-4 py-3 sm:gap-5 md:grid-cols-[0.68fr_1fr] md:items-center md:px-6 lg:grid-cols-[0.78fr_1fr] lg:gap-10 xl:px-8">
         <section className="mesh-pop-in min-w-0">
           <MeshiBrandLockup href="/" size={32} label={meshBrand.name} subtitle={`${meshBrand.meshi.name} is your identity`} className="text-base sm:text-lg" />
-          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-bold text-[var(--accent)] sm:py-2 sm:text-sm">
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--accent)] sm:py-2 sm:text-sm">
             <ShieldCheck size={15} aria-hidden="true" />
             Privacy first
           </p>
-          <h1 className="mt-4 text-3xl font-bold leading-[1.04] tracking-[0] sm:mt-7 sm:text-4xl lg:text-5xl xl:text-6xl">{title}</h1>
+          <h1 className="mt-4 text-3xl font-semibold leading-[1.04] tracking-[0] sm:mt-7 sm:text-4xl lg:text-5xl xl:text-6xl">{title}</h1>
           <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)] sm:mt-3 lg:text-base lg:leading-7">{description}</p>
-          <div className="mesh-cascade mt-4 hidden max-w-md flex-wrap gap-2 text-xs font-bold text-[var(--text-secondary)] sm:flex">
+          <div className="mesh-cascade mt-4 hidden max-w-md flex-wrap gap-2 text-xs font-semibold text-[var(--text-secondary)] sm:flex">
             {trustChips.map((item, index) => (
               <span
                 key={item}

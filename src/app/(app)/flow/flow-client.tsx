@@ -784,21 +784,21 @@ function ReelContent({
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Open on ${post.platform}`}
                   title={`Open on ${post.platform}`}
-                  className={`pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow transition active:scale-95 ${platformChip}`}
+                  className={`pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-white shadow transition active:scale-95 ${platformChip}`}
                 >
                   <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
                   {post.platform}
                   <Link2 size={11} className="opacity-80" aria-hidden="true" />
                 </a>
               ) : (
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow ${platformChip}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-white shadow ${platformChip}`}>
                   <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
                   {post.platform}
                 </span>
               )
             )}
             {post.visibility && post.visibility !== "public" && (
-              <span className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white/85 backdrop-blur">
+              <span className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-white/85 backdrop-blur">
                 {post.visibility === "private" ? "Private · only you" : post.visibility}
               </span>
             )}
@@ -849,7 +849,7 @@ function ReelContent({
               onClick={(e) => { e.stopPropagation(); setShowWhy(false); }}
               className="absolute bottom-28 left-4 right-16 z-10 rounded-2xl border border-white/15 bg-black/80 px-4 py-3 text-left backdrop-blur"
             >
-              <p className="text-xs font-bold uppercase tracking-wide text-white/50">Why this?</p>
+              <p className="text-xs font-semibold mesh-eyebrow text-white/50">Why this?</p>
               <p className="mt-1 text-sm font-medium text-white">
                 {laneIndex > 0 ? "Similar to what you just watched" : post.whyThis}
               </p>
@@ -866,7 +866,7 @@ function ReelContent({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={post.author.avatarUrl} alt="" loading="lazy" decoding="async" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/40" />
                 ) : (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     {(post.author.displayName || post.author.username).slice(0, 1).toUpperCase()}
                   </span>
                 )}
@@ -1062,7 +1062,7 @@ function FlowColdStart({
   return (
     <div className="flex h-full min-h-[60dvh] w-full flex-col items-center justify-center gap-5 overflow-y-auto bg-black px-6 py-10 text-center">
       <div>
-        <p className="text-xl font-bold text-white">Your Flow is waiting</p>
+        <p className="text-xl font-semibold text-white">Your Flow is waiting</p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-white/55">
           Follow a few people and their posts, videos, and platform content stream here.
         </p>
@@ -1079,7 +1079,7 @@ function FlowColdStart({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={person.avatarUrl} alt="" loading="lazy" decoding="async" className="h-11 w-11 rounded-full object-cover" />
                   ) : (
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-sm font-semibold text-white">
                       {(person.displayName || person.username).slice(0, 1).toUpperCase()}
                     </span>
                   )}
@@ -1094,7 +1094,7 @@ function FlowColdStart({
                 <button
                   type="button"
                   onClick={() => toggle(person.id)}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
                     isFollowing ? "bg-white/10 text-white/70" : "bg-white text-black hover:bg-white/90"
                   }`}
                 >
@@ -1112,7 +1112,7 @@ function FlowColdStart({
             type="button"
             onClick={onLoadFlow}
             disabled={refreshing}
-            className="rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-60"
+            className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-60"
           >
             {refreshing ? "Loading your Flow…" : `Load my Flow (${followed.size} followed)`}
           </button>
@@ -1602,7 +1602,7 @@ export function FlowClient({
             exit={{ y: 30, opacity: 0, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.9 }}
           >
-            <p className="text-base font-bold text-white">How should your Flow rank?</p>
+            <p className="text-base font-semibold text-white">How should your Flow rank?</p>
             <p className="mt-0.5 text-xs text-white/50">
               You steer the algorithm. No ads, no paid reach — ever.
             </p>
@@ -1657,7 +1657,7 @@ export function FlowClient({
                     />
                   </button>
                 ) : (
-                  <Link href="/meshpro" className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/10">
+                  <Link href="/meshpro" className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10">
                     Mesh Pro
                   </Link>
                 )}
@@ -1711,7 +1711,7 @@ export function FlowClient({
           </p>
           <Link
             href="/login?next=/flow"
-            className="shrink-0 rounded-full bg-white px-3.5 py-2 text-xs font-bold text-black transition hover:bg-white/90"
+            className="shrink-0 rounded-full bg-white px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-white/90"
           >
             Sign in
           </Link>
@@ -1725,7 +1725,7 @@ export function FlowClient({
           <div className="flex shrink-0 items-center gap-1.5">
             <Link
               href={`/connected-accounts?platform=${encodeURIComponent(connectPrompt.id)}&next=/flow&reason=like`}
-              className="rounded-full bg-white px-3.5 py-2 text-xs font-bold text-black transition hover:bg-white/90"
+              className="rounded-full bg-white px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-white/90"
             >
               Connect
             </Link>

@@ -109,8 +109,8 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
       )}
 
       <header className="pt-4 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">Mesh Pro</p>
-        <h1 className="mx-auto mt-3 max-w-xl text-3xl font-bold leading-tight md:text-4xl">
+        <p className="text-xs font-semibold mesh-eyebrow text-[var(--accent)]">Mesh Pro</p>
+        <h1 className="mx-auto mt-3 max-w-xl text-3xl font-semibold leading-tight md:text-4xl">
           Real controls, not decorations
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
@@ -144,7 +144,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
             className="mesh-choice group rounded-xl p-5 transition hover:-translate-y-0.5"
           >
             <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
-            <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">{title}</p>
+            <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{title}</p>
             <p className="mt-1 text-[13px] leading-5 text-[var(--text-secondary)]">{body}</p>
           </Link>
         ))}
@@ -158,12 +158,12 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
               className={`mesh-surface rounded-xl p-5 ${plan.id === "yearly" ? "border-[var(--accent-muted)]" : ""}`}
             >
               <div className="flex items-baseline justify-between">
-                <h2 className="text-base font-bold">{plan.label}</h2>
+                <h2 className="text-base font-semibold">{plan.label}</h2>
                 {plan.savings && (
                   <span className="text-xs font-semibold text-[var(--ds-success)]">{plan.savings}</span>
                 )}
               </div>
-              <p className="mt-2 text-3xl font-bold">
+              <p className="mt-2 text-3xl font-semibold">
                 {plan.price}
                 <span className="ml-1 text-sm font-medium text-[var(--text-muted)]">/{plan.interval}</span>
               </p>

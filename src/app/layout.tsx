@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type React from "react";
+import { Fraunces, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import { Suspense } from "react";
 import Script from "next/script";
 import { MotionConfig } from "framer-motion";
@@ -11,6 +12,43 @@ import { getBrandTitle, getSiteUrl, meshBrand } from "@/lib/brand";
 import "./globals.css";
 
 const siteUrl = getSiteUrl();
+
+// The product had no typeface. `--font-inter` was a system-font stack that never
+// loaded Inter, and `--font-mono` pointed at a variable that was never declared —
+// so every screen rendered in whatever the OS happened to supply, which is why
+// the same page looked like three different products on three different machines.
+//
+// Fraunces is the one deliberate choice here: a variable serif with optical
+// sizing and a WONK axis, which is the strongest "made by a person" signal
+// available in a typeface. Instrument Sans carries the interface — a humanist
+// skeleton that stays warm at 13-17px, where almost all of this product lives.
+// IBM Plex Mono handles anything that has to line up in a column.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  // No `weight`: that is what loads Fraunces as a true variable font, which is
+  // the only way to reach SOFT and WONK. WONK is the axis that lets the
+  // terminals go slightly irregular — the difference between a serif and a
+  // serif that looks like someone drew it.
+  axes: ["SOFT", "WONK"],
+  display: "swap",
+  variable: "--font-display-loaded",
+});
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+  variable: "--font-sans-loaded",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-mono-loaded",
+});
+
+const fontVariables = `${fraunces.variable} ${instrumentSans.variable} ${plexMono.variable}`;
 
 const themeInitScript = `
 (function () {
@@ -141,7 +179,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <body className="mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <Script id="mesh-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <ThemeProvider>
