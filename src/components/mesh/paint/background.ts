@@ -1,19 +1,27 @@
-// The sky — deep-space gradient, drifting nebulae, parallax stars, focal
-// vignette — rendered to an offscreen layer and BLITTED per frame instead of
+// The surface the mesh is laid out ON — a warm vertical wash with a faint
+// tooth, rendered to an offscreen layer and BLITTED per frame instead of
 // re-painted (the single biggest per-frame win on old phones: ~3ms/frame of
 // gradient fills becomes one opaque drawImage).
 //
-// The layer repaints only when its inputs actually moved: resize, atmosphere
-// (theme) change, star field regeneration, camera pan, or — for the twinkle
-// and nebula drift — when the cached pixels grow older than the tier's
-// backgroundRefreshMs (Infinity at T2: a static sky). Every repaint uses the
-// CURRENT time and pan, so any single frame's output is exactly what the
-// legacy painter would draw for the same inputs; staleness between repaints
-// is bounded and sub-perceptual (twinkle period ~5s vs ≤400ms staleness).
+// This used to be outer space: a radial void, three additive drifting nebulae
+// under `globalCompositeOperation = "lighter"`, and a parallax star field. All
+// three were ambient motion with nothing happening — the exact thing the
+// product does not do — and none of it was reachable by the design tokens, so
+// the mesh stayed futuristic while everything around it became paper.
+//
+// It is now a TABLETOP. Consequence worth knowing: with the drift and the
+// twinkle gone the surface is fully STATIC, which turns
+// TIER_PARAMS[2].backgroundRefreshMs = Infinity from a visible fidelity cliff
+// into simply the correct answer, and makes the surface cheaper on every tier.
+//
+// The layer repaints only when its inputs actually moved: resize, paper
+// change, or camera pan. Nothing in it is time-varying any more, so the
+// refresh clock is vestigial and kept only so the tier params keep their
+// meaning for callers.
 
 import type { Camera } from "../core/camera";
 import { GradientCache } from "./caches";
-import { atmosphereOf, NEBULA_FIELD, withAlpha } from "./shared";
+import { atmosphereOf, withAlpha } from "./shared";
 import { domSurface, type CreateSurface, type OffscreenSurface } from "./types";
 
 export interface BackgroundInputs {
@@ -22,82 +30,108 @@ export interface BackgroundInputs {
   time: number;
   camera: Camera;
   atmosphere?: string | null;
-  stars: { x: number; y: number; r: number; tw: number }[];
+  /** Lamplit paper when true (the DOM theme), daylit when false. */
+  dark?: boolean;
+  /** Vestigial: the surface no longer has a star field. Kept so existing
+   *  callers compile; ignored by the painter and removed with them. */
+  stars?: { x: number; y: number; r: number; tw: number }[];
 }
 
-/** Paint the sky exactly as the legacy painter does — shared by the direct
- * (parity) path and the offscreen layer's repaint. Ported VERBATIM from
- * scene/scene-render.ts drawScene's background section. */
+/**
+ * The one grain tile. Paper has tooth; that tooth is what stops a flat fill
+ * reading as a screen. Generated once, deterministically (no Math.random, so
+ * two engines painting the same frame produce the same pixels), then tiled.
+ */
+let grainPattern: CanvasPattern | null = null;
+let grainKey = "";
+
+function grainTile(ctx: CanvasRenderingContext2D, alpha: number): CanvasPattern | null {
+  const key = alpha.toFixed(3);
+  if (grainPattern && grainKey === key) return grainPattern;
+  const size = 128;
+  let tile: HTMLCanvasElement | OffscreenCanvas;
+  try {
+    tile = typeof OffscreenCanvas !== "undefined"
+      ? new OffscreenCanvas(size, size)
+      : Object.assign(document.createElement("canvas"), { width: size, height: size });
+  } catch {
+    return null;
+  }
+  const tctx = (tile as HTMLCanvasElement).getContext("2d") as CanvasRenderingContext2D | null;
+  if (!tctx) return null;
+  const img = tctx.createImageData(size, size);
+  // A cheap deterministic hash per pixel — same tile every time, every engine.
+  let seed = 0x9e3779b9;
+  for (let i = 0; i < img.data.length; i += 4) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const v = (seed >>> 24) & 0xff;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = Math.round(alpha * 255);
+  }
+  tctx.putImageData(img, 0, 0);
+  grainPattern = ctx.createPattern(tile as unknown as CanvasImageSource, "repeat");
+  grainKey = key;
+  return grainPattern;
+}
+
+/** Paint the tabletop: one vertical wash, a warm edge, and the grain. */
 export function paintSky(
   ctx: CanvasRenderingContext2D,
   o: BackgroundInputs,
   gradients?: GradientCache,
 ): void {
-  const { width, height, time } = o;
-  const atmo = atmosphereOf(o.atmosphere);
-  const gcx = width / 2 + o.camera.panX;
-  const gcy = height / 2 + o.camera.panY;
+  const { width, height } = o;
+  const atmo = atmosphereOf(o.atmosphere, o.dark !== false);
+
+  // A VERTICAL wash, not a radial void: light falls from above onto a surface,
+  // rather than radiating outward from a point in space. Panning shifts it a
+  // little so the surface feels larger than the viewport without drifting on
+  // its own.
+  const shift = o.camera.panY * 0.03;
   const bgStops: readonly (readonly [number, string])[] = [
     [0, atmo.bg[0]],
-    [0.55, atmo.bg[1]],
+    [0.62, atmo.bg[1]],
     [1, atmo.bg[2]],
   ];
-  const bgR = Math.max(width, height) * 0.85;
   let bg: CanvasGradient;
   if (gradients) {
-    bg = gradients.radial(
+    bg = gradients.linear(
       ctx,
-      `bg:${atmo.id}:${width}x${height}:${gcx.toFixed(1)},${gcy.toFixed(1)}`,
-      gcx, gcy, 0, width / 2, height / 2, bgR,
+      `paper:${atmo.id}:${width}x${height}:${shift.toFixed(1)}`,
+      0, -shift, 0, height - shift,
       bgStops,
     );
   } else {
-    bg = ctx.createRadialGradient(gcx, gcy, 0, width / 2, height / 2, bgR);
+    bg = ctx.createLinearGradient(0, -shift, 0, height - shift);
     for (const [off, color] of bgStops) bg.addColorStop(off, color);
   }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  // Drifting aurora nebulae in the atmosphere's hues — slow, additive, alive.
-  const nebulaBoost = atmo.pro ? 1.8 : 1;
-  ctx.globalCompositeOperation = "lighter";
-  for (let ni = 0; ni < NEBULA_FIELD.length; ni += 1) {
-    const n = NEBULA_FIELD[ni];
-    const hue = atmo.nebulae[ni] ?? atmo.nebulae[0];
-    const px = width * n.ax + Math.sin(time * n.sp) * width * 0.05 + o.camera.panX * 0.04;
-    const py = height * n.ay + Math.cos(time * n.sp * 1.3) * height * 0.05 + o.camera.panY * 0.04;
-    const rr = Math.max(width, height) * n.rad;
-    const g = ctx.createRadialGradient(px, py, 0, px, py, rr);
-    g.addColorStop(0, withAlpha(hue, Math.min(0.12, n.a * nebulaBoost)));
-    g.addColorStop(1, withAlpha(hue, 0));
-    ctx.fillStyle = g;
+  // The tooth. Same material as the DOM grain, so the canvas and the chrome
+  // around it read as one surface rather than a window cut into a page.
+  const grain = grainTile(ctx, atmo.grain);
+  if (grain) {
+    ctx.save();
+    ctx.globalCompositeOperation = "overlay";
+    ctx.fillStyle = grain;
     ctx.fillRect(0, 0, width, height);
-  }
-  ctx.globalCompositeOperation = "source-over";
-
-  // Faint parallax sky stars.
-  for (const s of o.stars) {
-    const sx = (s.x + o.camera.panX * 0.05) % width;
-    const sy = (s.y + o.camera.panY * 0.05) % height;
-    const tw = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(time * 0.0012 + s.tw));
-    ctx.beginPath();
-    ctx.arc(sx < 0 ? sx + width : sx, sy < 0 ? sy + height : sy, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha(atmo.star, 0.12 * tw);
-    ctx.fill();
+    ctx.restore();
   }
 
-  // Focal vignette — over the sky, under the nodes.
+  // A warm edge rather than a black vignette — the corners of a sheet catching
+  // less light, not a lens.
   const vigStops: readonly (readonly [number, string])[] = [
-    [0, "rgba(3,4,9,0)"],
-    [1, "rgba(2,3,7,0.45)"],
+    [0, withAlpha("#261e14", 0)],
+    [1, withAlpha("#261e14", 0.1)],
   ];
-  const vigR0 = Math.min(width, height) * 0.32;
-  const vigR1 = Math.max(width, height) * 0.72;
+  const vigR0 = Math.min(width, height) * 0.4;
+  const vigR1 = Math.max(width, height) * 0.78;
   let vig: CanvasGradient;
   if (gradients) {
     vig = gradients.radial(
       ctx,
-      `vig:${width}x${height}`,
+      `edge:${width}x${height}`,
       width / 2, height / 2, vigR0, width / 2, height / 2, vigR1,
       vigStops,
     );
@@ -154,11 +188,10 @@ export class BackgroundLayer {
       paintSky(ctx, o);
       return;
     }
-    const atmoId = atmosphereOf(o.atmosphere).id;
+    const atmoId = atmosphereOf(o.atmosphere, o.dark !== false).id + (o.dark !== false ? ":dark" : ":light");
     const stale =
       needSurface ||
       this.lastAtmo !== atmoId ||
-      this.lastStars !== o.stars ||
       this.lastPanX !== o.camera.panX ||
       this.lastPanY !== o.camera.panY ||
       o.time - this.lastTime > refreshMs ||

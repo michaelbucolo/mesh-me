@@ -117,6 +117,8 @@
   --skeleton-1: #211d19;
   --skeleton-2: #2b241d;
   --skeleton-3: #382e25;
+
+  --canvas-shadow: rgba(0, 0, 0, 0.55);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -320,6 +322,10 @@
   --shadow-sm: var(--shadow-rest);
   --shadow-md: var(--shadow-raised);
   --shadow-lg: var(--shadow-float);
+
+  /* The contact shadow the CANVAS paints beneath a node. Warm-black, and read
+     through paint/theme.ts so the mesh and the DOM share one shadow colour. */
+  --canvas-shadow: rgba(38, 32, 24, 0.22);
 
   --scrollbar-thumb: var(--paper-3);
   --scrollbar-hover: var(--ink-4);
