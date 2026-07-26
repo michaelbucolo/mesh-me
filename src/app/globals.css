@@ -7244,7 +7244,36 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
 /* MeshPro mark — a single discreet gold hairline around a Pro member's
    Meshi. No glow, no shimmer: quiet, like a good watch. Server-authoritative
-   (presence carries isPro), purely decorative. */
+   (presence carries isPro), purely decorative.
+
+   For four months this comment was the whole feature. /meshpro sold "a subtle
+   gold aura, live"; `isPro` travelled the entire presence pipeline — column,
+   store, broadcast, and the roster's own change-detection key — and no
+   renderer ever read it. The header was here with no rule beneath it.
+
+   It is drawn as a RIM, not an aura, because the mesh's Meshis have weight
+   and do not glow (see .mesh-owner-meshi: "a contact shadow, not an aura").
+   drop-shadow follows the sprite's alpha, so four tight offsets trace the
+   silhouette itself rather than boxing it — a gilt edge on the object, which
+   is what a material treatment looks like when the design has already ruled
+   out emission. It costs one filter on one element and no layout. */
+.meshi-pro-rim {
+  --pro-gilt: 0.55px;
+  filter:
+    drop-shadow(var(--pro-gilt) 0 0 var(--meshpro-gilt))
+    drop-shadow(calc(var(--pro-gilt) * -1) 0 0 var(--meshpro-gilt))
+    drop-shadow(0 var(--pro-gilt) 0 var(--meshpro-gilt))
+    drop-shadow(0 calc(var(--pro-gilt) * -1) 0 var(--meshpro-gilt));
+}
+/* Hairlines vanish on low-DPR screens if they are thinner than a device pixel.
+   Retina and up can afford the finer line the design asks for. */
+@media (min-resolution: 2dppx) {
+  .meshi-pro-rim { --pro-gilt: 0.4px; }
+}
+/* Reduced transparency/contrast users still get the mark, just legibly. */
+@media (prefers-contrast: more) {
+  .meshi-pro-rim { --pro-gilt: 0.75px; }
+}
 
 /* ── Pointer anchor on the mesh (fine pointers) ───────────────────────
    The cursor is the OS cursor. This element is now a pure zero-size

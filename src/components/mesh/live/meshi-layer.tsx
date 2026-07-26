@@ -91,7 +91,10 @@ const RemoteMeshi = memo(function RemoteMeshi({
       className={`pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2${arriving ? " meshi-arrive" : ""}`}
       style={{ left: "50%", top: "50%", opacity: 0 }}
     >
-      <div className="meshi-world-scale">
+      {/* The MeshPro mark. `isPro` is server-authoritative — it rides the
+          presence heartbeat and is already part of this component's memo key
+          (live/roster.ts), so a membership change repaints without a reload. */}
+      <div className={p.isPro ? "meshi-world-scale meshi-pro-rim" : "meshi-world-scale"}>
         <MeshiMascot
           size={54}
           color={p.meshiColor as MeshiColor}
@@ -127,6 +130,7 @@ export function MeshiLayer({
   leavingMeshis,
   ownerLive,
   isCoarsePointer,
+  viewerIsPro,
 }: {
   rtRef: MeshRuntimeRef;
   prefs: MeshiPreferences;
@@ -140,6 +144,10 @@ export function MeshiLayer({
   leavingMeshis: LeavingMeshi[];
   ownerLive: boolean;
   isCoarsePointer: boolean;
+  /** This viewer's own MeshPro membership, decided on the server. Only the
+   * wandering cursor Meshi needs it — every other Meshi on screen belongs to
+   * someone else and carries its own isPro through presence. */
+  viewerIsPro: boolean;
 }) {
   // Ghost Mode literally ghosts YOUR Meshi — pale, translucent, drifting —
   // so you can always see that you're browsing unseen.
@@ -221,7 +229,7 @@ export function MeshiLayer({
           }}
           className="pointer-events-none absolute left-0 top-0 z-20 opacity-0 transition-opacity duration-150"
         >
-          <div className="meshi-world-scale">
+          <div className={viewerIsPro ? "meshi-world-scale meshi-pro-rim" : "meshi-world-scale"}>
             <div className={isGhosting ? "mesh-ghosted" : undefined}>
               <MeshiMascot
                 size={54}
@@ -258,7 +266,10 @@ export function MeshiLayer({
             className="pointer-events-none absolute left-1/2 top-1/2 z-[6] -translate-x-1/2 -translate-y-1/2"
             aria-hidden="true"
           >
-            <div className="meshi-world-scale">
+            {/* The mesh owner's own mark. `isMeshPro` here is hasMeshPro() from
+                the server (api/mesh/route.ts), so a founder's derived membership
+                counts exactly as a paid one. */}
+            <div className={meshData.user?.isMeshPro ? "meshi-world-scale meshi-pro-rim" : "meshi-world-scale"}>
               <div className={ownerOnline ? "mesh-owner-meshi is-online" : "mesh-owner-meshi is-asleep"}>
                 {!ownerOnline && (
                   <>
@@ -319,7 +330,12 @@ export function MeshiLayer({
           className="meshi-leave pointer-events-none absolute z-10"
           style={{ left: `${l.x}px`, top: `${l.y}px` }}
         >
-          <div className="meshi-world-scale" style={{ ["--meshi-scale" as string]: l.s.toFixed(3) } as React.CSSProperties}>
+          {/* Keep the mark through the fade — losing it on the way out would
+              read as the membership lapsing at the moment they left. */}
+          <div
+            className={l.p.isPro ? "meshi-world-scale meshi-pro-rim" : "meshi-world-scale"}
+            style={{ ["--meshi-scale" as string]: l.s.toFixed(3) } as React.CSSProperties}
+          >
             <MeshiMascot
               size={54}
               color={l.p.meshiColor as MeshiColor}

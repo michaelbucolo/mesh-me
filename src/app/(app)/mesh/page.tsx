@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
+import { hasMeshPro } from "@/lib/mesh-pro";
 import { MeshSceneLoader } from "@/components/mesh/scene/mesh-scene-loader";
 
 export const metadata: Metadata = { title: "Mesh Dashboard" };
@@ -16,8 +17,19 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
   // absence of this param) renders BOTH your owner Meshi at the heart AND your
   // pointer-following cursor Meshi: two of you. Resolve identity here and drop
   // the param when it points at yourself, so every own-mesh code path is right.
-  const user = raw ? await getCurrentUser() : null;
+  // Resolved unconditionally now: the identity test below only needs it when
+  // `raw` is set, but the MeshPro mark on the viewer's OWN wandering Meshi
+  // needs it on every visit, including a plain /mesh with no params.
+  const user = await getCurrentUser();
   const isSelf = !!raw && !!user && (raw === user.id || raw.toLowerCase() === user.username.toLowerCase());
   const viewUser = isSelf ? undefined : raw;
-  return <MeshSceneLoader viewMode={viewMode} viewUserId={viewMode === "global" ? undefined : viewUser} />;
+  return (
+    <MeshSceneLoader
+      viewMode={viewMode}
+      viewUserId={viewMode === "global" ? undefined : viewUser}
+      // Server-decided, never inferred on the client: hasMeshPro covers a
+      // founder's derived membership as well as a paid subscription.
+      viewerIsPro={hasMeshPro(user)}
+    />
+  );
 }

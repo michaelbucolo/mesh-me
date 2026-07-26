@@ -82,6 +82,13 @@
   --info:    #0b5a61;      /* p0 6.62 · p1 7.66 · p2 5.98 · p3 5.28 */
   --warm-wash: rgba(153, 39, 86, 0.10);
 
+  /* MeshPro gilt — the hairline rim on a Pro member's Meshi (.meshi-pro-rim).
+     A MARK, not a pigment and not a mould: it never fills and never carries
+     text, so it is exempt from the ink contrast floor by construction. Its job
+     is to be legible against a coloured sprite on warm paper, so it is darker
+     and less chromatic than --mould-amber, which would wash out on light. */
+  --meshpro-gilt: #a67c1a;
+
   /* ── MOULDED PLASTICS — fills only. Each has a PINNED ink and a PINNED
         plinth. THESE SEVEN TRIPLES ARE NOT REDECLARED IN .dark. ── */
   --mould-cobalt: #3b5ae0;  --mould-cobalt-ink: #ffffff;  --mould-cobalt-plinth: #22369e;  /* ink 5.64 · step 1.78 */
@@ -209,6 +216,10 @@
   --accent-plinth: #5a70d6;
   --accent-wash: rgba(147, 169, 255, 0.12);
   --accent-line: rgba(147, 169, 255, 0.28);
+
+  /* MeshPro gilt — brighter here. The dark mesh is nearly black, so the light
+     theme's #a67c1a reads as a muddy smear against it rather than as gold. */
+  --meshpro-gilt: #e8bd5c;
 
   /* ── INK PIGMENTS — theme-dependent. All four papers. ── */
   --warm:    #f486b0;      /* p0  8.38 · p1 7.36 · p2  8.62 · p3 5.34 */

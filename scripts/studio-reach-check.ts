@@ -27,7 +27,7 @@
  * only the server decides who may have them.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { normalizeStudioWeights, resolveStudioWeights } from "../src/lib/flow-ranking";
 
@@ -40,12 +40,41 @@ const fail = (section: string, detail: string) => failures.push(`[${section}] ${
 let checks = 0;
 const ok = () => { checks += 1; };
 
-/** Every server path that ranks the merged feed for a signed-in person. */
-const RANKED_SURFACES = [
-  "src/app/api/flow/route.ts",
-  "src/app/(app)/feed/page.tsx",
-  "src/app/api/feed/paginated/route.ts",
-];
+/**
+ * Every server path that ranks the merged feed for a signed-in person —
+ * DISCOVERED, not listed.
+ *
+ * This used to be three hand-written paths. It missed src/app/(app)/flow/page.tsx
+ * — the Flow's own server render, and the exact page /meshpro links to when it
+ * sells the sliders. So a member opened their Flow, the first paint ignored
+ * their algorithm, and it only started obeying them once the client fetched
+ * page two. The gate reported "one resolver, every ranked surface" the whole
+ * time, because the list did not contain the surface that was wrong.
+ *
+ * A gate whose scope is a list is only ever as good as the list. Walking the
+ * tree for callers means a new ranked surface cannot be added without this
+ * check seeing it.
+ */
+function rankedSurfaces(): string[] {
+  const found: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (entry.name === "node_modules" || entry.name === ".next") continue;
+        walk(rel);
+      } else if (/\.tsx?$/.test(entry.name)) {
+        // The ranker's own module defines it; it is not a calling surface.
+        if (rel === "src/lib/flow-ranking.ts") continue;
+        if (/\brankFlowPosts\s*\(/.test(strip(read(rel)))) found.push(rel);
+      }
+    }
+  };
+  walk("src");
+  return found.sort();
+}
+
+const RANKED_SURFACES = rankedSurfaces();
 
 // ── 1. The resolver decides the entitlement, not the caller ──────────────────
 {
@@ -91,6 +120,16 @@ const RANKED_SURFACES = [
 
 // ── 2. Every ranked surface asks for the mix ─────────────────────────────────
 {
+  // The walker must be able to SEE. A clean report from a discovery pass that
+  // found nothing is exactly the failure this section was rewritten to end.
+  if (RANKED_SURFACES.length < 4) {
+    fail(
+      "2 reach",
+      `only ${RANKED_SURFACES.length} ranked surface(s) discovered (${RANKED_SURFACES.join(", ") || "none"}) — ` +
+      `the walker is broken, not the code. There are at least four: the Flow page, the Flow API, the feed page and the paginated feed API.`,
+    );
+  } else ok();
+
   for (const file of RANKED_SURFACES) {
     const body = strip(read(file));
     if (!/rankFlowPosts\(/.test(body)) {
