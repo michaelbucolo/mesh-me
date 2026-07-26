@@ -112,6 +112,47 @@ export const PLATFORM_SUPPLY_STATUS: PlatformSupplyStatus[] = [
     lanes: [],
     docsUrl: "https://developers.facebook.com/docs/instagram-platform",
   },
+  {
+    platform: "tiktok",
+    name: "TikTok",
+    // Same shape as Instagram: a known URL renders through the unauthenticated
+    // oEmbed endpoint and TikTok's own player, but there is no anonymous
+    // search, hashtag, trending or creator-videos endpoint. No discovery, no
+    // feed. The Display API gives a connected user their OWN videos.
+    anonymousRead: "requires_connection",
+    reason:
+      "TikTok publishes no way to search or browse its videos from another app. A specific video plays here when someone links it. Connecting your account brings your own TikTok videos onto your mesh.",
+    lanes: [],
+    docsUrl: "https://developers.tiktok.com/doc/embed-videos",
+  },
+  {
+    platform: "twitter",
+    name: "X",
+    // The one platform where the barrier is price rather than permission. The
+    // app-only bearer token still officially serves public posts — but since
+    // 6 February 2026 X charges per post read with no free allowance. So this
+    // is buildable the moment someone decides to fund it, and dishonest to
+    // ship before then. Recorded as "unavailable" because that is what it is
+    // for a user today; the reason says why, so nobody re-litigates it.
+    anonymousRead: "unavailable",
+    reason:
+      "X now charges for every post an app reads, with no free allowance. Rather than pass that on or quietly show you a thin feed, mesh.me does not pull from X. A specific post still shows up when someone links it.",
+    lanes: [],
+    docsUrl: "https://docs.x.com/x-api/introduction",
+  },
+  {
+    platform: "snapchat",
+    name: "Snapchat",
+    // The flattest no in the list. Snapchat's content-bearing endpoints are
+    // allowlist-only, need a Snap Business account, and require each
+    // individual creator's authorization. There is no version of this that
+    // works for a general reader.
+    anonymousRead: "unavailable",
+    reason:
+      "Snapchat has no content API another app can read — not for public Spotlights, not for Stories, and not with your account connected. Snaps cannot appear here.",
+    lanes: [],
+    docsUrl: "https://developers.snap.com/",
+  },
 ];
 
 
