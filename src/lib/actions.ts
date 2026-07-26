@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getTrustedClientIp } from "./client-ip";
 import { revalidatePath } from "next/cache";
+import { normalizeProfileLinks } from "@/lib/profile-links";
 import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
 import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
@@ -3231,6 +3232,40 @@ export async function updateProfileInfo(input: {
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/profile");
   return { success: true };
+}
+
+// ─── Profile Links ("links in bio") ─────────────────────────
+// `UserLink` shipped in the schema with a User relation and had ZERO references
+// anywhere in src/ — a feature designed and never finished. This is the write
+// half; src/lib/profile-links.ts is the only place a URL's safety is decided,
+// and the read half is gated behind `profileVisible` in queries.ts like the bio.
+//
+// Authorization is the same shape as every other profile write here: the row is
+// keyed on `userId: user.id` from the session and NO id is ever accepted from
+// the client, so a caller can only replace their own set. Replace-all rather
+// than per-row edits because ordering is part of the value and a set of five is
+// cheaper to rewrite than to diff — and one transaction means a failed save
+// leaves the previous links intact rather than half a list.
+export async function saveProfileLinks(input: { links: { label: string; url: string }[] }) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!Array.isArray(input?.links)) return { error: "Invalid links" };
+
+  const result = normalizeProfileLinks(
+    input.links.map((l) => ({ label: String(l?.label ?? ""), url: String(l?.url ?? "") })),
+  );
+  if ("error" in result) return { error: result.error };
+
+  await prisma.$transaction([
+    prisma.userLink.deleteMany({ where: { userId: user.id } }),
+    ...result.links.map((link) =>
+      prisma.userLink.create({ data: { userId: user.id, label: link.label, url: link.url } }),
+    ),
+  ]);
+
+  revalidatePath(`/profile/${user.username}`);
+  revalidatePath("/profile");
+  return { success: true, links: result.links };
 }
 
 // ─── Global Mesh Actions ────────────────────────────────────

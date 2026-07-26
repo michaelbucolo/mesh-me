@@ -9,10 +9,12 @@ import {
   EyeOff,
   Globe,
   Heart,
+  Link as LinkIcon,
   MessageCircle,
   Settings,
   ShieldCheck,
 } from "lucide-react";
+import { linkDisplayHost } from "@/lib/profile-links";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -36,6 +38,7 @@ import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/l
 import { FollowButton } from "./[username]/follow-button";
 import { BlockUserButton } from "@/components/privacy/block-controls";
 import { ProfileAboutEditor } from "./[username]/profile-about-editor";
+import { ProfileLinksEditor } from "./[username]/profile-links-editor";
 import { Button } from "@/components/ui/button";
 import { ABOUT_FIELDS, ABOUT_FIELD_META, ABOUT_GROUPS, type AboutField } from "@/lib/profile-info";
 import { PlatformLogo } from "@/components/platform/platform-logo";
@@ -232,6 +235,36 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 {/* Bio */}
                 {profile.bio && (
                   <p className="mt-3 max-w-lg text-sm leading-relaxed text-[var(--mesh-text-secondary)]">{profile.bio}</p>
+                )}
+
+                {/* Links in bio. `UserLink` has been in the schema since the
+                    beginning with nothing reading or writing it; this is the
+                    first surface to render it. The href has been through
+                    safeLinkHref on the way out of the query, and the host is
+                    shown next to the label so a viewer can see where a link
+                    actually goes before pressing it — a label is chosen by the
+                    profile owner and can say anything. `nofollow` because these
+                    are user-submitted, `noopener noreferrer` because they open
+                    in a new tab. */}
+                {profile.links.length > 0 && (
+                  <ul className="mt-3 flex max-w-lg flex-wrap gap-2">
+                    {profile.links.map((link) => (
+                      <li key={link.id}>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="ds-focus-ring group inline-flex max-w-full items-center gap-1.5 rounded-md border border-[var(--rule)] bg-[var(--paper-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] transition-colors hover:border-[var(--rule-strong)] hover:bg-[var(--paper-hover)]"
+                        >
+                          <LinkIcon size={13} aria-hidden="true" className="shrink-0 text-[var(--text-tertiary)]" />
+                          <span className="truncate font-medium">{link.label}</span>
+                          <span className="truncate text-micro text-[var(--text-tertiary)]">
+                            {linkDisplayHost(link.url)}
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 )}
 
                 {!canViewProfile && (
@@ -478,13 +511,20 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
         {canViewProfile && activeTab === "links" && (
           <div className="space-y-3">
+            {/* The owner's editor. Until this existed there was no write path to
+                UserLink anywhere in the codebase, so the list below could only
+                ever render its empty state — and that empty state told people to
+                "add links from Settings", where no such control has ever been. */}
+            {isOwnProfile && profile.linksEditable && (
+              <ProfileLinksEditor initial={profile.linksEditable} />
+            )}
             {links.length > 0 ? (
               links.map((link) => (
                 <a
                   key={link.id}
                   href={safeHref(link.url)}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener noreferrer nofollow"
                   className="flex items-center justify-between rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-5 py-4 transition-colors hover:border-[var(--mesh-border-active)]"
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -501,7 +541,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
                 <h2 className="text-lg font-semibold text-[var(--mesh-text)]">No creator links yet</h2>
                 <p className="text-sm text-[var(--mesh-text-secondary)]">
-                  {isOwnProfile ? "Add links to your channels from Settings." : `${profile.displayName} hasn't added any links.`}
+                  {isOwnProfile ? "Add your first link above." : `${profile.displayName} hasn't added any links.`}
                 </p>
               </section>
             )}
@@ -616,7 +656,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   key={link.id}
                   href={safeHref(link.url)}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener noreferrer nofollow"
                   className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-[var(--mesh-text-secondary)] transition-colors hover:bg-[var(--mesh-panel)]"
                 >
                   <div className="flex items-center gap-2.5">
