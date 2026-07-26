@@ -29,6 +29,7 @@ import { GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
 import type { MeshApiResponse } from "../core/domain";
 import type { LeavingMeshi, MeshRuntimeRef, RemotePresence } from "../scene/runtime";
 import type { SceneNode } from "../scene/scene-model";
+import { setCanvasMeshi } from "./meshi-presence";
 
 /** Rich hover preview — STILLS ONLY (the Lens is the only video surface). */
 function HoverPreviewCard({ node }: { node: SceneNode }) {
@@ -169,6 +170,18 @@ export function MeshiLayer({
   // you. The cursor Meshi is for exploring: show it only when visiting someone
   // else's mesh, or as a fallback when there's no owner Meshi to stand in.
   const showCursorMeshi = prefs.enabled && (!isOwnMesh || !meshData?.meshiPreference);
+
+  // Tell the floating companion when the canvas actually has you, so it yields
+  // on that frame instead of on the pathname. Either body below is YOU: the
+  // owner Meshi at the heart of your own mesh, or the cursor Meshi you explore
+  // someone else's with. If neither renders — Meshi turned off while visiting —
+  // the canvas does not have you and the float stays, rather than leaving you
+  // with no companion at all. See meshi-presence.ts.
+  const canvasHasYou = (isOwnMesh && Boolean(meshData?.meshiPreference)) || showCursorMeshi;
+  useEffect(() => {
+    setCanvasMeshi(canvasHasYou);
+    return () => setCanvasMeshi(false);
+  }, [canvasHasYou]);
 
   return (
     <>
