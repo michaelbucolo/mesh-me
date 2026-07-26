@@ -5,7 +5,7 @@ import {
   normalizeFeedContentFilter,
   normalizeFeedSource,
 } from "@/lib/feed-data";
-import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
+import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts, resolveStudioWeights } from "@/lib/flow-ranking";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -33,7 +33,12 @@ export async function GET(request: Request) {
       getFlowCandidates(user),
       getViewerTasteProfile(user.id),
     ]);
-    mergedPosts = rankFlowPosts(candidates, profile, { limit: windowSize });
+    // Same mix as the first paint above, or a later page would re-rank without
+    // the member's weights and the list would jump when it loaded.
+    mergedPosts = rankFlowPosts(candidates, profile, {
+      limit: windowSize,
+      studio: resolveStudioWeights(user),
+    });
   } else {
     mergedPosts = await getCombinedFeedPosts({
       user,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
-import { applyWatchSignal, authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, normalizeStudioWeights, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
+import { applyWatchSignal, authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, resolveStudioWeights, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
 import { parseAcceptLanguage } from "@/lib/language";
 import { rateLimit } from "@/lib/security";
 import { getTrustedClientIp } from "@/lib/client-ip";
@@ -41,10 +41,12 @@ export async function GET(request: Request) {
   const exclude = new Set(excludeIds);
   const seen = new Set(parseIds("seen"));
   const mode = normalizeFlowRankMode(searchParams.get("mode"));
-  // Custom Studio weights are a MeshPro control — validated server-side so
-  // the flag can't be spoofed by the client.
-  const isPro = (user as { isMeshPro?: boolean }).isMeshPro === true;
-  const studio = isPro ? normalizeStudioWeights(searchParams.get("studio")) : null;
+  // Custom Studio weights are a MeshPro control — resolved server-side, so the
+  // entitlement cannot be spoofed by the client and cannot differ between the
+  // Flow, the feed and the feed's later pages. The request parameter still wins
+  // while a slider is being dragged; the account's stored mix is the fallback,
+  // so the weights survive a new device instead of living in localStorage.
+  const studio = resolveStudioWeights(user, searchParams.get("studio"));
   // Cater the Flow to the viewer's language on every page, same as first paint.
   const viewerLangs = new Set(parseAcceptLanguage(request.headers.get("accept-language")));
 

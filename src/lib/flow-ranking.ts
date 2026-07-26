@@ -13,6 +13,7 @@ import { prisma } from "./prisma";
 import { ANONYMOUS_VIEWER, canonicalFeedKey, getCombinedFeedPosts, type FeedCardPost, type FeedCurrentUser } from "./feed-data";
 import { guessLanguage } from "./language";
 import { parseMutedSources } from "./muted-sources";
+import { hasMeshPro } from "@/lib/mesh-pro";
 
 export type TasteProfile = {
   // authorKey (user id or external author handle) -> interaction weight
@@ -426,6 +427,31 @@ export type StudioWeights = {
   interests: number;
   variety: number;
 };
+
+/**
+ * THE ACCOUNT'S STUDIO MIX, resolved in one place.
+ *
+ * /meshpro sells Algorithm Studio as "your algorithm, literally". It failed that
+ * twice: the weights only reached /flow — `feed/page.tsx` and
+ * `api/feed/paginated/route.ts` called this same ranker with `{ limit }` and no
+ * `studio`, so your algorithm governed one surface and was silently ignored on
+ * the one people open first — and they lived in localStorage, so the paid
+ * control was stored where free things live and a new phone forgot it.
+ *
+ * Every ranked surface asks this, so they cannot drift apart again. It returns
+ * null for a free account without consulting the caller, because an entitlement
+ * that each call site re-decides is an entitlement that eventually differs.
+ */
+export function resolveStudioWeights(
+  user: { username?: string | null; isMeshPro?: boolean | null; flowStudio?: string | null } | null | undefined,
+  override?: string | null,
+): StudioWeights | null {
+  if (!user) return null;
+  if (!hasMeshPro(user)) return null;
+  // An explicit request parameter wins, so tuning a slider is live before the
+  // write lands; otherwise the account's stored mix.
+  return normalizeStudioWeights(override) ?? normalizeStudioWeights(user.flowStudio);
+}
 
 export function normalizeStudioWeights(raw: string | null | undefined): StudioWeights | null {
   if (!raw) return null;

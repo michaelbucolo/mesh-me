@@ -27,7 +27,7 @@ import {
 import { communityThreadTitle } from "./community-constants";
 import { isUniqueConstraintError } from "./prisma-errors";
 import { getFeedPostById } from "./feed-data";
-import { authorKey, dominantFormat } from "./flow-ranking";
+import { normalizeStudioWeights, authorKey, dominantFormat } from "./flow-ranking";
 import { isValidMutedSourceKey, MAX_MUTED_SOURCES, parseMutedSources, serializeMutedSources } from "./muted-sources";
 import { normalizePlatformId } from "./platform-capabilities";
 
@@ -1358,6 +1358,41 @@ export async function toggleReaction(postId: string) {
  * value — no blind-toggle drift). Idempotent upsert. Never notifies (external
  * content has no mesh recipient) and is never surfaced to anyone but the liker.
  */
+/**
+ * Persist the account's Algorithm Studio mix.
+ *
+ * These five weights are what /meshpro sells as "your algorithm, literally",
+ * and they lived only in localStorage — so the paid control was stored where
+ * free things live, and a new phone, a new browser or a cleared cache reset it
+ * with no way to recover. The account is the right home for it.
+ *
+ * Validated with the ranker's own normalizeStudioWeights, so the stored string
+ * can only ever be five integers clamped to 0..100 — the same shape the ranking
+ * path already trusts. Nothing else may write this column.
+ */
+export async function setFlowStudioWeights(raw: string | null) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!hasMeshPro(user)) return { error: "MeshPro is required to tune your algorithm." };
+
+  // null clears it — "back to the balanced preset" must be expressible.
+  if (raw === null) {
+    await prisma.user.update({ where: { id: user.id }, data: { flowStudio: null } });
+    return { success: true, studio: null };
+  }
+
+  const weights = normalizeStudioWeights(raw);
+  if (!weights) return { error: "Those weights are not valid." };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    // Re-serialised from the PARSED value, never the raw input: whatever the
+    // client sent, what lands in the column is exactly five clamped integers.
+    data: { flowStudio: JSON.stringify(weights) },
+  });
+  return { success: true, studio: weights };
+}
+
 export async function setFlowLike(feedItemId: string, liked: boolean) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };

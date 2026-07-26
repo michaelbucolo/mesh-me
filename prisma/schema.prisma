@@ -69,6 +69,12 @@ model User {
   hideActivityStatus         Boolean                    @default(false)
   readReceipts               Boolean                    @default(false)
   ghostMode                  Boolean                    @default(false)
+  /// Algorithm Studio weights, as the same JSON string the ranker already
+  /// validates with normalizeStudioWeights(). Stored on the account rather than
+  /// in localStorage because it is the thing MeshPro sells — "your algorithm,
+  /// literally" — and a paid control that a new phone silently forgets is not
+  /// one. Nullable: absent means the account has never tuned it.
+  flowStudio                 String?
   // Sensitive-content controls. NSFW is always off unless an adult-verification
   // provider confirms the user is eligible; Mesh.me never stores ID images.
   nsfwEnabled                Boolean                    @default(false)

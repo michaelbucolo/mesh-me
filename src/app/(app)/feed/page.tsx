@@ -9,7 +9,7 @@ import {
   normalizeFeedContentFilter,
   normalizeFeedSource,
 } from "@/lib/feed-data";
-import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts } from "@/lib/flow-ranking";
+import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts, resolveStudioWeights } from "@/lib/flow-ranking";
 
 export const metadata: Metadata = {
   title: "Feed",
@@ -37,7 +37,15 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const [feedWindow, connectedAccounts] = await Promise.all([
     rankedDefault
       ? Promise.all([getFlowCandidates(user), getViewerTasteProfile(user.id)]).then(
-          ([candidates, profile]) => rankFlowPosts(candidates, profile, { limit: INITIAL_FEED_LIMIT + 1 }),
+          // The Studio mix belongs here too. This call used to pass `{ limit }`
+          // alone while api/flow/route.ts passed `{ mode, studio }`, so a
+          // MeshPro member's weights governed the Flow and were ignored on the
+          // feed — the surface most people open first.
+          ([candidates, profile]) =>
+            rankFlowPosts(candidates, profile, {
+              limit: INITIAL_FEED_LIMIT + 1,
+              studio: resolveStudioWeights(user),
+            }),
         )
       : getCombinedFeedPosts({
           user,
