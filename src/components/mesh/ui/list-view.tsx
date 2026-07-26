@@ -56,7 +56,10 @@ export function MeshListView({
           <span className="flex items-center gap-1.5">
             <span className="truncate text-sm text-[var(--text-primary)]">{node.label}</span>
             {node.isNew && (
-              <span className="shrink-0 rounded-full bg-cyan-400/15 px-1.5 py-px text-micro font-semibold mesh-eyebrow text-cyan-200">
+              // The SAME mark the dock's unseen badge wears (.mesh-new-mark).
+              // Press the badge, read this list — one gesture, and until now
+              // the two ends of it were cyan and amber.
+              <span className="mesh-new-mark mesh-eyebrow shrink-0 px-1.5 py-px text-micro font-semibold">
                 New
               </span>
             )}
@@ -126,8 +129,14 @@ export function MeshListView({
                         <span className="flex items-center gap-1.5">
                           <span className="truncate text-sm text-[var(--text-primary)]">{node.label}</span>
                           {node.status === "online" && (
-                            <span className="flex items-center gap-1 text-micro font-semibold text-emerald-300">
-                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                            <span className="flex items-center gap-1 text-micro font-semibold text-[var(--text-secondary)]">
+                              {/* `.mesh-live-dot` (globals.css:2323) already
+                                  existed and already pulses — this row had
+                                  hand-rolled a second one out of
+                                  `bg-emerald-400 animate-pulse`. The dot is the
+                                  signal; the words are ink, so the label drops
+                                  its second green and gets its contrast back. */}
+                              <span className="mesh-live-dot shrink-0" />
                               here now
                             </span>
                           )}

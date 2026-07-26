@@ -102,6 +102,18 @@
   --radius-2xl: 1.75rem;  /* 28px — was 32, capped */
   --radius-3xl: 1.75rem;  /* 28px — collapses rounded-3xl into the cap */
 
+  /* The mobile tab bar's height. Declared here, applied as the bar's own
+     min-height (`.mobile-bottom-nav`), and read by `.mesh-dock` so the dock
+     sits above the bar rather than under it. Measured on the running build at
+     390×844 the bar came back 53px tall; 3.5rem is that, rounded up to the
+     scale, and the bar is free to be taller — a floor cannot drift. */
+  --mobile-nav-h: 3.5rem;
+
+  /* The top bar's height, same contract: applied as `.mesh-topbar`'s own
+     min-height and read by the mesh chrome that has to sit below it. Measured
+     72px on the running build at 1440×900, which is this. */
+  --mesh-topbar-h: 4.5rem;
+
   /* Type scale — the same lever as the radii above, for the same reason.
      Tailwind v4 compiles `text-sm` to `font-size: var(--text-sm)`, so these ten
      lines move every one of the 1,131 `text-*` utilities in the product onto the
@@ -745,8 +757,15 @@ select:focus-visible {
 }
 
 /* ─── Mesh Topbar ─── */
+/* On the mesh the top bar is `position: absolute; top: 0` OVER the canvas
+   (.mesh-main-mesh .mesh-topbar below), so anything the mesh pins to its own
+   top edge lands underneath it unless it knows how tall the bar is. It used to
+   "know" by way of a hardcoded `top-20` on the old mode-tabs — 80px, chosen to
+   clear 72px, written in a component, and silently wrong the moment either
+   number moved. `--mesh-topbar-h` is that number, declared once here and read
+   by `.mesh-context` / `.mesh-marquee`. */
 .mesh-topbar {
-  min-height: 4.5rem;
+  min-height: var(--mesh-topbar-h);
 }
 
 .mesh-topbar-icon {
@@ -2313,12 +2332,21 @@ body[data-meshi-panel="open"] .bug-report-widget {
   animation: meshWiggle 3.8s ease-in-out infinite;
 }
 
+/* Someone is here right now. Green-for-present is close to universal and worth
+   keeping — but it comes from the plastic the product is moulded from, not from
+   a literal `#34d399` that matches nothing else on screen. Jade is the plastic
+   that already means live here (--domain-messages).
+
+   This class ALREADY EXISTED when the mesh list grew its own
+   `bg-emerald-400` + `text-emerald-300` pair for the same idea. Two definitions
+   of one signal is the failure this codebase keeps producing; the list reads
+   this now, and there is one live dot. */
 .mesh-live-dot {
   width: 0.6rem;
   height: 0.6rem;
   border-radius: 999px;
-  background: #34d399;
-  box-shadow: 0 0 0 5px rgba(52, 211, 153, 0.12);
+  background: var(--mould-jade);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--mould-jade) 12%, transparent);
   animation: meshPulse 1.8s ease-in-out infinite;
 }
 
@@ -3199,6 +3227,13 @@ body {
 .mobile-bottom-nav {
   background: var(--mesh-bg);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  /* The tab bar's own height, declared once and read by anything that has to
+     sit above it — today that is `.mesh-dock`. It is a min-height on the bar
+     itself, not a number copied into the dock's `bottom`, so the two cannot
+     drift apart: whatever the bar actually measures, it is at least this, and
+     the dock clears at least this. Two places stating one fact is how the
+     rest of this codebase's outages started. */
+  min-height: var(--mobile-nav-h);
 }
 
 .mesh-entry::before,
@@ -5468,8 +5503,14 @@ body {
 
 /* --- TopBar: Twitter-compact on phones --- */
 @media (max-width: 767px) {
+  /* The height moves on the TOKEN, not on the rule, so the one number the bar
+     is sized from is still the one number anything sitting below it reads. A
+     `min-height: 2.75rem` here would have been a second opinion. */
+  :root {
+    --mesh-topbar-h: 2.75rem;
+  }
+
   .mesh-topbar {
-    min-height: 2.75rem;
     gap: 0.35rem;
     padding: 0.35rem 0.75rem;
   }
@@ -5511,6 +5552,15 @@ body {
   .mesh-shell-feed .mesh-topbar,
   .mesh-shell-mesh .mesh-topbar {
     display: none !important;
+  }
+
+  /* …and because it is hidden it occupies nothing, so the mesh chrome must
+     stop reserving room for it. Setting the token on the shell, rather than
+     writing a second `top` into the component, keeps this the same one fact
+     the bar itself is sized from. */
+  .mesh-shell-mesh,
+  .mesh-shell-feed {
+    --mesh-topbar-h: 0rem;
   }
 }
 
@@ -7050,18 +7100,17 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   40% { opacity: 1; transform: scale(1); }
   100% { opacity: 1; transform: scale(1.08); letter-spacing: 0.02em; }
 }
-.mesh-rail-btn {
-  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
-}
-.mesh-rail-btn:hover { transform: scale(1.04); }
-.mesh-rail-btn:active { transform: scale(0.94); }
+/* `.mesh-rail-btn` (a scale-on-hover transform for the eight-disc rail) IS
+   DELETED with the rail. A `.key` does not scale on hover — it presses, which
+   is `translate` + a shortened plinth, and it owns that transition itself
+   (globals.css:5028). Two competing hover models on one control is how the
+   mesh ended up feeling like a different product from the app around it. */
 .mesh-bubble-btn {
   transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, opacity 0.2s ease;
 }
 .mesh-bubble-btn:hover { transform: scale(1.045); }
 .mesh-bubble-btn:active { transform: scale(0.94); }
 @media (prefers-reduced-motion: reduce) {
-  .mesh-rail-btn, .mesh-rail-btn:hover, .mesh-rail-btn:active { transition: none; transform: none; }
   .mesh-bubble-btn, .mesh-bubble-btn:hover, .mesh-bubble-btn:active { transition: none; transform: none; }
 }
 
@@ -7157,32 +7206,151 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
     color-mix(in srgb, var(--accent) 42%, transparent)
   );
 }
-/* Rail control label: visible on larger touch screens (discoverable), reveals
-   on hover/focus with a mouse. PHONES get a tidy icon-only column — the five
-   full-width labeled pills covered nearly half the mesh on a 390px screen. */
-.mesh-rail-label {
-  margin-left: 0.5rem;
+/* ── THE MESH CHROME: TWO OBJECTS ────────────────────────────────────────────
+
+   Photographed on the running build before this: SEVEN absolutely-positioned
+   islands on /mesh at 1440×900 — a Mesh|Global pill dead-centre over a post
+   card, a three-pill visiting row top-left, a 46×440 column of eight identical
+   discs down the right edge, a bottom-left column of unseen chip-pairs, an
+   ambient toast, a live-paused pip, a continuum handle. At 390×844 that rail
+   was 46×408: forty-eight percent of the screen height, down the edge a hand
+   holds.
+
+   Two anchors now. `.mesh-context` top-left says WHERE YOU ARE. `.mesh-dock`
+   bottom-right says WHAT YOU CAN DO. Both are `.tray` — a recess holding
+   `.key`s, which is the same material the rest of the product is built from,
+   and the reason the mesh stopped looking like an embedded graph widget.
+
+   The middle of the canvas is left alone. That is where your own node sits. */
+
+.mesh-context {
+  /* BELOW the top bar, which on this surface is `position: absolute; top: 0`
+     over the canvas. The first draft of this pinned it at a flat `top: 0.75rem`
+     and it rendered UNDERNEATH the bar — photographed, half a Mesh|Global
+     switch peeking out from behind "Your digital world. Connected by you."
+     The old code cleared it with a hardcoded `top-20`; this reads the bar's
+     own height, which is 0 on phones where the bar is hidden. */
+  top: calc(var(--mesh-topbar-h) + 0.75rem);
+  left: 0.75rem;
+  /* Never wider than the canvas minus the dock's breathing room, so a long
+     display name truncates instead of running under the world. */
+  max-width: min(20rem, calc(100% - 1.5rem));
+}
+@media (min-width: 1024px) {
+  .mesh-context { left: 1rem; }
+}
+/* The selected half of the Mesh|Global switch is moulded from the mesh's own
+   plastic — the same tomato the Mesh tab in the sidebar and the mobile tab bar
+   already use (--domain-mesh). One surface, one plastic, everywhere it is
+   named. Emphasis here is material, never brightness. */
+.mesh-context-on {
+  --mould: var(--mould-tomato);
+  --mould-ink: var(--mould-tomato-ink);
+  --mould-plinth: var(--mould-tomato-plinth);
+}
+
+/* The ambient slot: directly under the context bar, left-aligned with it, so
+   every word of chrome on this surface reads down one column. */
+.mesh-marquee {
+  /* One context-bar height (h-9 key + 2×p-1.5 tray = 3rem) plus its own
+     0.75rem gap, below the context bar — which is itself below the top bar. */
+  top: calc(var(--mesh-topbar-h) + 4.5rem);
+  left: 0.75rem;
+  max-width: calc(100% - 1.5rem);
+}
+@media (min-width: 1024px) {
+  .mesh-marquee { left: 1rem; }
+}
+
+/* The dock. Bottom-right on every size — right-anchored so it never fights the
+   bottom-centre continuum handle, horizontal so it costs one row of height
+   instead of half the screen's height. On phones it clears the mobile tab bar
+   AND the home indicator; `--mobile-nav-h` is the tab bar's own height, so the
+   two can never drift apart. */
+.mesh-dock {
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + var(--mobile-nav-h, 0px));
+  max-width: calc(100% - 1.5rem);
+  flex-wrap: nowrap;
+}
+/* 768px, matching the tab bar's own `md:hidden` — NOT the 1024px used above
+   for spacing. The bar disappears at exactly this width, so this is the width
+   at which the dock must stop reserving room for it. Picking a different
+   number here would leave a 3.5rem hole between 768 and 1024 that nothing
+   occupies, which is the same class of bug as any other second opinion about
+   one fact. */
+@media (min-width: 768px) {
+  .mesh-dock {
+    right: 1rem;
+    /* The tab bar is gone at this width; the continuum handle is not. */
+    bottom: 1rem;
+  }
+}
+/* A dock key is at least a 44px touch target in both axes (WCAG 2.5.5 / iOS
+   HIG), which `h-11 min-w-11` gives, and the tray's own padding keeps two
+   adjacent keys from sharing a fingertip. */
+.mesh-dock-key {
+  flex: 0 0 auto;
+}
+/* The one primary. Moulded from the mesh's plastic, like the context switch —
+   so "the accent thing on this surface" is one plastic and not two. */
+.mesh-dock-key-primary {
+  --mould: var(--mould-tomato);
+  --mould-ink: var(--mould-tomato-ink);
+  --mould-plinth: var(--mould-tomato-plinth);
+}
+/* ONE MARK FOR "NEW", EVERYWHERE ON THIS SURFACE.
+   The dock badge and the list's per-node New chip were `bg-cyan-400/15` +
+   `text-cyan-200` and an amber blob respectively — two colours for one idea, on
+   two surfaces a person moves between in a single gesture (press the badge,
+   read the list). Amber is the notifications domain plastic (--domain-
+   notifications), and it is used here as a moulded pair: the fill is the
+   plastic, the ink is the ink that tokens.css contrast-verified for it (8.69),
+   which is the sanctioned way to put pigment on this system. A raw Tailwind
+   palette utility is not. */
+.mesh-new-mark {
+  border-radius: 999px;
+  background: var(--mould-amber);
+  color: var(--mould-amber-ink);
+}
+.mesh-dock-badge {
+  /* The badge is the same mark, plus a ring so it reads as sitting ON the key
+     rather than being part of its face. */
+  box-shadow: 0 0 0 2px var(--paper-2);
+}
+/* Viewing the past. A whisper of the amber plastic over the whole world — the
+   only ambient tint on this surface, and the one place a wash is the right
+   answer, because it is describing the world rather than an object in it. */
+.mesh-rewind-veil {
+  background: color-mix(in srgb, var(--mould-amber) 6%, transparent);
+}
+.mesh-dock-pop {
+  /* Above the dock, right-aligned to it, and never taller than the canvas. */
+  max-height: min(22rem, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.mesh-dock-pop-row {
+  border-radius: var(--radius-sm, 0.625rem);
+  transition: background-color var(--dur-tap, 0.14s) var(--ease-settle, ease);
+}
+.mesh-dock-pop-row:hover {
+  background: var(--paper-2);
+  color: var(--text-primary);
+}
+.mesh-dock-seen {
+  border-radius: 999px;
+}
+.mesh-dock-seen:hover {
+  background: var(--paper-3);
+  color: var(--text-primary);
+}
+/* The old `.mesh-rail-label` max-width reveal is deleted with the rail. The
+   dock's only text label belongs to the primary key, and it is present or
+   absent by viewport width — never animated open on hover, which was a label
+   you could not read until you had already found the button. */
+.mesh-dock-label {
   white-space: nowrap;
-}
-@media (max-width: 639px) {
-  .mesh-rail-label {
-    display: none;
-  }
-}
-@media (hover: hover) and (pointer: fine) {
-  .mesh-rail-label {
-    max-width: 0;
-    margin-left: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition: max-width 0.24s ease, opacity 0.18s ease, margin-left 0.24s ease;
-  }
-  .mesh-rail-btn:hover .mesh-rail-label,
-  .mesh-rail-btn:focus-visible .mesh-rail-label {
-    max-width: 12rem;
-    margin-left: 0.5rem;
-    opacity: 1;
-  }
 }
 
 /* ── Monthly Trail: the thread draws itself, moments pop in along it ──── */

@@ -18,12 +18,14 @@
 
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Sparkles, UserRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { BranchKey } from "../scene/scene-model";
+import type { UnseenBranchCount } from "../scene/seen-marks";
 import type { ViewerCaps } from "../core/viewer";
 import type { MeshCopy } from "./copy";
-import { MeshModeTabs, MeshVisitingHeader } from "./mode-tabs";
-import { MeshRail } from "./rail";
+import { MeshContextBar } from "./context-bar";
+import { MeshDock } from "./dock";
 import { MeshRewindPanel } from "./rewind-panel";
 
 const TIPS_SEEN_KEY = "mesh-tips-seen";
@@ -36,7 +38,13 @@ type MeshLayerId =
   | "shortcuts"
   | "rewind"
   | "selection"
-  | "emote";
+  | "emote"
+  // The dock's two popovers. They live in the stack rather than in the dock's
+  // own state for the reason this file exists: Esc must close the TOPMOST
+  // layer, and a popover holding private state is not in that ordering — it
+  // would either swallow every Esc or be skipped by all of them.
+  | "dock-more"
+  | "dock-new";
 
 export interface MeshChromeController {
   isOpen: (id: MeshLayerId) => boolean;
@@ -172,6 +180,21 @@ export function pickMarqueeItem(items: {
   return null;
 }
 
+/**
+ * ONE LOOK FOR ALL THREE.
+ *
+ * These were `bg-cyan-400/10` + `border-cyan-300/30` + `text-cyan-100`, then
+ * emerald, then violet — three raw Tailwind palette hues used as FILLS, on a
+ * surface whose design system reserves pigment for ink and never for a fill.
+ * Three ambient signals in three colours read as three unrelated systems all
+ * shouting; the hue carried no meaning a person could learn, because you never
+ * see two of them at once (this slot is a priority queue — that is its whole
+ * point).
+ *
+ * So the hue is gone and the ICON carries the difference. Catch-up is a key,
+ * because it is the only one you can press. The other two are `.plate` —
+ * information, and information does not get a side wall.
+ */
 function MeshMarquee({ item }: { item: MarqueeItem | null }) {
   if (!item) return null;
   if (item.kind === "catchup") {
@@ -182,11 +205,10 @@ function MeshMarquee({ item }: { item: MarqueeItem | null }) {
         type="button"
         onClick={item.onStart}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur transition-colors hover:bg-cyan-400/20"
-        style={{ animation: "chipBob 3.4s ease-in-out infinite" }}
+        className="mesh-marquee key ds-focus-ring absolute z-30 flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[var(--text-primary)]"
       >
-        <Sparkles size={13} />
-        Catch up: {item.count === 1 ? "1 new thing" : `${item.count} new things`} since your last visit
+        <Sparkles size={13} aria-hidden="true" />
+        Catch up on {item.count === 1 ? "1 new thing" : `${item.count} new things`}
       </button>
     );
   }
@@ -195,10 +217,11 @@ function MeshMarquee({ item }: { item: MarqueeItem | null }) {
     return (
       <div
         key={item.key}
-        className="pointer-events-none absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-100 backdrop-blur"
+        role="status"
+        className="mesh-marquee plate pointer-events-none absolute z-30 flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)]"
         style={{ animation: "meshWeaveToast 4s ease forwards" }}
       >
-        <Sparkles size={13} />
+        <Sparkles size={13} aria-hidden="true" />
         {item.count === 1 ? "Something new just arrived" : `${item.count} new things just arrived`}
       </div>
     );
@@ -207,17 +230,21 @@ function MeshMarquee({ item }: { item: MarqueeItem | null }) {
   return (
     <div
       key={item.key}
-      className="pointer-events-none absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-violet-300/25 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-100 backdrop-blur"
+      role="status"
+      className="mesh-marquee plate pointer-events-none absolute z-30 flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)]"
       style={{ animation: "meshWeaveToast 3.5s ease forwards" }}
     >
+      <UserRound size={13} aria-hidden="true" />
       {item.text}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// MeshChrome — the persistent chrome group: tabs / visiting header / rail /
-// marquee / rewind panel, all under the one stacking manager.
+// MeshChrome — the persistent chrome group. TWO objects: the context bar
+// top-left (where am I) and the dock bottom-right (what can I do), plus the
+// marquee slot beneath the context bar and the rewind panel. It used to be
+// seven anchor points; scripts/mesh-chrome-check.ts keeps it from regrowing.
 // ---------------------------------------------------------------------------
 
 export function MeshChrome({
@@ -232,17 +259,20 @@ export function MeshChrome({
   rewindAt,
   rewindValue,
   marquee,
+  unseen,
   chrome,
   onRewindInput,
   onBackToNow,
   navigate,
   onRecenter,
   onEmote,
+  onFocusBranch,
+  onMarkSeen,
 }: {
   viewer: ViewerCaps;
   copy: MeshCopy;
   viewUserId?: string;
-  viewedUser: { username: string; displayName: string | null } | null;
+  viewedUser: { username: string; displayName: string | null; avatarUrl?: string | null } | null;
   canCompose: boolean;
   shareUsername: string | null;
   status: "loading" | "ready" | "error" | "private";
@@ -250,30 +280,49 @@ export function MeshChrome({
   rewindAt: number | null;
   rewindValue: number;
   marquee: MarqueeItem | null;
+  /** Unseen-per-branch, already gated by the caller to own-mesh + present
+   *  time (marks are viewer-side, and Rewind's past has no "new"). */
+  unseen: UnseenBranchCount[];
   chrome: MeshChromeController;
   onRewindInput: (value: number) => void;
   onBackToNow: () => void;
   navigate: (href: string) => void;
   onRecenter: () => void;
-  /** Open the emote wheel by the rail — only provided when the viewer may
-   * broadcast presence (capability-derived; absent = no React button). */
+  /** Open the emote wheel from the dock — only provided when the viewer may
+   * broadcast presence (capability-derived; absent = no React row). */
   onEmote?: (anchor: { x: number; y: number }) => void;
+  onFocusBranch: (branch: BranchKey) => void;
+  onMarkSeen: (branch: BranchKey) => void;
 }) {
   return (
     <>
-      <MeshModeTabs
+      <MeshContextBar
         show={!viewUserId}
         isGlobal={viewer.isGlobal}
+        viewedUser={viewUserId ? viewedUser : null}
         onMesh={() => navigate("/mesh")}
         onGlobal={() => navigate("/mesh?view=global")}
+        onBack={() => navigate("/mesh")}
       />
-      <MeshVisitingHeader viewedUser={viewedUser} onBack={() => navigate("/mesh")} />
-      <MeshRail
+      <MeshDock
         viewer={viewer}
         copy={copy}
         canCompose={canCompose}
         shareUsername={shareUsername}
         showRewind={oldestMoment != null}
+        unseen={unseen}
+        moreOpen={chrome.isOpen("dock-more")}
+        newOpen={chrome.isOpen("dock-new")}
+        onToggleMore={() => {
+          chrome.close("dock-new");
+          chrome.toggle("dock-more");
+        }}
+        onToggleNew={() => {
+          chrome.close("dock-more");
+          chrome.toggle("dock-new");
+        }}
+        onCloseMore={() => chrome.close("dock-more")}
+        onCloseNew={() => chrome.close("dock-new")}
         onCompose={() => chrome.open("compose")}
         onSearch={() => chrome.open("search")}
         onList={() => chrome.open("list")}
@@ -288,8 +337,10 @@ export function MeshChrome({
         onHelp={() => chrome.toggle("shortcuts")}
         onRecenter={onRecenter}
         onEmote={onEmote}
+        onFocusBranch={onFocusBranch}
+        onMarkSeen={onMarkSeen}
       />
-      {/* ONE top-center ambient message at a time. */}
+      {/* ONE ambient message at a time, under the context bar. */}
       <MeshMarquee item={marquee} />
       {/* Rewind — drag through time and watch this world re-assemble. */}
       {chrome.isOpen("rewind") && oldestMoment != null && status === "ready" && (
