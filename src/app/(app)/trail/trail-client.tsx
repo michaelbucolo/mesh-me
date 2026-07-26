@@ -144,11 +144,11 @@ function TrailInner({ isPro }: { isPro: boolean }) {
   if (status === "error" || !data) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm text-white/70">Your trail couldn&apos;t be traced right now.</p>
+        <p className="text-sm text-[var(--text-secondary)]">Your trail couldn&apos;t be traced right now.</p>
         <button
           type="button"
           onClick={() => router.refresh()}
-          className="rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs text-white"
+          className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] px-4 py-1.5 text-xs text-[var(--text-primary)]"
         >
           Try again
         </button>
@@ -176,15 +176,15 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             <Footprints size={20} />
           </span>
           <div>
-            <h1 className="text-xl font-semibold text-white">Your Trail</h1>
-            <p className="text-xs text-white/50">{data.label}{data.isCurrentMonth ? " — so far" : ""}</p>
+            <h1 className="text-xl font-semibold text-[var(--text-primary)]">Your Trail</h1>
+            <p className="text-xs text-[var(--text-muted)]">{data.label}{data.isCurrentMonth ? " — so far" : ""}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           <Link
             href={yearMode ? `/trail?range=year&year=${data.prevMonth}` : `/trail?month=${data.prevMonth}`}
             aria-label={yearMode ? "Previous year" : "Previous month"}
-            className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/70 hover:text-white"
+            className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             <ChevronLeft size={15} />
           </Link>
@@ -192,12 +192,12 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             <Link
               href={yearMode ? `/trail?range=year&year=${data.nextMonth}` : `/trail?month=${data.nextMonth}`}
               aria-label={yearMode ? "Next year" : "Next month"}
-              className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-white/5 text-white/70 hover:text-white"
+              className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               <ChevronRight size={15} />
             </Link>
           ) : (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/6 text-white/20">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-primary)] text-[var(--text-muted)]">
               <ChevronRight size={15} />
             </span>
           )}
@@ -209,7 +209,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
         <Link
           href="/trail"
           className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-            !yearMode ? "bg-white text-black" : "border border-white/12 text-white/60 hover:text-white"
+            !yearMode ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
         >
           Month
@@ -218,7 +218,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
           <Link
             href="/trail?range=year"
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-              yearMode ? "bg-white text-black" : "border border-white/12 text-white/60 hover:text-white"
+              yearMode ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
             Your Year
@@ -226,28 +226,28 @@ function TrailInner({ isPro }: { isPro: boolean }) {
         ) : (
           <Link
             href="/meshpro"
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 text-xs font-semibold text-white/60 transition hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
           >
             <Lock size={11} />
             Your Year · Pro
           </Link>
         )}
       </div>
-      <p className="mb-5 flex items-center gap-1.5 text-micro text-white/45">
+      <p className="mb-5 flex items-center gap-1.5 text-micro text-[var(--text-muted)]">
         <Lock size={11} />
         Built only from your own activity on mesh.me. Only you can see your Trail.
       </p>
 
       {data.steps.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
-          <Footprints size={28} className="text-white/25" />
-          <p className="text-sm font-semibold text-white/80">A quiet {yearMode ? "year" : "month"} on the mesh</p>
-          <p className="max-w-xs text-xs leading-relaxed text-white/50">
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-6 py-16 text-center">
+          <Footprints size={28} className="text-[var(--text-muted)]" />
+          <p className="text-sm font-semibold text-[var(--text-primary)]">A quiet {yearMode ? "year" : "month"} on the mesh</p>
+          <p className="max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
             Trails appear as you live here — every post, heart, comment, and new person becomes a step on your path.
           </p>
           <Link
             href="/flow"
-            className="mesh-bubble-btn mt-2 rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white"
+            className="mesh-bubble-btn mt-2 rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-[var(--accent-contrast)]"
           >
             Go make some footprints
           </Link>
@@ -259,15 +259,15 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             {stats.map((s) => (
               <span
                 key={s.label}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70"
+                className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] px-3 py-1.5 text-xs text-[var(--text-secondary)]"
               >
-                <span className="font-semibold text-white">{s.value}</span> {s.label}
+                <span className="font-semibold text-[var(--text-primary)]">{s.value}</span> {s.label}
               </span>
             ))}
             {summary.busiestDay && (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70">
+              <span className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] px-3 py-1.5 text-xs text-[var(--text-secondary)]">
                 busiest:{" "}
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-[var(--text-primary)]">
                   {new Date(summary.busiestDay + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>{" "}
                 ({summary.busiestCount} moments)
@@ -275,9 +275,9 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             )}
           </div>
           {summary.topPeople.length > 0 && (
-            <p className="mb-6 text-xs text-white/55">
+            <p className="mb-6 text-xs text-[var(--text-muted)]">
               You spent this {yearMode ? "year" : "month"} around{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-[var(--text-primary)]">
                 {summary.topPeople.map((p) => p.name).join(", ")}
               </span>
               .
@@ -285,7 +285,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
           )}
 
           {/* The trail itself */}
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_top,#0c1226,#070a16_60%,#030409)]">
+          <div className="relative overflow-hidden rounded-3xl border border-[var(--border-primary)] bg-[radial-gradient(ellipse_at_top,#0c1226,#070a16_60%,#030409)]">
             {trail && (
               <div className="relative mx-auto w-full" style={{ maxWidth: trail.width }}>
                 <svg
@@ -448,7 +448,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             )}
           </div>
           {summary.totalMoments > data.steps.length && (
-            <p className="mt-3 text-center text-micro text-white/40">
+            <p className="mt-3 text-center text-micro text-[var(--media-ink-2)]">
               Showing {data.steps.length} of {summary.totalMoments} moments — the thread samples your whole {yearMode ? "year" : "month"}.
             </p>
           )}
@@ -461,12 +461,18 @@ function TrailInner({ isPro }: { isPro: boolean }) {
 function TrailLabel({ step, align }: { step: TrailStep; align: "left" | "right" }) {
   return (
     <span className={`inline-block max-w-full ${align === "right" ? "text-right" : "text-left"}`}>
-      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-micro font-semibold mesh-eyebrow " style={{ color: step.color, background: `${step.color}1f` }}>
+      {/* Was the node colour as INK on a 12% wash of itself. On the dark canvas that
+          wash is dark and the ink reads; in the light theme the same wash lands on
+          light paper and the saturated ink fell to 1.37:1. The colour is the FILL
+          now, with --chip-ink on top — 5.24:1 at worst across all eight node
+          colours, and identical in both themes because neither the fill nor the ink
+          moves with one. */}
+      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-micro font-semibold mesh-eyebrow " style={{ color: "var(--chip-ink)", background: step.color }}>
         {TYPE_LABELS[step.type]}
       </span>
-      <span className="block truncate text-micro font-medium leading-snug text-white/85 group-hover:text-white">{step.title}</span>
-      {step.subtitle && <span className="block truncate text-micro text-white/45">{step.subtitle}</span>}
-      <span className="block text-micro text-white/30">
+      <span className="block truncate text-micro font-medium leading-snug text-[var(--media-ink)] group-hover:text-[var(--media-ink)]">{step.title}</span>
+      {step.subtitle && <span className="block truncate text-micro text-[var(--media-ink-2)]">{step.subtitle}</span>}
+      <span className="block text-micro text-[var(--media-ink-2)]">
         {new Date(step.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
       </span>
     </span>

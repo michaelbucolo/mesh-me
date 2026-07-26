@@ -511,7 +511,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
           </span>
           <Link
             href="/connected-accounts"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
           >
             <PlugZap size={13} aria-hidden="true" />
             Connect platforms

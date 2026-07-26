@@ -957,8 +957,15 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
                       ? { type: "spring", stiffness: 520, damping: 13, delay: 0.06 * index + 0.16 }
                       : { type: "spring", stiffness: 380, damping: 22, delay: 0.06 * index + 0.12 }
                   }
-                  className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold text-white shadow-lg ${
-                    index === 0 ? "bg-gradient-to-br from-[var(--accent)] to-violet-500" : "bg-black/60 backdrop-blur"
+                  /* The #1 badge was an accent→violet gradient carrying white: 2.24:1 on
+                     the first stop and 4.23:1 on the second, so neither end cleared AA and
+                     no single ink could fix a two-stop fill. Flat accent with the ink that
+                     belongs to it is 8.24:1. Ranks 2+ keep white — they sit on a 60% black
+                     scrim over the thumbnail, which is where white is correct. */
+                  className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold shadow-lg ${
+                    index === 0
+                      ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+                      : "bg-black/60 text-white backdrop-blur"
                   }`}
                 >
                   #{index + 1}

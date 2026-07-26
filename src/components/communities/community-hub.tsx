@@ -287,7 +287,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 <div className="mt-4 flex gap-3">
                   <Link
                     href={`/communities/${selectedCommunity.slug}`}
-                    className="flex-1 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-[var(--accent)]/90"
+                    className="flex-1 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-[var(--accent-contrast)] transition-colors hover:bg-[var(--accent)]/90"
                   >
                     Enter Space
                   </Link>

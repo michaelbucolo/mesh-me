@@ -1396,7 +1396,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 /* ─── Brand Button ─── */
 .brand-button {
   background: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
   font-weight: 600;
   border: 1px solid color-mix(in srgb, var(--accent) 70%, black 30%);
   position: relative;
@@ -3064,7 +3064,7 @@ body {
 .app-compose-button,
 .mobile-compose-fab {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--accent-contrast);
   box-shadow: none;
 }
 
@@ -4154,14 +4154,33 @@ body,
    its own transitions (--dur-press on the down-stroke, --dur-tap on colour); a
    flat 150ms/ease !important here overrode both and the press lost its give. */
 
+/* THE PRIMARY BUTTON, ONCE.
+
+   These five selectors used to be styled by TWO blocks twenty lines apart. The
+   first said `color: var(--accent-contrast, #ffffff) !important` — correct, and
+   theme-aware. The second repeated four of the same five selectors and said
+   `color: #ffffff !important`. Equal specificity, both `!important`, so the
+   later one won and the correct rule painted nothing.
+
+   White on the accent measures 2.24:1 in the dark theme and 1.81:1 on
+   --accent-hover, against a 4.5:1 requirement. Every filled button in the
+   product — compose, the mesh CTA, the entry primary — failed WCAG AA, and got
+   WORSE under the pointer. --accent-ink is 8.24:1 and 10.20:1 on those same two
+   fills; tokens.css states both numbers in a comment beside the value.
+
+   It is one block now. The border is `transparent` and the weight is 600
+   because that is what the second block was actually contributing, and it is
+   what shipped. */
+.mesh-action-primary,
 .brand-button,
 .app-compose-button,
 .mobile-compose-fab,
 .mesh-entry-primary {
-  border: 1px solid color-mix(in srgb, var(--accent) 78%, #000 22%) !important;
+  border: 1px solid transparent !important;
   background: var(--accent) !important;
-  color: var(--accent-contrast, #ffffff) !important;
+  color: var(--accent-contrast) !important;
   box-shadow: none !important;
+  font-weight: 600;
 }
 
 .brand-button:hover,
@@ -4172,18 +4191,6 @@ body,
   box-shadow: var(--shadow-md) !important;
   filter: none !important;
   transform: translateY(-1px) !important;
-}
-
-.mesh-action-primary,
-.brand-button,
-.app-compose-button,
-.mobile-compose-fab,
-.mesh-entry-primary {
-  border: 1px solid transparent !important;
-  background: var(--accent) !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
-  font-weight: 600;
 }
 
 .mesh-action-primary:hover {
@@ -6293,7 +6300,16 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
      gradients), so they follow the active theme instead of a fixed blue. */
   background: linear-gradient(180deg, var(--accent) 0%, var(--accent-hover) 100%);
   box-shadow: 0 4px 14px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+  /* The bubble owns its ink. Both gradient stops are accent fills, so white read
+     2.24:1 at the top and 1.81:1 at the bottom — every message the user sent was
+     below AA. --accent-contrast is 8.24:1 and 10.20:1 on those same two stops.
+     Declared here rather than in the markup so the six descendants that used to
+     spell `text-white` inherit one correct answer. */
+  color: var(--accent-contrast);
 }
+/* Secondary text inside your own bubble: the same ink, quieter. Opacity rather
+   than a second colour, so it can never drift from the ink above it. */
+.mechat-bubble-mine .mechat-ink-soft { opacity: 0.78; }
 .mechat-bubble-theirs {
   background: #26262e;
   color: var(--text-primary, #f4f4f6);
@@ -6347,7 +6363,15 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   transition: transform 0.12s ease;
 }
 .mechat-tapback:active { transform: scale(0.9); }
-.mechat-tapback.is-mine { background: linear-gradient(180deg, var(--accent), var(--accent-hover)); }
+/* The ink moves WITH the fill, and only here. The base `.mechat-tapback` above
+   is #33333c and needs white; this variant swaps to the accent gradient and kept
+   inheriting that white at ~2.24:1. Repointing the base rule instead would put
+   #12131c on #33333c and lose the other chip — the fix belongs on the variant
+   that changed the background. */
+.mechat-tapback.is-mine {
+  background: linear-gradient(180deg, var(--accent), var(--accent-hover));
+  color: var(--accent-contrast);
+}
 @keyframes mechatSendIn {
   from { opacity: 0; transform: translateY(14px) scale(0.92); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -6624,8 +6648,15 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   height: 2.2rem;
   width: 2.2rem;
   border-radius: 999px;
-  color: #fff;
-  background: var(--brand-gradient);
+  /* Was `color: #fff` on `var(--brand-gradient)`. A MULTI-STOP GRADIENT HAS NO
+     SINGLE CORRECT INK — white measured 3.26:1 on the default fill and 1.04:1
+     under the `mono` preset, where the gradient runs #fafafa -> #d4d4d8 and the
+     arrow simply disappeared. Presets are user-selectable in Settings, so that
+     was reachable, not theoretical.
+     The entry button is a primary action; it now says so in the same language as
+     every other primary action, on a flat fill with the ink that belongs to it. */
+  color: var(--accent-contrast);
+  background: var(--accent);
   opacity: 0;
   pointer-events: none;
   box-shadow: var(--shadow-raised);
@@ -6745,8 +6776,10 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-gate-primary {
   height: 3.3rem;
   border-radius: 999px;
-  background: var(--brand-gradient);
-  color: #fff;
+  /* Same as .mesh-gate-go above: the gradient could not carry a legible label in
+     any preset, and this is the first button a new account ever presses. */
+  background: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 600;
   font-size: var(--text-base);
   display: inline-flex;
@@ -7063,7 +7096,11 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
    the always-dark canvas). Pair with .ds-focus-ring. */
 .mesh-cta {
   background: var(--accent);
-  color: #fff;
+  /* Not `#fff`. The fill is already theme-aware — it is `var(--accent)` — so the
+     ink has to track the same theme or the pair comes apart, which is exactly
+     what happened: 2.24:1 on the dark accent. --accent-contrast is the ink that
+     belongs to this fill in whichever theme is live (8.24:1 dark, 7.63:1 light). */
+  color: var(--accent-contrast);
   border: 1px solid color-mix(in srgb, var(--accent) 78%, #ffffff 0%);
   transition: background-color 0.16s ease, filter 0.16s ease;
 }

@@ -384,7 +384,7 @@ export function MeChatConversationList({
                     {myNote.text || myNote.songTitle}
                   </span>
                 ) : (
-                  <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--mesh-bg)] bg-[var(--accent)] text-white shadow-lg">
+                  <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--mesh-bg)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg">
                     <Plus size={11} />
                   </span>
                 )}
@@ -475,7 +475,7 @@ export function MeChatConversationList({
                         </span>
                       )}
                       {unread && thread.unread > 1 && (
-                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-micro font-semibold text-white shadow-lg">
+                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-micro font-semibold text-[var(--accent-contrast)] shadow-lg">
                           {thread.unread > 99 ? "99+" : thread.unread}
                         </span>
                       )}

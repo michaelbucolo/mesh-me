@@ -124,7 +124,7 @@ export function BugReportWidget() {
         <section className="plate plate-raised pointer-events-auto w-[min(24rem,calc(100vw-1.5rem))] p-4 text-[var(--text-primary)]" aria-label="Report a bug">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-[var(--accent)] text-white">
+              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-[var(--accent)] text-[var(--accent-contrast)]">
                 <Bug className="h-4 w-4" aria-hidden="true" />
               </span>
               <div>

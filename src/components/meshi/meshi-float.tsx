@@ -2024,7 +2024,7 @@ export function MeshiFloat() {
                     transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
                   />
                   <motion.div
-                    className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-micro font-semibold text-white pointer-events-none shadow-lg"
+                    className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-micro font-semibold text-[var(--accent-contrast)] pointer-events-none shadow-lg"
                     style={{ background: "var(--accent)" }}
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}

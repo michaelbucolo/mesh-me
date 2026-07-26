@@ -389,7 +389,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
           </p>
           <Link
             href="/login"
-            className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--accent-contrast)] transition hover:opacity-90"
           >
             Sign in
           </Link>

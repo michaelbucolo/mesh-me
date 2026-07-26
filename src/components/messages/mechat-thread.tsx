@@ -832,7 +832,7 @@ export function MeChatThread({
                       onClick={() => setActionsFor((current) => (current === message.id ? null : message.id))}
                       className={`relative px-4 py-2.5 text-sm ${corners} ${
                       isMine
-                        ? "mechat-bubble-mine text-white"
+                        ? "mechat-bubble-mine"
                         : "mechat-bubble-theirs"
                     } ${!groupedWithNext ? `mechat-tail ${isMine ? "mechat-tail-mine" : "mechat-tail-theirs"}` : ""}`}>
                       {groupedReactions.length > 0 && (
@@ -867,7 +867,7 @@ export function MeChatThread({
                         </span>
                       )}
                       {!isExternalThread && (message.sourcePlatform !== "mesh" || message.messageType !== "text") ? (
-                        <p className={`mb-2 text-micro font-semibold mesh-eyebrow ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
+                        <p className={`mb-2 text-micro font-semibold mesh-eyebrow ${isMine ? "mechat-ink-soft" : "text-[var(--text-muted)]"}`}>
                           {message.messageType.replace("_", " ")} from {message.sourcePlatform}
                         </p>
                       ) : null}
@@ -890,7 +890,7 @@ export function MeChatThread({
                       )}
 
                       {message.metadata.unsent ? (
-                        <p className={`whitespace-pre-wrap italic leading-6 ${isMine ? "text-white/70" : "text-[var(--text-muted)]"}`}>
+                        <p className={`whitespace-pre-wrap italic leading-6 ${isMine ? "mechat-ink-soft" : "text-[var(--text-muted)]"}`}>
                           {isMine ? "You unsent a message" : "This message was unsent"}
                         </p>
                       ) : editingId === message.id ? (
@@ -910,7 +910,7 @@ export function MeChatThread({
                             }}
                             rows={2}
                             autoFocus
-                            className={`w-full resize-none rounded-xl px-3 py-2 text-sm outline-none ${isMine ? "bg-white/15 text-white placeholder:text-white/60" : "border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
+                            className={`w-full resize-none rounded-xl px-3 py-2 text-sm outline-none ${isMine ? "bg-white/15 placeholder:opacity-70" : "border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
                           />
                           {/* Save was `bg-white/20` in one bubble and an --accent fill
                               in the other; Cancel had no face at all. Neither had a
@@ -962,7 +962,7 @@ export function MeChatThread({
                           href={safeHref(message.sourceUrl)}
                           target="_blank"
                           rel="noreferrer"
-                          className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold underline-offset-4 hover:underline ${isMine ? "text-white" : "text-[var(--accent)]"}`}
+                          className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold underline-offset-4 hover:underline ${isMine ? "" : "text-[var(--accent)]"}`}
                         >
                           <Link2 size={13} aria-hidden="true" />
                           Open source
@@ -1333,7 +1333,7 @@ function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachmen
       href={attachment.url}
       target="_blank"
       rel="noreferrer"
-      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${isMine ? "border-white/20 bg-white/10 text-white" : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${isMine ? "border-white/20 bg-white/10" : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
     >
       <Paperclip size={14} aria-hidden="true" />
       <span className="min-w-0 truncate">{attachment.name || attachment.url}</span>

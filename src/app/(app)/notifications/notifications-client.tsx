@@ -175,7 +175,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold md:text-2xl">Notifications</h1>
               {payload.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-semibold text-white">{payload.unreadCount} new</span>
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-contrast)]">{payload.unreadCount} new</span>
               )}
             </div>
             {payload.smartSummary && (
@@ -256,10 +256,10 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                         aria-hidden="true"
                       />
                     )}
-                    <span className={`relative flex items-center gap-1.5 ${active ? "text-white" : ""}`}>
+                    <span className={`relative flex items-center gap-1.5 ${active ? "text-[var(--accent-contrast)]" : ""}`}>
                       <Icon size={14} aria-hidden="true" />
                       {getNotificationCategoryLabel(category)}
-                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-micro text-white ${active ? "bg-white/25" : "bg-[var(--accent)]"}`}>{counts.unread}</span> : null}
+                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-micro text-[var(--accent-contrast)] ${active ? "bg-white/25" : "bg-[var(--accent)]"}`}>{counts.unread}</span> : null}
                     </span>
                   </button>
                 );
@@ -361,7 +361,11 @@ function NotificationGroupCard({
                 <Bell size={18} aria-hidden="true" />
               </span>
             )}
-            <span className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-primary)] ${group.priority === "high" ? "bg-[var(--mesh-danger)] text-white" : "bg-[var(--bg-primary)] text-[var(--accent)]"}`}>
+            <span className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-primary)] ${/* `--danger` is an INK — tokens.css measures it against the four papers, not as
+   a fill. Used as a background it is #f58279 in the dark theme, and the white
+   glyph on it measured ~1.6:1. The crimson plastic is the danger FILL and ships
+   its own pinned ink at 6.37:1, theme-independent by design. */
+group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson-ink)]" : "bg-[var(--bg-primary)] text-[var(--accent)]"}`}>
               <Icon size={13} aria-hidden="true" />
             </span>
           </div>
@@ -369,7 +373,7 @@ function NotificationGroupCard({
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="min-w-0 truncate text-base font-semibold text-[var(--text-primary)]">{group.title}</h2>
               {group.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-micro font-semibold text-white">
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-micro font-semibold text-[var(--accent-contrast)]">
                   {group.unreadCount} unread
                 </span>
               )}

@@ -285,7 +285,7 @@ function ShellTopBar({
               every one of them — leaving them would be dead markup that reads as
               if it still did something. */}
           <summary className="mesh-topbar-owner key flex cursor-pointer list-none items-center gap-2 p-0 text-sm font-semibold text-[var(--mesh-text)] lg:px-3 lg:py-1.5 [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--accent)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--text-primary)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
             <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
             <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
           </summary>
@@ -533,7 +533,7 @@ export function AppShell({ children, user }: AppShellProps) {
               />
             ) : (
               <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--accent)] ring-1 ring-[var(--mesh-border)]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--text-primary)] ring-1 ring-[var(--mesh-border)]"
                 aria-hidden="true"
               >
                 {userInitials}
