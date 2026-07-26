@@ -24,6 +24,7 @@ import { Check } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { reactionGlyphSvg, type ReactionGlyph } from "../scene/reaction-glyphs";
 import type { SceneNode } from "../scene/scene-model";
+import { yieldsToPen } from "@/lib/pen";
 
 /** Distance from the anchor to each emote button's centre (px). */
 const RING_RADIUS = 84;
@@ -80,6 +81,16 @@ export function MeshEmoteWheel({
   useEffect(() => {
     if (!heldPointer) return;
     const onUp = (e: PointerEvent) => {
+      // A palm lifting anywhere used to close this: the listener took ANY
+      // pointerup, with no pointerId or type filter, so resting a hand down and
+      // shifting it mid-stroke dismissed the ring under the pen. The arbiter
+      // already knows a pen is in contact, so a non-pen release during a pen
+      // stroke is exactly the palm case and is ignored.
+      //
+      // Narrower than full pointerId matching, deliberately: a second FINGER
+      // lifting during a touch hold is still unfiltered, which is how this
+      // behaved before and is not what a stylus user hits.
+      if (yieldsToPen(e)) return;
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const emoteButton = el?.closest?.("[data-emote-verb]");
       if (emoteButton instanceof HTMLElement) {

@@ -35,6 +35,7 @@ import { MESHI_OPEN_EVENT, type MeshiOpenMode } from "@/lib/meshi-events";
 import { reactionFor, subscribeMeshiCause } from "@/lib/meshi-bus";
 import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
 import { cursorSpriteOwnsPointer } from "@/lib/pointer-modality";
+import { isPrecisePointer } from "@/lib/pen";
 import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
 import type { MeshiContext } from "@/lib/meshi-shared";
 
@@ -1126,7 +1127,10 @@ export function MeshiFloat() {
     const handlePointerMove = (event: PointerEvent) => {
       // Gated on pointer TYPE, not viewport width: a 900px floor also excluded
       // small laptops, and width was never the right proxy for "has a mouse".
-      if (event.pointerType !== "mouse" || !canFollow()) return;
+      // A pen counts: it resolves a position as exactly as a cursor does. Safe
+      // to admit because the effect already bails when the sprite owns the
+      // pointer (above), so a pen can never put two Meshis on one hand.
+      if (!isPrecisePointer(event.pointerType) || !canFollow()) return;
       const last = lastFollowPointRef.current;
       const movedEnough = !last || Math.hypot(event.clientX - last.x, event.clientY - last.y) > 140;
       if (!movedEnough || followFrameRef.current !== null) return;
@@ -1300,7 +1304,7 @@ export function MeshiFloat() {
     };
 
     const handleMove = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse") return;
+      if (!isPrecisePointer(event.pointerType)) return;
       pending = { x: event.clientX, y: event.clientY };
       if (frame === null) frame = window.requestAnimationFrame(apply);
     };
