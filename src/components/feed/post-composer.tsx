@@ -403,7 +403,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
 
           {showLinkTools && (
             <div className="tray mt-3 grid gap-2 p-3">
-              <label className="grid gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
+              <label className="grid gap-1 text-micro font-semibold text-[var(--text-secondary)]">
                 Link preview
                 <input
                   value={linkUrl}
@@ -412,7 +412,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                   className="theme-input min-h-10 rounded-lg px-3 text-sm"
                 />
               </label>
-              <label className="grid gap-1 text-[11px] font-semibold text-[var(--text-secondary)]">
+              <label className="grid gap-1 text-micro font-semibold text-[var(--text-secondary)]">
                 Image or video URL
                 <input
                   value={mediaUrl}
@@ -443,7 +443,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     {/* On the lit key the copy has to ride --mould-cobalt-ink,
                         not --text-muted: --ink-3 over cobalt is not a ratio
                         anyone has measured, and the pinned ink is. */}
-                    <span className={`mt-1 block text-[10px] ${active ? "opacity-90" : "text-[var(--text-muted)]"}`}>{option.copy}</span>
+                    <span className={`mt-1 block text-micro ${active ? "opacity-90" : "text-[var(--text-muted)]"}`}>{option.copy}</span>
                   </button>
                 );
               })}
@@ -469,7 +469,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           {showCrossPost && (
             <div className="tray mt-3 p-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
+                <p className="text-micro font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
                   <Share2 className="h-3 w-3" />
                   Also post to connected platforms
                 </p>
@@ -483,7 +483,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     <button
                       key={p.id}
                       onClick={() => togglePlatform(p.id)}
-                      className={"key flex min-h-11 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold " + (
+                      className={"key flex min-h-11 items-center gap-1.5 px-2.5 py-1.5 text-micro font-semibold " + (
                         selectedPlatforms.has(p.id)
                           ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                           : "text-[var(--text-secondary)]"
@@ -503,7 +503,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+                <p className="text-micro text-[var(--text-muted)] flex items-center gap-1">
                   <Info className="h-3 w-3" />
                   {accountsLoading
                     ? "Checking connected platforms..."
@@ -512,7 +512,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                       : "Connect approved publishing platforms in Settings to cross-post."}
                 </p>
               )}
-              <p className="text-[9px] text-[var(--text-muted)] mt-2 flex items-center gap-1">
+              <p className="text-micro text-[var(--text-muted)] mt-2 flex items-center gap-1">
                 <Info className="h-2.5 w-2.5" />
                 Mesh.me only posts to source platforms through official APIs with granted publishing scopes.
               </p>
@@ -523,7 +523,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           {selectedPlatforms.size > 0 && !showCrossPost && (
             <button
               onClick={() => setShowCrossPost(true)}
-              className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--accent)] hover:underline"
+              className="mt-2 flex items-center gap-1.5 text-micro text-[var(--accent)] hover:underline"
             >
               <Share2 className="h-3 w-3" />
               Cross-posting to {selectedPlatforms.size} platform{selectedPlatforms.size !== 1 ? "s" : ""}

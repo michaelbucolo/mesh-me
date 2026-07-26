@@ -1945,7 +1945,7 @@ function MeshiSection({
                 >
                   <span className="h-4 w-4 rounded-full" style={{ backgroundColor: colorHex[color] || "#3b82f6" }} />
                   {color}
-                  {locked && <span className="text-[10px] text-[var(--text-muted)]">Pro</span>}
+                  {locked && <span className="text-micro text-[var(--text-muted)]">Pro</span>}
                 </button>
               );
             })}
@@ -2235,7 +2235,7 @@ function SummaryPill({ label, value, icon: Icon }: { label: string; value: strin
     <div className="settings-summary-pill">
       <Icon size={15} aria-hidden="true" />
       <span className="min-w-0">
-        <span className="block truncate text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</span>
+        <span className="block truncate text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</span>
         <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{value}</span>
       </span>
     </div>
@@ -2419,7 +2419,7 @@ function GraphicOptionButton({
     >
       {children}
       <span>{label}</span>
-      {note && <span className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{note}</span>}
+      {note && <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">{note}</span>}
     </button>
   );
 }

@@ -233,7 +233,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
           </Link>
         )}
       </div>
-      <p className="mb-5 flex items-center gap-1.5 text-[11px] text-white/45">
+      <p className="mb-5 flex items-center gap-1.5 text-micro text-white/45">
         <Lock size={11} />
         Built only from your own activity on mesh.me. Only you can see your Trail.
       </p>
@@ -448,7 +448,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             )}
           </div>
           {summary.totalMoments > data.steps.length && (
-            <p className="mt-3 text-center text-[11px] text-white/40">
+            <p className="mt-3 text-center text-micro text-white/40">
               Showing {data.steps.length} of {summary.totalMoments} moments — the thread samples your whole {yearMode ? "year" : "month"}.
             </p>
           )}
@@ -461,12 +461,12 @@ function TrailInner({ isPro }: { isPro: boolean }) {
 function TrailLabel({ step, align }: { step: TrailStep; align: "left" | "right" }) {
   return (
     <span className={`inline-block max-w-full ${align === "right" ? "text-right" : "text-left"}`}>
-      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[8.5px] font-semibold mesh-eyebrow " style={{ color: step.color, background: `${step.color}1f` }}>
+      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-micro font-semibold mesh-eyebrow " style={{ color: step.color, background: `${step.color}1f` }}>
         {TYPE_LABELS[step.type]}
       </span>
-      <span className="block truncate text-[11.5px] font-medium leading-snug text-white/85 group-hover:text-white">{step.title}</span>
-      {step.subtitle && <span className="block truncate text-[10px] text-white/45">{step.subtitle}</span>}
-      <span className="block text-[9px] text-white/30">
+      <span className="block truncate text-micro font-medium leading-snug text-white/85 group-hover:text-white">{step.title}</span>
+      {step.subtitle && <span className="block truncate text-micro text-white/45">{step.subtitle}</span>}
+      <span className="block text-micro text-white/30">
         {new Date(step.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
       </span>
     </span>

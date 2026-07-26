@@ -290,7 +290,7 @@ function AccountCard({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {countItems.map(([label, value]) => (
               <div key={label} className="rounded-[var(--ds-radius-sm)] bg-[var(--bg-primary)]/55 px-3 py-2">
-                <p className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
+                <p className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
                 <p className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">{formatCount(Number(value))}</p>
               </div>
             ))}

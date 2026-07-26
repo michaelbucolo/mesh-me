@@ -79,7 +79,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
                             <dt className="text-xs font-semibold text-[var(--mesh-text-muted)]">{ABOUT_FIELD_META[f].label}</dt>
                             <dd className="text-sm text-[var(--mesh-text)] whitespace-pre-wrap break-words">{fields[f]}</dd>
                           </div>
-                          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-[var(--mesh-text-muted)]" title={`Visible to: ${PRIVACY_META[level].label}`}>
+                          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-micro font-semibold text-[var(--mesh-text-muted)]" title={`Visible to: ${PRIVACY_META[level].label}`}>
                             <Icon className="h-3 w-3" aria-hidden="true" />
                             {PRIVACY_META[level].label}
                           </span>

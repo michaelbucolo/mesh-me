@@ -370,12 +370,12 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                       {source.name}
                       {source.connected ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11px] text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-micro text-emerald-300">
                           <CheckCircle2 size={12} aria-hidden="true" />
                           Synced
                         </span>
                       ) : (
-                        <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                        <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-micro text-[var(--text-muted)]">
                           Connectable
                         </span>
                       )}

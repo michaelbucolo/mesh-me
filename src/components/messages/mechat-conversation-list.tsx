@@ -344,7 +344,7 @@ export function MeChatConversationList({
               >
                 <span>{filter.label}</span>
                 {count > 0 && (
-                  <span className={`text-[10px] ${selected ? "" : "text-[var(--mesh-text-muted)]"}`}>{count}</span>
+                  <span className={`text-micro ${selected ? "" : "text-[var(--mesh-text-muted)]"}`}>{count}</span>
                 )}
               </button>
             );
@@ -379,7 +379,7 @@ export function MeChatConversationList({
               <div className="relative">
                 <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-16 w-16 ring-2 ring-[var(--accent)]/20" />
                 {myNote ? (
-                  <span className="absolute -top-2 left-1/2 max-w-[90px] -translate-x-1/2 truncate rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-0.5 text-[9px] text-[var(--mesh-text)] shadow-sm">
+                  <span className="absolute -top-2 left-1/2 max-w-[90px] -translate-x-1/2 truncate rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-0.5 text-micro text-[var(--mesh-text)] shadow-sm">
                     {myNote.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
                     {myNote.text || myNote.songTitle}
                   </span>
@@ -389,7 +389,7 @@ export function MeChatConversationList({
                   </span>
                 )}
               </div>
-              <span className="w-full truncate text-center text-[11px] text-[var(--mesh-text-secondary)]">
+              <span className="w-full truncate text-center text-micro text-[var(--mesh-text-secondary)]">
                 {myNote ? "Your note" : "Add note"}
               </span>
             </button>
@@ -402,7 +402,7 @@ export function MeChatConversationList({
                 className="mesh-pressable flex w-16 shrink-0 flex-col items-center gap-1.5 transition active:scale-95"
               >
                 <div className="relative">
-                  <span className="absolute -top-2 left-1/2 z-10 max-w-[90px] -translate-x-1/2 truncate rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-0.5 text-[9px] text-[var(--mesh-text)] shadow-sm">
+                  <span className="absolute -top-2 left-1/2 z-10 max-w-[90px] -translate-x-1/2 truncate rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-0.5 text-micro text-[var(--mesh-text)] shadow-sm">
                     {note.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
                     {note.text || note.songTitle}
                   </span>
@@ -410,7 +410,7 @@ export function MeChatConversationList({
                     <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16 border-2 border-[var(--mesh-bg)]" />
                   </span>
                 </div>
-                <span className="w-full truncate text-center text-[11px] text-[var(--mesh-text-secondary)]">
+                <span className="w-full truncate text-center text-micro text-[var(--mesh-text-secondary)]">
                   {note.user.displayName?.split(" ")[0] || note.user.username}
                 </span>
               </button>
@@ -475,7 +475,7 @@ export function MeChatConversationList({
                         </span>
                       )}
                       {unread && thread.unread > 1 && (
-                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-lg">
+                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-micro font-semibold text-white shadow-lg">
                           {thread.unread > 99 ? "99+" : thread.unread}
                         </span>
                       )}
@@ -488,12 +488,12 @@ export function MeChatConversationList({
                         </span>
                         {isVerified && <BadgeCheck size={14} className="shrink-0 self-center text-[var(--accent)]" />}
                         {isSyncedThread(thread) && (
-                          <span className={`shrink-0 self-center rounded px-1 py-0.5 text-[9px] font-semibold ${platformBadgeClass(thread.platform)}`}>
+                          <span className={`shrink-0 self-center rounded px-1 py-0.5 text-micro font-semibold ${platformBadgeClass(thread.platform)}`}>
                             {platformLabel(thread.platform)}
                           </span>
                         )}
                         {thread.lastMessage && (
-                          <span className="ml-auto shrink-0 text-[11px] text-[var(--mesh-text-muted)]">
+                          <span className="ml-auto shrink-0 text-micro text-[var(--mesh-text-muted)]">
                             {formatRelativeTime(thread.lastMessage.createdAt)}
                           </span>
                         )}

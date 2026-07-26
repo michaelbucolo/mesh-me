@@ -190,7 +190,7 @@ export function OneMeshHub({
             >
               {acct.glyph}
             </span>
-            <span className={`max-w-[5rem] truncate text-[10px] font-semibold ${isNew ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+            <span className={`max-w-[5rem] truncate text-micro font-semibold ${isNew ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
               {acct.name}
             </span>
           </motion.div>
@@ -218,7 +218,7 @@ export function OneMeshHub({
         </div>
         <div className="mt-2 flex flex-col items-center">
           <span className="text-sm font-semibold text-[var(--text-primary)]">@{identity.username}</span>
-          <span className="text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
+          <span className="text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
             one mesh.me account
           </span>
         </div>

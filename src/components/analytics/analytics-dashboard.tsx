@@ -176,14 +176,14 @@ function Stat({
       className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+      <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         {label}
       </p>
       <p className="mt-1.5 text-2xl font-semibold leading-none text-[var(--text-primary)]">
         {rawValue !== undefined && format ? <AnimatedNumber value={value} target={rawValue} format={format} /> : value}
       </p>
-      {sub && <p className="mt-1 text-[11px] text-[var(--text-muted)]">{sub}</p>}
+      {sub && <p className="mt-1 text-micro text-[var(--text-muted)]">{sub}</p>}
       {points && points.length > 1 && (
         <div className="mt-2">
           <Sparkline points={points} tone={tone} />
@@ -231,7 +231,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
         <p className="text-sm font-semibold text-[var(--text-primary)]">{labelFor(account.platform)}</p>
         {account.platformUsername && <p className="text-xs text-[var(--text-muted)]">@{account.platformUsername}</p>}
         <span
-          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          className={`ml-auto rounded-full px-2 py-0.5 text-micro font-semibold ${
             account.syncStatus === "error"
               ? "bg-red-500/15 text-red-300"
               : account.isActive
@@ -242,7 +242,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
           {account.syncStatus === "error" ? "Sync error" : account.isActive ? "Synced" : "Paused"}
         </span>
         {account.followerGrowth !== 0 && (
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${account.followerGrowth > 0 ? "bg-emerald-500/12 text-emerald-300" : "bg-red-500/12 text-red-300"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-micro font-semibold ${account.followerGrowth > 0 ? "bg-emerald-500/12 text-emerald-300" : "bg-red-500/12 text-red-300"}`}>
             {account.followerGrowth > 0 ? "+" : ""}
             {compact(account.followerGrowth)} this month
           </span>
@@ -251,7 +251,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
       <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[400px]:grid-cols-4 sm:grid-cols-8">
         {cells.map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <p className="truncate text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
+            <p className="truncate text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
             <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{value}</p>
           </div>
         ))}
@@ -277,12 +277,12 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
       )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{post.title || "Untitled"}</p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+        <p className="mt-0.5 flex items-center gap-1.5 text-micro text-[var(--text-muted)]">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tone }} />
           {labelFor(post.platform)}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-3 text-[11px] text-[var(--text-secondary)]">
+      <div className="flex shrink-0 items-center gap-3 text-micro text-[var(--text-secondary)]">
         {post.views > 0 && <span className="inline-flex items-center gap-1"><Eye size={12} /> {compact(post.views)}</span>}
         <span className="inline-flex items-center gap-1"><Heart size={12} className="text-[var(--accent)]" /> {compact(post.likes)}</span>
         <span className="inline-flex items-center gap-1"><MessageCircle size={12} /> {compact(post.comments)}</span>
@@ -345,7 +345,7 @@ function StandoutPlatform({ best, avgRate }: { best: AnalyticsDashboardData["cre
           <Crown size={16} style={{ color: tone }} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">Your strongest platform</p>
+          <p className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">Your strongest platform</p>
           <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tone }} />
             {labelFor(best.platform)}
@@ -356,12 +356,12 @@ function StandoutPlatform({ best, avgRate }: { best: AnalyticsDashboardData["cre
       <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 min-[420px]:grid-cols-4">
         {cells.map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <p className="truncate text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
+            <p className="truncate text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
             <p className="truncate text-base font-semibold text-[var(--text-primary)]">{value}</p>
           </div>
         ))}
       </div>
-      <p className="mt-2.5 text-[11px] text-[var(--text-secondary)]">
+      <p className="mt-2.5 text-micro text-[var(--text-secondary)]">
         <span className="font-semibold text-[var(--text-primary)]">{pct(avgRate)}</span> overall engagement across every platform.
       </p>
     </div>
@@ -376,7 +376,7 @@ function FootprintTile({ icon: Icon, label, value, index }: { icon: LucideIcon; 
       className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/55 p-3"
       style={{ ["--i" as string]: index } as CSSProperties}
     >
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+      <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         <span className="truncate">{label}</span>
       </p>
@@ -406,9 +406,9 @@ function ActivityRow({ item }: { item: AnalyticsDashboardData["recentActivity"][
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-[var(--text-primary)]">{item.title}</p>
-        <p className="truncate text-[11px] text-[var(--text-muted)]">{item.detail}</p>
+        <p className="truncate text-micro text-[var(--text-muted)]">{item.detail}</p>
       </div>
-      <span className="shrink-0 text-[11px] text-[var(--text-muted)]">{formatRelativeTime(item.timestamp)}</span>
+      <span className="shrink-0 text-micro text-[var(--text-muted)]">{formatRelativeTime(item.timestamp)}</span>
     </div>
   );
   if (!item.href) return inner;
@@ -443,7 +443,7 @@ function VisibilityBar({ breakdown }: { breakdown: AnalyticsDashboardData["priva
       </div>
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
         {parts.map(([key, label, tone]) => (
-          <span key={key} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+          <span key={key} className="flex items-center gap-1.5 text-micro text-[var(--text-secondary)]">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tone }} />
             {label} <span className="font-semibold text-[var(--text-primary)]">{breakdown[key]}</span>
           </span>
@@ -463,7 +463,7 @@ function CheckRow({ label, passed, detail }: { label: string; passed: boolean; d
       )}
       <div className="min-w-0">
         <p className="text-xs font-semibold text-[var(--text-primary)]">{label}</p>
-        {detail && <p className="text-[11px] leading-snug text-[var(--text-muted)]">{detail}</p>}
+        {detail && <p className="text-micro leading-snug text-[var(--text-muted)]">{detail}</p>}
       </div>
     </div>
   );
@@ -472,7 +472,7 @@ function CheckRow({ label, passed, detail }: { label: string; passed: boolean; d
 function StatusPill({ label, ok }: { label: string; ok: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-micro font-semibold ${
         ok
           ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
           : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-muted)]"
@@ -644,14 +644,14 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
             ok={data.privacy.twoFactorMethods > 0}
           />
           <StatusPill label={data.user.isMeshPro ? "Mesh Pro" : "Free plan"} ok={data.user.isMeshPro} />
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-micro font-semibold text-[var(--text-secondary)]">
             {effectiveProfileVisibility(data.user.isPublic, data.user.meshVisibility) === "public"
               ? "Public profile"
               : effectiveProfileVisibility(data.user.isPublic, data.user.meshVisibility) === "friends"
                 ? "Friends only"
                 : "Private profile"}
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-micro font-semibold text-[var(--text-secondary)]">
             {data.user.showInDiscovery ? "In discovery" : "Hidden from discovery"}
           </span>
         </div>

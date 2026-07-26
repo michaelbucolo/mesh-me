@@ -401,7 +401,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           >
             <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
               <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
+                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
                 {contentFilters.map((filter, filterIndex) => (
                   <FilterChip
                     key={filter.id}
@@ -412,7 +412,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                   />
                 ))}
                 <span className="mx-1 h-4 w-px bg-[var(--border-secondary)]" aria-hidden style={{ "--i": contentFilters.length + 1 } as React.CSSProperties} />
-                <span className="text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": contentFilters.length + 2 } as React.CSSProperties}>Sort</span>
+                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": contentFilters.length + 2 } as React.CSSProperties}>Sort</span>
                 <FilterChip
                   label="Top"
                   icon={<TrendingUp className="h-3 w-3" aria-hidden />}
@@ -430,7 +430,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               </div>
               {availablePlatforms.length > 1 && (
                 <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
+                  <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
                   {/* The brand hex stays — it identifies a third party, so it is
                       legitimately WHICH-not-how-loud. What goes is the hex as a
                       SURFACE with its own colour as ink: selected was
@@ -449,7 +449,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                         key={platform}
                         type="button"
                         onClick={() => setActivePlatform(selected ? null : platform)}
-                        className={`key explore-chip inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold ${
+                        className={`key explore-chip inline-flex items-center gap-1.5 px-3 py-1 text-micro font-semibold ${
                           selected
                             ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                             : "text-[var(--text-secondary)]"
@@ -515,7 +515,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 {tag.tag}
                 {/* On the cobalt face the count inherits the plastic's pinned ink;
                     on --face it drops to --text-muted, which clears AA there. */}
-                <span className={selected ? "text-[10px]" : "text-[10px] text-[var(--text-muted)]"}>{formatCount(tag.count)}</span>
+                <span className={selected ? "text-micro" : "text-micro text-[var(--text-muted)]"}>{formatCount(tag.count)}</span>
               </motion.button>
             );
           })}
@@ -662,7 +662,7 @@ function FilterChip({ label, selected, onClick, icon, style }: { label: string; 
       onClick={onClick}
       style={style}
       aria-pressed={selected}
-      className={`key explore-chip inline-flex items-center gap-1 px-3 py-1 text-[11px] font-semibold ${
+      className={`key explore-chip inline-flex items-center gap-1 px-3 py-1 text-micro font-semibold ${
         selected
           ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
           : "text-[var(--text-secondary)]"
@@ -708,7 +708,7 @@ function CommunityCard({ community, index, compact }: { community: SuggestedComm
             <p className="truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
               {community.name}
             </p>
-            <p className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+            <p className="flex items-center gap-2 text-micro text-[var(--text-muted)]">
               <span className="flex items-center gap-1">
                 <UsersRound className="h-3 w-3" aria-hidden />
                 {formatCount(community.memberCount)}
@@ -781,13 +781,13 @@ function ExplorePersonCard({
         {user.interests.length > 0 && (
           <div className="mt-2 flex flex-wrap justify-center gap-1">
             {user.interests.slice(0, 2).map((interest) => (
-              <Badge key={interest.id} variant="secondary" className="text-[10px]">
+              <Badge key={interest.id} variant="secondary" className="text-micro">
                 {interest.tag}
               </Badge>
             ))}
           </div>
         )}
-        <p className="mt-2 text-[11px] text-[var(--text-muted)]">{formatCount(user.followerCount)} followers</p>
+        <p className="mt-2 text-micro text-[var(--text-muted)]">{formatCount(user.followerCount)} followers</p>
       </Link>
       {currentUserId !== user.id && (
         <Button
@@ -898,7 +898,7 @@ function TileMeta({ post, authorName, chip, overlay }: { post: FeedCardPost; aut
       <span className={`min-w-0 truncate font-medium ${overlay ? "text-white/90" : "text-[var(--text-primary)]"}`}>{authorName}</span>
       <span className={`flex shrink-0 items-center gap-2 ${overlay ? "text-white/80" : "text-[var(--text-secondary)]"}`}>
         {chip && chip.label !== "mesh.me" && (
-          <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${chip.color}33`, color: chip.color }}>
+          <span className="rounded-full px-1.5 py-0.5 text-micro font-semibold" style={{ backgroundColor: `${chip.color}33`, color: chip.color }}>
             {chip.label}
           </span>
         )}
@@ -965,8 +965,8 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
                 </motion.span>
                 <div className="absolute inset-x-0 bottom-0 p-3">
                   {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
-                  <p className="truncate text-[11px] font-semibold text-white/85">{authorName}</p>
-                  <p className="mt-0.5 flex items-center gap-2 text-[10px] text-white/60">
+                  <p className="truncate text-micro font-semibold text-white/85">{authorName}</p>
+                  <p className="mt-0.5 flex items-center gap-2 text-micro text-white/60">
                     <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent)]" /> {formatCount(post._count.reactions)}</span>
                     <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
                     {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (

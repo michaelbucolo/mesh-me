@@ -817,21 +817,21 @@ function ReelContent({
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Open on ${post.platform}`}
                   title={`Open on ${post.platform}`}
-                  className={`pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-white shadow transition active:scale-95 ${platformChip}`}
+                  className={`pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-white shadow transition active:scale-95 ${platformChip}`}
                 >
                   <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
                   {post.platform}
                   <Link2 size={11} className="opacity-80" aria-hidden="true" />
                 </a>
               ) : (
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-white shadow ${platformChip}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-white shadow ${platformChip}`}>
                   <PlatformLogo platform={post.platform || ""} size={13} className="rounded" />
                   {post.platform}
                 </span>
               )
             )}
             {post.visibility && post.visibility !== "public" && (
-              <span className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-white/85 backdrop-blur">
+              <span className="rounded-full bg-black/65 px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-white/85 backdrop-blur">
                 {post.visibility === "private" ? "Private · only you" : post.visibility}
               </span>
             )}
@@ -839,12 +839,12 @@ function ReelContent({
 
           {/* Related-lane state: finding, or how deep into "similar" you are */}
           {laneLoading && (
-            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
               <OrbitSparkle size={12} /> Finding similar…
             </span>
           )}
           {!laneLoading && laneIndex > 0 && (
-            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
               <Sparkles size={12} /> Similar {laneIndex}/{laneTotal}
             </span>
           )}
@@ -886,7 +886,7 @@ function ReelContent({
               <p className="mt-1 text-sm font-medium text-white">
                 {laneIndex > 0 ? "Similar to what you just watched" : post.whyThis}
               </p>
-              <p className="mt-1.5 text-[11px] text-white/45">Nothing on mesh.me is paid placement or an ad.</p>
+              <p className="mt-1.5 text-micro text-white/45">Nothing on mesh.me is paid placement or an ad.</p>
             </button>
           )}
 
@@ -906,7 +906,7 @@ function ReelContent({
                 <span className="truncate text-sm font-semibold">@{post.author.username}</span>
               </Link>
               {post.content && post.media.length > 0 && (
-                <div className="mt-2 max-w-full text-[13px] leading-snug text-white/90">
+                <div className="mt-2 max-w-full text-[0.78125rem] leading-snug text-white/90">
                   {/* Captions default to 2 lines; a `<p>` (not a `block` button)
                       so the line-clamp's own display isn't overridden. */}
                   <p
@@ -923,7 +923,7 @@ function ReelContent({
                     <button
                       type="button"
                       onClick={() => setExpanded((e) => !e)}
-                      className="mt-0.5 text-[12px] font-semibold text-white/70 transition-colors hover:text-white"
+                      className="mt-0.5 text-micro font-semibold text-white/70 transition-colors hover:text-white"
                       aria-expanded={expanded}
                     >
                       {expanded ? "less" : "more"}
@@ -931,7 +931,7 @@ function ReelContent({
                   )}
                 </div>
               )}
-              <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-white/60">
+              <p className="mt-1.5 flex items-center gap-1.5 text-micro text-white/60">
                 <Music2 size={11} />
                 {post.platform && post.platform !== "mesh" && post.platform !== "meshme" ? `From ${post.platform}` : "Original on mesh.me"}
               </p>

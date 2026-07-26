@@ -758,7 +758,7 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
               style={{ left: `${left}%`, top: `${top}%` }}
             >
               <MeshiMascot size={18} color={presence.meshiColor as MeshiColor} hat={presence.meshiHat as MeshiHat} animate={false} />
-              <span className="max-w-[5.25rem] truncate text-[9px] font-semibold text-[var(--media-ink-2)]">
+              <span className="max-w-[5.25rem] truncate text-micro font-semibold text-[var(--media-ink-2)]">
                 {label}
               </span>
             </span>
@@ -779,7 +779,7 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
           ))}
         </div>
         <Sparkles size={11} aria-hidden="true" className="text-[var(--media-ink-2)]" />
-        <span className="max-w-[9rem] truncate text-[10px] font-semibold text-[var(--media-ink-2)]">
+        <span className="max-w-[9rem] truncate text-micro font-semibold text-[var(--media-ink-2)]">
           {presences.length === 1 ? `${names} is here` : `${presences.length} Meshis here`}
         </span>
       </div>

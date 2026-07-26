@@ -219,7 +219,7 @@ export function MeshPluckRing({
                 className="mesh-glass mesh-ctl ds-focus-ring flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-full text-white/90 transition-transform hover:scale-110"
               >
                 {action.icon}
-                <span className="text-[8px] font-semibold mesh-eyebrow text-white/60">
+                <span className="text-micro font-semibold mesh-eyebrow text-white/60">
                   {action.label}
                 </span>
               </button>

@@ -46,7 +46,7 @@ function FeaturedCard({ community }: { community: Community }) {
             <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="lg" />
           </div>
         )}
-        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-[10px] font-semibold ${community.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
+        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-micro font-semibold ${community.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
           {community.isPublic ? "Public" : "Private"}
         </span>
       </div>
@@ -58,7 +58,7 @@ function FeaturedCard({ community }: { community: Community }) {
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--mesh-text-muted)]">
           {community.description || "A community on Mesh.me"}
         </p>
-        <p className="mt-auto pt-3 text-[11px] text-[var(--mesh-text-muted)]">
+        <p className="mt-auto pt-3 text-micro text-[var(--mesh-text-muted)]">
           {formatCount(community._count.members)} members
         </p>
       </div>
@@ -98,7 +98,7 @@ function CommunityRow({ community, selected, onSelect, index }: { community: Com
         </span>
         <span className="shrink-0 text-right">
           <span className="block text-sm font-semibold text-[var(--mesh-text)]">{formatCount(community._count.members)}</span>
-          <span className="block text-[10px] text-[var(--mesh-text-muted)]">members</span>
+          <span className="block text-micro text-[var(--mesh-text-muted)]">members</span>
         </span>
         <span className="hidden shrink-0 text-right sm:block">
           <span className="block text-xs text-[var(--mesh-text-secondary)]">Updated {formatRelativeTime(community.updatedAt)}</span>
@@ -264,7 +264,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 {selectedCommunity.iconUrl && (
                   <Image src={selectedCommunity.iconUrl} alt="" fill sizes="380px" className="object-cover opacity-50" />
                 )}
-                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-[10px] font-semibold ${selectedCommunity.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
+                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-micro font-semibold ${selectedCommunity.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent)]" : "bg-white/10 text-white/70"}`}>
                   {selectedCommunity.isPublic ? "Public" : "Private"}
                 </span>
                 <div className="absolute -bottom-8 left-5">
@@ -345,7 +345,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               {/* Tags */}
               {selectedCommunity.category && (
                 <div className="mt-4 flex flex-wrap gap-1.5">
-                  <span className="rounded-md bg-[var(--mesh-panel)] px-2 py-0.5 text-[10px] font-medium text-[var(--mesh-text-muted)]">
+                  <span className="rounded-md bg-[var(--mesh-panel)] px-2 py-0.5 text-micro font-medium text-[var(--mesh-text-muted)]">
                     {selectedCommunity.category}
                   </span>
                 </div>

@@ -204,7 +204,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               {post.isNsfw && (
                 <>
                   <span>&middot;</span>
-                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">NSFW</span>
+                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-micro font-semibold text-amber-300">NSFW</span>
                 </>
               )}
               {post.community && (
@@ -440,7 +440,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                         <Link href={`/profile/${reply.author.username}`} className="text-xs font-semibold text-[var(--text-primary)] hover:underline">
                           {reply.author.displayName}
                         </Link>
-                        <span className="text-[10px] text-[var(--text-muted)]">{formatRelativeTime(reply.createdAt)}</span>
+                        <span className="text-micro text-[var(--text-muted)]">{formatRelativeTime(reply.createdAt)}</span>
                       </div>
                       <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{reply.content}</p>
                     </div>

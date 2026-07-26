@@ -1667,7 +1667,7 @@ export function MeshiFloat() {
                     />
                   </div>
                 )}
-                <span className="text-[10px] text-[var(--text-muted)]">Knowledge Level {knowledge.knowledgeLevel}/10</span>
+                <span className="text-micro text-[var(--text-muted)]">Knowledge Level {knowledge.knowledgeLevel}/10</span>
               </motion.div>
             </motion.div>
           </motion.div>
@@ -1700,7 +1700,7 @@ export function MeshiFloat() {
                 initial={{ opacity: 0, y: 6, scale: 0.92 }}
                 animate={{ opacity: 0.82, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.92 }}
-                className="absolute bottom-full right-0 mb-1 flex items-center gap-1 rounded-full border border-[var(--accent)]/20 bg-[var(--bg-elevated)]/72 px-2 py-1 text-[10px] font-semibold text-[var(--text-primary)] shadow-md backdrop-blur"
+                className="absolute bottom-full right-0 mb-1 flex items-center gap-1 rounded-full border border-[var(--accent)]/20 bg-[var(--bg-elevated)]/72 px-2 py-1 text-micro font-semibold text-[var(--text-primary)] shadow-md backdrop-blur"
               >
                 <span className="text-[var(--accent)]">Check</span>
                 <button
@@ -1732,7 +1732,7 @@ export function MeshiFloat() {
                 initial={{ opacity: 0, y: 8, scale: 0.94 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.94 }}
-                className="absolute bottom-full right-0 mb-2 w-[15rem] rounded-xl border border-[var(--border-primary)] bg-[var(--bg-elevated)]/94 px-3 py-2 text-[11px] font-semibold text-[var(--text-primary)] shadow-lg backdrop-blur"
+                className="absolute bottom-full right-0 mb-2 w-[15rem] rounded-xl border border-[var(--border-primary)] bg-[var(--bg-elevated)]/94 px-3 py-2 text-micro font-semibold text-[var(--text-primary)] shadow-lg backdrop-blur"
               >
                 <div className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
@@ -1741,7 +1741,7 @@ export function MeshiFloat() {
                       Fact-check ready
                       {focusedContent.platform ? <span className="text-[var(--text-muted)]"> - {focusedContent.platform}</span> : null}
                     </p>
-                    <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-4 text-[var(--text-muted)]">
+                    <p className="mt-0.5 line-clamp-2 text-micro font-medium leading-4 text-[var(--text-muted)]">
                       I can summarize, check claims, or look for media authenticity clues using visible metadata.
                     </p>
                   </div>
@@ -1760,7 +1760,7 @@ export function MeshiFloat() {
                         event.stopPropagation();
                         handleFocusedContentPrompt(mode);
                       }}
-                      className="rounded-lg bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      className="rounded-lg bg-[var(--bg-tertiary)] px-2 py-1 text-micro font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                     >
                       {label}
                     </button>
@@ -1805,7 +1805,7 @@ export function MeshiFloat() {
                       {bubble.role === "meshi" && (
                         <div className="mb-1 flex items-start gap-1.5">
                           <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-                          <span className="text-[10px] font-medium text-[var(--accent)]">Meshi</span>
+                          <span className="text-micro font-medium text-[var(--accent)]">Meshi</span>
                         </div>
                       )}
                       <p className="leading-relaxed">{bubble.text}</p>
@@ -1827,19 +1827,19 @@ export function MeshiFloat() {
                   <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                     className="w-full rounded-2xl rounded-bl-sm border border-[var(--accent)]/40 bg-[var(--bg-elevated)] px-3 py-2 shadow-lg">
-                    <p className="mb-2 text-[10px] font-medium text-[var(--accent)]">Ready to post for you</p>
+                    <p className="mb-2 text-micro font-medium text-[var(--accent)]">Ready to post for you</p>
                     <p className="mb-2 max-h-20 overflow-y-auto text-xs leading-relaxed text-[var(--text-primary)]">
                       {pendingSpeechAction.content}
                     </p>
                     <div className="flex gap-1.5">
                       <button
                         onClick={confirmPendingSpeechAction}
-                        className="rounded-lg brand-button px-2.5 py-1 text-[11px] font-semibold text-white shadow">
+                        className="rounded-lg brand-button px-2.5 py-1 text-micro font-semibold text-white shadow">
                         Post it
                       </button>
                       <button
                         onClick={() => setPendingSpeechAction(null)}
-                        className="rounded-lg bg-[var(--bg-tertiary)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)]">
+                        className="rounded-lg bg-[var(--bg-tertiary)] px-2.5 py-1 text-micro text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)]">
                         Not now
                       </button>
                     </div>
@@ -2024,7 +2024,7 @@ export function MeshiFloat() {
                     transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
                   />
                   <motion.div
-                    className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[8px] font-semibold text-white pointer-events-none shadow-lg"
+                    className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-micro font-semibold text-white pointer-events-none shadow-lg"
                     style={{ background: "var(--accent)" }}
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}

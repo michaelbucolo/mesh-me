@@ -706,7 +706,7 @@ export function MeChatThread({
                 <div key={message.id}>
                 {newDay && (
                   <div className={`flex items-center justify-center ${index === 0 ? "mb-4" : "my-4"}`}>
-                    <span className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)]/70 px-3 py-1 text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+                    <span className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)]/70 px-3 py-1 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
                       {dayLabel(message.createdAt)}
                     </span>
                   </div>
@@ -721,7 +721,7 @@ export function MeChatThread({
                     className="my-4 flex scroll-mt-3 items-center gap-3"
                   >
                     <span className="h-px flex-1 bg-[var(--accent)]/40" aria-hidden="true" />
-                    <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
+                    <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
                       New
                     </span>
                     <span className="h-px flex-1 bg-[var(--accent)]/40" aria-hidden="true" />
@@ -749,7 +749,7 @@ export function MeChatThread({
                     className={`relative max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}
                   >
                     {!isMine && !groupedWithPrev && (
-                      <p className="px-2 text-[11px] font-semibold text-[var(--text-muted)]">
+                      <p className="px-2 text-micro font-semibold text-[var(--text-muted)]">
                         {externalSender?.name || message.sender.displayName}
                       </p>
                     )}
@@ -858,7 +858,7 @@ export function MeChatThread({
                             >
                               {reaction.emoji}
                               {reaction.count > 1 ? (
-                                <span key={reaction.count} className="mesh-roll-in text-[10px] font-semibold">
+                                <span key={reaction.count} className="mesh-roll-in text-micro font-semibold">
                                   {reaction.count}
                                 </span>
                               ) : null}
@@ -867,7 +867,7 @@ export function MeChatThread({
                         </span>
                       )}
                       {!isExternalThread && (message.sourcePlatform !== "mesh" || message.messageType !== "text") ? (
-                        <p className={`mb-2 text-[10px] font-semibold mesh-eyebrow ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
+                        <p className={`mb-2 text-micro font-semibold mesh-eyebrow ${isMine ? "text-white/75" : "text-[var(--text-muted)]"}`}>
                           {message.messageType.replace("_", " ")} from {message.sourcePlatform}
                         </p>
                       ) : null}
@@ -917,8 +917,8 @@ export function MeChatThread({
                               ring or a wall. Jade commit key, --face cancel key —
                               the same pair everywhere on this surface. */}
                           <div className="flex gap-2">
-                            <button type="button" onClick={() => saveEdit(message.id)} disabled={isPending} className="mechat-key mechat-key-chip key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] inline-flex min-h-8 items-center px-3 py-1 text-[11px] font-semibold disabled:opacity-50">Save</button>
-                            <button type="button" onClick={() => { setEditingId(null); setEditDraft(""); }} className="mechat-key mechat-key-chip key inline-flex min-h-8 items-center px-3 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">Cancel</button>
+                            <button type="button" onClick={() => saveEdit(message.id)} disabled={isPending} className="mechat-key mechat-key-chip key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] inline-flex min-h-8 items-center px-3 py-1 text-micro font-semibold disabled:opacity-50">Save</button>
+                            <button type="button" onClick={() => { setEditingId(null); setEditDraft(""); }} className="mechat-key mechat-key-chip key inline-flex min-h-8 items-center px-3 py-1 text-micro font-semibold text-[var(--text-secondary)]">Cancel</button>
                           </div>
                         </div>
                       ) : (
@@ -945,7 +945,7 @@ export function MeChatThread({
                           rel="noreferrer"
                           className="mechat-key key mt-3 block p-3 text-[var(--text-primary)]"
                         >
-                          <span className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+                          <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
                             {message.metadata.linkPreview.host}
                           </span>
                           <span className="mt-1 block text-sm font-semibold">{message.metadata.linkPreview.title}</span>
@@ -971,7 +971,7 @@ export function MeChatThread({
                     </div>
 
                     {showMeta && (
-                      <div className={`flex flex-wrap items-center gap-1.5 px-2 text-[10px] text-[var(--text-muted)] ${isMine ? "justify-end" : "justify-start"}`}>
+                      <div className={`flex flex-wrap items-center gap-1.5 px-2 text-micro text-[var(--text-muted)] ${isMine ? "justify-end" : "justify-start"}`}>
                         <span>{timeLabel(message.createdAt)}</span>
                         {delivery && (
                           <span className={delivery.status === "delivered" ? "text-[var(--mesh-green)]" : "text-[var(--mesh-danger)]"}>
@@ -1102,7 +1102,7 @@ export function MeChatThread({
         className="border-t border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:pb-3"
       >
         {isExternalThread && (
-          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-muted)]">
+          <p className="mb-2 flex items-center gap-1.5 text-micro font-semibold text-[var(--text-muted)]">
             <Link2 size={12} aria-hidden="true" />
             Replies deliver to {platformDisplayName(threadPlatform)} through your connected account.
           </p>

@@ -143,8 +143,8 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
                         className={`rounded-xl border p-3 text-left transition ${active ? "border-emerald-500/35 bg-emerald-500/10" : "border-[var(--border-primary)] bg-[var(--bg-secondary)]"}`}
                       >
                         <p className="text-xs font-semibold text-[var(--text-primary)]">{permission.label}</p>
-                        <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">{permission.description}</p>
-                        <span className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold ${active ? "text-emerald-400" : "text-[var(--text-muted)]"}`}>
+                        <p className="mt-1 text-micro leading-5 text-[var(--text-muted)]">{permission.description}</p>
+                        <span className={`mt-2 inline-flex items-center gap-1 text-micro font-semibold ${active ? "text-emerald-400" : "text-[var(--text-muted)]"}`}>
                           {loading && <PaperWait size="sm" />}
                           {active ? "Allowed" : "Not allowed"}
                         </span>
@@ -175,7 +175,7 @@ function MiniStat({ icon: Icon, label, value }: { icon: typeof Eye; label: strin
     <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
       <Icon className="mb-2 h-4 w-4 text-[var(--accent)]" />
       <p className="text-lg font-semibold text-[var(--text-primary)]">{value.toLocaleString()}</p>
-      <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
+      <p className="text-micro text-[var(--text-muted)]">{label}</p>
     </div>
   );
 }

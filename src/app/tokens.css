@@ -324,6 +324,20 @@
   --t-descriptor: italic 400 0.8125rem/1.4 var(--font-sans);  /* NEW — see §4 */
   --t-count:   600 0.8125rem/1 var(--font-mono);              /* NEW — tabular */
 
+  /* MICRO — the step the scale was missing, and its absence is most of why the
+     product reads cheap. --t-caption at 0.78125rem (12.5px) was the smallest
+     thing the system acknowledged, so every badge, count, timestamp and chip
+     reached past it for an arbitrary value: 8, 8.5, 9, 9.5, 10, 10.5, 11 and
+     11.5px, 202 sites, EIGHT distinct sizes none of which are on any scale.
+     That is not eight decisions, it is one decision made eight times by
+     different people.
+
+     0.6875rem (11px) is the real floor for meta text at this density — and
+     collapsing the sub-9px sites UP to it is an accessibility improvement as
+     well as a consistency one; 8px body text was never defensible. */
+  --fs-micro: 0.6875rem;
+  --t-micro:   500 0.6875rem/1.35 var(--font-sans);
+
   --track-display: -0.030em;   /* was -0.028 */
   --track-h1: -0.026em;        /* was -0.022 */
   --track-h2: -0.020em;        /* was -0.018 */

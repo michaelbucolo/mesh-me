@@ -125,9 +125,9 @@ export function MeshSearchOverlay({
                   <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: node.color }} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-white">{node.label}</span>
-                    {node.sublabel && <span className="block truncate text-[11px] text-white/50">{node.sublabel}</span>}
+                    {node.sublabel && <span className="block truncate text-micro text-white/50">{node.sublabel}</span>}
                   </span>
-                  <span className="shrink-0 text-[10px] mesh-eyebrow text-white/35">{node.kind}</span>
+                  <span className="shrink-0 text-micro mesh-eyebrow text-white/35">{node.kind}</span>
                 </button>
               </li>
             ))}
@@ -135,7 +135,7 @@ export function MeshSearchOverlay({
         )}
         {discoverUsers.length > 0 && (
           <div className="border-t border-white/8 pt-1">
-            <p className="px-3 pt-1.5 pb-0.5 text-[10px] mesh-eyebrow text-white/35">Across mesh.me</p>
+            <p className="px-3 pt-1.5 pb-0.5 text-micro mesh-eyebrow text-white/35">Across mesh.me</p>
             <ul className="max-h-48 overflow-y-auto">
               {discoverUsers.map((u) => (
                 <li key={u.id}>
@@ -148,15 +148,15 @@ export function MeshSearchOverlay({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={u.avatarUrl} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
                     ) : (
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold text-white/70">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-micro font-semibold text-white/70">
                         {(u.displayName || u.username).slice(0, 1).toUpperCase()}
                       </span>
                     )}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-white">{u.displayName || u.username}</span>
-                      <span className="block truncate text-[11px] text-white/50">@{u.username}</span>
+                      <span className="block truncate text-micro text-white/50">@{u.username}</span>
                     </span>
-                    <span className="shrink-0 text-[10px] mesh-eyebrow text-white/35">Visit mesh</span>
+                    <span className="shrink-0 text-micro mesh-eyebrow text-white/35">Visit mesh</span>
                   </button>
                 </li>
               ))}
