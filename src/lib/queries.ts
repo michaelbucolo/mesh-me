@@ -1,6 +1,7 @@
 "use server";
 
 import { unstable_cache } from "next/cache";
+import { safeLinkHref } from "@/lib/profile-links";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { parseMeChatMetadata } from "./mechat-metadata";
@@ -522,7 +523,21 @@ export async function getUserProfile(username: string) {
       }
     : null;
 
+  // Links in bio. The rows were already fetched and already gated on
+  // `profileVisible` below — what was missing is that NOTHING rendered them and
+  // nothing could write them, so `UserLink` sat in the schema with zero call
+  // sites in src/. Re-validated here on the way OUT as well as on the way in: a
+  // row could predate a rule or arrive from a future import path, and an href is
+  // the one place a bad URL actually costs something. See lib/profile-links.ts.
+  const safeLinks = user.links
+    .map((row) => ({ id: row.id, label: row.label, url: safeLinkHref(row.url) }))
+    .filter((row): row is { id: string; label: string; url: string } => row.url !== null);
+  // The owner always gets their own rows so the editor can load, the same shape
+  // `aboutEditable` uses above.
+  const linksEditable = isOwnProfile ? safeLinks.map(({ label, url }) => ({ label, url })) : null;
+
   return {
+    linksEditable,
     ...user,
     about,
     aboutEditable,
@@ -535,7 +550,7 @@ export async function getUserProfile(username: string) {
     bio: profileVisible ? user.bio : null,
     location: profileVisible ? user.location : null,
     website: profileVisible ? user.website : null,
-    links: profileVisible ? user.links : [],
+    links: profileVisible ? safeLinks : [],
     interests: sectionVisibility.interests ? user.interests : [],
     connectedAccounts: sectionVisibility.platforms ? user.connectedAccounts : [],
     _count: sectionVisibility.stats ? user._count : hiddenCounts,
