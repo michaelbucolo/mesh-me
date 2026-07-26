@@ -334,7 +334,16 @@ export function MeChatConversationList({
       </div>
 
       <div className="px-3 pb-2">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* The strip knew which chip was selected and only ever said so in
+            paint: `selected` drove the mould and nothing else. To a screen
+            reader this was five plain buttons with no group and no current
+            member, while one of them was actively narrowing the list — the same
+            silent-selection defect the feed's filter row had. */}
+        <div
+          role="group"
+          aria-label="Filter conversations"
+          className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {FILTERS.map((filter) => {
             const selected = activeFilter === filter.key;
             const count = filter.key === "all" ? filterCounts.all : filterCounts[filter.key];
@@ -348,6 +357,10 @@ export function MeChatConversationList({
               <button
                 key={filter.key}
                 type="button"
+                aria-pressed={selected}
+                // The count renders as a bare number beside the label, which
+                // reads as "All 3" — a quantity with no unit. Name the button.
+                aria-label={count > 0 ? `${filter.label}, ${count} ${count === 1 ? "conversation" : "conversations"}` : filter.label}
                 onClick={() => setActiveFilter(filter.key)}
                 className={`mechat-key mechat-key-chip key inline-flex min-h-8 items-center gap-1.5 px-3 py-1 text-xs font-semibold ${
                   selected

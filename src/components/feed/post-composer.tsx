@@ -424,8 +424,12 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
             </div>
           )}
 
+          {/* Who can see this post was conveyed by the cobalt mould and nothing
+              else. A screen reader heard three buttons, each reading out its own
+              label and description, with no way to tell which one was chosen —
+              an audience decision announced to no one. */}
           {showVisibility && (
-            <div className="tray mt-3 grid gap-2 p-2 sm:grid-cols-3">
+            <div className="tray mt-3 grid gap-2 p-2 sm:grid-cols-3" role="group" aria-label="Who can see this post">
               {visibilityOptions.map((option) => {
                 const Icon = option.icon;
                 const active = visibility === option.id;
@@ -433,6 +437,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                   <button
                     key={option.id}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => setVisibility(option.id)}
                     className={`key px-3 py-2 text-left ${active ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]" : "text-[var(--text-secondary)]"}`}
                   >
@@ -557,6 +562,8 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                     : ""
                 )}
+                aria-expanded={showLinkTools}
+                aria-label="Add link"
                 title="Add link"
               >
                 <LinkIcon className="h-4 w-4" />
@@ -565,6 +572,8 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                 type="button"
                 onClick={() => setShowTags(!showTags)}
                 className="key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                aria-expanded={showTags}
+                aria-label="Add tags"
                 title="Add tags"
               >
                 <Hash className="h-4 w-4" />
@@ -577,6 +586,8 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                     : ""
                 )}
+                aria-expanded={showVisibility}
+                aria-label="Post visibility"
                 title="Post visibility"
               >
                 <Eye className="h-4 w-4" />
@@ -589,6 +600,8 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                     : ""
                 )}
+                aria-expanded={showCrossPost}
+                aria-label="Cross-post to connected platforms"
                 title="Cross-post to connected platforms"
               >
                 <Globe className="h-4 w-4" />
