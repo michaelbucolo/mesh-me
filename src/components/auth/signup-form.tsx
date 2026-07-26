@@ -50,7 +50,7 @@ export function SignupForm() {
       </div>
 
       {error ? (
-        <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>
+        <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-[var(--danger)]">{error}</p>
       ) : null}
 
       <Button type="submit" className="w-full" size="lg" disabled={isPending}>

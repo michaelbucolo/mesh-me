@@ -116,9 +116,9 @@ export default function TrustCenterPage() {
             Mesh.me is intended to feel like a user-authorized control layer for your digital world. Source-platform
             actions stay off unless the official API, approved scopes, user consent, and provider terms allow the action.
           </p>
-          {/* `text-emerald-200` on `bg-emerald-500/5` is a pigment used as ink on a 5%
-              tint of itself: fine on a dark mat, 1.17:1 once the tint lands on light
-              paper. `--success` is the palette's green and is measured against all
+          {/* Was `text-emerald-200` on this same 5% emerald tint — a pigment used as ink
+              on a tint of its own hue. Fine on a dark mat, 1.17:1 once the tint lands on
+              light paper. `--success` is the palette's green and is measured against all
               four papers in both themes. */}
           <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-[var(--success)]">
             Compliance rule: official APIs only, no scraping, no credential collection, no unsupported write-back.

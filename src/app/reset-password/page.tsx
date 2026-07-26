@@ -156,7 +156,7 @@ function ResetPasswordForm() {
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="px-4 py-2 rounded-xl text-xs text-red-400 bg-red-500/10 border border-red-500/20"
+            className="px-4 py-2 rounded-xl text-xs text-[var(--danger)] bg-red-500/10 border border-red-500/20"
           >
             {error}
           </motion.div>

@@ -342,7 +342,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       ) : null}
 
       {error ? (
-        <div className="rounded-lg border border-red-400/25 bg-red-500/10 p-4 text-sm font-semibold text-red-100">
+        <div className="rounded-lg border border-red-400/25 bg-red-500/10 p-4 text-sm font-semibold text-[var(--danger)]">
           {error}
         </div>
       ) : null}
@@ -370,7 +370,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                       {source.name}
                       {source.connected ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-micro text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-micro text-[var(--success)]">
                           <CheckCircle2 size={12} aria-hidden="true" />
                           Synced
                         </span>

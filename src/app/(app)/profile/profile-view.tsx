@@ -179,7 +179,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-label="Verified" />
                   )}
                   {!isOwnProfile && !profile.isPublic && (
-                    <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
+                    <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--warning)]">
                       Private by default
                     </span>
                   )}
@@ -397,7 +397,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                       {formatCount(m.community._count.members)} members · {formatCount(m.community._count.posts)} posts
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+                  <span className="shrink-0 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-[var(--success)]">
                     {m.role === "admin" ? "Admin" : m.role === "moderator" ? "Moderator" : "Joined"}
                   </span>
                 </Link>
@@ -568,7 +568,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     <p className="truncate font-medium text-[var(--mesh-text)]">{m.community.name}</p>
                     <p className="text-xs text-[var(--mesh-text-muted)]">{formatCount(m.community._count.members)} members</p>
                   </div>
-                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-micro font-semibold text-emerald-400">Joined</span>
+                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-micro font-semibold text-[var(--success)]">Joined</span>
                 </Link>
               ))
             ) : (

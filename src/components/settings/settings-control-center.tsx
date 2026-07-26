@@ -707,8 +707,8 @@ export function SettingsControlCenter({
         <div
           className={`settings-status-toast ${
             status.type === "success"
-              ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-700 dark:text-emerald-100"
-              : "border-red-400/25 bg-red-500/10 text-red-700 dark:text-red-100"
+              ? "border-emerald-300/25 bg-emerald-300/10 text-[var(--success)] dark:text-[var(--success)]"
+              : "border-red-400/25 bg-red-500/10 text-[var(--danger)] dark:text-[var(--danger)]"
           }`}
           role="status"
         >
