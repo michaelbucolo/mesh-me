@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "hideActivityStatus" BOOLEAN NOT NULL DEFAULT false,
     "readReceipts" BOOLEAN NOT NULL DEFAULT false,
     "ghostMode" BOOLEAN NOT NULL DEFAULT false,
+    "flowStudio" TEXT,
     "nsfwEnabled" BOOLEAN NOT NULL DEFAULT false,
     "adultVerificationStatus" TEXT NOT NULL DEFAULT 'unverified',
     "adultVerifiedAt" DATETIME,
