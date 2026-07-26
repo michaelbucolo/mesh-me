@@ -3122,7 +3122,7 @@ export async function getUserMeshiPreference(userId: string) {
 export async function updateMeshCosmetics(cosmetics: { type: string; value: string; isActive: boolean }[]) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
-  if (!user.isMeshPro) return { error: "Mesh Pro is required for custom Mesh visuals." };
+  if (!user.isMeshPro) return { error: "MeshPro is required for custom Mesh visuals." };
 
   await prisma.$transaction(async (tx) => {
     await tx.meshCosmetic.deleteMany({ where: { userId: user.id } });

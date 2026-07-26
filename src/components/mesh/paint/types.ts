@@ -32,7 +32,7 @@ export interface ScenePaintOptions {
   hoverId?: string | null;
   images: Map<string, HTMLImageElement>;
   backgroundStars: { x: number; y: number; r: number; tw: number }[];
-  /** Mesh Pro visuals chosen by this mesh's OWNER — visitors see them too. */
+  /** MeshPro visuals chosen by this mesh's OWNER — visitors see them too. */
   visuals?: {
     connectionColor?: string | null;
     nodeStyle?: string | null;

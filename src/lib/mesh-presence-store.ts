@@ -49,7 +49,7 @@ export type PresenceEntry = {
    * it once, deduped by the timestamp.
    */
   lastAction: string | null;
-  /** Mesh Pro member — their Meshi carries a gold aura in the room. */
+  /** MeshPro member — their Meshi carries a gold aura in the room. */
   isPro: boolean;
   lastSeen: number;
 };

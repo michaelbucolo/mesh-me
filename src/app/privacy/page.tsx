@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           <p><strong>Account data.</strong> When you create a Mesh.me account we collect what is needed to operate it — your email address, username, display name, and a hashed (never plaintext) password. We may use email or phone-number verification to help prevent abuse and secure your account.</p>
           <p><strong>Profile and content.</strong> Optional profile details you provide (bio, location, website, avatar, banner image, accent color, interest tags) and the content you create — posts, comments, messages in MeChat, community activity, and your Meshi customization.</p>
           <p><strong>Connected accounts.</strong> When you connect a third-party platform (including GitHub, Discord, Spotify, X/Twitter, Twitch, YouTube, Instagram, Facebook, LinkedIn, Reddit, TikTok, Pinterest, Snapchat, Threads, SoundCloud, Patreon, and Dribbble), we store the platform name, your platform username/ID, and encrypted OAuth tokens for the scopes you explicitly authorize, plus the specific content those scopes let you view or manage inside Mesh.me.</p>
-          <p><strong>Payment data.</strong> Mesh Pro payments are processed by Stripe. We receive limited billing metadata (such as subscription status and the last four digits/card brand) but we do not receive or store your full card number.</p>
+          <p><strong>Payment data.</strong> MeshPro payments are processed by Stripe. We receive limited billing metadata (such as subscription status and the last four digits/card brand) but we do not receive or store your full card number.</p>
           <p><strong>Age-verification status.</strong> If you opt into age-restricted content, identity/age verification is performed by a third-party verifier. We receive only a pass/fail verification status — we do not receive or store your ID document.</p>
           <p><strong>Usage and technical data.</strong> For operating, securing, and debugging the Service we collect data such as pages visited, features used, device type, browser, operating system, approximate location derived from IP, and IP address.</p>
         </>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
       title: "2. How we use your information",
       content: (
         <>
-          <p>We use your information to operate and personalize Mesh.me; power the Mesh, Feed, MeChat, Communities, Analytics, and Meshi experiences; support connected-platform features you enable; process Mesh Pro subscriptions through Stripe; communicate with you about your account and security; and improve the Service.</p>
+          <p>We use your information to operate and personalize Mesh.me; power the Mesh, Feed, MeChat, Communities, Analytics, and Meshi experiences; support connected-platform features you enable; process MeshPro subscriptions through Stripe; communicate with you about your account and security; and improve the Service.</p>
           <p>We also use data to detect and prevent abuse and fraud, maintain security, enforce our <a href="/terms">Terms</a> and age-verification requirements, and comply with legal obligations.</p>
           <p>Mesh.me does not use your data to sell advertising, build third-party advertising profiles, or engage in data-broker monetization, and we will never sell your personal data. This is a permanent, foundational commitment.</p>
         </>

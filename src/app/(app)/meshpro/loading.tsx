@@ -1,5 +1,5 @@
 import { RouteWait } from "@/components/loading/route-wait";
 
 export default function Loading() {
-  return <RouteWait shape="page" label="Loading Mesh Pro" />;
+  return <RouteWait shape="page" label="Loading MeshPro" />;
 }

@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { hasSessionCookieHint } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Mesh Pro Pricing",
-  description: "Mesh Pro pricing redirects into the authenticated Mesh Pro subscription page.",
+  title: "MeshPro Pricing",
+  description: "MeshPro pricing redirects into the authenticated MeshPro subscription page.",
 };
 
 export default async function PricingPage() {

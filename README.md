@@ -196,7 +196,7 @@ Features mesh.me fully owns and controls:
 - Mesh Vault
 - Meshi customization
 - Privacy controls
-- Mesh Pro
+- MeshPro
 
 These features should work even if no external account is connected.
 

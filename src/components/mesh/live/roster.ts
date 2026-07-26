@@ -30,7 +30,7 @@ export type RemotePresence = {
   lastAction?: string | null;
   /** Where on mesh.me they are when not on a mesh surface (e.g. "/flow"). */
   activeRoute?: string | null;
-  /** Mesh Pro member — their Meshi carries a subtle gold aura. */
+  /** MeshPro member — their Meshi carries a subtle gold aura. */
   isPro?: boolean;
   isOnline: boolean;
 };

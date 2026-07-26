@@ -65,12 +65,12 @@ export default function TermsPage() {
     },
     {
       id: "meshpro",
-      title: "6. Mesh Pro subscriptions, payments, and zero-ads policy",
+      title: "6. MeshPro subscriptions, payments, and zero-ads policy",
       content: (
         <>
-          <p>Mesh Pro is an optional subscription ($4.99/month or $39.99/year) that unlocks features such as expanded analytics, digital footprint scanning, cross-platform insights, advanced security tools, Meshi customization, mesh cosmetics, and a verified badge. Nearly every core feature of Mesh.me is free.</p>
-          <p>Payments are processed by Stripe; we do not store your full payment card details. Subscriptions renew automatically for the interval you select until canceled. You may cancel at any time from your account settings or the Stripe billing portal; cancellation stops future renewals and your Mesh Pro benefits continue through the end of the current paid period. Except where required by law, payments are non-refundable and partial periods are not refunded.</p>
-          <p>We may change subscription pricing or features on a going-forward basis; changes will not affect the period you have already paid for, and we will provide notice of price changes before your next renewal. Mesh.me does not display advertisements or sell user data — Mesh Pro is the platform&apos;s sole revenue source, and this is a core product principle rather than a temporary policy.</p>
+          <p>MeshPro is an optional subscription ($4.99/month or $39.99/year) that unlocks features such as expanded analytics, digital footprint scanning, cross-platform insights, advanced security tools, Meshi customization, mesh cosmetics, and a verified badge. Nearly every core feature of Mesh.me is free.</p>
+          <p>Payments are processed by Stripe; we do not store your full payment card details. Subscriptions renew automatically for the interval you select until canceled. You may cancel at any time from your account settings or the Stripe billing portal; cancellation stops future renewals and your MeshPro benefits continue through the end of the current paid period. Except where required by law, payments are non-refundable and partial periods are not refunded.</p>
+          <p>We may change subscription pricing or features on a going-forward basis; changes will not affect the period you have already paid for, and we will provide notice of price changes before your next renewal. Mesh.me does not display advertisements or sell user data — MeshPro is the platform&apos;s sole revenue source, and this is a core product principle rather than a temporary policy.</p>
         </>
       ),
     },
@@ -132,7 +132,7 @@ export default function TermsPage() {
     <LegalDocumentPage
       eyebrow="mesh.me Terms of Service"
       title="The rules should be as clear as the product promise."
-      summary="These terms cover use of Mesh.me — account eligibility, your content, connected-platform boundaries, Mesh Pro billing, content and NSFW policy, intellectual property, termination and data deletion, and the legal terms that govern the Service."
+      summary="These terms cover use of Mesh.me — account eligibility, your content, connected-platform boundaries, MeshPro billing, content and NSFW policy, intellectual property, termination and data deletion, and the legal terms that govern the Service."
       updatedLabel="Last updated: July 19, 2026"
       sections={sections}
     />

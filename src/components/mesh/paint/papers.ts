@@ -15,7 +15,7 @@
 
 /**
  * Mesh Atmospheres — the sky palette of a mesh. "midnight" is the free
- * default; the rest are Mesh Pro skies.
+ * default; the rest are MeshPro skies.
  */
 export interface AtmosphereSpec {
   id: string;

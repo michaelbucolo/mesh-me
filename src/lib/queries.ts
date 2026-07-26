@@ -548,7 +548,7 @@ export async function getUserProfile(username: string) {
     // profile, so you always see your own last-seen.
     lastSeenAt: user.hideActivityStatus || !profileVisible ? null : user.lastSeenAt,
     hideActivityStatus: undefined,
-    // Founder accounts read as Mesh Pro to everyone, not just to themselves —
+    // Founder accounts read as MeshPro to everyone, not just to themselves —
     // getCurrentUser resolves this for the session user, and this is the same
     // rule on the OTHER side of the request, for the profile being viewed.
     isMeshPro: hasMeshPro(user),

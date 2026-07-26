@@ -21,7 +21,7 @@ import { meshBrand } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Features",
-  description: `Explore ${meshBrand.name} product areas, launch philosophy, interface modes, and Mesh Pro.`,
+  description: `Explore ${meshBrand.name} product areas, launch philosophy, interface modes, and MeshPro.`,
 };
 
 const productAreas = [
@@ -66,7 +66,7 @@ const capabilityRows = [
   {
     icon: Shield,
     title: "Consumer-first business model",
-    copy: "The platform is designed around optional Mesh Pro value instead of ads, surveillance, or degrading the free experience.",
+    copy: "The platform is designed around optional MeshPro value instead of ads, surveillance, or degrading the free experience.",
   },
 ];
 
@@ -189,7 +189,7 @@ export default function FeaturesPage() {
       <section className="mt-12 rounded-3xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
         <div className="mb-4 flex items-center gap-2">
           <Crown className="h-5 w-5 text-[var(--accent)]" />
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Mesh Pro</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">MeshPro</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {meshProItems.map((item) => (

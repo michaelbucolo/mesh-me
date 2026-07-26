@@ -408,7 +408,7 @@ const checks = [
 
       assert(stripeSource.includes('apiVersion: "2026-03-25.dahlia"'), "Stripe API version is not pinned to the SDK-supported latest version");
       assert(stripeSource.includes("maxNetworkRetries") && stripeSource.includes("timeout"), "Stripe client retry/timeout config is missing");
-      assert(checkoutSource.includes('mode: "subscription"'), "Checkout must use subscription mode for Mesh Pro");
+      assert(checkoutSource.includes('mode: "subscription"'), "Checkout must use subscription mode for MeshPro");
       assert(portalSource.includes("billingPortal.sessions.create"), "Customer Portal session creation is missing");
       assert(webhookSource.includes("stripe.webhooks.constructEvent") && webhookSource.includes("STRIPE_WEBHOOK_SECRET"), "Stripe webhook signature verification is missing");
       assert(validationSource.includes("VALID_SYNC_TYPES") && validationSource.includes("VALID_PLATFORM_CONTENT_ACTIONS"), "API validation contract helpers are missing");

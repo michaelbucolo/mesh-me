@@ -25,9 +25,9 @@ exactly what remains for native store distribution.
 | In-app account deletion | Shipped — settings → delete account (verified live in QA) |
 | Privacy policy + terms reachable in-app | Shipped — `/privacy`, `/terms` |
 | Age-gated sensitive content | Shipped — NSFW off by default, adult verification flow before opt-in |
-| No ads, no tracking, no data sale | True by design — Mesh Pro is the only revenue |
+| No ads, no tracking, no data sale | True by design — MeshPro is the only revenue |
 | Sign in with Apple requirement | Not triggered — mesh.me uses only first-party accounts (no third-party login buttons) |
-| Payments | Stripe for Mesh Pro on the web. **Native iOS builds must use App Store billing (or qualify for the external-link entitlement) — see below** |
+| Payments | Stripe for MeshPro on the web. **Native iOS builds must use App Store billing (or qualify for the external-link entitlement) — see below** |
 
 ## What native distribution still requires (outside this repo)
 

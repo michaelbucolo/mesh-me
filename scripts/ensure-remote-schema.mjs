@@ -398,7 +398,7 @@ try {
   //
   // Do not "just add the rebuild" without a tested backup-and-restore for the
   // live database. The sweep above is what closes the leak.
-  // ── Founder Mesh Pro ────────────────────────────────────────────────────
+  // ── Founder MeshPro ────────────────────────────────────────────────────
   // Deliberately NOT inside runOnce. A one-time UPDATE affects zero rows if the
   // account does not exist yet, and there is no second chance — so a founder who
   // signs up after the deploy would never be granted. Re-asserted every deploy
@@ -406,7 +406,7 @@ try {
   // self-healing whenever the account appears.
   //
   // The runtime guarantee does not depend on this at all — lib/mesh-pro.ts
-  // derives Mesh Pro from the username, so a founder has it from their first
+  // derives MeshPro from the username, so a founder has it from their first
   // request regardless of what this column says. This exists so the stored data
   // agrees with what the product shows, for analytics and anything reading the
   // table directly.
@@ -419,7 +419,7 @@ try {
       args: [new Date().toISOString(), ...founders],
     });
     if (result.rowsAffected > 0) {
-      console.log(`[ensure-schema] Granted founder Mesh Pro to ${result.rowsAffected} account(s)`);
+      console.log(`[ensure-schema] Granted founder MeshPro to ${result.rowsAffected} account(s)`);
     }
   }
 

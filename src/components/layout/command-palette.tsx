@@ -272,11 +272,16 @@ function createCommands(username: string): CommandItem[] {
     {
       id: "settings-billing",
       title: "Billing Settings",
-      description: "Manage Mesh Pro, payments, invoices, and plan details.",
+      description: "Manage MeshPro, payments, invoices, and plan details.",
       category: "Settings",
       href: "/settings#billing",
       icon: CreditCard,
-      keywords: ["stripe", "subscription", "mesh pro", "payment"],
+      // A COMPARED string, not copy — the matcher lowercases the query, splits
+      // it on whitespace and requires every term to be a substring. "meshpro" is
+      // strictly the better haystack: typing "mesh pro" gives ["mesh","pro"] and   // MESHPRO-NAME-ALLOW
+      // both are substrings of "meshpro", while typing "meshpro" against the old
+      // "mesh pro" matched nothing.   // MESHPRO-NAME-ALLOW
+      keywords: ["stripe", "subscription", "meshpro", "payment"],
     },
     {
       id: "settings-data",
@@ -289,7 +294,7 @@ function createCommands(username: string): CommandItem[] {
     },
     {
       id: "mesh-pro",
-      title: "Mesh Pro",
+      title: "MeshPro",
       description: "Upgrade for deeper analytics, cosmetics, and customization.",
       category: "Go",
       href: "/meshpro",

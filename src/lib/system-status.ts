@@ -125,8 +125,8 @@ export async function getPublicSystemStatus(): Promise<PublicSystemStatus> {
         summary: availablePlans.length > 0 ? "Operational" : "Setup needed",
         detail:
           availablePlans.length > 0
-            ? `${availablePlans.length} Mesh Pro checkout option${availablePlans.length === 1 ? "" : "s"} can route to Stripe. Mesh.me does not store card numbers.`
-            : "Stripe checkout needs a secret key plus price IDs or payment links before Mesh Pro purchases can run.",
+            ? `${availablePlans.length} MeshPro checkout option${availablePlans.length === 1 ? "" : "s"} can route to Stripe. Mesh.me does not store card numbers.`
+            : "Stripe checkout needs a secret key plus price IDs or payment links before MeshPro purchases can run.",
       };
     }),
   ]);

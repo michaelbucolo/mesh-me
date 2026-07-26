@@ -1,5 +1,5 @@
 /**
- * FOUNDER ACCOUNTS — Mesh Pro for life.
+ * FOUNDER ACCOUNTS — MeshPro for life.
  *
  * Held in code rather than granted as a row, because "for life" is a property of
  * the account, not a transaction that happened once. A one-time `UPDATE User SET
@@ -21,7 +21,7 @@ export function isFounderUsername(username: string | null | undefined): boolean 
 }
 
 /**
- * Does this account have Mesh Pro? Paid, or a founder.
+ * Does this account have MeshPro? Paid, or a founder.
  *
  * Takes the two fields it needs rather than a full User so it can be called
  * from anywhere — the session user, a profile payload, a presence row — without
@@ -38,7 +38,7 @@ export const MESH_PRO_PRICING = {
     label: "Monthly",
     price: "$4.99",
     interval: "month",
-    detail: "Best for trying Mesh Pro.",
+    detail: "Best for trying MeshPro.",
     savings: null,
   },
   yearly: {

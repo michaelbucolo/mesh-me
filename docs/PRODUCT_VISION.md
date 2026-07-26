@@ -337,9 +337,9 @@ Mesh.me contains **zero advertisements.** Advertising is not part of the platfor
 and the business never depends on inserting ads into the Mesh, Flow, MeChat,
 profiles, Explore, creator content, or any other experience. **Firm rule.**
 
-## 32. Mesh Pro as the Only Revenue Source
+## 32. MeshPro as the Only Revenue Source
 
-Mesh.me makes money **only** through **Mesh Pro subscriptions** — the sole
+Mesh.me makes money **only** through **MeshPro subscriptions** — the sole
 revenue source. No additional revenue models that undermine the experience.
 
 ## 33. The Free Experience
@@ -348,12 +348,12 @@ People can use the platform essentially to its **fullest potential without
 paying.** The normal experience stays **complete.** Important functionality is
 never removed to force subscriptions. Free users meaningfully use the Mesh,
 Meshi, Flow, MeChat, profiles, Explore, connected experiences, core privacy
-features, and the overall platform. Mesh Pro must never make the free version
+features, and the overall platform. MeshPro must never make the free version
 feel broken or deliberately incomplete.
 
-## 34. Mesh Pro's Required Value
+## 34. MeshPro's Required Value
 
-Even though free stays complete, Mesh Pro must provide enough value that people
+Even though free stays complete, MeshPro must provide enough value that people
 **genuinely want** it — because of how useful it is, not because free was
 damaged. It should feel like a good, cost-efficient deal worth more than its
 price, valuable to creators, ordinary users, and anyone (not one narrow
@@ -398,7 +398,7 @@ login experience, Meshi, the shared live Mesh, nodes and strings, physics,
 animation, Ghost Mode, MeChat, connected accounts, Flow, horizontal related
 content, profiles, Explore, third-party account interaction, private account
 creation, creator management, creator analytics, human-only content, AI
-moderation, privacy, maximum device performance, monthly Trails, Mesh Pro, and
+moderation, privacy, maximum device performance, monthly Trails, MeshPro, and
 zero advertisements. It must feel complete, polished, interactive, and premium.
 
 **The standard is simple: Mesh.me is meant to become the social platform people
@@ -441,8 +441,8 @@ be updated as work lands. Legend: **Live** (shipped to production) · **Partial*
 | Meshi is the only user-facing AI (§29) | **Live** | Keep AI concentrated in Meshi. |
 | AI moderation before publish (§30) | **Partial** | Extend multi-model pre-publish moderation across direct + synced content. |
 | Zero ads (§31) | **Live (rule)** | No ad surfaces anywhere. |
-| Mesh Pro is the only revenue; free stays complete; Pro adds real value (§32–§34) | **Live** | Mesh Pro exists; keep free complete and Pro genuinely worth it (esp. creators). |
-| Monthly Trails (Spotify-Wrapped-style path through the Mesh) (§35) | **Partial** | `/trail` exists but under-surfaced; make discoverable (Profile/Mesh Pro) and render as a literal path; brand-correct colors. |
+| MeshPro is the only revenue; free stays complete; Pro adds real value (§32–§34) | **Live** | MeshPro exists; keep free complete and Pro genuinely worth it (esp. creators). |
+| Monthly Trails (Spotify-Wrapped-style path through the Mesh) (§35) | **Partial** | `/trail` exists but under-surfaced; make discoverable (Profile/MeshPro) and render as a literal path; brand-correct colors. |
 | Works for non-social-media users (§36) | **Partial** | Standalone value without connected accounts; keep onboarding meaningful. |
 
 **How to use this table:** each continuous-development cycle should pick the

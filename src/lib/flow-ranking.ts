@@ -414,7 +414,7 @@ type RankWeights = {
 };
 
 /**
- * Algorithm Studio (Mesh Pro): five human sliders, 0–100 with 50 neutral,
+ * Algorithm Studio (MeshPro): five human sliders, 0–100 with 50 neutral,
  * compiled into the same RankWeights the presets use. This is the opposite
  * of an engagement dial — the OWNER tunes their own feed, and no post can
  * pay its way up.
@@ -627,7 +627,7 @@ export function rankFlowPosts(
       .slice(0, limit);
   }
 
-  // A Studio mix (Mesh Pro) overrides the preset's weights outright — the
+  // A Studio mix (MeshPro) overrides the preset's weights outright — the
   // caller is responsible for gating who may pass one.
   const weights = opts.studio ? weightsFromStudio(opts.studio) : MODE_WEIGHTS[mode];
   const now = Date.now();

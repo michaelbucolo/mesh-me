@@ -97,7 +97,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
   const reduce = useReducedMotion();
   const searchParams = useSearchParams();
   const month = searchParams.get("month");
-  // "Your Year" — the same thread across twelve months (Mesh Pro).
+  // "Your Year" — the same thread across twelve months (MeshPro).
   const yearMode = searchParams.get("range") === "year" && isPro;
   const yearParam = searchParams.get("year");
   const [data, setData] = useState<TrailData | null>(null);
@@ -205,7 +205,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
         </div>
       </div>
 
-      {/* Month / Year range. Your Year is the Mesh Pro long view. */}
+      {/* Month / Year range. Your Year is the MeshPro long view. */}
       <div className="mb-3 flex items-center gap-1.5">
         <Link
           href="/trail"

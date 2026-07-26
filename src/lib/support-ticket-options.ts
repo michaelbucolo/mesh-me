@@ -2,7 +2,7 @@ export const supportCategories = [
   { value: "accounts", label: "Account access" },
   { value: "meshi", label: "Meshi" },
   { value: "safety", label: "Safety or privacy" },
-  { value: "billing", label: "Billing or Mesh Pro" },
+  { value: "billing", label: "Billing or MeshPro" },
   { value: "connected-platforms", label: "Connected platforms" },
   { value: "data", label: "Data export or deletion" },
   { value: "passwords", label: "Password or verification" },

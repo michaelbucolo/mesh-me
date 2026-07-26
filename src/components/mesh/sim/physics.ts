@@ -159,7 +159,7 @@ function targetFor(node: SceneNode, driftTime: number, driftScale: number): { x:
   return { x: tx, y: ty };
 }
 
-/** Mesh Pro motion styles map onto a single drift multiplier. */
+/** MeshPro motion styles map onto a single drift multiplier. */
 export function driftScaleFor(motionStyle?: string | null): number {
   if (motionStyle === "lively") return 1.9;
   if (motionStyle === "minimal") return 0.22;
