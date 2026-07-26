@@ -43,9 +43,13 @@ interface MeshSceneProps {
   /** "global" loads the guest-viewable world supply as a READ-ONLY view: no
    * presence broadcast, no compose, treated as a visitor (never the owner). */
   viewMode?: "mesh" | "global";
+  /** Server-decided MeshPro membership for THIS viewer (mesh/page.tsx). Drives
+   * the gold hairline on their own wandering Meshi; other people's marks come
+   * from presence, which each client trusts the server for. Cosmetic only. */
+  viewerIsPro?: boolean;
 }
 
-export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
+export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }: MeshSceneProps) {
   const router = useRouter();
   // What this viewer MAY do here, derived ONCE (core/viewer.ts): the Global
   // view is read-only by capability, and "am I on my own mesh?" stays an
@@ -340,6 +344,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         leavingMeshis={live.leavingMeshis}
         ownerLive={live.ownerLive}
         isCoarsePointer={isCoarsePointer}
+        viewerIsPro={viewerIsPro}
       />
 
       {/* Tabs / visiting header / rail / marquee / rewind — the persistent

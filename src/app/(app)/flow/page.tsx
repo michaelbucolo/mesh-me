@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
 import { parseAcceptLanguage } from "@/lib/language";
-import { applyWatchSignal, explainFlowPost, flowFormStats, getFlowCandidates, getViewerTasteProfile, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
+import { applyWatchSignal, explainFlowPost, flowFormStats, getFlowCandidates, getViewerTasteProfile, rankFlowPosts, resolveStudioWeights, type WatchStats } from "@/lib/flow-ranking";
 import { getDiscoverUsers } from "@/lib/queries";
 import { FlowClient, type FlowPost, type FlowSuggestedPerson } from "./flow-client";
 
@@ -64,7 +64,13 @@ export default async function FlowPage() {
   );
   applyWatchSignal(profile, candidates, watchStats);
 
-  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT, seen: persistedSeen, viewerLangs, watch: watchStats }).map((post) => ({
+  // The member's Algorithm Studio mix governs the FIRST paint too. /meshpro
+  // sells these sliders and links here; ranking this page without them meant a
+  // paying member's own Flow opened ignoring their algorithm and only obeyed it
+  // once the client fetched page two.
+  const studio = resolveStudioWeights(user);
+
+  const posts = rankFlowPosts(candidates, profile, { limit: INITIAL_LIMIT, seen: persistedSeen, viewerLangs, watch: watchStats, studio }).map((post) => ({
     ...post,
     createdAt: String(post.createdAt),
     reactions: likedSet.has(post.id) ? [{ id: "self" }] : post.reactions,

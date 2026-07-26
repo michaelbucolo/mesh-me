@@ -32,42 +32,90 @@ function formatBillingDate(value: Date | null) {
 
 // The complete Pro catalogue — each card links to the surface where the
 // feature actually lives. One list, told once.
-const unlocks: Array<{ title: string; body: string; href: string; icon: LucideIcon }> = [
+//
+// ── `enforcedIn` IS PART OF THE PROMISE ──────────────────────────────────────
+//
+// Every entry names the file that actually delivers it and a symbol inside
+// that file, and scripts/meshpro-claims-check.ts asserts both exist. Adding a
+// card without one does not compile; adding one that points at code which is
+// not there fails `npm run check`.
+//
+// This exists because the page shipped claims nothing enforced. "A subtle gold
+// aura" was sold for months while the only trace of it in the codebase was a
+// CSS comment with no rule under it — `isPro` reached the browser through the
+// presence pipeline and no renderer ever read it. "Deeper analytics: audience
+// overlap, longer history, exportable reports" named three things, of which
+// two were free to everyone and the third did not exist.
+//
+// A claim is cheap to write and invisible when it rots. This makes it cost a
+// file path.
+const unlocks: Array<{
+  title: string;
+  body: string;
+  href: string;
+  icon: LucideIcon;
+  /** Where this is actually delivered, and a symbol proving it is still there. */
+  enforcedIn: { file: string; symbol: string };
+}> = [
   {
     title: "Algorithm Studio",
     body: "Five sliders that set the exact weights your Flow ranks by. Your algorithm, literally.",
     href: "/flow",
     icon: SlidersHorizontal,
+    enforcedIn: { file: "src/lib/flow-ranking.ts", symbol: "resolveStudioWeights" },
   },
   {
     title: "Your Year",
     body: "Your Trail stretched across twelve months — the whole year as one thread.",
     href: "/trail?range=year",
     icon: CalendarRange,
+    enforcedIn: { file: "src/app/api/trail/route.ts", symbol: "yearMode" },
   },
   {
-    title: "Atmospheres",
-    body: "Aurora, Ember, Ocean, and Dawn skies over your mesh. Visitors see them too.",
+    // Named for what the picker actually says. The four papers are defined as
+    // aurora/ember/ocean/dawn in code (paint/papers.ts) but every label a
+    // person can read says Botanical, Kraft, Blueprint and Sunlit — so this
+    // card was selling four things nobody could find. "Skies" went the same
+    // way: papers.ts states outright that the mesh is paper, not sky.
+    title: "Papers",
+    body: "Botanical, Kraft, Blueprint, and Sunlit stock under your mesh. Visitors see it too.",
     href: "/settings#mesh",
     icon: Palette,
+    enforcedIn: { file: "src/components/mesh/paint/papers.ts", symbol: "MESH_PAPERS" },
   },
   {
-    title: "Deeper analytics",
-    body: "Audience overlap across platforms, longer history, exportable reports.",
+    // Was "Deeper analytics — audience overlap across platforms, longer
+    // history, exportable reports." All three were wrong as PAID claims.
+    // Audience overlap is real and every free account already has it; the
+    // export is the GDPR account dump, which is a right, not a perk; and
+    // "longer history" did not exist in any form — CHART_DAYS and
+    // METRIC_WINDOW_DAYS were flat constants with no plan branch.
+    //
+    // Overlap and export stay free, because paywalling something people
+    // already have to make a sentence true is worse than the sentence. What
+    // Pro buys is the one thing that was genuinely missing: more history.
+    title: "A longer memory",
+    body: "A year of your analytics instead of a fortnight — the trend, not the week.",
     href: "/analytics",
     icon: LineChart,
+    enforcedIn: { file: "src/lib/analytics-dashboard.ts", symbol: "analyticsWindow" },
   },
   {
     title: "World styling",
     body: "Thread colors, node styles, and motion for your mesh.",
     href: "/settings#mesh",
     icon: WandSparkles,
+    enforcedIn: { file: "src/components/settings/settings-control-center.tsx", symbol: "meshNodeStyles" },
   },
   {
     title: "Meshi wardrobe",
-    body: "Premium hats, hair, badges, and outfits — plus a subtle gold aura, live.",
+    // "gold aura" became "gold rim": the mesh's Meshis have weight and do not
+    // glow (globals.css, .mesh-owner-meshi), so the mark is a hairline on the
+    // silhouette. It is now drawn, which it was not before.
+    body: "Premium hats, hair, badges, and outfits — plus a fine gold rim, live.",
     href: "/settings",
     icon: Crown,
+    enforcedIn: { file: "src/lib/mesh-pro.ts", symbol: "FREE_MESHI_OPTIONS" },
   },
 ];
 

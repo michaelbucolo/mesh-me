@@ -1,13 +1,38 @@
 import { getCurrentUser } from "@/lib/auth";
 import { hasAnalyticsConsent } from "@/lib/consent";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
+import { hasMeshPro } from "@/lib/mesh-pro";
 import { prisma } from "@/lib/prisma";
 import { memoizeWithTtl } from "@/lib/ttl-memo";
 
 type AnalyticsUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 
-const CHART_DAYS = 14;
-const METRIC_WINDOW_DAYS = 30;
+/**
+ * HOW FAR BACK ANALYTICS GO, BY PLAN.
+ *
+ * These were two flat constants — 14 and 30 for everybody — while /meshpro
+ * sold "Deeper analytics: ... longer history". There was no plan branch
+ * anywhere in this file, so a member paid for a window they already had. The
+ * card now says "A longer memory: a year of your analytics instead of a
+ * fortnight", and this is the thing that makes that sentence true.
+ *
+ * Free is unchanged. Nothing anyone has today gets taken away to sell it back.
+ */
+const CHART_DAYS_FREE = 14;
+const CHART_DAYS_PRO = 365;
+const METRIC_WINDOW_DAYS_FREE = 30;
+const METRIC_WINDOW_DAYS_PRO = 365;
+
+/** The one decider, so a query window and the series drawn from it can never
+ *  disagree — the failure mode where a chart has 365 slots and the query only
+ *  filled 14 of them, and the difference reads as "you posted nothing". */
+function analyticsWindow(isPro: boolean) {
+  return {
+    chartDays: isPro ? CHART_DAYS_PRO : CHART_DAYS_FREE,
+    metricDays: isPro ? METRIC_WINDOW_DAYS_PRO : METRIC_WINDOW_DAYS_FREE,
+  };
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type ChartPoint = {
@@ -38,7 +63,7 @@ function shortDayLabel(key: string) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
 }
 
-function makeSeries(days = CHART_DAYS) {
+function makeSeries(days: number) {
   const start = daysAgoStart(days);
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(start.getTime() + index * DAY_MS);
@@ -47,10 +72,23 @@ function makeSeries(days = CHART_DAYS) {
   });
 }
 
+/** Date key → slot, built once per series and cached on the array itself.
+ *
+ *  This was a linear `series.find` per event. At 14 slots that was free; a
+ *  member's series is 365, so the same loop became 26x the comparisons inside
+ *  the heaviest computation in the app. The points are mutated in place, so
+ *  the map holds the very same objects and the callers are unchanged. */
+const seriesIndex = new WeakMap<ChartPoint[], Map<string, ChartPoint>>();
+
 function addToSeries(series: ChartPoint[], date: Date | string | null | undefined, amount = 1) {
   const key = dateKey(date);
   if (!key) return;
-  const point = series.find((item) => item.key === key);
+  let index = seriesIndex.get(series);
+  if (!index) {
+    index = new Map(series.map((point) => [point.key, point]));
+    seriesIndex.set(series, index);
+  }
+  const point = index.get(key);
   if (point) point.value += amount;
 }
 
@@ -233,8 +271,10 @@ function computeAudienceOverlap(rows: FollowerRowForOverlap[]) {
 }
 
 async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
-  const chartStart = daysAgoStart(CHART_DAYS);
-  const windowStart = daysAgoStart(METRIC_WINDOW_DAYS);
+  // One resolve, reused by every query and every series below.
+  const { chartDays, metricDays } = analyticsWindow(hasMeshPro(user));
+  const chartStart = daysAgoStart(chartDays);
+  const windowStart = daysAgoStart(metricDays);
   const contentSafetyWhere = nsfwHiddenWhere(user);
   const platformPostWhere = {
     ...contentSafetyWhere,
@@ -289,7 +329,7 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
         platformAnalytics: {
           where: { date: { gte: windowStart } },
           orderBy: { date: "asc" },
-          take: METRIC_WINDOW_DAYS,
+          take: metricDays,
         },
       },
       orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
@@ -503,10 +543,10 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
   // more than one platform.
   const audienceOverlap = computeAudienceOverlap(platformFollowerRows);
 
-  const engagementSeries = makeSeries();
-  const contentSeries = makeSeries();
-  const followerGrowthSeries = makeSeries();
-  const activitySeries = makeSeries();
+  const engagementSeries = makeSeries(chartDays);
+  const contentSeries = makeSeries(chartDays);
+  const followerGrowthSeries = makeSeries(chartDays);
+  const activitySeries = makeSeries(chartDays);
 
   for (const post of nativePosts) {
     addToSeries(contentSeries, post.createdAt, 1);
