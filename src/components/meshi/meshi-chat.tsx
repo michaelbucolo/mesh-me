@@ -263,7 +263,7 @@ export function MeshiChat({
                   className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-[0.78125rem] leading-relaxed ${
                     msg.role === "user"
                       ? "brand-button rounded-br-md text-white"
-                      : "rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                      : "rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-primary)]"
                   }`}
                 >
                   {msg.content}
@@ -327,7 +327,7 @@ export function MeshiChat({
                 transition={{ type: "spring", stiffness: 340, damping: 24 }}
                 className="flex justify-start"
               >
-                <div className="rounded-2xl rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-4 py-3">
+                <div className="rounded-2xl rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-card)] px-4 py-3">
                   <div className="mesh-typing-wave" role="status" aria-label="Meshi is typing">
                     <span />
                     <span />

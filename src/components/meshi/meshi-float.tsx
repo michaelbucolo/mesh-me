@@ -1732,7 +1732,7 @@ export function MeshiFloat() {
                 initial={{ opacity: 0, y: 8, scale: 0.94 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.94 }}
-                className="absolute bottom-full right-0 mb-2 w-[15rem] rounded-xl border border-[var(--border-primary)] bg-[var(--bg-elevated)]/94 px-3 py-2 text-micro font-semibold text-[var(--text-primary)] shadow-lg backdrop-blur"
+                className="plate plate-raised absolute bottom-full right-0 mb-2 w-[15rem] px-3 py-2 text-micro font-semibold text-[var(--text-primary)]"
               >
                 <div className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />

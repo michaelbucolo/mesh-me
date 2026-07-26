@@ -279,7 +279,7 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
   const maxEpp = Math.max(1, ...perPost.map((p) => p.epp));
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 md:p-5">
+    <section className="plate p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">

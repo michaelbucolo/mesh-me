@@ -140,7 +140,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
                         key={permission.key}
                         onClick={() => togglePermission(account, permission.key)}
                         disabled={loading}
-                        className={`rounded-xl border p-3 text-left transition ${active ? "border-emerald-500/35 bg-emerald-500/10" : "border-[var(--border-primary)] bg-[var(--bg-secondary)]"}`}
+                        className={`rounded-xl border p-3 text-left transition ${active ? "border-emerald-500/35 bg-emerald-500/10" : "border-[var(--border-primary)] bg-[var(--bg-card)]"}`}
                       >
                         <p className="text-xs font-semibold text-[var(--text-primary)]">{permission.label}</p>
                         <p className="mt-1 text-micro leading-5 text-[var(--text-muted)]">{permission.description}</p>
@@ -172,7 +172,7 @@ function Stat({ label, value }: { label: string; value: number }) {
 
 function MiniStat({ icon: Icon, label, value }: { icon: typeof Eye; label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
+    <div className="plate p-3">
       <Icon className="mb-2 h-4 w-4 text-[var(--accent)]" />
       <p className="text-lg font-semibold text-[var(--text-primary)]">{value.toLocaleString()}</p>
       <p className="text-micro text-[var(--text-muted)]">{label}</p>

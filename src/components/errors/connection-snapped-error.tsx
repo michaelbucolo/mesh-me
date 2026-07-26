@@ -51,7 +51,7 @@ export function ConnectionSnappedError({
     >
       <div
         className={cn(
-          "connection-snapped-card relative z-10 mx-auto w-full rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/94 p-5 shadow-[var(--shadow-md)] backdrop-blur-xl sm:p-8",
+          "connection-snapped-card plate plate-raised relative z-10 mx-auto w-full p-5 sm:p-8",
           compact ? "max-w-2xl" : "max-w-3xl",
         )}
       >

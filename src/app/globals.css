@@ -4026,6 +4026,24 @@ body,
   box-shadow: none !important;
 }
 
+/* THE DE-GLASSING KEPT ITS PAINT, AND THE PAINT WAS THE RECESS.
+
+   This block existed to turn frosted glass into matte paper. Killing the blur
+   was right and stays. Painting all fourteen card classes
+   `--bg-secondary !important` was not: that token is `--paper-2`, the RECESS —
+   luminance 0.0015 against the mat's 0.0030. Every card in the product was
+   force-painted DARKER than the page it sits on, which is what "flat" and
+   "cheap" actually look like. Measured before this change: 81 cards across six
+   surfaces, 59 of them (73%) darker than the mat.
+
+   The TOYBOX card rule near the end of this file already says `--paper-1`. It
+   never took effect, because a non-`!important` declaration cannot beat an
+   `!important` one no matter how much later it appears. The comment above
+   `.insta-post-card` down there names the exact hazard — "that rule is what has
+   to be beaten" — and then the very next rule in the same block forgets it.
+
+   So the paint comes out here rather than being out-shouted there. Base rules
+   govern the fill again; only the blur stays forced off. */
 .glass,
 .glass-card,
 .glass-panel,
@@ -4040,9 +4058,6 @@ body,
 .insta-story-rail,
 .feed-composer-card,
 .feed-x-layout .glass-card {
-  border-color: var(--border-primary) !important;
-  background: var(--bg-secondary) !important;
-  box-shadow: var(--shadow-sm) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -4060,19 +4075,9 @@ body,
   -webkit-backdrop-filter: none !important;
 }
 
-.glass-card:hover,
-.mesh-surface:hover,
-.mesh-surface:focus-within,
-.simple-card:hover,
-.theme-card:hover,
-.premium-surface:hover,
-.premium-surface:focus-within,
-.feed-composer-card:hover {
-  border-color: var(--border-hover) !important;
-  background: var(--bg-secondary) !important;
-  box-shadow: var(--shadow-md) !important;
-  transform: translateY(-1px) !important;
-}
+/* The matching hover paint is gone for the same reason. The correct hover — the
+   shadow lifts, the card does not travel — lives with the card rule at the end
+   of this file, where the rest of the idiom is. */
 
 .insta-post-card:hover {
   border-color: var(--border-hover) !important;
@@ -4286,9 +4291,14 @@ body,
     inset 0 0 42px rgba(88, 166, 255, 0.12) !important;
 }
 
+/* Edge-to-edge on a phone: the post loses its rails and its shadow and becomes
+   a run of `.leaf` rows, which is the right idiom for a scroll you flick.
+   `.feed-x-layout .glass-card` used to ride along in this selector, which meant
+   every OTHER card on the feed — composer chrome, rails, empty states — was
+   painted the mat colour with no shadow on the form factor most people use. The
+   desktop card fix would have stopped at 768px and nobody would have seen it. */
 @media (max-width: 767px) {
 
-  .feed-x-layout .glass-card,
   .feed-x-layout .insta-post-card {
     background: var(--bg-primary) !important;
     box-shadow: none !important;
@@ -4935,6 +4945,14 @@ body,
   border: var(--border-w) solid var(--rule);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-rest);
+}
+
+/* A plate that is off the page rather than on it: overlays, floating panels,
+   full-screen error cards. Same fill and rule, deeper contact shadow. It is a
+   modifier because "raised" is a fact about where the plate is, not what it is.
+   Declared after `.plate` so it wins the box-shadow on equal specificity. */
+.plate-raised {
+  box-shadow: var(--shadow-raised);
 }
 
 /* ACTION. The moulded key.
@@ -7286,13 +7304,49 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   background: var(--paper-1);
 }
 
-/* Panels and cards elsewhere get the same plate treatment. */
+/* Panels and cards elsewhere get the same plate treatment.
+
+   This used to name three classes and carry no `!important`, so it lost to the
+   de-glassing block above and never painted anything. That block no longer
+   paints, so this governs — and it now names the whole card vocabulary rather
+   than the three someone happened to be looking at. Fourteen class names, one
+   fill. `--paper-1` is the card; the mat is `--paper-0`; a card is lighter than
+   the page it sits on, which is the entire reason it reads as an object. */
 .mesh-panel,
 .mesh-stat-card,
-.glass-card {
+.glass,
+.glass-card,
+.glass-panel,
+.glass-surface,
+.glass-dropdown,
+.mesh-surface,
+.simple-card,
+.theme-card,
+.premium-surface,
+.app-command-bar,
+.app-route-guide,
+.insta-story-rail,
+.feed-x-layout .glass-card {
   background: var(--paper-1);
   border: var(--border-w) solid var(--rule);
   box-shadow: var(--shadow-rest);
+}
+
+/* Hover lifts the shadow, not the element — the same law the feed post above
+   follows. The block this replaces travelled the card 1px and repainted it the
+   colour it already was. */
+.glass-card:hover,
+.glass-panel:hover,
+.mesh-surface:hover,
+.mesh-surface:focus-within,
+.simple-card:hover,
+.theme-card:hover,
+.premium-surface:hover,
+.premium-surface:focus-within {
+  background: var(--paper-hover);
+  border-color: var(--rule-strong);
+  box-shadow: var(--shadow-raised);
+  transform: none;
 }
 
 /* ── 2. EVERY PRESSABLE ANSWERS ───────────────────────────────────────────── */
@@ -7612,27 +7666,27 @@ button, [role="button"] {
    It is the tray it was already coloured as: three declarations, character for
    character the body of `.tray` at :4816.
 
-   `!important` is required here and only here — :4030 and :4059 already use it.
-   The `.feed-x-layout` descendant selector is required too: the composer renders
-   INSIDE `<main class="… feed-x-layout …">` (feed-timeline-client.tsx:473, 609)
-   and it also carries `glass-card`, so `.feed-x-layout .glass-card !important`
-   at :4031 outranks a bare `.feed-composer-card !important` on specificity.
-   Matching its specificity is what makes this rule actually land. */
+   The `.feed-x-layout` descendant selector stays: the composer renders INSIDE
+   `<main class="… feed-x-layout …">` (feed-timeline-client.tsx:473, 609) and it
+   also carries `glass-card`, so it has to match `.feed-x-layout .glass-card` on
+   specificity to land. What is gone is the `!important` on every declaration.
+   It was there to out-shout the de-glassing block's forced paint; that block no
+   longer paints, so ordinary cascade order does the job — this rule sits after
+   the card rule and wins on being later. A tray that has to shout to stay a tray
+   is a tray one refactor away from becoming a card again. */
 .feed-composer-card,
 .feed-x-layout .feed-composer-card {
-  background: var(--paper-2) !important;
-  border: 0 !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: inset 0 2px 0 0 var(--plinth-tray) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: var(--paper-2);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 2px 0 0 var(--plinth-tray);
 }
 .feed-composer-card:hover,
 .feed-x-layout .feed-composer-card:hover {
-  background: var(--paper-2) !important;
-  border: 0 !important;
-  box-shadow: inset 0 2px 0 0 var(--plinth-tray) !important;
-  transform: none !important;
+  background: var(--paper-2);
+  border: 0;
+  box-shadow: inset 0 2px 0 0 var(--plinth-tray);
+  transform: none;
 }
 
 /* The collapsed trigger was painted --bg-secondary too: a control the exact

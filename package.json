@@ -9,7 +9,7 @@
     "lint": "eslint --max-warnings=0",
     "dead-code:check": "knip --no-progress",
     "schema:check": "prisma migrate diff --exit-code --from-migrations prisma/migrations --to-schema prisma/schema.prisma",
-    "check": "npm run foundation:check && npm run schema:check && npm run lint && npm run dead-code:check && npm run privacy:check && npm run contrast:check && npm run type:check && npm run consent:check && npm run disconnect:check && npm run second-writer:check && npm run email-claim:check && npm run claim-truth:check && npm run shape:check && npm run cursor:check && npm run meshi:cause-check && npm run mesh:layout-check && npm run mesh:seen-contract && npm run flow-form:check && npm run meshi-act:check && npm run reconciliation:check && npm run launch:check && npm run roadmap:check && npm run diagnostics",
+    "check": "npm run foundation:check && npm run schema:check && npm run lint && npm run dead-code:check && npm run privacy:check && npm run contrast:check && npm run type:check && npm run consent:check && npm run disconnect:check && npm run second-writer:check && npm run email-claim:check && npm run claim-truth:check && npm run shape:check && npm run surface:check && npm run cursor:check && npm run meshi:cause-check && npm run mesh:layout-check && npm run mesh:seen-contract && npm run flow-form:check && npm run meshi-act:check && npm run reconciliation:check && npm run launch:check && npm run roadmap:check && npm run diagnostics",
     "verify": "npm run foundation:check && npm run schema:check && npm run lint && npm run dead-code:check && npm run privacy:check && npm run mesh:layout-check && npm run mesh:seen-contract && npm run reconciliation:check && npm run build && npm run diagnostics",
     "diagnostics": "node scripts/platform-diagnostics.mjs",
     "foundation:check": "node scripts/foundation-check.mjs",
@@ -42,7 +42,8 @@
     "contrast:check": "node --import tsx scripts/contrast-check.ts",
     "type:check": "node --import tsx scripts/type-check.ts",
     "flow-form:check": "node --import tsx scripts/flow-form-check.ts",
-    "meshi-act:check": "node --import tsx scripts/meshi-act-check.ts"
+    "meshi-act:check": "node --import tsx scripts/meshi-act-check.ts",
+    "surface:check": "node --import tsx scripts/surface-check.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",

@@ -173,7 +173,7 @@ function Stat({
 }) {
   return (
     <div
-      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
+      className="plate p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
       <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
@@ -223,7 +223,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
   ];
   return (
     <div
-      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
+      className="plate p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -263,7 +263,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
 function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestContent"][number]; rank: number }) {
   const tone = toneFor(post.platform);
   const inner = (
-    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 transition hover:border-[var(--accent)]/40">
+    <div className="plate flex min-w-0 items-center gap-3 p-3 transition hover:border-[var(--accent)]/40">
       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${rank === 1 ? "bg-gradient-to-br from-amber-300 to-amber-500 text-white" : "bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"}`}>
         {rank}
       </span>
@@ -310,7 +310,7 @@ function TrendCard({ title, points, tone, index }: { title: string; points: Char
   const total = points.reduce((t, p) => t + p.value, 0);
   return (
     <div
-      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4"
+      className="plate p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
       <div className="flex items-baseline justify-between">
@@ -373,7 +373,7 @@ function StandoutPlatform({ best, avgRate }: { best: AnalyticsDashboardData["cre
 function FootprintTile({ icon: Icon, label, value, index }: { icon: LucideIcon; label: string; value: number; index: number }) {
   return (
     <div
-      className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/55 p-3"
+      className="plate p-3"
       style={{ ["--i" as string]: index } as CSSProperties}
     >
       <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
@@ -609,7 +609,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
         </div>
 
         {data.recentActivity.length > 0 && (
-          <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 p-3 md:p-4">
+          <div className="tray mt-5 p-3 md:p-4">
             <p className="mb-1 flex items-center gap-2 px-2 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
               <Activity size={13} aria-hidden="true" />
               Recent activity
@@ -624,7 +624,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
       </section>
 
       {/* Data controls, tucked at the end where they belong */}
-      <section className="mt-10 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4 md:p-5" aria-label="Data and privacy">
+      <section className="plate mt-10 p-4 md:p-5" aria-label="Data and privacy">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
             <ShieldCheck size={15} className="text-emerald-400" aria-hidden="true" />
@@ -663,7 +663,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
               <ShieldCheck size={13} className="text-emerald-400" aria-hidden="true" />
               Security checklist
             </p>
-            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 px-3 py-2">
+            <div className="tray px-3 py-2">
               {data.privacy.checks.map((check) => (
                 <CheckRow key={check.label} label={check.label} passed={check.passed} detail={check.detail} />
               ))}
@@ -674,7 +674,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
               <Eye size={13} aria-hidden="true" />
               Where your content is visible
             </p>
-            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/50 p-4">
+            <div className="tray p-4">
               <VisibilityBar breakdown={data.privacy.visibilityBreakdown} />
             </div>
           </div>
