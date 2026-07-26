@@ -115,7 +115,13 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
                     <p className="text-sm font-semibold capitalize text-[var(--text-primary)]">{account.platform}</p>
                     <p className="text-xs text-[var(--text-muted)]">{account.platformUsername || "No username"}</p>
                   </div>
+                  {/* Both of this panel's controls are toggles that only ever
+                      said which way they were set in prose inside themselves.
+                      These decide what Mesh.me may read from a connected
+                      account, so the state belongs on the control. */}
                   <button
+                    type="button"
+                    aria-pressed={account.isActive}
                     onClick={() => toggleAccountAccess(account)}
                     disabled={savingKey === `${account.id}:isActive`}
                     className={`rounded-full px-3 py-1 text-xs font-semibold transition ${account.isActive ? "bg-emerald-500/15 text-[var(--success)]" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"}`}
@@ -138,6 +144,8 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
                     return (
                       <button
                         key={permission.key}
+                        type="button"
+                        aria-pressed={active}
                         onClick={() => togglePermission(account, permission.key)}
                         disabled={loading}
                         className={`rounded-xl border p-3 text-left transition ${active ? "border-emerald-500/35 bg-emerald-500/10" : "border-[var(--border-primary)] bg-[var(--bg-card)]"}`}
